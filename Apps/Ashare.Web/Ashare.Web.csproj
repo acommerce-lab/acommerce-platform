@@ -20,10 +20,6 @@
     <ProjectReference Include="..\..\clients\ACommerce.Client.Http\ACommerce.Client.Http.csproj" />
     <ProjectReference Include="..\..\clients\ACommerce.Client.StateBridge\ACommerce.Client.StateBridge.csproj" />
 
-    <!-- Domain libs -->
-    <ProjectReference Include="..\..\clients\ACommerce.Client.Domain.Auth\ACommerce.Client.Domain.Auth.csproj" />
-    <ProjectReference Include="..\..\clients\ACommerce.Client.Domain.Listings\ACommerce.Client.Domain.Listings.csproj" />
-
     <!-- Widgets + Templates (new styling cascade) -->
     <ProjectReference Include="..\..\libs\frontend\ACommerce.Widgets\ACommerce.Widgets.csproj" />
     <ProjectReference Include="..\..\libs\frontend\ACommerce.Templates.Commerce\ACommerce.Templates.Commerce.csproj" />

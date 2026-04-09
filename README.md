@@ -37,3 +37,19 @@ bash Apps/Order.Web/run-local.sh
 ```
 
 Then open http://localhost:5701.
+
+## Using the solution file
+
+The repository ships a full **`ACommerce.Platform.sln`** at the root that
+registers every project (38 in total) and organizes them into solution
+folders (`Apps`, `libs/backend/{core,auth,files,messaging,marketplace,other,sales}`,
+`libs/frontend`, `clients`). Open it in Visual Studio / Rider / VS Code
+and you'll see the full platform tree ready to build, run, and debug.
+
+Command-line equivalents:
+
+```bash
+dotnet build ACommerce.Platform.sln       # build everything
+dotnet run --project Apps/Order.Api       # run the Order backend
+dotnet run --project Apps/Order.Web       # run the Order frontend
+```
