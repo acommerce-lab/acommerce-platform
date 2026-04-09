@@ -1,0 +1,18 @@
+# .NET
+bin/
+obj/
+*.user
+*.suo
+
+# SQLite demo DBs
+**/data/*.db
+**/data/*.db-*
+
+# Logs
+**/logs/
+*.log
+
+# IDE
+.vs/
+.vscode/
+.idea/
