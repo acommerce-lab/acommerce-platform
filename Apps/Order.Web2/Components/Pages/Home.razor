@@ -1,0 +1,161 @@
+@page "/"
+@inject OrderApiClient Api
+@inject UiPreferences Ui
+@inject AuthStateService Auth
+@inject NavigationManager Nav
+
+<PageTitle>اوردر — عروض اليوم</PageTitle>
+
+<div class="page-hero">
+    <h1>@(Ui.IsArabic ? "اوردر" : "Order")</h1>
+    <p>@(Ui.IsArabic ? "عروض اليوم من كافيهات ومطاعم المدينة" : "Today's deals from local cafes and restaurants")</p>
+    @if (!Auth.IsAuthenticated)
+    {
+        <div class="hero-actions">
+            <a class="btn btn-light btn-sm" href="/login">
+                <i class="bi bi-box-arrow-in-right"></i>
+                @(Ui.IsArabic ? "تسجيل الدخول" : "Sign in")
+            </a>
+            <a class="btn btn-outline btn-sm" href="/settings" style="background:rgba(255,255,255,0.18); color:#fff; border-color:rgba(255,255,255,0.4);">
+                <i class="bi bi-translate"></i>
+                @(Ui.IsArabic ? "العربية" : "English")
+            </a>
+        </div>
+    }
+</div>
+
+@if (Categories.Count > 0)
+{
+    <div class="cat-row">
+        <button class="cat-pill @(SelectedCategoryId == null ? "active" : "")"
+                @onclick="@(() => SelectCategory(null))">
+            <span>🍴</span>
+            <span>@(Ui.IsArabic ? "الكل" : "All")</span>
+        </button>
+        @foreach (var c in Categories)
+        {
+            var isActive = SelectedCategoryId == c.Id;
+            <button class="cat-pill @(isActive ? "active" : "")"
+                    @onclick="@(() => SelectCategory(c.Id))">
+                <span>@c.Icon</span>
+                <span>@(Ui.IsArabic ? c.NameAr : c.NameEn)</span>
+            </button>
+        }
+    </div>
+}
+
+@if (Loading)
+{
+    <div class="empty-state">
+        <div class="ico">⏳</div>
+        <p>@(Ui.IsArabic ? "جاري تحميل العروض..." : "Loading offers…")</p>
+    </div>
+}
+else if (Offers.Count == 0)
+{
+    <div class="empty-state">
+        <div class="ico">🔍</div>
+        <h3>@(Ui.IsArabic ? "لا توجد عروض" : "No offers")</h3>
+        <p>@(Ui.IsArabic ? "جرّب فئة أخرى" : "Try a different category")</p>
+    </div>
+}
+else
+{
+    <div class="offer-grid">
+        @foreach (var o in Offers)
+        {
+            <a class="offer-card" href="@($"/offer/{o.Id}")">
+                <div class="offer-image">
+                    <span>@(string.IsNullOrEmpty(o.Emoji) ? "🍽️" : o.Emoji)</span>
+                    @if (o.IsFeatured)
+                    {
+                        <span class="featured"><i class="bi bi-star-fill"></i> @(Ui.IsArabic ? "مميز" : "Top")</span>
+                    }
+                    @if (o.DiscountPercent > 0)
+                    {
+                        <span class="discount">-@(o.DiscountPercent)%</span>
+                    }
+                </div>
+                <div class="offer-body">
+                    <p class="offer-title">@o.Title</p>
+                    <div class="offer-vendor">
+                        <span>@(o.Vendor?.LogoEmoji ?? "🏪")</span>
+                        <span>@(o.Vendor?.Name ?? "")</span>
+                    </div>
+                    <div class="offer-price-row">
+                        <span class="offer-price">@o.Price.ToString("N0") @o.Currency</span>
+                        @if (o.OriginalPrice.HasValue && o.OriginalPrice > o.Price)
+                        {
+                            <span class="offer-original">@o.OriginalPrice.Value.ToString("N0")</span>
+                        }
+                    </div>
+                </div>
+            </a>
+        }
+    </div>
+}
+
+@code {
+    private List<CategoryDto> Categories = new();
+    private List<OfferDto> Offers = new();
+    private Guid? SelectedCategoryId;
+    private bool Loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var catEnv = await Api.GetAsync<List<CategoryDto>>("/api/categories");
+        if (catEnv.Data != null) Categories = catEnv.Data;
+        await Reload();
+    }
+
+    private async Task SelectCategory(Guid? id)
+    {
+        SelectedCategoryId = id;
+        await Reload();
+    }
+
+    private async Task Reload()
+    {
+        Loading = true;
+        var path = SelectedCategoryId.HasValue
+            ? $"/api/offers?categoryId={SelectedCategoryId.Value}"
+            : "/api/offers";
+        var env = await Api.GetAsync<List<OfferDto>>(path);
+        Offers = env.Data ?? new();
+        Loading = false;
+    }
+
+    public class CategoryDto
+    {
+        public Guid Id { get; set; }
+        public string Slug { get; set; } = "";
+        public string NameAr { get; set; } = "";
+        public string NameEn { get; set; } = "";
+        public string Icon { get; set; } = "🍔";
+    }
+
+    public class OfferDto
+    {
+        public Guid Id { get; set; }
+        public string Title { get; set; } = "";
+        public string Description { get; set; } = "";
+        public decimal Price { get; set; }
+        public decimal? OriginalPrice { get; set; }
+        public string Currency { get; set; } = "SAR";
+        public string Emoji { get; set; } = "🍽️";
+        public int DiscountPercent { get; set; }
+        public bool IsFeatured { get; set; }
+        public VendorDto? Vendor { get; set; }
+    }
+
+    public class VendorDto
+    {
+        public Guid Id { get; set; }
+        public string Name { get; set; } = "";
+        public string LogoEmoji { get; set; } = "🏪";
+        public string City { get; set; } = "";
+        public string? District { get; set; }
+        public double Rating { get; set; }
+        public string OpenHours { get; set; } = "";
+    }
+}

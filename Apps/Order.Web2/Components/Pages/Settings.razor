@@ -1,0 +1,105 @@
+@page "/settings"
+@inject UiPreferences Ui
+@inject AuthStateService Auth
+@implements IDisposable
+
+<PageTitle>الإعدادات - اوردر</PageTitle>
+
+<h1 class="page-title">@(Ui.IsArabic ? "الإعدادات" : "Settings")</h1>
+
+<div class="s-card">
+    <h3>@(Ui.IsArabic ? "المظهر" : "Appearance")</h3>
+    <div class="seg">
+        <button class="seg-btn @(!Ui.IsDark ? "active" : "")" @onclick="@(() => Ui.SetTheme("light"))">
+            <i class="bi bi-sun"></i>
+            <span>@(Ui.IsArabic ? "فاتح" : "Light")</span>
+        </button>
+        <button class="seg-btn @(Ui.IsDark ? "active" : "")" @onclick="@(() => Ui.SetTheme("dark"))">
+            <i class="bi bi-moon"></i>
+            <span>@(Ui.IsArabic ? "داكن" : "Dark")</span>
+        </button>
+    </div>
+</div>
+
+<div class="s-card">
+    <h3>@(Ui.IsArabic ? "اللغة" : "Language")</h3>
+    <div class="seg">
+        <button class="seg-btn @(Ui.IsArabic ? "active" : "")" @onclick="@(() => Ui.SetLanguage("ar"))">
+            <span>🇸🇦</span>
+            <span>العربية</span>
+        </button>
+        <button class="seg-btn @(!Ui.IsArabic ? "active" : "")" @onclick="@(() => Ui.SetLanguage("en"))">
+            <span>🇬🇧</span>
+            <span>English</span>
+        </button>
+    </div>
+</div>
+
+<div class="s-card">
+    <h3>@(Ui.IsArabic ? "حول التطبيق" : "About")</h3>
+    <div class="s-card-row">
+        <span class="label">@(Ui.IsArabic ? "الإصدار" : "Version")</span>
+        <span class="value" dir="ltr">1.0.0</span>
+    </div>
+    <div class="s-card-row">
+        <span class="label">@(Ui.IsArabic ? "الخادم" : "Backend")</span>
+        <span class="value" dir="ltr">Order.Api2 (OpEngine + SQLite)</span>
+    </div>
+    <div class="s-card-row" style="border-bottom:0;">
+        <span class="label">@(Ui.IsArabic ? "الواجهة" : "Frontend")</span>
+        <span class="value" dir="ltr">Order.Web2 + ACommerce.Widgets</span>
+    </div>
+</div>
+
+@if (Auth.IsAuthenticated)
+{
+    <div style="padding: 4px 16px 30px;">
+        <button class="btn btn-outline-danger btn-block" @onclick="SignOut">
+            <i class="bi bi-box-arrow-@(Ui.IsArabic ? "left" : "right")"></i>
+            @(Ui.IsArabic ? "تسجيل الخروج" : "Sign out")
+        </button>
+    </div>
+}
+
+<style>
+    .seg {
+        display: flex;
+        background: var(--ac-bg-alt);
+        border-radius: 12px;
+        padding: 4px;
+        gap: 4px;
+    }
+    .seg-btn {
+        flex: 1;
+        padding: 14px;
+        border: 0;
+        background: transparent;
+        color: var(--ac-text-muted);
+        font-weight: 700;
+        font-size: 0.9rem;
+        border-radius: 9px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        transition: all 150ms;
+    }
+    .seg-btn i { font-size: 1.15rem; }
+    .seg-btn.active {
+        background: var(--ac-surface);
+        color: var(--ac-primary);
+        box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+    }
+</style>
+
+@code {
+    protected override void OnInitialized() => Ui.OnChanged += OnChanged;
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender) await Auth.EnsureRestoredAsync();
+    }
+    private void OnChanged() => InvokeAsync(StateHasChanged);
+    private async Task SignOut() => await Auth.SignOutAsync();
+    public void Dispose() => Ui.OnChanged -= OnChanged;
+}

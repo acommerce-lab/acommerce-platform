@@ -1,0 +1,204 @@
+@page "/login"
+@inject OrderApiClient Api
+@inject AuthStateService Auth
+@inject UiPreferences Ui
+@inject NavigationManager Nav
+
+<PageTitle>تسجيل الدخول - اوردر</PageTitle>
+
+<div class="auth-page">
+    <div class="auth-hero">
+        <div class="auth-icon">🍔</div>
+        <h1 class="auth-brand">اوردر</h1>
+        <p class="auth-tag">@(Ui.IsArabic ? "عروض الكافيهات والمطاعم" : "Cafe & restaurant deals")</p>
+    </div>
+
+    <div class="auth-card">
+        @if (Step == 1)
+        {
+            <h2 class="auth-title">@(Ui.IsArabic ? "مرحباً بك" : "Welcome")</h2>
+            <p class="auth-subtitle">@(Ui.IsArabic ? "أدخل رقم جوالك للمتابعة" : "Enter your phone number to continue")</p>
+
+            <label class="form-label">@(Ui.IsArabic ? "رقم الجوال" : "Phone number")</label>
+            <input class="form-input" type="tel" inputmode="numeric"
+                   placeholder="+966500000001" @bind="Phone" />
+
+            @if (!string.IsNullOrEmpty(Error))
+            {
+                <div class="alert alert-danger" style="margin-top:12px;">@Error</div>
+            }
+
+            <button class="btn btn-primary btn-block" style="margin-top:16px;"
+                    @onclick="RequestOtp" disabled="@Busy">
+                @if (Busy) { <i class="bi bi-arrow-clockwise"></i><span>@(Ui.IsArabic ? "جاري الإرسال..." : "Sending...")</span> }
+                else { <i class="bi bi-send"></i><span>@(Ui.IsArabic ? "إرسال رمز التحقق" : "Send verification code")</span> }
+            </button>
+
+            <div class="auth-hint">
+                <strong>@(Ui.IsArabic ? "وضع تجريبي:" : "Demo mode:")</strong>
+                @(Ui.IsArabic
+                    ? "أي رقم +9665xxxxxxxx يفتح حساباً جديداً. الرمز يطبع في سجل الـ API."
+                    : "Any +9665xxxxxxxx number creates a new account. The code is printed in the API log.")
+                <br />
+                <span style="font-size:0.78rem;">@(Ui.IsArabic ? "حسابات تجريبية: " : "Demo accounts: ")</span>
+                <code dir="ltr">+966500000001</code> (سارة)
+            </div>
+        }
+        else
+        {
+            <h2 class="auth-title">@(Ui.IsArabic ? "رمز التحقق" : "Verification code")</h2>
+            <p class="auth-subtitle">
+                @(Ui.IsArabic ? "أدخل الرمز المرسل إلى" : "Enter the code sent to")<br />
+                <strong dir="ltr">@Phone</strong>
+            </p>
+
+            <label class="form-label">@(Ui.IsArabic ? "رمز التحقق (6 أرقام)" : "Verification code (6 digits)")</label>
+            <input class="form-input otp-input" type="text" inputmode="numeric"
+                   maxlength="6" placeholder="000000" @bind="Code" />
+
+            <div class="alert alert-info" style="margin-top:12px;">
+                <strong>@(Ui.IsArabic ? "وضع تجريبي:" : "Demo mode:")</strong>
+                @(Ui.IsArabic
+                    ? "الرمز موجود في سجل الـ API. ابحث عن «رمز التحقق:»."
+                    : "Find the code in the API logs (look for \"Verification code:\").")
+            </div>
+
+            @if (!string.IsNullOrEmpty(Error))
+            {
+                <div class="alert alert-danger" style="margin-top:12px;">@Error</div>
+            }
+
+            <button class="btn btn-primary btn-block" style="margin-top:16px;"
+                    @onclick="VerifyOtp" disabled="@Busy">
+                @if (Busy) { <i class="bi bi-arrow-clockwise"></i><span>@(Ui.IsArabic ? "جاري التحقق..." : "Verifying...")</span> }
+                else { <i class="bi bi-check2"></i><span>@(Ui.IsArabic ? "تحقق ودخول" : "Verify & sign in")</span> }
+            </button>
+            <button class="btn btn-ghost btn-block" style="margin-top:8px;" @onclick="GoBack">
+                @(Ui.IsArabic ? "تغيير رقم الجوال" : "Change phone")
+            </button>
+        }
+    </div>
+</div>
+
+<style>
+    .auth-page {
+        min-height: 100vh;
+        background: var(--ord-hero-grad);
+        padding: 32px 20px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+    .auth-hero {
+        text-align: center;
+        color: #fff;
+        margin-bottom: 28px;
+    }
+    .auth-icon { font-size: 4rem; }
+    .auth-brand { font-size: 2.4rem; font-weight: 900; margin: 8px 0 4px; color: #fff; }
+    .auth-tag { margin: 0; opacity: 0.95; font-size: 0.95rem; }
+    .auth-card {
+        background: var(--ac-surface);
+        border-radius: 24px;
+        padding: 26px 22px;
+        width: 100%;
+        max-width: 420px;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+    }
+    .auth-title { font-size: 1.4rem; font-weight: 800; margin: 0 0 6px; text-align: center; color: var(--ac-text); }
+    .auth-subtitle { text-align: center; color: var(--ac-text-muted); margin: 0 0 22px; font-size: 0.92rem; }
+    .otp-input {
+        text-align: center;
+        font-size: 1.8rem;
+        letter-spacing: 0.6rem;
+        font-weight: 700;
+    }
+    .auth-hint {
+        margin-top: 18px;
+        padding: 12px 14px;
+        background: var(--ac-bg-alt);
+        border-radius: 12px;
+        font-size: 0.82rem;
+        color: var(--ac-text-muted);
+        line-height: 1.65;
+    }
+</style>
+
+@code {
+    [SupplyParameterFromQuery(Name = "return")] public string? ReturnUrl { get; set; }
+
+    private int Step = 1;
+    private string Phone = "+966500000001";
+    private string Code = "";
+    private string Error = "";
+    private bool Busy;
+    private Guid? UserId;
+    private string? ChallengeId;
+
+    private async Task RequestOtp()
+    {
+        Error = "";
+        if (string.IsNullOrWhiteSpace(Phone)) { Error = Ui.IsArabic ? "أدخل رقم الجوال" : "Enter phone"; return; }
+        Busy = true;
+        try
+        {
+            var env = await Api.PostAsync<OtpRequestDto>("/api/auth/sms/request", new { phoneNumber = Phone });
+            if (env.Operation.Status != "Success" || env.Data == null)
+            {
+                Error = env.Operation.ErrorMessage ?? env.Error?.Message ?? (Ui.IsArabic ? "فشل الإرسال" : "Send failed");
+                return;
+            }
+            UserId = env.Data.UserId;
+            ChallengeId = env.Data.ChallengeId;
+            Step = 2;
+        }
+        catch (Exception ex) { Error = ex.Message; }
+        finally { Busy = false; }
+    }
+
+    private async Task VerifyOtp()
+    {
+        Error = "";
+        if (string.IsNullOrWhiteSpace(Code) || !UserId.HasValue) return;
+        Busy = true;
+        try
+        {
+            var env = await Api.PostAsync<VerifyDto>("/api/auth/sms/verify", new
+            {
+                userId = UserId.Value,
+                challengeId = ChallengeId,
+                code = Code
+            });
+            if (env.Operation.Status != "Success" || env.Data == null || string.IsNullOrEmpty(env.Data.AccessToken))
+            {
+                Error = env.Operation.ErrorMessage ?? env.Error?.Message ?? (Ui.IsArabic ? "كود غير صحيح" : "Wrong code");
+                return;
+            }
+            await Auth.SignInAsync(env.Data.UserId, env.Data.PhoneNumber, env.Data.FullName, env.Data.AccessToken);
+            Nav.NavigateTo(string.IsNullOrEmpty(ReturnUrl) ? "/" : ReturnUrl, forceLoad: false);
+        }
+        catch (Exception ex) { Error = ex.Message; }
+        finally { Busy = false; }
+    }
+
+    private void GoBack()
+    {
+        Step = 1;
+        Code = "";
+        Error = "";
+    }
+
+    public class OtpRequestDto
+    {
+        public string ChallengeId { get; set; } = "";
+        public Guid UserId { get; set; }
+        public string PhoneNumber { get; set; } = "";
+    }
+    public class VerifyDto
+    {
+        public Guid UserId { get; set; }
+        public string? PhoneNumber { get; set; }
+        public string? FullName { get; set; }
+        public string AccessToken { get; set; } = "";
+    }
+}

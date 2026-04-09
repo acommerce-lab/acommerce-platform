@@ -1,0 +1,130 @@
+@page "/orders"
+@inject OrderApiClient Api
+@inject AuthStateService Auth
+@inject UiPreferences Ui
+
+<PageTitle>طلباتي - اوردر</PageTitle>
+
+<h1 class="page-title">@(Ui.IsArabic ? "طلباتي" : "My orders")</h1>
+
+@if (!Auth.IsAuthenticated)
+{
+    <div class="empty-state">
+        <div class="ico">🔒</div>
+        <h3>@(Ui.IsArabic ? "سجل دخولك لرؤية طلباتك" : "Sign in to view orders")</h3>
+        <a class="btn btn-primary" href="/login">@(Ui.IsArabic ? "تسجيل الدخول" : "Sign in")</a>
+    </div>
+}
+else if (Loading)
+{
+    <div class="empty-state"><div class="ico">⏳</div><p>@(Ui.IsArabic ? "جاري التحميل..." : "Loading...")</p></div>
+}
+else if (Orders.Count == 0)
+{
+    <div class="empty-state">
+        <div class="ico">📦</div>
+        <h3>@(Ui.IsArabic ? "لا توجد طلبات" : "No orders yet")</h3>
+        <p>@(Ui.IsArabic ? "اطلب أول وجبتك من اوردر" : "Place your first order")</p>
+        <a class="btn btn-primary" href="/">@(Ui.IsArabic ? "تصفّح العروض" : "Browse offers")</a>
+    </div>
+}
+else
+{
+    @foreach (var o in Orders)
+    {
+        <a class="s-card order-card" href="@($"/order/{o.Id}")">
+            <div class="oc-head">
+                <div class="oc-vendor">
+                    <span class="oc-emoji">@o.VendorEmoji</span>
+                    <div>
+                        <div class="oc-name">@o.VendorName</div>
+                        <div class="oc-num">#@o.OrderNumber</div>
+                    </div>
+                </div>
+                <span class="@StatusClass(o.Status)">@o.StatusAr</span>
+            </div>
+            <div class="oc-body">
+                <div class="oc-meta">
+                    <span><i class="bi bi-@(o.PickupType == 1 ? "car-front" : "shop")"></i> @PickupAr(o.PickupType)</span>
+                    <span><i class="bi bi-@(o.PreferredPayment == 1 ? "credit-card" : "cash-coin")"></i> @PaymentAr(o.PreferredPayment)</span>
+                </div>
+                <div class="oc-total">@o.Total.ToString("N0") ر.س</div>
+            </div>
+        </a>
+    }
+}
+
+<style>
+    .order-card { display: block; text-decoration: none; color: inherit; }
+    .oc-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+    .oc-vendor { display: flex; align-items: center; gap: 10px; }
+    .oc-emoji {
+        width: 44px; height: 44px;
+        background: var(--ord-hero-grad);
+        color: #fff;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.4rem;
+    }
+    .oc-name { font-weight: 800; }
+    .oc-num { font-size: 0.72rem; color: var(--ac-text-muted); font-family: monospace; }
+    .oc-body { display: flex; justify-content: space-between; align-items: center; padding-top: 8px; border-top: 1px dashed var(--ac-border); }
+    .oc-meta { display: flex; gap: 12px; font-size: 0.78rem; color: var(--ac-text-muted); }
+    .oc-meta i { color: var(--ac-primary); }
+    .oc-total { font-weight: 800; color: var(--ac-primary); font-size: 1.1rem; }
+</style>
+
+@code {
+    private List<OrderRow> Orders = new();
+    private bool Loading = true;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        await Auth.EnsureRestoredAsync();
+        if (Auth.IsAuthenticated)
+        {
+            var env = await Api.GetAsync<List<OrderRow>>($"/api/orders/by-customer/{Auth.UserId}");
+            Orders = env.Data ?? new();
+        }
+        Loading = false;
+        StateHasChanged();
+    }
+
+    private string StatusClass(int s) => s switch
+    {
+        0 => "st-pending",
+        1 => "st-accepted",
+        2 => "st-ready",
+        3 => "st-delivered",
+        4 => "st-cancelled",
+        _ => "st-pending"
+    };
+
+    private string PickupAr(int t) => t == 1
+        ? (Ui.IsArabic ? "من السيارة" : "Curbside")
+        : (Ui.IsArabic ? "من المتجر" : "In-store");
+
+    private string PaymentAr(int p) => p == 1
+        ? (Ui.IsArabic ? "بطاقة" : "Card")
+        : (Ui.IsArabic ? "نقدي" : "Cash");
+
+    public class OrderRow
+    {
+        public Guid Id { get; set; }
+        public string OrderNumber { get; set; } = "";
+        public decimal Total { get; set; }
+        public string Currency { get; set; } = "SAR";
+        public int Status { get; set; }
+        public string StatusAr { get; set; } = "";
+        public int PickupType { get; set; }
+        public int PreferredPayment { get; set; }
+        public decimal? CashTendered { get; set; }
+        public decimal? ExpectedChange { get; set; }
+        public DateTime CreatedAt { get; set; }
+        public string VendorName { get; set; } = "";
+        public string VendorEmoji { get; set; } = "🏪";
+    }
+}

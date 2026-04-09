@@ -1,0 +1,117 @@
+@page "/messages"
+@inject OrderApiClient Api
+@inject AuthStateService Auth
+@inject UiPreferences Ui
+
+<PageTitle>المحادثات - اوردر</PageTitle>
+
+<h1 class="page-title">@(Ui.IsArabic ? "محادثاتي" : "Messages")</h1>
+
+@if (!Auth.IsAuthenticated)
+{
+    <div class="empty-state">
+        <div class="ico">💬</div>
+        <h3>@(Ui.IsArabic ? "سجّل دخولك لرؤية المحادثات" : "Sign in to chat")</h3>
+        <a class="btn btn-primary" href="/login">@(Ui.IsArabic ? "تسجيل الدخول" : "Sign in")</a>
+    </div>
+}
+else if (Loading)
+{
+    <div class="empty-state"><div class="ico">⏳</div><p>@(Ui.IsArabic ? "جاري التحميل..." : "Loading...")</p></div>
+}
+else if (Conversations.Count == 0)
+{
+    <div class="empty-state">
+        <div class="ico">📭</div>
+        <h3>@(Ui.IsArabic ? "لا محادثات بعد" : "No conversations")</h3>
+        <p>@(Ui.IsArabic ? "ابدأ من صفحة العرض بزر «محادثة المتجر»" : "Tap \"Chat with store\" on any offer")</p>
+    </div>
+}
+else
+{
+    @foreach (var c in Conversations)
+    {
+        <a class="s-card chat-row" href="@($"/chat/{c.Id}")">
+            <div class="ch-emoji">@c.Emoji</div>
+            <div class="ch-body">
+                <div class="ch-top">
+                    <span class="ch-name">@c.Title</span>
+                    @if (c.LastMessageAt.HasValue)
+                    {
+                        <span class="ch-time">@FormatTime(c.LastMessageAt.Value)</span>
+                    }
+                </div>
+                <div class="ch-snippet">@(c.LastMessageSnippet ?? (Ui.IsArabic ? "ابدأ المحادثة" : "Start conversation"))</div>
+            </div>
+            @if (c.Unread > 0)
+            {
+                <span class="ch-badge">@c.Unread</span>
+            }
+        </a>
+    }
+}
+
+<style>
+    .chat-row { display: flex; align-items: center; gap: 12px; text-decoration: none; color: inherit; }
+    .ch-emoji {
+        width: 52px; height: 52px;
+        background: var(--ord-hero-grad);
+        color: #fff;
+        border-radius: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.6rem;
+        flex-shrink: 0;
+    }
+    .ch-body { flex: 1; min-width: 0; }
+    .ch-top { display: flex; justify-content: space-between; gap: 8px; }
+    .ch-name { font-weight: 800; }
+    .ch-time { color: var(--ac-text-muted); font-size: 0.72rem; }
+    .ch-snippet { color: var(--ac-text-muted); font-size: 0.85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .ch-badge {
+        background: var(--ord-hero-grad);
+        color: #fff;
+        font-size: 0.72rem;
+        font-weight: 800;
+        padding: 4px 9px;
+        border-radius: 999px;
+        flex-shrink: 0;
+    }
+</style>
+
+@code {
+    private List<ConvDto> Conversations = new();
+    private bool Loading = true;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        await Auth.EnsureRestoredAsync();
+        if (Auth.IsAuthenticated)
+        {
+            var env = await Api.GetAsync<List<ConvDto>>($"/api/messages/conversations/by-user/{Auth.UserId}");
+            Conversations = env.Data ?? new();
+        }
+        Loading = false;
+        StateHasChanged();
+    }
+
+    private static string FormatTime(DateTime dt)
+    {
+        var local = dt.ToLocalTime();
+        var diff = DateTime.Now - local;
+        if (diff.TotalDays > 1) return local.ToString("yyyy-MM-dd");
+        return local.ToString("HH:mm");
+    }
+
+    public class ConvDto
+    {
+        public Guid Id { get; set; }
+        public string Title { get; set; } = "";
+        public string Emoji { get; set; } = "💬";
+        public string? LastMessageSnippet { get; set; }
+        public DateTime? LastMessageAt { get; set; }
+        public int Unread { get; set; }
+    }
+}

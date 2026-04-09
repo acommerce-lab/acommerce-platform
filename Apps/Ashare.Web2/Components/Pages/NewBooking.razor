@@ -1,0 +1,113 @@
+@page "/booking/new/{listingId:guid}"
+@rendermode InteractiveServer
+@inject AshareApiClient Api
+@inject AuthStateService Auth
+@inject NavigationManager Nav
+
+<PageTitle>حجز جديد - عشير</PageTitle>
+
+<h1>حجز جديد</h1>
+
+@if (listing == null)
+{
+    <div class="spinner-border"></div>
+}
+else
+{
+    <div class="row">
+        <div class="col-md-7">
+            <div class="card">
+                <div class="card-body">
+                    <h5>تفاصيل الحجز</h5>
+                    <div class="mb-3">
+                        <label>من تاريخ</label>
+                        <input type="date" class="form-control" @bind="startDate" />
+                    </div>
+                    <div class="mb-3">
+                        <label>إلى تاريخ</label>
+                        <input type="date" class="form-control" @bind="endDate" />
+                    </div>
+                    <div class="mb-3">
+                        <label>ملاحظات</label>
+                        <textarea class="form-control" @bind="notes"></textarea>
+                    </div>
+                    <button class="btn btn-primary" @onclick="CreateBooking" disabled="@saving">
+                        @(saving ? "جاري الحجز..." : "تأكيد الحجز")
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-5">
+            <div class="card bg-light">
+                <div class="card-body">
+                    <h5>@listing.Title</h5>
+                    <p class="text-muted">@listing.City</p>
+                    <strong class="text-primary">@listing.Price @listing.Currency</strong>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@if (!string.IsNullOrEmpty(error))
+{
+    <div class="alert alert-danger mt-3">@error</div>
+}
+
+@code {
+    [Parameter] public Guid ListingId { get; set; }
+    private ListingDto? listing;
+    private DateTime startDate = DateTime.Today;
+    private DateTime endDate = DateTime.Today.AddMonths(1);
+    private string notes = "";
+    private bool saving;
+    private string error = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        var resp = await Api.GetAsync<ListingDto>($"/api/listings/{ListingId}");
+        listing = resp.Data;
+    }
+
+    private async Task CreateBooking()
+    {
+        if (!Auth.UserId.HasValue) return;
+        error = "";
+        saving = true;
+        try
+        {
+            var resp = await Api.PostAsync<BookingDto>("/api/bookings", new
+            {
+                listingId = ListingId,
+                customerId = Auth.UserId.Value,
+                startDate,
+                endDate,
+                notes
+            });
+
+            if (resp.Operation.Status != "Success" || resp.Data == null)
+            {
+                error = resp.Operation.ErrorMessage ?? "فشل الحجز";
+                return;
+            }
+
+            // توجّه لصفحة الحجز للدفع
+            Nav.NavigateTo($"/booking/{resp.Data.Id}");
+        }
+        finally { saving = false; }
+    }
+
+    public class ListingDto
+    {
+        public Guid Id { get; set; }
+        public string Title { get; set; } = "";
+        public string City { get; set; } = "";
+        public decimal Price { get; set; }
+        public string Currency { get; set; } = "";
+    }
+
+    public class BookingDto
+    {
+        public Guid Id { get; set; }
+    }
+}

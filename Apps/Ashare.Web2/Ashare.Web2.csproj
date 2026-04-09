@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <RollForward>LatestMajor</RollForward>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>Ashare.Web2</RootNamespace>
+    <AssemblyName>Ashare.Web2</AssemblyName>
+    <UserSecretsId>ashare-web2</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- OperationEngine core + Wire -->
+    <ProjectReference Include="..\..\libs\backend\core\ACommerce.OperationEngine\ACommerce.OperationEngine.csproj" />
+    <ProjectReference Include="..\..\libs\backend\core\ACommerce.OperationEngine.Wire\ACommerce.OperationEngine.Wire.csproj" />
+    <ProjectReference Include="..\..\libs\backend\core\ACommerce.OperationEngine.Interceptors\ACommerce.OperationEngine.Interceptors.csproj" />
+
+    <!-- Client libraries -->
+    <ProjectReference Include="..\..\clients\ACommerce.Client.Operations\ACommerce.Client.Operations.csproj" />
+    <ProjectReference Include="..\..\clients\ACommerce.Client.Http\ACommerce.Client.Http.csproj" />
+    <ProjectReference Include="..\..\clients\ACommerce.Client.StateBridge\ACommerce.Client.StateBridge.csproj" />
+
+    <!-- Domain libs -->
+    <ProjectReference Include="..\..\clients\ACommerce.Client.Domain.Auth\ACommerce.Client.Domain.Auth.csproj" />
+    <ProjectReference Include="..\..\clients\ACommerce.Client.Domain.Listings\ACommerce.Client.Domain.Listings.csproj" />
+
+    <!-- Widgets + Templates (new styling cascade) -->
+    <ProjectReference Include="..\..\libs\frontend\ACommerce.Widgets\ACommerce.Widgets.csproj" />
+    <ProjectReference Include="..\..\libs\frontend\ACommerce.Templates.Commerce\ACommerce.Templates.Commerce.csproj" />
+  </ItemGroup>
+</Project>

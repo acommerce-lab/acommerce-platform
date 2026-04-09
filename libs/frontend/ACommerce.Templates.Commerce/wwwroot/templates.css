@@ -1,0 +1,128 @@
+/* =========================================================================
+   ACommerce.Templates.Commerce - Template-Level Styles
+   =========================================================================
+   طبقة تنسيق أعلى من widgets وأقل تخصيصاً من التطبيق.
+   كل القواعد هنا تستخدم نفس --ac-* variables من widgets.css.
+   ========================================================================= */
+
+.act-shell { min-height: 100vh; display: flex; flex-direction: column; }
+.act-shell-main { flex: 1; padding: var(--ac-space-lg) 0; }
+
+/* Navbar */
+.act-navbar {
+    background: var(--ac-surface);
+    border-bottom: 1px solid var(--ac-border);
+    padding: var(--ac-space-md) 0;
+}
+.act-navbar-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 var(--ac-space-md);
+    display: flex;
+    align-items: center;
+    gap: var(--ac-space-lg);
+}
+.act-navbar-brand {
+    font-size: var(--ac-font-size-xl);
+    font-weight: var(--ac-font-weight-bold);
+    color: var(--ac-primary);
+    text-decoration: none;
+}
+.act-navbar-links { display: flex; gap: var(--ac-space-md); flex: 1; }
+.act-navbar-link {
+    color: var(--ac-text);
+    text-decoration: none;
+    padding: var(--ac-space-sm) var(--ac-space-md);
+    border-radius: var(--ac-radius-md);
+    transition: background var(--ac-transition);
+}
+.act-navbar-link:hover { background: var(--ac-bg-alt); }
+.act-navbar-link.active { background: color-mix(in srgb, var(--ac-primary) 12%, transparent); color: var(--ac-primary); }
+
+/* Footer */
+.act-footer {
+    background: var(--ac-bg-alt);
+    border-top: 1px solid var(--ac-border);
+    padding: var(--ac-space-lg) 0;
+    text-align: center;
+    color: var(--ac-text-muted);
+}
+
+/* Listing grid / product card */
+.act-product-card {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+.act-product-image {
+    aspect-ratio: 4/3;
+    background: var(--ac-bg-alt);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 3rem;
+    color: var(--ac-text-muted);
+}
+.act-product-body { padding: var(--ac-space-md); display: flex; flex-direction: column; flex: 1; }
+.act-product-title { font-weight: var(--ac-font-weight-bold); margin-bottom: var(--ac-space-xs); }
+.act-product-meta { color: var(--ac-text-muted); font-size: var(--ac-font-size-sm); margin-bottom: var(--ac-space-sm); }
+.act-product-price { color: var(--ac-primary); font-size: var(--ac-font-size-lg); font-weight: var(--ac-font-weight-bold); margin-top: auto; }
+
+/* Auth panel */
+.act-auth-panel {
+    max-width: 480px;
+    margin: var(--ac-space-xl) auto;
+    padding: var(--ac-space-xl);
+    background: var(--ac-surface);
+    border: 1px solid var(--ac-border);
+    border-radius: var(--ac-radius-lg);
+    box-shadow: var(--ac-shadow-md);
+}
+.act-auth-title {
+    text-align: center;
+    font-size: var(--ac-font-size-xl);
+    font-weight: var(--ac-font-weight-bold);
+    margin-bottom: var(--ac-space-lg);
+}
+
+/* Plan card */
+.act-plan-card {
+    position: relative;
+    padding: var(--ac-space-lg);
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+.act-plan-card.recommended {
+    border-color: var(--ac-primary);
+    border-width: 2px;
+}
+.act-plan-badge {
+    position: absolute;
+    top: -12px;
+    inset-inline-start: var(--ac-space-lg);
+    background: var(--ac-primary);
+    color: var(--ac-on-primary);
+    padding: var(--ac-space-xs) var(--ac-space-md);
+    border-radius: var(--ac-radius-pill);
+    font-size: var(--ac-font-size-sm);
+    font-weight: var(--ac-font-weight-bold);
+}
+.act-plan-name { font-size: var(--ac-font-size-lg); font-weight: var(--ac-font-weight-bold); }
+.act-plan-price { font-size: 2rem; color: var(--ac-primary); font-weight: var(--ac-font-weight-bold); margin: var(--ac-space-md) 0; }
+.act-plan-price small { font-size: var(--ac-font-size-base); color: var(--ac-text-muted); font-weight: normal; }
+.act-plan-features { list-style: none; padding: 0; margin: var(--ac-space-md) 0; }
+.act-plan-features li { padding: var(--ac-space-xs) 0; color: var(--ac-text); }
+
+/* Chat bubble */
+.act-chat-list { max-height: 500px; overflow-y: auto; padding: var(--ac-space-md); }
+.act-bubble {
+    max-width: 70%;
+    padding: var(--ac-space-sm) var(--ac-space-md);
+    border-radius: var(--ac-radius-lg);
+    margin-bottom: var(--ac-space-sm);
+    word-wrap: break-word;
+}
+.act-bubble-in  { background: var(--ac-bg-alt); color: var(--ac-text); margin-inline-end: auto; }
+.act-bubble-out { background: var(--ac-primary); color: var(--ac-on-primary); margin-inline-start: auto; }
+.act-bubble-time { font-size: var(--ac-font-size-sm); opacity: 0.7; display: block; margin-top: 2px; }

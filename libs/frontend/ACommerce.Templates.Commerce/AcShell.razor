@@ -1,0 +1,30 @@
+@namespace ACommerce.Templates.Commerce
+
+@* طبقة Shell الرئيسية للتطبيق - navbar + main + footer *@
+<div class="act-shell ac-root">
+    <nav class="act-navbar">
+        <div class="act-navbar-inner">
+            <a class="act-navbar-brand" href="/">@Brand</a>
+            @if (Links != null) { <div class="act-navbar-links">@Links</div> }
+            @if (RightActions != null) { <div class="ac-row">@RightActions</div> }
+        </div>
+    </nav>
+    <main class="act-shell-main">
+        <div class="ac-container">
+            @ChildContent
+        </div>
+    </main>
+    <footer class="act-footer">
+        @if (FooterContent != null) { @FooterContent }
+        else { <small>@(FooterText ?? "© ACommerce")</small> }
+    </footer>
+</div>
+
+@code {
+    [Parameter] public string Brand { get; set; } = "ACommerce";
+    [Parameter] public string? FooterText { get; set; }
+    [Parameter] public RenderFragment? Links { get; set; }
+    [Parameter] public RenderFragment? RightActions { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter] public RenderFragment? FooterContent { get; set; }
+}

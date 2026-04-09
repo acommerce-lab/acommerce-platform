@@ -1,0 +1,157 @@
+@page "/profile"
+@inject AuthStateService Auth
+@inject UiPreferences Ui
+@inject NavigationManager Nav
+
+<PageTitle>حسابي - اوردر</PageTitle>
+
+@if (!Auth.IsAuthenticated)
+{
+    <div class="empty-state">
+        <div class="ico">👤</div>
+        <h3>@(Ui.IsArabic ? "أنت غير مسجل" : "Not signed in")</h3>
+        <a class="btn btn-primary" href="/login">@(Ui.IsArabic ? "تسجيل الدخول" : "Sign in")</a>
+    </div>
+}
+else
+{
+    <div class="profile-hero">
+        <div class="avatar">@Initial</div>
+        <h2>@(Auth.FullName ?? (Ui.IsArabic ? "عميل اوردر" : "Order customer"))</h2>
+        <p dir="ltr">@Auth.PhoneNumber</p>
+    </div>
+
+    <div class="quick-stats">
+        <div class="qs-cell">
+            <div class="qs-num">0</div>
+            <div class="qs-lbl">@(Ui.IsArabic ? "طلب" : "Orders")</div>
+        </div>
+        <div class="qs-cell">
+            <div class="qs-num">0</div>
+            <div class="qs-lbl">@(Ui.IsArabic ? "مفضلة" : "Favorites")</div>
+        </div>
+        <div class="qs-cell">
+            <div class="qs-num">0</div>
+            <div class="qs-lbl">@(Ui.IsArabic ? "نقاط" : "Points")</div>
+        </div>
+    </div>
+
+    <div class="s-card">
+        <h3>@(Ui.IsArabic ? "حسابي" : "Account")</h3>
+        <a class="profile-row" href="/orders">
+            <i class="bi bi-receipt"></i>
+            <span>@(Ui.IsArabic ? "طلباتي" : "My orders")</span>
+            <i class="bi bi-chevron-@(Ui.IsArabic ? "left" : "right")"></i>
+        </a>
+        <a class="profile-row" href="/favorites">
+            <i class="bi bi-heart"></i>
+            <span>@(Ui.IsArabic ? "المفضلة" : "Favorites")</span>
+            <i class="bi bi-chevron-@(Ui.IsArabic ? "left" : "right")"></i>
+        </a>
+        <a class="profile-row" href="/messages">
+            <i class="bi bi-chat-dots"></i>
+            <span>@(Ui.IsArabic ? "محادثاتي" : "Messages")</span>
+            <i class="bi bi-chevron-@(Ui.IsArabic ? "left" : "right")"></i>
+        </a>
+        <a class="profile-row" href="/notifications">
+            <i class="bi bi-bell"></i>
+            <span>@(Ui.IsArabic ? "الإشعارات" : "Notifications")</span>
+            <i class="bi bi-chevron-@(Ui.IsArabic ? "left" : "right")"></i>
+        </a>
+    </div>
+
+    <div class="s-card">
+        <h3>@(Ui.IsArabic ? "التطبيق" : "App")</h3>
+        <a class="profile-row" href="/settings">
+            <i class="bi bi-gear"></i>
+            <span>@(Ui.IsArabic ? "الإعدادات" : "Settings")</span>
+            <i class="bi bi-chevron-@(Ui.IsArabic ? "left" : "right")"></i>
+        </a>
+        <button class="profile-row" style="width:100%; border:0; background:none; cursor:pointer;" @onclick="SignOut">
+            <i class="bi bi-box-arrow-@(Ui.IsArabic ? "left" : "right")" style="color:var(--ac-danger);"></i>
+            <span style="color:var(--ac-danger);">@(Ui.IsArabic ? "تسجيل الخروج" : "Sign out")</span>
+            <i class="bi bi-chevron-@(Ui.IsArabic ? "left" : "right")" style="color:var(--ac-danger);"></i>
+        </button>
+    </div>
+}
+
+<style>
+    .profile-hero {
+        background: var(--ord-hero-grad);
+        color: #fff;
+        text-align: center;
+        padding: 28px 16px;
+        border-radius: 0 0 32px 32px;
+        margin-bottom: 14px;
+    }
+    .profile-hero h2 { margin: 12px 0 4px; color: #fff; font-size: 1.3rem; }
+    .profile-hero p { margin: 0; opacity: 0.92; font-size: 0.92rem; }
+    .avatar {
+        width: 80px;
+        height: 80px;
+        background: rgba(255,255,255,0.95);
+        color: var(--ac-primary);
+        font-size: 2.2rem;
+        font-weight: 800;
+        border-radius: 50%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 8px 22px rgba(0,0,0,0.2);
+    }
+    .quick-stats {
+        display: flex;
+        gap: 8px;
+        padding: 0 16px 14px;
+        margin-top: -28px;
+        position: relative;
+        z-index: 2;
+    }
+    .qs-cell {
+        flex: 1;
+        background: var(--ac-surface);
+        border-radius: 16px;
+        padding: 16px 8px;
+        text-align: center;
+        box-shadow: var(--ac-shadow-sm);
+    }
+    .qs-num { font-size: 1.4rem; font-weight: 800; color: var(--ac-primary); }
+    .qs-lbl { font-size: 0.78rem; color: var(--ac-text-muted); }
+    .profile-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px 4px;
+        border-bottom: 1px solid var(--ac-border-light, var(--ac-border));
+        text-decoration: none;
+        color: var(--ac-text);
+        font-weight: 600;
+    }
+    .profile-row:last-child { border-bottom: 0; }
+    .profile-row > i:first-child { color: var(--ac-primary); font-size: 1.2rem; width: 24px; text-align: center; }
+    .profile-row > span { flex: 1; text-align: start; }
+    .profile-row > i:last-child { color: var(--ac-text-muted); }
+    .profile-row:hover { color: var(--ac-primary); }
+</style>
+
+@code {
+    private string Initial =>
+        !string.IsNullOrEmpty(Auth.FullName) && Auth.FullName.Length > 0
+            ? Auth.FullName[..1]
+            : "👤";
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await Auth.EnsureRestoredAsync();
+            StateHasChanged();
+        }
+    }
+
+    private async Task SignOut()
+    {
+        await Auth.SignOutAsync();
+        Nav.NavigateTo("/", forceLoad: false);
+    }
+}

@@ -1,0 +1,21 @@
+@namespace ACommerce.Templates.Commerce
+
+<AcCard Hover Class="@("act-plan-card " + (Recommended ? "recommended" : ""))">
+    @if (Recommended) { <span class="act-plan-badge">⭐ @RecommendedLabel</span> }
+    <div class="act-plan-name">@Name</div>
+    @if (!string.IsNullOrEmpty(Description)) { <div class="ac-text-muted ac-text-sm">@Description</div> }
+    <div class="act-plan-price">@Price<small> / @Period</small></div>
+    @if (Features != null) { <ul class="act-plan-features">@Features</ul> }
+    @if (Action != null) { <div class="ac-mt-md">@Action</div> }
+</AcCard>
+
+@code {
+    [Parameter] public string Name { get; set; } = "";
+    [Parameter] public string? Description { get; set; }
+    [Parameter] public string Price { get; set; } = "";
+    [Parameter] public string Period { get; set; } = "شهر";
+    [Parameter] public bool Recommended { get; set; }
+    [Parameter] public string RecommendedLabel { get; set; } = "موصى بها";
+    [Parameter] public RenderFragment? Features { get; set; }
+    [Parameter] public RenderFragment? Action { get; set; }
+}

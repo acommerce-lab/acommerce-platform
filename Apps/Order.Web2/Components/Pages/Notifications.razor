@@ -1,0 +1,146 @@
+@page "/notifications"
+@inject OrderApiClient Api
+@inject AuthStateService Auth
+@inject UiPreferences Ui
+
+<PageTitle>الإشعارات - اوردر</PageTitle>
+
+<h1 class="page-title">@(Ui.IsArabic ? "الإشعارات" : "Notifications")</h1>
+
+@if (!Auth.IsAuthenticated)
+{
+    <div class="empty-state">
+        <div class="ico">🔔</div>
+        <h3>@(Ui.IsArabic ? "سجّل دخولك للإشعارات" : "Sign in for notifications")</h3>
+        <a class="btn btn-primary" href="/login">@(Ui.IsArabic ? "تسجيل الدخول" : "Sign in")</a>
+    </div>
+}
+else if (Loading)
+{
+    <div class="empty-state"><div class="ico">⏳</div><p>@(Ui.IsArabic ? "جاري التحميل..." : "Loading...")</p></div>
+}
+else if (Items.Count == 0)
+{
+    <div class="empty-state">
+        <div class="ico">🔕</div>
+        <h3>@(Ui.IsArabic ? "لا إشعارات" : "All caught up")</h3>
+    </div>
+}
+else
+{
+    <div style="display:flex; justify-content:flex-end; padding: 0 16px 8px;">
+        <button class="btn btn-ghost btn-sm" @onclick="MarkAll">
+            <i class="bi bi-check-all"></i> @(Ui.IsArabic ? "تعليم الكل كمقروء" : "Mark all read")
+        </button>
+    </div>
+    @foreach (var n in Items)
+    {
+        <div class="s-card noti @(n.IsRead ? "" : "unread")" @onclick="@(() => MarkRead(n))">
+            <div class="ni-icon @TypeClass(n.Type)">
+                <i class="bi @TypeIcon(n.Type)"></i>
+            </div>
+            <div class="ni-body">
+                <div class="ni-top">
+                    <span class="ni-title">@n.Title</span>
+                    <span class="ni-time">@FormatTime(n.CreatedAt)</span>
+                </div>
+                <p class="ni-text">@n.Body</p>
+            </div>
+            @if (!n.IsRead)
+            {
+                <span class="ni-dot"></span>
+            }
+        </div>
+    }
+}
+
+<style>
+    .noti { display: flex; align-items: flex-start; gap: 12px; cursor: pointer; transition: background 150ms; }
+    .noti.unread { border-color: var(--ac-primary); }
+    .noti:hover { background: var(--ac-bg-alt); }
+    .ni-icon {
+        width: 44px; height: 44px;
+        border-radius: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+        flex-shrink: 0;
+    }
+    .ni-icon.t-promo   { background: linear-gradient(135deg, #FFE0B2, #FFCC80); color: #E65100; }
+    .ni-icon.t-order   { background: linear-gradient(135deg, #C8E6C9, #A5D6A7); color: #1B5E20; }
+    .ni-icon.t-message { background: linear-gradient(135deg, #BBDEFB, #90CAF9); color: #0D47A1; }
+    .ni-icon.t-general { background: var(--ac-bg-alt); color: var(--ac-text-muted); }
+    .ni-body { flex: 1; min-width: 0; }
+    .ni-top { display: flex; justify-content: space-between; gap: 8px; }
+    .ni-title { font-weight: 800; }
+    .ni-time { color: var(--ac-text-muted); font-size: 0.72rem; }
+    .ni-text { margin: 4px 0 0; color: var(--ac-text-muted); font-size: 0.85rem; line-height: 1.5; }
+    .ni-dot {
+        width: 8px;
+        height: 8px;
+        background: var(--ac-primary);
+        border-radius: 50%;
+        align-self: center;
+        flex-shrink: 0;
+    }
+</style>
+
+@code {
+    private List<NotiDto> Items = new();
+    private bool Loading = true;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        await Auth.EnsureRestoredAsync();
+        if (Auth.IsAuthenticated)
+        {
+            var env = await Api.GetAsync<List<NotiDto>>($"/api/notifications/user/{Auth.UserId}");
+            Items = env.Data ?? new();
+        }
+        Loading = false;
+        StateHasChanged();
+    }
+
+    private async Task MarkRead(NotiDto n)
+    {
+        if (n.IsRead) return;
+        await Api.PostAsync<object>($"/api/notifications/{n.Id}/read", new { });
+        n.IsRead = true;
+    }
+
+    private async Task MarkAll()
+    {
+        await Api.PostAsync<object>($"/api/notifications/user/{Auth.UserId}/mark-all-read", new { });
+        foreach (var n in Items) n.IsRead = true;
+    }
+
+    private string TypeIcon(string t) => t switch
+    {
+        "promo"   => "bi-tag",
+        "order"   => "bi-bag-check",
+        "message" => "bi-chat-dots",
+        _         => "bi-bell"
+    };
+    private string TypeClass(string t) => $"t-{t}";
+
+    private static string FormatTime(DateTime dt)
+    {
+        var local = dt.ToLocalTime();
+        var diff = DateTime.Now - local;
+        if (diff.TotalMinutes < 60) return $"{(int)Math.Max(1, diff.TotalMinutes)} د";
+        if (diff.TotalHours < 24)   return $"{(int)diff.TotalHours} س";
+        return local.ToString("yyyy-MM-dd");
+    }
+
+    public class NotiDto
+    {
+        public Guid Id { get; set; }
+        public string Title { get; set; } = "";
+        public string Body { get; set; } = "";
+        public string Type { get; set; } = "general";
+        public bool IsRead { get; set; }
+        public DateTime CreatedAt { get; set; }
+    }
+}

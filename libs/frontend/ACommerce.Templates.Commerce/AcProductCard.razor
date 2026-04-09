@@ -1,0 +1,31 @@
+@namespace ACommerce.Templates.Commerce
+
+@* بطاقة عرض/منتج قابلة لإعادة الاستخدام *@
+<AcCard Hover Class="act-product-card">
+    <div class="act-product-image">
+        @if (!string.IsNullOrEmpty(ImageUrl)) { <img src="@ImageUrl" alt="@Title" style="width:100%;height:100%;object-fit:cover;" /> }
+        else { <span>@IconFallback</span> }
+    </div>
+    <div class="act-product-body">
+        <div class="act-product-title">@Title</div>
+        @if (!string.IsNullOrEmpty(Meta)) { <div class="act-product-meta">@Meta</div> }
+        @if (!string.IsNullOrEmpty(Description))
+        {
+            <div class="ac-text-muted ac-text-sm ac-mb-sm">
+                @(Description.Length > 100 ? Description.Substring(0, 100) + "..." : Description)
+            </div>
+        }
+        <div class="act-product-price">@Price</div>
+        @if (Actions != null) { <div class="ac-row ac-mt-md">@Actions</div> }
+    </div>
+</AcCard>
+
+@code {
+    [Parameter] public string Title { get; set; } = "";
+    [Parameter] public string? Meta { get; set; }
+    [Parameter] public string? Description { get; set; }
+    [Parameter] public string Price { get; set; } = "";
+    [Parameter] public string? ImageUrl { get; set; }
+    [Parameter] public string IconFallback { get; set; } = "📦";
+    [Parameter] public RenderFragment? Actions { get; set; }
+}

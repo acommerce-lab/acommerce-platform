@@ -1,0 +1,69 @@
+@inherits LayoutComponentBase
+@inject AuthStateService Auth
+@inject CartService Cart
+@inject UiPreferences Ui
+@implements IDisposable
+
+<div class="ord-shell">
+    <main class="ord-main">
+        @Body
+    </main>
+
+    <nav class="ord-bottom-nav">
+        <NavLink href="/" Match="NavLinkMatch.All" class="ord-nav-item">
+            <i class="bi bi-house-door"></i>
+            <span>@(Ui.IsArabic ? "الرئيسية" : "Home")</span>
+        </NavLink>
+        <NavLink href="/favorites" class="ord-nav-item">
+            <i class="bi bi-heart"></i>
+            <span>@(Ui.IsArabic ? "المفضلة" : "Favorites")</span>
+        </NavLink>
+        <NavLink href="/cart" class="ord-nav-item ord-nav-cart">
+            <div class="ord-nav-cart-btn">
+                <i class="bi bi-bag"></i>
+                @if (Cart.Count > 0)
+                {
+                    <span class="ord-cart-badge">@Cart.Count</span>
+                }
+            </div>
+            <span>@(Ui.IsArabic ? "السلة" : "Cart")</span>
+        </NavLink>
+        <NavLink href="/orders" class="ord-nav-item">
+            <i class="bi bi-receipt"></i>
+            <span>@(Ui.IsArabic ? "طلباتي" : "Orders")</span>
+        </NavLink>
+        <NavLink href="@(Auth.IsAuthenticated ? "/profile" : "/login")" class="ord-nav-item">
+            <i class="bi bi-person"></i>
+            <span>@(Ui.IsArabic ? "حسابي" : "Profile")</span>
+        </NavLink>
+    </nav>
+</div>
+
+@code {
+    protected override void OnInitialized()
+    {
+        Auth.OnChanged += OnChange;
+        Cart.OnChanged += OnChange;
+        Ui.OnChanged   += OnChange;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        // Single source of truth: rehydrate the JWT from ProtectedLocalStorage
+        // exactly once per circuit. Every page reads Auth via this layout,
+        // so a full reload restores the session before any UI is touched.
+        if (firstRender)
+        {
+            await Auth.EnsureRestoredAsync();
+        }
+    }
+
+    private void OnChange() => InvokeAsync(StateHasChanged);
+
+    public void Dispose()
+    {
+        Auth.OnChanged -= OnChange;
+        Cart.OnChanged -= OnChange;
+        Ui.OnChanged   -= OnChange;
+    }
+}

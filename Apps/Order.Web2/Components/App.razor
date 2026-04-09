@@ -1,0 +1,34 @@
+@inject UiPreferences Ui
+
+<!DOCTYPE html>
+<html lang="@(Ui.IsArabic ? "ar" : "en")"
+      dir="@(Ui.IsArabic ? "rtl" : "ltr")"
+      data-theme="@Ui.Theme">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <base href="/" />
+    <title>اوردر — Order</title>
+
+    @* 1. widgets defaults — variables + atomic styles + Bootstrap-compat layer *@
+    <link rel="stylesheet" href="_content/ACommerce.Widgets/widgets.css" />
+
+    @* 2. commerce templates (AcShell, AcProductCard, AcAuthPanel, …) *@
+    <link rel="stylesheet" href="_content/ACommerce.Templates.Commerce/templates.css" />
+
+    @* 3. Order brand identity — overrides --ac-* and adds Order shell *@
+    <link rel="stylesheet" href="app.css" />
+
+    @* 4. Bootstrap Icons (self-hosted, sandbox blocks the CDN) *@
+    <link rel="stylesheet" href="lib/bootstrap-icons/bootstrap-icons.min.css" />
+
+    <HeadOutlet />
+</head>
+
+<body>
+    <Routes @rendermode="@RenderMode.InteractiveServer" />
+    <script src="_framework/blazor.web.js"></script>
+</body>
+
+</html>

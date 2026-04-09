@@ -1,0 +1,105 @@
+@page "/listing/{id:guid}"
+@rendermode InteractiveServer
+@inject AshareApiClient Api
+@inject AuthStateService Auth
+@inject NavigationManager Nav
+
+<PageTitle>تفاصيل العرض - عشير</PageTitle>
+
+@if (loading)
+{
+    <div class="spinner-border"></div>
+}
+else if (listing == null)
+{
+    <div class="alert alert-danger">العرض غير موجود</div>
+}
+else
+{
+    <div class="row">
+        <div class="col-md-8">
+            <h1>@listing.Title</h1>
+            <p class="text-muted">@listing.City @(listing.District != null ? $"• {listing.District}" : "")</p>
+            <p>@listing.Description</p>
+
+            <div class="row g-2 my-3">
+                @if (listing.Rooms.HasValue) { <div class="col-6 col-md-3"><div class="border rounded p-2 text-center">🛏️ <br/>@listing.Rooms غرف</div></div> }
+                @if (listing.Bathrooms.HasValue) { <div class="col-6 col-md-3"><div class="border rounded p-2 text-center">🚿 <br/>@listing.Bathrooms حمام</div></div> }
+                @if (listing.Area.HasValue) { <div class="col-6 col-md-3"><div class="border rounded p-2 text-center">📐 <br/>@listing.Area م²</div></div> }
+                @if (listing.Floor.HasValue) { <div class="col-6 col-md-3"><div class="border rounded p-2 text-center">🏢 <br/>الطابق @listing.Floor</div></div> }
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card sticky-top" style="top: 80px;">
+                <div class="card-body">
+                    <h3 class="text-primary">@listing.Price.ToString("N0") @listing.Currency</h3>
+                    <p class="text-muted">/ @listing.TimeUnit</p>
+
+                    @if (Auth.IsAuthenticated)
+                    {
+                        <button class="btn btn-primary w-100 mb-2" @onclick="StartBooking">احجز الآن</button>
+                        <button class="btn btn-outline-primary w-100" @onclick="StartChat">راسل المالك</button>
+                    }
+                    else
+                    {
+                        <a class="btn btn-primary w-100" href="/login">دخول للحجز</a>
+                    }
+
+                    <hr />
+                    <small class="text-muted">رقم العرض: @listing.Id.ToString("N")[..8]</small>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+    private ListingDto? listing;
+    private bool loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var resp = await Api.GetAsync<ListingDto>($"/api/listings/{Id}");
+        listing = resp.Data;
+        loading = false;
+    }
+
+    private void StartBooking()
+    {
+        Nav.NavigateTo($"/booking/new/{Id}");
+    }
+
+    private async Task StartChat()
+    {
+        var resp = await Api.PostAsync<ConversationDto>("/api/messages/conversations", new
+        {
+            listingId = Id,
+            customerId = Auth.UserId
+        });
+        if (resp.Data != null)
+            Nav.NavigateTo($"/conversation/{resp.Data.Id}");
+    }
+
+    public class ListingDto
+    {
+        public Guid Id { get; set; }
+        public string Title { get; set; } = "";
+        public string Description { get; set; } = "";
+        public decimal Price { get; set; }
+        public string Currency { get; set; } = "";
+        public string City { get; set; } = "";
+        public string? District { get; set; }
+        public string TimeUnit { get; set; } = "";
+        public int? Rooms { get; set; }
+        public int? Bathrooms { get; set; }
+        public double? Area { get; set; }
+        public int? Floor { get; set; }
+        public Guid CategoryId { get; set; }
+    }
+
+    public class ConversationDto
+    {
+        public Guid Id { get; set; }
+    }
+}

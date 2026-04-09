@@ -1,0 +1,93 @@
+@page "/favorites"
+@inject OrderApiClient Api
+@inject AuthStateService Auth
+@inject UiPreferences Ui
+
+<PageTitle>المفضلة - اوردر</PageTitle>
+
+<h1 class="page-title">@(Ui.IsArabic ? "المفضلة" : "Favorites")</h1>
+
+@if (!Auth.IsAuthenticated)
+{
+    <div class="empty-state">
+        <div class="ico">❤️</div>
+        <h3>@(Ui.IsArabic ? "سجّل دخولك للحفظ" : "Sign in to save")</h3>
+        <a class="btn btn-primary" href="/login">@(Ui.IsArabic ? "تسجيل الدخول" : "Sign in")</a>
+    </div>
+}
+else if (Loading)
+{
+    <div class="empty-state"><div class="ico">⏳</div><p>@(Ui.IsArabic ? "جاري التحميل..." : "Loading...")</p></div>
+}
+else if (Items.Count == 0)
+{
+    <div class="empty-state">
+        <div class="ico">💔</div>
+        <h3>@(Ui.IsArabic ? "لا توجد عروض محفوظة" : "No favorites yet")</h3>
+        <p>@(Ui.IsArabic ? "اضغط على القلب في صفحة العرض لحفظه" : "Tap the heart on any offer to save it")</p>
+        <a class="btn btn-primary" href="/">@(Ui.IsArabic ? "تصفّح العروض" : "Browse offers")</a>
+    </div>
+}
+else
+{
+    <div class="offer-grid">
+        @foreach (var o in Items)
+        {
+            <a class="offer-card" href="@($"/offer/{o.Id}")">
+                <div class="offer-image">
+                    <span>@o.Emoji</span>
+                    @if (o.DiscountPercent > 0)
+                    {
+                        <span class="discount">-@(o.DiscountPercent)%</span>
+                    }
+                </div>
+                <div class="offer-body">
+                    <p class="offer-title">@o.Title</p>
+                    <div class="offer-vendor">
+                        <span>@(o.Vendor?.LogoEmoji ?? "🏪")</span>
+                        <span>@(o.Vendor?.Name ?? "")</span>
+                    </div>
+                    <div class="offer-price-row">
+                        <span class="offer-price">@o.Price.ToString("N0") @o.Currency</span>
+                    </div>
+                </div>
+            </a>
+        }
+    </div>
+}
+
+@code {
+    private List<FavOfferDto> Items = new();
+    private bool Loading = true;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        await Auth.EnsureRestoredAsync();
+        if (Auth.IsAuthenticated)
+        {
+            var env = await Api.GetAsync<List<FavOfferDto>>($"/api/favorites/by-user/{Auth.UserId}");
+            Items = env.Data ?? new();
+        }
+        Loading = false;
+        StateHasChanged();
+    }
+
+    public class FavOfferDto
+    {
+        public Guid Id { get; set; }
+        public string Title { get; set; } = "";
+        public decimal Price { get; set; }
+        public decimal? OriginalPrice { get; set; }
+        public string Currency { get; set; } = "SAR";
+        public string Emoji { get; set; } = "🍽️";
+        public int DiscountPercent { get; set; }
+        public VendorMini? Vendor { get; set; }
+    }
+    public class VendorMini
+    {
+        public Guid Id { get; set; }
+        public string Name { get; set; } = "";
+        public string LogoEmoji { get; set; } = "🏪";
+    }
+}

@@ -1,0 +1,50 @@
+@page "/messages"
+@rendermode InteractiveServer
+@inject AshareApiClient Api
+@inject AuthStateService Auth
+
+<PageTitle>الرسائل</PageTitle>
+
+<h1>محادثاتي</h1>
+
+@if (convs == null)
+{
+    <div class="spinner-border"></div>
+}
+else if (convs.Count == 0)
+{
+    <div class="alert alert-info">لا محادثات. ابدأ من صفحة عرض عبر زر "راسل المالك"</div>
+}
+else
+{
+    <div class="list-group">
+        @foreach (var c in convs)
+        {
+            <a class="list-group-item list-group-item-action" href="/conversation/@c.Id">
+                <div class="d-flex justify-content-between">
+                    <strong>محادثة @c.Id.ToString("N")[..8]</strong>
+                    <small class="text-muted">@c.LastMessageAt?.ToString("HH:mm")</small>
+                </div>
+                <p class="mb-0 text-muted">@(c.LastMessageSnippet ?? "لا رسائل بعد")</p>
+            </a>
+        }
+    </div>
+}
+
+@code {
+    private List<ConvDto>? convs;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Auth.UserId.HasValue) { convs = new(); return; }
+        var resp = await Api.GetAsync<List<ConvDto>>($"/api/messages/conversations/by-user/{Auth.UserId}");
+        convs = resp.Data ?? new();
+    }
+
+    public class ConvDto
+    {
+        public Guid Id { get; set; }
+        public string? LastMessageSnippet { get; set; }
+        public DateTime? LastMessageAt { get; set; }
+    }
+}

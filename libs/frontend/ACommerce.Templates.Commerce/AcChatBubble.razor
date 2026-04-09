@@ -1,0 +1,12 @@
+@namespace ACommerce.Templates.Commerce
+
+<div class="act-bubble @(Outgoing ? "act-bubble-out" : "act-bubble-in")">
+    @ChildContent
+    @if (!string.IsNullOrEmpty(Time)) { <span class="act-bubble-time">@Time</span> }
+</div>
+
+@code {
+    [Parameter] public bool Outgoing { get; set; }
+    [Parameter] public string? Time { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+}

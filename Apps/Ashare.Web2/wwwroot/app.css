@@ -1,0 +1,33 @@
+/* =========================================================================
+   عشير - الهوية البصرية
+   =========================================================================
+   يطغى على defaults الـ widgets.css عبر تعريف :root variables الخاصة بعشير.
+   تغيير لون الهوية يكفي ليتأثر كل الـ widgets + templates تلقائياً.
+   ========================================================================= */
+
+:root {
+    /* الهوية: بنفسجي عشير */
+    --ac-primary:       #8B5CF6;
+    --ac-primary-hover: #7C3AED;
+    --ac-on-primary:    #ffffff;
+
+    --ac-secondary:       #F59E0B;
+    --ac-secondary-hover: #D97706;
+
+    /* خط عربي */
+    --ac-font-family: 'Cairo', 'Noto Kufi Arabic', 'Segoe UI', Tahoma, sans-serif;
+
+    /* زوايا أكثر استدارة */
+    --ac-radius-md: 0.75rem;
+    --ac-radius-lg: 1.25rem;
+}
+
+body {
+    font-family: var(--ac-font-family);
+    background: var(--ac-bg-alt);
+    margin: 0;
+}
+
+/* استيراد خط Cairo من Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap');
+

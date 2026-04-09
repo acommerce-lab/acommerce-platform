@@ -1,0 +1,53 @@
+// Configuration/LocalStorageOptions.cs
+using System.ComponentModel.DataAnnotations;
+
+namespace ACommerce.Files.Storage.Local.Configuration;
+
+public class LocalStorageOptions
+{
+	public const string SectionName = "Files:Storage:Local";
+
+	/// <summary>
+	/// ?????? ??????? ???? ???????
+	/// </summary>
+	[Required(ErrorMessage = "Root path is required")]
+	public string RootPath { get; set; } = "uploads";
+
+	/// <summary>
+	/// ?????? ??????? ?????? ???????
+	/// </summary>
+	[Required(ErrorMessage = "Base URL is required")]
+	[Url(ErrorMessage = "Base URL must be a valid URL")]
+	public string BaseUrl { get; set; } = "https://localhost:5001/files";
+
+	/// <summary>
+	/// ?? ??? ????? ?????? ????? ??? ????????
+	/// </summary>
+	public bool UseDirectoryStructure { get; set; } = true;
+
+	/// <summary>
+	/// ???? ???????? ??????? (yyyy/MM/dd)
+	/// </summary>
+	public string DirectoryFormat { get; set; } = "yyyy/MM/dd";
+
+	/// <summary>
+	/// ???? ?????? ???? ????? (???????)
+	/// </summary>
+	public long MaxFileSizeInBytes { get; set; } = 10 * 1024 * 1024; // 10 MB
+
+	/// <summary>
+	/// ??????? ???????? (MIME types)
+	/// </summary>
+	public List<string> AllowedContentTypes { get; set; } = new()
+	{
+		"image/jpeg",
+		"image/jpg",
+		"image/png",
+		"image/gif",
+		"image/webp",
+		"application/pdf",
+		"application/msword",
+		"application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+	};
+}
+

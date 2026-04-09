@@ -1,0 +1,419 @@
+/* =========================================================================
+   اوردر — Order brand identity
+   =========================================================================
+   This file is the consuming-app override of the widgets cascade. By
+   re-declaring --ac-* on :root we re-paint every AcButton/AcCard/AcAlert
+   AND every Bootstrap-class element from the compatibility layer with
+   the warm Order palette (orange #FF6B35 + amber #F7931E). Switching
+   "data-theme" on <html> to "dark" instantly flips the entire shell.
+   ========================================================================= */
+:root {
+    /* Brand */
+    --ac-primary:        #FF6B35;
+    --ac-primary-hover:  #E55A2B;
+    --ac-on-primary:     #ffffff;
+    --ac-secondary:      #F7931E;
+    --ac-secondary-hover:#D67C15;
+    --ac-on-secondary:   #ffffff;
+
+    /* Surfaces (light) */
+    --ac-bg:        #FFFAF6;
+    --ac-bg-alt:    #FFF1E6;
+    --ac-surface:   #ffffff;
+    --ac-border:    #F2DCC9;
+    --ac-border-dark:#D9B999;
+
+    /* Text */
+    --ac-text:        #1F1A16;
+    --ac-text-muted:  #8A7060;
+
+    /* Status */
+    --ac-success: #4CAF50;
+    --ac-warning: #FF9800;
+    --ac-danger:  #F44336;
+    --ac-info:    #2196F3;
+
+    /* Geometry */
+    --ac-radius-sm: 0.4rem;
+    --ac-radius-md: 0.85rem;
+    --ac-radius-lg: 1.25rem;
+    --ac-shadow-sm: 0 1px 3px rgba(255,107,53,0.08);
+    --ac-shadow-md: 0 6px 18px rgba(255,107,53,0.14);
+    --ac-shadow-lg: 0 14px 36px rgba(255,107,53,0.18);
+
+    /* Typography */
+    --ac-font-family: 'Segoe UI', 'Noto Kufi Arabic', Tahoma, Arial, sans-serif;
+
+    /* Order shell tokens */
+    --ord-shell-max: 540px;
+    --ord-bottom-nav: 72px;
+    --ord-hero-grad: linear-gradient(135deg, #FF6B35 0%, #F7931E 100%);
+}
+
+/* Dark theme — toggled by writing data-theme="dark" on <html> */
+html[data-theme="dark"] {
+    --ac-bg:        #1A130F;
+    --ac-bg-alt:    #221812;
+    --ac-surface:   #2A1E16;
+    --ac-border:    #3D2A1E;
+    --ac-border-dark:#5A4030;
+    --ac-text:       #FFF5EE;
+    --ac-text-muted: #C9AC97;
+    --ac-shadow-sm: 0 1px 3px rgba(0,0,0,0.5);
+    --ac-shadow-md: 0 6px 18px rgba(0,0,0,0.55);
+    --ac-shadow-lg: 0 14px 36px rgba(0,0,0,0.6);
+}
+
+html, body {
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+    background: var(--ac-bg);
+    color: var(--ac-text);
+    font-family: var(--ac-font-family);
+    -webkit-font-smoothing: antialiased;
+}
+
+a { color: var(--ac-primary); }
+a:hover { color: var(--ac-primary-hover); }
+img { max-width: 100%; }
+
+/* =========================================================================
+   Order app shell  (single-column, mobile-first, centered on desktop)
+   ========================================================================= */
+.ord-shell {
+    max-width: var(--ord-shell-max);
+    min-height: 100vh;
+    margin: 0 auto;
+    background: var(--ac-bg);
+    box-shadow: 0 0 60px rgba(255,107,53,0.10);
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow-x: hidden;
+}
+
+.ord-main {
+    flex: 1;
+    padding-bottom: calc(var(--ord-bottom-nav) + 16px);
+}
+
+.ord-bottom-nav {
+    position: fixed;
+    inset-inline-start: 50%;
+    transform: translateX(-50%);
+    bottom: 0;
+    width: 100%;
+    max-width: var(--ord-shell-max);
+    height: var(--ord-bottom-nav);
+    background: var(--ac-surface);
+    border-top: 1px solid var(--ac-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    z-index: 100;
+    box-shadow: 0 -4px 18px rgba(0,0,0,0.05);
+}
+html[dir="rtl"] .ord-bottom-nav { transform: translateX(50%); }
+
+.ord-nav-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    color: var(--ac-text-muted);
+    text-decoration: none;
+    padding: 6px 4px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    transition: color 150ms;
+}
+.ord-nav-item i { font-size: 1.35rem; }
+.ord-nav-item:hover { color: var(--ac-primary-hover); }
+.ord-nav-item.active { color: var(--ac-primary); }
+
+.ord-nav-cart .ord-nav-cart-btn {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: var(--ord-hero-grad);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 6px 18px rgba(255,107,53,0.45);
+    margin-top: -28px;
+    position: relative;
+}
+.ord-nav-cart .ord-nav-cart-btn i { font-size: 1.45rem; }
+.ord-nav-cart.active .ord-nav-cart-btn {
+    background: linear-gradient(135deg, #E55A2B 0%, #D67C15 100%);
+}
+.ord-cart-badge {
+    position: absolute;
+    top: -4px;
+    inset-inline-end: -4px;
+    background: var(--ac-danger);
+    color: #fff;
+    font-size: 0.65rem;
+    font-weight: 700;
+    border-radius: 999px;
+    min-width: 18px;
+    height: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid var(--ac-surface);
+}
+
+/* =========================================================================
+   Page chrome utilities — used by every page
+   ========================================================================= */
+.page-container { padding: 16px; }
+
+.page-hero {
+    background: var(--ord-hero-grad);
+    color: #fff;
+    padding: 24px 18px 28px;
+    border-radius: 0 0 28px 28px;
+    margin-bottom: 14px;
+    position: relative;
+}
+.page-hero h1 {
+    margin: 0 0 4px;
+    font-size: 1.55rem;
+    font-weight: 800;
+    color: #fff;
+}
+.page-hero p {
+    margin: 0;
+    color: rgba(255,255,255,0.92);
+    font-size: 0.92rem;
+}
+.page-hero .hero-actions {
+    margin-top: 14px;
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.page-title {
+    margin: 16px 16px 6px;
+    font-size: 1.3rem;
+    font-weight: 800;
+    color: var(--ac-text);
+}
+.page-subtitle {
+    margin: 0 16px 14px;
+    color: var(--ac-text-muted);
+    font-size: 0.88rem;
+}
+
+/* =========================================================================
+   Category pills (horizontally scrollable)
+   ========================================================================= */
+.cat-row {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding: 4px 16px 14px;
+    -webkit-overflow-scrolling: touch;
+}
+.cat-row::-webkit-scrollbar { display: none; }
+.cat-pill {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    background: var(--ac-surface);
+    border: 1px solid var(--ac-border);
+    border-radius: 999px;
+    color: var(--ac-text);
+    font-weight: 600;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 150ms;
+}
+.cat-pill:hover { border-color: var(--ac-primary); }
+.cat-pill.active {
+    background: var(--ord-hero-grad);
+    color: #fff;
+    border-color: transparent;
+    box-shadow: 0 4px 12px rgba(255,107,53,0.25);
+}
+
+/* =========================================================================
+   Offer card (used on home + favorites + search)
+   ========================================================================= */
+.offer-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    padding: 0 16px 16px;
+}
+.offer-card {
+    background: var(--ac-surface);
+    border: 1px solid var(--ac-border);
+    border-radius: 18px;
+    overflow: hidden;
+    box-shadow: var(--ac-shadow-sm);
+    text-decoration: none;
+    color: var(--ac-text);
+    transition: transform 120ms, box-shadow 150ms;
+    display: flex;
+    flex-direction: column;
+}
+.offer-card:hover { transform: translateY(-2px); box-shadow: var(--ac-shadow-md); }
+
+.offer-image {
+    aspect-ratio: 16 / 11;
+    background: linear-gradient(135deg, #FFF3E6, #FFE2CC);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 3rem;
+    position: relative;
+}
+html[data-theme="dark"] .offer-image {
+    background: linear-gradient(135deg, #2A1E16, #3D2A1E);
+}
+.offer-image .discount {
+    position: absolute;
+    top: 8px;
+    inset-inline-end: 8px;
+    background: var(--ac-danger);
+    color: #fff;
+    padding: 3px 9px;
+    border-radius: 999px;
+    font-weight: 800;
+    font-size: 0.72rem;
+}
+.offer-image .featured {
+    position: absolute;
+    top: 8px;
+    inset-inline-start: 8px;
+    background: var(--ord-hero-grad);
+    color: #fff;
+    padding: 3px 9px;
+    border-radius: 999px;
+    font-weight: 700;
+    font-size: 0.7rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+}
+
+.offer-body { padding: 12px; flex: 1; display: flex; flex-direction: column; gap: 4px; }
+.offer-title {
+    font-weight: 700;
+    font-size: 0.92rem;
+    line-height: 1.35;
+    color: var(--ac-text);
+    margin: 0;
+}
+.offer-vendor {
+    color: var(--ac-text-muted);
+    font-size: 0.74rem;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+.offer-price-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-top: auto;
+    padding-top: 6px;
+}
+.offer-price {
+    color: var(--ac-primary);
+    font-weight: 800;
+    font-size: 1.05rem;
+}
+.offer-original {
+    color: var(--ac-text-muted);
+    text-decoration: line-through;
+    font-size: 0.78rem;
+}
+
+/* =========================================================================
+   Surface card — generic boxy card used on details/orders/etc.
+   ========================================================================= */
+.s-card {
+    background: var(--ac-surface);
+    border: 1px solid var(--ac-border);
+    border-radius: 16px;
+    padding: 14px;
+    margin: 0 16px 12px;
+    box-shadow: var(--ac-shadow-sm);
+}
+.s-card-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--ac-border-light, var(--ac-border));
+}
+.s-card-row:last-child { border-bottom: 0; }
+.s-card-row .label { color: var(--ac-text-muted); font-size: 0.85rem; }
+.s-card-row .value { font-weight: 700; }
+
+.s-card h3 {
+    margin: 0 0 8px;
+    font-size: 1.05rem;
+    font-weight: 800;
+}
+
+/* Buttons */
+.btn-primary {
+    background: var(--ord-hero-grad) !important;
+    border-color: transparent !important;
+    color: #fff !important;
+    box-shadow: 0 6px 14px rgba(255,107,53,0.30);
+}
+.btn-primary:hover:not(:disabled) {
+    filter: brightness(0.96);
+    box-shadow: 0 8px 18px rgba(255,107,53,0.40);
+}
+
+/* Form fields tweak — softer borders, larger radius */
+.form-control, .form-select, .form-input,
+input[type="text"], input[type="tel"], input[type="number"], input[type="date"],
+textarea, select {
+    border-radius: var(--ac-radius-md);
+}
+
+/* Empty state */
+.empty-state {
+    text-align: center;
+    padding: 40px 24px;
+    color: var(--ac-text-muted);
+}
+.empty-state .ico {
+    font-size: 3rem;
+    margin-bottom: 8px;
+}
+.empty-state h3 {
+    color: var(--ac-text);
+    margin: 4px 0;
+}
+
+/* Status badges */
+.st-pending  { background: #FFF3E0; color: #E65100; padding: 4px 10px; border-radius: 999px; font-size: 0.78rem; font-weight: 700; }
+.st-accepted { background: #E3F2FD; color: #0D47A1; padding: 4px 10px; border-radius: 999px; font-size: 0.78rem; font-weight: 700; }
+.st-ready    { background: #E8F5E9; color: #1B5E20; padding: 4px 10px; border-radius: 999px; font-size: 0.78rem; font-weight: 700; }
+.st-delivered{ background: #E0F7FA; color: #006064; padding: 4px 10px; border-radius: 999px; font-size: 0.78rem; font-weight: 700; }
+.st-cancelled{ background: #FFEBEE; color: #B71C1C; padding: 4px 10px; border-radius: 999px; font-size: 0.78rem; font-weight: 700; }
+html[data-theme="dark"] .st-pending  { background: #4A2C0A; color: #FFB74D; }
+html[data-theme="dark"] .st-accepted { background: #0D2C4A; color: #82B1FF; }
+html[data-theme="dark"] .st-ready    { background: #1B3A22; color: #A5D6A7; }
+html[data-theme="dark"] .st-delivered{ background: #0A3034; color: #80DEEA; }
+html[data-theme="dark"] .st-cancelled{ background: #4A1418; color: #EF9A9A; }
+
+/* Suppress focus outline for programmatic focus (FocusOnNavigate) */
+:focus:not(:focus-visible) { outline: none; }
+h1:focus, h2:focus, h3:focus { outline: none; }
