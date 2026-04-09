@@ -1,0 +1,45 @@
+# Order — single-command bring-up
+#
+#   docker compose -f Apps/Order.Web/docker-compose.yml up --build
+#
+# Then open http://localhost:5701  (Sign in with +966500000001).
+# Stop with Ctrl+C; data persists in ./_data/order.db.
+
+services:
+  order-api:
+    build:
+      context: ../..
+      dockerfile: Apps/Order.Api/Dockerfile
+    image: order-api:dev
+    container_name: order-api
+    environment:
+      - ASPNETCORE_URLS=http://+:5101
+      - ASPNETCORE_ENVIRONMENT=Production
+      - Database__Provider=SQLite
+      - Database__ConnectionString=Data Source=data/order.db
+      - JWT__SecretKey=please-change-this-32-characters-long-secret!
+    ports:
+      - "5101:5101"
+    volumes:
+      - ./_data:/app/data
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O- http://localhost:5101/health || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  order-web:
+    build:
+      context: ../..
+      dockerfile: Apps/Order.Web/Dockerfile
+    image: order-web:dev
+    container_name: order-web
+    depends_on:
+      order-api:
+        condition: service_healthy
+    environment:
+      - ASPNETCORE_URLS=http://+:5701
+      - ASPNETCORE_ENVIRONMENT=Production
+      - OrderApi__BaseUrl=http://order-api:5101
+    ports:
+      - "5701:5701"

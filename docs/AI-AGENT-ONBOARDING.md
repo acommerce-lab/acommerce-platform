@@ -26,9 +26,9 @@ three pillars:
 
 Two full demo apps exist and both work end-to-end:
 
-- **Ashare.Api2 + Ashare.Web2** — property classifieds with subscriptions
+- **Ashare.Api + Ashare.Web** — property classifieds with subscriptions
   and quota-gated listings.
-- **Order.Api2 + Order.Web2** — cafe/restaurant deals with in-store and
+- **Order.Api + Order.Web** — cafe/restaurant deals with in-store and
   curbside pickup, cash change calculator, no payment provider.
 
 There is also a third, unrelated research project:
@@ -52,14 +52,14 @@ There is also a third, unrelated research project:
 
 The two demo apps are your concrete reference:
 
-- Read `Apps/Order.Api2/Program.cs` (~170 lines) for a clean backend
+- Read `Apps/Order.Api/Program.cs` (~170 lines) for a clean backend
   wiring example.
-- Read `Apps/Order.Api2/Controllers/OrdersController.cs` for a clean
+- Read `Apps/Order.Api/Controllers/OrdersController.cs` for a clean
   accounting operation example.
-- Read `Apps/Order.Web2/Components/App.razor` for the CSS cascade wire-up.
-- Read `Apps/Order.Web2/Components/Pages/Checkout.razor` for a complex
+- Read `Apps/Order.Web/Components/App.razor` for the CSS cascade wire-up.
+- Read `Apps/Order.Web/Components/Pages/Checkout.razor` for a complex
   page that uses both widgets and the compat layer.
-- Read `Apps/Order.Web2/wwwroot/app.css` for a brand override.
+- Read `Apps/Order.Web/wwwroot/app.css` for a brand override.
 
 ---
 
@@ -155,7 +155,7 @@ logic in `OnInitializedAsync` will show a logged-out UI on reload
 even for a logged-in user, because `ProtectedLocalStorage` is a JS
 interop call and JS is not available during the initial render.
 
-See `Apps/Order.Web2/Components/Pages/MyOrders.razor` for the
+See `Apps/Order.Web/Components/Pages/MyOrders.razor` for the
 canonical pattern.
 
 ---
@@ -181,8 +181,8 @@ When the user asks for a feature, follow this sequence:
 7. **Seed data** for the feature in the seeder.
 8. **Write the frontend page** using the widgets cascade. Start from
    an existing page that has the closest shape and adapt.
-9. **Test** by running both services (`run-local.sh` in Order.Web2 or
-   the equivalent in Ashare.Web2) and using Playwright via the scripts
+9. **Test** by running both services (`run-local.sh` in Order.Web or
+   the equivalent in Ashare.Web) and using Playwright via the scripts
    in `/tmp/pwtest/` to click through the flow.
 
 ---
@@ -192,11 +192,11 @@ When the user asks for a feature, follow this sequence:
 - If a build error says "the type or namespace X does not exist",
   check the csproj for the right `<ProjectReference>`. Most of the
   libraries you need are under `libs/backend/core/`, `libs/backend/auth/`,
-  or `libs/frontend/`. Copy the reference from Order.Api2 or
-  Order.Web2.
+  or `libs/frontend/`. Copy the reference from Order.Api or
+  Order.Web.
 - If a runtime error says "SQLite Error 1: no such table: …", you
   forgot to call `db.Database.EnsureCreatedAsync()` at startup.
-  See `Apps/Order.Api2/Program.cs`'s bottom 20 lines.
+  See `Apps/Order.Api/Program.cs`'s bottom 20 lines.
 - If the Web app doesn't respond to button clicks, check that
   `<Routes @rendermode="@RenderMode.InteractiveServer" />` is set on
   `App.razor` and that `blazor.web.js` serves a 200 from
@@ -236,7 +236,7 @@ Do these freely:
 - Write new libraries under `libs/`.
 - Write new tests.
 - Write new documentation.
-- Create new Razor pages in Order.Web2, Ashare.Web2, or any similar
+- Create new Razor pages in Order.Web, Ashare.Web, or any similar
   existing app.
 - Build and run the apps locally to verify.
 - Use Playwright to screenshot your work.

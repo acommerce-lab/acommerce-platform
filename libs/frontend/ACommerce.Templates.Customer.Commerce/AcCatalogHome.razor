@@ -1,0 +1,107 @@
+@namespace ACommerce.Templates.Customer.Commerce
+
+@*
+    Catalog home: hero + category row + featured (optional) + main offer grid.
+    Flex slots for every seam so consumers can inject promos, banners, empty states.
+
+    Flex slots:
+      HeroSlot          — replaces the default hero
+      TopBanner         — rendered above the hero
+      BelowCategories   — rendered below the category row
+      BeforeGrid        — rendered above the main grid
+      AfterGrid         — rendered below the main grid
+      FeaturedSlot      — replaces the default featured section
+      GridCardExtras    — forwarded to AcOfferGrid.CardExtras
+*@
+
+<div class="acc-catalog-home">
+    @TopBanner
+
+    @if (HeroSlot != null)
+    {
+        @HeroSlot
+    }
+    else if (!string.IsNullOrEmpty(HeroTitle) || !string.IsNullOrEmpty(HeroSubtitle))
+    {
+        <div class="acc-hero">
+            @if (!string.IsNullOrEmpty(HeroTitle))
+            {
+                <h1 class="acc-hero-title">@HeroTitle</h1>
+            }
+            @if (!string.IsNullOrEmpty(HeroSubtitle))
+            {
+                <p class="acc-hero-sub">@HeroSubtitle</p>
+            }
+            @HeroActions
+        </div>
+    }
+
+    @if (Categories.Count > 0)
+    {
+        <AcCategoryRow Categories="Categories"
+                       SelectedId="SelectedCategoryId"
+                       OnSelect="OnSelectCategory"
+                       AllLabel="@AllLabel" />
+    }
+
+    @BelowCategories
+
+    @if (FeaturedSlot != null)
+    {
+        @FeaturedSlot
+    }
+    else if (FeaturedOffers.Count > 0)
+    {
+        <h2 class="acc-section-title">@(FeaturedTitle ?? "مميزة")</h2>
+        <AcOfferGrid Offers="FeaturedOffers"
+                     Columns="@Columns"
+                     DetailsHrefPrefix="@DetailsHrefPrefix"
+                     CardExtras="GridCardExtras" />
+    }
+
+    @BeforeGrid
+
+    @if (Loading)
+    {
+        <AcLoadingState Message="@LoadingMessage" />
+    }
+    else
+    {
+        <AcOfferGrid Offers="Offers"
+                     Columns="@Columns"
+                     DetailsHrefPrefix="@DetailsHrefPrefix"
+                     EmptyMessage="@EmptyMessage"
+                     CardExtras="GridCardExtras" />
+    }
+
+    @AfterGrid
+</div>
+
+@code {
+    [Parameter] public IReadOnlyList<CategoryDto> Categories { get; set; } = Array.Empty<CategoryDto>();
+    [Parameter] public string? SelectedCategoryId { get; set; }
+    [Parameter] public EventCallback<string?> OnSelectCategory { get; set; }
+
+    [Parameter] public IReadOnlyList<OfferDto> FeaturedOffers { get; set; } = Array.Empty<OfferDto>();
+    [Parameter] public IReadOnlyList<OfferDto> Offers { get; set; } = Array.Empty<OfferDto>();
+    [Parameter] public bool Loading { get; set; }
+
+    [Parameter] public int Columns { get; set; } = 2;
+    [Parameter] public string DetailsHrefPrefix { get; set; } = "/offer";
+
+    [Parameter] public string? HeroTitle { get; set; }
+    [Parameter] public string? HeroSubtitle { get; set; }
+    [Parameter] public string? FeaturedTitle { get; set; }
+    [Parameter] public string? LoadingMessage { get; set; }
+    [Parameter] public string? EmptyMessage { get; set; }
+    [Parameter] public string? AllLabel { get; set; }
+
+    [Parameter] public RenderFragment? HeroSlot { get; set; }
+    [Parameter] public RenderFragment? HeroActions { get; set; }
+    [Parameter] public RenderFragment? TopBanner { get; set; }
+    [Parameter] public RenderFragment? BelowCategories { get; set; }
+    [Parameter] public RenderFragment? FeaturedSlot { get; set; }
+    [Parameter] public RenderFragment? BeforeGrid { get; set; }
+    [Parameter] public RenderFragment? AfterGrid { get; set; }
+    [Parameter] public RenderFragment<OfferDto>? GridCardExtras { get; set; }
+}

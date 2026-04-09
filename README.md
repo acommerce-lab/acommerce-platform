@@ -16,8 +16,8 @@ Multi-vendor e-commerce platform built on the accounting OperationEngine.
 - `libs/frontend/ACommerce.Widgets/` — atomic widgets + Bootstrap compatibility layer (664 lines of CSS)
 - `libs/frontend/ACommerce.Templates.Commerce/` — composite templates (AcShell, AcProductCard, …)
 - `clients/` — client-side accounting libraries (wire format, HTTP dispatcher, reactive bridge)
-- `Apps/Ashare.Api2` + `Apps/Ashare.Web2` — property classifieds demo
-- `Apps/Order.Api2` + `Apps/Order.Web2` — cafe/restaurant deals demo (in-store + curbside pickup, no online payment)
+- `Apps/Ashare.Api` + `Apps/Ashare.Web` — property classifieds demo
+- `Apps/Order.Api` + `Apps/Order.Web` — cafe/restaurant deals demo (in-store + curbside pickup, no online payment)
 
 ## Documentation
 
@@ -33,7 +33,7 @@ All docs are under `docs/`:
 ## Running the demos
 
 ```bash
-bash Apps/Order.Web2/run-local.sh
+bash Apps/Order.Web/run-local.sh
 ```
 
 Then open http://localhost:5701.

@@ -1,0 +1,122 @@
+@namespace ACommerce.Templates.Shared
+
+@*
+    User profile page: hero (avatar + name + phone) + stats row + menu sections.
+    Flex slots for every meaningful seam.
+
+    Flex slots:
+      HeroExtra    — rendered inside the hero block, below the phone
+      AboveMenu    — rendered above the first menu section
+      BelowMenu    — rendered below the last menu section
+      StatsSlot    — replaces the default stats row
+*@
+
+<div class="acs-profile-page">
+    <div class="acs-profile-hero">
+        <div class="acs-avatar">
+            @if (!string.IsNullOrEmpty(User?.AvatarUrl))
+            {
+                <img src="@User.AvatarUrl" alt="" />
+            }
+            else
+            {
+                <span>@(User?.Initial ?? (User?.FullName?.Length > 0 ? User.FullName[..1] : "👤"))</span>
+            }
+        </div>
+        <div class="acs-profile-name">@(User?.FullName ?? (GuestName ?? "ضيف"))</div>
+        @if (!string.IsNullOrEmpty(User?.PhoneNumber))
+        {
+            <div class="acs-profile-phone" dir="ltr">@User.PhoneNumber</div>
+        }
+        @HeroExtra
+    </div>
+
+    @if (StatsSlot != null)
+    {
+        @StatsSlot
+    }
+    else if (Stats.Count > 0)
+    {
+        <div class="acs-quick-stats">
+            @foreach (var s in Stats)
+            {
+                <div class="acs-qs-cell">
+                    <div class="acs-qs-num">@s.Value</div>
+                    <div class="acs-qs-lbl">@s.Label</div>
+                </div>
+            }
+        </div>
+    }
+
+    @AboveMenu
+
+    @foreach (var menuSection in MenuSections)
+    {
+        <div class="s-card acs-menu-section">
+            @if (!string.IsNullOrEmpty(menuSection.Title))
+            {
+                <div class="acs-menu-section-title">@menuSection.Title</div>
+            }
+            @foreach (var item in menuSection.Items)
+            {
+                @if (!string.IsNullOrEmpty(item.Href))
+                {
+                    <a class="acs-menu-item" href="@item.Href">
+                        @if (!string.IsNullOrEmpty(item.Icon))
+                        {
+                            <span class="acs-menu-item-icon">@item.Icon</span>
+                        }
+                        <span class="acs-menu-item-label">@item.Label</span>
+                        @if (!string.IsNullOrEmpty(item.Badge))
+                        {
+                            <span class="acs-menu-item-badge">@item.Badge</span>
+                        }
+                    </a>
+                }
+                else
+                {
+                    <button type="button" class="acs-menu-item" @onclick="() => HandleMenuClick(item)">
+                        @if (!string.IsNullOrEmpty(item.Icon))
+                        {
+                            <span class="acs-menu-item-icon">@item.Icon</span>
+                        }
+                        <span class="acs-menu-item-label">@item.Label</span>
+                        @if (!string.IsNullOrEmpty(item.Badge))
+                        {
+                            <span class="acs-menu-item-badge">@item.Badge</span>
+                        }
+                    </button>
+                }
+            }
+        </div>
+    }
+
+    @BelowMenu
+
+    @if (OnSignOut.HasDelegate)
+    {
+        <button class="btn btn-ghost btn-block" style="margin-top:16px;" @onclick="OnSignOut">
+            @(SignOutLabel ?? "تسجيل الخروج")
+        </button>
+    }
+</div>
+
+@code {
+    [Parameter] public ProfileUserDto? User { get; set; }
+    [Parameter] public IReadOnlyList<ProfileStatDto> Stats { get; set; } = Array.Empty<ProfileStatDto>();
+    [Parameter] public IReadOnlyList<MenuSectionDto> MenuSections { get; set; } = Array.Empty<MenuSectionDto>();
+    [Parameter] public string? GuestName { get; set; }
+    [Parameter] public string? SignOutLabel { get; set; }
+    [Parameter] public EventCallback OnSignOut { get; set; }
+
+    [Parameter] public RenderFragment? HeroExtra { get; set; }
+    [Parameter] public RenderFragment? StatsSlot { get; set; }
+    [Parameter] public RenderFragment? AboveMenu { get; set; }
+    [Parameter] public RenderFragment? BelowMenu { get; set; }
+
+    private async Task HandleMenuClick(MenuItemDto item)
+    {
+        if (item.OnClick.HasValue && item.OnClick.Value.HasDelegate)
+            await item.OnClick.Value.InvokeAsync();
+    }
+}

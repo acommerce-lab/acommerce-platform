@@ -1,0 +1,103 @@
+@namespace ACommerce.Templates.Shared
+
+@*
+    Chat bubble stream + input row. Purely presentational — consumer handles
+    load + send + paging. Bubbles are RTL-aware via the parent direction.
+
+    Flex slots:
+      HeaderSlot        — replaces the default title (e.g. peer avatar + name)
+      AboveStream       — rendered above the message stream
+      AboveInput        — rendered above the text input row (e.g. quick replies)
+      ExtraInputActions — rendered inside the input row, before the send button
+*@
+
+<div class="acs-chat-page">
+    @if (HeaderSlot != null)
+    {
+        @HeaderSlot
+    }
+    else if (!string.IsNullOrEmpty(Title))
+    {
+        <h1 class="acs-page-title">@Title</h1>
+    }
+
+    @AboveStream
+
+    <div class="acs-msg-stream s-card">
+        @if (Loading)
+        {
+            <AcLoadingState Message="@LoadingMessage" />
+        }
+        else if (Messages.Count == 0)
+        {
+            <AcEmptyState Icon="💬" Message="@(EmptyMessage ?? "ابدأ المحادثة")" />
+        }
+        else
+        {
+            @foreach (var m in Messages)
+            {
+                var mine = m.SenderId == MySenderId;
+                <div class="acs-bubble-wrap @(mine ? "mine" : "")">
+                    <div class="acs-bubble @(mine ? "acs-bubble-mine" : "acs-bubble-other")">
+                        <div class="acs-bubble-content">@m.Content</div>
+                        <div class="acs-bubble-time">@m.CreatedAt.ToLocalTime().ToString("HH:mm")</div>
+                    </div>
+                </div>
+            }
+        }
+    </div>
+
+    @AboveInput
+
+    <div class="acs-msg-input">
+        <input type="text"
+               class="form-input"
+               placeholder="@(InputPlaceholder ?? "اكتب رسالة...")"
+               value="@Draft"
+               @oninput="OnDraftInput"
+               @onkeydown="OnKey"
+               disabled="@Sending" />
+        @ExtraInputActions
+        <button class="btn btn-primary"
+                @onclick="OnSend"
+                disabled="@(Sending || string.IsNullOrWhiteSpace(Draft))">
+            @(SendLabel ?? "إرسال")
+        </button>
+    </div>
+</div>
+
+@code {
+    [Parameter] public IReadOnlyList<ChatMessageDto> Messages { get; set; } = Array.Empty<ChatMessageDto>();
+    [Parameter] public required string MySenderId { get; set; }
+    [Parameter] public bool Loading { get; set; }
+    [Parameter] public bool Sending { get; set; }
+
+    [Parameter] public string Draft { get; set; } = "";
+    [Parameter] public EventCallback<string> DraftChanged { get; set; }
+    [Parameter] public EventCallback OnSend { get; set; }
+
+    [Parameter] public string? Title { get; set; }
+    [Parameter] public string? LoadingMessage { get; set; }
+    [Parameter] public string? EmptyMessage { get; set; }
+    [Parameter] public string? InputPlaceholder { get; set; }
+    [Parameter] public string? SendLabel { get; set; }
+
+    [Parameter] public RenderFragment? HeaderSlot { get; set; }
+    [Parameter] public RenderFragment? AboveStream { get; set; }
+    [Parameter] public RenderFragment? AboveInput { get; set; }
+    [Parameter] public RenderFragment? ExtraInputActions { get; set; }
+
+    private async Task OnDraftInput(ChangeEventArgs e)
+    {
+        Draft = e.Value?.ToString() ?? "";
+        if (DraftChanged.HasDelegate) await DraftChanged.InvokeAsync(Draft);
+    }
+
+    private async Task OnKey(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !string.IsNullOrWhiteSpace(Draft) && !Sending)
+        {
+            if (OnSend.HasDelegate) await OnSend.InvokeAsync();
+        }
+    }
+}

@@ -1,0 +1,146 @@
+@namespace ACommerce.Templates.Customer.Commerce
+
+@*
+    Cart page: vendor row + line items (with qty steppers) + totals + checkout CTA.
+
+    Flex slots:
+      HeaderSlot       — replaces the default title
+      AboveVendor      — rendered above the vendor card
+      BelowVendor      — rendered below the vendor card
+      LineExtras       — per-line RenderFragment<CartLineDto>, rendered inside the line
+      AboveTotals      — rendered above the totals card
+      BelowTotals      — rendered below the totals card
+      AboveCheckoutCta — rendered above the primary button
+      EmptySlot        — replaces the default empty state
+*@
+
+<div class="acc-cart-page">
+    @if (HeaderSlot != null)
+    {
+        @HeaderSlot
+    }
+    else
+    {
+        <h1 class="acs-page-title">@(Title ?? "سلة الطلبات")</h1>
+    }
+
+    @if (Cart.Items.Count == 0)
+    {
+        @if (EmptySlot != null)
+        {
+            @EmptySlot
+        }
+        else
+        {
+            <AcEmptyState Icon="🛒"
+                          Title="@(EmptyTitle ?? "السلة فارغة")"
+                          Message="@(EmptyMessage ?? "تصفح العروض وأضف ما يعجبك")"
+                          ActionLabel="@(BrowseLabel ?? "تصفح العروض")"
+                          ActionHref="@BrowseHref" />
+        }
+    }
+    else
+    {
+        @AboveVendor
+        @if (Cart.Vendor != null)
+        {
+            <div class="s-card acc-cart-vendor-row">
+                <div class="acc-cart-vendor-emoji">@(Cart.Vendor.LogoEmoji ?? "🏪")</div>
+                <div class="acc-cart-vendor-body">
+                    <div class="acc-cart-vendor-name">@Cart.Vendor.Name</div>
+                    @if (!string.IsNullOrEmpty(PickupHint))
+                    {
+                        <div class="acc-cart-vendor-sub">@PickupHint</div>
+                    }
+                </div>
+            </div>
+        }
+        @BelowVendor
+
+        @foreach (var line in Cart.Items)
+        {
+            <div class="s-card acc-cart-item">
+                <div class="acc-cart-item-emoji">@(line.Emoji ?? "🍽️")</div>
+                <div class="acc-cart-item-body">
+                    <div class="acc-cart-item-title">@line.Title</div>
+                    <div class="acc-cart-item-price">@line.UnitPrice.ToString("0.##") @Cart.Currency</div>
+                    @if (LineExtras != null)
+                    {
+                        @LineExtras(line)
+                    }
+                </div>
+                <div class="acc-cart-qty">
+                    <button class="acc-qty-btn"
+                            @onclick="@(() => Dec(line))"
+                            disabled="@(line.Quantity <= 1)">−</button>
+                    <span class="acc-qty-val">@line.Quantity</span>
+                    <button class="acc-qty-btn" @onclick="@(() => Inc(line))">+</button>
+                </div>
+            </div>
+        }
+
+        @AboveTotals
+        <div class="s-card acc-cart-totals">
+            <div class="acc-cart-total-row">
+                <span>@(SubtotalLabel ?? "المجموع الفرعي")</span>
+                <span>@Cart.Subtotal.ToString("0.##") @Cart.Currency</span>
+            </div>
+            <div class="acc-cart-total-row acc-cart-total-final">
+                <strong>@(TotalLabel ?? "الإجمالي")</strong>
+                <strong>@Cart.Subtotal.ToString("0.##") @Cart.Currency</strong>
+            </div>
+        </div>
+        @BelowTotals
+
+        @AboveCheckoutCta
+        <button class="btn btn-primary btn-block" style="margin-top:12px;" @onclick="OnCheckout">
+            @(CheckoutLabel ?? "متابعة للدفع")
+        </button>
+        @if (OnClear.HasDelegate)
+        {
+            <button class="btn btn-ghost btn-block" style="margin-top:8px;" @onclick="OnClear">
+                @(ClearLabel ?? "تفريغ السلة")
+            </button>
+        }
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public CartSnapshot Cart { get; set; } = new() { Items = Array.Empty<CartLineDto>() };
+    [Parameter] public EventCallback<(string OfferId, int NewQty)> OnQuantityChange { get; set; }
+    [Parameter] public EventCallback<string> OnRemove { get; set; }
+    [Parameter] public EventCallback OnClear { get; set; }
+    [Parameter] public EventCallback OnCheckout { get; set; }
+
+    [Parameter] public string? Title { get; set; }
+    [Parameter] public string? EmptyTitle { get; set; }
+    [Parameter] public string? EmptyMessage { get; set; }
+    [Parameter] public string? BrowseLabel { get; set; }
+    [Parameter] public string? BrowseHref { get; set; } = "/";
+    [Parameter] public string? PickupHint { get; set; }
+    [Parameter] public string? SubtotalLabel { get; set; }
+    [Parameter] public string? TotalLabel { get; set; }
+    [Parameter] public string? CheckoutLabel { get; set; }
+    [Parameter] public string? ClearLabel { get; set; }
+
+    [Parameter] public RenderFragment? HeaderSlot { get; set; }
+    [Parameter] public RenderFragment? AboveVendor { get; set; }
+    [Parameter] public RenderFragment? BelowVendor { get; set; }
+    [Parameter] public RenderFragment<CartLineDto>? LineExtras { get; set; }
+    [Parameter] public RenderFragment? AboveTotals { get; set; }
+    [Parameter] public RenderFragment? BelowTotals { get; set; }
+    [Parameter] public RenderFragment? AboveCheckoutCta { get; set; }
+    [Parameter] public RenderFragment? EmptySlot { get; set; }
+
+    private async Task Inc(CartLineDto line)
+    {
+        if (OnQuantityChange.HasDelegate)
+            await OnQuantityChange.InvokeAsync((line.OfferId, line.Quantity + 1));
+    }
+    private async Task Dec(CartLineDto line)
+    {
+        if (line.Quantity <= 1) return;
+        if (OnQuantityChange.HasDelegate)
+            await OnQuantityChange.InvokeAsync((line.OfferId, line.Quantity - 1));
+    }
+}

@@ -1,0 +1,85 @@
+@page "/notifications"
+@rendermode InteractiveServer
+@inject AshareApiClient Api
+@inject AuthStateService Auth
+
+<PageTitle>الإشعارات</PageTitle>
+
+<AcNotificationsPage Notifications="@Mapped"
+                     Loading="@(notifications is null)"
+                     Title="الإشعارات"
+                     LoadingMessage="جاري التحميل..."
+                     EmptyTitle="لا إشعارات"
+                     MarkAllReadLabel="تعليم الكل كمقروء"
+                     OnMarkAllRead="MarkAllRead" />
+
+@if (notifications?.Count > 0)
+{
+    <div class="s-card" style="margin-top:16px;">
+        <div class="acc-section-label" style="font-weight:700;">إرسال إشعار تجريبي لنفسي</div>
+        <div class="row g-2">
+            <div class="col-md-5"><input class="form-control" placeholder="العنوان" @bind="title" /></div>
+            <div class="col-md-5"><input class="form-control" placeholder="المحتوى" @bind="body" /></div>
+            <div class="col-md-2"><button class="btn btn-primary w-100" @onclick="Send">إرسال</button></div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<NotificationDto>? notifications;
+    private string title = "تجربة";
+    private string body = "إشعار تجريبي من Blazor";
+
+    private IReadOnlyList<NotificationRowDto> Mapped =>
+        notifications is null ? Array.Empty<NotificationRowDto>() :
+        notifications.Select(n => new NotificationRowDto
+        {
+            Id = n.Id.ToString(),
+            Title = n.Title,
+            Body = n.Body,
+            Type = string.IsNullOrEmpty(n.Type) ? "general" : n.Type,
+            IsRead = n.IsRead,
+            CreatedAt = n.CreatedAt
+        }).ToList();
+
+    protected override async Task OnInitializedAsync() => await Load();
+
+    private async Task Load()
+    {
+        if (!Auth.UserId.HasValue) { notifications = new(); return; }
+        var resp = await Api.GetAsync<List<NotificationDto>>($"/api/notifications/user/{Auth.UserId}");
+        notifications = resp.Data ?? new();
+    }
+
+    private async Task MarkAllRead()
+    {
+        await Api.PostAsync<object>($"/api/notifications/user/{Auth.UserId}/mark-all-read", new { });
+        await Load();
+    }
+
+    private async Task Send()
+    {
+        if (!Auth.UserId.HasValue) return;
+        await Api.PostAsync<object>("/api/notifications/send", new
+        {
+            userId = Auth.UserId.Value,
+            title,
+            body,
+            channel = "inapp",
+            type = "info",
+            priority = "normal"
+        });
+        await Load();
+    }
+
+    public class NotificationDto
+    {
+        public Guid Id { get; set; }
+        public string Title { get; set; } = "";
+        public string Body { get; set; } = "";
+        public string Type { get; set; } = "";
+        public string Priority { get; set; } = "";
+        public bool IsRead { get; set; }
+        public DateTime CreatedAt { get; set; }
+    }
+}

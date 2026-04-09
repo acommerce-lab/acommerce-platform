@@ -1,0 +1,154 @@
+@namespace ACommerce.Templates.Shared
+
+@*
+    Phone-OTP login template. Step-based (1 = phone entry, 2 = code entry).
+    Completely data-driven — the page calling this is responsible for the API
+    round-trips and the auth state, the template only renders the chrome.
+
+    Flex slots:
+      HeroExtra — inserted inside the brand hero, below the tagline
+      HintSlot  — inserted below the step body (e.g. demo-mode help)
+      FooterExtra — inserted below the card
+*@
+
+<div class="acs-auth-page">
+    <div class="acs-auth-hero">
+        @if (!string.IsNullOrEmpty(BrandIcon))
+        {
+            <div class="acs-auth-icon">@((MarkupString)BrandIcon)</div>
+        }
+        @if (!string.IsNullOrEmpty(BrandName))
+        {
+            <h1 class="acs-auth-brand">@BrandName</h1>
+        }
+        @if (!string.IsNullOrEmpty(BrandTagline))
+        {
+            <p class="acs-auth-tag">@BrandTagline</p>
+        }
+        @HeroExtra
+    </div>
+
+    <div class="acs-auth-card">
+        @if (Step == 1)
+        {
+            <h2 class="acs-auth-title">@(PhoneStepTitle ?? "مرحباً بك")</h2>
+            <p class="acs-auth-subtitle">@(PhoneStepSubtitle ?? "أدخل رقم جوالك للمتابعة")</p>
+
+            <label class="form-label">@(PhoneLabel ?? "رقم الجوال")</label>
+            <input class="form-input" type="tel" inputmode="numeric"
+                   placeholder="@(PhonePlaceholder ?? "+966500000001")"
+                   value="@Phone"
+                   @oninput="OnPhoneInput" />
+
+            @if (!string.IsNullOrEmpty(Error))
+            {
+                <div class="alert alert-danger" style="margin-top:12px;">@Error</div>
+            }
+
+            <button class="btn btn-primary btn-block" style="margin-top:16px;"
+                    @onclick="OnRequestOtp" disabled="@Busy">
+                @if (Busy)
+                {
+                    <span>@(SendingLabel ?? "جاري الإرسال...")</span>
+                }
+                else
+                {
+                    <span>@(RequestOtpLabel ?? "إرسال رمز التحقق")</span>
+                }
+            </button>
+        }
+        else
+        {
+            <h2 class="acs-auth-title">@(OtpStepTitle ?? "رمز التحقق")</h2>
+            <p class="acs-auth-subtitle">
+                @(OtpStepSubtitle ?? "أدخل الرمز المرسل إلى")<br />
+                <strong dir="ltr">@Phone</strong>
+            </p>
+
+            <label class="form-label">@(OtpLabel ?? "رمز التحقق (6 أرقام)")</label>
+            <input class="form-input acs-otp-input" type="text" inputmode="numeric"
+                   maxlength="6" placeholder="000000"
+                   value="@Code"
+                   @oninput="OnCodeInput" />
+
+            @if (!string.IsNullOrEmpty(Error))
+            {
+                <div class="alert alert-danger" style="margin-top:12px;">@Error</div>
+            }
+
+            <button class="btn btn-primary btn-block" style="margin-top:16px;"
+                    @onclick="OnVerifyOtp" disabled="@Busy">
+                @if (Busy)
+                {
+                    <span>@(VerifyingLabel ?? "جاري التحقق...")</span>
+                }
+                else
+                {
+                    <span>@(VerifyOtpLabel ?? "تحقق ودخول")</span>
+                }
+            </button>
+            <button class="btn btn-ghost btn-block" style="margin-top:8px;" @onclick="OnBack">
+                @(BackLabel ?? "تغيير رقم الجوال")
+            </button>
+        }
+
+        @if (HintSlot != null)
+        {
+            <div class="acs-auth-hint">@HintSlot</div>
+        }
+    </div>
+
+    @FooterExtra
+</div>
+
+@code {
+    // State
+    [Parameter] public int Step { get; set; } = 1;
+    [Parameter] public string Phone { get; set; } = "";
+    [Parameter] public EventCallback<string> PhoneChanged { get; set; }
+    [Parameter] public string Code { get; set; } = "";
+    [Parameter] public EventCallback<string> CodeChanged { get; set; }
+    [Parameter] public string? Error { get; set; }
+    [Parameter] public bool Busy { get; set; }
+
+    // Events
+    [Parameter] public EventCallback OnRequestOtp { get; set; }
+    [Parameter] public EventCallback OnVerifyOtp { get; set; }
+    [Parameter] public EventCallback OnBack { get; set; }
+
+    // Brand
+    [Parameter] public string? BrandIcon { get; set; }
+    [Parameter] public string? BrandName { get; set; }
+    [Parameter] public string? BrandTagline { get; set; }
+
+    // Labels (i18n overrides)
+    [Parameter] public string? PhoneStepTitle { get; set; }
+    [Parameter] public string? PhoneStepSubtitle { get; set; }
+    [Parameter] public string? PhoneLabel { get; set; }
+    [Parameter] public string? PhonePlaceholder { get; set; }
+    [Parameter] public string? RequestOtpLabel { get; set; }
+    [Parameter] public string? SendingLabel { get; set; }
+    [Parameter] public string? OtpStepTitle { get; set; }
+    [Parameter] public string? OtpStepSubtitle { get; set; }
+    [Parameter] public string? OtpLabel { get; set; }
+    [Parameter] public string? VerifyOtpLabel { get; set; }
+    [Parameter] public string? VerifyingLabel { get; set; }
+    [Parameter] public string? BackLabel { get; set; }
+
+    // Flex slots
+    [Parameter] public RenderFragment? HeroExtra { get; set; }
+    [Parameter] public RenderFragment? HintSlot { get; set; }
+    [Parameter] public RenderFragment? FooterExtra { get; set; }
+
+    private async Task OnPhoneInput(ChangeEventArgs e)
+    {
+        Phone = e.Value?.ToString() ?? "";
+        if (PhoneChanged.HasDelegate) await PhoneChanged.InvokeAsync(Phone);
+    }
+
+    private async Task OnCodeInput(ChangeEventArgs e)
+    {
+        Code = e.Value?.ToString() ?? "";
+        if (CodeChanged.HasDelegate) await CodeChanged.InvokeAsync(Code);
+    }
+}

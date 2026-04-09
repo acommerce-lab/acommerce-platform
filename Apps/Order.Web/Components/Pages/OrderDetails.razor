@@ -1,0 +1,155 @@
+@page "/order/{Id:guid}"
+@inject OrderApiClient Api
+@inject AuthStateService Auth
+@inject UiPreferences Ui
+@inject NavigationManager Nav
+
+<PageTitle>تفاصيل الطلب - اوردر</PageTitle>
+
+@if (JustCreated && Mapped != null)
+{
+    <AcOrderSuccessPage Order="@Mapped"
+                        Title="@(Ui.IsArabic ? "تم استلام طلبك" : "Order received")"
+                        Subtitle="@(Ui.IsArabic ? "سيؤكد المتجر طلبك قريباً جداً" : "The store will confirm shortly")"
+                        TotalLabel="@(Ui.IsArabic ? "الإجمالي" : "Total")"
+                        ViewOrderLabel="@(Ui.IsArabic ? "تفاصيل الطلب" : "View order")"
+                        ContinueLabel="@(Ui.IsArabic ? "متابعة التسوق" : "Continue shopping")" />
+}
+else
+{
+    <AcOrderDetailsPage Order="@Mapped"
+                        Loading="@Loading"
+                        BackHref="/orders"
+                        LoadingMessage="@(Ui.IsArabic ? "جاري التحميل..." : "Loading…")"
+                        NotFoundTitle="@(Ui.IsArabic ? "الطلب غير موجود" : "Order not found")"
+                        BackLabel="@(Ui.IsArabic ? "كل الطلبات" : "All orders")"
+                        ItemsLabel="@(Ui.IsArabic ? "العناصر" : "Items")"
+                        TotalLabel="@(Ui.IsArabic ? "الإجمالي" : "Total")"
+                        VendorLabel="@(Ui.IsArabic ? "المتجر" : "Store")"
+                        PickupLabel="@(Ui.IsArabic ? "الاستلام" : "Pickup")"
+                        PaymentLabel="@(Ui.IsArabic ? "الدفع (في المتجر)" : "Payment (at pickup)")"
+                        CashTenderedLabel="@(Ui.IsArabic ? "المبلغ المتوقع" : "Cash tendered")"
+                        ExpectedChangeLabel="@(Ui.IsArabic ? "الباقي المتوقع" : "Expected change")"
+                        NotesLabel="@(Ui.IsArabic ? "ملاحظاتك" : "Notes")"
+                        CancelLabel="@(Ui.IsArabic ? "إلغاء الطلب" : "Cancel order")"
+                        OnCancel="Cancel" />
+}
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+    [SupplyParameterFromQuery(Name = "just")] public string? Just { get; set; }
+    private OrderApi? OrderData;
+    private bool Loading = true;
+    private bool JustCreated => Just == "1";
+
+    private OrderDetailsDto? Mapped => OrderData is null ? null : new OrderDetailsDto
+    {
+        Id = OrderData.Id.ToString(),
+        OrderNumber = OrderData.OrderNumber,
+        Total = OrderData.Total,
+        Currency = OrderData.Currency,
+        Status = StatusKey(OrderData.Status),
+        StatusLabel = OrderData.StatusAr,
+        CreatedAt = OrderData.CreatedAt,
+        Vendor = OrderData.Vendor is null ? null : new VendorMiniDto
+        {
+            Id = OrderData.Vendor.Id.ToString(),
+            Name = OrderData.Vendor.Name,
+            LogoEmoji = OrderData.Vendor.LogoEmoji,
+            Phone = OrderData.Vendor.Phone
+        },
+        Items = OrderData.Items.Select(i => new CartLineDto
+        {
+            OfferId = i.Id.ToString(),
+            Title = i.OfferTitle,
+            Emoji = i.Emoji,
+            UnitPrice = i.UnitPrice,
+            Quantity = i.Quantity
+        }).ToList(),
+        PickupType = OrderData.PickupType == 1 ? "Curbside" : "InStore",
+        PickupLabel = OrderData.PickupType == 1
+            ? (Ui.IsArabic ? "🚗 من السيارة" : "🚗 Curbside")
+            : (Ui.IsArabic ? "🏪 من المتجر" : "🏪 In-store"),
+        PaymentMethod = OrderData.PreferredPayment == 1 ? "Card" : "Cash",
+        PaymentLabel = OrderData.PreferredPayment == 1
+            ? (Ui.IsArabic ? "💳 بطاقة" : "💳 Card")
+            : (Ui.IsArabic ? "💵 نقدي" : "💵 Cash"),
+        CashTendered = OrderData.CashTendered,
+        ExpectedChange = OrderData.ExpectedChange,
+        CustomerNotes = OrderData.CustomerNotes,
+        CarModel = OrderData.CarModel,
+        CarColor = OrderData.CarColor,
+        CarPlate = OrderData.CarPlate,
+        CanCancel = OrderData.Status == 0 || OrderData.Status == 1
+    };
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        await Auth.EnsureRestoredAsync();
+        var env = await Api.GetAsync<OrderApi>($"/api/orders/{Id}");
+        OrderData = env.Data;
+        Loading = false;
+        StateHasChanged();
+    }
+
+    private async Task Cancel()
+    {
+        var env = await Api.PostAsync<object>($"/api/orders/{Id}/cancel", new { });
+        if (env.Operation.Status == "Success")
+        {
+            var refresh = await Api.GetAsync<OrderApi>($"/api/orders/{Id}");
+            OrderData = refresh.Data;
+        }
+    }
+
+    private static string StatusKey(int s) => s switch
+    {
+        0 => "pending",
+        1 => "accepted",
+        2 => "ready",
+        3 => "delivered",
+        4 => "cancelled",
+        _ => "pending"
+    };
+
+    public class OrderApi
+    {
+        public Guid Id { get; set; }
+        public string OrderNumber { get; set; } = "";
+        public decimal Total { get; set; }
+        public decimal Subtotal { get; set; }
+        public string Currency { get; set; } = "SAR";
+        public int Status { get; set; }
+        public string StatusAr { get; set; } = "";
+        public int PickupType { get; set; }
+        public int PreferredPayment { get; set; }
+        public decimal? CashTendered { get; set; }
+        public decimal? ExpectedChange { get; set; }
+        public string? CarModel { get; set; }
+        public string? CarColor { get; set; }
+        public string? CarPlate { get; set; }
+        public string? CustomerNotes { get; set; }
+        public DateTime CreatedAt { get; set; }
+        public VendorApi? Vendor { get; set; }
+        public List<ItemApi> Items { get; set; } = new();
+    }
+
+    public class VendorApi
+    {
+        public Guid Id { get; set; }
+        public string Name { get; set; } = "";
+        public string Phone { get; set; } = "";
+        public string LogoEmoji { get; set; } = "🏪";
+    }
+
+    public class ItemApi
+    {
+        public Guid Id { get; set; }
+        public string OfferTitle { get; set; } = "";
+        public string Emoji { get; set; } = "🍽️";
+        public int Quantity { get; set; }
+        public decimal UnitPrice { get; set; }
+        public decimal LineTotal { get; set; }
+    }
+}

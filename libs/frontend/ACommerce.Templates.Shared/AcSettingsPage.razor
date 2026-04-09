@@ -1,0 +1,103 @@
+@namespace ACommerce.Templates.Shared
+
+@*
+    App settings: theme (light/dark) + language (ar/en) + about + sign-out.
+
+    Flex slots:
+      ExtraSections — rendered between the About card and the sign-out button
+      AboveSections — rendered above the first section
+*@
+
+<div class="acs-settings-page">
+    @if (!string.IsNullOrEmpty(Title))
+    {
+        <h1 class="acs-page-title">@Title</h1>
+    }
+
+    @AboveSections
+
+    <div class="s-card">
+        <div class="acs-settings-row-label">@(ThemeLabel ?? "المظهر")</div>
+        <div class="acs-seg">
+            <button class="acs-seg-btn @(Snapshot.Theme == "light" ? "active" : "")"
+                    @onclick="@(() => HandleThemeChange("light"))">
+                @(LightLabel ?? "فاتح")
+            </button>
+            <button class="acs-seg-btn @(Snapshot.Theme == "dark" ? "active" : "")"
+                    @onclick="@(() => HandleThemeChange("dark"))">
+                @(DarkLabel ?? "داكن")
+            </button>
+        </div>
+    </div>
+
+    <div class="s-card">
+        <div class="acs-settings-row-label">@(LanguageLabel ?? "اللغة")</div>
+        <div class="acs-seg">
+            <button class="acs-seg-btn @(Snapshot.Language == "ar" ? "active" : "")"
+                    @onclick="@(() => HandleLanguageChange("ar"))">
+                العربية
+            </button>
+            <button class="acs-seg-btn @(Snapshot.Language == "en" ? "active" : "")"
+                    @onclick="@(() => HandleLanguageChange("en"))">
+                English
+            </button>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrEmpty(Snapshot.AppVersion) || !string.IsNullOrEmpty(Snapshot.BackendInfo) || !string.IsNullOrEmpty(Snapshot.FrontendInfo))
+    {
+        <div class="s-card">
+            <div class="acs-settings-row-label">@(AboutLabel ?? "حول التطبيق")</div>
+            @if (!string.IsNullOrEmpty(Snapshot.AppVersion))
+            {
+                <div class="acs-settings-info-row"><span>@(VersionLabel ?? "الإصدار")</span><strong>@Snapshot.AppVersion</strong></div>
+            }
+            @if (!string.IsNullOrEmpty(Snapshot.BackendInfo))
+            {
+                <div class="acs-settings-info-row"><span>Backend</span><strong>@Snapshot.BackendInfo</strong></div>
+            }
+            @if (!string.IsNullOrEmpty(Snapshot.FrontendInfo))
+            {
+                <div class="acs-settings-info-row"><span>Frontend</span><strong>@Snapshot.FrontendInfo</strong></div>
+            }
+        </div>
+    }
+
+    @ExtraSections
+
+    @if (OnSignOut.HasDelegate)
+    {
+        <button class="btn btn-ghost btn-block" style="margin-top:16px;" @onclick="OnSignOut">
+            @(SignOutLabel ?? "تسجيل الخروج")
+        </button>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public SettingsSnapshot Snapshot { get; set; } = new() { Theme = "light", Language = "ar" };
+    [Parameter] public EventCallback<string> OnThemeChange { get; set; }
+    [Parameter] public EventCallback<string> OnLanguageChange { get; set; }
+    [Parameter] public EventCallback OnSignOut { get; set; }
+
+    [Parameter] public string? Title { get; set; }
+    [Parameter] public string? ThemeLabel { get; set; }
+    [Parameter] public string? LanguageLabel { get; set; }
+    [Parameter] public string? AboutLabel { get; set; }
+    [Parameter] public string? VersionLabel { get; set; }
+    [Parameter] public string? LightLabel { get; set; }
+    [Parameter] public string? DarkLabel { get; set; }
+    [Parameter] public string? SignOutLabel { get; set; }
+
+    [Parameter] public RenderFragment? AboveSections { get; set; }
+    [Parameter] public RenderFragment? ExtraSections { get; set; }
+
+    private async Task HandleThemeChange(string t)
+    {
+        if (OnThemeChange.HasDelegate) await OnThemeChange.InvokeAsync(t);
+    }
+
+    private async Task HandleLanguageChange(string l)
+    {
+        if (OnLanguageChange.HasDelegate) await OnLanguageChange.InvokeAsync(l);
+    }
+}

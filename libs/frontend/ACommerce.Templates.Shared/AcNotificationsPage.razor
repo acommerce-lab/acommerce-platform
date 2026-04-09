@@ -1,0 +1,132 @@
+@namespace ACommerce.Templates.Shared
+
+@*
+    Notifications list template. Type keys are mapped to CSS classes (.t-promo,
+    .t-order, .t-message, .t-general); unknown types fall back to .t-general.
+
+    Flex slots:
+      HeaderSlot — replaces the default title
+      EmptySlot  — replaces the default empty state
+      RowExtras  — per-row RenderFragment<NotificationRowDto>
+      HeaderActions — appended next to the title (e.g. "Mark all read")
+*@
+
+<div class="acs-page">
+    <div class="acs-page-header-row">
+        @if (HeaderSlot != null)
+        {
+            @HeaderSlot
+        }
+        else if (!string.IsNullOrEmpty(Title))
+        {
+            <h1 class="acs-page-title">@Title</h1>
+        }
+        @if (HeaderActions != null)
+        {
+            <div class="acs-page-header-actions">@HeaderActions</div>
+        }
+        else if (Notifications.Any(n => !n.IsRead) && OnMarkAllRead.HasDelegate)
+        {
+            <button class="btn btn-ghost btn-sm" @onclick="OnMarkAllRead">
+                @(MarkAllReadLabel ?? "تعليم الكل مقروءاً")
+            </button>
+        }
+    </div>
+
+    @if (Loading)
+    {
+        <AcLoadingState Message="@LoadingMessage" />
+    }
+    else if (Notifications.Count == 0)
+    {
+        @if (EmptySlot != null)
+        {
+            @EmptySlot
+        }
+        else
+        {
+            <AcEmptyState Icon="🔔"
+                          Title="@(EmptyTitle ?? "لا توجد إشعارات")"
+                          Message="@(EmptyMessage ?? "سيظهر هنا كل جديد")" />
+        }
+    }
+    else
+    {
+        @foreach (var n in Notifications)
+        {
+            <div class="s-card acs-noti @(n.IsRead ? "" : "unread")"
+                 @onclick="() => HandleSelect(n)">
+                <div class="acs-ni-icon @TypeClass(n.Type)">@TypeIcon(n.Type)</div>
+                <div class="acs-ni-body">
+                    <div class="acs-ni-top">
+                        <div class="acs-ni-title">@n.Title</div>
+                        <div class="acs-ni-time">@FormatTime(n.CreatedAt)</div>
+                    </div>
+                    @if (!string.IsNullOrEmpty(n.Body))
+                    {
+                        <div class="acs-ni-text">@n.Body</div>
+                    }
+                    @if (RowExtras != null)
+                    {
+                        @RowExtras(n)
+                    }
+                </div>
+                @if (!n.IsRead)
+                {
+                    <div class="acs-ni-dot"></div>
+                }
+            </div>
+        }
+    }
+</div>
+
+@code {
+    [Parameter] public IReadOnlyList<NotificationRowDto> Notifications { get; set; } = Array.Empty<NotificationRowDto>();
+    [Parameter] public bool Loading { get; set; }
+    [Parameter] public string? Title { get; set; }
+    [Parameter] public string? LoadingMessage { get; set; }
+    [Parameter] public string? EmptyTitle { get; set; }
+    [Parameter] public string? EmptyMessage { get; set; }
+    [Parameter] public string? MarkAllReadLabel { get; set; }
+
+    [Parameter] public EventCallback<NotificationRowDto> OnSelectNotification { get; set; }
+    [Parameter] public EventCallback<NotificationRowDto> OnMarkRead { get; set; }
+    [Parameter] public EventCallback OnMarkAllRead { get; set; }
+
+    [Parameter] public RenderFragment? HeaderSlot { get; set; }
+    [Parameter] public RenderFragment? HeaderActions { get; set; }
+    [Parameter] public RenderFragment? EmptySlot { get; set; }
+    [Parameter] public RenderFragment<NotificationRowDto>? RowExtras { get; set; }
+
+    private async Task HandleSelect(NotificationRowDto n)
+    {
+        if (OnSelectNotification.HasDelegate) await OnSelectNotification.InvokeAsync(n);
+        if (!n.IsRead && OnMarkRead.HasDelegate) await OnMarkRead.InvokeAsync(n);
+    }
+
+    private static string TypeClass(string? t) => t switch
+    {
+        "promo" => "t-promo",
+        "order" => "t-order",
+        "message" => "t-message",
+        _ => "t-general"
+    };
+
+    private static string TypeIcon(string? t) => t switch
+    {
+        "promo" => "🎁",
+        "order" => "📦",
+        "message" => "💬",
+        _ => "🔔"
+    };
+
+    private static string FormatTime(DateTime dt)
+    {
+        var delta = DateTime.UtcNow - dt.ToUniversalTime();
+        if (delta.TotalMinutes < 1) return "الآن";
+        if (delta.TotalMinutes < 60) return $"{(int)delta.TotalMinutes} د";
+        if (delta.TotalHours < 24) return $"{(int)delta.TotalHours} س";
+        if (delta.TotalDays < 7) return $"{(int)delta.TotalDays} ي";
+        return dt.ToString("yyyy-MM-dd");
+    }
+}

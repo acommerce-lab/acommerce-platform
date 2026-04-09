@@ -1,7 +1,7 @@
 # Building a frontend app
 
 Step-by-step recipe for a new Blazor Web App on top of the widgets cascade,
-using `Apps/Order.Web2` as the reference. By the end you will have a
+using `Apps/Order.Web` as the reference. By the end you will have a
 themed, mobile-shaped shell with phone-OTP login, routing, protected
 local storage auth persistence, and every page wearing your brand.
 
@@ -10,14 +10,14 @@ local storage auth persistence, and every page wearing your brand.
 ## 1. Create the project
 
 ```bash
-mkdir -p Apps/MyApp.Web2/Components/Layout
-mkdir -p Apps/MyApp.Web2/Components/Pages
-mkdir -p Apps/MyApp.Web2/Services
-mkdir -p Apps/MyApp.Web2/wwwroot/_framework
-mkdir -p Apps/MyApp.Web2/wwwroot/lib/bootstrap-icons/fonts
+mkdir -p Apps/MyApp.Web/Components/Layout
+mkdir -p Apps/MyApp.Web/Components/Pages
+mkdir -p Apps/MyApp.Web/Services
+mkdir -p Apps/MyApp.Web/wwwroot/_framework
+mkdir -p Apps/MyApp.Web/wwwroot/lib/bootstrap-icons/fonts
 ```
 
-Create `MyApp.Web2.csproj`:
+Create `MyApp.Web.csproj`:
 
 ```xml
 <Project Sdk="Microsoft.NET.Sdk.Web">
@@ -26,8 +26,8 @@ Create `MyApp.Web2.csproj`:
     <RollForward>LatestMajor</RollForward>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <RootNamespace>MyApp.Web2</RootNamespace>
-    <AssemblyName>MyApp.Web2</AssemblyName>
+    <RootNamespace>MyApp.Web</RootNamespace>
+    <AssemblyName>MyApp.Web</AssemblyName>
   </PropertyGroup>
 
   <ItemGroup>
@@ -50,17 +50,17 @@ These are the same on every app and are NOT worth re-deriving:
 ```bash
 # blazor.web.js — .NET 9 doesn't ship this on the SDK image we use; we keep
 # a copy in the repo and serve it as a static file
-cp Apps/Order.Web2/wwwroot/_framework/blazor.web.js \
-   Apps/MyApp.Web2/wwwroot/_framework/blazor.web.js
+cp Apps/Order.Web/wwwroot/_framework/blazor.web.js \
+   Apps/MyApp.Web/wwwroot/_framework/blazor.web.js
 
 # Bootstrap Icons (sandbox proxies block the CDN)
-cp -r Apps/Order.Web2/wwwroot/lib/bootstrap-icons/* \
-      Apps/MyApp.Web2/wwwroot/lib/bootstrap-icons/
+cp -r Apps/Order.Web/wwwroot/lib/bootstrap-icons/* \
+      Apps/MyApp.Web/wwwroot/lib/bootstrap-icons/
 ```
 
 ---
 
-## 3. Services (copy and rename from Order.Web2)
+## 3. Services (copy and rename from Order.Web)
 
 All four of these are generic and you should copy them verbatim:
 
@@ -74,8 +74,8 @@ All four of these are generic and you should copy them verbatim:
 ## 4. Program.cs
 
 ```csharp
-using MyApp.Web2.Components;
-using MyApp.Web2.Services;
+using MyApp.Web.Components;
+using MyApp.Web.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -171,7 +171,7 @@ and everything else re-paints.
 ## 6. wwwroot/app.css — the brand
 
 This is **the** file that differentiates your app. Copy the structure
-from `Apps/Order.Web2/wwwroot/app.css` and change the values:
+from `Apps/Order.Web/wwwroot/app.css` and change the values:
 
 ```css
 :root {
@@ -373,7 +373,7 @@ else
 }
 ```
 
-`Apps/Order.Web2/Components/Pages/` has six live examples of this
+`Apps/Order.Web/Components/Pages/` has six live examples of this
 pattern — Favorites, Messages, MyOrders, Notifications, OrderDetails,
 Conversation.
 
@@ -381,7 +381,7 @@ Conversation.
 
 ## 9. Login with phone OTP
 
-Copy `Apps/Order.Web2/Components/Pages/Login.razor`. It is a
+Copy `Apps/Order.Web/Components/Pages/Login.razor`. It is a
 two-step component (phone → OTP) that posts to your backend's
 `/api/auth/sms/request` and `/api/auth/sms/verify`. The only thing
 to customise is the hero background and the copy.
@@ -396,10 +396,10 @@ which writes the JWT to `ProtectedLocalStorage`. Next full reload,
 
 ```bash
 # Start the backend (in another terminal)
-cd Apps/MyApp.Api2 && dotnet run
+cd Apps/MyApp.Api && dotnet run
 
 # Start the frontend
-cd Apps/MyApp.Web2 && ASPNETCORE_ENVIRONMENT=Development \
+cd Apps/MyApp.Web && ASPNETCORE_ENVIRONMENT=Development \
     dotnet run --urls http://localhost:5701
 ```
 
@@ -417,5 +417,5 @@ Open http://localhost:5701 — see your brand in full colour.
 - **`page.goto()` in Playwright kills the session** → this is *expected* — Playwright's `goto` does a full reload. Use link clicks for navigation in screenshot tests, or ensure every page has `EnsureRestoredAsync()` in `OnAfterRenderAsync`.
 
 For the canonical reference implementation of every pattern in this
-guide, read `Apps/Order.Web2/Components/` — it's the smallest complete
+guide, read `Apps/Order.Web/Components/` — it's the smallest complete
 example.

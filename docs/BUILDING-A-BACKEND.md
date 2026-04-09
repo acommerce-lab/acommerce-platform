@@ -1,7 +1,7 @@
 # Building a backend service
 
 Step-by-step recipe for a new backend app on this stack, using
-`Apps/Order.Api2` as the canonical reference. By the end of this guide you
+`Apps/Order.Api` as the canonical reference. By the end of this guide you
 will have a SQLite-backed service with JWT auth, OTP login, a custom domain,
 and every mutation going through the accounting engine.
 
@@ -15,11 +15,11 @@ Prerequisites:
 ## 1. Create the project
 
 ```bash
-mkdir -p Apps/MyApp.Api2
-cd Apps/MyApp.Api2
+mkdir -p Apps/MyApp.Api
+cd Apps/MyApp.Api
 ```
 
-Create `MyApp.Api2.csproj`:
+Create `MyApp.Api.csproj`:
 
 ```xml
 <Project Sdk="Microsoft.NET.Sdk.Web">
@@ -28,8 +28,8 @@ Create `MyApp.Api2.csproj`:
     <RollForward>LatestMajor</RollForward>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <RootNamespace>MyApp.Api2</RootNamespace>
-    <AssemblyName>MyApp.Api2</AssemblyName>
+    <RootNamespace>MyApp.Api</RootNamespace>
+    <AssemblyName>MyApp.Api</AssemblyName>
   </PropertyGroup>
 
   <ItemGroup>
@@ -59,7 +59,7 @@ Create `MyApp.Api2.csproj`:
 </Project>
 ```
 
-Copy `Apps/Order.Api2/Order.Api2.csproj` as a starting point — it already
+Copy `Apps/Order.Api/Order.Api.csproj` as a starting point — it already
 has all the right references for a typical app.
 
 ---
@@ -72,7 +72,7 @@ Every entity implements `IBaseEntity`. Put them under `Entities/`:
 // Entities/MyEntity.cs
 using ACommerce.SharedKernel.Abstractions.Entities;
 
-namespace MyApp.Api2.Entities;
+namespace MyApp.Api.Entities;
 
 public class MyEntity : IBaseEntity
 {
@@ -96,14 +96,14 @@ discovers the entity at startup and builds a table for it.
 
 ## 3. Register entities + wire the DI container
 
-Copy `Apps/Order.Api2/Program.cs` as a starting template. The skeleton
+Copy `Apps/Order.Api/Program.cs` as a starting template. The skeleton
 to customise is:
 
 ```csharp
 using ACommerce.OperationEngine.Core;
 using ACommerce.SharedKernel.Abstractions.Entities;
 using ACommerce.SharedKernel.Infrastructure.EFCores.Extensions;
-using MyApp.Api2.Entities;
+using MyApp.Api.Entities;
 // ... (auth + tfa using lines)
 
 var builder = WebApplication.CreateBuilder(args);
@@ -142,7 +142,7 @@ builder.Services.AddCors(o => o.AddDefaultPolicy(p =>
     p.WithOrigins("http://localhost:5701")
      .AllowAnyHeader().AllowAnyMethod().AllowCredentials()));
 
-// 5. Authentication: JWT + SMS 2FA (see Apps/Order.Api2/Program.cs for the
+// 5. Authentication: JWT + SMS 2FA (see Apps/Order.Api/Program.cs for the
 //    full 40 lines — copy it verbatim and change the Issuer/Audience)
 
 // 6. Your seeder
@@ -168,7 +168,7 @@ using (var scope = app.Services.CreateScope())
 app.Run();
 ```
 
-Everything marked `// 5. …` is copy-paste from `Apps/Order.Api2/Program.cs`.
+Everything marked `// 5. …` is copy-paste from `Apps/Order.Api/Program.cs`.
 The only moving parts are the entity list and the database connection.
 
 ---
@@ -176,7 +176,7 @@ The only moving parts are the entity list and the database connection.
 ## 4. Write the envelope helpers
 
 Every controller response is an `OperationEnvelope<T>`. Copy
-`Apps/Order.Api2/Controllers/EnvelopeHelpers.cs` verbatim — it gives you:
+`Apps/Order.Api/Controllers/EnvelopeHelpers.cs` verbatim — it gives you:
 
 - `this.OkEnvelope(opType, data)`
 - `this.NotFoundEnvelope("my_not_found")`
@@ -193,9 +193,9 @@ Use them everywhere.
 ```csharp
 using ACommerce.SharedKernel.Abstractions.Repositories;
 using Microsoft.AspNetCore.Mvc;
-using MyApp.Api2.Entities;
+using MyApp.Api.Entities;
 
-namespace MyApp.Api2.Controllers;
+namespace MyApp.Api.Controllers;
 
 [ApiController]
 [Route("api/things")]
@@ -245,7 +245,7 @@ using ACommerce.OperationEngine.Patterns;
 using ACommerce.OperationEngine.Wire;
 using ACommerce.SharedKernel.Abstractions.Repositories;
 using Microsoft.AspNetCore.Mvc;
-using MyApp.Api2.Entities;
+using MyApp.Api.Entities;
 
 [ApiController]
 [Route("api/things")]
@@ -310,7 +310,7 @@ Three things to notice:
 ## 7. Write a seeder
 
 Seeders are just services that run at startup from `Program.cs`. Pattern
-(copy from `Apps/Order.Api2/Services/OrderSeeder.cs`):
+(copy from `Apps/Order.Api/Services/OrderSeeder.cs`):
 
 ```csharp
 public class MyAppSeeder
@@ -391,7 +391,7 @@ controller code.
 
 ```bash
 dotnet build
-cd Apps/MyApp.Api2
+cd Apps/MyApp.Api
 ASPNETCORE_ENVIRONMENT=Development dotnet run
 # http://localhost:5xxx/swagger
 ```
@@ -411,6 +411,6 @@ reset the DB.
 - **Forgot `app.UseAuthentication()`** → the `[Authorize]` attributes silently pass. Always add both `UseAuthentication` and `UseAuthorization`.
 - **Swagger missing fields** → add `[FromBody]` to POST action parameters.
 
-For anything not covered here, `Apps/Order.Api2` is the canonical
+For anything not covered here, `Apps/Order.Api` is the canonical
 reference. Its `Program.cs` is ~170 lines, controllers are ~100 lines
 each, and it's the minimum viable shape.

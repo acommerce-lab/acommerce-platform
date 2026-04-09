@@ -1,0 +1,94 @@
+@namespace ACommerce.Templates.Customer.Commerce
+
+@*
+    Orders list. Each card is a link to OrderHrefPrefix/{id}.
+
+    Flex slots:
+      HeaderSlot — replaces the default title
+      EmptySlot  — replaces the default empty state
+      RowExtras  — per-row RenderFragment<OrderRowDto>
+*@
+
+<div class="acc-orders-list-page">
+    @if (HeaderSlot != null)
+    {
+        @HeaderSlot
+    }
+    else
+    {
+        <h1 class="acs-page-title">@(Title ?? "طلباتي")</h1>
+    }
+
+    @if (Loading)
+    {
+        <AcLoadingState Message="@LoadingMessage" />
+    }
+    else if (Orders.Count == 0)
+    {
+        @if (EmptySlot != null)
+        {
+            @EmptySlot
+        }
+        else
+        {
+            <AcEmptyState Icon="📦"
+                          Title="@(EmptyTitle ?? "لا توجد طلبات")"
+                          Message="@(EmptyMessage ?? "طلباتك ستظهر هنا")"
+                          ActionLabel="@(BrowseLabel ?? "تصفح العروض")"
+                          ActionHref="@BrowseHref" />
+        }
+    }
+    else
+    {
+        @foreach (var o in Orders)
+        {
+            <a class="s-card acc-order-card" href="@(OrderHrefPrefix + "/" + o.Id)">
+                <div class="acc-order-head">
+                    <div class="acc-order-vendor">
+                        <span class="acc-order-emoji">@(o.VendorEmoji ?? "🏪")</span>
+                        <div>
+                            <div class="acc-order-name">@(o.VendorName ?? "")</div>
+                            <div class="acc-order-num">#@o.OrderNumber</div>
+                        </div>
+                    </div>
+                    <span class="acc-order-status acc-status-@(o.Status.ToLowerInvariant())">
+                        @(o.StatusLabel ?? o.Status)
+                    </span>
+                </div>
+                <div class="acc-order-meta">
+                    @if (!string.IsNullOrEmpty(o.PickupLabel))
+                    {
+                        <span>@o.PickupLabel</span>
+                    }
+                    @if (!string.IsNullOrEmpty(o.PaymentLabel))
+                    {
+                        <span>·</span>
+                        <span>@o.PaymentLabel</span>
+                    }
+                    <span class="acc-order-total">@o.Total.ToString("0.##") @o.Currency</span>
+                </div>
+                @if (RowExtras != null)
+                {
+                    @RowExtras(o)
+                }
+            </a>
+        }
+    }
+</div>
+
+@code {
+    [Parameter] public IReadOnlyList<OrderRowDto> Orders { get; set; } = Array.Empty<OrderRowDto>();
+    [Parameter] public bool Loading { get; set; }
+    [Parameter] public string OrderHrefPrefix { get; set; } = "/order";
+
+    [Parameter] public string? Title { get; set; }
+    [Parameter] public string? LoadingMessage { get; set; }
+    [Parameter] public string? EmptyTitle { get; set; }
+    [Parameter] public string? EmptyMessage { get; set; }
+    [Parameter] public string? BrowseLabel { get; set; }
+    [Parameter] public string? BrowseHref { get; set; } = "/";
+
+    [Parameter] public RenderFragment? HeaderSlot { get; set; }
+    [Parameter] public RenderFragment? EmptySlot { get; set; }
+    [Parameter] public RenderFragment<OrderRowDto>? RowExtras { get; set; }
+}

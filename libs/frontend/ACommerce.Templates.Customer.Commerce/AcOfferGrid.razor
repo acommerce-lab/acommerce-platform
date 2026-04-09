@@ -1,0 +1,82 @@
+@namespace ACommerce.Templates.Customer.Commerce
+
+@*
+    Responsive grid of offer cards. Click routes to /offer/{id} by default,
+    or to DetailsHrefPrefix/{id} if set. Cards are full links for good a11y.
+
+    Flex slots:
+      AboveGrid   — rendered above the grid (e.g. section title)
+      BelowGrid   — rendered below the grid (e.g. load-more button)
+      EmptySlot   — replaces the default empty state
+      CardExtras  — per-card RenderFragment<OfferDto>, rendered inside the card
+*@
+
+@AboveGrid
+
+@if (Offers.Count == 0)
+{
+    @if (EmptySlot != null)
+    {
+        @EmptySlot
+    }
+    else
+    {
+        <AcEmptyState Icon="🍽️" Message="@(EmptyMessage ?? "لا توجد عروض حالياً")" />
+    }
+}
+else
+{
+    <div class="acc-offer-grid" style="@GridStyle()">
+        @foreach (var o in Offers)
+        {
+            var href = DetailsHrefPrefix + "/" + o.Id;
+            <a class="acc-offer-card" href="@href">
+                <div class="acc-offer-top">
+                    <div class="acc-offer-emoji">@(o.Emoji ?? "🍽️")</div>
+                    @if (o.DiscountPercent > 0)
+                    {
+                        <div class="acc-offer-discount">-@o.DiscountPercent%</div>
+                    }
+                    @if (o.IsFeatured)
+                    {
+                        <div class="acc-offer-featured">★</div>
+                    }
+                </div>
+                <div class="acc-offer-body">
+                    <div class="acc-offer-title">@o.Title</div>
+                    @if (o.Vendor != null)
+                    {
+                        <div class="acc-offer-vendor">@o.Vendor.Name</div>
+                    }
+                    <div class="acc-offer-price-row">
+                        <span class="acc-offer-price">@o.Price.ToString("0.##") @o.Currency</span>
+                        @if (o.OriginalPrice is > 0 && o.OriginalPrice > o.Price)
+                        {
+                            <span class="acc-offer-original">@o.OriginalPrice.Value.ToString("0.##")</span>
+                        }
+                    </div>
+                    @if (CardExtras != null)
+                    {
+                        @CardExtras(o)
+                    }
+                </div>
+            </a>
+        }
+    </div>
+}
+
+@BelowGrid
+
+@code {
+    [Parameter] public IReadOnlyList<OfferDto> Offers { get; set; } = Array.Empty<OfferDto>();
+    [Parameter] public int Columns { get; set; } = 2;
+    [Parameter] public string DetailsHrefPrefix { get; set; } = "/offer";
+    [Parameter] public string? EmptyMessage { get; set; }
+
+    [Parameter] public RenderFragment? AboveGrid { get; set; }
+    [Parameter] public RenderFragment? BelowGrid { get; set; }
+    [Parameter] public RenderFragment? EmptySlot { get; set; }
+    [Parameter] public RenderFragment<OfferDto>? CardExtras { get; set; }
+
+    private string GridStyle() => $"grid-template-columns: repeat({Columns}, minmax(0, 1fr));";
+}
