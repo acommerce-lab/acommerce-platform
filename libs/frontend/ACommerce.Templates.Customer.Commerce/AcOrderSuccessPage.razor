@@ -1,0 +1,73 @@
+@namespace ACommerce.Templates.Customer.Commerce
+
+@*
+    Post-order success page: big check + order number + brief summary + CTAs.
+
+    Flex slots:
+      HeroExtra    — rendered below the order number inside the hero
+      ExtraContent — rendered between the hero and the actions
+      ActionsSlot  — replaces the default action buttons
+*@
+
+<div class="acc-order-success-page">
+    <div class="acc-success-hero">
+        <div class="acc-success-icon">✓</div>
+        <h1 class="acc-success-title">@(Title ?? "تم استلام طلبك")</h1>
+        @if (Order != null)
+        {
+            <div class="acc-success-number">#@Order.OrderNumber</div>
+        }
+        @if (!string.IsNullOrEmpty(Subtitle))
+        {
+            <p class="acc-success-sub">@Subtitle</p>
+        }
+        @HeroExtra
+    </div>
+
+    @if (Order != null)
+    {
+        <div class="s-card">
+            <div class="acc-order-total-row">
+                <strong>@(TotalLabel ?? "الإجمالي")</strong>
+                <strong>@Order.Total.ToString("0.##") @Order.Currency</strong>
+            </div>
+            @if (!string.IsNullOrEmpty(Order.PickupLabel))
+            {
+                <div class="acc-order-info-row">@Order.PickupLabel</div>
+            }
+            @if (!string.IsNullOrEmpty(Order.PaymentLabel))
+            {
+                <div class="acc-order-info-row">@Order.PaymentLabel</div>
+            }
+        </div>
+    }
+
+    @ExtraContent
+
+    @if (ActionsSlot != null)
+    {
+        @ActionsSlot
+    }
+    else
+    {
+        <a class="btn btn-primary btn-block" href="@(Order != null ? $"/order/{Order.Id}" : "/")">
+            @(ViewOrderLabel ?? "عرض الطلب")
+        </a>
+        <a class="btn btn-ghost btn-block" style="margin-top:8px;" href="/">
+            @(ContinueLabel ?? "متابعة التسوق")
+        </a>
+    }
+</div>
+
+@code {
+    [Parameter] public OrderDetailsDto? Order { get; set; }
+    [Parameter] public string? Title { get; set; }
+    [Parameter] public string? Subtitle { get; set; }
+    [Parameter] public string? TotalLabel { get; set; }
+    [Parameter] public string? ViewOrderLabel { get; set; }
+    [Parameter] public string? ContinueLabel { get; set; }
+
+    [Parameter] public RenderFragment? HeroExtra { get; set; }
+    [Parameter] public RenderFragment? ExtraContent { get; set; }
+    [Parameter] public RenderFragment? ActionsSlot { get; set; }
+}

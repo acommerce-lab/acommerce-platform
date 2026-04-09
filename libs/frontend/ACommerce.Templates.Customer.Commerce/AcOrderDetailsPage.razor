@@ -1,0 +1,151 @@
+@namespace ACommerce.Templates.Customer.Commerce
+
+@*
+    Full order details page. Shows items breakdown, pickup info, payment info,
+    and (optionally) a cancel button.
+
+    Flex slots:
+      HeaderSlot     — replaces default header
+      AboveItems     — rendered above items card
+      BelowItems     — rendered below items card
+      ExtraSections  — rendered below the last built-in section (e.g. timeline)
+      AboveActions   — rendered above the action buttons
+*@
+
+@if (Loading)
+{
+    <AcLoadingState Message="@LoadingMessage" />
+}
+else if (Order is null)
+{
+    <AcEmptyState Icon="🔍"
+                  Title="@(NotFoundTitle ?? "الطلب غير موجود")"
+                  ActionLabel="@(BackLabel ?? "رجوع")"
+                  ActionHref="@BackHref" />
+}
+else
+{
+    <div class="acc-order-details-page">
+        @if (HeaderSlot != null)
+        {
+            @HeaderSlot
+        }
+        else
+        {
+            <div class="acc-order-header">
+                <div class="acc-order-number">#@Order.OrderNumber</div>
+                <span class="acc-order-status acc-status-@(Order.Status.ToLowerInvariant())">
+                    @(Order.StatusLabel ?? Order.Status)
+                </span>
+            </div>
+        }
+
+        @AboveItems
+        <div class="s-card">
+            <div class="acc-section-label">@(ItemsLabel ?? "الأصناف")</div>
+            @foreach (var item in Order.Items)
+            {
+                <div class="acc-order-item-row">
+                    <span>@(item.Emoji ?? "🍽️") @item.Title × @item.Quantity</span>
+                    <span>@item.LineTotal.ToString("0.##")</span>
+                </div>
+            }
+            <div class="acc-order-total-row">
+                <strong>@(TotalLabel ?? "الإجمالي")</strong>
+                <strong>@Order.Total.ToString("0.##") @Order.Currency</strong>
+            </div>
+        </div>
+        @BelowItems
+
+        @if (Order.Vendor != null)
+        {
+            <div class="s-card">
+                <div class="acc-section-label">@(VendorLabel ?? "المتجر")</div>
+                <div class="acc-order-vendor-row">
+                    <span>@(Order.Vendor.LogoEmoji ?? "🏪")</span>
+                    <strong>@Order.Vendor.Name</strong>
+                </div>
+                @if (!string.IsNullOrEmpty(Order.Vendor.City))
+                {
+                    <div class="acc-order-info-row">📍 @Order.Vendor.City</div>
+                }
+                @if (!string.IsNullOrEmpty(Order.Vendor.Phone))
+                {
+                    <div class="acc-order-info-row" dir="ltr">📞 @Order.Vendor.Phone</div>
+                }
+            </div>
+        }
+
+        @if (!string.IsNullOrEmpty(Order.PickupLabel))
+        {
+            <div class="s-card">
+                <div class="acc-section-label">@(PickupLabel ?? "الاستلام")</div>
+                <div class="acc-order-info-row">@Order.PickupLabel</div>
+                @if (!string.IsNullOrEmpty(Order.CarModel))
+                {
+                    <div class="acc-order-info-row">🚗 @Order.CarModel @Order.CarColor @(Order.CarPlate ?? "")</div>
+                }
+            </div>
+        }
+
+        @if (!string.IsNullOrEmpty(Order.PaymentLabel))
+        {
+            <div class="s-card">
+                <div class="acc-section-label">@(PaymentLabel ?? "الدفع")</div>
+                <div class="acc-order-info-row">@Order.PaymentLabel</div>
+                @if (Order.CashTendered is > 0)
+                {
+                    <div class="acc-order-info-row">@(CashTenderedLabel ?? "المبلغ المقدم"): @Order.CashTendered.Value.ToString("0.##")</div>
+                }
+                @if (Order.ExpectedChange is > 0)
+                {
+                    <div class="acc-order-info-row">@(ExpectedChangeLabel ?? "الباقي المتوقع"): @Order.ExpectedChange.Value.ToString("0.##")</div>
+                }
+            </div>
+        }
+
+        @if (!string.IsNullOrEmpty(Order.CustomerNotes))
+        {
+            <div class="s-card">
+                <div class="acc-section-label">@(NotesLabel ?? "ملاحظاتك")</div>
+                <p class="acc-order-notes">@Order.CustomerNotes</p>
+            </div>
+        }
+
+        @ExtraSections
+        @AboveActions
+
+        @if (Order.CanCancel && OnCancel.HasDelegate)
+        {
+            <button class="btn btn-ghost btn-block" style="margin-top:12px;" @onclick="OnCancel">
+                @(CancelLabel ?? "إلغاء الطلب")
+            </button>
+        }
+    </div>
+}
+
+@code {
+    [Parameter] public OrderDetailsDto? Order { get; set; }
+    [Parameter] public bool Loading { get; set; }
+    [Parameter] public EventCallback OnCancel { get; set; }
+
+    [Parameter] public string? LoadingMessage { get; set; }
+    [Parameter] public string? NotFoundTitle { get; set; }
+    [Parameter] public string? BackLabel { get; set; }
+    [Parameter] public string? BackHref { get; set; } = "/";
+    [Parameter] public string? ItemsLabel { get; set; }
+    [Parameter] public string? TotalLabel { get; set; }
+    [Parameter] public string? VendorLabel { get; set; }
+    [Parameter] public string? PickupLabel { get; set; }
+    [Parameter] public string? PaymentLabel { get; set; }
+    [Parameter] public string? CashTenderedLabel { get; set; }
+    [Parameter] public string? ExpectedChangeLabel { get; set; }
+    [Parameter] public string? NotesLabel { get; set; }
+    [Parameter] public string? CancelLabel { get; set; }
+
+    [Parameter] public RenderFragment? HeaderSlot { get; set; }
+    [Parameter] public RenderFragment? AboveItems { get; set; }
+    [Parameter] public RenderFragment? BelowItems { get; set; }
+    [Parameter] public RenderFragment? ExtraSections { get; set; }
+    [Parameter] public RenderFragment? AboveActions { get; set; }
+}

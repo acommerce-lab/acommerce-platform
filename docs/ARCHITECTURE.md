@@ -19,7 +19,7 @@ and `BUILDING-A-FRONTEND.md`. For the AI-agent onboarding brief see
 ```
 ┌──────────────────────────────────────────────────────────────────┐
 │  Layer 3 — Apps                                                   │
-│  Ashare.Api2, Ashare.Web2, Order.Api2, Order.Web2, …              │
+│  Ashare.Api, Ashare.Web, Order.Api, Order.Web, …              │
 │  Domain entities, HTTP controllers, Blazor pages, brand CSS       │
 └──────────────────────────────────────────────────────────────────┘
                                ▲
@@ -123,8 +123,8 @@ endpoints and return `OperationEnvelope<T>`:
 - `ACommerce.Client.Domain.*` — per-domain clients (Auth, Listings, …).
 
 Most apps only need `ACommerce.OperationEngine.Wire` (for the envelope
-type) and a hand-rolled thin `HttpClient` wrapper, as Ashare.Web2 and
-Order.Web2 demonstrate. The client libraries are there if you want a
+type) and a hand-rolled thin `HttpClient` wrapper, as Ashare.Web and
+Order.Web demonstrate. The client libraries are there if you want a
 richer reactive layer.
 
 ---
@@ -150,13 +150,13 @@ for the templates we still need, see `TEMPLATES-ROADMAP.md`.
 
 ### Ashare (property classifieds)
 
-- `Apps/Ashare.Api2` — OpEngine + SQLite + JWT + SMS 2FA + Subscriptions (with `QuotaInterceptor`) + Listings + Bookings + Payments + Messages + Notifications.
-- `Apps/Ashare.Web2` — Blazor Web App using widgets + templates + a purple Ashare brand in `wwwroot/app.css`.
+- `Apps/Ashare.Api` — OpEngine + SQLite + JWT + SMS 2FA + Subscriptions (with `QuotaInterceptor`) + Listings + Bookings + Payments + Messages + Notifications.
+- `Apps/Ashare.Web` — Blazor Web App using widgets + templates + a purple Ashare brand in `wwwroot/app.css`.
 
 ### Order (cafe/restaurant deals)
 
-- `Apps/Order.Api2` — OpEngine + SQLite + JWT + SMS 2FA + Offers + Orders (with curbside pickup + cash change calculator, no delivery/payment provider) + Messages + Notifications + Favorites.
-- `Apps/Order.Web2` — Blazor Web App with orange Order brand + shell + dark theme + bilingual (ar/en) settings.
+- `Apps/Order.Api` — OpEngine + SQLite + JWT + SMS 2FA + Offers + Orders (with curbside pickup + cash change calculator, no delivery/payment provider) + Messages + Notifications + Favorites.
+- `Apps/Order.Web` — Blazor Web App with orange Order brand + shell + dark theme + bilingual (ar/en) settings.
 
 Both apps are **leaf nodes** — they import core + the operation libraries
 they need, write their own entities, and expose HTTP endpoints that all
@@ -172,13 +172,13 @@ git clone <repo>
 cd acommerce.libraries
 
 # Run Order (the newest, cleanest demo)
-bash Apps/Order.Web2/run-local.sh
+bash Apps/Order.Web/run-local.sh
 #   API  -> http://localhost:5101/swagger
 #   WEB  -> http://localhost:5701
-#   Login with +966500000001, OTP printed in /tmp/order-api2.log
+#   Login with +966500000001, OTP printed in /tmp/order-api.log
 
 # Or run Ashare
-# (API on 5500, Web on 5600, same pattern — see Apps/Ashare.Api2/README)
+# (API on 5500, Web on 5600, same pattern — see Apps/Ashare.Api/README)
 ```
 
 For new projects, read (in order):

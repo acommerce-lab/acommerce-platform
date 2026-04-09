@@ -1,0 +1,105 @@
+@namespace ACommerce.Templates.Shared
+
+@*
+    Conversations list template. Each row is clickable (either via Href on the DTO
+    if the consumer uses ConversationRowDto.Extra["Href"], or via OnSelectConversation).
+
+    Flex slots:
+      HeaderSlot — replaces the default title
+      EmptySlot  — replaces the default empty state
+      RowExtras  — per-row RenderFragment<ConversationRowDto>, appended to the row
+*@
+
+<div class="acs-page">
+    @if (HeaderSlot != null)
+    {
+        @HeaderSlot
+    }
+    else if (!string.IsNullOrEmpty(Title))
+    {
+        <h1 class="acs-page-title">@Title</h1>
+    }
+
+    @if (Loading)
+    {
+        <AcLoadingState Message="@LoadingMessage" />
+    }
+    else if (Conversations.Count == 0)
+    {
+        @if (EmptySlot != null)
+        {
+            @EmptySlot
+        }
+        else
+        {
+            <AcEmptyState Icon="💬"
+                          Title="@(EmptyTitle ?? "لا توجد محادثات")"
+                          Message="@(EmptyMessage ?? "ستظهر محادثاتك هنا")" />
+        }
+    }
+    else
+    {
+        @foreach (var c in Conversations)
+        {
+            var href = c.Extra != null && c.Extra.TryGetValue("Href", out var h) ? h?.ToString() : null;
+            <div class="acs-chat-row s-card @(c.Unread > 0 ? "unread" : "")"
+                 @onclick="() => HandleSelect(c)">
+                <div class="acs-chat-emoji">@(c.Emoji ?? "💬")</div>
+                <div class="acs-chat-body">
+                    <div class="acs-chat-top">
+                        <div class="acs-chat-name">@c.Title</div>
+                        @if (c.LastMessageAt.HasValue)
+                        {
+                            <div class="acs-chat-time">@FormatTime(c.LastMessageAt.Value)</div>
+                        }
+                    </div>
+                    @if (!string.IsNullOrEmpty(c.LastMessageSnippet))
+                    {
+                        <div class="acs-chat-snippet">@c.LastMessageSnippet</div>
+                    }
+                    @if (!string.IsNullOrEmpty(c.Subtitle))
+                    {
+                        <div class="acs-chat-sub">@c.Subtitle</div>
+                    }
+                    @if (RowExtras != null)
+                    {
+                        @RowExtras(c)
+                    }
+                </div>
+                @if (c.Unread > 0)
+                {
+                    <div class="acs-chat-badge">@(c.Unread > 99 ? "99+" : c.Unread.ToString())</div>
+                }
+            </div>
+        }
+    }
+</div>
+
+@code {
+    [Parameter] public IReadOnlyList<ConversationRowDto> Conversations { get; set; } = Array.Empty<ConversationRowDto>();
+    [Parameter] public bool Loading { get; set; }
+    [Parameter] public string? Title { get; set; }
+    [Parameter] public string? LoadingMessage { get; set; }
+    [Parameter] public string? EmptyTitle { get; set; }
+    [Parameter] public string? EmptyMessage { get; set; }
+    [Parameter] public EventCallback<ConversationRowDto> OnSelectConversation { get; set; }
+
+    [Parameter] public RenderFragment? HeaderSlot { get; set; }
+    [Parameter] public RenderFragment? EmptySlot { get; set; }
+    [Parameter] public RenderFragment<ConversationRowDto>? RowExtras { get; set; }
+
+    private async Task HandleSelect(ConversationRowDto c)
+    {
+        if (OnSelectConversation.HasDelegate) await OnSelectConversation.InvokeAsync(c);
+    }
+
+    private static string FormatTime(DateTime dt)
+    {
+        var delta = DateTime.UtcNow - dt.ToUniversalTime();
+        if (delta.TotalMinutes < 1) return "الآن";
+        if (delta.TotalMinutes < 60) return $"{(int)delta.TotalMinutes} د";
+        if (delta.TotalHours < 24) return $"{(int)delta.TotalHours} س";
+        if (delta.TotalDays < 7) return $"{(int)delta.TotalDays} ي";
+        return dt.ToString("yyyy-MM-dd");
+    }
+}

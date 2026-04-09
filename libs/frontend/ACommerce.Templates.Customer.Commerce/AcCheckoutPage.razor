@@ -1,0 +1,211 @@
+@namespace ACommerce.Templates.Customer.Commerce
+
+@*
+    Checkout page: summary + pickup method + payment method + optional car-details
+    + optional cash-tendered with live change + notes + submit.
+
+    The consumer owns the CheckoutDraft and the Cart snapshot. The template reads
+    them and raises OnFieldChange for field mutations so the consumer can trigger
+    StateHasChanged after updating the draft.
+
+    Flex slots:
+      HeaderSlot   — replaces the default title
+      AboveForm    — rendered above the first form card
+      BelowForm    — rendered below the last form card (above submit)
+      ExtraFields  — rendered below the notes card (for app-specific fields)
+      AboveSubmit  — rendered above the submit button
+*@
+
+<div class="acc-checkout-page">
+    @if (HeaderSlot != null)
+    {
+        @HeaderSlot
+    }
+    else
+    {
+        <h1 class="acs-page-title">@(Title ?? "إكمال الطلب")</h1>
+    }
+
+    @AboveForm
+
+    @if (Cart.Items.Count > 0)
+    {
+        <div class="s-card">
+            <div class="acc-section-label">@(SummaryLabel ?? "ملخص الطلب")</div>
+            @foreach (var item in Cart.Items)
+            {
+                <div class="acc-checkout-line">
+                    <span>@(item.Emoji ?? "🍽️") @item.Title × @item.Quantity</span>
+                    <span>@item.LineTotal.ToString("0.##")</span>
+                </div>
+            }
+            <div class="acc-checkout-total">
+                <strong>@(TotalLabel ?? "الإجمالي")</strong>
+                <strong>@Cart.Subtotal.ToString("0.##") @Cart.Currency</strong>
+            </div>
+        </div>
+    }
+
+    <div class="s-card">
+        <div class="acc-section-label">@(PickupLabel ?? "طريقة الاستلام")</div>
+        <div class="acs-seg">
+            <button class="acs-seg-btn @(Draft.PickupType == "InStore" ? "active" : "")"
+                    @onclick="@(() => SetPickup("InStore"))">
+                @(InStoreLabel ?? "من المتجر")
+            </button>
+            <button class="acs-seg-btn @(Draft.PickupType == "Curbside" ? "active" : "")"
+                    @onclick="@(() => SetPickup("Curbside"))">
+                @(CurbsideLabel ?? "من السيارة")
+            </button>
+        </div>
+    </div>
+
+    @if (Draft.PickupType == "Curbside")
+    {
+        <div class="s-card">
+            <div class="acc-section-label">@(CarDetailsLabel ?? "معلومات السيارة")</div>
+            <label class="form-label">@(CarModelLabel ?? "الموديل")</label>
+            <input class="form-input" value="@Draft.CarModel" @oninput="@(e => SetField("CarModel", e))" />
+            <label class="form-label" style="margin-top:8px;">@(CarColorLabel ?? "اللون")</label>
+            <input class="form-input" value="@Draft.CarColor" @oninput="@(e => SetField("CarColor", e))" />
+            <label class="form-label" style="margin-top:8px;">@(CarPlateLabel ?? "اللوحة (اختياري)")</label>
+            <input class="form-input" value="@Draft.CarPlate" @oninput="@(e => SetField("CarPlate", e))" />
+        </div>
+    }
+
+    <div class="s-card">
+        <div class="acc-section-label">@(PaymentLabel ?? "طريقة الدفع")</div>
+        <div class="acs-seg">
+            <button class="acs-seg-btn @(Draft.PaymentMethod == "Cash" ? "active" : "")"
+                    @onclick="@(() => SetPayment("Cash"))">
+                @(CashLabel ?? "نقدي")
+            </button>
+            <button class="acs-seg-btn @(Draft.PaymentMethod == "Card" ? "active" : "")"
+                    @onclick="@(() => SetPayment("Card"))">
+                @(CardLabel ?? "بطاقة")
+            </button>
+        </div>
+        @if (!string.IsNullOrEmpty(PaymentHint))
+        {
+            <p class="acc-checkout-hint">@PaymentHint</p>
+        }
+    </div>
+
+    @if (Draft.PaymentMethod == "Cash")
+    {
+        <div class="s-card">
+            <div class="acc-section-label">@(CashTenderedLabel ?? "المبلغ المقدم")</div>
+            <input class="form-input" type="number" value="@Draft.CashTendered"
+                   @oninput="@(e => SetCash(e))" />
+            @if (Draft.CashTendered is > 0)
+            {
+                var change = Draft.CashTendered.Value - Cart.Subtotal;
+                var warn = change < 0;
+                <div class="acc-change-box @(warn ? "warn" : "")">
+                    @if (warn)
+                    {
+                        <span>@(NotEnoughLabel ?? "المبلغ غير كافٍ")</span>
+                    }
+                    else
+                    {
+                        <span>@(ChangeLabel ?? "الباقي")</span>
+                        <strong>@change.ToString("0.##") @Cart.Currency</strong>
+                    }
+                </div>
+            }
+        </div>
+    }
+
+    <div class="s-card">
+        <div class="acc-section-label">@(NotesLabel ?? "ملاحظات (اختياري)")</div>
+        <textarea class="form-input" rows="3" @oninput="@(e => SetField("Notes", e))">@Draft.Notes</textarea>
+    </div>
+
+    @ExtraFields
+
+    @if (!string.IsNullOrEmpty(Error))
+    {
+        <div class="alert alert-danger" style="margin-top:12px;">@Error</div>
+    }
+
+    @BelowForm
+    @AboveSubmit
+
+    <button class="btn btn-primary btn-block" style="margin-top:12px;"
+            @onclick="OnSubmit" disabled="@Submitting">
+        @(Submitting ? (SubmittingLabel ?? "جاري الإرسال...") : (SubmitLabel ?? "تأكيد الطلب"))
+    </button>
+    @if (!string.IsNullOrEmpty(BackToCartHref))
+    {
+        <a class="btn btn-ghost btn-block" href="@BackToCartHref" style="margin-top:8px;">
+            @(BackToCartLabel ?? "العودة للسلة")
+        </a>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public CartSnapshot Cart { get; set; } = new() { Items = Array.Empty<CartLineDto>() };
+    [Parameter, EditorRequired] public CheckoutDraft Draft { get; set; } = new();
+    [Parameter] public EventCallback<(string Field, object? Value)> OnFieldChange { get; set; }
+    [Parameter] public EventCallback OnSubmit { get; set; }
+    [Parameter] public bool Submitting { get; set; }
+    [Parameter] public string? Error { get; set; }
+
+    [Parameter] public string? Title { get; set; }
+    [Parameter] public string? SummaryLabel { get; set; }
+    [Parameter] public string? TotalLabel { get; set; }
+    [Parameter] public string? PickupLabel { get; set; }
+    [Parameter] public string? InStoreLabel { get; set; }
+    [Parameter] public string? CurbsideLabel { get; set; }
+    [Parameter] public string? CarDetailsLabel { get; set; }
+    [Parameter] public string? CarModelLabel { get; set; }
+    [Parameter] public string? CarColorLabel { get; set; }
+    [Parameter] public string? CarPlateLabel { get; set; }
+    [Parameter] public string? PaymentLabel { get; set; }
+    [Parameter] public string? PaymentHint { get; set; }
+    [Parameter] public string? CashLabel { get; set; }
+    [Parameter] public string? CardLabel { get; set; }
+    [Parameter] public string? CashTenderedLabel { get; set; }
+    [Parameter] public string? ChangeLabel { get; set; }
+    [Parameter] public string? NotEnoughLabel { get; set; }
+    [Parameter] public string? NotesLabel { get; set; }
+    [Parameter] public string? SubmitLabel { get; set; }
+    [Parameter] public string? SubmittingLabel { get; set; }
+    [Parameter] public string? BackToCartHref { get; set; }
+    [Parameter] public string? BackToCartLabel { get; set; }
+
+    [Parameter] public RenderFragment? HeaderSlot { get; set; }
+    [Parameter] public RenderFragment? AboveForm { get; set; }
+    [Parameter] public RenderFragment? BelowForm { get; set; }
+    [Parameter] public RenderFragment? ExtraFields { get; set; }
+    [Parameter] public RenderFragment? AboveSubmit { get; set; }
+
+    private async Task SetPickup(string v)
+    {
+        Draft.PickupType = v;
+        if (OnFieldChange.HasDelegate) await OnFieldChange.InvokeAsync(("PickupType", v));
+    }
+    private async Task SetPayment(string v)
+    {
+        Draft.PaymentMethod = v;
+        if (OnFieldChange.HasDelegate) await OnFieldChange.InvokeAsync(("PaymentMethod", v));
+    }
+    private async Task SetField(string field, ChangeEventArgs e)
+    {
+        var val = e.Value?.ToString();
+        switch (field)
+        {
+            case "CarModel": Draft.CarModel = val; break;
+            case "CarColor": Draft.CarColor = val; break;
+            case "CarPlate": Draft.CarPlate = val; break;
+            case "Notes":    Draft.Notes = val; break;
+        }
+        if (OnFieldChange.HasDelegate) await OnFieldChange.InvokeAsync((field, val));
+    }
+    private async Task SetCash(ChangeEventArgs e)
+    {
+        if (decimal.TryParse(e.Value?.ToString(), out var d)) Draft.CashTendered = d;
+        else Draft.CashTendered = null;
+        if (OnFieldChange.HasDelegate) await OnFieldChange.InvokeAsync(("CashTendered", Draft.CashTendered));
+    }
+}

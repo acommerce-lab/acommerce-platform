@@ -66,10 +66,10 @@ clients/ACommerce.Client.Operations/
 clients/ACommerce.Client.Http/
 clients/ACommerce.Client.StateBridge/
 
-Apps/Ashare.Api2/
-Apps/Ashare.Web2/
-Apps/Order.Api2/
-Apps/Order.Web2/
+Apps/Ashare.Api/
+Apps/Ashare.Web/
+Apps/Order.Api/
+Apps/Order.Web/
 
 docs/
 ```
@@ -81,7 +81,7 @@ Plus a new root-level `README.md` that points to `docs/ARCHITECTURE.md`.
 Everything else, specifically:
 
 - `Apps/Ashare.Api`, `Apps/Ashare.Web`, `Apps/Ashare.Admin`, `Apps/Ashare.App` — old dead apps.
-- `Apps/Order.Api`, `Apps/Order.Shared`, `Apps/Order.Customer.App` — old repository-pattern Order (MAUI-flavoured, superseded by Order.Api2 / Order.Web2).
+- `Apps/Order.Api`, `Apps/Order.Shared`, `Apps/Order.Customer.App` — old repository-pattern Order (MAUI-flavoured, superseded by Order.Api / Order.Web).
 - `Apps/HamtramckHardware.*`, `Apps/ACommerce.*`, `Apps/HamtramckHardware.Web`, etc. — unrelated apps.
 - `Examples/ACommerce.MagneticLM/` — goes to its own repo.
 - `Templates/` — the old "Customer template" based on the repository pattern; superseded by `libs/frontend/ACommerce.Templates.Commerce/`.
@@ -118,8 +118,8 @@ preserving per-file history. So in the new repo:
 
 - ✅ `git log` shows the bootstrap commit + the import commit.
 - ✅ `git ls-files` lists every kept file at its correct path.
-- ✅ `dotnet build Apps/Order.Api2/Order.Api2.csproj` works.
-- ❌ `git log Apps/Order.Api2/Program.cs` shows only the import commit, NOT the original commits that touched it in the monorepo.
+- ✅ `dotnet build Apps/Order.Api/Order.Api.csproj` works.
+- ❌ `git log Apps/Order.Api/Program.cs` shows only the import commit, NOT the original commits that touched it in the monorepo.
 
 Why: the scripts use `git subtree split` (which gives you the right tree for
 each path) plus `git fetch SRC <sha>` + `git read-tree --prefix=path/`. This
@@ -242,7 +242,7 @@ token.
 **Q: Will the new repos have full git history?**  
 A: Yes. Both `git subtree split` and `git filter-repo` preserve the
 commit history of the kept paths. You'll see every commit that
-touched `Apps/Order.Api2` in the platform repo's history, with the
+touched `Apps/Order.Api` in the platform repo's history, with the
 same hashes (or rewritten hashes if you use filter-repo).
 
 **Q: What about the old monorepo after the split?**  

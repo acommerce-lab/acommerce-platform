@@ -1,0 +1,139 @@
+@page "/"
+@inject OrderApiClient Api
+@inject UiPreferences Ui
+@inject AuthStateService Auth
+@inject NavigationManager Nav
+@implements IDisposable
+
+<PageTitle>اوردر — عروض اليوم</PageTitle>
+
+<AcCatalogHome Categories="@MappedCategories"
+               SelectedCategoryId="@SelectedCategoryId"
+               OnSelectCategory="SelectCategory"
+               Offers="@MappedOffers"
+               Loading="@Loading"
+               Columns="2"
+               DetailsHrefPrefix="/offer"
+               HeroTitle="@(Ui.IsArabic ? "اوردر" : "Order")"
+               HeroSubtitle="@(Ui.IsArabic ? "عروض اليوم من كافيهات ومطاعم المدينة" : "Today's deals from local cafes and restaurants")"
+               AllLabel="@(Ui.IsArabic ? "الكل" : "All")"
+               LoadingMessage="@(Ui.IsArabic ? "جاري تحميل العروض..." : "Loading offers…")"
+               EmptyMessage="@(Ui.IsArabic ? "لا توجد عروض" : "No offers")">
+    <HeroActions>
+        @if (!Auth.IsAuthenticated)
+        {
+            <div class="hero-actions">
+                <a class="btn btn-light btn-sm" href="/login">
+                    @(Ui.IsArabic ? "تسجيل الدخول" : "Sign in")
+                </a>
+                <a class="btn btn-ghost btn-sm" href="/settings" style="background:rgba(255,255,255,0.18); color:#fff; border-color:rgba(255,255,255,0.4);">
+                    @(Ui.IsArabic ? "English" : "العربية")
+                </a>
+            </div>
+        }
+    </HeroActions>
+</AcCatalogHome>
+
+@code {
+    private List<CatApi> Categories = new();
+    private List<OfferApi> Offers = new();
+    private Guid? SelectedCategoryGuid;
+    private bool Loading = true;
+
+    private string? SelectedCategoryId => SelectedCategoryGuid?.ToString();
+
+    private IReadOnlyList<CategoryDto> MappedCategories =>
+        Categories.Select(c => new CategoryDto
+        {
+            Id = c.Id.ToString(),
+            Label = Ui.IsArabic ? c.NameAr : c.NameEn,
+            Icon = c.Icon
+        }).ToList();
+
+    private IReadOnlyList<OfferDto> MappedOffers =>
+        Offers.Select(o => new OfferDto
+        {
+            Id = o.Id.ToString(),
+            Title = o.Title,
+            Description = o.Description,
+            Price = o.Price,
+            OriginalPrice = o.OriginalPrice,
+            Currency = o.Currency,
+            Emoji = o.Emoji,
+            DiscountPercent = o.DiscountPercent,
+            IsFeatured = o.IsFeatured,
+            Vendor = o.Vendor is null ? null : new VendorMiniDto
+            {
+                Id = o.Vendor.Id.ToString(),
+                Name = o.Vendor.Name,
+                LogoEmoji = o.Vendor.LogoEmoji,
+                City = o.Vendor.City,
+                District = o.Vendor.District,
+                Rating = o.Vendor.Rating,
+                OpenHours = o.Vendor.OpenHours
+            }
+        }).ToList();
+
+    protected override async Task OnInitializedAsync()
+    {
+        Auth.OnChanged += OnAuthChanged;
+        var catEnv = await Api.GetAsync<List<CatApi>>("/api/categories");
+        if (catEnv.Data != null) Categories = catEnv.Data;
+        await Reload();
+    }
+
+    private void OnAuthChanged() => InvokeAsync(StateHasChanged);
+
+    public void Dispose() => Auth.OnChanged -= OnAuthChanged;
+
+    private async Task SelectCategory(string? id)
+    {
+        SelectedCategoryGuid = string.IsNullOrEmpty(id) ? null : Guid.Parse(id);
+        await Reload();
+    }
+
+    private async Task Reload()
+    {
+        Loading = true;
+        var path = SelectedCategoryGuid.HasValue
+            ? $"/api/offers?categoryId={SelectedCategoryGuid.Value}"
+            : "/api/offers";
+        var env = await Api.GetAsync<List<OfferApi>>(path);
+        Offers = env.Data ?? new();
+        Loading = false;
+    }
+
+    public class CatApi
+    {
+        public Guid Id { get; set; }
+        public string Slug { get; set; } = "";
+        public string NameAr { get; set; } = "";
+        public string NameEn { get; set; } = "";
+        public string Icon { get; set; } = "🍔";
+    }
+
+    public class OfferApi
+    {
+        public Guid Id { get; set; }
+        public string Title { get; set; } = "";
+        public string Description { get; set; } = "";
+        public decimal Price { get; set; }
+        public decimal? OriginalPrice { get; set; }
+        public string Currency { get; set; } = "SAR";
+        public string Emoji { get; set; } = "🍽️";
+        public int DiscountPercent { get; set; }
+        public bool IsFeatured { get; set; }
+        public VendorApi? Vendor { get; set; }
+    }
+
+    public class VendorApi
+    {
+        public Guid Id { get; set; }
+        public string Name { get; set; } = "";
+        public string LogoEmoji { get; set; } = "🏪";
+        public string City { get; set; } = "";
+        public string? District { get; set; }
+        public double Rating { get; set; }
+        public string OpenHours { get; set; } = "";
+    }
+}

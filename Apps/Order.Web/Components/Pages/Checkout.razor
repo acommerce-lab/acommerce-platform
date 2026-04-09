@@ -1,0 +1,145 @@
+@page "/checkout"
+@inject CartService Cart
+@inject AuthStateService Auth
+@inject OrderApiClient Api
+@inject UiPreferences Ui
+@inject NavigationManager Nav
+
+<PageTitle>إكمال الطلب - اوردر</PageTitle>
+
+@if (!Auth.IsAuthenticated)
+{
+    <AcEmptyState Icon="🔒"
+                  Title="@(Ui.IsArabic ? "يجب تسجيل الدخول أولاً" : "Sign in first")"
+                  ActionLabel="@(Ui.IsArabic ? "تسجيل الدخول" : "Sign in")"
+                  ActionHref="/login?return=/checkout" />
+}
+else if (Cart.Items.Count == 0)
+{
+    <AcEmptyState Icon="🛒"
+                  Title="@(Ui.IsArabic ? "السلة فارغة" : "Cart is empty")"
+                  ActionLabel="@(Ui.IsArabic ? "تصفّح العروض" : "Browse offers")"
+                  ActionHref="/" />
+}
+else
+{
+    <AcCheckoutPage Cart="@Snapshot"
+                    Draft="@Draft"
+                    OnFieldChange="HandleFieldChange"
+                    OnSubmit="Submit"
+                    Submitting="@Submitting"
+                    Error="@Error"
+                    Title="@(Ui.IsArabic ? "إكمال الطلب" : "Place order")"
+                    SummaryLabel="@(Ui.IsArabic ? "ملخص الطلب" : "Order summary")"
+                    TotalLabel="@(Ui.IsArabic ? "الإجمالي" : "Total")"
+                    PickupLabel="@(Ui.IsArabic ? "طريقة الاستلام" : "Pickup method")"
+                    InStoreLabel="@(Ui.IsArabic ? "من المتجر" : "In-store")"
+                    CurbsideLabel="@(Ui.IsArabic ? "من السيارة" : "Curbside")"
+                    CarDetailsLabel="@(Ui.IsArabic ? "بيانات السيارة" : "Car details")"
+                    CarModelLabel="@(Ui.IsArabic ? "نوع السيارة" : "Model")"
+                    CarColorLabel="@(Ui.IsArabic ? "اللون" : "Color")"
+                    CarPlateLabel="@(Ui.IsArabic ? "رقم اللوحة (اختياري)" : "Plate number (optional)")"
+                    PaymentLabel="@(Ui.IsArabic ? "طريقة الدفع المفضلة" : "Preferred payment")"
+                    PaymentHint="@(Ui.IsArabic ? "الدفع يتم عند الاستلام في المتجر — لا دفع إلكتروني." : "Payment happens at pickup — no online payment.")"
+                    CashLabel="@(Ui.IsArabic ? "نقدي" : "Cash")"
+                    CardLabel="@(Ui.IsArabic ? "بطاقة" : "Card")"
+                    CashTenderedLabel="@(Ui.IsArabic ? "المبلغ بالريال" : "Amount (SAR)")"
+                    ChangeLabel="@(Ui.IsArabic ? "الباقي المتوقع" : "Expected change")"
+                    NotEnoughLabel="@(Ui.IsArabic ? "المبلغ غير كافٍ — يجب أن يساوي أو يتجاوز الإجمالي" : "Amount must cover the total")"
+                    NotesLabel="@(Ui.IsArabic ? "ملاحظات للتاجر (اختياري)" : "Notes (optional)")"
+                    SubmitLabel="@(Ui.IsArabic ? "تأكيد الطلب" : "Confirm order")"
+                    SubmittingLabel="@(Ui.IsArabic ? "جاري الإرسال..." : "Sending…")"
+                    BackToCartHref="/cart"
+                    BackToCartLabel="@(Ui.IsArabic ? "العودة للسلة" : "Back to cart")" />
+}
+
+@code {
+    private CheckoutDraft Draft { get; set; } = new();
+    private string Error = "";
+    private bool Submitting;
+
+    private CartSnapshot Snapshot => new()
+    {
+        Items = Cart.Items.Select(i => new CartLineDto
+        {
+            OfferId = i.OfferId.ToString(),
+            Title = i.Title,
+            Emoji = i.Emoji,
+            UnitPrice = i.UnitPrice,
+            Quantity = i.Quantity
+        }).ToList(),
+        Vendor = Cart.VendorId.HasValue ? new VendorMiniDto
+        {
+            Id = Cart.VendorId.Value.ToString(),
+            Name = Cart.VendorName ?? "",
+            LogoEmoji = Cart.VendorEmoji
+        } : null,
+        Subtotal = Cart.Subtotal,
+        Currency = "SAR"
+    };
+
+    protected override void OnInitialized()
+    {
+        if (Cart.Subtotal > 0)
+        {
+            // Pre-fill a sensible cash amount (next 10s)
+            Draft.CashTendered = Math.Ceiling(Cart.Subtotal / 10) * 10;
+        }
+    }
+
+    private Task HandleFieldChange((string Field, object? Value) args)
+    {
+        // Draft is mutated by the template; we just trigger re-render here
+        // so conditional sections (curbside car details, cash change) update live.
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    private async Task Submit()
+    {
+        Error = "";
+        if (!Auth.IsAuthenticated || Cart.Items.Count == 0) return;
+        if (Draft.PickupType == "Curbside" && string.IsNullOrWhiteSpace(Draft.CarModel))
+        {
+            Error = Ui.IsArabic ? "أدخل بيانات السيارة" : "Please enter car details";
+            return;
+        }
+        if (Draft.PaymentMethod == "Cash" && Draft.CashTendered.HasValue && Draft.CashTendered.Value < Cart.Subtotal)
+        {
+            Error = Ui.IsArabic ? "المبلغ المقدّم يجب أن يغطي الإجمالي" : "Cash amount must cover the total";
+            return;
+        }
+        Submitting = true;
+        try
+        {
+            var payload = new
+            {
+                customerId = Auth.UserId,
+                items = Cart.Items.Select(i => new { offerId = i.OfferId, quantity = i.Quantity }),
+                pickupType = Draft.PickupType == "Curbside" ? 1 : 0,
+                preferredPayment = Draft.PaymentMethod == "Card" ? 1 : 0,
+                cashTendered = Draft.PaymentMethod == "Cash" ? Draft.CashTendered : null,
+                carModel = Draft.PickupType == "Curbside" ? Draft.CarModel : null,
+                carColor = Draft.PickupType == "Curbside" ? Draft.CarColor : null,
+                carPlate = Draft.PickupType == "Curbside" ? Draft.CarPlate : null,
+                customerNotes = string.IsNullOrWhiteSpace(Draft.Notes) ? null : Draft.Notes
+            };
+            var env = await Api.PostAsync<CreatedOrderDto>("/api/orders", payload);
+            if (env.Operation.Status != "Success" || env.Data == null)
+            {
+                Error = env.Operation.ErrorMessage ?? env.Error?.Message ?? (Ui.IsArabic ? "تعذّر إنشاء الطلب" : "Could not create order");
+                return;
+            }
+            var orderId = env.Data.Id;
+            Cart.Clear();
+            Nav.NavigateTo($"/order/{orderId}?just=1");
+        }
+        finally { Submitting = false; }
+    }
+
+    public class CreatedOrderDto
+    {
+        public Guid Id { get; set; }
+        public string OrderNumber { get; set; } = "";
+    }
+}

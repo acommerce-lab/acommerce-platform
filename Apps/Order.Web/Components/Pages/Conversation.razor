@@ -1,0 +1,89 @@
+@page "/chat/{Id:guid}"
+@inject OrderApiClient Api
+@inject AuthStateService Auth
+@inject UiPreferences Ui
+@inject NavigationManager Nav
+
+<PageTitle>محادثة - اوردر</PageTitle>
+
+@if (!Auth.IsAuthenticated)
+{
+    <AcEmptyState Icon="🔒"
+                  Title="@(Ui.IsArabic ? "سجل دخولك" : "Sign in")"
+                  ActionLabel="@(Ui.IsArabic ? "دخول" : "Sign in")"
+                  ActionHref="/login" />
+}
+else
+{
+    <AcChatPage Messages="@Mapped"
+                MySenderId="@(Auth.UserId?.ToString() ?? "")"
+                Loading="@Loading"
+                Sending="@Sending"
+                Draft="@Draft"
+                DraftChanged="@(v => Draft = v)"
+                OnSend="Send"
+                Title="@(Ui.IsArabic ? "محادثة" : "Chat")"
+                LoadingMessage="@(Ui.IsArabic ? "جاري التحميل..." : "Loading…")"
+                EmptyMessage="@(Ui.IsArabic ? "لا رسائل بعد" : "No messages yet")"
+                InputPlaceholder="@(Ui.IsArabic ? "اكتب رسالة..." : "Type a message...")"
+                SendLabel="@(Ui.IsArabic ? "إرسال" : "Send")" />
+}
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+    private List<MsgApi> Messages = new();
+    private bool Loading = true;
+    private bool Sending;
+    private string Draft = "";
+
+    private IReadOnlyList<ChatMessageDto> Mapped =>
+        Messages.Select(m => new ChatMessageDto
+        {
+            Id = m.Id.ToString(),
+            Content = m.Content,
+            SenderId = m.SenderId.ToString(),
+            CreatedAt = m.CreatedAt
+        }).ToList();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        await Auth.EnsureRestoredAsync();
+        await Reload();
+        StateHasChanged();
+    }
+
+    private async Task Reload()
+    {
+        Loading = true;
+        var env = await Api.GetAsync<List<MsgApi>>($"/api/messages/conversations/{Id}/messages");
+        Messages = env.Data ?? new();
+        Loading = false;
+    }
+
+    private async Task Send()
+    {
+        if (string.IsNullOrWhiteSpace(Draft) || Sending) return;
+        Sending = true;
+        try
+        {
+            var env = await Api.PostAsync<MsgApi>("/api/messages",
+                new { conversationId = Id, senderId = Auth.UserId, content = Draft });
+            if (env.Data != null)
+            {
+                Messages.Add(env.Data);
+                Draft = "";
+            }
+        }
+        finally { Sending = false; }
+    }
+
+    public class MsgApi
+    {
+        public Guid Id { get; set; }
+        public Guid ConversationId { get; set; }
+        public Guid SenderId { get; set; }
+        public string Content { get; set; } = "";
+        public DateTime CreatedAt { get; set; }
+    }
+}

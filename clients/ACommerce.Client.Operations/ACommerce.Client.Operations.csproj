@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net9.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <PackageId>ACommerce.Client.Operations</PackageId>
@@ -9,8 +9,8 @@
     <Description>Client-side operation engine for ACommerce. Reuses ACommerce.OperationEngine on the client side - operations are built locally as accounting Entries, dispatched over HTTP, and the server response is merged back into the local operation. Levels 1+2 (Consumer + Intent).</Description>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.10" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.10" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.0" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\libs\backend\core\ACommerce.OperationEngine\ACommerce.OperationEngine.csproj" />

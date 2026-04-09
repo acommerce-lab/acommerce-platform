@@ -1,0 +1,119 @@
+@page "/offer/{Id:guid}"
+@inject OrderApiClient Api
+@inject CartService Cart
+@inject AuthStateService Auth
+@inject UiPreferences Ui
+@inject NavigationManager Nav
+
+<PageTitle>@(OfferApiData?.Title ?? "تفاصيل العرض") - اوردر</PageTitle>
+
+<AcOfferDetailsPage Offer="@Mapped"
+                    Loading="@Loading"
+                    InFavorites="@IsFavorite"
+                    BackHref="/"
+                    LoadingMessage="@(Ui.IsArabic ? "جاري التحميل..." : "Loading…")"
+                    NotFoundTitle="@(Ui.IsArabic ? "العرض غير موجود" : "Offer not found")"
+                    BackLabel="@(Ui.IsArabic ? "العودة للرئيسية" : "Back to home")"
+                    DescriptionLabel="@(Ui.IsArabic ? "تفاصيل العرض" : "Details")"
+                    StoreInfoLabel="@(Ui.IsArabic ? "معلومات المتجر" : "Store info")"
+                    AddToCartLabel="@($"{(Ui.IsArabic ? "أضف إلى السلة" : "Add to cart")} • {OfferApiData?.Price.ToString("N0")} {OfferApiData?.Currency}")"
+                    ChatLabel="@(Ui.IsArabic ? "💬 محادثة المتجر" : "💬 Chat with store")"
+                    OnAddToCart="AddToCart"
+                    OnToggleFavorite="ToggleFavorite"
+                    OnChatWithStore="@(Auth.IsAuthenticated && OfferApiData?.Vendor != null ? EventCallback.Factory.Create(this, StartChat) : default)" />
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+    private OfferApi? OfferApiData;
+    private bool Loading = true;
+    private bool IsFavorite;
+
+    private OfferDto? Mapped => OfferApiData is null ? null : new OfferDto
+    {
+        Id = OfferApiData.Id.ToString(),
+        Title = OfferApiData.Title,
+        Description = OfferApiData.Description,
+        Price = OfferApiData.Price,
+        OriginalPrice = OfferApiData.OriginalPrice,
+        Currency = OfferApiData.Currency,
+        Emoji = OfferApiData.Emoji,
+        DiscountPercent = OfferApiData.DiscountPercent,
+        Vendor = OfferApiData.Vendor is null ? null : new VendorMiniDto
+        {
+            Id = OfferApiData.Vendor.Id.ToString(),
+            Name = OfferApiData.Vendor.Name,
+            LogoEmoji = OfferApiData.Vendor.LogoEmoji,
+            City = OfferApiData.Vendor.City,
+            District = OfferApiData.Vendor.District,
+            Rating = OfferApiData.Vendor.Rating,
+            OpenHours = FormatHours(OfferApiData.Vendor.OpenHours),
+            Phone = OfferApiData.Vendor.Phone
+        }
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        var env = await Api.GetAsync<OfferApi>($"/api/offers/{Id}");
+        OfferApiData = env.Data;
+        Loading = false;
+    }
+
+    private void AddToCart()
+    {
+        if (OfferApiData == null || OfferApiData.Vendor == null) return;
+        Cart.Add(OfferApiData.Id, OfferApiData.Title, OfferApiData.Emoji, OfferApiData.Price,
+                 OfferApiData.Vendor.Id, OfferApiData.Vendor.Name, OfferApiData.Vendor.LogoEmoji);
+        Nav.NavigateTo("/cart");
+    }
+
+    private async Task ToggleFavorite()
+    {
+        if (!Auth.IsAuthenticated || OfferApiData == null) { Nav.NavigateTo("/login"); return; }
+        var env = await Api.PostAsync<FavToggle>("/api/favorites/toggle",
+            new { userId = Auth.UserId, offerId = OfferApiData.Id });
+        IsFavorite = env.Data?.IsFavorite ?? IsFavorite;
+    }
+
+    private async Task StartChat()
+    {
+        if (OfferApiData?.Vendor == null) return;
+        var env = await Api.PostAsync<StartConvDto>("/api/messages/conversations",
+            new { customerId = Auth.UserId, vendorId = OfferApiData.Vendor.Id });
+        if (env.Data != null) Nav.NavigateTo($"/chat/{env.Data.Id}");
+    }
+
+    private static string FormatHours(string h)
+    {
+        if (string.IsNullOrEmpty(h) || !h.Contains('|')) return h;
+        var parts = h.Split('|');
+        return $"{parts[0]} – {parts[1]}";
+    }
+
+    public class OfferApi
+    {
+        public Guid Id { get; set; }
+        public string Title { get; set; } = "";
+        public string Description { get; set; } = "";
+        public decimal Price { get; set; }
+        public decimal? OriginalPrice { get; set; }
+        public string Currency { get; set; } = "SAR";
+        public string Emoji { get; set; } = "🍽️";
+        public int DiscountPercent { get; set; }
+        public VendorApi? Vendor { get; set; }
+    }
+
+    public class VendorApi
+    {
+        public Guid Id { get; set; }
+        public string Name { get; set; } = "";
+        public string Phone { get; set; } = "";
+        public string City { get; set; } = "";
+        public string? District { get; set; }
+        public string LogoEmoji { get; set; } = "🏪";
+        public string OpenHours { get; set; } = "";
+        public double Rating { get; set; }
+    }
+
+    public class FavToggle { public bool IsFavorite { get; set; } }
+    public class StartConvDto { public Guid Id { get; set; } }
+}

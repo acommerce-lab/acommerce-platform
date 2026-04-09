@@ -1,0 +1,150 @@
+@namespace ACommerce.Templates.Customer.Commerce
+
+@*
+    Offer details page: hero + title + price + description + store info + CTA row.
+
+    Flex slots:
+      HeroExtra        — rendered inside the hero (e.g. gallery)
+      AboveDescription — rendered above the description card
+      BelowDescription — rendered below the description card
+      ExtraMeta        — rendered next to the price row (e.g. unit, stock)
+      VendorExtra      — rendered inside the vendor card
+      ExtraActions     — rendered before the primary action button
+      FooterSlot       — rendered below the action row
+*@
+
+@if (Loading)
+{
+    <AcLoadingState Message="@LoadingMessage" />
+}
+else if (Offer is null)
+{
+    <AcEmptyState Icon="🔍"
+                  Title="@(NotFoundTitle ?? "العرض غير موجود")"
+                  ActionLabel="@(BackLabel ?? "رجوع")"
+                  ActionHref="@BackHref" />
+}
+else
+{
+    <div class="acc-offer-details">
+        <div class="acc-offer-hero">
+            @if (!string.IsNullOrEmpty(BackHref))
+            {
+                <a class="acc-back-btn" href="@BackHref">←</a>
+            }
+            @if (OnToggleFavorite.HasDelegate)
+            {
+                <button class="acc-fav-btn @(InFavorites ? "active" : "")" @onclick="OnToggleFavorite">
+                    @(InFavorites ? "♥" : "♡")
+                </button>
+            }
+            <div class="acc-offer-hero-emoji">@(Offer.Emoji ?? "🍽️")</div>
+            @if (Offer.DiscountPercent > 0)
+            {
+                <div class="acc-offer-hero-discount">-@Offer.DiscountPercent%</div>
+            }
+            @HeroExtra
+        </div>
+
+        <div class="acc-offer-info">
+            <h1 class="acc-offer-info-title">@Offer.Title</h1>
+            @if (Offer.Vendor != null)
+            {
+                <div class="acc-vendor-badge">
+                    <span>@(Offer.Vendor.LogoEmoji ?? "🏪")</span>
+                    <span>@Offer.Vendor.Name</span>
+                    @if (Offer.Vendor.Rating is > 0)
+                    {
+                        <span>★ @Offer.Vendor.Rating.Value.ToString("0.0")</span>
+                    }
+                </div>
+            }
+            <div class="acc-offer-info-price-row">
+                <span class="acc-offer-info-price">@Offer.Price.ToString("0.##")</span>
+                <span class="acc-offer-info-currency">@Offer.Currency</span>
+                @if (Offer.OriginalPrice is > 0 && Offer.OriginalPrice > Offer.Price)
+                {
+                    <span class="acc-offer-info-original">@Offer.OriginalPrice.Value.ToString("0.##")</span>
+                }
+                @ExtraMeta
+            </div>
+        </div>
+
+        @AboveDescription
+
+        @if (!string.IsNullOrEmpty(Offer.Description))
+        {
+            <div class="s-card acc-offer-desc">
+                <div class="acc-section-label">@(DescriptionLabel ?? "الوصف")</div>
+                <pre class="acc-offer-desc-text">@Offer.Description</pre>
+            </div>
+        }
+
+        @BelowDescription
+
+        @if (Offer.Vendor != null)
+        {
+            <div class="s-card acc-vendor-card">
+                <div class="acc-section-label">@(StoreInfoLabel ?? "معلومات المتجر")</div>
+                @if (!string.IsNullOrEmpty(Offer.Vendor.City))
+                {
+                    <div class="acc-vendor-row">📍 @Offer.Vendor.City@(string.IsNullOrEmpty(Offer.Vendor.District) ? "" : " - " + Offer.Vendor.District)</div>
+                }
+                @if (!string.IsNullOrEmpty(Offer.Vendor.OpenHours))
+                {
+                    <div class="acc-vendor-row">🕐 @Offer.Vendor.OpenHours</div>
+                }
+                @if (!string.IsNullOrEmpty(Offer.Vendor.Phone))
+                {
+                    <div class="acc-vendor-row" dir="ltr">📞 @Offer.Vendor.Phone</div>
+                }
+                @VendorExtra
+            </div>
+        }
+
+        <div class="acc-offer-actions">
+            @ExtraActions
+            @if (OnAddToCart.HasDelegate)
+            {
+                <button class="btn btn-primary btn-block" @onclick="OnAddToCart">
+                    @(AddToCartLabel ?? "أضف للسلة")
+                </button>
+            }
+            @if (OnChatWithStore.HasDelegate)
+            {
+                <button class="btn btn-ghost btn-block" @onclick="OnChatWithStore">
+                    @(ChatLabel ?? "💬 راسل المتجر")
+                </button>
+            }
+        </div>
+
+        @FooterSlot
+    </div>
+}
+
+@code {
+    [Parameter] public OfferDto? Offer { get; set; }
+    [Parameter] public bool Loading { get; set; }
+    [Parameter] public bool InFavorites { get; set; }
+
+    [Parameter] public EventCallback OnAddToCart { get; set; }
+    [Parameter] public EventCallback OnToggleFavorite { get; set; }
+    [Parameter] public EventCallback OnChatWithStore { get; set; }
+
+    [Parameter] public string? BackHref { get; set; }
+    [Parameter] public string? NotFoundTitle { get; set; }
+    [Parameter] public string? BackLabel { get; set; }
+    [Parameter] public string? LoadingMessage { get; set; }
+    [Parameter] public string? DescriptionLabel { get; set; }
+    [Parameter] public string? StoreInfoLabel { get; set; }
+    [Parameter] public string? AddToCartLabel { get; set; }
+    [Parameter] public string? ChatLabel { get; set; }
+
+    [Parameter] public RenderFragment? HeroExtra { get; set; }
+    [Parameter] public RenderFragment? AboveDescription { get; set; }
+    [Parameter] public RenderFragment? BelowDescription { get; set; }
+    [Parameter] public RenderFragment? ExtraMeta { get; set; }
+    [Parameter] public RenderFragment? VendorExtra { get; set; }
+    [Parameter] public RenderFragment? ExtraActions { get; set; }
+    [Parameter] public RenderFragment? FooterSlot { get; set; }
+}

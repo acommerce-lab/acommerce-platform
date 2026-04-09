@@ -155,7 +155,7 @@ Interceptors are registered **globally** at startup via the
 - `Wrap` — wraps `Execute` (for things like transactions).
 
 Each interceptor has a predicate that decides whether it applies to a
-given operation (usually based on tags or type). See Ashare.Api2's
+given operation (usually based on tags or type). See Ashare.Api's
 `Program.cs` for a real example where subscription quota enforcement
 is added without any controller ever knowing about it:
 
@@ -211,7 +211,7 @@ engine takes care of the rest.
   LastMessageSnippet, broadcast over realtime to the recipient
 - **Envelope data**: the saved `Message` object
 
-Looking at `Ashare.Api2/Controllers/MessagesController.cs` you'll see
+Looking at `Ashare.Api/Controllers/MessagesController.cs` you'll see
 exactly this shape.
 
 ### Worked example — "Customer places an order"
@@ -231,7 +231,7 @@ exactly this shape.
   domain event (future: via the messaging library)
 - **Envelope data**: `{ Id, OrderNumber, Total, VendorName, … }`
 
-Looking at `Apps/Order.Api2/Controllers/OrdersController.cs` you'll
+Looking at `Apps/Order.Api/Controllers/OrdersController.cs` you'll
 see exactly this shape.
 
 ---
@@ -287,6 +287,6 @@ The practical payoff is:
   — a higher-level builder for accounting-flavoured operations.
 - `libs/backend/core/ACommerce.OperationEngine.Wire/OperationEnvelope.cs`
   — the wire format.
-- `Apps/Ashare.Api2/Controllers/ListingsController.cs` and
-  `Apps/Order.Api2/Controllers/OrdersController.cs` — two real-world
+- `Apps/Ashare.Api/Controllers/ListingsController.cs` and
+  `Apps/Order.Api/Controllers/OrdersController.cs` — two real-world
   usages with different domain shapes.

@@ -1,0 +1,79 @@
+@page "/notifications"
+@inject OrderApiClient Api
+@inject AuthStateService Auth
+@inject UiPreferences Ui
+
+<PageTitle>الإشعارات - اوردر</PageTitle>
+
+@if (!Auth.IsAuthenticated)
+{
+    <AcEmptyState Icon="🔔"
+                  Title="@(Ui.IsArabic ? "سجّل دخولك للإشعارات" : "Sign in for notifications")"
+                  ActionLabel="@(Ui.IsArabic ? "تسجيل الدخول" : "Sign in")"
+                  ActionHref="/login" />
+}
+else
+{
+    <AcNotificationsPage Notifications="@Mapped"
+                         Loading="@Loading"
+                         Title="@(Ui.IsArabic ? "الإشعارات" : "Notifications")"
+                         LoadingMessage="@(Ui.IsArabic ? "جاري التحميل..." : "Loading…")"
+                         EmptyTitle="@(Ui.IsArabic ? "لا إشعارات" : "All caught up")"
+                         EmptyMessage="@(Ui.IsArabic ? "سيظهر هنا كل جديد" : "New activity will appear here")"
+                         MarkAllReadLabel="@(Ui.IsArabic ? "تعليم الكل مقروءاً" : "Mark all read")"
+                         OnMarkRead="HandleMarkRead"
+                         OnMarkAllRead="MarkAll" />
+}
+
+@code {
+    private List<NotiApi> Items = new();
+    private bool Loading = true;
+
+    private IReadOnlyList<NotificationRowDto> Mapped =>
+        Items.Select(n => new NotificationRowDto
+        {
+            Id = n.Id.ToString(),
+            Title = n.Title,
+            Body = n.Body,
+            Type = n.Type,
+            IsRead = n.IsRead,
+            CreatedAt = n.CreatedAt
+        }).ToList();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        await Auth.EnsureRestoredAsync();
+        if (Auth.IsAuthenticated)
+        {
+            var env = await Api.GetAsync<List<NotiApi>>($"/api/notifications/user/{Auth.UserId}");
+            Items = env.Data ?? new();
+        }
+        Loading = false;
+        StateHasChanged();
+    }
+
+    private async Task HandleMarkRead(NotificationRowDto row)
+    {
+        var entity = Items.FirstOrDefault(x => x.Id.ToString() == row.Id);
+        if (entity is null || entity.IsRead) return;
+        await Api.PostAsync<object>($"/api/notifications/{entity.Id}/read", new { });
+        entity.IsRead = true;
+    }
+
+    private async Task MarkAll()
+    {
+        await Api.PostAsync<object>($"/api/notifications/user/{Auth.UserId}/mark-all-read", new { });
+        foreach (var n in Items) n.IsRead = true;
+    }
+
+    public class NotiApi
+    {
+        public Guid Id { get; set; }
+        public string Title { get; set; } = "";
+        public string Body { get; set; } = "";
+        public string Type { get; set; } = "general";
+        public bool IsRead { get; set; }
+        public DateTime CreatedAt { get; set; }
+    }
+}

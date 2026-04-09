@@ -1,0 +1,65 @@
+@page "/cart"
+@inject CartService Bag
+@inject UiPreferences Ui
+@inject NavigationManager Nav
+@inject AuthStateService Auth
+@implements IDisposable
+
+<PageTitle>السلة - اوردر</PageTitle>
+
+<AcCartPage Cart="@Snapshot"
+            Title="@(Ui.IsArabic ? "سلة الطلبات" : "Your cart")"
+            EmptyTitle="@(Ui.IsArabic ? "السلة فارغة" : "Cart is empty")"
+            EmptyMessage="@(Ui.IsArabic ? "تصفّح العروض وأضف أصنافك المفضلة" : "Browse offers and add your favorites")"
+            BrowseLabel="@(Ui.IsArabic ? "تصفّح العروض" : "Browse offers")"
+            BrowseHref="/"
+            PickupHint="@(Ui.IsArabic ? "الاستلام من المتجر أو من السيارة" : "In-store or curbside pickup")"
+            SubtotalLabel="@(Ui.IsArabic ? "المجموع الفرعي" : "Subtotal")"
+            TotalLabel="@(Ui.IsArabic ? "الإجمالي" : "Total")"
+            CheckoutLabel="@(Ui.IsArabic ? "متابعة للطلب" : "Continue to checkout")"
+            ClearLabel="@(Ui.IsArabic ? "إفراغ السلة" : "Clear cart")"
+            OnQuantityChange="HandleQtyChange"
+            OnClear="@(() => { Bag.Clear(); return Task.CompletedTask; })"
+            OnCheckout="GoCheckout" />
+
+@code {
+    private CartSnapshot Snapshot => new()
+    {
+        Items = Bag.Items.Select(i => new CartLineDto
+        {
+            OfferId = i.OfferId.ToString(),
+            Title = i.Title,
+            Emoji = i.Emoji,
+            UnitPrice = i.UnitPrice,
+            Quantity = i.Quantity
+        }).ToList(),
+        Vendor = Bag.VendorId.HasValue ? new VendorMiniDto
+        {
+            Id = Bag.VendorId.Value.ToString(),
+            Name = Bag.VendorName ?? "",
+            LogoEmoji = Bag.VendorEmoji
+        } : null,
+        Subtotal = Bag.Subtotal,
+        Currency = "SAR"
+    };
+
+    protected override void OnInitialized() => Bag.OnChanged += OnChanged;
+    private void OnChanged() => InvokeAsync(StateHasChanged);
+    public void Dispose() => Bag.OnChanged -= OnChanged;
+
+    private Task HandleQtyChange((string OfferId, int NewQty) args)
+    {
+        Bag.SetQuantity(Guid.Parse(args.OfferId), args.NewQty);
+        return Task.CompletedTask;
+    }
+
+    private void GoCheckout()
+    {
+        if (!Auth.IsAuthenticated)
+        {
+            Nav.NavigateTo("/login?return=/checkout");
+            return;
+        }
+        Nav.NavigateTo("/checkout");
+    }
+}

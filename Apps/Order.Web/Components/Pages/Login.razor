@@ -1,0 +1,121 @@
+@page "/login"
+@inject OrderApiClient Api
+@inject AuthStateService Auth
+@inject UiPreferences Ui
+@inject NavigationManager Nav
+
+<PageTitle>تسجيل الدخول - اوردر</PageTitle>
+
+<AcLoginPage Step="Step"
+             Phone="@Phone"
+             PhoneChanged="@(v => Phone = v)"
+             Code="@Code"
+             CodeChanged="@(v => Code = v)"
+             Error="@Error"
+             Busy="@Busy"
+             BrandIcon="🍔"
+             BrandName="اوردر"
+             BrandTagline="@(Ui.IsArabic ? "عروض الكافيهات والمطاعم" : "Cafe & restaurant deals")"
+             PhoneStepTitle="@(Ui.IsArabic ? "مرحباً بك" : "Welcome")"
+             PhoneStepSubtitle="@(Ui.IsArabic ? "أدخل رقم جوالك للمتابعة" : "Enter your phone number to continue")"
+             PhoneLabel="@(Ui.IsArabic ? "رقم الجوال" : "Phone number")"
+             RequestOtpLabel="@(Ui.IsArabic ? "إرسال رمز التحقق" : "Send verification code")"
+             SendingLabel="@(Ui.IsArabic ? "جاري الإرسال..." : "Sending...")"
+             OtpStepTitle="@(Ui.IsArabic ? "رمز التحقق" : "Verification code")"
+             OtpStepSubtitle="@(Ui.IsArabic ? "أدخل الرمز المرسل إلى" : "Enter the code sent to")"
+             OtpLabel="@(Ui.IsArabic ? "رمز التحقق (6 أرقام)" : "Verification code (6 digits)")"
+             VerifyOtpLabel="@(Ui.IsArabic ? "تحقق ودخول" : "Verify & sign in")"
+             VerifyingLabel="@(Ui.IsArabic ? "جاري التحقق..." : "Verifying...")"
+             BackLabel="@(Ui.IsArabic ? "تغيير رقم الجوال" : "Change phone")"
+             OnRequestOtp="RequestOtp"
+             OnVerifyOtp="VerifyOtp"
+             OnBack="GoBack">
+    <HintSlot>
+        <strong>@(Ui.IsArabic ? "وضع تجريبي:" : "Demo mode:")</strong>
+        @(Ui.IsArabic
+            ? "أي رقم +9665xxxxxxxx يفتح حساباً جديداً. الرمز يطبع في سجل الـ API."
+            : "Any +9665xxxxxxxx number creates a new account. The code is printed in the API log.")
+        <br />
+        <span style="font-size:0.78rem;">@(Ui.IsArabic ? "حسابات تجريبية: " : "Demo accounts: ")</span>
+        <code dir="ltr">+966500000001</code> (سارة)
+    </HintSlot>
+</AcLoginPage>
+
+@code {
+    [SupplyParameterFromQuery(Name = "return")] public string? ReturnUrl { get; set; }
+
+    private int Step = 1;
+    private string Phone = "+966500000001";
+    private string Code = "";
+    private string Error = "";
+    private bool Busy;
+    private Guid? UserId;
+    private string? ChallengeId;
+
+    private async Task RequestOtp()
+    {
+        Error = "";
+        if (string.IsNullOrWhiteSpace(Phone)) { Error = Ui.IsArabic ? "أدخل رقم الجوال" : "Enter phone"; return; }
+        Busy = true;
+        try
+        {
+            var env = await Api.PostAsync<OtpRequestDto>("/api/auth/sms/request", new { phoneNumber = Phone });
+            if (env.Operation.Status != "Success" || env.Data == null)
+            {
+                Error = env.Operation.ErrorMessage ?? env.Error?.Message ?? (Ui.IsArabic ? "فشل الإرسال" : "Send failed");
+                return;
+            }
+            UserId = env.Data.UserId;
+            ChallengeId = env.Data.ChallengeId;
+            Step = 2;
+        }
+        catch (Exception ex) { Error = ex.Message; }
+        finally { Busy = false; }
+    }
+
+    private async Task VerifyOtp()
+    {
+        Error = "";
+        if (string.IsNullOrWhiteSpace(Code) || !UserId.HasValue) return;
+        Busy = true;
+        try
+        {
+            var env = await Api.PostAsync<VerifyDto>("/api/auth/sms/verify", new
+            {
+                userId = UserId.Value,
+                challengeId = ChallengeId,
+                code = Code
+            });
+            if (env.Operation.Status != "Success" || env.Data == null || string.IsNullOrEmpty(env.Data.AccessToken))
+            {
+                Error = env.Operation.ErrorMessage ?? env.Error?.Message ?? (Ui.IsArabic ? "كود غير صحيح" : "Wrong code");
+                return;
+            }
+            await Auth.SignInAsync(env.Data.UserId, env.Data.PhoneNumber, env.Data.FullName, env.Data.AccessToken);
+            Nav.NavigateTo(string.IsNullOrEmpty(ReturnUrl) ? "/" : ReturnUrl, forceLoad: false);
+        }
+        catch (Exception ex) { Error = ex.Message; }
+        finally { Busy = false; }
+    }
+
+    private void GoBack()
+    {
+        Step = 1;
+        Code = "";
+        Error = "";
+    }
+
+    public class OtpRequestDto
+    {
+        public string ChallengeId { get; set; } = "";
+        public Guid UserId { get; set; }
+        public string PhoneNumber { get; set; } = "";
+    }
+    public class VerifyDto
+    {
+        public Guid UserId { get; set; }
+        public string? PhoneNumber { get; set; }
+        public string? FullName { get; set; }
+        public string AccessToken { get; set; } = "";
+    }
+}

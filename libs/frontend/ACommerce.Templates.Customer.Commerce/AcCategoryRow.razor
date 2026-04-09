@@ -1,0 +1,57 @@
+@namespace ACommerce.Templates.Customer.Commerce
+
+@*
+    Horizontal pill scroller for categories. A null SelectedId means "All".
+
+    Flex slots:
+      LeadingPill — rendered before the first category (e.g. the "All" pill is default)
+      TrailingPill — rendered after the last category
+      PillExtras  — per-pill RenderFragment<CategoryDto>, rendered inside the pill
+*@
+
+<div class="acc-cat-row">
+    @if (LeadingPill != null)
+    {
+        @LeadingPill
+    }
+    else if (ShowAllPill)
+    {
+        <button class="acc-cat-pill @(SelectedId is null ? "active" : "")"
+                @onclick="@(() => HandleSelect(null))">
+            @(AllLabel ?? "الكل")
+        </button>
+    }
+    @foreach (var c in Categories)
+    {
+        <button class="acc-cat-pill @(c.Id == SelectedId ? "active" : "")"
+                @onclick="@(() => HandleSelect(c.Id))">
+            @if (!string.IsNullOrEmpty(c.Icon))
+            {
+                <span class="acc-cat-icon">@c.Icon</span>
+            }
+            <span>@c.Label</span>
+            @if (PillExtras != null)
+            {
+                @PillExtras(c)
+            }
+        </button>
+    }
+    @TrailingPill
+</div>
+
+@code {
+    [Parameter] public IReadOnlyList<CategoryDto> Categories { get; set; } = Array.Empty<CategoryDto>();
+    [Parameter] public string? SelectedId { get; set; }
+    [Parameter] public EventCallback<string?> OnSelect { get; set; }
+    [Parameter] public bool ShowAllPill { get; set; } = true;
+    [Parameter] public string? AllLabel { get; set; }
+
+    [Parameter] public RenderFragment? LeadingPill { get; set; }
+    [Parameter] public RenderFragment? TrailingPill { get; set; }
+    [Parameter] public RenderFragment<CategoryDto>? PillExtras { get; set; }
+
+    private async Task HandleSelect(string? id)
+    {
+        if (OnSelect.HasDelegate) await OnSelect.InvokeAsync(id);
+    }
+}

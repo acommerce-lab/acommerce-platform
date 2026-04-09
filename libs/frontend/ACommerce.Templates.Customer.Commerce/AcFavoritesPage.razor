@@ -1,0 +1,67 @@
+@namespace ACommerce.Templates.Customer.Commerce
+
+@*
+    Favorites page: re-uses AcOfferGrid with a custom empty state and an optional
+    per-card "remove" action via CardExtras.
+
+    Flex slots:
+      HeaderSlot — replaces the default title
+      EmptySlot  — replaces the default empty state
+      CardExtras — per-card RenderFragment<OfferDto>, forwarded to AcOfferGrid
+*@
+
+<div class="acc-favorites-page">
+    @if (HeaderSlot != null)
+    {
+        @HeaderSlot
+    }
+    else
+    {
+        <h1 class="acs-page-title">@(Title ?? "المفضلة")</h1>
+    }
+
+    @if (Loading)
+    {
+        <AcLoadingState Message="@LoadingMessage" />
+    }
+    else if (Items.Count == 0)
+    {
+        @if (EmptySlot != null)
+        {
+            @EmptySlot
+        }
+        else
+        {
+            <AcEmptyState Icon="♡"
+                          Title="@(EmptyTitle ?? "لا توجد مفضلات")"
+                          Message="@(EmptyMessage ?? "اضغط على القلب في أي عرض لإضافته هنا")"
+                          ActionLabel="@(BrowseLabel ?? "تصفح العروض")"
+                          ActionHref="@BrowseHref" />
+        }
+    }
+    else
+    {
+        <AcOfferGrid Offers="Items"
+                     Columns="@Columns"
+                     DetailsHrefPrefix="@DetailsHrefPrefix"
+                     CardExtras="CardExtras" />
+    }
+</div>
+
+@code {
+    [Parameter] public IReadOnlyList<OfferDto> Items { get; set; } = Array.Empty<OfferDto>();
+    [Parameter] public bool Loading { get; set; }
+    [Parameter] public int Columns { get; set; } = 2;
+    [Parameter] public string DetailsHrefPrefix { get; set; } = "/offer";
+
+    [Parameter] public string? Title { get; set; }
+    [Parameter] public string? LoadingMessage { get; set; }
+    [Parameter] public string? EmptyTitle { get; set; }
+    [Parameter] public string? EmptyMessage { get; set; }
+    [Parameter] public string? BrowseLabel { get; set; }
+    [Parameter] public string? BrowseHref { get; set; } = "/";
+
+    [Parameter] public RenderFragment? HeaderSlot { get; set; }
+    [Parameter] public RenderFragment? EmptySlot { get; set; }
+    [Parameter] public RenderFragment<OfferDto>? CardExtras { get; set; }
+}
