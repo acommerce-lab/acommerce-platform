@@ -78,7 +78,6 @@ public class NotificationsController : ControllerBase
             ActionUrl = req.ActionUrl,
             DeliveryStatus = "pending"
         };
-        await _repo.AddAsync(entity, ct);
 
         // === العملية المحاسبية ===
         // النظام (مدين) ← المستخدم (دائن) برسالة على قناة محددة
@@ -92,6 +91,7 @@ public class NotificationsController : ControllerBase
             .Tag("notification_id", entity.Id.ToString())
             .Execute(async ctx =>
             {
+                await _repo.AddAsync(entity, ctx.CancellationToken);
                 var sent = await channel.SendAsync(req.UserId.ToString(), req.Title, req.Body, null, ctx.CancellationToken);
 
                 // تعديل بيانات الإشعار حسب نتيجة العملية
