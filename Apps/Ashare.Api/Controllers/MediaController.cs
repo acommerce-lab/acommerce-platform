@@ -1,5 +1,7 @@
 using ACommerce.Files.Operations;
 using ACommerce.Files.Operations.Abstractions;
+using ACommerce.OperationEngine.Core;
+using ACommerce.OperationEngine.Patterns;
 using ACommerce.OperationEngine.Wire;
 using ACommerce.SharedKernel.Abstractions.Repositories;
 using Ashare.Api.Entities;
@@ -14,6 +16,7 @@ public class MediaController : ControllerBase
     private readonly FileService _files;
     private readonly IBaseAsyncRepository<MediaFile> _repo;
     private readonly ILogger<MediaController> _logger;
+    private readonly OpEngine _engine;
 
     private static readonly HashSet<string> AllowedContentTypes = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -27,11 +30,12 @@ public class MediaController : ControllerBase
 
     private const long MaxFileSizeBytes = 10 * 1024 * 1024;
 
-    public MediaController(FileService files, IRepositoryFactory factory, ILogger<MediaController> logger)
+    public MediaController(FileService files, IRepositoryFactory factory, ILogger<MediaController> logger, OpEngine engine)
     {
         _files = files;
         _repo  = factory.CreateRepository<MediaFile>();
         _logger = logger;
+        _engine = engine;
     }
 
     [HttpPost("upload")]
@@ -83,7 +87,23 @@ public class MediaController : ControllerBase
             Directory = directory,
             Provider = _files.ProviderName
         };
-        await _repo.AddAsync(media, ct);
+
+        var op = Entry.Create("media.upload")
+            .Describe($"Upload file '{file.FileName}' to {directory}")
+            .From($"Uploader:{uploader}", file.Length, ("role", "uploader"))
+            .To($"Storage:{directory}", file.Length, ("role", "storage"))
+            .Tag("file_name", file.FileName)
+            .Tag("content_type", file.ContentType)
+            .Tag("directory", directory)
+            .Tag("media_id", media.Id.ToString())
+            .Execute(async ctx =>
+            {
+                await _repo.AddAsync(media, ctx.CancellationToken);
+            })
+            .Build();
+
+        var result = await _engine.ExecuteAsync(op, ct);
+        if (!result.Success) return this.BadRequestEnvelope("media_upload_failed", result.ErrorMessage);
 
         return this.OkEnvelope("media.upload", media);
     }
@@ -131,8 +151,27 @@ public class MediaController : ControllerBase
                     Directory = directory,
                     Provider = _files.ProviderName
                 };
-                await _repo.AddAsync(media, ct);
-                results.Add(new { id = media.Id, url = media.PublicUrl, fileName = file.FileName });
+
+                var uploader = uploaderId ?? Guid.Empty;
+                var op = Entry.Create("media.upload")
+                    .Describe($"Upload file '{file.FileName}' to {directory}")
+                    .From($"Uploader:{uploader}", file.Length, ("role", "uploader"))
+                    .To($"Storage:{directory}", file.Length, ("role", "storage"))
+                    .Tag("file_name", file.FileName)
+                    .Tag("content_type", file.ContentType)
+                    .Tag("directory", directory)
+                    .Tag("media_id", media.Id.ToString())
+                    .Execute(async ctx =>
+                    {
+                        await _repo.AddAsync(media, ctx.CancellationToken);
+                    })
+                    .Build();
+
+                var result = await _engine.ExecuteAsync(op, ct);
+                if (result.Success)
+                    results.Add(new { id = media.Id, url = media.PublicUrl, fileName = file.FileName });
+                else
+                    errors.Add(new { fileName = file.FileName, error = result.ErrorMessage });
             }
             else
             {
@@ -167,7 +206,21 @@ public class MediaController : ControllerBase
         if (!deleted)
             return StatusCode(500, OperationEnvelopeFactory.Error<object>("storage_delete_failed"));
 
-        await _repo.SoftDeleteAsync(id, ct);
+        var op = Entry.Create("media.delete")
+            .Describe($"Delete media file '{media.FileName}' (id={id})")
+            .From($"Actor:{actorId ?? media.UploaderId}", 1, ("role", "deleter"))
+            .To($"Storage:{media.Directory}", 1, ("role", "storage"))
+            .Tag("media_id", id.ToString())
+            .Tag("file_name", media.FileName)
+            .Execute(async ctx =>
+            {
+                await _repo.SoftDeleteAsync(id, ctx.CancellationToken);
+            })
+            .Build();
+
+        var result = await _engine.ExecuteAsync(op, ct);
+        if (!result.Success) return this.BadRequestEnvelope("media_delete_failed", result.ErrorMessage);
+
         return this.NoContentEnvelope("media.delete");
     }
 }

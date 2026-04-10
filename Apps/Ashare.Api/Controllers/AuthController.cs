@@ -2,6 +2,8 @@ using ACommerce.Authentication.Operations;
 using ACommerce.Authentication.Operations.Abstractions;
 using ACommerce.Authentication.Providers.Token;
 using ACommerce.Authentication.TwoFactor.Operations;
+using ACommerce.OperationEngine.Core;
+using ACommerce.OperationEngine.Patterns;
 using ACommerce.SharedKernel.Abstractions.Repositories;
 using Ashare.Api.Entities;
 using Ashare.Api.Services;
@@ -17,17 +19,20 @@ public class AuthController : ControllerBase
     private readonly TwoFactorService _tfa;
     private readonly JwtTokenStore _tokenStore;
     private readonly IBaseAsyncRepository<User> _users;
+    private readonly OpEngine _engine;
 
     public AuthController(
         AuthService auth,
         TwoFactorService tfa,
         JwtTokenStore tokenStore,
-        IRepositoryFactory repoFactory)
+        IRepositoryFactory repoFactory,
+        OpEngine engine)
     {
         _auth = auth;
         _tfa = tfa;
         _tokenStore = tokenStore;
         _users = repoFactory.CreateRepository<User>();
+        _engine = engine;
     }
 
     // ─────────────────────────────────────────────────────────
@@ -53,7 +58,20 @@ public class AuthController : ControllerBase
                 PhoneNumber = req.PhoneNumber,
                 Role = "customer"
             };
-            await _users.AddAsync(user, ct);
+            var createOp = Entry.Create("auth.user_create")
+                .Describe($"Auto-create user for phone {req.PhoneNumber}")
+                .From($"System:auth", 1, ("role", "system"))
+                .To($"User:{user.Id}", 1, ("role", "customer"))
+                .Tag("phone_number", req.PhoneNumber)
+                .Tag("channel", "sms")
+                .Execute(async ctx =>
+                {
+                    await _users.AddAsync(user, ctx.CancellationToken);
+                    ctx.Set("userId", user.Id);
+                })
+                .Build();
+            var createResult = await _engine.ExecuteAsync(createOp, ct);
+            if (!createResult.Success) return this.BadRequestEnvelope("user_create_failed", createResult.ErrorMessage);
         }
 
         var result = await _tfa.InitiateAsync("sms", user.Id.ToString(), target: req.PhoneNumber, ct);
@@ -85,7 +103,20 @@ public class AuthController : ControllerBase
         if (user == null) return this.NotFoundEnvelope("user_not_found");
 
         user.IsActive = true;
-        await _users.UpdateAsync(user, ct);
+        var verifyOp = Entry.Create("auth.user_verify")
+            .Describe($"Verify user {user.Id} via SMS")
+            .From($"System:auth", 1, ("role", "system"))
+            .To($"User:{user.Id}", 1, ("role", "customer"))
+            .Tag("user_id", user.Id.ToString())
+            .Tag("channel", "sms")
+            .Execute(async ctx =>
+            {
+                await _users.UpdateAsync(user, ctx.CancellationToken);
+                ctx.Set("userId", user.Id);
+            })
+            .Build();
+        var verifyResult = await _engine.ExecuteAsync(verifyOp, ct);
+        if (!verifyResult.Success) return this.BadRequestEnvelope("user_verify_failed", verifyResult.ErrorMessage);
 
         var principal = new AsharePrincipal { UserId = user.Id.ToString(), DisplayName = user.FullName };
         var token = await _tokenStore.IssueAsync(principal, ct);
@@ -121,7 +152,20 @@ public class AuthController : ControllerBase
                 Email = req.Email,
                 Role = "customer"
             };
-            await _users.AddAsync(user, ct);
+            var createOp = Entry.Create("auth.user_create")
+                .Describe($"Auto-create user for email {req.Email}")
+                .From($"System:auth", 1, ("role", "system"))
+                .To($"User:{user.Id}", 1, ("role", "customer"))
+                .Tag("email", req.Email)
+                .Tag("channel", "email")
+                .Execute(async ctx =>
+                {
+                    await _users.AddAsync(user, ctx.CancellationToken);
+                    ctx.Set("userId", user.Id);
+                })
+                .Build();
+            var createResult = await _engine.ExecuteAsync(createOp, ct);
+            if (!createResult.Success) return this.BadRequestEnvelope("user_create_failed", createResult.ErrorMessage);
         }
 
         var result = await _tfa.InitiateAsync("email", user.Id.ToString(), target: req.Email, ct);

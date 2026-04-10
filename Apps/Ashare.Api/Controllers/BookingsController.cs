@@ -142,15 +142,31 @@ public class BookingsController : ControllerBase
         if (booking.Status == BookingStatus.Paid || booking.Status == BookingStatus.Completed)
             return this.BadRequestEnvelope("cannot_cancel_completed");
 
-        booking.Status = BookingStatus.Cancelled;
-        await _bookings.UpdateAsync(booking, ct);
-
         var listing = await _listings.GetByIdAsync(booking.ListingId, ct);
-        if (listing != null && listing.Status == ListingStatus.Reserved)
-        {
-            listing.Status = ListingStatus.Published;
-            await _listings.UpdateAsync(listing, ct);
-        }
+
+        var op = Entry.Create("booking.cancel")
+            .Describe($"Cancel booking #{booking.Id} — reversal from Listing:{booking.ListingId} to Customer:{booking.CustomerId}")
+            .From($"Listing:{booking.ListingId}", booking.TotalPrice, ("role", "listing"))
+            .To($"Customer:{booking.CustomerId}", booking.TotalPrice, ("role", "customer"))
+            .Tag("booking_id", booking.Id.ToString())
+            .Tag("listing_id", booking.ListingId.ToString())
+            .Execute(async ctx =>
+            {
+                booking.Status = BookingStatus.Cancelled;
+                await _bookings.UpdateAsync(booking, ctx.CancellationToken);
+
+                if (listing != null && listing.Status == ListingStatus.Reserved)
+                {
+                    listing.Status = ListingStatus.Published;
+                    await _listings.UpdateAsync(listing, ctx.CancellationToken);
+                }
+
+                ctx.Set("bookingId", booking.Id);
+            })
+            .Build();
+
+        var result = await _engine.ExecuteAsync(op, ct);
+        if (!result.Success) return this.BadRequestEnvelope("booking_cancel_failed", result.ErrorMessage);
 
         return this.OkEnvelope("booking.cancel", booking);
     }
