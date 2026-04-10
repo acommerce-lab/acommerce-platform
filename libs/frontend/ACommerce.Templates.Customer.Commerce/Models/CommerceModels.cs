@@ -91,7 +91,9 @@ public sealed record OrderRowDto
     public string Currency { get; init; } = "SAR";
     public string Status { get; init; } = "";
     public string? StatusLabel { get; init; }
+    public string? PickupType { get; init; }    // "InStore" | "Curbside"
     public string? PickupLabel { get; init; }
+    public string? PaymentMethod { get; init; } // "Cash" | "Card"
     public string? PaymentLabel { get; init; }
     public DateTime CreatedAt { get; init; }
     public string? VendorName { get; init; }

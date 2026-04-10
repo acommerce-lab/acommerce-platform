@@ -17,7 +17,7 @@
                     DescriptionLabel="@(Ui.IsArabic ? "تفاصيل العرض" : "Details")"
                     StoreInfoLabel="@(Ui.IsArabic ? "معلومات المتجر" : "Store info")"
                     AddToCartLabel="@($"{(Ui.IsArabic ? "أضف إلى السلة" : "Add to cart")} • {OfferApiData?.Price.ToString("N0")} {OfferApiData?.Currency}")"
-                    ChatLabel="@(Ui.IsArabic ? "💬 محادثة المتجر" : "💬 Chat with store")"
+                    ChatLabel="@(Ui.IsArabic ? "محادثة المتجر" : "Chat with store")"
                     OnAddToCart="AddToCart"
                     OnToggleFavorite="ToggleFavorite"
                     OnChatWithStore="@(Auth.IsAuthenticated && OfferApiData?.Vendor != null ? EventCallback.Factory.Create(this, StartChat) : default)" />

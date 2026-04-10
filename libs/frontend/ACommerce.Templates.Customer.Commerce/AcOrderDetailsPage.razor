@@ -80,7 +80,10 @@ else
         {
             <div class="s-card">
                 <div class="acc-section-label">@(PickupLabel ?? "الاستلام")</div>
-                <div class="acc-order-info-row">@Order.PickupLabel</div>
+                <div class="acc-order-info-row">
+                    <AcIcon Name="@(Order.PickupType == "Curbside" ? "car" : "store")" Size="18" />
+                    <span>@Order.PickupLabel</span>
+                </div>
                 @if (!string.IsNullOrEmpty(Order.CarModel))
                 {
                     <div class="acc-order-info-row"><AcIcon Name="car" Size="16" /> @Order.CarModel @Order.CarColor @(Order.CarPlate ?? "")</div>
@@ -92,7 +95,10 @@ else
         {
             <div class="s-card">
                 <div class="acc-section-label">@(PaymentLabel ?? "الدفع")</div>
-                <div class="acc-order-info-row">@Order.PaymentLabel</div>
+                <div class="acc-order-info-row">
+                    <AcIcon Name="@(Order.PaymentMethod == "Card" ? "credit-card" : "cash")" Size="18" />
+                    <span>@Order.PaymentLabel</span>
+                </div>
                 @if (Order.CashTendered is > 0)
                 {
                     <div class="acc-order-info-row">@(CashTenderedLabel ?? "المبلغ المقدم"): @Order.CashTendered.Value.ToString("0.##")</div>

@@ -400,6 +400,27 @@ h1:focus, h2:focus, h3:focus { outline: none; }
 .btn-sm { padding: var(--ac-space-xs) var(--ac-space-sm); font-size: var(--ac-font-size-sm); }
 .btn-lg { padding: var(--ac-space-md) var(--ac-space-lg); font-size: var(--ac-font-size-lg); }
 
+/* Full-width primary CTA — used by login, checkout, cart, etc. */
+.btn-block {
+    display: flex;
+    width: 100%;
+    padding: 14px 20px;
+    font-size: 1.02rem;
+    min-height: 50px;
+    border-radius: var(--ac-radius-md, 12px);
+}
+
+/* Subtle ghost button — outlined neutral, used for secondary CTAs */
+.btn-ghost {
+    background: transparent;
+    color: var(--ac-text);
+    border: 1px solid var(--ac-border);
+}
+.btn-ghost:hover:not(:disabled) {
+    background: var(--ac-bg-alt);
+    border-color: var(--ac-border-dark, var(--ac-border));
+}
+
 /* ---- Card ---- */
 .card {
     position: relative;
@@ -435,28 +456,36 @@ h1:focus, h2:focus, h3:focus { outline: none; }
 /* ---- Forms ---- */
 .form-label {
     display: block;
-    margin-bottom: var(--ac-space-xs);
+    margin-bottom: 6px;
     font-weight: var(--ac-font-weight-bold);
+    font-size: 0.9rem;
     color: var(--ac-text);
 }
-.form-control, .form-select {
+.form-label + .form-input,
+.form-label + .form-control,
+.form-label + .form-select { margin-bottom: 12px; }
+.form-control, .form-select, .form-input {
     display: block;
     width: 100%;
-    padding: var(--ac-space-sm) var(--ac-space-md);
+    padding: 13px 16px;
     font-family: inherit;
-    font-size: var(--ac-font-size-base);
+    font-size: 1rem;
+    line-height: 1.4;
     color: var(--ac-text);
     background: var(--ac-surface);
     border: 1px solid var(--ac-border);
-    border-radius: var(--ac-radius-md);
+    border-radius: var(--ac-radius-md, 12px);
     transition: border-color var(--ac-transition), box-shadow var(--ac-transition);
+    box-sizing: border-box;
+    min-height: 48px;
 }
-.form-control:focus, .form-select:focus {
+.form-control:focus, .form-select:focus, .form-input:focus {
     outline: none;
     border-color: var(--ac-primary);
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--ac-primary) 25%, transparent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--ac-primary) 22%, transparent);
 }
-textarea.form-control { min-height: 6rem; resize: vertical; }
+.form-input::placeholder, .form-control::placeholder { color: var(--ac-text-muted); opacity: 0.7; }
+textarea.form-control, textarea.form-input { min-height: 6rem; resize: vertical; }
 .form-text { color: var(--ac-text-muted); font-size: var(--ac-font-size-sm); }
 
 /* ---- Input group ---- */

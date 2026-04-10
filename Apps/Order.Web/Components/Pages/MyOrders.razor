@@ -7,7 +7,7 @@
 
 @if (!Auth.IsAuthenticated)
 {
-    <AcEmptyState Icon="🔒"
+    <AcEmptyState IconName="log-in"
                   Title="@(Ui.IsArabic ? "سجل دخولك لرؤية طلباتك" : "Sign in to view orders")"
                   ActionLabel="@(Ui.IsArabic ? "تسجيل الدخول" : "Sign in")"
                   ActionHref="/login" />
@@ -37,7 +37,9 @@ else
             Currency = o.Currency,
             Status = StatusKey(o.Status),
             StatusLabel = o.StatusAr,
+            PickupType = o.PickupType == 1 ? "Curbside" : "InStore",
             PickupLabel = PickupLabel(o.PickupType),
+            PaymentMethod = o.PreferredPayment == 1 ? "Card" : "Cash",
             PaymentLabel = PaymentLabel(o.PreferredPayment),
             CreatedAt = o.CreatedAt,
             VendorName = o.VendorName,
@@ -68,12 +70,12 @@ else
     };
 
     private string PickupLabel(int t) => t == 1
-        ? (Ui.IsArabic ? "🚗 من السيارة" : "🚗 Curbside")
-        : (Ui.IsArabic ? "🏪 من المتجر" : "🏪 In-store");
+        ? (Ui.IsArabic ? "من السيارة" : "Curbside")
+        : (Ui.IsArabic ? "من المتجر" : "In-store");
 
     private string PaymentLabel(int p) => p == 1
-        ? (Ui.IsArabic ? "💳 بطاقة" : "💳 Card")
-        : (Ui.IsArabic ? "💵 نقدي" : "💵 Cash");
+        ? (Ui.IsArabic ? "بطاقة" : "Card")
+        : (Ui.IsArabic ? "نقدي" : "Cash");
 
     public class OrderRowApi
     {

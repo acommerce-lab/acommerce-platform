@@ -9,14 +9,14 @@
 
 @if (!Auth.IsAuthenticated)
 {
-    <AcEmptyState Icon="🔒"
+    <AcEmptyState IconName="log-in"
                   Title="@(Ui.IsArabic ? "يجب تسجيل الدخول أولاً" : "Sign in first")"
                   ActionLabel="@(Ui.IsArabic ? "تسجيل الدخول" : "Sign in")"
                   ActionHref="/login?return=/checkout" />
 }
 else if (Cart.Items.Count == 0)
 {
-    <AcEmptyState Icon="🛒"
+    <AcEmptyState IconName="cart"
                   Title="@(Ui.IsArabic ? "السلة فارغة" : "Cart is empty")"
                   ActionLabel="@(Ui.IsArabic ? "تصفّح العروض" : "Browse offers")"
                   ActionHref="/" />

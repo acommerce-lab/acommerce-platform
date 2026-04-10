@@ -267,6 +267,9 @@
 .acc-vendor-row {
     padding: 6px 0;
     font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 .acc-offer-actions {
     margin-top: 16px;
@@ -424,10 +427,16 @@
 .acc-order-meta {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 12px;
     margin-top: 10px;
     color: var(--ac-text-muted, #6b7280);
     font-size: 0.84rem;
+    flex-wrap: wrap;
+}
+.acc-order-meta-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
 }
 .acc-order-total {
     margin-inline-start: auto;

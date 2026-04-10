@@ -7,7 +7,7 @@
 
 @if (!Auth.IsAuthenticated)
 {
-    <AcEmptyState Icon="♥"
+    <AcEmptyState IconName="heart"
                   Title="@(Ui.IsArabic ? "سجّل دخولك للحفظ" : "Sign in to save")"
                   ActionLabel="@(Ui.IsArabic ? "تسجيل الدخول" : "Sign in")"
                   ActionHref="/login" />

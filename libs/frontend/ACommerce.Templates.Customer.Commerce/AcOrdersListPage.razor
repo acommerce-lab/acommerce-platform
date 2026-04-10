@@ -58,12 +58,17 @@
                 <div class="acc-order-meta">
                     @if (!string.IsNullOrEmpty(o.PickupLabel))
                     {
-                        <span>@o.PickupLabel</span>
+                        <span class="acc-order-meta-item">
+                            <AcIcon Name="@(o.PickupType == "Curbside" ? "car" : "store")" Size="14" />
+                            @o.PickupLabel
+                        </span>
                     }
                     @if (!string.IsNullOrEmpty(o.PaymentLabel))
                     {
-                        <span>·</span>
-                        <span>@o.PaymentLabel</span>
+                        <span class="acc-order-meta-item">
+                            <AcIcon Name="@(o.PaymentMethod == "Card" ? "credit-card" : "cash")" Size="14" />
+                            @o.PaymentLabel
+                        </span>
                     }
                     <span class="acc-order-total">@o.Total.ToString("0.##") @o.Currency</span>
                 </div>
