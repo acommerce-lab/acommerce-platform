@@ -45,10 +45,10 @@
     --ac-shadow-lg: 0 14px 28px -6px rgba(15,23,42,0.10);
 
     /* ── Typography ────────────────────────────────────────────────────── */
-    --ac-font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter',
-                      'Noto Kufi Arabic', Tahoma, sans-serif;
+    --ac-font-family: 'Tajawal', 'Inter', -apple-system, BlinkMacSystemFont,
+                      'Segoe UI', Tahoma, sans-serif;
     --ac-font-weight-normal: 400;
-    --ac-font-weight-bold:   600;
+    --ac-font-weight-bold:   500;
 
     /* ── Order shell ───────────────────────────────────────────────────── */
     --ord-shell-max:   540px;
@@ -74,13 +74,20 @@ html[data-theme="dark"] {
     --ac-shadow-lg: 0 18px 36px rgba(0,0,0,0.6);
 }
 
-html, body {
+html {
+    /* 14px base — professional density. All rem values auto-scale. */
+    font-size: 14px;
+}
+body {
     margin: 0;
     padding: 0;
     min-height: 100vh;
     background: var(--ac-bg);
     color: var(--ac-text);
     font-family: var(--ac-font-family);
+    font-size: 1rem;
+    line-height: 1.5;
+    letter-spacing: 0.01em;
     -webkit-font-smoothing: antialiased;
     transition: background-color 180ms ease, color 180ms ease;
 }
@@ -134,12 +141,12 @@ html[dir="rtl"] .ord-bottom-nav { transform: translateX(50%); }
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 3px;
+    gap: 2px;
     color: var(--ac-text-muted);
     text-decoration: none;
     padding: 6px 4px;
-    font-size: 0.72rem;
-    font-weight: 600;
+    font-size: 0.68rem;
+    font-weight: 500;
     transition: color 150ms;
 }
 .ord-nav-item:hover { color: var(--ac-text); }
@@ -201,13 +208,13 @@ html[dir="rtl"] .ord-bottom-nav { transform: translateX(50%); }
 }
 .acc-hero-title {
     color: var(--ac-text);
-    font-size: 1.55rem;
-    font-weight: 800;
-    margin: 0 0 6px;
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin: 0 0 4px;
 }
 .acc-hero-sub {
     color: var(--ac-text-muted);
-    font-size: 0.92rem;
+    font-size: 0.85rem;
     margin: 0;
 }
 .acc-hero-actions {
@@ -248,16 +255,31 @@ html[dir="rtl"] .ord-bottom-nav { transform: translateX(50%); }
     background: var(--ac-bg);
     padding: 40px 20px;
 }
-.acs-auth-brand { color: var(--ac-text); }
-.acs-auth-tag   { color: var(--ac-text-muted); }
-.acs-auth-icon  { color: var(--ac-primary); }
+.acs-auth-icon  { font-size: 2.8rem; color: var(--ac-primary); }
+.acs-auth-brand { font-size: 1.5rem; font-weight: 700; color: var(--ac-text); }
+.acs-auth-tag   { font-size: 0.85rem; color: var(--ac-text-muted); }
 .acs-auth-card {
     background: var(--ac-surface);
     border: 1px solid var(--ac-border);
     box-shadow: var(--ac-shadow-md);
 }
-.acs-auth-title    { color: var(--ac-text); }
-.acs-auth-subtitle { color: var(--ac-text-muted); }
+.acs-auth-title    { font-size: 1.15rem; font-weight: 700; color: var(--ac-text); }
+.acs-auth-subtitle { font-size: 0.84rem; color: var(--ac-text-muted); }
+.acs-otp-input     { font-size: 1.4rem; letter-spacing: 0.4rem; }
+
+/* ── Tighter heading sizes throughout ─────────────────────────────────── */
+.acs-page-title    { font-size: 1.05rem; font-weight: 700; }
+.acs-empty-icon    { font-size: 2.5rem; }
+.acs-empty-title   { font-size: 0.92rem; }
+.acs-empty-message { font-size: 0.84rem; }
+.acc-offer-info-title { font-size: 1.15rem; font-weight: 700; }
+.acc-offer-hero-emoji { font-size: 4rem; }
+.acc-offer-info-price { font-size: 0.95rem; }
+.acc-section-title { font-size: 0.9rem; }
+.acc-section-label { font-size: 0.75rem; }
+.acc-order-number  { font-size: 1.1rem; }
+.acc-success-title { font-size: 1.15rem; }
+.acc-success-icon  { font-size: 0; /* AcIcon handles size */ }
 
 /* =========================================================================
    Card surface — flat, neutral, hairline border

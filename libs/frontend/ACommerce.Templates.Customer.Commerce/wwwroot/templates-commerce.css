@@ -605,6 +605,80 @@
 .acc-search-input .form-input:focus { box-shadow: none; }
 .acc-search-view-toggle { flex-shrink: 0; }
 
+/* ── Filter panel (advanced filter section) ──────────────────────────── */
+.acc-filter-panel {
+    margin-bottom: 10px;
+}
+.acc-filter-toggle {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--ac-text-muted, #64748b);
+    padding: 6px 0;
+}
+.acc-filter-toggle:hover { color: var(--ac-text, #111827); }
+.acc-filter-body {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px 0 4px;
+}
+.acc-filter-row {
+    display: flex;
+    gap: 10px;
+}
+.acc-filter-row > .acc-filter-field { flex: 1; }
+.acc-filter-field .form-label { font-size: 0.75rem; margin-bottom: 4px; }
+.acc-filter-field .form-input { padding: 8px 10px; min-height: 38px; font-size: 0.84rem; }
+.acc-filter-check {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.84rem;
+    color: var(--ac-text, #111827);
+    cursor: pointer;
+}
+.acc-filter-check input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--ac-primary, #f59e0b);
+}
+
+/* Active filter chips */
+.acc-filter-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 10px;
+}
+.acc-filter-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    border: 1px solid var(--ac-border, #e5e7eb);
+    background: var(--ac-surface, #fff);
+    color: var(--ac-text, #111827);
+    font-family: inherit;
+    font-size: 0.72rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.12s;
+}
+.acc-filter-chip:hover { background: var(--ac-bg-alt, #f3f4f6); }
+.acc-filter-chip-clear {
+    background: transparent;
+    border-color: transparent;
+    color: var(--ac-danger, #dc2626);
+}
+
 /* ── Mini map (self-contained, no tiles) ──────────────────────────────── */
 .acc-mini-map {
     position: relative;
