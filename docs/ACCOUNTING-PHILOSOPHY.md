@@ -263,6 +263,89 @@ The practical payoff is:
 
 ---
 
+## Reporting operations and one-sided entries
+
+Not every operation has a reversal. Not every entry requires balanced
+debits and credits. The accounting model supports **reporting entries**
+— operations that record a fact without expecting a counter-entry.
+
+### View counts as accounting operations
+
+A "page view" is an operation: a viewer transfers attention to a
+listing. There is no reversal (you can't "un-view" something), and
+the amounts don't need to balance. This is a **one-sided entry**:
+
+```csharp
+var op = Entry.Create("listing.view")
+    .Describe($"View listing {id}")
+    .From("Viewer:anonymous", 1, ("role", "viewer"))
+    .To($"Listing:{id}", 1, ("role", "listing"))
+    .Tag("listing_id", id.ToString())
+    .Execute(async ctx =>
+    {
+        listing.ViewCount++;
+        await _repo.UpdateAsync(listing, ctx.CancellationToken);
+    })
+    .Build();
+```
+
+The `From` and `To` amounts are both 1 (one view), so the
+`BalanceAnalyzer` passes. But conceptually this is a *reporting*
+entry — its value comes from the **count of operations**, not from
+the amounts. A reporting interceptor can watch for `listing.view`
+operations and produce aggregate statistics without touching the
+entity's `ViewCount` field at all.
+
+### The reporting interceptor pattern
+
+Reporting accounts (المتاجرة، المبيعات، الموازنة، الإقفال) in
+traditional accounting are themselves journal entries — but they're
+*derived* entries that summarise other entries. In the OpEngine, this
+maps to **post-phase interceptors** that watch specific operation types
+and maintain aggregate counters or produce summary entries:
+
+```csharp
+registry.Register(new TaggedInterceptor(
+    name: "ViewCountReporter",
+    watchedTag: "listing_id",
+    phase: InterceptorPhase.Post,
+    intercept: async (ctx, _) =>
+    {
+        var listingId = ctx.Operation.GetTagValue("listing_id");
+        // Aggregate: count all listing.view operations for this listing
+        // Store in a reporting table, cache, or summary entry
+        return AnalyzerResult.Pass();
+    }));
+```
+
+This pattern applies to any metric:
+- **Chat read receipts**: `message.read` entries (no reversal). A
+  reporting interceptor counts how many recipients have read.
+- **Presence tracking**: `session.enter` and `session.leave` entries.
+  A reporting interceptor counts active sessions (entries without
+  matching leave entries).
+- **Revenue summaries**: a post-interceptor on `order.deliver` that
+  accumulates daily totals into a summary entity.
+
+The key principle: **the individual entry is atomic and immutable**.
+The aggregate is a *derived view* maintained by interceptors. This
+matches how real accounting works — you never modify a journal entry;
+you post a new entry to adjust, and the balance sheet is always
+computed from the sum of all entries.
+
+### When to skip the BalanceAnalyzer
+
+The `AccountingBuilder` (via `Entry.Create`) auto-adds a
+`BalanceAnalyzer` that checks `debit_total == credit_total`. For
+reporting entries where amounts intentionally differ, use the
+low-level `OperationBuilder.Create()` directly, or use `.Sealed()`
+to suppress the balance check. But in practice, keeping both sides
+equal (1:1 for views, messages, presence) is cleaner — the reporting
+value comes from the *count* of operations, not from asymmetric
+amounts.
+
+---
+
 ## What the engine is *not*
 
 - **Not an ORM.** Entities and repositories live in the SharedKernel

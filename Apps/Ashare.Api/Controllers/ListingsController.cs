@@ -55,8 +55,21 @@ public class ListingsController : ControllerBase
         var listing = await _repo.GetByIdAsync(id, ct);
         if (listing == null) return this.NotFoundEnvelope("listing_not_found");
 
-        listing.ViewCount++;
-        await _repo.UpdateAsync(listing, ct);
+        // المشاهدة = قيد محاسبي: المشاهد ← العرض (بلا معكوس).
+        // المعترض ReportingInterceptor يراقب "listing.view" ويحصي التقارير.
+        var viewOp = Entry.Create("listing.view")
+            .Describe($"View listing {id}")
+            .From("Viewer:anonymous", 1, ("role", "viewer"))
+            .To($"Listing:{id}", 1, ("role", "listing"))
+            .Tag("listing_id", id.ToString())
+            .Execute(async ctx =>
+            {
+                listing.ViewCount++;
+                await _repo.UpdateAsync(listing, ctx.CancellationToken);
+            })
+            .Build();
+
+        await _engine.ExecuteAsync(viewOp, ct);
 
         return this.OkEnvelope("listing.get", listing);
     }
