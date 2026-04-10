@@ -1,6 +1,8 @@
+using ACommerce.Notification.Operations;
 using ACommerce.OperationEngine.Core;
 using ACommerce.OperationEngine.Patterns;
 using ACommerce.OperationEngine.Wire;
+using ACommerce.Realtime.Operations.Abstractions;
 using ACommerce.SharedKernel.Abstractions.Repositories;
 using Microsoft.AspNetCore.Mvc;
 using Vendor.Api.Entities;
@@ -24,14 +26,16 @@ public class VendorOrdersController : ControllerBase
     private readonly IBaseAsyncRepository<VendorSettings> _settings;
     private readonly OpEngine _engine;
     private readonly OrderApiCallback _callback;
+    private readonly Notifier _notifier;
 
     public VendorOrdersController(
-        IRepositoryFactory factory, OpEngine engine, OrderApiCallback callback)
+        IRepositoryFactory factory, OpEngine engine, OrderApiCallback callback, Notifier notifier)
     {
         _orders = factory.CreateRepository<IncomingOrder>();
         _settings = factory.CreateRepository<VendorSettings>();
         _engine = engine;
         _callback = callback;
+        _notifier = notifier;
     }
 
     // ── Webhook: Order.Api sends us a new order ──────────────────────────
@@ -111,6 +115,14 @@ public class VendorOrdersController : ControllerBase
                 reason = envelope.Operation.FailedAnalyzer ?? envelope.Operation.ErrorMessage
             });
         }
+
+        // Notify the vendor user via Notifier (OpEngine operation)
+        await _notifier.SendAsync(
+            VendorNotifications.OrderReceived,
+            PartyId.User(req.VendorId.ToString()),
+            new { order.Id, order.OrderNumber, order.Total, order.CustomerName },
+            titleOverride: $"طلب جديد #{req.OrderNumber}",
+            messageOverride: $"{req.CustomerName} • {req.Total:0.##} {req.Currency}", ct: ct);
 
         return this.OkEnvelope("order.receive", new
         {

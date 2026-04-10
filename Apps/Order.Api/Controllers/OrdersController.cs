@@ -1,6 +1,9 @@
+using ACommerce.Notification.Operations;
 using ACommerce.OperationEngine.Core;
+using ACommerce.Realtime.Operations.Abstractions;
 using ACommerce.OperationEngine.Patterns;
 using ACommerce.OperationEngine.Wire;
+using ACommerce.Realtime.Operations;
 using ACommerce.SharedKernel.Abstractions.Repositories;
 using Microsoft.AspNetCore.Mvc;
 using Order.Api.Entities;
@@ -24,10 +27,12 @@ public class OrdersController : ControllerBase
     private readonly IBaseAsyncRepository<User> _users;
     private readonly OpEngine _engine;
     private readonly VendorApiNotifier _vendorNotifier;
+    private readonly Notifier _notifier;
 
-    public OrdersController(IRepositoryFactory factory, OpEngine engine, VendorApiNotifier vendorNotifier)
+    public OrdersController(IRepositoryFactory factory, OpEngine engine, VendorApiNotifier vendorNotifier, Notifier notifier)
     {
         _vendorNotifier = vendorNotifier;
+        _notifier = notifier;
         _orders = factory.CreateRepository<OrderRecord>();
         _items = factory.CreateRepository<OrderItem>();
         _offers = factory.CreateRepository<Offer>();
@@ -149,7 +154,15 @@ public class OrdersController : ControllerBase
         record.OperationId = envelope.Operation.Id;
         await _orders.UpdateAsync(record, ct);
 
-        // ── Webhook: notify Vendor.Api about the new order ──────────────
+        // ── Notify vendor via Notifier (proper OpEngine operation) ────────
+        await _notifier.SendAsync(
+            OrderNotifications.NewOrder,
+            PartyId.User(vendor.OwnerId.ToString()),
+            new { record.Id, record.OrderNumber, record.Total, record.Currency },
+            titleOverride: $"طلب جديد #{record.OrderNumber}",
+            messageOverride: $"{record.Total:0.##} {record.Currency}", ct: ct);
+
+        // ── Webhook: notify Vendor.Api service about the new order ──────
         var itemsSummary = string.Join(", ", offers.Select(x => $"{x.Offer.Title} ×{x.Quantity}"));
         var customer = await _users.GetByIdAsync(req.CustomerId, ct);
         _ = _vendorNotifier.NotifyNewOrderAsync(
@@ -406,6 +419,23 @@ public class OrdersController : ControllerBase
 
         var envelope = await _engine.ExecuteEnvelopeAsync(op, new { id = o.Id, status = newStatus.Value.ToString() }, ct);
         if (envelope.Operation.Status != "Success") return BadRequest(envelope);
+
+        // Notify the customer about the status change via Notifier
+        var notifType = req.Action switch
+        {
+            "accepted" => OrderNotifications.OrderAccepted,
+            "ready" => OrderNotifications.OrderReady,
+            "delivered" => OrderNotifications.OrderDelivered,
+            "rejected" or "timeout" => OrderNotifications.OrderRejected,
+            _ => null
+        };
+        if (notifType != null)
+        {
+            await _notifier.SendAsync(notifType,
+                PartyId.User(o.CustomerId.ToString()),
+                new { o.Id, o.OrderNumber, status = o.Status.ToString() }, ct: ct);
+        }
+
         return this.OkEnvelope(opType, new { id = o.Id, status = o.Status.ToString() });
     }
 

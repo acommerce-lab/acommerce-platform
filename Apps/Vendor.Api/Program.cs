@@ -1,6 +1,10 @@
+using ACommerce.Notification.Operations;
+using ACommerce.Notification.Operations.Abstractions;
+using ACommerce.Notification.Providers.InApp.Extensions;
 using ACommerce.OperationEngine.Core;
 using ACommerce.OperationEngine.Interceptors;
 using ACommerce.OperationEngine.Interceptors.Extensions;
+using ACommerce.Realtime.Providers.InMemory.Extensions;
 using ACommerce.SharedKernel.Abstractions.Entities;
 using ACommerce.SharedKernel.Abstractions.Repositories;
 using ACommerce.SharedKernel.Infrastructure.EFCores.Extensions;
@@ -42,6 +46,19 @@ builder.Services.AddCors(o => o.AddDefaultPolicy(p =>
 // ─── OperationEngine (Scoped) ────────────────────────────────────────────
 builder.Services.AddScoped<OpEngine>(sp =>
     new OpEngine(sp, sp.GetRequiredService<ILogger<OpEngine>>()));
+
+// ─── Realtime + Notifications ────────────────────────────────────────────
+builder.Services.AddInMemoryRealtimeTransport();
+builder.Services.AddInAppNotificationChannel(opt =>
+{
+    opt.MethodName = "VendorNotification";
+    opt.AllowOffline = true;
+});
+builder.Services.AddNotifications(config =>
+{
+    config.DefineType(VendorNotifications.OrderReceived);
+    config.DefineType(VendorNotifications.OrderTimedOut);
+});
 
 // ─── Interceptors ────────────────────────────────────────────────────────
 // These fire on any operation tagged "vendor_order" (the receive endpoint tags it).
@@ -163,6 +180,13 @@ builder.Services.AddScoped<VendorSeeder>();
 
 // ─── Build ───────────────────────────────────────────────────────────────
 var app = builder.Build();
+
+using (var chScope = app.Services.CreateScope())
+{
+    var notifConfig = chScope.ServiceProvider.GetRequiredService<NotificationConfig>();
+    foreach (var ch in chScope.ServiceProvider.GetServices<INotificationChannel>())
+        notifConfig.AddChannel(ch);
+}
 
 app.UseCors();
 app.UseSwagger();

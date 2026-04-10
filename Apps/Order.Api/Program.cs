@@ -5,6 +5,7 @@ using ACommerce.Authentication.Providers.Token.Extensions;
 using ACommerce.Authentication.TwoFactor.Operations;
 using ACommerce.Authentication.TwoFactor.Operations.Abstractions;
 using ACommerce.Authentication.TwoFactor.Providers.Sms.Extensions;
+using ACommerce.Notification.Operations;
 using ACommerce.Notification.Operations.Abstractions;
 using ACommerce.Notification.Providers.InApp.Extensions;
 using ACommerce.OperationEngine.Core;
@@ -94,6 +95,17 @@ builder.Services.AddInAppNotificationChannel(opt =>
     opt.AllowOffline = true;
 });
 
+// Register Notifier with domain notification types
+builder.Services.AddNotifications(config =>
+{
+    config.DefineType(OrderNotifications.NewOrder);
+    config.DefineType(OrderNotifications.OrderAccepted);
+    config.DefineType(OrderNotifications.OrderReady);
+    config.DefineType(OrderNotifications.OrderRejected);
+    config.DefineType(OrderNotifications.OrderDelivered);
+});
+// InApp channel registered via AddInAppNotificationChannel above — Notifier resolves channels from DI at send time
+
 // ─────────────────────────────────────────────────────────
 // Authentication: JWT + SMS 2FA (mock)
 // ─────────────────────────────────────────────────────────
@@ -171,6 +183,14 @@ builder.Services.AddScoped<OrderSeeder>();
 // Build
 // ─────────────────────────────────────────────────────────
 var app = builder.Build();
+
+// Bridge DI-registered notification channels into NotificationConfig
+using (var chScope = app.Services.CreateScope())
+{
+    var notifConfig = chScope.ServiceProvider.GetRequiredService<NotificationConfig>();
+    foreach (var ch in chScope.ServiceProvider.GetServices<INotificationChannel>())
+        notifConfig.AddChannel(ch);
+}
 
 app.UseCors();
 app.UseAuthentication();
