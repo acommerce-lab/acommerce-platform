@@ -25,10 +25,10 @@
             <a class="btn btn-primary btn-sm" href="/login">
                 @(Ui.IsArabic ? "تسجيل الدخول" : "Sign in")
             </a>
-            <a class="btn btn-ghost btn-sm" href="/settings">
-                @(Ui.IsArabic ? "English" : "العربية")
-            </a>
         }
+        <button type="button" class="btn btn-ghost btn-sm" @onclick="ToggleLanguage">
+            @(Ui.IsArabic ? "English" : "العربية")
+        </button>
     </HeroActions>
 </AcCatalogHome>
 
@@ -74,15 +74,22 @@
 
     protected override async Task OnInitializedAsync()
     {
-        Auth.OnChanged += OnAuthChanged;
+        Auth.OnChanged += OnUiChange;
+        Ui.OnChanged   += OnUiChange;
         var catEnv = await Api.GetAsync<List<CatApi>>("/api/categories");
         if (catEnv.Data != null) Categories = catEnv.Data;
         await Reload();
     }
 
-    private void OnAuthChanged() => InvokeAsync(StateHasChanged);
+    private void OnUiChange() => InvokeAsync(StateHasChanged);
 
-    public void Dispose() => Auth.OnChanged -= OnAuthChanged;
+    private void ToggleLanguage() => Ui.SetLanguage(Ui.IsArabic ? "en" : "ar");
+
+    public void Dispose()
+    {
+        Auth.OnChanged -= OnUiChange;
+        Ui.OnChanged   -= OnUiChange;
+    }
 
     private async Task SelectCategory(string? id)
     {

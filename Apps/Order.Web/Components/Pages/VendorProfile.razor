@@ -1,0 +1,140 @@
+@page "/vendor/{Id:guid}"
+@inject OrderApiClient Api
+@inject UiPreferences Ui
+@inject NavigationManager Nav
+@inject AuthStateService Auth
+
+<PageTitle>@(Vendor?.Name ?? "متجر") - اوردر</PageTitle>
+
+@if (Loading)
+{
+    <AcLoadingState Message="@(Ui.IsArabic ? "جاري التحميل..." : "Loading…")" />
+}
+else if (Vendor == null)
+{
+    <AcEmptyState IconName="store"
+                  Title="@(Ui.IsArabic ? "المتجر غير موجود" : "Store not found")"
+                  ActionLabel="@(Ui.IsArabic ? "الرئيسية" : "Home")"
+                  ActionHref="/" />
+}
+else
+{
+    <div class="acc-vendor-profile">
+        @* Vendor header card *@
+        <div class="acc-vendor-header">
+            <div class="acc-vendor-header-emoji">@(Vendor.LogoEmoji ?? "🏪")</div>
+            <div class="acc-vendor-header-body">
+                <h1 class="acc-vendor-header-name">@Vendor.Name</h1>
+                @if (Vendor.Rating > 0)
+                {
+                    <div class="acc-vendor-header-rating">
+                        <AcIcon Name="check-circle" Size="14" />
+                        <span>★ @Vendor.Rating.ToString("0.0")</span>
+                        <span class="acc-vendor-header-rating-count">(@Vendor.RatingCount @(Ui.IsArabic ? "تقييم" : "reviews"))</span>
+                    </div>
+                }
+            </div>
+        </div>
+
+        @if (!string.IsNullOrEmpty(Vendor.Description))
+        {
+            <p class="acc-vendor-profile-desc">@Vendor.Description</p>
+        }
+
+        <div class="s-card acc-vendor-card">
+            <div class="acc-section-label">@(Ui.IsArabic ? "معلومات المتجر" : "Store info")</div>
+            @if (!string.IsNullOrEmpty(Vendor.City))
+            {
+                <div class="acc-vendor-row"><AcIcon Name="map-pin" Size="16" /> @Vendor.City@(string.IsNullOrEmpty(Vendor.District) ? "" : " - " + Vendor.District)</div>
+            }
+            @if (!string.IsNullOrEmpty(Vendor.OpenHours))
+            {
+                <div class="acc-vendor-row"><AcIcon Name="clock" Size="16" /> @Vendor.OpenHours</div>
+            }
+            @if (!string.IsNullOrEmpty(Vendor.Phone))
+            {
+                <div class="acc-vendor-row" dir="ltr"><AcIcon Name="phone" Size="16" /> @Vendor.Phone</div>
+            }
+        </div>
+
+        <h2 class="acc-section-title">@(Ui.IsArabic ? "عروض المتجر" : "Store offers")</h2>
+
+        @if (MappedOffers.Count == 0)
+        {
+            <AcEmptyState IconName="inbox"
+                          Message="@(Ui.IsArabic ? "لا توجد عروض حالياً" : "No offers right now")" />
+        }
+        else
+        {
+            <AcOfferGrid Offers="@MappedOffers"
+                         Columns="2"
+                         DetailsHrefPrefix="/offer" />
+        }
+    </div>
+}
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+    private VendorApi? Vendor;
+    private List<OfferApi> Offers = new();
+    private bool Loading = true;
+
+    private IReadOnlyList<OfferDto> MappedOffers =>
+        Offers.Where(o => o.Vendor?.Id == Id).Select(o => new OfferDto
+        {
+            Id = o.Id.ToString(),
+            Title = o.Title,
+            Description = o.Description,
+            Price = o.Price,
+            OriginalPrice = o.OriginalPrice,
+            Currency = o.Currency,
+            Emoji = o.Emoji,
+            DiscountPercent = o.DiscountPercent,
+            IsFeatured = o.IsFeatured
+        }).ToList();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        await Auth.EnsureRestoredAsync();
+        var vEnv = await Api.GetAsync<VendorApi>($"/api/vendors/{Id}");
+        Vendor = vEnv.Data;
+        var oEnv = await Api.GetAsync<List<OfferApi>>("/api/offers");
+        Offers = oEnv.Data ?? new();
+        Loading = false;
+        StateHasChanged();
+    }
+
+    public class VendorApi
+    {
+        public Guid Id { get; set; }
+        public string Name { get; set; } = "";
+        public string Description { get; set; } = "";
+        public string? City { get; set; }
+        public string? District { get; set; }
+        public string? Phone { get; set; }
+        public string? LogoEmoji { get; set; }
+        public string? OpenHours { get; set; }
+        public double Rating { get; set; }
+        public int RatingCount { get; set; }
+    }
+
+    public class OfferApi
+    {
+        public Guid Id { get; set; }
+        public string Title { get; set; } = "";
+        public string Description { get; set; } = "";
+        public decimal Price { get; set; }
+        public decimal? OriginalPrice { get; set; }
+        public string Currency { get; set; } = "SAR";
+        public string Emoji { get; set; } = "🍽️";
+        public int DiscountPercent { get; set; }
+        public bool IsFeatured { get; set; }
+        public VendorInner? Vendor { get; set; }
+    }
+
+    public class VendorInner
+    {
+        public Guid Id { get; set; }
+    }
+}

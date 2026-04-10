@@ -42,7 +42,7 @@
     @if (Categories.Count > 0)
     {
         <AcCategoryRow Categories="Categories"
-                       SelectedId="SelectedCategoryId"
+                       SelectedId="@SelectedCategoryId"
                        OnSelect="OnSelectCategory"
                        AllLabel="@AllLabel" />
     }

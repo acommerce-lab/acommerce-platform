@@ -15,9 +15,9 @@
             <AcIcon Name="home" Size="22" />
             <span>@(Ui.IsArabic ? "الرئيسية" : "Home")</span>
         </NavLink>
-        <NavLink href="/favorites" class="ord-nav-item">
-            <AcIcon Name="heart" Size="22" />
-            <span>@(Ui.IsArabic ? "المفضلة" : "Favorites")</span>
+        <NavLink href="/search" class="ord-nav-item">
+            <AcIcon Name="search" Size="22" />
+            <span>@(Ui.IsArabic ? "بحث" : "Search")</span>
         </NavLink>
         <NavLink href="/cart" class="ord-nav-item ord-nav-cart">
             <div class="ord-nav-cart-btn">
@@ -49,6 +49,7 @@
     }
 
     private string _lastAppliedTheme = "";
+    private string _lastAppliedLang  = "";
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -56,14 +57,20 @@
         {
             await Auth.EnsureRestoredAsync();
             _lastAppliedTheme = Ui.Theme;
+            _lastAppliedLang  = Ui.Language;
         }
-        // Push the current theme to <html data-theme> whenever it changes.
-        // The root <html> element lives outside the interactive tree, so
-        // Blazor can't update the attribute directly.
+        // The root <html> element lives outside the interactive Blazor
+        // tree, so Blazor can't flip its attributes directly — we push
+        // the new values via JS interop whenever Ui notifies a change.
         if (_lastAppliedTheme != Ui.Theme)
         {
             _lastAppliedTheme = Ui.Theme;
             try { await JS.InvokeVoidAsync("acTheme.set", Ui.Theme); } catch { }
+        }
+        if (_lastAppliedLang != Ui.Language)
+        {
+            _lastAppliedLang = Ui.Language;
+            try { await JS.InvokeVoidAsync("acLang.set", Ui.Language); } catch { }
         }
     }
 

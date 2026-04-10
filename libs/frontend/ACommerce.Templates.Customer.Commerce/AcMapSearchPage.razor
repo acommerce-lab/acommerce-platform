@@ -1,0 +1,285 @@
+@namespace ACommerce.Templates.Customer.Commerce
+
+@*
+    Search + map page. Data-driven and vertical-agnostic: the same template
+    serves Order's "find a restaurant/offer", Ashare's "find a property" or
+    a service directory. Pins are plain lat/lng points; the consumer passes
+    a list of MapPinDto and decides what the bottom sheet shows on select.
+
+    The "map" itself is a self-contained mini-map — a styled bounded region
+    that projects each pin's lat/lng into (x, y) inside the box. Zero JS,
+    zero tiles, works offline. The UX pattern (filter → pins → detail) is
+    identical to a real Leaflet/Mapbox implementation, so swapping in a
+    real map later is a localized change to one file.
+
+    Flex slots:
+      HeaderSlot      — replaces the default title
+      FilterExtras    — rendered inside the filter bar (extra filters)
+      PinPopup        — RenderFragment<MapPinDto>, popup above the selected pin
+      DetailsSlot     — bottom sheet content when a pin is selected (full custom)
+      EmptySlot       — replaces the default "no pins" state
+      ListRow         — RenderFragment<MapPinDto>, custom row in the list mode
+*@
+
+<div class="acc-search-page">
+    @if (HeaderSlot != null)
+    {
+        @HeaderSlot
+    }
+    else if (!string.IsNullOrEmpty(Title))
+    {
+        <h1 class="acs-page-title">@Title</h1>
+    }
+
+    @* ── Search + mode toggle ─────────────────────────────────────────── *@
+    <div class="acc-search-bar">
+        <div class="acc-search-input">
+            <AcIcon Name="search" Size="18" />
+            <input type="text"
+                   class="form-input"
+                   placeholder="@(SearchPlaceholder ?? "ابحث...")"
+                   value="@SearchQuery"
+                   @oninput="OnSearchInput" />
+        </div>
+        @if (ShowViewToggle)
+        {
+            <div class="acs-seg acc-search-view-toggle">
+                <button type="button"
+                        class="acs-seg-btn @(View == "map" ? "active" : "")"
+                        @onclick="@(() => SetView("map"))"
+                        aria-label="@(MapViewLabel ?? "خريطة")">
+                    <AcIcon Name="map-pin" Size="16" />
+                    <span>@(MapViewLabel ?? "خريطة")</span>
+                </button>
+                <button type="button"
+                        class="acs-seg-btn @(View == "list" ? "active" : "")"
+                        @onclick="@(() => SetView("list"))"
+                        aria-label="@(ListViewLabel ?? "قائمة")">
+                    <AcIcon Name="inbox" Size="16" />
+                    <span>@(ListViewLabel ?? "قائمة")</span>
+                </button>
+            </div>
+        }
+    </div>
+
+    @* ── Category pills (optional) ────────────────────────────────────── *@
+    @if (Categories.Count > 0)
+    {
+        <AcCategoryRow Categories="Categories"
+                       SelectedId="@SelectedCategoryId"
+                       OnSelect="OnSelectCategory"
+                       AllLabel="@AllLabel" />
+    }
+
+    @FilterExtras
+
+    @* ── Results ──────────────────────────────────────────────────────── *@
+    @if (Loading)
+    {
+        <AcLoadingState Message="@LoadingMessage" />
+    }
+    else if (Pins.Count == 0)
+    {
+        @if (EmptySlot != null)
+        {
+            @EmptySlot
+        }
+        else
+        {
+            <AcEmptyState IconName="search"
+                          Title="@(EmptyTitle ?? "لا توجد نتائج")"
+                          Message="@(EmptyMessage ?? "جرّب فلتراً آخر أو ابحث باسم المتجر")" />
+        }
+    }
+    else if (View == "map")
+    {
+        <div class="acc-mini-map" dir="ltr">
+            @{
+                // Project each pin onto the bounded box using the provided
+                // bbox (or the auto-fit bbox around all pins + 10% padding).
+                var bounds = Bounds ?? AutoBounds();
+                var latSpan = Math.Max(0.0001, bounds.MaxLat - bounds.MinLat);
+                var lngSpan = Math.Max(0.0001, bounds.MaxLng - bounds.MinLng);
+            }
+            <div class="acc-mini-map-grid"></div>
+            @foreach (var pin in Pins)
+            {
+                var xPct = (pin.Longitude - bounds.MinLng) / lngSpan * 100;
+                var yPct = (bounds.MaxLat - pin.Latitude) / latSpan * 100;
+                var isSelected = pin.Id == SelectedPinId;
+                <button type="button"
+                        class="acc-map-pin @(isSelected ? "selected" : "")"
+                        style="inset-inline-start: @(xPct.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture))%; top: @(yPct.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture))%;"
+                        @onclick="@(() => HandleSelect(pin))">
+                    @if (!string.IsNullOrEmpty(pin.IconName))
+                    {
+                        <AcIcon Name="@pin.IconName" Size="18" />
+                    }
+                    else if (!string.IsNullOrEmpty(pin.Emoji))
+                    {
+                        <span class="acc-map-pin-emoji">@pin.Emoji</span>
+                    }
+                    else
+                    {
+                        <AcIcon Name="map-pin" Size="18" />
+                    }
+                    @if (!string.IsNullOrEmpty(pin.Badge))
+                    {
+                        <span class="acc-map-pin-badge">@pin.Badge</span>
+                    }
+                </button>
+            }
+            @{
+                var selected = Pins.FirstOrDefault(p => p.Id == SelectedPinId);
+            }
+            @if (selected != null)
+            {
+                var xPct = (selected.Longitude - bounds.MinLng) / lngSpan * 100;
+                var yPct = (bounds.MaxLat - selected.Latitude) / latSpan * 100;
+                <div class="acc-map-pin-popup"
+                     style="inset-inline-start: @(xPct.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture))%; top: @(yPct.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture))%;">
+                    @if (PinPopup != null)
+                    {
+                        @PinPopup(selected)
+                    }
+                    else
+                    {
+                        <div class="acc-map-pin-popup-title">@selected.Title</div>
+                        @if (!string.IsNullOrEmpty(selected.Subtitle))
+                        {
+                            <div class="acc-map-pin-popup-sub">@selected.Subtitle</div>
+                        }
+                    }
+                </div>
+            }
+        </div>
+
+        @* Bottom sheet — consumer-controlled when a pin is selected *@
+        @if (DetailsSlot != null && selected != null)
+        {
+            <div class="acc-map-sheet">@DetailsSlot(selected)</div>
+        }
+    }
+    else
+    {
+        @* List view — same data, scrollable cards *@
+        <div class="acc-search-list">
+            @foreach (var pin in Pins)
+            {
+                @if (ListRow != null)
+                {
+                    @ListRow(pin)
+                }
+                else
+                {
+                    <a class="s-card acc-search-list-row"
+                       href="@(pin.Href ?? "#")"
+                       @onclick="@(() => HandleSelect(pin))"
+                       @onclick:preventDefault="@(string.IsNullOrEmpty(pin.Href))">
+                        <div class="acc-search-list-icon">
+                            @if (!string.IsNullOrEmpty(pin.IconName))
+                            {
+                                <AcIcon Name="@pin.IconName" Size="22" />
+                            }
+                            else if (!string.IsNullOrEmpty(pin.Emoji))
+                            {
+                                @pin.Emoji
+                            }
+                            else
+                            {
+                                <AcIcon Name="map-pin" Size="22" />
+                            }
+                        </div>
+                        <div class="acc-search-list-body">
+                            <div class="acc-search-list-title">@pin.Title</div>
+                            @if (!string.IsNullOrEmpty(pin.Subtitle))
+                            {
+                                <div class="acc-search-list-sub">@pin.Subtitle</div>
+                            }
+                        </div>
+                        @if (!string.IsNullOrEmpty(pin.Badge))
+                        {
+                            <div class="acc-search-list-badge">@pin.Badge</div>
+                        }
+                    </a>
+                }
+            }
+        </div>
+    }
+</div>
+
+@code {
+    public record BoundsDto(double MinLat, double MaxLat, double MinLng, double MaxLng);
+
+    [Parameter] public string? Title { get; set; }
+
+    [Parameter] public IReadOnlyList<MapPinDto> Pins { get; set; } = Array.Empty<MapPinDto>();
+    [Parameter] public bool Loading { get; set; }
+    [Parameter] public BoundsDto? Bounds { get; set; }
+
+    // Search + filter
+    [Parameter] public string SearchQuery { get; set; } = "";
+    [Parameter] public EventCallback<string> SearchQueryChanged { get; set; }
+    [Parameter] public string? SearchPlaceholder { get; set; }
+
+    // Category filter
+    [Parameter] public IReadOnlyList<CategoryDto> Categories { get; set; } = Array.Empty<CategoryDto>();
+    [Parameter] public string? SelectedCategoryId { get; set; }
+    [Parameter] public EventCallback<string?> OnSelectCategory { get; set; }
+    [Parameter] public string? AllLabel { get; set; }
+
+    // View toggle (map / list)
+    [Parameter] public string View { get; set; } = "map";
+    [Parameter] public EventCallback<string> ViewChanged { get; set; }
+    [Parameter] public bool ShowViewToggle { get; set; } = true;
+    [Parameter] public string? MapViewLabel { get; set; }
+    [Parameter] public string? ListViewLabel { get; set; }
+
+    // Selection
+    [Parameter] public string? SelectedPinId { get; set; }
+    [Parameter] public EventCallback<MapPinDto> OnSelectPin { get; set; }
+
+    // Labels
+    [Parameter] public string? LoadingMessage { get; set; }
+    [Parameter] public string? EmptyTitle { get; set; }
+    [Parameter] public string? EmptyMessage { get; set; }
+
+    // Flex slots
+    [Parameter] public RenderFragment? HeaderSlot { get; set; }
+    [Parameter] public RenderFragment? FilterExtras { get; set; }
+    [Parameter] public RenderFragment<MapPinDto>? PinPopup { get; set; }
+    [Parameter] public RenderFragment<MapPinDto>? DetailsSlot { get; set; }
+    [Parameter] public RenderFragment<MapPinDto>? ListRow { get; set; }
+    [Parameter] public RenderFragment? EmptySlot { get; set; }
+
+    private async Task OnSearchInput(ChangeEventArgs e)
+    {
+        SearchQuery = e.Value?.ToString() ?? "";
+        if (SearchQueryChanged.HasDelegate) await SearchQueryChanged.InvokeAsync(SearchQuery);
+    }
+
+    private async Task SetView(string v)
+    {
+        View = v;
+        if (ViewChanged.HasDelegate) await ViewChanged.InvokeAsync(v);
+    }
+
+    private async Task HandleSelect(MapPinDto pin)
+    {
+        if (OnSelectPin.HasDelegate) await OnSelectPin.InvokeAsync(pin);
+    }
+
+    private BoundsDto AutoBounds()
+    {
+        if (Pins.Count == 0)
+            return new BoundsDto(24.70, 24.75, 46.65, 46.72); // default Riyadh-ish
+        var minLat = Pins.Min(p => p.Latitude);
+        var maxLat = Pins.Max(p => p.Latitude);
+        var minLng = Pins.Min(p => p.Longitude);
+        var maxLng = Pins.Max(p => p.Longitude);
+        // 10% padding so pins don't sit on the box edge
+        var latPad = Math.Max(0.005, (maxLat - minLat) * 0.15);
+        var lngPad = Math.Max(0.005, (maxLng - minLng) * 0.15);
+        return new BoundsDto(minLat - latPad, maxLat + latPad, minLng - lngPad, maxLng + lngPad);
+    }
+}

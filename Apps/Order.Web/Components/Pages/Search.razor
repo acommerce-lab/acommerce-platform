@@ -1,0 +1,215 @@
+@page "/search"
+@inject OrderApiClient Api
+@inject UiPreferences Ui
+@inject NavigationManager Nav
+@implements IDisposable
+
+<PageTitle>البحث - اوردر</PageTitle>
+
+<AcMapSearchPage Title="@(Ui.IsArabic ? "اكتشف المتاجر القريبة" : "Discover nearby stores")"
+                 Pins="@Pins"
+                 Loading="@Loading"
+                 SearchQuery="@Query"
+                 SearchQueryChanged="@(q => { Query = q; StateHasChanged(); })"
+                 SearchPlaceholder="@(Ui.IsArabic ? "ابحث باسم المتجر أو العرض..." : "Search store or offer...")"
+                 Categories="@MappedCategories"
+                 SelectedCategoryId="@SelectedCategoryId"
+                 OnSelectCategory="HandleCategory"
+                 AllLabel="@(Ui.IsArabic ? "الكل" : "All")"
+                 View="@View"
+                 ViewChanged="@(v => { View = v; StateHasChanged(); })"
+                 MapViewLabel="@(Ui.IsArabic ? "خريطة" : "Map")"
+                 ListViewLabel="@(Ui.IsArabic ? "قائمة" : "List")"
+                 SelectedPinId="@SelectedPinId"
+                 OnSelectPin="HandleSelect"
+                 LoadingMessage="@(Ui.IsArabic ? "جاري التحميل..." : "Loading…")"
+                 EmptyTitle="@(Ui.IsArabic ? "لا توجد نتائج" : "No results")"
+                 EmptyMessage="@(Ui.IsArabic ? "جرّب فلتراً آخر أو ابحث باسم آخر" : "Try a different filter or search")">
+    <FilterExtras>
+        <div class="acs-seg" style="margin-bottom:12px;">
+            <button type="button"
+                    class="acs-seg-btn @(Mode == "vendors" ? "active" : "")"
+                    @onclick="@(() => SetMode("vendors"))">
+                @(Ui.IsArabic ? "المتاجر" : "Stores")
+            </button>
+            <button type="button"
+                    class="acs-seg-btn @(Mode == "offers" ? "active" : "")"
+                    @onclick="@(() => SetMode("offers"))">
+                @(Ui.IsArabic ? "العروض" : "Offers")
+            </button>
+        </div>
+    </FilterExtras>
+    <DetailsSlot Context="pin">
+        @{
+            var href = pin.Href;
+        }
+        <div class="acc-map-sheet-head">
+            <div class="acc-map-sheet-emoji">@(pin.Emoji ?? "📍")</div>
+            <div class="acc-map-sheet-body">
+                <div class="acc-map-sheet-title">@pin.Title</div>
+                @if (!string.IsNullOrEmpty(pin.Subtitle))
+                {
+                    <div class="acc-map-sheet-sub">@pin.Subtitle</div>
+                }
+            </div>
+            @if (!string.IsNullOrEmpty(pin.Badge))
+            {
+                <span class="acc-search-list-badge">@pin.Badge</span>
+            }
+        </div>
+        @if (!string.IsNullOrEmpty(href))
+        {
+            <a class="btn btn-primary btn-block" href="@href" style="margin-top:12px;">
+                @(Mode == "vendors"
+                    ? (Ui.IsArabic ? "عرض قائمة المتجر" : "View store menu")
+                    : (Ui.IsArabic ? "عرض التفاصيل" : "View details"))
+            </a>
+        }
+    </DetailsSlot>
+</AcMapSearchPage>
+
+@code {
+    private List<VendorApi> Vendors = new();
+    private List<OfferApi> Offers = new();
+    private List<CatApi> Categories = new();
+    private bool Loading = true;
+
+    private string Mode = "vendors";            // "vendors" | "offers"
+    private string View = "map";                // "map" | "list"
+    private string Query = "";
+    private Guid? SelectedCategoryGuid;
+    private string? SelectedCategoryId => SelectedCategoryGuid?.ToString();
+    private string? SelectedPinId;
+
+    private IReadOnlyList<CategoryDto> MappedCategories =>
+        Categories.Select(c => new CategoryDto
+        {
+            Id = c.Id.ToString(),
+            Label = Ui.IsArabic ? c.NameAr : c.NameEn,
+            Icon = c.Icon
+        }).ToList();
+
+    // Project the current Mode + filters into the pin list consumed by the template.
+    private IReadOnlyList<MapPinDto> Pins
+    {
+        get
+        {
+            if (Mode == "vendors")
+            {
+                return Vendors
+                    .Where(v => v.Latitude.HasValue && v.Longitude.HasValue)
+                    .Where(v => !SelectedCategoryGuid.HasValue || v.CategoryId == SelectedCategoryGuid.Value)
+                    .Where(v => string.IsNullOrWhiteSpace(Query)
+                             || v.Name.Contains(Query, StringComparison.OrdinalIgnoreCase)
+                             || (v.District ?? "").Contains(Query, StringComparison.OrdinalIgnoreCase))
+                    .Select(v => new MapPinDto
+                    {
+                        Id = v.Id.ToString(),
+                        Latitude = v.Latitude!.Value,
+                        Longitude = v.Longitude!.Value,
+                        Title = v.Name,
+                        Subtitle = string.IsNullOrEmpty(v.District) ? v.City : $"{v.City} • {v.District}",
+                        Emoji = v.LogoEmoji,
+                        Badge = v.Rating > 0 ? $"★ {v.Rating:0.0}" : null,
+                        Href = $"/vendor/{v.Id}"
+                    }).ToList();
+            }
+            else
+            {
+                return Offers
+                    .Where(o => o.Vendor != null && o.Vendor.Latitude.HasValue && o.Vendor.Longitude.HasValue)
+                    .Where(o => !SelectedCategoryGuid.HasValue || o.Vendor!.Id == SelectedCategoryGuid || true) // offers don't filter by vendor cat here
+                    .Where(o => string.IsNullOrWhiteSpace(Query)
+                             || o.Title.Contains(Query, StringComparison.OrdinalIgnoreCase)
+                             || (o.Vendor?.Name ?? "").Contains(Query, StringComparison.OrdinalIgnoreCase))
+                    .Select(o => new MapPinDto
+                    {
+                        Id = o.Id.ToString(),
+                        Latitude = o.Vendor!.Latitude!.Value,
+                        Longitude = o.Vendor!.Longitude!.Value,
+                        Title = o.Title,
+                        Subtitle = o.Vendor.Name,
+                        Emoji = o.Emoji,
+                        Badge = o.DiscountPercent > 0 ? $"-{o.DiscountPercent}%" : null,
+                        Href = $"/offer/{o.Id}"
+                    }).ToList();
+            }
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        Ui.OnChanged += OnUiChange;
+        var catEnv = await Api.GetAsync<List<CatApi>>("/api/categories");
+        if (catEnv.Data != null) Categories = catEnv.Data;
+
+        var vEnv = await Api.GetAsync<List<VendorApi>>("/api/vendors");
+        if (vEnv.Data != null) Vendors = vEnv.Data;
+
+        var oEnv = await Api.GetAsync<List<OfferApi>>("/api/offers");
+        if (oEnv.Data != null) Offers = oEnv.Data;
+
+        Loading = false;
+    }
+
+    private void OnUiChange() => InvokeAsync(StateHasChanged);
+
+    private void SetMode(string m)
+    {
+        Mode = m;
+        SelectedPinId = null;
+        StateHasChanged();
+    }
+
+    private void HandleCategory(string? id)
+    {
+        SelectedCategoryGuid = string.IsNullOrEmpty(id) ? null : Guid.Parse(id);
+        SelectedPinId = null;
+    }
+
+    private void HandleSelect(MapPinDto pin) => SelectedPinId = pin.Id;
+
+    public void Dispose() => Ui.OnChanged -= OnUiChange;
+
+    // API shapes
+    public class CatApi
+    {
+        public Guid Id { get; set; }
+        public string Slug { get; set; } = "";
+        public string NameAr { get; set; } = "";
+        public string NameEn { get; set; } = "";
+        public string Icon { get; set; } = "🍔";
+    }
+
+    public class VendorApi
+    {
+        public Guid Id { get; set; }
+        public Guid CategoryId { get; set; }
+        public string Name { get; set; } = "";
+        public string LogoEmoji { get; set; } = "🏪";
+        public string City { get; set; } = "";
+        public string? District { get; set; }
+        public double? Latitude { get; set; }
+        public double? Longitude { get; set; }
+        public double Rating { get; set; }
+    }
+
+    public class OfferApi
+    {
+        public Guid Id { get; set; }
+        public string Title { get; set; } = "";
+        public decimal Price { get; set; }
+        public string Currency { get; set; } = "SAR";
+        public string Emoji { get; set; } = "🍽️";
+        public int DiscountPercent { get; set; }
+        public VendorApiInner? Vendor { get; set; }
+    }
+
+    public class VendorApiInner
+    {
+        public Guid Id { get; set; }
+        public string Name { get; set; } = "";
+        public double? Latitude { get; set; }
+        public double? Longitude { get; set; }
+    }
+}

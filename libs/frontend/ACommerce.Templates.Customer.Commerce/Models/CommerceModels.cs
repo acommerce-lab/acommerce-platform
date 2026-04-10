@@ -14,6 +14,28 @@ public sealed record CategoryDto
     public Dictionary<string, object?>? Extra { get; init; }
 }
 
+/// <summary>
+/// A pin rendered on <see cref="AcMapSearchPage"/>. Vertical-agnostic —
+/// the same shape serves vendors, offers, listings, service providers.
+/// Consumer passes a <c>Href</c> and/or subscribes to OnSelectPin.
+/// </summary>
+public sealed record MapPinDto
+{
+    public required string Id { get; init; }
+    public required double Latitude { get; init; }
+    public required double Longitude { get; init; }
+    public required string Title { get; init; }
+    public string? Subtitle { get; init; }
+    /// <summary>Emoji or single-character label shown on the pin bubble.</summary>
+    public string? Emoji { get; init; }
+    /// <summary>AcIcon name shown on the pin bubble (preferred over Emoji).</summary>
+    public string? IconName { get; init; }
+    public string? Href { get; init; }
+    /// <summary>Top-right pin badge (e.g. discount %, rating).</summary>
+    public string? Badge { get; init; }
+    public Dictionary<string, object?>? Extra { get; init; }
+}
+
 /// <summary>A vendor mini reference used by offer/cart/order DTOs.</summary>
 public sealed record VendorMiniDto
 {
