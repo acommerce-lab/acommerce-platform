@@ -67,12 +67,76 @@ public class OffersController : ControllerBase
                     v.LogoEmoji,
                     v.Rating,
                     v.RatingCount,
-                    v.OpenHours
+                    v.OpenHours,
+                    v.Latitude,
+                    v.Longitude
                 } : null
             })
             .ToList();
 
         return this.OkEnvelope("offer.list", result);
+    }
+
+    public record CreateOfferRequest(
+        Guid VendorId,
+        Guid CategoryId,
+        string Title,
+        string Description,
+        decimal Price,
+        decimal? OriginalPrice,
+        string? Emoji);
+
+    [HttpPost]
+    public async Task<IActionResult> Create([FromBody] CreateOfferRequest req, CancellationToken ct)
+    {
+        var vendor = await _vendors.GetByIdAsync(req.VendorId, ct);
+        if (vendor == null) return this.NotFoundEnvelope("vendor_not_found");
+        var offer = new Offer
+        {
+            Id = Guid.NewGuid(),
+            CreatedAt = DateTime.UtcNow,
+            VendorId = req.VendorId,
+            CategoryId = req.CategoryId,
+            Title = req.Title,
+            Description = req.Description ?? "",
+            Price = req.Price,
+            OriginalPrice = req.OriginalPrice,
+            Emoji = req.Emoji ?? "🍽️",
+            IsActive = true,
+            IsFeatured = false,
+        };
+        await _repo.AddAsync(offer, ct);
+        return this.OkEnvelope("offer.create", new { offer.Id, offer.Title });
+    }
+
+    public record UpdateOfferRequest(string? Title, string? Description, decimal? Price, decimal? OriginalPrice, string? Emoji, bool? IsActive);
+
+    [HttpPut("{id:guid}")]
+    public async Task<IActionResult> Update(Guid id, [FromBody] UpdateOfferRequest req, CancellationToken ct)
+    {
+        var offer = await _repo.GetByIdAsync(id, ct);
+        if (offer == null) return this.NotFoundEnvelope("offer_not_found");
+        if (req.Title != null) offer.Title = req.Title;
+        if (req.Description != null) offer.Description = req.Description;
+        if (req.Price.HasValue) offer.Price = req.Price.Value;
+        if (req.OriginalPrice.HasValue) offer.OriginalPrice = req.OriginalPrice.Value;
+        if (req.Emoji != null) offer.Emoji = req.Emoji;
+        if (req.IsActive.HasValue) offer.IsActive = req.IsActive.Value;
+        offer.UpdatedAt = DateTime.UtcNow;
+        await _repo.UpdateAsync(offer, ct);
+        return this.OkEnvelope("offer.update", new { offer.Id });
+    }
+
+    [HttpDelete("{id:guid}")]
+    public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
+    {
+        var offer = await _repo.GetByIdAsync(id, ct);
+        if (offer == null) return this.NotFoundEnvelope("offer_not_found");
+        offer.IsActive = false;
+        offer.IsDeleted = true;
+        offer.UpdatedAt = DateTime.UtcNow;
+        await _repo.UpdateAsync(offer, ct);
+        return this.OkEnvelope("offer.delete", new { offer.Id });
     }
 
     [HttpGet("{id:guid}")]

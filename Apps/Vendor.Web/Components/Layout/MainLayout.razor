@@ -1,0 +1,65 @@
+@inherits LayoutComponentBase
+@inject AuthStateService Auth
+@inject UiPreferences Ui
+@inject IJSRuntime JS
+@implements IDisposable
+
+<div class="vnd-shell">
+    <main class="vnd-main">
+        @Body
+    </main>
+
+    <nav class="vnd-bottom-nav">
+        <NavLink href="/" Match="NavLinkMatch.All" class="vnd-nav-item">
+            <AcIcon Name="home" Size="20" />
+            <span>@(Ui.IsArabic ? "الرئيسية" : "Home")</span>
+        </NavLink>
+        <NavLink href="/orders" class="vnd-nav-item">
+            <AcIcon Name="receipt" Size="20" />
+            <span>@(Ui.IsArabic ? "الطلبات" : "Orders")</span>
+        </NavLink>
+        <NavLink href="/offers" class="vnd-nav-item">
+            <AcIcon Name="tag" Size="20" />
+            <span>@(Ui.IsArabic ? "العروض" : "Offers")</span>
+        </NavLink>
+        <NavLink href="/messages" class="vnd-nav-item">
+            <AcIcon Name="message" Size="20" />
+            <span>@(Ui.IsArabic ? "الرسائل" : "Messages")</span>
+        </NavLink>
+        <NavLink href="@(Auth.IsAuthenticated ? "/profile" : "/login")" class="vnd-nav-item">
+            <AcIcon Name="user" Size="20" />
+            <span>@(Ui.IsArabic ? "حسابي" : "Profile")</span>
+        </NavLink>
+    </nav>
+</div>
+
+@code {
+    private string _lastTheme = "";
+    private string _lastLang  = "";
+
+    protected override void OnInitialized()
+    {
+        Auth.OnChanged += OnChange;
+        Ui.OnChanged   += OnChange;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await Auth.EnsureRestoredAsync();
+            _lastTheme = Ui.Theme;
+            _lastLang  = Ui.Language;
+        }
+        if (_lastTheme != Ui.Theme) { _lastTheme = Ui.Theme; try { await JS.InvokeVoidAsync("acTheme.set", Ui.Theme); } catch { } }
+        if (_lastLang != Ui.Language) { _lastLang = Ui.Language; try { await JS.InvokeVoidAsync("acLang.set", Ui.Language); } catch { } }
+    }
+
+    private void OnChange() => InvokeAsync(StateHasChanged);
+
+    public void Dispose()
+    {
+        Auth.OnChanged -= OnChange;
+        Ui.OnChanged   -= OnChange;
+    }
+}

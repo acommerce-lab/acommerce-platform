@@ -1,0 +1,120 @@
+@page "/"
+@inject VendorApiClient Api
+@inject AuthStateService Auth
+@inject UiPreferences Ui
+@implements IDisposable
+
+<PageTitle>@(Ui.IsArabic ? "لوحة التاجر" : "Dashboard")</PageTitle>
+
+@if (!Auth.IsAuthenticated)
+{
+    <AcEmptyState IconName="log-in"
+                  Title="@(Ui.IsArabic ? "سجّل دخولك" : "Sign in")"
+                  ActionLabel="@(Ui.IsArabic ? "دخول" : "Sign in")"
+                  ActionHref="/login" />
+}
+else
+{
+    <div style="padding:16px;">
+        <h1 class="acs-page-title" style="margin:0 0 14px;">
+            @(Ui.IsArabic ? $"مرحباً {Auth.FullName ?? ""}" : $"Hello {Auth.FullName ?? ""}")
+        </h1>
+
+        <div class="vnd-stats">
+            <div class="vnd-stat-card">
+                <div class="vnd-stat-num">@PendingCount</div>
+                <div class="vnd-stat-label">@(Ui.IsArabic ? "طلبات معلقة" : "Pending")</div>
+            </div>
+            <div class="vnd-stat-card">
+                <div class="vnd-stat-num">@TodayCount</div>
+                <div class="vnd-stat-label">@(Ui.IsArabic ? "طلبات اليوم" : "Today")</div>
+            </div>
+            <div class="vnd-stat-card">
+                <div class="vnd-stat-num">@OffersCount</div>
+                <div class="vnd-stat-label">@(Ui.IsArabic ? "عروض نشطة" : "Active offers")</div>
+            </div>
+            <div class="vnd-stat-card">
+                <div class="vnd-stat-num">@TotalRevenue.ToString("0")</div>
+                <div class="vnd-stat-label">@(Ui.IsArabic ? "إيرادات اليوم" : "Today revenue")</div>
+            </div>
+        </div>
+
+        @if (PendingOrders.Count > 0)
+        {
+            <h2 class="acc-section-title" style="margin:18px 0 8px;">
+                @(Ui.IsArabic ? "طلبات تحتاج ردّك" : "Orders waiting")
+            </h2>
+            @foreach (var o in PendingOrders)
+            {
+                <a class="s-card" href="/order/@o.Id" style="display:flex;justify-content:space-between;align-items:center;text-decoration:none;color:inherit;">
+                    <div>
+                        <div style="font-weight:700;">#@o.OrderNumber</div>
+                        <div style="font-size:0.8rem;color:var(--ac-text-muted);">@o.CustomerName</div>
+                    </div>
+                    <div>
+                        <span class="vnd-status vnd-status-pending">@(Ui.IsArabic ? "في الانتظار" : "Pending")</span>
+                    </div>
+                </a>
+            }
+        }
+
+        <div style="margin-top:16px;">
+            <button type="button" class="btn btn-ghost btn-block" @onclick="ToggleLanguage">
+                @(Ui.IsArabic ? "English" : "العربية")
+            </button>
+        </div>
+    </div>
+}
+
+@code {
+    private List<OrderRow> AllOrders = new();
+    private List<OfferRow> AllOffers = new();
+
+    private List<OrderRow> PendingOrders => AllOrders.Where(o => o.Status == 0).Take(5).ToList();
+    private int PendingCount => AllOrders.Count(o => o.Status == 0);
+    private int TodayCount => AllOrders.Count(o => o.CreatedAt.Date == DateTime.UtcNow.Date);
+    private int OffersCount => AllOffers.Count;
+    private decimal TotalRevenue => AllOrders
+        .Where(o => o.Status == 3 && o.CreatedAt.Date == DateTime.UtcNow.Date)
+        .Sum(o => o.Total);
+
+    protected override void OnInitialized() { Auth.OnChanged += OnChange; Ui.OnChanged += OnChange; }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        await Auth.EnsureRestoredAsync();
+        if (Auth.IsAuthenticated) await LoadDashboard();
+        StateHasChanged();
+    }
+
+    private async Task LoadDashboard()
+    {
+        // Find this user's vendor
+        var vEnv = await Api.GetAsync<List<VendorRow>>("/api/vendors");
+        var myVendor = vEnv.Data?.FirstOrDefault(v => v.OwnerId == Auth.UserId);
+        if (myVendor == null) return;
+
+        var oEnv = await Api.GetAsync<List<OrderRow>>($"/api/orders/by-vendor/{myVendor.Id}");
+        AllOrders = oEnv.Data ?? new();
+
+        var ofEnv = await Api.GetAsync<List<OfferRow>>($"/api/offers?vendorId={myVendor.Id}");
+        AllOffers = ofEnv.Data ?? new();
+    }
+
+    private void OnChange() => InvokeAsync(StateHasChanged);
+    private void ToggleLanguage() => Ui.SetLanguage(Ui.IsArabic ? "en" : "ar");
+    public void Dispose() { Auth.OnChanged -= OnChange; Ui.OnChanged -= OnChange; }
+
+    public class VendorRow { public Guid Id { get; set; } public Guid OwnerId { get; set; } }
+    public class OrderRow
+    {
+        public Guid Id { get; set; }
+        public string OrderNumber { get; set; } = "";
+        public decimal Total { get; set; }
+        public int Status { get; set; }
+        public DateTime CreatedAt { get; set; }
+        public string CustomerName { get; set; } = "";
+    }
+    public class OfferRow { public Guid Id { get; set; } }
+}

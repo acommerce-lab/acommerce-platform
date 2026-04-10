@@ -1,0 +1,57 @@
+@page "/profile"
+@inject AuthStateService Auth
+@inject UiPreferences Ui
+@inject NavigationManager Nav
+
+<PageTitle>@(Ui.IsArabic ? "حسابي" : "Profile")</PageTitle>
+
+@if (!Auth.IsAuthenticated)
+{
+    <AcEmptyState IconName="user" Title="@(Ui.IsArabic ? "غير مسجل" : "Not signed in")" ActionHref="/login" ActionLabel="@(Ui.IsArabic ? "دخول" : "Sign in")" />
+}
+else
+{
+    <AcProfilePage User="@UserDto"
+                   MenuSections="@MenuList"
+                   SignOutLabel="@(Ui.IsArabic ? "تسجيل الخروج" : "Sign out")"
+                   OnSignOut="SignOut" />
+}
+
+@code {
+    private ProfileUserDto UserDto => new()
+    {
+        Id = Auth.UserId?.ToString() ?? "",
+        FullName = Auth.FullName ?? (Ui.IsArabic ? "تاجر" : "Vendor"),
+        PhoneNumber = Auth.PhoneNumber
+    };
+
+    private IReadOnlyList<MenuSectionDto> MenuList => new[]
+    {
+        new MenuSectionDto
+        {
+            Title = Ui.IsArabic ? "المتجر" : "Store",
+            Items = new[]
+            {
+                new MenuItemDto { Label = Ui.IsArabic ? "الطلبات" : "Orders",       IconName = "receipt",  Href = "/orders" },
+                new MenuItemDto { Label = Ui.IsArabic ? "العروض" : "Offers",         IconName = "tag",      Href = "/offers" },
+                new MenuItemDto { Label = Ui.IsArabic ? "الرسائل" : "Messages",     IconName = "message",  Href = "/messages" },
+                new MenuItemDto { Label = Ui.IsArabic ? "الإشعارات" : "Notifications", IconName = "bell", Href = "/notifications" },
+            }
+        },
+        new MenuSectionDto
+        {
+            Title = Ui.IsArabic ? "التطبيق" : "App",
+            Items = new[]
+            {
+                new MenuItemDto { Label = Ui.IsArabic ? "الإعدادات" : "Settings", IconName = "settings", Href = "/settings" },
+            }
+        }
+    };
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender) { await Auth.EnsureRestoredAsync(); StateHasChanged(); }
+    }
+
+    private async Task SignOut() { await Auth.SignOutAsync(); Nav.NavigateTo("/"); }
+}

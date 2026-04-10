@@ -1,0 +1,37 @@
+@page "/settings"
+@inject UiPreferences Ui
+@inject AuthStateService Auth
+@inject NavigationManager Nav
+@implements IDisposable
+
+<PageTitle>@(Ui.IsArabic ? "الإعدادات" : "Settings")</PageTitle>
+
+<AcSettingsPage Snapshot="@Snapshot"
+                Title="@(Ui.IsArabic ? "الإعدادات" : "Settings")"
+                ThemeLabel="@(Ui.IsArabic ? "المظهر" : "Appearance")"
+                LanguageLabel="@(Ui.IsArabic ? "اللغة" : "Language")"
+                AboutLabel="@(Ui.IsArabic ? "حول التطبيق" : "About")"
+                VersionLabel="@(Ui.IsArabic ? "الإصدار" : "Version")"
+                LightLabel="@(Ui.IsArabic ? "فاتح" : "Light")"
+                DarkLabel="@(Ui.IsArabic ? "داكن" : "Dark")"
+                SignOutLabel="@(Ui.IsArabic ? "تسجيل الخروج" : "Sign out")"
+                OnThemeChange="@(t => { Ui.SetTheme(t); return Task.CompletedTask; })"
+                OnLanguageChange="@(l => { Ui.SetLanguage(l); return Task.CompletedTask; })"
+                OnSignOut="@(Auth.IsAuthenticated ? EventCallback.Factory.Create(this, SignOut) : default)" />
+
+@code {
+    private SettingsSnapshot Snapshot => new()
+    {
+        Theme = Ui.IsDark ? "dark" : "light",
+        Language = Ui.IsArabic ? "ar" : "en",
+        AppVersion = "1.0.0",
+        BackendInfo = "Order.Api",
+        FrontendInfo = "Vendor.Web"
+    };
+
+    protected override void OnInitialized() => Ui.OnChanged += OnChanged;
+    protected override async Task OnAfterRenderAsync(bool firstRender) { if (firstRender) await Auth.EnsureRestoredAsync(); }
+    private void OnChanged() => InvokeAsync(StateHasChanged);
+    private async Task SignOut() { await Auth.SignOutAsync(); Nav.NavigateTo("/"); }
+    public void Dispose() => Ui.OnChanged -= OnChanged;
+}

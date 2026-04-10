@@ -1,0 +1,67 @@
+@page "/login"
+@inject VendorApiClient Api
+@inject AuthStateService Auth
+@inject UiPreferences Ui
+@inject NavigationManager Nav
+
+<PageTitle>@(Ui.IsArabic ? "دخول التاجر" : "Vendor Login")</PageTitle>
+
+<AcLoginPage Step="@Step"
+             Phone="@Phone"
+             PhoneChanged="@(v => Phone = v)"
+             Code="@Code"
+             CodeChanged="@(v => Code = v)"
+             Error="@Error"
+             Busy="@Busy"
+             BrandName="@(Ui.IsArabic ? "لوحة التاجر" : "Vendor Dashboard")"
+             BrandTagline="@(Ui.IsArabic ? "أدر طلباتك وعروضك" : "Manage orders & offers")"
+             PhoneStepTitle="@(Ui.IsArabic ? "تسجيل الدخول" : "Sign in")"
+             PhoneStepSubtitle="@(Ui.IsArabic ? "أدخل رقم جوال التاجر" : "Enter your vendor phone")"
+             PhoneLabel="@(Ui.IsArabic ? "رقم الجوال" : "Phone number")"
+             RequestOtpLabel="@(Ui.IsArabic ? "إرسال رمز التحقق" : "Send OTP")"
+             OtpStepTitle="@(Ui.IsArabic ? "رمز التحقق" : "Verification code")"
+             OtpLabel="@(Ui.IsArabic ? "الرمز (6 أرقام)" : "Code (6 digits)")"
+             VerifyOtpLabel="@(Ui.IsArabic ? "دخول" : "Sign in")"
+             BackLabel="@(Ui.IsArabic ? "تغيير الرقم" : "Change number")"
+             OnRequestOtp="RequestOtp"
+             OnVerifyOtp="VerifyOtp"
+             OnBack="GoBack" />
+
+@code {
+    private int Step = 1;
+    private string Phone = "";
+    private string Code = "";
+    private string? Error;
+    private bool Busy;
+
+    private async Task RequestOtp()
+    {
+        Busy = true; Error = null;
+        var env = await Api.PostAsync<object>("/api/auth/request-otp", new { phoneNumber = Phone });
+        Busy = false;
+        if (env.Operation.Status == "Success") Step = 2;
+        else Error = Ui.IsArabic ? "تعذر إرسال الرمز" : "Could not send code";
+    }
+
+    private async Task VerifyOtp()
+    {
+        Busy = true; Error = null;
+        var env = await Api.PostAsync<LoginResult>("/api/auth/verify-otp", new { phoneNumber = Phone, code = Code });
+        Busy = false;
+        if (env.Data != null)
+        {
+            await Auth.SignInAsync(env.Data.UserId, Phone, env.Data.FullName, env.Data.AccessToken);
+            Nav.NavigateTo("/", forceLoad: false);
+        }
+        else Error = Ui.IsArabic ? "الرمز غير صحيح" : "Invalid code";
+    }
+
+    private void GoBack() { Step = 1; Error = null; Code = ""; }
+
+    public class LoginResult
+    {
+        public Guid UserId { get; set; }
+        public string? FullName { get; set; }
+        public string AccessToken { get; set; } = "";
+    }
+}

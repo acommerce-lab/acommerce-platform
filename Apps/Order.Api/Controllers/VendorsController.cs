@@ -19,7 +19,13 @@ public class VendorsController : ControllerBase
     public async Task<IActionResult> List(CancellationToken ct)
     {
         var all = await _repo.GetAllWithPredicateAsync(v => v.IsActive);
-        return this.OkEnvelope("vendor.list", all);
+        var result = all.Select(v => new
+        {
+            v.Id, v.OwnerId, v.CategoryId, v.Name, v.Slug, v.Description,
+            v.City, v.District, v.Phone, v.LogoEmoji, v.CoverEmoji,
+            v.Latitude, v.Longitude, v.OpenHours, v.Rating, v.RatingCount
+        });
+        return this.OkEnvelope("vendor.list", result);
     }
 
     [HttpGet("{id:guid}")]

@@ -1,0 +1,32 @@
+@inject UiPreferences Ui
+
+<!DOCTYPE html>
+<html lang="@(Ui.IsArabic ? "ar" : "en")"
+      dir="@(Ui.IsArabic ? "rtl" : "ltr")"
+      data-theme="@Ui.Theme">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <base href="/" />
+    <title>لوحة التاجر — Vendor</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Tajawal:wght@400;500;700;800&display=swap" />
+
+    <link rel="stylesheet" href="_content/ACommerce.Widgets/widgets.css" />
+    <link rel="stylesheet" href="_content/ACommerce.Templates.Shared/templates-shared.css" />
+    <link rel="stylesheet" href="_content/ACommerce.Templates.Customer.Commerce/templates-commerce.css" />
+    <link rel="stylesheet" href="app.css" />
+
+    <HeadOutlet />
+</head>
+
+<body>
+    <Routes @rendermode="@RenderMode.InteractiveServer" />
+    <script src="js/theme.js"></script>
+    <script src="_framework/blazor.web.js"></script>
+</body>
+
+</html>

@@ -166,8 +166,21 @@ public class OrdersController : ControllerBase
     public async Task<IActionResult> ByCustomer(Guid customerId, CancellationToken ct)
     {
         var orders = await _orders.GetAllWithPredicateAsync(o => o.CustomerId == customerId);
+        return await MapOrderList(orders, ct);
+    }
+
+    [HttpGet("by-vendor/{vendorId:guid}")]
+    public async Task<IActionResult> ByVendor(Guid vendorId, CancellationToken ct)
+    {
+        var orders = await _orders.GetAllWithPredicateAsync(o => o.VendorId == vendorId);
+        return await MapOrderList(orders, ct);
+    }
+
+    private async Task<IActionResult> MapOrderList(IReadOnlyList<OrderRecord> orders, CancellationToken ct)
+    {
         var sorted = orders.OrderByDescending(o => o.CreatedAt).ToList();
         var vendors = (await _vendors.ListAllAsync(ct)).ToDictionary(v => v.Id);
+        var users = (await _users.ListAllAsync(ct)).ToDictionary(u => u.Id);
         var result = sorted.Select(o => new
         {
             o.Id,
@@ -182,7 +195,9 @@ public class OrdersController : ControllerBase
             ExpectedChange = o.ExpectedChange,
             o.CreatedAt,
             VendorName = vendors.TryGetValue(o.VendorId, out var v) ? v.Name : "(محذوف)",
-            VendorEmoji = vendors.TryGetValue(o.VendorId, out var v2) ? v2.LogoEmoji : "🏪"
+            VendorEmoji = vendors.TryGetValue(o.VendorId, out var v2) ? v2.LogoEmoji : "🏪",
+            CustomerName = users.TryGetValue(o.CustomerId, out var u) ? (u.FullName ?? u.PhoneNumber) : "",
+            CustomerPhone = users.TryGetValue(o.CustomerId, out var u2) ? u2.PhoneNumber : "",
         }).ToList();
         return this.OkEnvelope("order.list", result);
     }
@@ -194,6 +209,7 @@ public class OrdersController : ControllerBase
         if (o == null) return this.NotFoundEnvelope("order_not_found");
         var items = await _items.GetAllWithPredicateAsync(i => i.OrderId == id);
         var vendor = await _vendors.GetByIdAsync(o.VendorId, ct);
+        var customer = await _users.GetByIdAsync(o.CustomerId, ct);
         return this.OkEnvelope("order.get", new
         {
             o.Id,
@@ -212,12 +228,53 @@ public class OrdersController : ControllerBase
             o.CarPlate,
             o.CustomerNotes,
             o.CreatedAt,
+            CustomerName = customer?.FullName ?? customer?.PhoneNumber ?? "",
+            CustomerPhone = customer?.PhoneNumber ?? "",
             Vendor = vendor == null ? null : new { vendor.Id, vendor.Name, vendor.Phone, vendor.LogoEmoji },
             Items = items.OrderBy(i => i.CreatedAt).Select(i => new
             {
                 i.Id, i.OfferTitle, i.Emoji, i.Quantity, i.UnitPrice, i.LineTotal
             })
         });
+    }
+
+    [HttpPost("{id:guid}/accept")]
+    public async Task<IActionResult> Accept(Guid id, CancellationToken ct)
+    {
+        var o = await _orders.GetByIdAsync(id, ct);
+        if (o == null) return this.NotFoundEnvelope("order_not_found");
+        if (o.Status != OrderStatus.Pending)
+            return this.BadRequestEnvelope("not_pending", "الطلب ليس في حالة انتظار");
+        o.Status = OrderStatus.Accepted;
+        o.UpdatedAt = DateTime.UtcNow;
+        await _orders.UpdateAsync(o, ct);
+        return this.OkEnvelope("order.accept", new { id = o.Id, status = o.Status.ToString() });
+    }
+
+    [HttpPost("{id:guid}/ready")]
+    public async Task<IActionResult> Ready(Guid id, CancellationToken ct)
+    {
+        var o = await _orders.GetByIdAsync(id, ct);
+        if (o == null) return this.NotFoundEnvelope("order_not_found");
+        if (o.Status != OrderStatus.Accepted)
+            return this.BadRequestEnvelope("not_accepted", "يجب قبول الطلب أولاً");
+        o.Status = OrderStatus.Ready;
+        o.UpdatedAt = DateTime.UtcNow;
+        await _orders.UpdateAsync(o, ct);
+        return this.OkEnvelope("order.ready", new { id = o.Id, status = o.Status.ToString() });
+    }
+
+    [HttpPost("{id:guid}/deliver")]
+    public async Task<IActionResult> Deliver(Guid id, CancellationToken ct)
+    {
+        var o = await _orders.GetByIdAsync(id, ct);
+        if (o == null) return this.NotFoundEnvelope("order_not_found");
+        if (o.Status != OrderStatus.Ready)
+            return this.BadRequestEnvelope("not_ready", "الطلب ليس جاهزاً بعد");
+        o.Status = OrderStatus.Delivered;
+        o.UpdatedAt = DateTime.UtcNow;
+        await _orders.UpdateAsync(o, ct);
+        return this.OkEnvelope("order.deliver", new { id = o.Id, status = o.Status.ToString() });
     }
 
     [HttpPost("{id:guid}/cancel")]
