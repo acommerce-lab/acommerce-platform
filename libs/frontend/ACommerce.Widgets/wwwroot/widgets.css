@@ -365,7 +365,8 @@ h1:focus, h2:focus, h3:focus { outline: none; }
     align-items: center;
     justify-content: center;
     gap: var(--ac-space-sm);
-    padding: var(--ac-space-sm) var(--ac-space-md);
+    padding: 11px 20px;
+    min-height: 44px;
     font-family: inherit;
     font-size: var(--ac-font-size-base);
     font-weight: var(--ac-font-weight-bold);
@@ -373,11 +374,13 @@ h1:focus, h2:focus, h3:focus { outline: none; }
     color: var(--ac-text);
     background: transparent;
     border: 1px solid transparent;
-    border-radius: var(--ac-radius-md);
+    border-radius: var(--ac-radius-md, 12px);
     cursor: pointer;
     text-decoration: none;
-    transition: background var(--ac-transition), border-color var(--ac-transition), color var(--ac-transition);
+    transition: background var(--ac-transition), border-color var(--ac-transition), color var(--ac-transition), box-shadow var(--ac-transition);
     user-select: none;
+    box-sizing: border-box;
+    white-space: nowrap;
 }
 .btn:disabled, .btn[disabled] { opacity: 0.6; cursor: not-allowed; }
 .btn-primary   { background: var(--ac-primary);   color: var(--ac-on-primary);   border-color: var(--ac-primary);   }
@@ -397,8 +400,8 @@ h1:focus, h2:focus, h3:focus { outline: none; }
 .btn-outline-danger  { background: transparent; color: var(--ac-danger);  border-color: var(--ac-danger);  }
 .btn-outline-danger:hover:not(:disabled) { background: var(--ac-danger); color: #fff; }
 .btn-outline-success { background: transparent; color: var(--ac-success); border-color: var(--ac-success); }
-.btn-sm { padding: var(--ac-space-xs) var(--ac-space-sm); font-size: var(--ac-font-size-sm); }
-.btn-lg { padding: var(--ac-space-md) var(--ac-space-lg); font-size: var(--ac-font-size-lg); }
+.btn-sm { padding: 8px 14px; min-height: 36px; font-size: var(--ac-font-size-sm); }
+.btn-lg { padding: 15px 24px; min-height: 54px; font-size: var(--ac-font-size-lg); }
 
 /* Full-width primary CTA — used by login, checkout, cart, etc. */
 .btn-block {

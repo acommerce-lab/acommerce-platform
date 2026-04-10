@@ -256,6 +256,7 @@
     text-decoration: line-through;
     color: var(--ac-text-muted, #9ca3af);
 }
+.acc-offer-desc { padding: 16px; }
 .acc-offer-desc-text {
     white-space: pre-wrap;
     font-family: inherit;
@@ -264,6 +265,7 @@
     line-height: 1.6;
     color: var(--ac-text, #1a1a1a);
 }
+.acc-vendor-card { padding: 16px; }
 .acc-vendor-row {
     padding: 6px 0;
     font-size: 0.9rem;
@@ -290,6 +292,7 @@
     display: flex; align-items: center; justify-content: center;
     font-size: 1.5rem;
 }
+.acc-cart-vendor-body { flex: 1; min-width: 0; }
 .acc-cart-vendor-name { font-weight: 700; }
 .acc-cart-vendor-sub { font-size: 0.8rem; color: var(--ac-text-muted, #6b7280); }
 
