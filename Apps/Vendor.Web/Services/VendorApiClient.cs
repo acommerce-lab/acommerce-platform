@@ -6,9 +6,10 @@ using ACommerce.OperationEngine.Wire;
 namespace Vendor.Web.Services;
 
 /// <summary>
-/// Lightweight typed client for Order.Api. Every backend call is wrapped
-/// in <c>OperationEnvelope&lt;T&gt;</c> so the UI can read both the data and
-/// the underlying accounting operation status uniformly.
+/// Typed HTTP client for Order.Api. Every call returns
+/// <c>OperationEnvelope&lt;T&gt;</c>. Non-JSON responses (404, 500, empty)
+/// are caught and turned into an error envelope so callers never see
+/// a raw JsonException.
 /// </summary>
 public class VendorApiClient
 {
@@ -22,40 +23,69 @@ public class VendorApiClient
         _auth = auth;
     }
 
-    private void Auth()
+    private void SetAuth()
     {
-        if (_auth.IsAuthenticated)
+        _http.DefaultRequestHeaders.Authorization = _auth.IsAuthenticated
+            ? new AuthenticationHeaderValue("Bearer", _auth.AccessToken)
+            : null;
+    }
+
+    public Task<OperationEnvelope<T>> GetAsync<T>(string path, CancellationToken ct = default)
+    {
+        SetAuth();
+        return SafeReadAsync<T>(() => _http.GetAsync(path, ct), ct);
+    }
+
+    public Task<OperationEnvelope<T>> PostAsync<T>(string path, object payload, CancellationToken ct = default)
+    {
+        SetAuth();
+        return SafeReadAsync<T>(() => _http.PostAsJsonAsync(path, payload, _json, ct), ct);
+    }
+
+    public Task<OperationEnvelope<T>> PutAsync<T>(string path, object payload, CancellationToken ct = default)
+    {
+        SetAuth();
+        return SafeReadAsync<T>(() => _http.PutAsJsonAsync(path, payload, _json, ct), ct);
+    }
+
+    public Task<OperationEnvelope<T>> DeleteAsync<T>(string path, CancellationToken ct = default)
+    {
+        SetAuth();
+        return SafeReadAsync<T>(() => _http.DeleteAsync(path, ct), ct);
+    }
+
+    private async Task<OperationEnvelope<T>> SafeReadAsync<T>(
+        Func<Task<HttpResponseMessage>> send, CancellationToken ct)
+    {
+        HttpResponseMessage resp;
+        try { resp = await send(); }
+        catch (Exception ex)
         {
-            _http.DefaultRequestHeaders.Authorization =
-                new AuthenticationHeaderValue("Bearer", _auth.AccessToken);
+            return ErrorEnvelope<T>("network_error", ex.Message);
         }
-        else
+
+        // Guard: non-success with no body (404, 500 HTML, etc.)
+        var body = await resp.Content.ReadAsStringAsync(ct);
+        if (string.IsNullOrWhiteSpace(body) || body.TrimStart()[0] != '{')
         {
-            _http.DefaultRequestHeaders.Authorization = null;
+            return ErrorEnvelope<T>(
+                $"http_{(int)resp.StatusCode}",
+                $"Non-JSON response ({resp.StatusCode}): {body?[..Math.Min(body?.Length ?? 0, 200)]}");
+        }
+
+        try
+        {
+            var env = JsonSerializer.Deserialize<OperationEnvelope<T>>(body, _json);
+            return env ?? ErrorEnvelope<T>("empty_response", "Envelope was null");
+        }
+        catch (JsonException ex)
+        {
+            return ErrorEnvelope<T>("json_parse_error", ex.Message);
         }
     }
 
-    public async Task<OperationEnvelope<T>> GetAsync<T>(string path, CancellationToken ct = default)
+    private static OperationEnvelope<T> ErrorEnvelope<T>(string code, string? message = null) => new()
     {
-        Auth();
-        var resp = await _http.GetAsync(path, ct);
-        var env = await resp.Content.ReadFromJsonAsync<OperationEnvelope<T>>(_json, ct);
-        return env ?? new OperationEnvelope<T> { Error = new OperationError { Code = "empty_response" } };
-    }
-
-    public async Task<OperationEnvelope<T>> PostAsync<T>(string path, object payload, CancellationToken ct = default)
-    {
-        Auth();
-        var resp = await _http.PostAsJsonAsync(path, payload, _json, ct);
-        var env = await resp.Content.ReadFromJsonAsync<OperationEnvelope<T>>(_json, ct);
-        return env ?? new OperationEnvelope<T> { Error = new OperationError { Code = "empty_response" } };
-    }
-
-    public async Task<OperationEnvelope<T>> PutAsync<T>(string path, object payload, CancellationToken ct = default)
-    {
-        Auth();
-        var resp = await _http.PutAsJsonAsync(path, payload, _json, ct);
-        var env = await resp.Content.ReadFromJsonAsync<OperationEnvelope<T>>(_json, ct);
-        return env ?? new OperationEnvelope<T> { Error = new OperationError { Code = "empty_response" } };
-    }
+        Error = new OperationError { Code = code, Message = message }
+    };
 }
