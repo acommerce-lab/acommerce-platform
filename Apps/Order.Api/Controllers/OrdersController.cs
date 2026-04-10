@@ -4,13 +4,14 @@ using ACommerce.OperationEngine.Wire;
 using ACommerce.SharedKernel.Abstractions.Repositories;
 using Microsoft.AspNetCore.Mvc;
 using Order.Api.Entities;
+using Order.Api.Services;
 
 namespace Order.Api.Controllers;
 
 /// <summary>
 /// إدارة طلبات اوردر. الإنشاء يمر عبر OperationEngine كقيد محاسبي:
-/// العميل (مدين) ← التاجر (دائن) ببنود الطلب. لا دفع إلكتروني، استلام في
-/// المتجر أو من السيارة فقط.
+/// العميل (مدين) ← التاجر (دائن) ببنود الطلب. بعد الإنشاء يُرسل webhook
+/// إلى Vendor.Api، الذي يردّ عبر /vendor-callback بالقبول أو الرفض أو المهلة.
 /// </summary>
 [ApiController]
 [Route("api/orders")]
@@ -22,9 +23,11 @@ public class OrdersController : ControllerBase
     private readonly IBaseAsyncRepository<Vendor> _vendors;
     private readonly IBaseAsyncRepository<User> _users;
     private readonly OpEngine _engine;
+    private readonly VendorApiNotifier _vendorNotifier;
 
-    public OrdersController(IRepositoryFactory factory, OpEngine engine)
+    public OrdersController(IRepositoryFactory factory, OpEngine engine, VendorApiNotifier vendorNotifier)
     {
+        _vendorNotifier = vendorNotifier;
         _orders = factory.CreateRepository<OrderRecord>();
         _items = factory.CreateRepository<OrderItem>();
         _offers = factory.CreateRepository<Offer>();
@@ -145,6 +148,18 @@ public class OrdersController : ControllerBase
 
         record.OperationId = envelope.Operation.Id;
         await _orders.UpdateAsync(record, ct);
+
+        // ── Webhook: notify Vendor.Api about the new order ──────────────
+        var itemsSummary = string.Join(", ", offers.Select(x => $"{x.Offer.Title} ×{x.Quantity}"));
+        var customer = await _users.GetByIdAsync(req.CustomerId, ct);
+        _ = _vendorNotifier.NotifyNewOrderAsync(
+            record.Id, vendor.Id, record.OrderNumber,
+            customer?.FullName ?? customer?.PhoneNumber ?? "",
+            customer?.PhoneNumber,
+            record.Total, record.Currency, itemsSummary,
+            (int)record.PickupType,
+            record.CarModel, record.CarColor, record.CarPlate,
+            record.CustomerNotes, ct);
 
         return this.OkEnvelope("order.create", new
         {
@@ -351,6 +366,47 @@ public class OrdersController : ControllerBase
         var envelope = await _engine.ExecuteEnvelopeAsync(op, new { id = o.Id, status = "Cancelled" }, ct);
         if (envelope.Operation.Status != "Success") return BadRequest(envelope);
         return this.OkEnvelope("order.cancel", new { id = o.Id, status = o.Status.ToString() });
+    }
+
+    // ── Vendor.Api callback — the "payment gateway" response ─────────────
+    public record VendorCallbackRequest(string Action);
+
+    [HttpPost("{id:guid}/vendor-callback")]
+    public async Task<IActionResult> VendorCallback(Guid id, [FromBody] VendorCallbackRequest req, CancellationToken ct)
+    {
+        var o = await _orders.GetByIdAsync(id, ct);
+        if (o == null) return this.NotFoundEnvelope("order_not_found");
+
+        var newStatus = req.Action switch
+        {
+            "accepted" => OrderStatus.Accepted,
+            "rejected" or "timeout" => OrderStatus.Cancelled,
+            "ready" => OrderStatus.Ready,
+            "delivered" => OrderStatus.Delivered,
+            _ => (OrderStatus?)null
+        };
+
+        if (!newStatus.HasValue)
+            return this.BadRequestEnvelope("unknown_action", $"Unknown action: {req.Action}");
+
+        var opType = $"order.vendor_{req.Action}";
+        var op = Entry.Create(opType)
+            .Describe($"Vendor callback: {req.Action} for Order {o.OrderNumber}")
+            .From($"VendorApi:callback", 1, ("role", "vendor_service"))
+            .To($"Order:{o.Id}", 1, ("role", "order"))
+            .Tag("order_number", o.OrderNumber)
+            .Tag("callback_action", req.Action)
+            .Execute(async ctx =>
+            {
+                o.Status = newStatus.Value;
+                o.UpdatedAt = DateTime.UtcNow;
+                await _orders.UpdateAsync(o, ctx.CancellationToken);
+            })
+            .Build();
+
+        var envelope = await _engine.ExecuteEnvelopeAsync(op, new { id = o.Id, status = newStatus.Value.ToString() }, ct);
+        if (envelope.Operation.Status != "Success") return BadRequest(envelope);
+        return this.OkEnvelope(opType, new { id = o.Id, status = o.Status.ToString() });
     }
 
     private static string StatusToArabic(OrderStatus s) => s switch

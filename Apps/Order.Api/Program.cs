@@ -68,7 +68,7 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
-                     ?? new[] { "http://localhost:5701" };
+                     ?? new[] { "http://localhost:5701", "http://localhost:5801", "http://localhost:5201" };
 builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(p => p
@@ -149,6 +149,20 @@ builder.Services.AddSingleton<TwoFactorConfig>(sp =>
     return cfg;
 });
 builder.Services.AddScoped<TwoFactorService>();
+
+// ─── HTTP Client → Vendor.Api (for order webhooks) ──────────────────
+var vendorApiBase = builder.Configuration["VendorApi:BaseUrl"] ?? "http://localhost:5201";
+builder.Services.AddHttpClient("vendor-api", c =>
+{
+    c.BaseAddress = new Uri(vendorApiBase);
+    c.Timeout = TimeSpan.FromSeconds(10);
+});
+builder.Services.AddScoped<VendorApiNotifier>(sp =>
+{
+    var factory = sp.GetRequiredService<IHttpClientFactory>();
+    var logger = sp.GetRequiredService<ILogger<VendorApiNotifier>>();
+    return new VendorApiNotifier(factory.CreateClient("vendor-api"), logger);
+});
 
 // Seeder
 builder.Services.AddScoped<OrderSeeder>();
