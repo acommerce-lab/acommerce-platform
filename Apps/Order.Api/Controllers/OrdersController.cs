@@ -104,20 +104,7 @@ public class OrdersController : ControllerBase
             Status = OrderStatus.Pending,
         };
 
-        // Save default car details on the user for next time
-        if (req.PickupType == PickupType.Curbside)
-        {
-            var user = await _users.GetByIdAsync(req.CustomerId, ct);
-            if (user != null)
-            {
-                user.CarModel = req.CarModel ?? user.CarModel;
-                user.CarColor = req.CarColor ?? user.CarColor;
-                user.CarPlate = req.CarPlate ?? user.CarPlate;
-                await _users.UpdateAsync(user, ct);
-            }
-        }
-
-        // Accounting entry: customer (debit) <- vendor (credit) by order items
+        // Accounting entry: customer (debit) ← vendor (credit) by order items
         var op = Entry.Create("order.create")
             .Describe($"Order {orderNumber} from User:{req.CustomerId} to Vendor:{vendor.Id}")
             .From($"User:{req.CustomerId}", subtotal, ("role", "customer"), ("currency", "SAR"))
@@ -144,6 +131,19 @@ public class OrdersController : ControllerBase
                     }, ctx.CancellationToken);
                 }
                 ctx.Set("orderId", record.Id);
+
+                // Save car details on user for next order (inside the same atomic op)
+                if (req.PickupType == PickupType.Curbside)
+                {
+                    var cust = await _users.GetByIdAsync(req.CustomerId, ctx.CancellationToken);
+                    if (cust != null)
+                    {
+                        cust.CarModel = req.CarModel ?? cust.CarModel;
+                        cust.CarColor = req.CarColor ?? cust.CarColor;
+                        cust.CarPlate = req.CarPlate ?? cust.CarPlate;
+                        await _users.UpdateAsync(cust, ctx.CancellationToken);
+                    }
+                }
             })
             .Build();
 
@@ -152,7 +152,6 @@ public class OrdersController : ControllerBase
             return BadRequest(envelope);
 
         record.OperationId = envelope.Operation.Id;
-        await _orders.UpdateAsync(record, ct);
 
         // ── Notify vendor via Notifier (proper OpEngine operation) ────────
         await _notifier.SendAsync(

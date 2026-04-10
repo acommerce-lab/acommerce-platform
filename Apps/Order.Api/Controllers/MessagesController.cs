@@ -44,7 +44,21 @@ public class MessagesController : ControllerBase
             VendorId = req.VendorId,
             OrderId = req.OrderId,
         };
-        await _convs.AddAsync(conv, ct);
+
+        var op = Entry.Create("conversation.start")
+            .Describe($"User:{req.CustomerId} starts conversation with Vendor:{req.VendorId}")
+            .From($"User:{req.CustomerId}", 1, ("role", "customer"))
+            .To($"Vendor:{req.VendorId}", 1, ("role", "vendor"))
+            .Tag("conversation_id", conv.Id.ToString())
+            .Execute(async ctx =>
+            {
+                await _convs.AddAsync(conv, ctx.CancellationToken);
+                ctx.Set("conversationId", conv.Id);
+            })
+            .Build();
+
+        var result = await _engine.ExecuteAsync(op, ct);
+        if (!result.Success) return this.BadRequestEnvelope("conversation_start_failed", result.ErrorMessage);
         return this.OkEnvelope("conversation.create", conv);
     }
 
@@ -146,10 +160,24 @@ public class MessagesController : ControllerBase
     {
         var conv = await _convs.GetByIdAsync(id, ct);
         if (conv == null) return this.NotFoundEnvelope("conversation_not_found");
-        if (req.ReaderId == conv.CustomerId) conv.UnreadCustomerCount = 0;
-        else if (req.ReaderId == conv.VendorId) conv.UnreadVendorCount = 0;
-        else return this.ForbiddenEnvelope("not_a_participant");
-        await _convs.UpdateAsync(conv, ct);
+        if (req.ReaderId != conv.CustomerId && req.ReaderId != conv.VendorId)
+            return this.ForbiddenEnvelope("not_a_participant");
+
+        var op = Entry.Create("conversation.mark_read")
+            .Describe($"User:{req.ReaderId} marks conversation {id} as read")
+            .From($"User:{req.ReaderId}", 1, ("role", "reader"))
+            .To($"Conversation:{id}", 1, ("role", "conversation"))
+            .Tag("conversation_id", id.ToString())
+            .Execute(async ctx =>
+            {
+                if (req.ReaderId == conv.CustomerId) conv.UnreadCustomerCount = 0;
+                else conv.UnreadVendorCount = 0;
+                await _convs.UpdateAsync(conv, ctx.CancellationToken);
+            })
+            .Build();
+
+        var result = await _engine.ExecuteAsync(op, ct);
+        if (!result.Success) return this.BadRequestEnvelope("mark_read_failed", result.ErrorMessage);
         return this.OkEnvelope("conversation.mark_read", new { });
     }
 }

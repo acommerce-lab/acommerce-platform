@@ -1,3 +1,5 @@
+using ACommerce.OperationEngine.Core;
+using ACommerce.OperationEngine.Patterns;
 using ACommerce.SharedKernel.Abstractions.Repositories;
 using Microsoft.AspNetCore.Mvc;
 using Vendor.Api.Entities;
@@ -10,11 +12,13 @@ public class VendorSettingsController : ControllerBase
 {
     private readonly IBaseAsyncRepository<VendorSettings> _settings;
     private readonly IBaseAsyncRepository<WorkSchedule> _schedules;
+    private readonly OpEngine _engine;
 
-    public VendorSettingsController(IRepositoryFactory factory)
+    public VendorSettingsController(IRepositoryFactory factory, OpEngine engine)
     {
         _settings = factory.CreateRepository<VendorSettings>();
         _schedules = factory.CreateRepository<WorkSchedule>();
+        _engine = engine;
     }
 
     [HttpGet("{vendorId:guid}")]
@@ -32,11 +36,25 @@ public class VendorSettingsController : ControllerBase
     {
         var s = (await _settings.GetAllWithPredicateAsync(x => x.VendorId == vendorId)).FirstOrDefault();
         if (s == null) return this.NotFoundEnvelope("settings_not_found");
-        if (req.AcceptingOrders.HasValue) s.AcceptingOrders = req.AcceptingOrders.Value;
-        if (req.MaxConcurrentPending.HasValue) s.MaxConcurrentPending = req.MaxConcurrentPending.Value;
-        if (req.OrderTimeoutMinutes.HasValue) s.OrderTimeoutMinutes = Math.Max(1, req.OrderTimeoutMinutes.Value);
-        s.UpdatedAt = DateTime.UtcNow;
-        await _settings.UpdateAsync(s, ct);
+
+        var op = Entry.Create("vendor-settings.update")
+            .Describe($"Vendor:{vendorId} updates order acceptance settings")
+            .From($"Vendor:{vendorId}", 1, ("role", "vendor"))
+            .To($"VendorSettings:{s.Id}", 1, ("role", "settings"))
+            .Tag("vendor_id", vendorId.ToString())
+            .Tag("accepting_orders", (req.AcceptingOrders ?? s.AcceptingOrders).ToString())
+            .Execute(async ctx =>
+            {
+                if (req.AcceptingOrders.HasValue) s.AcceptingOrders = req.AcceptingOrders.Value;
+                if (req.MaxConcurrentPending.HasValue) s.MaxConcurrentPending = req.MaxConcurrentPending.Value;
+                if (req.OrderTimeoutMinutes.HasValue) s.OrderTimeoutMinutes = Math.Max(1, req.OrderTimeoutMinutes.Value);
+                s.UpdatedAt = DateTime.UtcNow;
+                await _settings.UpdateAsync(s, ctx.CancellationToken);
+            })
+            .Build();
+
+        var result = await _engine.ExecuteAsync(op, ct);
+        if (!result.Success) return this.BadRequestEnvelope("settings_update_failed", result.ErrorMessage);
         return this.OkEnvelope("vendor-settings.update", s);
     }
 
@@ -55,11 +73,25 @@ public class VendorSettingsController : ControllerBase
         var day = (await _schedules.GetAllWithPredicateAsync(
             x => x.VendorId == vendorId && x.DayOfWeek == (DayOfWeek)req.DayOfWeek)).FirstOrDefault();
         if (day == null) return this.NotFoundEnvelope("schedule_day_not_found");
-        if (req.OpenTime != null) day.OpenTime = req.OpenTime;
-        if (req.CloseTime != null) day.CloseTime = req.CloseTime;
-        if (req.IsOff.HasValue) day.IsOff = req.IsOff.Value;
-        day.UpdatedAt = DateTime.UtcNow;
-        await _schedules.UpdateAsync(day, ct);
+
+        var op = Entry.Create("vendor-schedule.update")
+            .Describe($"Vendor:{vendorId} updates {(DayOfWeek)req.DayOfWeek} schedule")
+            .From($"Vendor:{vendorId}", 1, ("role", "vendor"))
+            .To($"WorkSchedule:{day.Id}", 1, ("role", "schedule"))
+            .Tag("vendor_id", vendorId.ToString())
+            .Tag("day_of_week", req.DayOfWeek.ToString())
+            .Execute(async ctx =>
+            {
+                if (req.OpenTime != null) day.OpenTime = req.OpenTime;
+                if (req.CloseTime != null) day.CloseTime = req.CloseTime;
+                if (req.IsOff.HasValue) day.IsOff = req.IsOff.Value;
+                day.UpdatedAt = DateTime.UtcNow;
+                await _schedules.UpdateAsync(day, ctx.CancellationToken);
+            })
+            .Build();
+
+        var result = await _engine.ExecuteAsync(op, ct);
+        if (!result.Success) return this.BadRequestEnvelope("schedule_update_failed", result.ErrorMessage);
         return this.OkEnvelope("vendor-schedule.update", day);
     }
 }
