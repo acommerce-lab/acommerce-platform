@@ -138,4 +138,18 @@ public class MessagesController : ControllerBase
         var list = await _msgs.GetAllWithPredicateAsync(m => m.ConversationId == id);
         return this.OkEnvelope("message.list", list.OrderBy(m => m.CreatedAt));
     }
+
+    public record MarkReadRequest(Guid ReaderId);
+
+    [HttpPost("conversations/{id:guid}/mark-read")]
+    public async Task<IActionResult> MarkRead(Guid id, [FromBody] MarkReadRequest req, CancellationToken ct)
+    {
+        var conv = await _convs.GetByIdAsync(id, ct);
+        if (conv == null) return this.NotFoundEnvelope("conversation_not_found");
+        if (req.ReaderId == conv.CustomerId) conv.UnreadCustomerCount = 0;
+        else if (req.ReaderId == conv.VendorId) conv.UnreadVendorCount = 0;
+        else return this.ForbiddenEnvelope("not_a_participant");
+        await _convs.UpdateAsync(conv, ct);
+        return this.OkEnvelope("conversation.mark_read", new { });
+    }
 }

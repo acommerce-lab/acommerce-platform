@@ -8,7 +8,7 @@
 
 @if (!Auth.IsAuthenticated)
 {
-    <AcEmptyState Icon="🔒"
+    <AcEmptyState IconName="log-in"
                   Title="@(Ui.IsArabic ? "سجل دخولك" : "Sign in")"
                   ActionLabel="@(Ui.IsArabic ? "دخول" : "Sign in")"
                   ActionHref="/login" />
@@ -59,6 +59,10 @@ else
         var env = await Api.GetAsync<List<MsgApi>>($"/api/messages/conversations/{Id}/messages");
         Messages = env.Data ?? new();
         Loading = false;
+        // Reset unread count for this user when opening the conversation
+        if (Auth.UserId.HasValue)
+            await Api.PostAsync<object>($"/api/messages/conversations/{Id}/mark-read",
+                new { readerId = Auth.UserId.Value });
     }
 
     private async Task Send()

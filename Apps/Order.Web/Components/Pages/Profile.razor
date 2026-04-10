@@ -7,7 +7,7 @@
 
 @if (!Auth.IsAuthenticated)
 {
-    <AcEmptyState Icon="👤"
+    <AcEmptyState IconName="user"
                   Title="@(Ui.IsArabic ? "أنت غير مسجل" : "Not signed in")"
                   ActionLabel="@(Ui.IsArabic ? "تسجيل الدخول" : "Sign in")"
                   ActionHref="/login" />
@@ -44,10 +44,10 @@ else
             Title = Ui.IsArabic ? "حسابي" : "Account",
             Items = new[]
             {
-                new MenuItemDto { Label = Ui.IsArabic ? "طلباتي" : "My orders",       Icon = "📦", Href = "/orders" },
-                new MenuItemDto { Label = Ui.IsArabic ? "المفضلة" : "Favorites",     Icon = "♡",  Href = "/favorites" },
-                new MenuItemDto { Label = Ui.IsArabic ? "محادثاتي" : "Messages",     Icon = "💬", Href = "/messages" },
-                new MenuItemDto { Label = Ui.IsArabic ? "الإشعارات" : "Notifications", Icon = "🔔", Href = "/notifications" },
+                new MenuItemDto { Label = Ui.IsArabic ? "طلباتي" : "My orders",         IconName = "package",  Href = "/orders" },
+                new MenuItemDto { Label = Ui.IsArabic ? "المفضلة" : "Favorites",       IconName = "heart",    Href = "/favorites" },
+                new MenuItemDto { Label = Ui.IsArabic ? "محادثاتي" : "Messages",       IconName = "message",  Href = "/messages" },
+                new MenuItemDto { Label = Ui.IsArabic ? "الإشعارات" : "Notifications", IconName = "bell",     Href = "/notifications" },
             }
         },
         new MenuSectionDto
@@ -55,7 +55,7 @@ else
             Title = Ui.IsArabic ? "التطبيق" : "App",
             Items = new[]
             {
-                new MenuItemDto { Label = Ui.IsArabic ? "الإعدادات" : "Settings", Icon = "⚙️", Href = "/settings" },
+                new MenuItemDto { Label = Ui.IsArabic ? "الإعدادات" : "Settings", IconName = "settings", Href = "/settings" },
             }
         }
     };

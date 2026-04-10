@@ -62,7 +62,11 @@
                 @if (!string.IsNullOrEmpty(item.Href))
                 {
                     <a class="acs-menu-item" href="@item.Href">
-                        @if (!string.IsNullOrEmpty(item.Icon))
+                        @if (!string.IsNullOrEmpty(item.IconName))
+                        {
+                            <span class="acs-menu-item-icon"><AcIcon Name="@item.IconName" Size="20" /></span>
+                        }
+                        else if (!string.IsNullOrEmpty(item.Icon))
                         {
                             <span class="acs-menu-item-icon">@item.Icon</span>
                         }
@@ -76,7 +80,11 @@
                 else
                 {
                     <button type="button" class="acs-menu-item" @onclick="() => HandleMenuClick(item)">
-                        @if (!string.IsNullOrEmpty(item.Icon))
+                        @if (!string.IsNullOrEmpty(item.IconName))
+                        {
+                            <span class="acs-menu-item-icon"><AcIcon Name="@item.IconName" Size="20" /></span>
+                        }
+                        else if (!string.IsNullOrEmpty(item.Icon))
                         {
                             <span class="acs-menu-item-icon">@item.Icon</span>
                         }

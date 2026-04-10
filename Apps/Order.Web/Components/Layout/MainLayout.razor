@@ -11,16 +11,16 @@
 
     <nav class="ord-bottom-nav">
         <NavLink href="/" Match="NavLinkMatch.All" class="ord-nav-item">
-            <i class="bi bi-house-door"></i>
+            <AcIcon Name="home" Size="22" />
             <span>@(Ui.IsArabic ? "الرئيسية" : "Home")</span>
         </NavLink>
         <NavLink href="/favorites" class="ord-nav-item">
-            <i class="bi bi-heart"></i>
+            <AcIcon Name="heart" Size="22" />
             <span>@(Ui.IsArabic ? "المفضلة" : "Favorites")</span>
         </NavLink>
         <NavLink href="/cart" class="ord-nav-item ord-nav-cart">
             <div class="ord-nav-cart-btn">
-                <i class="bi bi-bag"></i>
+                <AcIcon Name="bag" Size="22" />
                 @if (Cart.Count > 0)
                 {
                     <span class="ord-cart-badge">@Cart.Count</span>
@@ -29,11 +29,11 @@
             <span>@(Ui.IsArabic ? "السلة" : "Cart")</span>
         </NavLink>
         <NavLink href="/orders" class="ord-nav-item">
-            <i class="bi bi-receipt"></i>
+            <AcIcon Name="receipt" Size="22" />
             <span>@(Ui.IsArabic ? "طلباتي" : "Orders")</span>
         </NavLink>
         <NavLink href="@(Auth.IsAuthenticated ? "/profile" : "/login")" class="ord-nav-item">
-            <i class="bi bi-person"></i>
+            <AcIcon Name="user" Size="22" />
             <span>@(Ui.IsArabic ? "حسابي" : "Profile")</span>
         </NavLink>
     </nav>
@@ -49,9 +49,6 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        // Single source of truth: rehydrate the JWT from ProtectedLocalStorage
-        // exactly once per circuit. Every page reads Auth via this layout,
-        // so a full reload restores the session before any UI is touched.
         if (firstRender)
         {
             await Auth.EnsureRestoredAsync();

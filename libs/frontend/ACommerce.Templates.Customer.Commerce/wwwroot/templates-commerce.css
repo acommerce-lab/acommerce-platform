@@ -33,6 +33,13 @@
     opacity: 0.95;
     font-size: 0.92rem;
 }
+.acc-hero-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-top: 14px;
+}
 
 .acc-section-title {
     font-size: 1.05rem;

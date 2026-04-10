@@ -91,6 +91,9 @@ public sealed record MenuSectionDto
 public sealed record MenuItemDto
 {
     public required string Label { get; init; }
+    /// <summary>AcIcon name (e.g. "package", "heart"). Preferred over Icon.</summary>
+    public string? IconName { get; init; }
+    /// <summary>Legacy: emoji or raw markup. Ignored when <see cref="IconName"/> is set.</summary>
     public string? Icon { get; init; }
     public string? Href { get; init; }
     public string? Badge { get; init; }
@@ -105,8 +108,12 @@ public sealed record BottomNavItemDto
 {
     public required string Href { get; init; }
     public required string Label { get; init; }
-    public string? Icon { get; init; }
+    /// <summary>AcIcon name (e.g. "home", "cart"). Preferred over Emoji and Icon.</summary>
+    public string? IconName { get; init; }
+    /// <summary>Legacy: emoji fallback. Ignored when <see cref="IconName"/> is set.</summary>
     public string? Emoji { get; init; }
+    /// <summary>Legacy: CSS icon class (e.g. "bi bi-house"). Ignored when <see cref="IconName"/> or <see cref="Emoji"/> is set.</summary>
+    public string? Icon { get; init; }
     public int? Badge { get; init; }
     /// <summary>Exact match for NavLinkMatch.All (for root-level items like "/"). Defaults to false (prefix match).</summary>
     public bool Exact { get; init; }

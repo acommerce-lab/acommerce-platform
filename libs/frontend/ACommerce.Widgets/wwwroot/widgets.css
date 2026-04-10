@@ -3,6 +3,22 @@
    =========================================================================
    كل المتغيرات لها قيم افتراضية - التطبيق المستهلك يُعيد تعريف :root
    ليُغيّر الهوية البصرية بالكامل دون تعديل الـ widgets.
+
+   ── AcIcon ──────────────────────────────────────────────────────────────
+   Inline SVG line icons. Stroke uses currentColor so icons inherit the
+   text color of the parent element. Size defaults to 24×24 but can be
+   overridden via the Size parameter or CSS width/height.
+*/
+.ac-icon {
+    display: inline-block;
+    vertical-align: middle;
+    flex-shrink: 0;
+    color: inherit;
+    line-height: 0;
+}
+.ac-icon-lg  { width: 32px; height: 32px; }
+.ac-icon-xl  { width: 48px; height: 48px; }
+.ac-icon-2xl { width: 64px; height: 64px; }
    ========================================================================= */
 
 :root {

@@ -23,7 +23,11 @@
                  href="@item.Href"
                  Match="@matchType">
             <span class="acs-bottom-nav-icon">
-                @if (!string.IsNullOrEmpty(item.Emoji))
+                @if (!string.IsNullOrEmpty(item.IconName))
+                {
+                    <AcIcon Name="@item.IconName" Size="22" StrokeWidth="1.75" />
+                }
+                else if (!string.IsNullOrEmpty(item.Emoji))
                 {
                     @item.Emoji
                 }

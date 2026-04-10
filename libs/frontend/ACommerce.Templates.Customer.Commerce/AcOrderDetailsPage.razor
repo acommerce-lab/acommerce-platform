@@ -18,7 +18,7 @@
 }
 else if (Order is null)
 {
-    <AcEmptyState Icon="🔍"
+    <AcEmptyState IconName="search"
                   Title="@(NotFoundTitle ?? "الطلب غير موجود")"
                   ActionLabel="@(BackLabel ?? "رجوع")"
                   ActionHref="@BackHref" />
@@ -67,11 +67,11 @@ else
                 </div>
                 @if (!string.IsNullOrEmpty(Order.Vendor.City))
                 {
-                    <div class="acc-order-info-row">📍 @Order.Vendor.City</div>
+                    <div class="acc-order-info-row"><AcIcon Name="map-pin" Size="16" /> @Order.Vendor.City</div>
                 }
                 @if (!string.IsNullOrEmpty(Order.Vendor.Phone))
                 {
-                    <div class="acc-order-info-row" dir="ltr">📞 @Order.Vendor.Phone</div>
+                    <div class="acc-order-info-row" dir="ltr"><AcIcon Name="phone" Size="16" /> @Order.Vendor.Phone</div>
                 }
             </div>
         }
@@ -83,7 +83,7 @@ else
                 <div class="acc-order-info-row">@Order.PickupLabel</div>
                 @if (!string.IsNullOrEmpty(Order.CarModel))
                 {
-                    <div class="acc-order-info-row">🚗 @Order.CarModel @Order.CarColor @(Order.CarPlate ?? "")</div>
+                    <div class="acc-order-info-row"><AcIcon Name="car" Size="16" /> @Order.CarModel @Order.CarColor @(Order.CarPlate ?? "")</div>
                 }
             </div>
         }
