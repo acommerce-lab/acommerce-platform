@@ -133,7 +133,7 @@
     position: absolute;
     top: 8px;
     inset-inline-end: 8px;
-    color: #f59e0b;
+    color: var(--ac-warning, #d97706);
     font-size: 1.3rem;
     filter: drop-shadow(0 1px 1px rgba(0,0,0,0.3));
 }
@@ -216,8 +216,8 @@
     cursor: pointer;
 }
 .acc-back-btn { inset-inline-start: 14px; }
-.acc-fav-btn  { inset-inline-end: 14px; color: #ef4444; }
-.acc-fav-btn.active { background: #ef4444; color: #fff; }
+.acc-fav-btn  { inset-inline-end: 14px; color: var(--ac-danger, #dc2626); }
+.acc-fav-btn.active { background: var(--ac-danger, #dc2626); color: #fff; }
 
 .acc-offer-info {
     padding: 0 4px 14px;
@@ -370,8 +370,8 @@
 }
 .acc-change-box {
     margin-top: 10px;
-    background: var(--ac-bg-alt, #ecfdf5);
-    color: #065f46;
+    background: color-mix(in srgb, var(--ac-success, #16a34a) 10%, transparent);
+    color: var(--ac-success, #16a34a);
     padding: 12px 14px;
     border-radius: var(--ac-radius-md, 12px);
     display: flex;
@@ -380,8 +380,8 @@
     font-weight: 700;
 }
 .acc-change-box.warn {
-    background: #fef2f2;
-    color: #991b1b;
+    background: color-mix(in srgb, var(--ac-danger, #dc2626) 10%, transparent);
+    color: var(--ac-danger, #dc2626);
 }
 
 /* ── Orders list ──────────────────────────────────────────────────────── */
@@ -422,11 +422,11 @@
     background: var(--ac-bg-alt, #f3f4f6);
     color: var(--ac-text, #1a1a1a);
 }
-.acc-status-pending   { background: #fef3c7; color: #92400e; }
-.acc-status-accepted  { background: #dbeafe; color: #1e40af; }
-.acc-status-ready     { background: #d1fae5; color: #065f46; }
-.acc-status-delivered { background: #e0e7ff; color: #3730a3; }
-.acc-status-cancelled { background: #fee2e2; color: #991b1b; }
+.acc-status-pending   { background: color-mix(in srgb, var(--ac-warning, #d97706) 14%, transparent); color: var(--ac-warning, #d97706); }
+.acc-status-accepted  { background: color-mix(in srgb, var(--ac-info,    #2563eb) 14%, transparent); color: var(--ac-info,    #2563eb); }
+.acc-status-ready     { background: color-mix(in srgb, var(--ac-success, #16a34a) 14%, transparent); color: var(--ac-success, #16a34a); }
+.acc-status-delivered { background: color-mix(in srgb, var(--ac-success, #16a34a) 10%, transparent); color: var(--ac-success, #16a34a); }
+.acc-status-cancelled { background: color-mix(in srgb, var(--ac-danger,  #dc2626) 14%, transparent); color: var(--ac-danger,  #dc2626); }
 .acc-order-meta {
     display: flex;
     align-items: center;
@@ -496,7 +496,7 @@
     width: 88px;
     height: 88px;
     border-radius: 50%;
-    background: #10b981;
+    background: var(--ac-success, #16a34a);
     color: #fff;
     font-size: 3.2rem;
     display: inline-flex;

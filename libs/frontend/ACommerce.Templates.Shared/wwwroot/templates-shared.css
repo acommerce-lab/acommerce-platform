@@ -362,10 +362,11 @@
     font-size: 1.3rem;
     flex-shrink: 0;
 }
-.acs-ni-icon.t-promo   { background: linear-gradient(135deg, #fbbf24, #f59e0b); color: #fff; }
-.acs-ni-icon.t-order   { background: linear-gradient(135deg, #34d399, #059669); color: #fff; }
-.acs-ni-icon.t-message { background: linear-gradient(135deg, #60a5fa, #2563eb); color: #fff; }
-.acs-ni-icon.t-general { background: linear-gradient(135deg, #a78bfa, #7c3aed); color: #fff; }
+/* Muted, theme-aware pills — tinted bg + same-hue icon. No more bright gradients. */
+.acs-ni-icon.t-promo   { background: color-mix(in srgb, var(--ac-warning, #d97706) 14%, var(--ac-surface-2, var(--ac-surface, #fff))); color: var(--ac-warning, #d97706); }
+.acs-ni-icon.t-order   { background: color-mix(in srgb, var(--ac-success, #16a34a) 14%, var(--ac-surface-2, var(--ac-surface, #fff))); color: var(--ac-success, #16a34a); }
+.acs-ni-icon.t-message { background: color-mix(in srgb, var(--ac-info,    #2563eb) 14%, var(--ac-surface-2, var(--ac-surface, #fff))); color: var(--ac-info,    #2563eb); }
+.acs-ni-icon.t-general { background: var(--ac-bg-alt, #f3f4f6); color: var(--ac-text-muted, #6b7280); }
 .acs-ni-body { flex: 1; min-width: 0; }
 .acs-ni-top {
     display: flex;

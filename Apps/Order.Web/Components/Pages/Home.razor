@@ -22,10 +22,10 @@
     <HeroActions>
         @if (!Auth.IsAuthenticated)
         {
-            <a class="btn btn-light btn-sm" href="/login">
+            <a class="btn btn-primary btn-sm" href="/login">
                 @(Ui.IsArabic ? "تسجيل الدخول" : "Sign in")
             </a>
-            <a class="btn btn-ghost btn-sm" href="/settings" style="background:rgba(255,255,255,0.18); color:#fff; border-color:rgba(255,255,255,0.4);">
+            <a class="btn btn-ghost btn-sm" href="/settings">
                 @(Ui.IsArabic ? "English" : "العربية")
             </a>
         }

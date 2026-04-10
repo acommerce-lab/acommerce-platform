@@ -2,6 +2,7 @@
 @inject AuthStateService Auth
 @inject CartService Cart
 @inject UiPreferences Ui
+@inject IJSRuntime JS
 @implements IDisposable
 
 <div class="ord-shell">
@@ -47,11 +48,22 @@
         Ui.OnChanged   += OnChange;
     }
 
+    private string _lastAppliedTheme = "";
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
             await Auth.EnsureRestoredAsync();
+            _lastAppliedTheme = Ui.Theme;
+        }
+        // Push the current theme to <html data-theme> whenever it changes.
+        // The root <html> element lives outside the interactive tree, so
+        // Blazor can't update the attribute directly.
+        if (_lastAppliedTheme != Ui.Theme)
+        {
+            _lastAppliedTheme = Ui.Theme;
+            try { await JS.InvokeVoidAsync("acTheme.set", Ui.Theme); } catch { }
         }
     }
 
