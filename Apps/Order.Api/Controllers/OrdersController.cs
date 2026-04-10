@@ -245,9 +245,26 @@ public class OrdersController : ControllerBase
         if (o == null) return this.NotFoundEnvelope("order_not_found");
         if (o.Status != OrderStatus.Pending)
             return this.BadRequestEnvelope("not_pending", "الطلب ليس في حالة انتظار");
-        o.Status = OrderStatus.Accepted;
-        o.UpdatedAt = DateTime.UtcNow;
-        await _orders.UpdateAsync(o, ct);
+
+        var vendor = await _vendors.GetByIdAsync(o.VendorId, ct);
+
+        var op = Entry.Create("order.accept")
+            .Describe($"Vendor:{o.VendorId} accepts Order {o.OrderNumber}")
+            .From($"Vendor:{o.VendorId}", 1, ("role", "acceptor"))
+            .To($"Order:{o.Id}", 1, ("role", "order"))
+            .Tag("order_number", o.OrderNumber)
+            .Tag("vendor_name", vendor?.Name ?? "")
+            .Execute(async ctx =>
+            {
+                o.Status = OrderStatus.Accepted;
+                o.UpdatedAt = DateTime.UtcNow;
+                await _orders.UpdateAsync(o, ctx.CancellationToken);
+                ctx.Set("orderId", o.Id);
+            })
+            .Build();
+
+        var envelope = await _engine.ExecuteEnvelopeAsync(op, new { id = o.Id, status = "Accepted" }, ct);
+        if (envelope.Operation.Status != "Success") return BadRequest(envelope);
         return this.OkEnvelope("order.accept", new { id = o.Id, status = o.Status.ToString() });
     }
 
@@ -258,9 +275,24 @@ public class OrdersController : ControllerBase
         if (o == null) return this.NotFoundEnvelope("order_not_found");
         if (o.Status != OrderStatus.Accepted)
             return this.BadRequestEnvelope("not_accepted", "يجب قبول الطلب أولاً");
-        o.Status = OrderStatus.Ready;
-        o.UpdatedAt = DateTime.UtcNow;
-        await _orders.UpdateAsync(o, ct);
+
+        var op = Entry.Create("order.ready")
+            .Describe($"Order {o.OrderNumber} is ready for pickup")
+            .From($"Vendor:{o.VendorId}", 1, ("role", "preparer"))
+            .To($"Order:{o.Id}", 1, ("role", "order"))
+            .Tag("order_number", o.OrderNumber)
+            .Tag("pickup_type", o.PickupType.ToString())
+            .Execute(async ctx =>
+            {
+                o.Status = OrderStatus.Ready;
+                o.UpdatedAt = DateTime.UtcNow;
+                await _orders.UpdateAsync(o, ctx.CancellationToken);
+                ctx.Set("orderId", o.Id);
+            })
+            .Build();
+
+        var envelope = await _engine.ExecuteEnvelopeAsync(op, new { id = o.Id, status = "Ready" }, ct);
+        if (envelope.Operation.Status != "Success") return BadRequest(envelope);
         return this.OkEnvelope("order.ready", new { id = o.Id, status = o.Status.ToString() });
     }
 
@@ -271,9 +303,24 @@ public class OrdersController : ControllerBase
         if (o == null) return this.NotFoundEnvelope("order_not_found");
         if (o.Status != OrderStatus.Ready)
             return this.BadRequestEnvelope("not_ready", "الطلب ليس جاهزاً بعد");
-        o.Status = OrderStatus.Delivered;
-        o.UpdatedAt = DateTime.UtcNow;
-        await _orders.UpdateAsync(o, ct);
+
+        var op = Entry.Create("order.deliver")
+            .Describe($"Order {o.OrderNumber} delivered to User:{o.CustomerId}")
+            .From($"Order:{o.Id}", o.Total, ("role", "order"), ("currency", o.Currency))
+            .To($"User:{o.CustomerId}", o.Total, ("role", "customer"), ("currency", o.Currency))
+            .Tag("order_number", o.OrderNumber)
+            .Tag("payment_method", o.PreferredPayment.ToString())
+            .Execute(async ctx =>
+            {
+                o.Status = OrderStatus.Delivered;
+                o.UpdatedAt = DateTime.UtcNow;
+                await _orders.UpdateAsync(o, ctx.CancellationToken);
+                ctx.Set("orderId", o.Id);
+            })
+            .Build();
+
+        var envelope = await _engine.ExecuteEnvelopeAsync(op, new { id = o.Id, status = "Delivered" }, ct);
+        if (envelope.Operation.Status != "Success") return BadRequest(envelope);
         return this.OkEnvelope("order.deliver", new { id = o.Id, status = o.Status.ToString() });
     }
 
@@ -284,9 +331,25 @@ public class OrdersController : ControllerBase
         if (o == null) return this.NotFoundEnvelope("order_not_found");
         if (o.Status != OrderStatus.Pending && o.Status != OrderStatus.Accepted)
             return this.BadRequestEnvelope("not_cancellable", "لا يمكن إلغاء الطلب في حالته الحالية");
-        o.Status = OrderStatus.Cancelled;
-        o.UpdatedAt = DateTime.UtcNow;
-        await _orders.UpdateAsync(o, ct);
+
+        // Cancellation reverses the original entry: value flows back from vendor to customer
+        var op = Entry.Create("order.cancel")
+            .Describe($"Order {o.OrderNumber} cancelled — reversing debit")
+            .From($"Vendor:{o.VendorId}", o.Total, ("role", "vendor"), ("currency", o.Currency))
+            .To($"User:{o.CustomerId}", o.Total, ("role", "customer"), ("currency", o.Currency))
+            .Tag("order_number", o.OrderNumber)
+            .Tag("previous_status", o.Status.ToString())
+            .Execute(async ctx =>
+            {
+                o.Status = OrderStatus.Cancelled;
+                o.UpdatedAt = DateTime.UtcNow;
+                await _orders.UpdateAsync(o, ctx.CancellationToken);
+                ctx.Set("orderId", o.Id);
+            })
+            .Build();
+
+        var envelope = await _engine.ExecuteEnvelopeAsync(op, new { id = o.Id, status = "Cancelled" }, ct);
+        if (envelope.Operation.Status != "Success") return BadRequest(envelope);
         return this.OkEnvelope("order.cancel", new { id = o.Id, status = o.Status.ToString() });
     }
 
