@@ -1,17 +1,16 @@
 @page "/order/{Id:guid}"
 @inject VendorApiClient Api
-@inject AuthStateService Auth
-@inject UiPreferences Ui
+@inject AppStore Store
 
-<PageTitle>@(Ui.IsArabic ? "تفاصيل الطلب" : "Order Details")</PageTitle>
+<PageTitle>@(Store.Ui.IsArabic ? "تفاصيل الطلب" : "Order Details")</PageTitle>
 
 @if (Loading)
 {
-    <AcLoadingState Message="@(Ui.IsArabic ? "جاري التحميل..." : "Loading…")" />
+    <AcLoadingState Message="@(Store.Ui.IsArabic ? "جاري التحميل..." : "Loading…")" />
 }
 else if (Order == null)
 {
-    <AcEmptyState IconName="search" Title="@(Ui.IsArabic ? "الطلب غير موجود" : "Not found")" ActionHref="/orders" ActionLabel="@(Ui.IsArabic ? "الطلبات" : "Orders")" />
+    <AcEmptyState IconName="search" Title="@(Store.Ui.IsArabic ? "الطلب غير موجود" : "Not found")" ActionHref="/orders" ActionLabel="@(Store.Ui.IsArabic ? "الطلبات" : "Orders")" />
 }
 else
 {
@@ -25,7 +24,7 @@ else
         </div>
 
         <div class="s-card">
-            <div class="acc-section-label">@(Ui.IsArabic ? "العناصر" : "Items")</div>
+            <div class="acc-section-label">@(Store.Ui.IsArabic ? "العناصر" : "Items")</div>
             @foreach (var item in Order.Items)
             {
                 <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:0.88rem;">
@@ -34,7 +33,7 @@ else
                 </div>
             }
             <div style="display:flex;justify-content:space-between;padding-top:10px;margin-top:8px;border-top:1px solid var(--ac-border);font-weight:700;">
-                <span>@(Ui.IsArabic ? "الإجمالي" : "Total")</span>
+                <span>@(Store.Ui.IsArabic ? "الإجمالي" : "Total")</span>
                 <span>@Order.Total.ToString("0.##") @Order.Currency</span>
             </div>
         </div>
@@ -42,7 +41,7 @@ else
         @if (Order.PickupType == 1)
         {
             <div class="s-card">
-                <div class="acc-section-label">@(Ui.IsArabic ? "بيانات السيارة" : "Car details")</div>
+                <div class="acc-section-label">@(Store.Ui.IsArabic ? "بيانات السيارة" : "Car details")</div>
                 <div style="font-size:0.88rem;"><AcIcon Name="car" Size="16" /> @Order.CarModel @Order.CarColor @(Order.CarPlate ?? "")</div>
             </div>
         }
@@ -50,7 +49,7 @@ else
         @if (!string.IsNullOrEmpty(Order.CustomerNotes))
         {
             <div class="s-card">
-                <div class="acc-section-label">@(Ui.IsArabic ? "ملاحظات العميل" : "Customer notes")</div>
+                <div class="acc-section-label">@(Store.Ui.IsArabic ? "ملاحظات العميل" : "Customer notes")</div>
                 <p style="margin:0;font-size:0.88rem;">@Order.CustomerNotes</p>
             </div>
         }
@@ -60,22 +59,22 @@ else
             @if (Order.Status == 0)
             {
                 <button class="btn btn-primary btn-block" @onclick="Accept" disabled="@Acting">
-                    <AcIcon Name="check" Size="18" /> @(Ui.IsArabic ? "قبول الطلب" : "Accept order")
+                    <AcIcon Name="check" Size="18" /> @(Store.Ui.IsArabic ? "قبول الطلب" : "Accept order")
                 </button>
                 <button class="btn btn-ghost btn-block" style="color:var(--ac-danger);border-color:var(--ac-danger);" @onclick="Reject" disabled="@Acting">
-                    <AcIcon Name="x" Size="18" /> @(Ui.IsArabic ? "رفض الطلب" : "Reject order")
+                    <AcIcon Name="x" Size="18" /> @(Store.Ui.IsArabic ? "رفض الطلب" : "Reject order")
                 </button>
             }
             @if (Order.Status == 1)
             {
                 <button class="btn btn-primary btn-block" @onclick="MarkReady" disabled="@Acting">
-                    <AcIcon Name="package" Size="18" /> @(Ui.IsArabic ? "الطلب جاهز" : "Mark ready")
+                    <AcIcon Name="package" Size="18" /> @(Store.Ui.IsArabic ? "الطلب جاهز" : "Mark ready")
                 </button>
             }
             @if (Order.Status == 2)
             {
                 <button class="btn btn-primary btn-block" @onclick="MarkDelivered" disabled="@Acting">
-                    <AcIcon Name="check-circle" Size="18" /> @(Ui.IsArabic ? "تم التسليم" : "Mark delivered")
+                    <AcIcon Name="check-circle" Size="18" /> @(Store.Ui.IsArabic ? "تم التسليم" : "Mark delivered")
                 </button>
             }
         </div>
@@ -91,7 +90,6 @@ else
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (!firstRender) return;
-        await Auth.EnsureRestoredAsync();
         await Reload();
         StateHasChanged();
     }

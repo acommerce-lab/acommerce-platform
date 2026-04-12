@@ -1,21 +1,20 @@
 @page "/orders"
 @inject VendorApiClient Api
-@inject AuthStateService Auth
-@inject UiPreferences Ui
+@inject AppStore Store
 
-<PageTitle>@(Ui.IsArabic ? "الطلبات" : "Orders")</PageTitle>
+<PageTitle>@(Store.Ui.IsArabic ? "الطلبات" : "Orders")</PageTitle>
 
-@if (!Auth.IsAuthenticated)
+@if (!Store.Auth.IsAuthenticated)
 {
-    <AcEmptyState IconName="log-in" Title="@(Ui.IsArabic ? "سجّل دخولك" : "Sign in")" ActionHref="/login" ActionLabel="@(Ui.IsArabic ? "دخول" : "Sign in")" />
+    <AcEmptyState IconName="log-in" Title="@(Store.Ui.IsArabic ? "سجّل دخولك" : "Sign in")" ActionHref="/login" ActionLabel="@(Store.Ui.IsArabic ? "دخول" : "Sign in")" />
 }
 else
 {
     <div style="padding:16px;">
-        <h1 class="acs-page-title" style="margin:0 0 10px;">@(Ui.IsArabic ? "الطلبات" : "Orders")</h1>
+        <h1 class="acs-page-title" style="margin:0 0 10px;">@(Store.Ui.IsArabic ? "الطلبات" : "Orders")</h1>
 
         <div class="acs-seg" style="margin-bottom:12px;">
-            @foreach (var f in new[] { ("all", Ui.IsArabic ? "الكل" : "All"), ("pending", Ui.IsArabic ? "معلقة" : "Pending"), ("accepted", Ui.IsArabic ? "مقبولة" : "Accepted"), ("ready", Ui.IsArabic ? "جاهزة" : "Ready") })
+            @foreach (var f in new[] { ("all", Store.Ui.IsArabic ? "الكل" : "All"), ("pending", Store.Ui.IsArabic ? "معلقة" : "Pending"), ("accepted", Store.Ui.IsArabic ? "مقبولة" : "Accepted"), ("ready", Store.Ui.IsArabic ? "جاهزة" : "Ready") })
             {
                 <button type="button" class="acs-seg-btn @(Filter == f.Item1 ? "active" : "")" @onclick="@(() => Filter = f.Item1)">@f.Item2</button>
             }
@@ -23,11 +22,11 @@ else
 
         @if (Loading)
         {
-            <AcLoadingState Message="@(Ui.IsArabic ? "جاري التحميل..." : "Loading…")" />
+            <AcLoadingState Message="@(Store.Ui.IsArabic ? "جاري التحميل..." : "Loading…")" />
         }
         else if (Filtered.Count == 0)
         {
-            <AcEmptyState IconName="inbox" Title="@(Ui.IsArabic ? "لا طلبات" : "No orders")" />
+            <AcEmptyState IconName="inbox" Title="@(Store.Ui.IsArabic ? "لا طلبات" : "No orders")" />
         }
         else
         {
@@ -62,11 +61,10 @@ else
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (!firstRender) return;
-        await Auth.EnsureRestoredAsync();
-        if (Auth.IsAuthenticated)
+        if (Store.Auth.IsAuthenticated)
         {
             var vEnv = await Api.GetAsync<List<VendorRow>>("/api/vendors");
-            var myV = vEnv.Data?.FirstOrDefault(v => v.OwnerId == Auth.UserId);
+            var myV = vEnv.Data?.FirstOrDefault(v => v.OwnerId == Store.Auth.UserId);
             if (myV != null)
             {
                 VendorId = myV.Id;

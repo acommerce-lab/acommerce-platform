@@ -2,6 +2,7 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 using ACommerce.OperationEngine.Wire;
+using Vendor.Web.Store;
 
 namespace Vendor.Web.Services;
 
@@ -14,19 +15,19 @@ namespace Vendor.Web.Services;
 public class OrderApiClient
 {
     private readonly HttpClient _http;
-    private readonly AuthStateService _auth;
+    private readonly AppStore _store;
     private readonly JsonSerializerOptions _json = new(JsonSerializerDefaults.Web);
 
-    public OrderApiClient(HttpClient http, AuthStateService auth)
+    public OrderApiClient(HttpClient http, AppStore store)
     {
         _http = http;
-        _auth = auth;
+        _store = store;
     }
 
     private void SetAuth()
     {
-        _http.DefaultRequestHeaders.Authorization = _auth.IsAuthenticated
-            ? new AuthenticationHeaderValue("Bearer", _auth.AccessToken)
+        _http.DefaultRequestHeaders.Authorization = _store.Auth.IsAuthenticated
+            ? new AuthenticationHeaderValue("Bearer", _store.Auth.AccessToken)
             : null;
     }
 

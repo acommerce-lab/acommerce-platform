@@ -1,57 +1,56 @@
 @page "/profile"
-@inject AuthStateService Auth
-@inject UiPreferences Ui
+@inject AppStore Store
+@inject ClientOpEngine Engine
 @inject NavigationManager Nav
 
-<PageTitle>@(Ui.IsArabic ? "حسابي" : "Profile")</PageTitle>
+<PageTitle>@(Store.Ui.IsArabic ? "حسابي" : "Profile")</PageTitle>
 
-@if (!Auth.IsAuthenticated)
+@if (!Store.Auth.IsAuthenticated)
 {
-    <AcEmptyState IconName="user" Title="@(Ui.IsArabic ? "غير مسجل" : "Not signed in")" ActionHref="/login" ActionLabel="@(Ui.IsArabic ? "دخول" : "Sign in")" />
+    <AcEmptyState IconName="user" Title="@(Store.Ui.IsArabic ? "غير مسجل" : "Not signed in")" ActionHref="/login" ActionLabel="@(Store.Ui.IsArabic ? "دخول" : "Sign in")" />
 }
 else
 {
     <AcProfilePage User="@UserDto"
                    MenuSections="@MenuList"
-                   SignOutLabel="@(Ui.IsArabic ? "تسجيل الخروج" : "Sign out")"
+                   SignOutLabel="@(Store.Ui.IsArabic ? "تسجيل الخروج" : "Sign out")"
                    OnSignOut="SignOut" />
 }
 
 @code {
     private ProfileUserDto UserDto => new()
     {
-        Id = Auth.UserId?.ToString() ?? "",
-        FullName = Auth.FullName ?? (Ui.IsArabic ? "تاجر" : "Vendor"),
-        PhoneNumber = Auth.PhoneNumber
+        Id = Store.Auth.UserId?.ToString() ?? "",
+        FullName = Store.Auth.FullName ?? (Store.Ui.IsArabic ? "تاجر" : "Vendor"),
+        PhoneNumber = Store.Auth.PhoneNumber
     };
 
     private IReadOnlyList<MenuSectionDto> MenuList => new[]
     {
         new MenuSectionDto
         {
-            Title = Ui.IsArabic ? "المتجر" : "Store",
+            Title = Store.Ui.IsArabic ? "المتجر" : "Store",
             Items = new[]
             {
-                new MenuItemDto { Label = Ui.IsArabic ? "الطلبات" : "Orders",       IconName = "receipt",  Href = "/orders" },
-                new MenuItemDto { Label = Ui.IsArabic ? "العروض" : "Offers",         IconName = "tag",      Href = "/offers" },
-                new MenuItemDto { Label = Ui.IsArabic ? "الرسائل" : "Messages",     IconName = "message",  Href = "/messages" },
-                new MenuItemDto { Label = Ui.IsArabic ? "الإشعارات" : "Notifications", IconName = "bell", Href = "/notifications" },
+                new MenuItemDto { Label = Store.Ui.IsArabic ? "الطلبات" : "Orders",       IconName = "receipt",  Href = "/orders" },
+                new MenuItemDto { Label = Store.Ui.IsArabic ? "العروض" : "Offers",         IconName = "tag",      Href = "/offers" },
+                new MenuItemDto { Label = Store.Ui.IsArabic ? "الرسائل" : "Messages",     IconName = "message",  Href = "/messages" },
+                new MenuItemDto { Label = Store.Ui.IsArabic ? "الإشعارات" : "Notifications", IconName = "bell", Href = "/notifications" },
             }
         },
         new MenuSectionDto
         {
-            Title = Ui.IsArabic ? "التطبيق" : "App",
+            Title = Store.Ui.IsArabic ? "التطبيق" : "App",
             Items = new[]
             {
-                new MenuItemDto { Label = Ui.IsArabic ? "الإعدادات" : "Settings", IconName = "settings", Href = "/settings" },
+                new MenuItemDto { Label = Store.Ui.IsArabic ? "الإعدادات" : "Settings", IconName = "settings", Href = "/settings" },
             }
         }
     };
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+    private async Task SignOut()
     {
-        if (firstRender) { await Auth.EnsureRestoredAsync(); StateHasChanged(); }
+        await Engine.ExecuteAsync<object>(ClientOps.SignOut(), new { });
+        Nav.NavigateTo("/", forceLoad: false);
     }
-
-    private async Task SignOut() { await Auth.SignOutAsync(); Nav.NavigateTo("/"); }
 }

@@ -2,11 +2,12 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 using ACommerce.OperationEngine.Wire;
+using Vendor.Web.Store;
 
 namespace Vendor.Web.Services;
 
 /// <summary>
-/// Typed HTTP client for Order.Api. Every call returns
+/// Typed HTTP client for Vendor.Api. Every call returns
 /// <c>OperationEnvelope&lt;T&gt;</c>. Non-JSON responses (404, 500, empty)
 /// are caught and turned into an error envelope so callers never see
 /// a raw JsonException.
@@ -14,19 +15,19 @@ namespace Vendor.Web.Services;
 public class VendorApiClient
 {
     private readonly HttpClient _http;
-    private readonly AuthStateService _auth;
+    private readonly AppStore _store;
     private readonly JsonSerializerOptions _json = new(JsonSerializerDefaults.Web);
 
-    public VendorApiClient(HttpClient http, AuthStateService auth)
+    public VendorApiClient(HttpClient http, AppStore store)
     {
         _http = http;
-        _auth = auth;
+        _store = store;
     }
 
     private void SetAuth()
     {
-        _http.DefaultRequestHeaders.Authorization = _auth.IsAuthenticated
-            ? new AuthenticationHeaderValue("Bearer", _auth.AccessToken)
+        _http.DefaultRequestHeaders.Authorization = _store.Auth.IsAuthenticated
+            ? new AuthenticationHeaderValue("Bearer", _store.Auth.AccessToken)
             : null;
     }
 

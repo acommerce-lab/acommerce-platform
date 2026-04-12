@@ -1,19 +1,18 @@
 @page "/notifications"
 @inject VendorApiClient Api
-@inject AuthStateService Auth
-@inject UiPreferences Ui
+@inject AppStore Store
 
-<PageTitle>@(Ui.IsArabic ? "الإشعارات" : "Notifications")</PageTitle>
+<PageTitle>@(Store.Ui.IsArabic ? "الإشعارات" : "Notifications")</PageTitle>
 
-@if (!Auth.IsAuthenticated)
+@if (!Store.Auth.IsAuthenticated)
 {
-    <AcEmptyState IconName="bell" Title="@(Ui.IsArabic ? "سجّل دخولك" : "Sign in")" ActionHref="/login" ActionLabel="@(Ui.IsArabic ? "دخول" : "Sign in")" />
+    <AcEmptyState IconName="bell" Title="@(Store.Ui.IsArabic ? "سجّل دخولك" : "Sign in")" ActionHref="/login" ActionLabel="@(Store.Ui.IsArabic ? "دخول" : "Sign in")" />
 }
 else
 {
     <AcNotificationsPage Notifications="@(Array.Empty<NotificationRowDto>())"
                          Loading="false"
-                         Title="@(Ui.IsArabic ? "الإشعارات" : "Notifications")"
-                         EmptyTitle="@(Ui.IsArabic ? "لا إشعارات" : "No notifications")"
-                         EmptyMessage="@(Ui.IsArabic ? "ستظهر هنا إشعارات الطلبات الجديدة" : "New order notifications will appear here")" />
+                         Title="@(Store.Ui.IsArabic ? "الإشعارات" : "Notifications")"
+                         EmptyTitle="@(Store.Ui.IsArabic ? "لا إشعارات" : "No notifications")"
+                         EmptyMessage="@(Store.Ui.IsArabic ? "ستظهر هنا إشعارات الطلبات الجديدة" : "New order notifications will appear here")" />
 }

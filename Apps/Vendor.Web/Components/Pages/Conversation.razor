@@ -1,24 +1,23 @@
 @page "/chat/{Id:guid}"
 @inject VendorApiClient Api
-@inject AuthStateService Auth
-@inject UiPreferences Ui
+@inject AppStore Store
 
-<PageTitle>@(Ui.IsArabic ? "محادثة" : "Chat")</PageTitle>
+<PageTitle>@(Store.Ui.IsArabic ? "محادثة" : "Chat")</PageTitle>
 
-@if (!Auth.IsAuthenticated)
+@if (!Store.Auth.IsAuthenticated)
 {
-    <AcEmptyState IconName="log-in" Title="@(Ui.IsArabic ? "سجّل دخولك" : "Sign in")" ActionHref="/login" ActionLabel="@(Ui.IsArabic ? "دخول" : "Sign in")" />
+    <AcEmptyState IconName="log-in" Title="@(Store.Ui.IsArabic ? "سجّل دخولك" : "Sign in")" ActionHref="/login" ActionLabel="@(Store.Ui.IsArabic ? "دخول" : "Sign in")" />
 }
 else
 {
     <AcChatPage Messages="@Mapped"
-                MySenderId="@(Auth.UserId?.ToString() ?? "")"
+                MySenderId="@(Store.Auth.UserId?.ToString() ?? "")"
                 Loading="@Loading" Sending="@Sending"
                 Draft="@Draft" DraftChanged="@(v => Draft = v)"
                 OnSend="Send"
-                Title="@(Ui.IsArabic ? "محادثة" : "Chat")"
-                EmptyMessage="@(Ui.IsArabic ? "لا رسائل بعد" : "No messages yet")"
-                SendLabel="@(Ui.IsArabic ? "إرسال" : "Send")" />
+                Title="@(Store.Ui.IsArabic ? "محادثة" : "Chat")"
+                EmptyMessage="@(Store.Ui.IsArabic ? "لا رسائل بعد" : "No messages yet")"
+                SendLabel="@(Store.Ui.IsArabic ? "إرسال" : "Send")" />
 }
 
 @code {
@@ -34,7 +33,6 @@ else
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (!firstRender) return;
-        await Auth.EnsureRestoredAsync();
         await Reload(); StateHasChanged();
     }
 
@@ -44,15 +42,15 @@ else
         var env = await Api.GetAsync<List<MsgApi>>($"/api/messages/conversations/{Id}/messages");
         Messages = env.Data ?? new();
         Loading = false;
-        if (Auth.UserId.HasValue)
-            await Api.PostAsync<object>($"/api/messages/conversations/{Id}/mark-read", new { readerId = Auth.UserId.Value });
+        if (Store.Auth.UserId.HasValue)
+            await Api.PostAsync<object>($"/api/messages/conversations/{Id}/mark-read", new { readerId = Store.Auth.UserId.Value });
     }
 
     private async Task Send()
     {
         if (string.IsNullOrWhiteSpace(Draft) || Sending) return;
         Sending = true;
-        var env = await Api.PostAsync<MsgApi>("/api/messages", new { conversationId = Id, senderId = Auth.UserId, content = Draft });
+        var env = await Api.PostAsync<MsgApi>("/api/messages", new { conversationId = Id, senderId = Store.Auth.UserId, content = Draft });
         if (env.Data != null) { Messages.Add(env.Data); Draft = ""; }
         Sending = false;
     }
