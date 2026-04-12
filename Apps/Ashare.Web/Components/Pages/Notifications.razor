@@ -1,7 +1,8 @@
 @page "/notifications"
 @rendermode InteractiveServer
-@inject AshareApiClient Api
-@inject AuthStateService Auth
+@inject ApiReader Reader
+@inject ClientOpEngine Engine
+@inject AppStore Store
 
 <PageTitle>الإشعارات</PageTitle>
 
@@ -46,29 +47,27 @@
 
     private async Task Load()
     {
-        if (!Auth.UserId.HasValue) { notifications = new(); return; }
-        var resp = await Api.GetAsync<List<NotificationDto>>($"/api/notifications/user/{Auth.UserId}");
+        if (!Store.Auth.UserId.HasValue) { notifications = new(); return; }
+        var resp = await Reader.GetAsync<List<NotificationDto>>($"/api/notifications/user/{Store.Auth.UserId}");
         notifications = resp.Data ?? new();
     }
 
     private async Task MarkAllRead()
     {
-        await Api.PostAsync<object>($"/api/notifications/user/{Auth.UserId}/mark-all-read", new { });
+        if (!Store.Auth.UserId.HasValue) return;
+        await Engine.ExecuteAsync<object>(
+            ClientOps.MarkAllNotificationsRead(Store.Auth.UserId.Value),
+            new { });
         await Load();
     }
 
     private async Task Send()
     {
-        if (!Auth.UserId.HasValue) return;
-        await Api.PostAsync<object>("/api/notifications/send", new
-        {
-            userId = Auth.UserId.Value,
-            title,
-            body,
-            channel = "inapp",
-            type = "info",
-            priority = "normal"
-        });
+        if (!Store.Auth.UserId.HasValue) return;
+        var userId = Store.Auth.UserId.Value;
+        await Engine.ExecuteAsync<object>(
+            ClientOps.SendTestNotification(userId, title, body),
+            new { userId, title, body, channel = "inapp", type = "info", priority = "normal" });
         await Load();
     }
 

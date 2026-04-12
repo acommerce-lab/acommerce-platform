@@ -14,6 +14,7 @@ public class Operation : ITaggable
     private readonly List<Operation> _subOperations = new();
     private readonly List<IOperationAnalyzer> _preAnalyzers = new();
     private readonly List<IOperationAnalyzer> _postAnalyzers = new();
+    private readonly List<Type> _requiredContracts = new();
 
     public Guid Id { get; } = Guid.NewGuid();
     public string Type { get; }
@@ -39,6 +40,9 @@ public class Operation : ITaggable
     public IReadOnlyList<IOperationAnalyzer> PreAnalyzers => _preAnalyzers;
     public IReadOnlyList<IOperationAnalyzer> PostAnalyzers => _postAnalyzers;
 
+    // === عقود المزودين المطلوبة ===
+    public IReadOnlyList<Type> RequiredContracts => _requiredContracts;
+
     // === دوال التنفيذ (يحددها الباني) ===
     internal Func<OperationContext, Task<bool>>? ValidateFunc { get; set; }
     internal Func<OperationContext, Task>? ExecuteFunc { get; set; }
@@ -57,6 +61,7 @@ public class Operation : ITaggable
     public void AddSubOperation(Operation sub) { sub.ParentOperationId = Id; _subOperations.Add(sub); }
     public void AddPreAnalyzer(IOperationAnalyzer analyzer) => _preAnalyzers.Add(analyzer);
     public void AddPostAnalyzer(IOperationAnalyzer analyzer) => _postAnalyzers.Add(analyzer);
+    public void AddRequiredContract(Type contractType) { if (!_requiredContracts.Contains(contractType)) _requiredContracts.Add(contractType); }
 
     // === ITaggable ===
     public IReadOnlyList<Tag> Tags => _tags.Tags;

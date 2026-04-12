@@ -1,32 +1,78 @@
+using ACommerce.Client.Http;
+using ACommerce.Client.Http.Extensions;
+using ACommerce.Client.Operations;
+using ACommerce.Client.Operations.Interceptors;
+using ACommerce.Client.StateBridge;
+using ACommerce.OperationEngine.Core;
 using Ashare.Web.Components;
-using Ashare.Web.Services;
+using Ashare.Web.Interpreters;
+using Ashare.Web.Operations;
+using Ashare.Web.Store;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Blazor Server
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
-// ─────────────────────────────────────────────────────────
-// ACommerce client infrastructure
-// ─────────────────────────────────────────────────────────
+// ─── AppStore (حالة التطبيق — Scoped per circuit) ────────────────────
+builder.Services.AddScoped<AppStore>();
 
-// AuthState scoped per circuit
-builder.Services.AddScoped<AuthStateService>();
+// ─── OpEngine for client-side local operations (ui prefs) ─────────────
+builder.Services.AddScoped<OpEngine>(sp =>
+    new OpEngine(sp, sp.GetRequiredService<ILogger<OpEngine>>()));
 
-// HttpClient + AshareApiClient (Scoped per circuit)
+// ─── ClientOpEngine + HttpDispatcher → Ashare.Api ─────────────────────
 var apiBase = builder.Configuration["AshareApi:BaseUrl"] ?? "http://localhost:5500";
 builder.Services.AddHttpClient("ashare", client =>
 {
     client.BaseAddress = new Uri(apiBase);
     client.Timeout = TimeSpan.FromSeconds(30);
 });
-builder.Services.AddScoped<AshareApiClient>(sp =>
+
+// Route registry: operation type → HTTP endpoint
+var routeRegistry = new HttpRouteRegistry();
+AshareRoutes.Register(routeRegistry);
+builder.Services.AddSingleton(routeRegistry);
+
+// HttpDispatcher (IOperationDispatcher)
+builder.Services.AddScoped<HttpDispatcher>(sp =>
 {
     var factory = sp.GetRequiredService<IHttpClientFactory>();
-    return new AshareApiClient(factory.CreateClient("ashare"), sp.GetRequiredService<AuthStateService>());
+    return new HttpDispatcher(
+        factory.CreateClient("ashare"),
+        sp.GetRequiredService<HttpRouteRegistry>(),
+        sp.GetRequiredService<OpEngine>(),
+        sp.GetRequiredService<ILogger<HttpDispatcher>>());
+});
+builder.Services.AddScoped<IOperationDispatcher>(sp => sp.GetRequiredService<HttpDispatcher>());
+
+// ApiReader: GET-only — reads don't need accounting entries
+builder.Services.AddScoped<ApiReader>(sp =>
+{
+    var factory = sp.GetRequiredService<IHttpClientFactory>();
+    return new ApiReader(factory.CreateClient("ashare"), sp.GetRequiredService<AppStore>());
 });
 
+// ClientOpEngine
+builder.Services.AddScoped<ClientOpEngine>(sp =>
+    new ClientOpEngine(
+        sp.GetRequiredService<IOperationDispatcher>(),
+        sp.GetRequiredService<ILogger<ClientOpEngine>>()));
+
+// ─── State Bridge: server operations → AppStore updates ──────────────
+builder.Services.AddScoped<OperationInterpreterRegistry<AppStore>>(sp =>
+{
+    var registry = new OperationInterpreterRegistry<AppStore>(
+        sp.GetRequiredService<ILogger<OperationInterpreterRegistry<AppStore>>>());
+    registry.Add(new AuthInterpreter());
+    registry.Add(new UiInterpreter());
+    return registry;
+});
+
+builder.Services.AddScoped<AppStateApplier>();
+builder.Services.AddScoped<IStateApplier>(sp => sp.GetRequiredService<AppStateApplier>());
+
+// ─── Build ───────────────────────────────────────────────────────────
 var app = builder.Build();
 
 if (!app.Environment.IsDevelopment())

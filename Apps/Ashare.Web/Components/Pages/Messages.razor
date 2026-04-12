@@ -1,7 +1,7 @@
 @page "/messages"
 @rendermode InteractiveServer
-@inject AshareApiClient Api
-@inject AuthStateService Auth
+@inject ApiReader Reader
+@inject AppStore Store
 @inject NavigationManager Nav
 
 <PageTitle>الرسائل</PageTitle>
@@ -30,8 +30,8 @@
 
     protected override async Task OnInitializedAsync()
     {
-        if (!Auth.UserId.HasValue) { convs = new(); return; }
-        var resp = await Api.GetAsync<List<ConvDto>>($"/api/messages/conversations/by-user/{Auth.UserId}");
+        if (!Store.Auth.UserId.HasValue) { convs = new(); return; }
+        var resp = await Reader.GetAsync<List<ConvDto>>($"/api/messages/conversations/by-user/{Store.Auth.UserId}");
         convs = resp.Data ?? new();
     }
 

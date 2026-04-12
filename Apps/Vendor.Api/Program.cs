@@ -1,3 +1,10 @@
+using ACommerce.Authentication.Operations;
+using ACommerce.Authentication.Operations.Abstractions;
+using ACommerce.Authentication.Providers.Token;
+using ACommerce.Authentication.Providers.Token.Extensions;
+using ACommerce.Authentication.TwoFactor.Operations;
+using ACommerce.Authentication.TwoFactor.Operations.Abstractions;
+using ACommerce.Authentication.TwoFactor.Providers.Sms.Extensions;
 using ACommerce.Notification.Operations;
 using ACommerce.Notification.Operations.Abstractions;
 using ACommerce.Notification.Providers.InApp.Extensions;
@@ -23,6 +30,8 @@ Log.Logger = new LoggerConfiguration()
 builder.Host.UseSerilog();
 
 // ─── Entity Discovery ────────────────────────────────────────────────────
+EntityDiscoveryRegistry.RegisterEntity(typeof(VendorUser));
+EntityDiscoveryRegistry.RegisterEntity(typeof(TwoFactorChallengeRecord));
 EntityDiscoveryRegistry.RegisterEntity(typeof(VendorSettings));
 EntityDiscoveryRegistry.RegisterEntity(typeof(WorkSchedule));
 EntityDiscoveryRegistry.RegisterEntity(typeof(IncomingOrder));
@@ -46,6 +55,60 @@ builder.Services.AddCors(o => o.AddDefaultPolicy(p =>
 // ─── OperationEngine (Scoped) ────────────────────────────────────────────
 builder.Services.AddScoped<OpEngine>(sp =>
     new OpEngine(sp, sp.GetRequiredService<ILogger<OpEngine>>()));
+
+// ─── Authentication: JWT + SMS 2FA (mock) ───────────────────────────────
+var jwtOptions = new JwtOptions
+{
+    Issuer = builder.Configuration["JWT:Issuer"] ?? "https://vendor.app",
+    Audience = builder.Configuration["JWT:Audience"] ?? "vendor-api",
+    SecretKey = builder.Configuration["JWT:SecretKey"]
+        ?? "Vendor-dev-secret-do-not-use-in-prod-32chars-min!!!",
+    AccessTokenLifetime = TimeSpan.TryParse(
+        builder.Configuration["JWT:AccessTokenLifetime"], out var lt) ? lt : TimeSpan.FromDays(30)
+};
+builder.Services.AddSingleton(jwtOptions);
+builder.Services.AddSingleton<JwtTokenStore>();
+builder.Services.AddSingleton<ITokenValidator>(sp => sp.GetRequiredService<JwtTokenStore>());
+builder.Services.AddSingleton<ITokenIssuer>(sp => sp.GetRequiredService<JwtTokenStore>());
+builder.Services.AddTokenAuthenticator();
+
+builder.Services.AddAuthentication(Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters
+        {
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new Microsoft.IdentityModel.Tokens.SymmetricSecurityKey(
+                System.Text.Encoding.UTF8.GetBytes(jwtOptions.SecretKey)),
+            ValidateIssuer = true,
+            ValidIssuer = jwtOptions.Issuer,
+            ValidateAudience = true,
+            ValidAudience = jwtOptions.Audience,
+            ValidateLifetime = true,
+            ClockSkew = TimeSpan.FromSeconds(30)
+        };
+    });
+builder.Services.AddAuthorization();
+
+builder.Services.AddSingleton<AuthConfig>(sp =>
+{
+    var c = new AuthConfig();
+    c.AddAuthenticator(sp.GetRequiredService<TokenAuthenticator>());
+    c.UseIssuer(sp.GetRequiredService<ITokenIssuer>());
+    return c;
+});
+builder.Services.AddScoped<AuthService>();
+
+// 2FA: SMS (sandbox — code printed to logs)
+builder.Services.AddSmsTwoFactor();
+builder.Services.AddSingleton<TwoFactorConfig>(sp =>
+{
+    var cfg = new TwoFactorConfig();
+    foreach (var ch in sp.GetServices<ITwoFactorChannel>())
+        cfg.AddChannel(ch);
+    return cfg;
+});
+builder.Services.AddScoped<TwoFactorService>();
 
 // ─── Realtime + Notifications ────────────────────────────────────────────
 builder.Services.AddInMemoryRealtimeTransport();
@@ -189,6 +252,8 @@ using (var chScope = app.Services.CreateScope())
 }
 
 app.UseCors();
+app.UseAuthentication();
+app.UseAuthorization();
 app.UseSwagger();
 app.UseSwaggerUI();
 app.MapControllers();

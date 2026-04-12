@@ -23,6 +23,12 @@
     <ProjectReference Include="..\..\libs\backend\core\ACommerce.OperationEngine.Wire\ACommerce.OperationEngine.Wire.csproj" />
     <ProjectReference Include="..\..\libs\backend\core\ACommerce.OperationEngine.Interceptors\ACommerce.OperationEngine.Interceptors.csproj" />
 
+    <!-- Authentication + JWT + SMS 2FA -->
+    <ProjectReference Include="..\..\libs\backend\auth\ACommerce.Authentication.Operations\ACommerce.Authentication.Operations.csproj" />
+    <ProjectReference Include="..\..\libs\backend\auth\ACommerce.Authentication.Providers.Token\ACommerce.Authentication.Providers.Token.csproj" />
+    <ProjectReference Include="..\..\libs\backend\auth\ACommerce.Authentication.TwoFactor.Operations\ACommerce.Authentication.TwoFactor.Operations.csproj" />
+    <ProjectReference Include="..\..\libs\backend\auth\ACommerce.Authentication.TwoFactor.Providers.Sms\ACommerce.Authentication.TwoFactor.Providers.Sms.csproj" />
+
     <!-- Messaging -->
     <ProjectReference Include="..\..\libs\backend\messaging\ACommerce.Realtime.Operations\ACommerce.Realtime.Operations.csproj" />
     <ProjectReference Include="..\..\libs\backend\messaging\ACommerce.Realtime.Providers.InMemory\ACommerce.Realtime.Providers.InMemory.csproj" />

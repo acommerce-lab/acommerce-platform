@@ -1,12 +1,13 @@
 @page "/conversation/{id:guid}"
 @rendermode InteractiveServer
-@inject AshareApiClient Api
-@inject AuthStateService Auth
+@inject ApiReader Reader
+@inject ClientOpEngine Engine
+@inject AppStore Store
 
 <PageTitle>محادثة - عشير</PageTitle>
 
 <AcChatPage Messages="@Mapped"
-            MySenderId="@(Auth.UserId?.ToString() ?? "")"
+            MySenderId="@(Store.Auth.UserId?.ToString() ?? "")"
             Loading="@(messages is null)"
             Sending="@sending"
             Draft="@newMessage"
@@ -44,24 +45,27 @@
 
     private async Task Load()
     {
-        var resp = await Api.GetAsync<List<MessageDto>>($"/api/messages/conversations/{Id}/messages");
+        var resp = await Reader.GetAsync<List<MessageDto>>($"/api/messages/conversations/{Id}/messages");
         messages = resp.Data ?? new();
     }
 
     private async Task Send()
     {
-        if (string.IsNullOrEmpty(newMessage) || !Auth.UserId.HasValue) return;
+        if (string.IsNullOrEmpty(newMessage) || !Store.Auth.UserId.HasValue) return;
         sending = true;
         error = "";
         try
         {
-            var resp = await Api.PostAsync<object>("/api/messages", new
-            {
-                conversationId = Id,
-                senderId = Auth.UserId.Value,
-                content = newMessage,
-                messageType = "text"
-            });
+            var senderId = Store.Auth.UserId.Value;
+            var resp = await Engine.ExecuteAsync<object>(
+                ClientOps.SendMessage(Id, senderId, newMessage),
+                new
+                {
+                    conversationId = Id,
+                    senderId,
+                    content = newMessage,
+                    messageType = "text"
+                });
 
             if (resp.Operation.Status != "Success")
             {

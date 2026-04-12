@@ -62,6 +62,13 @@ public class OperationBuilder
         return this;
     }
 
+    // === عقود المزودين ===
+    /// <summary>
+    /// يُصرّح أن هذه العملية تحتاج إلى مزود من نوع T مسجّلاً في DI.
+    /// يتحقق المحرك من وجوده قبل التنفيذ.
+    /// </summary>
+    public OperationBuilder Requires<T>() { _op.AddRequiredContract(typeof(T)); return this; }
+
     // === المحللات ===
     public OperationBuilder Analyze(IOperationAnalyzer analyzer) { _op.AddPreAnalyzer(analyzer); return this; }
     public OperationBuilder PostAnalyze(IOperationAnalyzer analyzer) { _op.AddPostAnalyzer(analyzer); return this; }

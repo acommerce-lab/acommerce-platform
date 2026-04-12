@@ -6,13 +6,13 @@ namespace Vendor.Web.Operations;
 /// خريطة: نوع العملية → HTTP endpoint.
 /// HttpDispatcher يستخدم هذه الخريطة لتحويل Entry.Create("auth.sms.request")
 /// إلى POST /api/auth/sms/request تلقائياً.
-/// Auth و offer routes → Order.Api. Vendor-order routes → Vendor.Api (via proxy or direct).
+/// جميع العمليات تتجه إلى Vendor.Api (كل خدمة تُدير مستخدميها بنفسها).
 /// </summary>
 public static class VendorRoutes
 {
     public static void Register(HttpRouteRegistry routes)
     {
-        // Auth (→ Order.Api)
+        // Auth (→ Vendor.Api — الخدمة تُدير مستخدميها محلياً)
         routes.Map("auth.sms.request", HttpMethod.Post, "/api/auth/sms/request");
         routes.Map("auth.sms.verify", HttpMethod.Post, "/api/auth/sms/verify");
 

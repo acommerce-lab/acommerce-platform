@@ -1,7 +1,8 @@
 @page "/login"
 @rendermode InteractiveServer
-@inject AshareApiClient Api
-@inject AuthStateService Auth
+@inject ClientOpEngine Engine
+@inject AppStore Store
+@inject AppStateApplier Applier
 @inject NavigationManager Nav
 
 <PageTitle>دخول - عشير</PageTitle>
@@ -30,7 +31,7 @@
              BackLabel="تغيير الرقم"
              OnRequestOtp="RequestOtp"
              OnVerifyOtp="VerifyOtp"
-             OnBack="@(() => step = 1)">
+             OnBack="@(() => { step = 1; error = ""; })">
     <HintSlot>
         <strong>وضع تجريبي:</strong> الكود أُرسل للـ logs في طرفية Ashare.Api.<br />
         <small>
@@ -53,50 +54,56 @@
     private async Task RequestOtp()
     {
         error = "";
+        if (string.IsNullOrWhiteSpace(phoneNumber)) { error = "أدخل رقم الهاتف"; return; }
         loading = true;
         try
         {
-            var resp = await Api.PostAsync<OtpRequestResult>("/api/auth/sms/request", new { phoneNumber });
-            if (resp.Operation.Status != "Success" || resp.Data == null)
+            var result = await Engine.ExecuteAsync<OtpRequestResult>(
+                ClientOps.RequestOtp(phoneNumber),
+                new { phoneNumber });
+
+            if (result.Operation.Status != "Success" || result.Data == null)
             {
-                error = resp.Error?.Message ?? "فشل طلب الرمز";
+                error = result.Operation.ErrorMessage ?? result.Error?.Message ?? "فشل طلب الرمز";
                 return;
             }
-            challengeId = resp.Data.ChallengeId;
-            userId = resp.Data.UserId;
+            challengeId = result.Data.ChallengeId;
+            userId = result.Data.UserId;
             step = 2;
         }
+        catch (Exception ex) { error = ex.Message; }
         finally { loading = false; }
     }
 
     private async Task VerifyOtp()
     {
         error = "";
+        if (string.IsNullOrWhiteSpace(otpCode)) return;
         loading = true;
         try
         {
-            var resp = await Api.PostAsync<VerifyResult>("/api/auth/sms/verify", new
-            {
-                userId,
-                challengeId,
-                code = otpCode
-            });
+            var result = await Engine.ExecuteAsync<VerifyResult>(
+                ClientOps.VerifyOtp(userId, challengeId, otpCode),
+                new { userId, challengeId, code = otpCode });
 
-            if (resp.Operation.Status != "Success" || resp.Data == null)
+            if (result.Operation.Status != "Success" || result.Data == null)
             {
-                error = resp.Error?.Message ?? "كود غير صحيح";
+                error = result.Operation.ErrorMessage ?? result.Error?.Message ?? "كود غير صحيح";
                 return;
             }
 
-            Auth.SignIn(
-                resp.Data.UserId,
-                resp.Data.PhoneNumber,
-                resp.Data.AccessToken,
-                resp.Data.RefreshToken,
-                resp.Data.ExpiresAt);
+            // Apply state bridge to update Store.Auth via AuthInterpreter
+            await Applier.ApplyAsync(new OperationEnvelope<object>
+            {
+                Data = result.Data,
+                Operation = result.Operation,
+                Error = result.Error,
+                Meta = result.Meta
+            });
 
             Nav.NavigateTo("/");
         }
+        catch (Exception ex) { error = ex.Message; }
         finally { loading = false; }
     }
 
@@ -110,9 +117,8 @@
     public class VerifyResult
     {
         public Guid UserId { get; set; }
-        public string PhoneNumber { get; set; } = "";
+        public string? PhoneNumber { get; set; }
+        public string? FullName { get; set; }
         public string AccessToken { get; set; } = "";
-        public string RefreshToken { get; set; } = "";
-        public DateTimeOffset ExpiresAt { get; set; }
     }
 }

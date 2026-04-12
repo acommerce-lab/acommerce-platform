@@ -1,7 +1,7 @@
 @page "/booking/{id:guid}"
 @rendermode InteractiveServer
-@inject AshareApiClient Api
-@inject AuthStateService Auth
+@inject ApiReader Reader
+@inject ClientOpEngine Engine
 @inject NavigationManager Nav
 
 <PageTitle>حجز #@Id.ToString()[..8]</PageTitle>
@@ -66,7 +66,7 @@ else
 
     private async Task Load()
     {
-        var resp = await Api.GetAsync<BookingDto>($"/api/bookings/{Id}");
+        var resp = await Reader.GetAsync<BookingDto>($"/api/bookings/{Id}");
         booking = resp.Data;
     }
 
@@ -76,24 +76,20 @@ else
         message = "";
         try
         {
-            var initResp = await Api.PostAsync<PaymentInitDto>("/api/payments/initiate", new { bookingId = Id });
-            if (initResp.Data?.Id == null && initResp.Error != null)
-            {
-                // في sandbox Noon غير متاح - نحاكي callback مباشرة
-                // في حالات أخرى نُحاكي نجاح الدفع على أي payment مُنشأ
-                message = "محاكاة الدفع... (Noon غير متاح في sandbox)";
-            }
+            var initResp = await Engine.ExecuteAsync<PaymentInitDto>(
+                ClientOps.InitiatePayment(Id),
+                new { bookingId = Id });
 
-            // محاكاة callback - نبحث عن الـ payment id من الرد إن وُجد
-            // في الواقع Ashare.Api يُرجع الـ payment حتى لو فشل Noon
-            if (initResp.Data?.Id != null)
+            if (initResp.Operation.Status == "Success" && initResp.Data?.Id != null)
             {
-                var cbResp = await Api.PostAsync<object>($"/api/payments/callback/{initResp.Data.Id}?success=true", new { });
-                message = "✅ تم الدفع بنجاح";
+                var cbResp = await Engine.ExecuteAsync<object>(
+                    ClientOps.SimulatePaymentCallback(initResp.Data.Id),
+                    new { });
+                message = cbResp.Operation.Status == "Success" ? "✅ تم الدفع بنجاح" : "فشل محاكاة الدفع";
             }
             else
             {
-                message = "فشل initiate: " + (initResp.Error?.Message ?? "unknown");
+                message = "فشل initiate: " + (initResp.Error?.Message ?? initResp.Operation.ErrorMessage ?? "unknown");
             }
 
             await Load();
@@ -106,7 +102,7 @@ else
         busy = true;
         try
         {
-            await Api.PostAsync<object>($"/api/bookings/{Id}/cancel", new { });
+            await Engine.ExecuteAsync<object>(ClientOps.CancelBooking(Id), new { });
             await Load();
         }
         finally { busy = false; }

@@ -1,7 +1,7 @@
 @page "/my-bookings"
 @rendermode InteractiveServer
-@inject AshareApiClient Api
-@inject AuthStateService Auth
+@inject ApiReader Reader
+@inject AppStore Store
 
 <PageTitle>حجوزاتي - عشير</PageTitle>
 
@@ -47,8 +47,8 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        if (!Auth.UserId.HasValue) { bookings = new(); return; }
-        var resp = await Api.GetAsync<List<BookingDto>>($"/api/bookings/by-customer/{Auth.UserId}");
+        if (!Store.Auth.UserId.HasValue) { bookings = new(); return; }
+        var resp = await Reader.GetAsync<List<BookingDto>>($"/api/bookings/by-customer/{Store.Auth.UserId}");
         bookings = resp.Data ?? new();
     }
 

@@ -1,12 +1,13 @@
 @page "/create-listing"
 @rendermode InteractiveServer
-@inject AshareApiClient Api
-@inject AuthStateService Auth
+@inject ApiReader Reader
+@inject ClientOpEngine Engine
+@inject AppStore Store
 @inject NavigationManager Nav
 
 <PageTitle>عرض جديد - عشير</PageTitle>
 
-@if (!Auth.IsAuthenticated)
+@if (!Store.Auth.IsAuthenticated)
 {
     <div class="alert alert-warning">يجب تسجيل الدخول أولاً <a href="/login">دخول</a></div>
 }
@@ -105,20 +106,21 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        var resp = await Api.GetAsync<List<CategoryDto>>("/api/categories");
+        var resp = await Reader.GetAsync<List<CategoryDto>>("/api/categories");
         categories = resp.Data ?? new();
     }
 
     private async Task Submit()
     {
-        if (!Auth.UserId.HasValue) return;
+        if (!Store.Auth.UserId.HasValue) return;
         error = ""; success = "";
         saving = true;
         try
         {
+            var ownerId = Store.Auth.UserId.Value;
             var payload = new
             {
-                ownerId = Auth.UserId.Value,
+                ownerId,
                 categoryId = form.CategoryId,
                 title = form.Title,
                 description = form.Description,
@@ -136,7 +138,9 @@ else
                 licenseNumber = (string?)null
             };
 
-            var resp = await Api.PostAsync<ListingDto>("/api/listings", payload);
+            var resp = await Engine.ExecuteAsync<ListingDto>(
+                ClientOps.CreateListing(ownerId, form.Title),
+                payload);
 
             if (resp.Operation.Status != "Success" || resp.Data == null)
             {

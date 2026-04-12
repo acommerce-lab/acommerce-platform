@@ -1,13 +1,13 @@
 @page "/my-subscription"
 @rendermode InteractiveServer
-@inject AshareApiClient Api
-@inject AuthStateService Auth
+@inject ApiReader Reader
+@inject AppStore Store
 
 <PageTitle>اشتراكي - عشير</PageTitle>
 
 <h1>اشتراكي الحالي</h1>
 
-@if (!Auth.IsAuthenticated)
+@if (!Store.Auth.IsAuthenticated)
 {
     <div class="alert alert-warning">يجب تسجيل الدخول</div>
 }
@@ -59,8 +59,8 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        if (!Auth.IsAuthenticated) { loading = false; return; }
-        var resp = await Api.GetAsync<ActiveDto>($"/api/subscriptions/user/{Auth.UserId}/active");
+        if (!Store.Auth.IsAuthenticated) { loading = false; return; }
+        var resp = await Reader.GetAsync<ActiveDto>($"/api/subscriptions/user/{Store.Auth.UserId}/active");
         active = resp.Data;
         loading = false;
     }

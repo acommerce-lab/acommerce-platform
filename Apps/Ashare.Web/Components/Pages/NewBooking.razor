@@ -1,7 +1,8 @@
 @page "/booking/new/{listingId:guid}"
 @rendermode InteractiveServer
-@inject AshareApiClient Api
-@inject AuthStateService Auth
+@inject ApiReader Reader
+@inject ClientOpEngine Engine
+@inject AppStore Store
 @inject NavigationManager Nav
 
 <PageTitle>حجز جديد - عشير</PageTitle>
@@ -65,25 +66,21 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        var resp = await Api.GetAsync<ListingDto>($"/api/listings/{ListingId}");
+        var resp = await Reader.GetAsync<ListingDto>($"/api/listings/{ListingId}");
         listing = resp.Data;
     }
 
     private async Task CreateBooking()
     {
-        if (!Auth.UserId.HasValue) return;
+        if (!Store.Auth.UserId.HasValue) return;
         error = "";
         saving = true;
         try
         {
-            var resp = await Api.PostAsync<BookingDto>("/api/bookings", new
-            {
-                listingId = ListingId,
-                customerId = Auth.UserId.Value,
-                startDate,
-                endDate,
-                notes
-            });
+            var customerId = Store.Auth.UserId.Value;
+            var resp = await Engine.ExecuteAsync<BookingDto>(
+                ClientOps.CreateBooking(customerId, ListingId),
+                new { listingId = ListingId, customerId, startDate, endDate, notes });
 
             if (resp.Operation.Status != "Success" || resp.Data == null)
             {
@@ -91,7 +88,6 @@ else
                 return;
             }
 
-            // توجّه لصفحة الحجز للدفع
             Nav.NavigateTo($"/booking/{resp.Data.Id}");
         }
         finally { saving = false; }

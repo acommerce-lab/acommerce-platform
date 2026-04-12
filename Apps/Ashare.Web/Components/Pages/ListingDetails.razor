@@ -1,7 +1,8 @@
 @page "/listing/{id:guid}"
 @rendermode InteractiveServer
-@inject AshareApiClient Api
-@inject AuthStateService Auth
+@inject ApiReader Reader
+@inject ClientOpEngine Engine
+@inject AppStore Store
 @inject NavigationManager Nav
 
 <PageTitle>تفاصيل العرض - عشير</PageTitle>
@@ -35,7 +36,7 @@ else
                     <h3 class="text-primary">@listing.Price.ToString("N0") @listing.Currency</h3>
                     <p class="text-muted">/ @listing.TimeUnit</p>
 
-                    @if (Auth.IsAuthenticated)
+                    @if (Store.Auth.IsAuthenticated)
                     {
                         <button class="btn btn-primary w-100 mb-2" @onclick="StartBooking">احجز الآن</button>
                         <button class="btn btn-outline-primary w-100" @onclick="StartChat">راسل المالك</button>
@@ -60,7 +61,7 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        var resp = await Api.GetAsync<ListingDto>($"/api/listings/{Id}");
+        var resp = await Reader.GetAsync<ListingDto>($"/api/listings/{Id}");
         listing = resp.Data;
         loading = false;
     }
@@ -72,11 +73,9 @@ else
 
     private async Task StartChat()
     {
-        var resp = await Api.PostAsync<ConversationDto>("/api/messages/conversations", new
-        {
-            listingId = Id,
-            customerId = Auth.UserId
-        });
+        var resp = await Engine.ExecuteAsync<ConversationDto>(
+            ClientOps.StartConversation(Id, Store.Auth.UserId),
+            new { listingId = Id, customerId = Store.Auth.UserId });
         if (resp.Data != null)
             Nav.NavigateTo($"/conversation/{resp.Data.Id}");
     }

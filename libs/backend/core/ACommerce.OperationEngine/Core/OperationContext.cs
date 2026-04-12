@@ -1,3 +1,5 @@
+using Microsoft.Extensions.DependencyInjection;
+
 namespace ACommerce.OperationEngine.Core;
 
 /// <summary>
@@ -33,6 +35,12 @@ public class OperationContext
     }
 
     public T GetService<T>() where T : notnull => (T)Services.GetService(typeof(T))!;
+
+    /// <summary>
+    /// يحلّ عقد مزوّد مُعلَن مسبقاً بـ Requires&lt;T&gt;() في الباني.
+    /// اختصار واضح الاسم بدلاً من GetService مباشرةً داخل Execute.
+    /// </summary>
+    public T Provider<T>() where T : notnull => Services.GetRequiredService<T>();
     public void Set<T>(string key, T value) => Items[key] = value!;
     public T Get<T>(string key) => (T)Items[key];
     public bool TryGet<T>(string key, out T? value)

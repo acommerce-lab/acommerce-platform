@@ -1,7 +1,8 @@
 @page "/plans"
 @rendermode InteractiveServer
-@inject AshareApiClient Api
-@inject AuthStateService Auth
+@inject ApiReader Reader
+@inject ClientOpEngine Engine
+@inject AppStore Store
 @inject NavigationManager Nav
 
 <PageTitle>الباقات - عشير</PageTitle>
@@ -31,7 +32,7 @@ else
                     @if (p.AllowApiAccess) { <li>✅ وصول API</li> }
                 </Features>
                 <Action>
-                    @if (Auth.IsAuthenticated)
+                    @if (Store.Auth.IsAuthenticated)
                     {
                         <AcButton Text="اشترك" Block="true"
                                   Loading="@(subscribing == p.Id)"
@@ -63,23 +64,21 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        var resp = await Api.GetAsync<List<PlanDto>>("/api/plans");
+        var resp = await Reader.GetAsync<List<PlanDto>>("/api/plans");
         plans = resp.Data ?? new();
     }
 
     private async Task Subscribe(Guid planId)
     {
-        if (!Auth.UserId.HasValue) return;
+        if (!Store.Auth.UserId.HasValue) return;
         subscribing = planId;
         message = "";
         try
         {
-            var resp = await Api.PostAsync<SubscribeResult>("/api/subscriptions", new
-            {
-                userId = Auth.UserId.Value,
-                planId,
-                billingCycle = "monthly"
-            });
+            var userId = Store.Auth.UserId.Value;
+            var resp = await Engine.ExecuteAsync<SubscribeResult>(
+                ClientOps.Subscribe(userId, planId),
+                new { userId, planId, billingCycle = "monthly" });
 
             if (resp.Operation.Status == "Success")
             {
@@ -89,7 +88,7 @@ else
             }
             else
             {
-                message = "فشل: " + resp.Operation.ErrorMessage;
+                message = "فشل: " + (resp.Operation.ErrorMessage ?? resp.Error?.Message ?? "خطأ غير معروف");
             }
         }
         finally { subscribing = null; }

@@ -1,6 +1,6 @@
 @page "/"
 @rendermode InteractiveServer
-@inject AshareApiClient Api
+@inject ApiReader Reader
 @inject NavigationManager Nav
 
 <PageTitle>العروض - عشير</PageTitle>
@@ -69,7 +69,7 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        var catResp = await Api.GetAsync<List<CategoryDto>>("/api/categories");
+        var catResp = await Reader.GetAsync<List<CategoryDto>>("/api/categories");
         categories = catResp.Data ?? new();
         await LoadAsync();
     }
@@ -82,7 +82,7 @@ else
         if (!string.IsNullOrEmpty(city)) qs.Add($"city={Uri.EscapeDataString(city)}");
         var query = qs.Count > 0 ? "?" + string.Join("&", qs) : "";
 
-        var resp = await Api.GetAsync<PagedResult>("/api/listings" + query);
+        var resp = await Reader.GetAsync<PagedResult>("/api/listings" + query);
         listings = resp.Data?.Items ?? new();
         loading = false;
     }

@@ -1,13 +1,13 @@
 @inherits LayoutComponentBase
-@inject AuthStateService Auth
+@inject AppStore Store
+@inject AppStateApplier Applier
 @implements IDisposable
 
-@* استخدام AcShell من مكتبة templates - الهوية تأتي من app.css :root *@
 <AcShell Brand="🏠 عشير" FooterText="عشير - مبني على ACommerce OperationEngine">
     <Links>
         <a class="act-navbar-link" href="/">العروض</a>
         <a class="act-navbar-link" href="/plans">الباقات</a>
-        @if (Auth.IsAuthenticated)
+        @if (Store.Auth.IsAuthenticated)
         {
             <a class="act-navbar-link" href="/create-listing">+ عرض جديد</a>
             <a class="act-navbar-link" href="/my-bookings">حجوزاتي</a>
@@ -17,9 +17,9 @@
         }
     </Links>
     <RightActions>
-        @if (Auth.IsAuthenticated)
+        @if (Store.Auth.IsAuthenticated)
         {
-            <span class="ac-text-muted">@Auth.PhoneNumber</span>
+            <span class="ac-text-muted">@Store.Auth.PhoneNumber</span>
             <AcButton Variant="ghost" Size="sm" Text="خروج" OnClick="SignOut" />
         }
         else
@@ -35,18 +35,18 @@
 @code {
     protected override void OnInitialized()
     {
-        Auth.OnAuthStateChanged += OnChange;
+        Store.OnChanged += OnChange;
     }
 
     private void OnChange() => InvokeAsync(StateHasChanged);
 
-    private void SignOut()
+    private async Task SignOut()
     {
-        Auth.SignOut();
+        await Applier.ApplyLocalAsync(ClientOps.SignOut());
     }
 
     public void Dispose()
     {
-        Auth.OnAuthStateChanged -= OnChange;
+        Store.OnChanged -= OnChange;
     }
 }
