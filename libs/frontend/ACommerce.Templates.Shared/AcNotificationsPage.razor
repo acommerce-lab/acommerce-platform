@@ -45,7 +45,7 @@
         }
         else
         {
-            <AcEmptyState Icon="🔔"
+            <AcEmptyState IconName="bell"
                           Title="@(EmptyTitle ?? "لا توجد إشعارات")"
                           Message="@(EmptyMessage ?? "سيظهر هنا كل جديد")" />
         }
@@ -56,7 +56,7 @@
         {
             <div class="s-card acs-noti @(n.IsRead ? "" : "unread")"
                  @onclick="() => HandleSelect(n)">
-                <div class="acs-ni-icon @TypeClass(n.Type)">@TypeIcon(n.Type)</div>
+                <div class="acs-ni-icon @TypeClass(n.Type)"><AcIcon Name="@TypeIconName(n.Type)" Size="20" StrokeWidth="1.5" /></div>
                 <div class="acs-ni-body">
                     <div class="acs-ni-top">
                         <div class="acs-ni-title">@n.Title</div>
@@ -112,12 +112,12 @@
         _ => "t-general"
     };
 
-    private static string TypeIcon(string? t) => t switch
+    private static string TypeIconName(string? t) => t switch
     {
-        "promo" => "🎁",
-        "order" => "📦",
-        "message" => "💬",
-        _ => "🔔"
+        "promo" => "tag",
+        "order" => "package",
+        "message" => "message",
+        _ => "bell"
     };
 
     private static string FormatTime(DateTime dt)

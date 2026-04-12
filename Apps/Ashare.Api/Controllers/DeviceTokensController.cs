@@ -1,3 +1,5 @@
+using ACommerce.OperationEngine.Core;
+using ACommerce.OperationEngine.Patterns;
 using ACommerce.SharedKernel.Abstractions.Repositories;
 using Ashare.Api.Entities;
 using Microsoft.AspNetCore.Mvc;
@@ -9,10 +11,12 @@ namespace Ashare.Api.Controllers;
 public class DeviceTokensController : ControllerBase
 {
     private readonly IBaseAsyncRepository<DeviceToken> _repo;
+    private readonly OpEngine _engine;
 
-    public DeviceTokensController(IRepositoryFactory factory)
+    public DeviceTokensController(IRepositoryFactory factory, OpEngine engine)
     {
         _repo = factory.CreateRepository<DeviceToken>();
+        _engine = engine;
     }
 
     public record RegisterTokenRequest(Guid UserId, string Token, string Platform);
@@ -27,7 +31,22 @@ public class DeviceTokensController : ControllerBase
             t.LastSeenAt = DateTime.UtcNow;
             t.IsActive = true;
             t.UserId = req.UserId;
-            await _repo.UpdateAsync(t, ct);
+
+            var updateOp = Entry.Create("device.register")
+                .Describe($"Re-register device token for User:{req.UserId}")
+                .From($"User:{req.UserId}", 1, ("role", "owner"))
+                .To($"Device:{t.Id}", 1, ("role", "token"))
+                .Tag("platform", req.Platform)
+                .Tag("action", "update")
+                .Execute(async ctx =>
+                {
+                    await _repo.UpdateAsync(t, ctx.CancellationToken);
+                })
+                .Build();
+
+            var updateResult = await _engine.ExecuteAsync(updateOp, ct);
+            if (!updateResult.Success) return this.BadRequestEnvelope("device_register_failed", updateResult.ErrorMessage);
+
             return this.OkEnvelope("device_token.update", t);
         }
 
@@ -40,7 +59,22 @@ public class DeviceTokensController : ControllerBase
             Platform = req.Platform,
             LastSeenAt = DateTime.UtcNow
         };
-        await _repo.AddAsync(entity, ct);
+
+        var op = Entry.Create("device.register")
+            .Describe($"Register new device token for User:{req.UserId}")
+            .From($"User:{req.UserId}", 1, ("role", "owner"))
+            .To($"Device:{entity.Id}", 1, ("role", "token"))
+            .Tag("platform", req.Platform)
+            .Tag("action", "create")
+            .Execute(async ctx =>
+            {
+                await _repo.AddAsync(entity, ctx.CancellationToken);
+            })
+            .Build();
+
+        var result = await _engine.ExecuteAsync(op, ct);
+        if (!result.Success) return this.BadRequestEnvelope("device_register_failed", result.ErrorMessage);
+
         return this.OkEnvelope("device_token.register", entity);
     }
 
@@ -55,11 +89,25 @@ public class DeviceTokensController : ControllerBase
     public async Task<IActionResult> Unregister(string token, CancellationToken ct)
     {
         var matches = await _repo.GetAllWithPredicateAsync(t => t.Token == token);
-        foreach (var t in matches)
-        {
-            t.IsActive = false;
-            await _repo.UpdateAsync(t, ct);
-        }
+
+        var op = Entry.Create("device.unregister")
+            .Describe($"Unregister device token ({matches.Count} match(es))")
+            .From("System", matches.Count, ("role", "system"))
+            .To($"Token:{token[..Math.Min(token.Length, 8)]}", matches.Count, ("role", "token"))
+            .Tag("token_count", matches.Count.ToString())
+            .Execute(async ctx =>
+            {
+                foreach (var t in matches)
+                {
+                    t.IsActive = false;
+                    await _repo.UpdateAsync(t, ctx.CancellationToken);
+                }
+            })
+            .Build();
+
+        var result = await _engine.ExecuteAsync(op, ct);
+        if (!result.Success) return this.BadRequestEnvelope("device_unregister_failed", result.ErrorMessage);
+
         return this.NoContentEnvelope("device_token.unregister");
     }
 }

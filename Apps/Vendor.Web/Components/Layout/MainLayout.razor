@@ -1,0 +1,61 @@
+@inherits LayoutComponentBase
+@inject AppStore Store
+@inject IJSRuntime JS
+@implements IDisposable
+
+<div class="vnd-shell">
+    <main class="vnd-main">
+        @Body
+    </main>
+
+    <nav class="vnd-bottom-nav">
+        <NavLink href="/" Match="NavLinkMatch.All" class="vnd-nav-item">
+            <AcIcon Name="home" Size="20" />
+            <span>@(Store.Ui.IsArabic ? "الرئيسية" : "Home")</span>
+        </NavLink>
+        <NavLink href="/orders" class="vnd-nav-item">
+            <AcIcon Name="receipt" Size="20" />
+            <span>@(Store.Ui.IsArabic ? "الطلبات" : "Orders")</span>
+        </NavLink>
+        <NavLink href="/offers" class="vnd-nav-item">
+            <AcIcon Name="tag" Size="20" />
+            <span>@(Store.Ui.IsArabic ? "العروض" : "Offers")</span>
+        </NavLink>
+        <NavLink href="/messages" class="vnd-nav-item">
+            <AcIcon Name="message" Size="20" />
+            <span>@(Store.Ui.IsArabic ? "الرسائل" : "Messages")</span>
+        </NavLink>
+        <NavLink href="@(Store.Auth.IsAuthenticated ? "/profile" : "/login")" class="vnd-nav-item">
+            <AcIcon Name="user" Size="20" />
+            <span>@(Store.Ui.IsArabic ? "حسابي" : "Profile")</span>
+        </NavLink>
+    </nav>
+</div>
+
+@code {
+    private string _lastTheme = "";
+    private string _lastLang  = "";
+
+    protected override void OnInitialized()
+    {
+        Store.OnChanged += OnChange;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _lastTheme = Store.Ui.Theme;
+            _lastLang  = Store.Ui.Language;
+        }
+        if (_lastTheme != Store.Ui.Theme) { _lastTheme = Store.Ui.Theme; try { await JS.InvokeVoidAsync("acTheme.set", Store.Ui.Theme); } catch { } }
+        if (_lastLang != Store.Ui.Language) { _lastLang = Store.Ui.Language; try { await JS.InvokeVoidAsync("acLang.set", Store.Ui.Language); } catch { } }
+    }
+
+    private void OnChange() => InvokeAsync(StateHasChanged);
+
+    public void Dispose()
+    {
+        Store.OnChanged -= OnChange;
+    }
+}

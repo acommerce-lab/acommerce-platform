@@ -1,15 +1,20 @@
-@inject UiPreferences Ui
+@inject AppStore Store
 
 <!DOCTYPE html>
-<html lang="@(Ui.IsArabic ? "ar" : "en")"
-      dir="@(Ui.IsArabic ? "rtl" : "ltr")"
-      data-theme="@Ui.Theme">
+<html lang="@(Store.Ui.IsArabic ? "ar" : "en")"
+      dir="@(Store.Ui.IsArabic ? "rtl" : "ltr")"
+      data-theme="@Store.Ui.Theme">
 
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <base href="/" />
     <title>اوردر — Order</title>
+
+    @* Google Fonts — Tajawal for Arabic, Inter for Latin *@
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Tajawal:wght@400;500;700;800&display=swap" />
 
     @* 1. widgets defaults — variables + atomic styles + Bootstrap-compat layer *@
     <link rel="stylesheet" href="_content/ACommerce.Widgets/widgets.css" />
@@ -34,6 +39,7 @@
 
 <body>
     <Routes @rendermode="@RenderMode.InteractiveServer" />
+    <script src="js/theme.js"></script>
     <script src="_framework/blazor.web.js"></script>
 </body>
 

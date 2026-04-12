@@ -1,0 +1,57 @@
+@page "/messages"
+@inject VendorApiClient Api
+@inject AppStore Store
+@inject NavigationManager Nav
+
+<PageTitle>@(Store.Ui.IsArabic ? "الرسائل" : "Messages")</PageTitle>
+
+@if (!Store.Auth.IsAuthenticated)
+{
+    <AcEmptyState IconName="message" Title="@(Store.Ui.IsArabic ? "سجّل دخولك" : "Sign in")" ActionHref="/login" ActionLabel="@(Store.Ui.IsArabic ? "دخول" : "Sign in")" />
+}
+else
+{
+    <AcMessagesListPage Conversations="@Mapped"
+                        Loading="@Loading"
+                        Title="@(Store.Ui.IsArabic ? "رسائل العملاء" : "Customer messages")"
+                        LoadingMessage="@(Store.Ui.IsArabic ? "جاري التحميل..." : "Loading…")"
+                        EmptyTitle="@(Store.Ui.IsArabic ? "لا رسائل" : "No messages")"
+                        EmptyMessage="@(Store.Ui.IsArabic ? "رسائل العملاء ستظهر هنا" : "Customer messages appear here")"
+                        OnSelectConversation="@(c => Nav.NavigateTo($"/chat/{c.Id}"))" />
+}
+
+@code {
+    private List<ConvApi> Conversations = new();
+    private bool Loading = true;
+
+    private IReadOnlyList<ConversationRowDto> Mapped =>
+        Conversations
+            .Where(c => c.LastMessageAt.HasValue)
+            .Select(c => new ConversationRowDto
+            {
+                Id = c.Id.ToString(), Title = c.Title, Emoji = c.Emoji,
+                LastMessageSnippet = c.LastMessageSnippet, LastMessageAt = c.LastMessageAt,
+                Unread = c.Unread
+            }).ToList();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        if (Store.Auth.IsAuthenticated)
+        {
+            var env = await Api.GetAsync<List<ConvApi>>($"/api/messages/conversations/by-user/{Store.Auth.UserId}");
+            Conversations = env.Data ?? new();
+        }
+        Loading = false; StateHasChanged();
+    }
+
+    public class ConvApi
+    {
+        public Guid Id { get; set; }
+        public string Title { get; set; } = "";
+        public string Emoji { get; set; } = "👤";
+        public string? LastMessageSnippet { get; set; }
+        public DateTime? LastMessageAt { get; set; }
+        public int Unread { get; set; }
+    }
+}

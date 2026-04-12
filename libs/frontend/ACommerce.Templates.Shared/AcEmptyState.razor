@@ -1,14 +1,28 @@
 @namespace ACommerce.Templates.Shared
 
 @*
-    Empty-state template. Consumers inject branding via Icon/Title/Message
-    and can add extra rows/buttons via the flex slots.
+    Empty-state template.
 
-    Flex slots: ExtraContent (below message), BelowAction (below primary button)
+    Icon source priority (highest first):
+      1. IconSlot       — fully custom RenderFragment for rare cases
+      2. IconName       — name of a built-in AcIcon (e.g. "inbox", "heart")
+      3. Icon (string)  — raw markup / emoji fallback for legacy callers
+
+    Flex slots: IconSlot, ExtraContent (below message), BelowAction
 *@
 
 <div class="acs-empty @(ExtraClass ?? "")">
-    @if (!string.IsNullOrEmpty(Icon))
+    @if (IconSlot != null)
+    {
+        <div class="acs-empty-icon">@IconSlot</div>
+    }
+    else if (!string.IsNullOrEmpty(IconName))
+    {
+        <div class="acs-empty-icon acs-empty-icon-line">
+            <AcIcon Name="@IconName" Size="48" StrokeWidth="1.5" />
+        </div>
+    }
+    else if (!string.IsNullOrEmpty(Icon))
     {
         <div class="acs-empty-icon">@((MarkupString)Icon)</div>
     }
@@ -42,6 +56,9 @@
 </div>
 
 @code {
+    /// <summary>Name of a built-in <see cref="AcIcon"/> (e.g. "inbox", "heart"). Preferred over Icon.</summary>
+    [Parameter] public string? IconName { get; set; }
+    /// <summary>Legacy: raw icon markup / emoji. Ignored if <see cref="IconName"/> or <see cref="IconSlot"/> is set.</summary>
     [Parameter] public string? Icon { get; set; }
     [Parameter] public string? Title { get; set; }
     [Parameter] public string? Message { get; set; }
@@ -49,7 +66,9 @@
     [Parameter] public string? ActionHref { get; set; }
     [Parameter] public EventCallback OnAction { get; set; }
     [Parameter] public string? ExtraClass { get; set; }
+
     // Flex slots
+    [Parameter] public RenderFragment? IconSlot { get; set; }
     [Parameter] public RenderFragment? ExtraContent { get; set; }
     [Parameter] public RenderFragment? BelowAction { get; set; }
 }

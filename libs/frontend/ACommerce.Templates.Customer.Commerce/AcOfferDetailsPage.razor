@@ -19,7 +19,7 @@
 }
 else if (Offer is null)
 {
-    <AcEmptyState Icon="🔍"
+    <AcEmptyState IconName="search"
                   Title="@(NotFoundTitle ?? "العرض غير موجود")"
                   ActionLabel="@(BackLabel ?? "رجوع")"
                   ActionHref="@BackHref" />
@@ -30,12 +30,12 @@ else
         <div class="acc-offer-hero">
             @if (!string.IsNullOrEmpty(BackHref))
             {
-                <a class="acc-back-btn" href="@BackHref">←</a>
+                <a class="acc-back-btn" href="@BackHref"><AcIcon Name="arrow-left" Size="20" /></a>
             }
             @if (OnToggleFavorite.HasDelegate)
             {
                 <button class="acc-fav-btn @(InFavorites ? "active" : "")" @onclick="OnToggleFavorite">
-                    @(InFavorites ? "♥" : "♡")
+                    <AcIcon Name="heart" Size="20" Filled="@InFavorites" />
                 </button>
             }
             <div class="acc-offer-hero-emoji">@(Offer.Emoji ?? "🍽️")</div>
@@ -88,15 +88,15 @@ else
                 <div class="acc-section-label">@(StoreInfoLabel ?? "معلومات المتجر")</div>
                 @if (!string.IsNullOrEmpty(Offer.Vendor.City))
                 {
-                    <div class="acc-vendor-row">📍 @Offer.Vendor.City@(string.IsNullOrEmpty(Offer.Vendor.District) ? "" : " - " + Offer.Vendor.District)</div>
+                    <div class="acc-vendor-row"><AcIcon Name="map-pin" Size="16" /> @Offer.Vendor.City@(string.IsNullOrEmpty(Offer.Vendor.District) ? "" : " - " + Offer.Vendor.District)</div>
                 }
                 @if (!string.IsNullOrEmpty(Offer.Vendor.OpenHours))
                 {
-                    <div class="acc-vendor-row">🕐 @Offer.Vendor.OpenHours</div>
+                    <div class="acc-vendor-row"><AcIcon Name="clock" Size="16" /> @Offer.Vendor.OpenHours</div>
                 }
                 @if (!string.IsNullOrEmpty(Offer.Vendor.Phone))
                 {
-                    <div class="acc-vendor-row" dir="ltr">📞 @Offer.Vendor.Phone</div>
+                    <div class="acc-vendor-row" dir="ltr"><AcIcon Name="phone" Size="16" /> @Offer.Vendor.Phone</div>
                 }
                 @VendorExtra
             </div>
@@ -113,7 +113,7 @@ else
             @if (OnChatWithStore.HasDelegate)
             {
                 <button class="btn btn-ghost btn-block" @onclick="OnChatWithStore">
-                    @(ChatLabel ?? "💬 راسل المتجر")
+                    <AcIcon Name="message" Size="18" /> @(ChatLabel ?? "راسل المتجر")
                 </button>
             }
         </div>

@@ -6,7 +6,9 @@
 *@
 
 <div class="acs-empty acs-error">
-    <div class="acs-empty-icon">@((MarkupString)(Icon ?? "⚠️"))</div>
+    <div class="acs-empty-icon acs-empty-icon-line">
+        <AcIcon Name="alert-circle" Size="48" StrokeWidth="1.5" />
+    </div>
     <h3 class="acs-empty-title">@(Title ?? "حدث خطأ")</h3>
     @if (!string.IsNullOrEmpty(Message))
     {
@@ -23,7 +25,6 @@
 </div>
 
 @code {
-    [Parameter] public string? Icon { get; set; }
     [Parameter] public string? Title { get; set; }
     [Parameter] public string? Message { get; set; }
     [Parameter] public string? RetryLabel { get; set; }

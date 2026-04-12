@@ -1,97 +1,116 @@
 /* =========================================================================
-   اوردر — Order brand identity
+   اوردر — Neutral-first professional theme
    =========================================================================
-   This file is the consuming-app override of the widgets cascade. By
-   re-declaring --ac-* on :root we re-paint every AcButton/AcCard/AcAlert
-   AND every Bootstrap-class element from the compatibility layer with
-   the warm Order palette (orange #FF6B35 + amber #F7931E). Switching
-   "data-theme" on <html> to "dark" instantly flips the entire shell.
+   Principle: the brand color (orange) is reserved for small, high-signal
+   accents — primary CTAs, active tab indicators, the cart FAB, focus rings.
+   Everything else is a neutral gray/white palette. Think YouTube / Linear /
+   Notion, not a brochure. Dark mode flips the neutral tokens only; the
+   brand color stays the same so the CTA keeps its identity.
    ========================================================================= */
 :root {
-    /* Brand */
-    --ac-primary:        #FF6B35;
-    --ac-primary-hover:  #E55A2B;
-    --ac-on-primary:     #ffffff;
-    --ac-secondary:      #F7931E;
-    --ac-secondary-hover:#D67C15;
-    --ac-on-secondary:   #ffffff;
+    /* ── Brand identity (used sparingly, <10% of the surface) ────────── */
+    --ac-primary:         #FF6B35;
+    --ac-primary-hover:   #E55A2B;
+    --ac-primary-soft:    #FFF3EC;       /* ~8% tint for hover bgs */
+    --ac-on-primary:      #FFFFFF;
+    --ac-secondary:       #F7931E;
+    --ac-secondary-hover: #D67C15;
+    --ac-on-secondary:    #FFFFFF;
 
-    /* Surfaces (light) */
-    --ac-bg:        #FFFAF6;
-    --ac-bg-alt:    #FFF1E6;
-    --ac-surface:   #ffffff;
-    --ac-border:    #F2DCC9;
-    --ac-border-dark:#D9B999;
+    /* ── Neutral surfaces (the other 90%) ─────────────────────────────── */
+    --ac-bg:         #F7F8FA;   /* page background */
+    --ac-bg-alt:     #F1F3F6;   /* subtle alt surface */
+    --ac-surface:    #FFFFFF;   /* cards, inputs, sheets */
+    --ac-surface-2:  #FAFBFC;   /* slightly sunk cells */
+    --ac-border:     #E5E7EB;   /* hairline dividers */
+    --ac-border-dark:#D1D5DB;   /* emphasized borders */
 
-    /* Text */
-    --ac-text:        #1F1A16;
-    --ac-text-muted:  #8A7060;
+    /* ── Text ──────────────────────────────────────────────────────────── */
+    --ac-text:        #0F172A;
+    --ac-text-muted:  #64748B;
+    --ac-text-faint:  #94A3B8;
 
-    /* Status */
-    --ac-success: #4CAF50;
-    --ac-warning: #FF9800;
-    --ac-danger:  #F44336;
-    --ac-info:    #2196F3;
+    /* ── Status (muted; used only in pills/badges) ────────────────────── */
+    --ac-success: #16A34A;
+    --ac-warning: #D97706;
+    --ac-danger:  #DC2626;
+    --ac-info:    #2563EB;
 
-    /* Geometry */
+    /* ── Geometry ──────────────────────────────────────────────────────── */
     --ac-radius-sm: 0.4rem;
-    --ac-radius-md: 0.85rem;
-    --ac-radius-lg: 1.25rem;
-    --ac-shadow-sm: 0 1px 3px rgba(255,107,53,0.08);
-    --ac-shadow-md: 0 6px 18px rgba(255,107,53,0.14);
-    --ac-shadow-lg: 0 14px 36px rgba(255,107,53,0.18);
+    --ac-radius-md: 0.75rem;
+    --ac-radius-lg: 1rem;
+    --ac-shadow-sm: 0 1px 2px rgba(15,23,42,0.04), 0 1px 3px rgba(15,23,42,0.04);
+    --ac-shadow-md: 0 4px 10px -2px rgba(15,23,42,0.06), 0 2px 4px -2px rgba(15,23,42,0.04);
+    --ac-shadow-lg: 0 14px 28px -6px rgba(15,23,42,0.10);
 
-    /* Typography */
-    --ac-font-family: 'Segoe UI', 'Noto Kufi Arabic', Tahoma, Arial, sans-serif;
+    /* ── Typography ────────────────────────────────────────────────────── */
+    --ac-font-family: 'Tajawal', 'Inter', -apple-system, BlinkMacSystemFont,
+                      'Segoe UI', Tahoma, sans-serif;
+    --ac-font-weight-normal: 400;
+    --ac-font-weight-bold:   500;
 
-    /* Order shell tokens */
-    --ord-shell-max: 540px;
-    --ord-bottom-nav: 72px;
-    --ord-hero-grad: linear-gradient(135deg, #FF6B35 0%, #F7931E 100%);
+    /* ── Order shell ───────────────────────────────────────────────────── */
+    --ord-shell-max:   540px;
+    --ord-bottom-nav:  72px;
+    /* Brand gradient — reserved for the FAB cart button only */
+    --ord-accent-grad: linear-gradient(135deg, #FF6B35 0%, #F7931E 100%);
 }
 
-/* Dark theme — toggled by writing data-theme="dark" on <html> */
+/* ── Dark mode ─────────────────────────────────────────────────────────── */
 html[data-theme="dark"] {
-    --ac-bg:        #1A130F;
-    --ac-bg-alt:    #221812;
-    --ac-surface:   #2A1E16;
-    --ac-border:    #3D2A1E;
-    --ac-border-dark:#5A4030;
-    --ac-text:       #FFF5EE;
-    --ac-text-muted: #C9AC97;
-    --ac-shadow-sm: 0 1px 3px rgba(0,0,0,0.5);
-    --ac-shadow-md: 0 6px 18px rgba(0,0,0,0.55);
-    --ac-shadow-lg: 0 14px 36px rgba(0,0,0,0.6);
+    --ac-bg:         #0B0F17;
+    --ac-bg-alt:     #111827;
+    --ac-surface:    #151A24;
+    --ac-surface-2:  #1B2130;
+    --ac-border:     #283244;
+    --ac-border-dark:#3D4759;
+    --ac-text:         #F1F5F9;
+    --ac-text-muted:   #94A3B8;
+    --ac-text-faint:   #64748B;
+    --ac-primary-soft: rgba(255,107,53,0.14);
+    --ac-shadow-sm: 0 1px 2px rgba(0,0,0,0.45);
+    --ac-shadow-md: 0 6px 14px rgba(0,0,0,0.5);
+    --ac-shadow-lg: 0 18px 36px rgba(0,0,0,0.6);
 }
 
-html, body {
+html {
+    /* 14px base — professional density. All rem values auto-scale. */
+    font-size: 14px;
+}
+body {
     margin: 0;
     padding: 0;
     min-height: 100vh;
     background: var(--ac-bg);
     color: var(--ac-text);
     font-family: var(--ac-font-family);
+    font-size: 1rem;
+    line-height: 1.5;
+    letter-spacing: 0.01em;
     -webkit-font-smoothing: antialiased;
+    transition: background-color 180ms ease, color 180ms ease;
 }
 
-a { color: var(--ac-primary); }
-a:hover { color: var(--ac-primary-hover); }
+a { color: var(--ac-primary); text-decoration: none; }
+a:hover { color: var(--ac-primary-hover); text-decoration: underline; }
 img { max-width: 100%; }
 
 /* =========================================================================
-   Order app shell  (single-column, mobile-first, centered on desktop)
+   Order app shell — single mobile column, centered on desktop
    ========================================================================= */
 .ord-shell {
     max-width: var(--ord-shell-max);
     min-height: 100vh;
     margin: 0 auto;
     background: var(--ac-bg);
-    box-shadow: 0 0 60px rgba(255,107,53,0.10);
+    box-shadow: 0 0 40px rgba(15,23,42,0.04);
     display: flex;
     flex-direction: column;
     position: relative;
     overflow-x: hidden;
 }
+html[data-theme="dark"] .ord-shell { box-shadow: 0 0 80px rgba(0,0,0,0.5); }
 
 .ord-main {
     flex: 1;
@@ -112,7 +131,7 @@ img { max-width: 100%; }
     align-items: center;
     justify-content: space-around;
     z-index: 100;
-    box-shadow: 0 -4px 18px rgba(0,0,0,0.05);
+    box-shadow: 0 -2px 12px rgba(15,23,42,0.04);
 }
 html[dir="rtl"] .ord-bottom-nav { transform: translateX(50%); }
 
@@ -122,34 +141,30 @@ html[dir="rtl"] .ord-bottom-nav { transform: translateX(50%); }
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 4px;
+    gap: 2px;
     color: var(--ac-text-muted);
     text-decoration: none;
     padding: 6px 4px;
-    font-size: 0.72rem;
-    font-weight: 600;
+    font-size: 0.68rem;
+    font-weight: 500;
     transition: color 150ms;
 }
-.ord-nav-item i { font-size: 1.35rem; }
-.ord-nav-item:hover { color: var(--ac-primary-hover); }
+.ord-nav-item:hover { color: var(--ac-text); }
 .ord-nav-item.active { color: var(--ac-primary); }
 
+/* The only place the brand gradient dominates — the center cart FAB. */
 .ord-nav-cart .ord-nav-cart-btn {
-    width: 52px;
-    height: 52px;
+    width: 56px;
+    height: 56px;
     border-radius: 50%;
-    background: var(--ord-hero-grad);
+    background: var(--ord-accent-grad);
     color: #fff;
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 6px 18px rgba(255,107,53,0.45);
+    box-shadow: 0 8px 22px rgba(255,107,53,0.32);
     margin-top: -28px;
     position: relative;
-}
-.ord-nav-cart .ord-nav-cart-btn i { font-size: 1.45rem; }
-.ord-nav-cart.active .ord-nav-cart-btn {
-    background: linear-gradient(135deg, #E55A2B 0%, #D67C15 100%);
 }
 .ord-cart-badge {
     position: absolute;
@@ -169,250 +184,147 @@ html[dir="rtl"] .ord-bottom-nav { transform: translateX(50%); }
 }
 
 /* =========================================================================
-   Page chrome utilities — used by every page
+   Neutralize template hero — no more huge orange gradient
    ========================================================================= */
-.page-container { padding: 16px; }
-
-.page-hero {
-    background: var(--ord-hero-grad);
-    color: #fff;
-    padding: 24px 18px 28px;
-    border-radius: 0 0 28px 28px;
-    margin-bottom: 14px;
-    position: relative;
-}
-.page-hero h1 {
-    margin: 0 0 4px;
-    font-size: 1.55rem;
-    font-weight: 800;
-    color: #fff;
-}
-.page-hero p {
-    margin: 0;
-    color: rgba(255,255,255,0.92);
-    font-size: 0.92rem;
-}
-.page-hero .hero-actions {
-    margin-top: 14px;
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
-}
-
-.page-title {
-    margin: 16px 16px 6px;
-    font-size: 1.3rem;
-    font-weight: 800;
-    color: var(--ac-text);
-}
-.page-subtitle {
-    margin: 0 16px 14px;
-    color: var(--ac-text-muted);
-    font-size: 0.88rem;
-}
-
-/* =========================================================================
-   Category pills (horizontally scrollable)
-   ========================================================================= */
-.cat-row {
-    display: flex;
-    gap: 8px;
-    overflow-x: auto;
-    padding: 4px 16px 14px;
-    -webkit-overflow-scrolling: touch;
-}
-.cat-row::-webkit-scrollbar { display: none; }
-.cat-pill {
-    flex-shrink: 0;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 8px 14px;
+.acc-hero {
     background: var(--ac-surface);
-    border: 1px solid var(--ac-border);
-    border-radius: 999px;
     color: var(--ac-text);
-    font-weight: 600;
-    font-size: 0.85rem;
-    cursor: pointer;
-    transition: all 150ms;
-}
-.cat-pill:hover { border-color: var(--ac-primary); }
-.cat-pill.active {
-    background: var(--ord-hero-grad);
-    color: #fff;
-    border-color: transparent;
-    box-shadow: 0 4px 12px rgba(255,107,53,0.25);
-}
-
-/* =========================================================================
-   Offer card (used on home + favorites + search)
-   ========================================================================= */
-.offer-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-    padding: 0 16px 16px;
-}
-.offer-card {
-    background: var(--ac-surface);
     border: 1px solid var(--ac-border);
-    border-radius: 18px;
-    overflow: hidden;
     box-shadow: var(--ac-shadow-sm);
-    text-decoration: none;
-    color: var(--ac-text);
-    transition: transform 120ms, box-shadow 150ms;
-    display: flex;
-    flex-direction: column;
-}
-.offer-card:hover { transform: translateY(-2px); box-shadow: var(--ac-shadow-md); }
-
-.offer-image {
-    aspect-ratio: 16 / 11;
-    background: linear-gradient(135deg, #FFF3E6, #FFE2CC);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 3rem;
+    padding: 26px 22px 24px;
     position: relative;
+    overflow: hidden;
+    border-radius: var(--ac-radius-lg);
+    margin-bottom: 16px;
+    text-align: start;
 }
-html[data-theme="dark"] .offer-image {
-    background: linear-gradient(135deg, #2A1E16, #3D2A1E);
-}
-.offer-image .discount {
+/* Small brand accent strip at the top — the only brand color in the hero */
+.acc-hero::before {
+    content: "";
     position: absolute;
-    top: 8px;
-    inset-inline-end: 8px;
-    background: var(--ac-danger);
-    color: #fff;
-    padding: 3px 9px;
-    border-radius: 999px;
-    font-weight: 800;
-    font-size: 0.72rem;
+    top: 0; inset-inline-start: 0; inset-inline-end: 0;
+    height: 3px;
+    background: var(--ord-accent-grad);
 }
-.offer-image .featured {
-    position: absolute;
-    top: 8px;
-    inset-inline-start: 8px;
-    background: var(--ord-hero-grad);
-    color: #fff;
-    padding: 3px 9px;
-    border-radius: 999px;
-    font-weight: 700;
-    font-size: 0.7rem;
-    display: inline-flex;
-    align-items: center;
-    gap: 3px;
-}
-
-.offer-body { padding: 12px; flex: 1; display: flex; flex-direction: column; gap: 4px; }
-.offer-title {
-    font-weight: 700;
-    font-size: 0.92rem;
-    line-height: 1.35;
+.acc-hero-title {
     color: var(--ac-text);
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin: 0 0 4px;
+}
+.acc-hero-sub {
+    color: var(--ac-text-muted);
+    font-size: 0.85rem;
     margin: 0;
 }
-.offer-vendor {
-    color: var(--ac-text-muted);
-    font-size: 0.74rem;
+.acc-hero-actions {
+    margin-top: 16px;
     display: flex;
-    align-items: center;
-    gap: 4px;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: flex-start;
 }
-.offer-price-row {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    margin-top: auto;
-    padding-top: 6px;
+/* Reset the inline brand-override styles the Home page used when hero was dark */
+.acc-hero-actions .btn-light {
+    background: var(--ac-surface-2);
+    color: var(--ac-text);
+    border-color: var(--ac-border);
+    box-shadow: none;
 }
-.offer-price {
-    color: var(--ac-primary);
-    font-weight: 800;
-    font-size: 1.05rem;
+.acc-hero-actions .btn-light:hover:not(:disabled) {
+    background: var(--ac-bg-alt);
+    border-color: var(--ac-border-dark);
 }
-.offer-original {
+.acc-hero-actions .btn-ghost {
+    background: transparent;
     color: var(--ac-text-muted);
-    text-decoration: line-through;
-    font-size: 0.78rem;
+    border-color: var(--ac-border);
+}
+
+/* Offer details hero — also neutral (big product photo, no orange wash) */
+.acc-offer-hero {
+    background: var(--ac-bg-alt);
+    border: 1px solid var(--ac-border);
+    box-shadow: none;
 }
 
 /* =========================================================================
-   Surface card — generic boxy card used on details/orders/etc.
+   Auth page (Login) — neutral background, brand only in accents
+   ========================================================================= */
+.acs-auth-page {
+    background: var(--ac-bg);
+    padding: 40px 20px;
+}
+.acs-auth-icon  { font-size: 2.8rem; color: var(--ac-primary); }
+.acs-auth-brand { font-size: 1.5rem; font-weight: 700; color: var(--ac-text); }
+.acs-auth-tag   { font-size: 0.85rem; color: var(--ac-text-muted); }
+.acs-auth-card {
+    background: var(--ac-surface);
+    border: 1px solid var(--ac-border);
+    box-shadow: var(--ac-shadow-md);
+}
+.acs-auth-title    { font-size: 1.15rem; font-weight: 700; color: var(--ac-text); }
+.acs-auth-subtitle { font-size: 0.84rem; color: var(--ac-text-muted); }
+.acs-otp-input     { font-size: 1.4rem; letter-spacing: 0.4rem; }
+
+/* ── Tighter heading sizes throughout ─────────────────────────────────── */
+.acs-page-title    { font-size: 1.05rem; font-weight: 700; }
+.acs-empty-icon    { font-size: 2.5rem; }
+.acs-empty-title   { font-size: 0.92rem; }
+.acs-empty-message { font-size: 0.84rem; }
+.acc-offer-info-title { font-size: 1.15rem; font-weight: 700; }
+.acc-offer-hero-emoji { font-size: 4rem; }
+.acc-offer-info-price { font-size: 0.95rem; }
+.acc-section-title { font-size: 0.9rem; }
+.acc-section-label { font-size: 0.75rem; }
+.acc-order-number  { font-size: 1.1rem; }
+.acc-success-title { font-size: 1.15rem; }
+.acc-success-icon  { font-size: 0; /* AcIcon handles size */ }
+
+/* =========================================================================
+   Card surface — flat, neutral, hairline border
    ========================================================================= */
 .s-card {
     background: var(--ac-surface);
     border: 1px solid var(--ac-border);
-    border-radius: 16px;
-    padding: 14px;
-    margin: 0 16px 12px;
-    box-shadow: var(--ac-shadow-sm);
-}
-.s-card-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-    padding: 10px 0;
-    border-bottom: 1px solid var(--ac-border-light, var(--ac-border));
-}
-.s-card-row:last-child { border-bottom: 0; }
-.s-card-row .label { color: var(--ac-text-muted); font-size: 0.85rem; }
-.s-card-row .value { font-weight: 700; }
-
-.s-card h3 {
-    margin: 0 0 8px;
-    font-size: 1.05rem;
-    font-weight: 800;
+    border-radius: var(--ac-radius-md);
+    padding: 16px;
+    margin: 0 0 12px;
+    box-shadow: none;
 }
 
-/* Buttons */
+/* =========================================================================
+   Primary CTA — brand color, but flat and restrained
+   ========================================================================= */
 .btn-primary {
-    background: var(--ord-hero-grad) !important;
-    border-color: transparent !important;
-    color: #fff !important;
-    box-shadow: 0 6px 14px rgba(255,107,53,0.30);
+    background: var(--ac-primary);
+    border-color: var(--ac-primary);
+    color: var(--ac-on-primary);
+    box-shadow: 0 4px 10px -2px rgba(255,107,53,0.28);
 }
 .btn-primary:hover:not(:disabled) {
-    filter: brightness(0.96);
-    box-shadow: 0 8px 18px rgba(255,107,53,0.40);
+    background: var(--ac-primary-hover);
+    border-color: var(--ac-primary-hover);
+    box-shadow: 0 6px 14px -2px rgba(255,107,53,0.34);
 }
 
-/* Form fields tweak — softer borders, larger radius */
-.form-control, .form-select, .form-input,
-input[type="text"], input[type="tel"], input[type="number"], input[type="date"],
-textarea, select {
-    border-radius: var(--ac-radius-md);
-}
-
-/* Empty state */
-.empty-state {
-    text-align: center;
-    padding: 40px 24px;
-    color: var(--ac-text-muted);
-}
-.empty-state .ico {
-    font-size: 3rem;
-    margin-bottom: 8px;
-}
-.empty-state h3 {
+/* =========================================================================
+   Input fields — subtle, focused ring uses brand color (small accent)
+   ========================================================================= */
+.form-input, .form-control, .form-select {
+    background: var(--ac-surface);
+    border-color: var(--ac-border);
     color: var(--ac-text);
-    margin: 4px 0;
+}
+.form-input:focus, .form-control:focus, .form-select:focus {
+    border-color: var(--ac-primary);
+    box-shadow: 0 0 0 3px var(--ac-primary-soft);
 }
 
-/* Status badges */
-.st-pending  { background: #FFF3E0; color: #E65100; padding: 4px 10px; border-radius: 999px; font-size: 0.78rem; font-weight: 700; }
-.st-accepted { background: #E3F2FD; color: #0D47A1; padding: 4px 10px; border-radius: 999px; font-size: 0.78rem; font-weight: 700; }
-.st-ready    { background: #E8F5E9; color: #1B5E20; padding: 4px 10px; border-radius: 999px; font-size: 0.78rem; font-weight: 700; }
-.st-delivered{ background: #E0F7FA; color: #006064; padding: 4px 10px; border-radius: 999px; font-size: 0.78rem; font-weight: 700; }
-.st-cancelled{ background: #FFEBEE; color: #B71C1C; padding: 4px 10px; border-radius: 999px; font-size: 0.78rem; font-weight: 700; }
-html[data-theme="dark"] .st-pending  { background: #4A2C0A; color: #FFB74D; }
-html[data-theme="dark"] .st-accepted { background: #0D2C4A; color: #82B1FF; }
-html[data-theme="dark"] .st-ready    { background: #1B3A22; color: #A5D6A7; }
-html[data-theme="dark"] .st-delivered{ background: #0A3034; color: #80DEEA; }
-html[data-theme="dark"] .st-cancelled{ background: #4A1418; color: #EF9A9A; }
+/* =========================================================================
+   Page container utility (used by 1 page)
+   ========================================================================= */
+.page-container { padding: 16px; }
 
 /* Suppress focus outline for programmatic focus (FocusOnNavigate) */
 :focus:not(:focus-visible) { outline: none; }

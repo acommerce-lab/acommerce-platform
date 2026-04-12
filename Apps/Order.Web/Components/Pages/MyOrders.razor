@@ -1,26 +1,25 @@
 @page "/orders"
-@inject OrderApiClient Api
-@inject AuthStateService Auth
-@inject UiPreferences Ui
+@inject AppStore Store
+@inject ApiReader Api
 
 <PageTitle>طلباتي - اوردر</PageTitle>
 
-@if (!Auth.IsAuthenticated)
+@if (!Store.Auth.IsAuthenticated)
 {
-    <AcEmptyState Icon="🔒"
-                  Title="@(Ui.IsArabic ? "سجل دخولك لرؤية طلباتك" : "Sign in to view orders")"
-                  ActionLabel="@(Ui.IsArabic ? "تسجيل الدخول" : "Sign in")"
+    <AcEmptyState IconName="log-in"
+                  Title="@(Store.Ui.IsArabic ? "سجل دخولك لرؤية طلباتك" : "Sign in to view orders")"
+                  ActionLabel="@(Store.Ui.IsArabic ? "تسجيل الدخول" : "Sign in")"
                   ActionHref="/login" />
 }
 else
 {
     <AcOrdersListPage Orders="@Mapped"
                       Loading="@Loading"
-                      Title="@(Ui.IsArabic ? "طلباتي" : "My orders")"
-                      LoadingMessage="@(Ui.IsArabic ? "جاري التحميل..." : "Loading…")"
-                      EmptyTitle="@(Ui.IsArabic ? "لا توجد طلبات" : "No orders yet")"
-                      EmptyMessage="@(Ui.IsArabic ? "اطلب أول وجبتك من اوردر" : "Place your first order")"
-                      BrowseLabel="@(Ui.IsArabic ? "تصفّح العروض" : "Browse offers")"
+                      Title="@(Store.Ui.IsArabic ? "طلباتي" : "My orders")"
+                      LoadingMessage="@(Store.Ui.IsArabic ? "جاري التحميل..." : "Loading…")"
+                      EmptyTitle="@(Store.Ui.IsArabic ? "لا توجد طلبات" : "No orders yet")"
+                      EmptyMessage="@(Store.Ui.IsArabic ? "اطلب أول وجبتك من اوردر" : "Place your first order")"
+                      BrowseLabel="@(Store.Ui.IsArabic ? "تصفّح العروض" : "Browse offers")"
                       BrowseHref="/" />
 }
 
@@ -37,7 +36,9 @@ else
             Currency = o.Currency,
             Status = StatusKey(o.Status),
             StatusLabel = o.StatusAr,
+            PickupType = o.PickupType == 1 ? "Curbside" : "InStore",
             PickupLabel = PickupLabel(o.PickupType),
+            PaymentMethod = o.PreferredPayment == 1 ? "Card" : "Cash",
             PaymentLabel = PaymentLabel(o.PreferredPayment),
             CreatedAt = o.CreatedAt,
             VendorName = o.VendorName,
@@ -47,10 +48,9 @@ else
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (!firstRender) return;
-        await Auth.EnsureRestoredAsync();
-        if (Auth.IsAuthenticated)
+        if (Store.Auth.IsAuthenticated)
         {
-            var env = await Api.GetAsync<List<OrderRowApi>>($"/api/orders/by-customer/{Auth.UserId}");
+            var env = await Api.GetAsync<List<OrderRowApi>>($"/api/orders/by-customer/{Store.Auth.UserId}");
             Orders = env.Data ?? new();
         }
         Loading = false;
@@ -68,12 +68,12 @@ else
     };
 
     private string PickupLabel(int t) => t == 1
-        ? (Ui.IsArabic ? "🚗 من السيارة" : "🚗 Curbside")
-        : (Ui.IsArabic ? "🏪 من المتجر" : "🏪 In-store");
+        ? (Store.Ui.IsArabic ? "من السيارة" : "Curbside")
+        : (Store.Ui.IsArabic ? "من المتجر" : "In-store");
 
     private string PaymentLabel(int p) => p == 1
-        ? (Ui.IsArabic ? "💳 بطاقة" : "💳 Card")
-        : (Ui.IsArabic ? "💵 نقدي" : "💵 Cash");
+        ? (Store.Ui.IsArabic ? "بطاقة" : "Card")
+        : (Store.Ui.IsArabic ? "نقدي" : "Cash");
 
     public class OrderRowApi
     {

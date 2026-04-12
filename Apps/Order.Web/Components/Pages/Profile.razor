@@ -1,15 +1,15 @@
 @page "/profile"
-@inject AuthStateService Auth
-@inject UiPreferences Ui
+@inject AppStore Store
+@inject ClientOpEngine Engine
 @inject NavigationManager Nav
 
 <PageTitle>حسابي - اوردر</PageTitle>
 
-@if (!Auth.IsAuthenticated)
+@if (!Store.Auth.IsAuthenticated)
 {
-    <AcEmptyState Icon="👤"
-                  Title="@(Ui.IsArabic ? "أنت غير مسجل" : "Not signed in")"
-                  ActionLabel="@(Ui.IsArabic ? "تسجيل الدخول" : "Sign in")"
+    <AcEmptyState IconName="user"
+                  Title="@(Store.Ui.IsArabic ? "أنت غير مسجل" : "Not signed in")"
+                  ActionLabel="@(Store.Ui.IsArabic ? "تسجيل الدخول" : "Sign in")"
                   ActionHref="/login" />
 }
 else
@@ -17,61 +17,52 @@ else
     <AcProfilePage User="@UserDto"
                    Stats="@StatsList"
                    MenuSections="@MenuSectionsList"
-                   SignOutLabel="@(Ui.IsArabic ? "تسجيل الخروج" : "Sign out")"
+                   SignOutLabel="@(Store.Ui.IsArabic ? "تسجيل الخروج" : "Sign out")"
                    OnSignOut="SignOut" />
 }
 
 @code {
     private ProfileUserDto UserDto => new()
     {
-        Id = Auth.UserId?.ToString() ?? "",
-        FullName = Auth.FullName ?? (Ui.IsArabic ? "عميل اوردر" : "Order customer"),
-        PhoneNumber = Auth.PhoneNumber,
-        Initial = !string.IsNullOrEmpty(Auth.FullName) && Auth.FullName.Length > 0 ? Auth.FullName[..1] : "👤"
+        Id = Store.Auth.UserId?.ToString() ?? "",
+        FullName = Store.Auth.FullName ?? (Store.Ui.IsArabic ? "عميل اوردر" : "Order customer"),
+        PhoneNumber = Store.Auth.PhoneNumber,
+        Initial = !string.IsNullOrEmpty(Store.Auth.FullName) && Store.Auth.FullName.Length > 0 ? Store.Auth.FullName[..1] : "👤"
     };
 
     private IReadOnlyList<ProfileStatDto> StatsList => new[]
     {
-        new ProfileStatDto(Ui.IsArabic ? "طلب" : "Orders", "0"),
-        new ProfileStatDto(Ui.IsArabic ? "مفضلة" : "Favorites", "0"),
-        new ProfileStatDto(Ui.IsArabic ? "نقاط" : "Points", "0"),
+        new ProfileStatDto(Store.Ui.IsArabic ? "طلب" : "Orders", "0"),
+        new ProfileStatDto(Store.Ui.IsArabic ? "مفضلة" : "Favorites", "0"),
+        new ProfileStatDto(Store.Ui.IsArabic ? "نقاط" : "Points", "0"),
     };
 
     private IReadOnlyList<MenuSectionDto> MenuSectionsList => new[]
     {
         new MenuSectionDto
         {
-            Title = Ui.IsArabic ? "حسابي" : "Account",
+            Title = Store.Ui.IsArabic ? "حسابي" : "Account",
             Items = new[]
             {
-                new MenuItemDto { Label = Ui.IsArabic ? "طلباتي" : "My orders",       Icon = "📦", Href = "/orders" },
-                new MenuItemDto { Label = Ui.IsArabic ? "المفضلة" : "Favorites",     Icon = "♡",  Href = "/favorites" },
-                new MenuItemDto { Label = Ui.IsArabic ? "محادثاتي" : "Messages",     Icon = "💬", Href = "/messages" },
-                new MenuItemDto { Label = Ui.IsArabic ? "الإشعارات" : "Notifications", Icon = "🔔", Href = "/notifications" },
+                new MenuItemDto { Label = Store.Ui.IsArabic ? "طلباتي" : "My orders",         IconName = "package",  Href = "/orders" },
+                new MenuItemDto { Label = Store.Ui.IsArabic ? "المفضلة" : "Favorites",       IconName = "heart",    Href = "/favorites" },
+                new MenuItemDto { Label = Store.Ui.IsArabic ? "محادثاتي" : "Messages",       IconName = "message",  Href = "/messages" },
+                new MenuItemDto { Label = Store.Ui.IsArabic ? "الإشعارات" : "Notifications", IconName = "bell",     Href = "/notifications" },
             }
         },
         new MenuSectionDto
         {
-            Title = Ui.IsArabic ? "التطبيق" : "App",
+            Title = Store.Ui.IsArabic ? "التطبيق" : "App",
             Items = new[]
             {
-                new MenuItemDto { Label = Ui.IsArabic ? "الإعدادات" : "Settings", Icon = "⚙️", Href = "/settings" },
+                new MenuItemDto { Label = Store.Ui.IsArabic ? "الإعدادات" : "Settings", IconName = "settings", Href = "/settings" },
             }
         }
     };
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (firstRender)
-        {
-            await Auth.EnsureRestoredAsync();
-            StateHasChanged();
-        }
-    }
-
     private async Task SignOut()
     {
-        await Auth.SignOutAsync();
+        await Engine.ExecuteAsync<object>(ClientOps.SignOut(), new { });
         Nav.NavigateTo("/", forceLoad: false);
     }
 }

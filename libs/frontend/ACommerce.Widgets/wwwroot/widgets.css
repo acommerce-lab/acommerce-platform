@@ -3,6 +3,22 @@
    =========================================================================
    كل المتغيرات لها قيم افتراضية - التطبيق المستهلك يُعيد تعريف :root
    ليُغيّر الهوية البصرية بالكامل دون تعديل الـ widgets.
+
+   ── AcIcon ──────────────────────────────────────────────────────────────
+   Inline SVG line icons. Stroke uses currentColor so icons inherit the
+   text color of the parent element. Size defaults to 24×24 but can be
+   overridden via the Size parameter or CSS width/height.
+*/
+.ac-icon {
+    display: inline-block;
+    vertical-align: middle;
+    flex-shrink: 0;
+    color: inherit;
+    line-height: 0;
+}
+.ac-icon-lg  { width: 32px; height: 32px; }
+.ac-icon-xl  { width: 48px; height: 48px; }
+.ac-icon-2xl { width: 64px; height: 64px; }
    ========================================================================= */
 
 :root {
@@ -349,7 +365,8 @@ h1:focus, h2:focus, h3:focus { outline: none; }
     align-items: center;
     justify-content: center;
     gap: var(--ac-space-sm);
-    padding: var(--ac-space-sm) var(--ac-space-md);
+    padding: 11px 20px;
+    min-height: 44px;
     font-family: inherit;
     font-size: var(--ac-font-size-base);
     font-weight: var(--ac-font-weight-bold);
@@ -357,11 +374,13 @@ h1:focus, h2:focus, h3:focus { outline: none; }
     color: var(--ac-text);
     background: transparent;
     border: 1px solid transparent;
-    border-radius: var(--ac-radius-md);
+    border-radius: var(--ac-radius-md, 12px);
     cursor: pointer;
     text-decoration: none;
-    transition: background var(--ac-transition), border-color var(--ac-transition), color var(--ac-transition);
+    transition: background var(--ac-transition), border-color var(--ac-transition), color var(--ac-transition), box-shadow var(--ac-transition);
     user-select: none;
+    box-sizing: border-box;
+    white-space: nowrap;
 }
 .btn:disabled, .btn[disabled] { opacity: 0.6; cursor: not-allowed; }
 .btn-primary   { background: var(--ac-primary);   color: var(--ac-on-primary);   border-color: var(--ac-primary);   }
@@ -381,8 +400,29 @@ h1:focus, h2:focus, h3:focus { outline: none; }
 .btn-outline-danger  { background: transparent; color: var(--ac-danger);  border-color: var(--ac-danger);  }
 .btn-outline-danger:hover:not(:disabled) { background: var(--ac-danger); color: #fff; }
 .btn-outline-success { background: transparent; color: var(--ac-success); border-color: var(--ac-success); }
-.btn-sm { padding: var(--ac-space-xs) var(--ac-space-sm); font-size: var(--ac-font-size-sm); }
-.btn-lg { padding: var(--ac-space-md) var(--ac-space-lg); font-size: var(--ac-font-size-lg); }
+.btn-sm { padding: 8px 14px; min-height: 36px; font-size: var(--ac-font-size-sm); }
+.btn-lg { padding: 15px 24px; min-height: 54px; font-size: var(--ac-font-size-lg); }
+
+/* Full-width primary CTA — used by login, checkout, cart, etc. */
+.btn-block {
+    display: flex;
+    width: 100%;
+    padding: 14px 20px;
+    font-size: 1.02rem;
+    min-height: 50px;
+    border-radius: var(--ac-radius-md, 12px);
+}
+
+/* Subtle ghost button — outlined neutral, used for secondary CTAs */
+.btn-ghost {
+    background: transparent;
+    color: var(--ac-text);
+    border: 1px solid var(--ac-border);
+}
+.btn-ghost:hover:not(:disabled) {
+    background: var(--ac-bg-alt);
+    border-color: var(--ac-border-dark, var(--ac-border));
+}
 
 /* ---- Card ---- */
 .card {
@@ -419,28 +459,36 @@ h1:focus, h2:focus, h3:focus { outline: none; }
 /* ---- Forms ---- */
 .form-label {
     display: block;
-    margin-bottom: var(--ac-space-xs);
+    margin-bottom: 6px;
     font-weight: var(--ac-font-weight-bold);
+    font-size: 0.9rem;
     color: var(--ac-text);
 }
-.form-control, .form-select {
+.form-label + .form-input,
+.form-label + .form-control,
+.form-label + .form-select { margin-bottom: 12px; }
+.form-control, .form-select, .form-input {
     display: block;
     width: 100%;
-    padding: var(--ac-space-sm) var(--ac-space-md);
+    padding: 13px 16px;
     font-family: inherit;
-    font-size: var(--ac-font-size-base);
+    font-size: 1rem;
+    line-height: 1.4;
     color: var(--ac-text);
     background: var(--ac-surface);
     border: 1px solid var(--ac-border);
-    border-radius: var(--ac-radius-md);
+    border-radius: var(--ac-radius-md, 12px);
     transition: border-color var(--ac-transition), box-shadow var(--ac-transition);
+    box-sizing: border-box;
+    min-height: 48px;
 }
-.form-control:focus, .form-select:focus {
+.form-control:focus, .form-select:focus, .form-input:focus {
     outline: none;
     border-color: var(--ac-primary);
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--ac-primary) 25%, transparent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--ac-primary) 22%, transparent);
 }
-textarea.form-control { min-height: 6rem; resize: vertical; }
+.form-input::placeholder, .form-control::placeholder { color: var(--ac-text-muted); opacity: 0.7; }
+textarea.form-control, textarea.form-input { min-height: 6rem; resize: vertical; }
 .form-text { color: var(--ac-text-muted); font-size: var(--ac-font-size-sm); }
 
 /* ---- Input group ---- */

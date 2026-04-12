@@ -11,7 +11,7 @@
 
 <div class="acc-order-success-page">
     <div class="acc-success-hero">
-        <div class="acc-success-icon">✓</div>
+        <div class="acc-success-icon"><AcIcon Name="check-circle" Size="64" StrokeWidth="1.25" /></div>
         <h1 class="acc-success-title">@(Title ?? "تم استلام طلبك")</h1>
         @if (Order != null)
         {
@@ -33,11 +33,17 @@
             </div>
             @if (!string.IsNullOrEmpty(Order.PickupLabel))
             {
-                <div class="acc-order-info-row">@Order.PickupLabel</div>
+                <div class="acc-order-info-row">
+                    <AcIcon Name="@(Order.PickupType == "Curbside" ? "car" : "store")" Size="18" />
+                    <span>@Order.PickupLabel</span>
+                </div>
             }
             @if (!string.IsNullOrEmpty(Order.PaymentLabel))
             {
-                <div class="acc-order-info-row">@Order.PaymentLabel</div>
+                <div class="acc-order-info-row">
+                    <AcIcon Name="@(Order.PaymentMethod == "Card" ? "credit-card" : "cash")" Size="18" />
+                    <span>@Order.PaymentLabel</span>
+                </div>
             }
         </div>
     }

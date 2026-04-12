@@ -32,14 +32,17 @@
             {
                 <p class="acc-hero-sub">@HeroSubtitle</p>
             }
-            @HeroActions
+            @if (HeroActions != null)
+            {
+                <div class="acc-hero-actions">@HeroActions</div>
+            }
         </div>
     }
 
     @if (Categories.Count > 0)
     {
         <AcCategoryRow Categories="Categories"
-                       SelectedId="SelectedCategoryId"
+                       SelectedId="@SelectedCategoryId"
                        OnSelect="OnSelectCategory"
                        AllLabel="@AllLabel" />
     }

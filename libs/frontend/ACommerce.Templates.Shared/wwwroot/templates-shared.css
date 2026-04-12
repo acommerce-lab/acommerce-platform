@@ -37,8 +37,28 @@
 }
 .acs-empty-icon {
     font-size: 3rem;
-    margin-bottom: 8px;
+    margin-bottom: 10px;
+    line-height: 1;
 }
+/* Variant for inline SVG (AcIcon) empty-state icons — no font-size, subtle color */
+.acs-empty-icon-line {
+    font-size: 0;
+    margin-bottom: 14px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    background: var(--ac-bg-alt, #f3f4f6);
+    color: var(--ac-text-muted, #9ca3af);
+}
+/* Error-state variant — red tint on the icon pill */
+.acs-error .acs-empty-icon-line {
+    background: color-mix(in srgb, var(--ac-danger, #ef4444) 12%, transparent);
+    color: var(--ac-danger, #ef4444);
+}
+.acs-error .acs-empty-title { color: var(--ac-danger, #ef4444); }
 .acs-empty-title {
     font-size: 1.1rem;
     font-weight: 700;
@@ -309,12 +329,15 @@
 .acs-msg-input {
     display: flex;
     gap: 8px;
-    align-items: center;
+    align-items: stretch;
     padding: 8px;
     background: var(--ac-surface, #fff);
     border-radius: var(--ac-radius-md, 12px);
+    border: 1px solid var(--ac-border, #e5e7eb);
+    margin-top: 10px;
 }
-.acs-msg-input .form-input { flex: 1; }
+.acs-msg-input .form-input { flex: 1; min-height: 44px; }
+.acs-msg-input .btn { flex-shrink: 0; padding: 0 18px; min-height: 44px; }
 
 /* ── Notifications ────────────────────────────────────────────────────── */
 .acs-noti {
@@ -339,10 +362,11 @@
     font-size: 1.3rem;
     flex-shrink: 0;
 }
-.acs-ni-icon.t-promo   { background: linear-gradient(135deg, #fbbf24, #f59e0b); color: #fff; }
-.acs-ni-icon.t-order   { background: linear-gradient(135deg, #34d399, #059669); color: #fff; }
-.acs-ni-icon.t-message { background: linear-gradient(135deg, #60a5fa, #2563eb); color: #fff; }
-.acs-ni-icon.t-general { background: linear-gradient(135deg, #a78bfa, #7c3aed); color: #fff; }
+/* Muted, theme-aware pills — tinted bg + same-hue icon. No more bright gradients. */
+.acs-ni-icon.t-promo   { background: color-mix(in srgb, var(--ac-warning, #d97706) 14%, var(--ac-surface-2, var(--ac-surface, #fff))); color: var(--ac-warning, #d97706); }
+.acs-ni-icon.t-order   { background: color-mix(in srgb, var(--ac-success, #16a34a) 14%, var(--ac-surface-2, var(--ac-surface, #fff))); color: var(--ac-success, #16a34a); }
+.acs-ni-icon.t-message { background: color-mix(in srgb, var(--ac-info,    #2563eb) 14%, var(--ac-surface-2, var(--ac-surface, #fff))); color: var(--ac-info,    #2563eb); }
+.acs-ni-icon.t-general { background: var(--ac-bg-alt, #f3f4f6); color: var(--ac-text-muted, #6b7280); }
 .acs-ni-body { flex: 1; min-width: 0; }
 .acs-ni-top {
     display: flex;

@@ -1,0 +1,110 @@
+@page "/login"
+@inject AppStore Store
+@inject ClientOpEngine Engine
+@inject AppStateApplier Applier
+@inject NavigationManager Nav
+
+<PageTitle>@(Store.Ui.IsArabic ? "دخول التاجر" : "Vendor Login")</PageTitle>
+
+<AcLoginPage Step="@Step"
+             Phone="@Phone"
+             PhoneChanged="@(v => Phone = v)"
+             Code="@Code"
+             CodeChanged="@(v => Code = v)"
+             Error="@Error"
+             Busy="@Busy"
+             BrandName="@(Store.Ui.IsArabic ? "لوحة التاجر" : "Vendor Dashboard")"
+             BrandTagline="@(Store.Ui.IsArabic ? "أدر طلباتك وعروضك" : "Manage orders & offers")"
+             PhoneStepTitle="@(Store.Ui.IsArabic ? "تسجيل الدخول" : "Sign in")"
+             PhoneStepSubtitle="@(Store.Ui.IsArabic ? "أدخل رقم جوال التاجر" : "Enter your vendor phone")"
+             PhoneLabel="@(Store.Ui.IsArabic ? "رقم الجوال" : "Phone number")"
+             PhonePlaceholder="+966501111111"
+             RequestOtpLabel="@(Store.Ui.IsArabic ? "إرسال رمز التحقق" : "Send OTP")"
+             SendingLabel="@(Store.Ui.IsArabic ? "جاري الإرسال..." : "Sending...")"
+             OtpStepTitle="@(Store.Ui.IsArabic ? "رمز التحقق" : "Verification code")"
+             OtpStepSubtitle="@(Store.Ui.IsArabic ? "أدخل الرمز المرسل إلى" : "Enter the code sent to")"
+             OtpLabel="@(Store.Ui.IsArabic ? "الرمز (6 أرقام)" : "Code (6 digits)")"
+             VerifyOtpLabel="@(Store.Ui.IsArabic ? "دخول" : "Sign in")"
+             VerifyingLabel="@(Store.Ui.IsArabic ? "جاري التحقق..." : "Verifying...")"
+             BackLabel="@(Store.Ui.IsArabic ? "تغيير الرقم" : "Change number")"
+             OnRequestOtp="RequestOtp"
+             OnVerifyOtp="VerifyOtp"
+             OnBack="GoBack">
+    <HintSlot>
+        <strong>@(Store.Ui.IsArabic ? "حسابات التجار التجريبية:" : "Demo vendor accounts:")</strong><br/>
+        <code dir="ltr">+966501111111</code> @(Store.Ui.IsArabic ? "(أحمد — كافيه السعادة)" : "(Ahmed — Happiness Café)")<br/>
+        <code dir="ltr">+966502222222</code> @(Store.Ui.IsArabic ? "(فاطمة — مطعم الأصيل)" : "(Fatimah — Al-Aseel)")
+    </HintSlot>
+</AcLoginPage>
+
+@code {
+    private int Step = 1;
+    private string Phone = "+966501111111";
+    private string Code = "";
+    private string Error = "";
+    private bool Busy;
+
+    private Guid? UserId;
+    private string? ChallengeId;
+
+    private async Task RequestOtp()
+    {
+        Error = "";
+        if (string.IsNullOrWhiteSpace(Phone)) { Error = Store.Ui.IsArabic ? "أدخل رقم الجوال" : "Enter phone"; return; }
+        Busy = true;
+        try
+        {
+            var result = await Engine.ExecuteAsync<OtpRequestDto>(ClientOps.RequestOtp(Phone), new { phoneNumber = Phone });
+            if (result.Operation.Status != "Success" || result.Data == null)
+            {
+                Error = result.Operation.ErrorMessage ?? result.Error?.Message ?? (Store.Ui.IsArabic ? "فشل الإرسال" : "Send failed");
+                return;
+            }
+            UserId = result.Data.UserId;
+            ChallengeId = result.Data.ChallengeId;
+            Step = 2;
+        }
+        catch (Exception ex) { Error = ex.Message; }
+        finally { Busy = false; }
+    }
+
+    private async Task VerifyOtp()
+    {
+        Error = "";
+        if (string.IsNullOrWhiteSpace(Code) || !UserId.HasValue) return;
+        Busy = true;
+        try
+        {
+            var result = await Engine.ExecuteAsync<VerifyDto>(ClientOps.VerifyOtp(UserId.Value, ChallengeId ?? "", Code), new
+            {
+                userId = UserId.Value,
+                challengeId = ChallengeId,
+                code = Code
+            });
+            if (result.Operation.Status != "Success" || result.Data == null || string.IsNullOrEmpty(result.Data.AccessToken))
+            {
+                Error = result.Operation.ErrorMessage ?? result.Error?.Message ?? (Store.Ui.IsArabic ? "كود غير صحيح" : "Wrong code");
+                return;
+            }
+            Nav.NavigateTo("/", forceLoad: false);
+        }
+        catch (Exception ex) { Error = ex.Message; }
+        finally { Busy = false; }
+    }
+
+    private void GoBack() { Step = 1; Code = ""; Error = ""; }
+
+    public class OtpRequestDto
+    {
+        public string ChallengeId { get; set; } = "";
+        public Guid UserId { get; set; }
+        public string PhoneNumber { get; set; } = "";
+    }
+    public class VerifyDto
+    {
+        public Guid UserId { get; set; }
+        public string? PhoneNumber { get; set; }
+        public string? FullName { get; set; }
+        public string AccessToken { get; set; } = "";
+    }
+}

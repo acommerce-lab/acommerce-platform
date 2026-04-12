@@ -1,0 +1,59 @@
+@page "/chat/{Id:guid}"
+@inject VendorApiClient Api
+@inject AppStore Store
+
+<PageTitle>@(Store.Ui.IsArabic ? "محادثة" : "Chat")</PageTitle>
+
+@if (!Store.Auth.IsAuthenticated)
+{
+    <AcEmptyState IconName="log-in" Title="@(Store.Ui.IsArabic ? "سجّل دخولك" : "Sign in")" ActionHref="/login" ActionLabel="@(Store.Ui.IsArabic ? "دخول" : "Sign in")" />
+}
+else
+{
+    <AcChatPage Messages="@Mapped"
+                MySenderId="@(Store.Auth.UserId?.ToString() ?? "")"
+                Loading="@Loading" Sending="@Sending"
+                Draft="@Draft" DraftChanged="@(v => Draft = v)"
+                OnSend="Send"
+                Title="@(Store.Ui.IsArabic ? "محادثة" : "Chat")"
+                EmptyMessage="@(Store.Ui.IsArabic ? "لا رسائل بعد" : "No messages yet")"
+                SendLabel="@(Store.Ui.IsArabic ? "إرسال" : "Send")" />
+}
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+    private List<MsgApi> Messages = new();
+    private bool Loading = true;
+    private bool Sending;
+    private string Draft = "";
+
+    private IReadOnlyList<ChatMessageDto> Mapped =>
+        Messages.Select(m => new ChatMessageDto { Id = m.Id.ToString(), Content = m.Content, SenderId = m.SenderId.ToString(), CreatedAt = m.CreatedAt }).ToList();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        await Reload(); StateHasChanged();
+    }
+
+    private async Task Reload()
+    {
+        Loading = true;
+        var env = await Api.GetAsync<List<MsgApi>>($"/api/messages/conversations/{Id}/messages");
+        Messages = env.Data ?? new();
+        Loading = false;
+        if (Store.Auth.UserId.HasValue)
+            await Api.PostAsync<object>($"/api/messages/conversations/{Id}/mark-read", new { readerId = Store.Auth.UserId.Value });
+    }
+
+    private async Task Send()
+    {
+        if (string.IsNullOrWhiteSpace(Draft) || Sending) return;
+        Sending = true;
+        var env = await Api.PostAsync<MsgApi>("/api/messages", new { conversationId = Id, senderId = Store.Auth.UserId, content = Draft });
+        if (env.Data != null) { Messages.Add(env.Data); Draft = ""; }
+        Sending = false;
+    }
+
+    public class MsgApi { public Guid Id { get; set; } public Guid SenderId { get; set; } public string Content { get; set; } = ""; public DateTime CreatedAt { get; set; } }
+}

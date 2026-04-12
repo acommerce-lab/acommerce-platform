@@ -55,8 +55,21 @@ public class ListingsController : ControllerBase
         var listing = await _repo.GetByIdAsync(id, ct);
         if (listing == null) return this.NotFoundEnvelope("listing_not_found");
 
-        listing.ViewCount++;
-        await _repo.UpdateAsync(listing, ct);
+        // المشاهدة = قيد محاسبي: المشاهد ← العرض (بلا معكوس).
+        // المعترض ReportingInterceptor يراقب "listing.view" ويحصي التقارير.
+        var viewOp = Entry.Create("listing.view")
+            .Describe($"View listing {id}")
+            .From("Viewer:anonymous", 1, ("role", "viewer"))
+            .To($"Listing:{id}", 1, ("role", "listing"))
+            .Tag("listing_id", id.ToString())
+            .Execute(async ctx =>
+            {
+                listing.ViewCount++;
+                await _repo.UpdateAsync(listing, ctx.CancellationToken);
+            })
+            .Build();
+
+        await _engine.ExecuteAsync(viewOp, ct);
 
         return this.OkEnvelope("listing.get", listing);
     }
@@ -164,16 +177,45 @@ public class ListingsController : ControllerBase
         var listing = await _repo.GetByIdAsync(id, ct);
         if (listing == null) return this.NotFoundEnvelope("listing_not_found");
 
-        listing.Status = ListingStatus.Published;
-        listing.PublishedAt = DateTime.UtcNow;
-        await _repo.UpdateAsync(listing, ct);
+        var op = Entry.Create("listing.publish")
+            .Describe($"Publish listing #{listing.Id} by Owner:{listing.OwnerId}")
+            .From($"Owner:{listing.OwnerId}", 1, ("role", "owner"))
+            .To($"Listing:{listing.Id}", 1, ("role", "listing"))
+            .Tag("listing_id", listing.Id.ToString())
+            .Tag("owner_id", listing.OwnerId.ToString())
+            .Execute(async ctx =>
+            {
+                listing.Status = ListingStatus.Published;
+                listing.PublishedAt = DateTime.UtcNow;
+                await _repo.UpdateAsync(listing, ctx.CancellationToken);
+                ctx.Set("listingId", listing.Id);
+            })
+            .Build();
+
+        var result = await _engine.ExecuteAsync(op, ct);
+        if (!result.Success) return this.BadRequestEnvelope("listing_publish_failed", result.ErrorMessage);
+
         return this.OkEnvelope("listing.publish", listing);
     }
 
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
     {
-        await _repo.SoftDeleteAsync(id, ct);
+        var op = Entry.Create("listing.delete")
+            .Describe($"Soft-delete listing #{id}")
+            .From($"Listing:{id}", 1, ("role", "listing"))
+            .To($"System:archive", 1, ("role", "archive"))
+            .Tag("listing_id", id.ToString())
+            .Execute(async ctx =>
+            {
+                await _repo.SoftDeleteAsync(id, ctx.CancellationToken);
+                ctx.Set("listingId", id);
+            })
+            .Build();
+
+        var result = await _engine.ExecuteAsync(op, ct);
+        if (!result.Success) return this.BadRequestEnvelope("listing_delete_failed", result.ErrorMessage);
+
         return this.NoContentEnvelope("listing.delete");
     }
 }

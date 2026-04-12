@@ -143,9 +143,28 @@ public class SubscriptionsController : ControllerBase
     {
         var sub = await _subs.GetByIdAsync(id, ct);
         if (sub == null) return this.NotFoundEnvelope("subscription_not_found");
-        sub.Status = SubscriptionStatus.Cancelled;
-        sub.EndDate = DateTime.UtcNow;
-        await _subs.UpdateAsync(sub, ct);
+
+        var plan = await _plans.GetByIdAsync(sub.PlanId, ct);
+
+        var op = Entry.Create("subscription.cancel")
+            .Describe($"Cancel subscription #{sub.Id} for User:{sub.UserId} — reversal from Plan:{sub.PlanId}")
+            .From($"Plan:{sub.PlanId}", sub.AmountPaid, ("role", "plan"))
+            .To($"User:{sub.UserId}", sub.AmountPaid, ("role", "subscriber"))
+            .Tag("subscription_id", sub.Id.ToString())
+            .Tag("plan_id", sub.PlanId.ToString())
+            .Tag("user_id", sub.UserId.ToString())
+            .Execute(async ctx =>
+            {
+                sub.Status = SubscriptionStatus.Cancelled;
+                sub.EndDate = DateTime.UtcNow;
+                await _subs.UpdateAsync(sub, ctx.CancellationToken);
+                ctx.Set("subscriptionId", sub.Id);
+            })
+            .Build();
+
+        var result = await _engine.ExecuteAsync(op, ct);
+        if (!result.Success) return this.BadRequestEnvelope("subscription_cancel_failed", result.ErrorMessage);
+
         return this.OkEnvelope("subscription.cancel", sub);
     }
 }

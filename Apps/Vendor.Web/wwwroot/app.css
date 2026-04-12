@@ -1,0 +1,201 @@
+/* =========================================================================
+   Vendor.Web — Merchant dashboard theme (teal accent)
+   Same neutral-first approach as Order.Web; brand color distinguishes
+   the merchant app visually from the customer app.
+   ========================================================================= */
+:root {
+    --ac-primary:         #0D9488;
+    --ac-primary-hover:   #0F766E;
+    --ac-primary-soft:    #ECFDF5;
+    --ac-on-primary:      #FFFFFF;
+    --ac-secondary:       #14B8A6;
+    --ac-secondary-hover: #0D9488;
+    --ac-on-secondary:    #FFFFFF;
+
+    --ac-bg:         #F7F8FA;
+    --ac-bg-alt:     #F1F3F6;
+    --ac-surface:    #FFFFFF;
+    --ac-surface-2:  #FAFBFC;
+    --ac-border:     #E5E7EB;
+    --ac-border-dark:#D1D5DB;
+
+    --ac-text:        #0F172A;
+    --ac-text-muted:  #64748B;
+    --ac-text-faint:  #94A3B8;
+
+    --ac-success: #16A34A;
+    --ac-warning: #D97706;
+    --ac-danger:  #DC2626;
+    --ac-info:    #2563EB;
+
+    --ac-radius-sm: 0.4rem;
+    --ac-radius-md: 0.75rem;
+    --ac-radius-lg: 1rem;
+    --ac-shadow-sm: 0 1px 2px rgba(15,23,42,0.04), 0 1px 3px rgba(15,23,42,0.04);
+    --ac-shadow-md: 0 4px 10px -2px rgba(15,23,42,0.06), 0 2px 4px -2px rgba(15,23,42,0.04);
+    --ac-shadow-lg: 0 14px 28px -6px rgba(15,23,42,0.10);
+
+    --ac-font-family: 'Tajawal', 'Inter', -apple-system, BlinkMacSystemFont,
+                      'Segoe UI', Tahoma, sans-serif;
+    --ac-font-weight-normal: 400;
+    --ac-font-weight-bold:   500;
+
+    --vnd-shell-max: 640px;
+    --vnd-bottom-nav: 64px;
+}
+
+html[data-theme="dark"] {
+    --ac-bg:         #0B0F17;
+    --ac-bg-alt:     #111827;
+    --ac-surface:    #151A24;
+    --ac-surface-2:  #1B2130;
+    --ac-border:     #283244;
+    --ac-border-dark:#3D4759;
+    --ac-text:         #F1F5F9;
+    --ac-text-muted:   #94A3B8;
+    --ac-text-faint:   #64748B;
+    --ac-primary-soft: rgba(13,148,136,0.14);
+    --ac-shadow-sm: 0 1px 2px rgba(0,0,0,0.45);
+    --ac-shadow-md: 0 6px 14px rgba(0,0,0,0.5);
+    --ac-shadow-lg: 0 18px 36px rgba(0,0,0,0.6);
+}
+
+html { font-size: 14px; }
+body {
+    margin: 0; padding: 0; min-height: 100vh;
+    background: var(--ac-bg); color: var(--ac-text);
+    font-family: var(--ac-font-family); font-size: 1rem;
+    line-height: 1.5; letter-spacing: 0.01em;
+    -webkit-font-smoothing: antialiased;
+    transition: background-color 180ms, color 180ms;
+}
+
+a { color: var(--ac-primary); text-decoration: none; }
+a:hover { color: var(--ac-primary-hover); }
+img { max-width: 100%; }
+
+/* ── Shell ────────────────────────────────────────────────────────────── */
+.vnd-shell {
+    max-width: var(--vnd-shell-max);
+    min-height: 100vh;
+    margin: 0 auto;
+    background: var(--ac-bg);
+    box-shadow: 0 0 40px rgba(15,23,42,0.04);
+    display: flex;
+    flex-direction: column;
+}
+.vnd-main {
+    flex: 1;
+    padding-bottom: calc(var(--vnd-bottom-nav) + 16px);
+}
+.vnd-bottom-nav {
+    position: fixed;
+    inset-inline-start: 50%;
+    transform: translateX(-50%);
+    bottom: 0;
+    width: 100%;
+    max-width: var(--vnd-shell-max);
+    height: var(--vnd-bottom-nav);
+    background: var(--ac-surface);
+    border-top: 1px solid var(--ac-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    z-index: 100;
+}
+html[dir="rtl"] .vnd-bottom-nav { transform: translateX(50%); }
+.vnd-nav-item {
+    flex: 1;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 2px; color: var(--ac-text-muted); text-decoration: none;
+    padding: 6px 4px; font-size: 0.68rem; font-weight: 500;
+    transition: color 150ms;
+}
+.vnd-nav-item:hover { color: var(--ac-text); }
+.vnd-nav-item.active { color: var(--ac-primary); }
+
+/* ── Cards ─────────────────────────────────────────────────────────────── */
+.s-card {
+    background: var(--ac-surface);
+    border: 1px solid var(--ac-border);
+    border-radius: var(--ac-radius-md);
+    padding: 16px; margin-bottom: 12px;
+}
+
+/* ── Buttons ───────────────────────────────────────────────────────────── */
+.btn-primary {
+    background: var(--ac-primary); border-color: var(--ac-primary);
+    color: var(--ac-on-primary);
+}
+.btn-primary:hover:not(:disabled) {
+    background: var(--ac-primary-hover); border-color: var(--ac-primary-hover);
+}
+
+/* ── Auth page overrides ───────────────────────────────────────────────── */
+.acs-auth-page { background: var(--ac-bg); padding: 40px 20px; }
+.acs-auth-icon { font-size: 2.8rem; color: var(--ac-primary); }
+.acs-auth-brand { font-size: 1.5rem; font-weight: 700; color: var(--ac-text); }
+.acs-auth-tag { font-size: 0.85rem; color: var(--ac-text-muted); }
+.acs-auth-card { background: var(--ac-surface); border: 1px solid var(--ac-border); box-shadow: var(--ac-shadow-md); }
+.acs-auth-title { font-size: 1.15rem; font-weight: 700; color: var(--ac-text); }
+.acs-auth-subtitle { font-size: 0.84rem; color: var(--ac-text-muted); }
+
+/* ── Tighter heading sizes ─────────────────────────────────────────────── */
+.acs-page-title    { font-size: 1.05rem; font-weight: 700; }
+.acs-empty-icon    { font-size: 2.5rem; }
+.acs-empty-title   { font-size: 0.92rem; }
+.acc-section-title { font-size: 0.9rem; }
+.acc-section-label { font-size: 0.75rem; }
+
+/* ── Dashboard stat cards ──────────────────────────────────────────────── */
+.vnd-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    padding: 16px;
+}
+.vnd-stat-card {
+    background: var(--ac-surface);
+    border: 1px solid var(--ac-border);
+    border-radius: var(--ac-radius-md);
+    padding: 16px;
+    text-align: center;
+}
+.vnd-stat-num {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--ac-primary);
+}
+.vnd-stat-label {
+    font-size: 0.78rem;
+    color: var(--ac-text-muted);
+    margin-top: 2px;
+}
+
+/* ── Order status badges ───────────────────────────────────────────────── */
+.vnd-status {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 4px 10px; border-radius: 999px;
+    font-size: 0.72rem; font-weight: 700;
+}
+.vnd-status-pending   { background: color-mix(in srgb, var(--ac-warning) 14%, transparent); color: var(--ac-warning); }
+.vnd-status-accepted  { background: color-mix(in srgb, var(--ac-info)    14%, transparent); color: var(--ac-info); }
+.vnd-status-ready     { background: color-mix(in srgb, var(--ac-success) 14%, transparent); color: var(--ac-success); }
+.vnd-status-delivered { background: color-mix(in srgb, var(--ac-success) 10%, transparent); color: var(--ac-success); }
+.vnd-status-cancelled { background: color-mix(in srgb, var(--ac-danger)  14%, transparent); color: var(--ac-danger); }
+
+/* ── Offer card (vendor view) ──────────────────────────────────────────── */
+.vnd-offer-card {
+    display: flex; gap: 12px; align-items: center;
+    padding: 14px; margin-bottom: 10px;
+    background: var(--ac-surface); border: 1px solid var(--ac-border);
+    border-radius: var(--ac-radius-md);
+}
+.vnd-offer-emoji { font-size: 1.5rem; width: 40px; text-align: center; }
+.vnd-offer-body { flex: 1; min-width: 0; }
+.vnd-offer-title { font-weight: 700; }
+.vnd-offer-price { font-size: 0.84rem; color: var(--ac-text-muted); }
+.vnd-offer-actions { display: flex; gap: 6px; flex-shrink: 0; }
+
+:focus:not(:focus-visible) { outline: none; }
+h1:focus, h2:focus, h3:focus { outline: none; }

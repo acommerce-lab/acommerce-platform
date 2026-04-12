@@ -5,6 +5,7 @@ using ACommerce.Authentication.Providers.Token.Extensions;
 using ACommerce.Authentication.TwoFactor.Operations;
 using ACommerce.Authentication.TwoFactor.Operations.Abstractions;
 using ACommerce.Authentication.TwoFactor.Providers.Sms.Extensions;
+using ACommerce.Notification.Operations;
 using ACommerce.Notification.Operations.Abstractions;
 using ACommerce.Notification.Providers.InApp.Extensions;
 using ACommerce.OperationEngine.Core;
@@ -68,7 +69,7 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
-                     ?? new[] { "http://localhost:5701" };
+                     ?? new[] { "http://localhost:5701", "http://localhost:5801", "http://localhost:5201" };
 builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(p => p
@@ -93,6 +94,17 @@ builder.Services.AddInAppNotificationChannel(opt =>
     opt.MethodName = "ReceiveNotification";
     opt.AllowOffline = true;
 });
+
+// Register Notifier with domain notification types
+builder.Services.AddNotifications(config =>
+{
+    config.DefineType(OrderNotifications.NewOrder);
+    config.DefineType(OrderNotifications.OrderAccepted);
+    config.DefineType(OrderNotifications.OrderReady);
+    config.DefineType(OrderNotifications.OrderRejected);
+    config.DefineType(OrderNotifications.OrderDelivered);
+});
+// InApp channel registered via AddInAppNotificationChannel above — Notifier resolves channels from DI at send time
 
 // ─────────────────────────────────────────────────────────
 // Authentication: JWT + SMS 2FA (mock)
@@ -150,6 +162,20 @@ builder.Services.AddSingleton<TwoFactorConfig>(sp =>
 });
 builder.Services.AddScoped<TwoFactorService>();
 
+// ─── HTTP Client → Vendor.Api (for order webhooks) ──────────────────
+var vendorApiBase = builder.Configuration["VendorApi:BaseUrl"] ?? "http://localhost:5201";
+builder.Services.AddHttpClient("vendor-api", c =>
+{
+    c.BaseAddress = new Uri(vendorApiBase);
+    c.Timeout = TimeSpan.FromSeconds(10);
+});
+builder.Services.AddScoped<VendorApiNotifier>(sp =>
+{
+    var factory = sp.GetRequiredService<IHttpClientFactory>();
+    var logger = sp.GetRequiredService<ILogger<VendorApiNotifier>>();
+    return new VendorApiNotifier(factory.CreateClient("vendor-api"), logger);
+});
+
 // Seeder
 builder.Services.AddScoped<OrderSeeder>();
 
@@ -157,6 +183,14 @@ builder.Services.AddScoped<OrderSeeder>();
 // Build
 // ─────────────────────────────────────────────────────────
 var app = builder.Build();
+
+// Bridge DI-registered notification channels into NotificationConfig
+using (var chScope = app.Services.CreateScope())
+{
+    var notifConfig = chScope.ServiceProvider.GetRequiredService<NotificationConfig>();
+    foreach (var ch in chScope.ServiceProvider.GetServices<INotificationChannel>())
+        notifConfig.AddChannel(ch);
+}
 
 app.UseCors();
 app.UseAuthentication();

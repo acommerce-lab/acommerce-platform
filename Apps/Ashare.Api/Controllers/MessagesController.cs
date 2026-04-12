@@ -60,7 +60,22 @@ public class MessagesController : ControllerBase
             CustomerId = req.CustomerId,
             OwnerId = listing.OwnerId
         };
-        await _convs.AddAsync(conv, ct);
+
+        var op = Entry.Create("conversation.start")
+            .Describe($"Start conversation for Listing:{req.ListingId} from Customer:{req.CustomerId} to Owner:{listing.OwnerId}")
+            .From($"Customer:{req.CustomerId}", 1, ("role", "initiator"))
+            .To($"Owner:{listing.OwnerId}", 1, ("role", "recipient"))
+            .Tag("listing_id", req.ListingId.ToString())
+            .Tag("conversation_id", conv.Id.ToString())
+            .Execute(async ctx =>
+            {
+                await _convs.AddAsync(conv, ctx.CancellationToken);
+            })
+            .Build();
+
+        var result = await _engine.ExecuteAsync(op, ct);
+        if (!result.Success) return this.BadRequestEnvelope("conversation_start_failed", result.ErrorMessage);
+
         return this.OkEnvelope("conversation.create", conv);
     }
 

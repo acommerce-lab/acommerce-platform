@@ -1,30 +1,81 @@
+using ACommerce.Client.Http;
+using ACommerce.Client.Http.Extensions;
+using ACommerce.Client.Operations;
+using ACommerce.Client.Operations.Interceptors;
+using ACommerce.Client.StateBridge;
+using ACommerce.OperationEngine.Core;
+using ACommerce.OperationEngine.Interceptors;
+using ACommerce.OperationEngine.Interceptors.Extensions;
 using Order.Web.Components;
-using Order.Web.Services;
+using Order.Web.Interpreters;
+using Order.Web.Operations;
+using Order.Web.Store;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
-// === Per-circuit state ===
-builder.Services.AddScoped<AuthStateService>();
-builder.Services.AddScoped<UiPreferences>();
-builder.Services.AddScoped<CartService>();
+// ─── AppStore (حالة التطبيق — Scoped per circuit) ────────────────────
+builder.Services.AddScoped<AppStore>();
 
-// === HttpClient → Order.Api ===
+// ─── OpEngine for client-side local operations (cart, ui prefs) ──────
+builder.Services.AddScoped<OpEngine>(sp =>
+    new OpEngine(sp, sp.GetRequiredService<ILogger<OpEngine>>()));
+
+// ─── ClientOpEngine + HttpDispatcher → Order.Api ─────────────────────
 var apiBase = builder.Configuration["OrderApi:BaseUrl"] ?? "http://localhost:5101";
 builder.Services.AddHttpClient("order", c =>
 {
     c.BaseAddress = new Uri(apiBase);
     c.Timeout = TimeSpan.FromSeconds(30);
 });
-builder.Services.AddScoped<OrderApiClient>(sp =>
+
+// Route registry: operation type → HTTP endpoint
+var routeRegistry = new HttpRouteRegistry();
+OrderRoutes.Register(routeRegistry);
+builder.Services.AddSingleton(routeRegistry);
+
+// HttpDispatcher (IOperationDispatcher)
+builder.Services.AddScoped<HttpDispatcher>(sp =>
 {
     var factory = sp.GetRequiredService<IHttpClientFactory>();
-    var auth = sp.GetRequiredService<AuthStateService>();
-    return new OrderApiClient(factory.CreateClient("order"), auth);
+    return new HttpDispatcher(
+        factory.CreateClient("order"),
+        sp.GetRequiredService<HttpRouteRegistry>(),
+        sp.GetRequiredService<OpEngine>(),
+        sp.GetRequiredService<ILogger<HttpDispatcher>>());
+});
+builder.Services.AddScoped<IOperationDispatcher>(sp => sp.GetRequiredService<HttpDispatcher>());
+
+// ApiReader: GET-only — reads don't need accounting entries
+builder.Services.AddScoped<ApiReader>(sp =>
+{
+    var factory = sp.GetRequiredService<IHttpClientFactory>();
+    return new ApiReader(factory.CreateClient("order"), sp.GetRequiredService<AppStore>());
 });
 
+// ClientOpEngine
+builder.Services.AddScoped<ClientOpEngine>(sp =>
+    new ClientOpEngine(
+        sp.GetRequiredService<IOperationDispatcher>(),
+        sp.GetRequiredService<ILogger<ClientOpEngine>>()));
+
+// ─── State Bridge: server operations → AppStore updates ──────────────
+builder.Services.AddScoped<OperationInterpreterRegistry<AppStore>>(sp =>
+{
+    var registry = new OperationInterpreterRegistry<AppStore>(
+        sp.GetRequiredService<ILogger<OperationInterpreterRegistry<AppStore>>>());
+    registry.Add(new AuthInterpreter());
+    registry.Add(new CartInterpreter());
+    registry.Add(new UiInterpreter());
+    return registry;
+});
+
+builder.Services.AddScoped<AppStateApplier>();
+builder.Services.AddScoped<IStateApplier>(sp => sp.GetRequiredService<AppStateApplier>());
+
+// ─── Build ───────────────────────────────────────────────────────────
 var app = builder.Build();
 
 if (!app.Environment.IsDevelopment())

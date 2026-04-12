@@ -1,3 +1,6 @@
+using ACommerce.OperationEngine.Core;
+using ACommerce.OperationEngine.Patterns;
+using ACommerce.OperationEngine.Wire;
 using ACommerce.SharedKernel.Abstractions.Repositories;
 using Microsoft.AspNetCore.Mvc;
 using Order.Api.Entities;
@@ -11,12 +14,14 @@ public class FavoritesController : ControllerBase
     private readonly IBaseAsyncRepository<Favorite> _repo;
     private readonly IBaseAsyncRepository<Offer> _offers;
     private readonly IBaseAsyncRepository<Vendor> _vendors;
+    private readonly OpEngine _engine;
 
-    public FavoritesController(IRepositoryFactory factory)
+    public FavoritesController(IRepositoryFactory factory, OpEngine engine)
     {
         _repo = factory.CreateRepository<Favorite>();
         _offers = factory.CreateRepository<Offer>();
         _vendors = factory.CreateRepository<Vendor>();
+        _engine = engine;
     }
 
     public record ToggleRequest(Guid UserId, Guid OfferId);
@@ -26,18 +31,48 @@ public class FavoritesController : ControllerBase
     {
         var existing = await _repo.GetAllWithPredicateAsync(
             f => f.UserId == req.UserId && f.OfferId == req.OfferId);
+
         if (existing.Count > 0)
         {
-            await _repo.DeleteAsync(existing.First(), ct);
+            var fav = existing.First();
+            var removeOp = Entry.Create("favorite.remove")
+                .Describe($"User:{req.UserId} unfavorites Offer:{req.OfferId}")
+                .From($"User:{req.UserId}", 1, ("role", "customer"))
+                .To($"Offer:{req.OfferId}", 1, ("role", "offer"))
+                .Tag("offer_id", req.OfferId.ToString())
+                .Execute(async ctx =>
+                {
+                    await _repo.DeleteAsync(fav, ctx.CancellationToken);
+                })
+                .Build();
+
+            var result = await _engine.ExecuteAsync(removeOp, ct);
+            if (!result.Success) return this.BadRequestEnvelope("favorite_remove_failed", result.ErrorMessage);
             return this.OkEnvelope("favorite.remove", new { isFavorite = false });
         }
-        await _repo.AddAsync(new Favorite
+
+        var newFav = new Favorite
         {
             Id = Guid.NewGuid(),
             CreatedAt = DateTime.UtcNow,
             UserId = req.UserId,
             OfferId = req.OfferId
-        }, ct);
+        };
+
+        var addOp = Entry.Create("favorite.add")
+            .Describe($"User:{req.UserId} favorites Offer:{req.OfferId}")
+            .From($"User:{req.UserId}", 1, ("role", "customer"))
+            .To($"Offer:{req.OfferId}", 1, ("role", "offer"))
+            .Tag("offer_id", req.OfferId.ToString())
+            .Execute(async ctx =>
+            {
+                await _repo.AddAsync(newFav, ctx.CancellationToken);
+                ctx.Set("favoriteId", newFav.Id);
+            })
+            .Build();
+
+        var addResult = await _engine.ExecuteAsync(addOp, ct);
+        if (!addResult.Success) return this.BadRequestEnvelope("favorite_add_failed", addResult.ErrorMessage);
         return this.OkEnvelope("favorite.add", new { isFavorite = true });
     }
 

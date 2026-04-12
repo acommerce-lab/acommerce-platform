@@ -1,4 +1,5 @@
 using ACommerce.OperationEngine.Core;
+using ACommerce.OperationEngine.Patterns;
 using ACommerce.Payments.Operations;
 using ACommerce.Payments.Operations.Abstractions;
 using ACommerce.SharedKernel.Abstractions.Repositories;
@@ -56,32 +57,47 @@ public class PaymentsController : ControllerBase
             Currency = booking.Currency,
             Status = PaymentEntityStatus.Pending
         };
-        await _payRepo.AddAsync(payment, ct);
 
-        // ─── استخدام مكتبة الدفع المحاسبية ───
-        var pr = new PaymentRequest(
-            Amount: booking.TotalPrice,
-            Currency: booking.Currency,
-            OrderReference: booking.Id.ToString(),
-            CustomerId: booking.CustomerId.ToString(),
-            Description: $"Booking #{booking.Id}",
-            ReturnUrl: $"https://ashare.test/payments/return?paymentId={payment.Id}",
-            WebhookUrl: $"https://ashare.test/api/payments/webhook/noon");
+        var op = Entry.Create("payment.initiate")
+            .Describe($"Initiate payment for Booking:{booking.Id} by Customer:{booking.CustomerId}")
+            .From($"Customer:{booking.CustomerId}", booking.TotalPrice, ("role", "payer"))
+            .To($"Gateway:noon", booking.TotalPrice, ("role", "processor"))
+            .Tag("booking_id", booking.Id.ToString())
+            .Tag("currency", booking.Currency)
+            .Tag("payment_id", payment.Id.ToString())
+            .Execute(async ctx =>
+            {
+                await _payRepo.AddAsync(payment, ctx.CancellationToken);
 
-        var outcome = await _payments.InitiateAsync("noon", booking.CustomerId.ToString(), pr, ct);
+                // ─── استخدام مكتبة الدفع المحاسبية ───
+                var pr = new PaymentRequest(
+                    Amount: booking.TotalPrice,
+                    Currency: booking.Currency,
+                    OrderReference: booking.Id.ToString(),
+                    CustomerId: booking.CustomerId.ToString(),
+                    Description: $"Booking #{booking.Id}",
+                    ReturnUrl: $"https://ashare.test/payments/return?paymentId={payment.Id}",
+                    WebhookUrl: $"https://ashare.test/api/payments/webhook/noon");
 
-        if (!outcome.Succeeded)
-        {
-            payment.Status = PaymentEntityStatus.Failed;
-            payment.FailureReason = outcome.Error;
-            await _payRepo.UpdateAsync(payment, ct);
-            return this.BadRequestEnvelope("payment_initiate_failed", outcome.Error);
-        }
+                var outcome = await _payments.InitiateAsync("noon", booking.CustomerId.ToString(), pr, ctx.CancellationToken);
 
-        payment.GatewayReference = outcome.PaymentReference;
-        payment.PaymentUrl = outcome.PaymentUrl;
-        payment.Status = PaymentEntityStatus.Authorized;
-        await _payRepo.UpdateAsync(payment, ct);
+                if (!outcome.Succeeded)
+                {
+                    payment.Status = PaymentEntityStatus.Failed;
+                    payment.FailureReason = outcome.Error;
+                    await _payRepo.UpdateAsync(payment, ctx.CancellationToken);
+                    throw new InvalidOperationException(outcome.Error);
+                }
+
+                payment.GatewayReference = outcome.PaymentReference;
+                payment.PaymentUrl = outcome.PaymentUrl;
+                payment.Status = PaymentEntityStatus.Authorized;
+                await _payRepo.UpdateAsync(payment, ctx.CancellationToken);
+            })
+            .Build();
+
+        var result = await _engine.ExecuteAsync(op, ct);
+        if (!result.Success) return this.BadRequestEnvelope("payment_initiate_failed", result.ErrorMessage);
 
         return this.OkEnvelope("payment.initiate", payment);
     }
@@ -96,29 +112,42 @@ public class PaymentsController : ControllerBase
         var payment = await _payRepo.GetByIdAsync(paymentId, ct);
         if (payment == null) return this.NotFoundEnvelope("payment_not_found");
 
-        if (success)
-        {
-            payment.Status = PaymentEntityStatus.Captured;
-            payment.PaidAt = DateTime.UtcNow;
-        }
-        else
-        {
-            payment.Status = PaymentEntityStatus.Failed;
-            payment.FailureReason = "callback_failure";
-        }
-        await _payRepo.UpdateAsync(payment, ct);
-
-        // تحديث حالة الحجز
-        if (payment.BookingId.HasValue)
-        {
-            var booking = await _bookings.GetByIdAsync(payment.BookingId.Value, ct);
-            if (booking != null)
+        var op = Entry.Create("payment.callback")
+            .Describe($"Payment callback for Payment:{paymentId} success={success}")
+            .From($"Gateway:noon", payment.Amount, ("role", "processor"))
+            .To($"Customer:{payment.CustomerId}", payment.Amount, ("role", "payer"))
+            .Tag("payment_id", paymentId.ToString())
+            .Tag("callback_success", success.ToString())
+            .Execute(async ctx =>
             {
-                booking.Status = success ? BookingStatus.Paid : BookingStatus.AwaitingPayment;
-                booking.PaymentId = payment.Id;
-                await _bookings.UpdateAsync(booking, ct);
-            }
-        }
+                if (success)
+                {
+                    payment.Status = PaymentEntityStatus.Captured;
+                    payment.PaidAt = DateTime.UtcNow;
+                }
+                else
+                {
+                    payment.Status = PaymentEntityStatus.Failed;
+                    payment.FailureReason = "callback_failure";
+                }
+                await _payRepo.UpdateAsync(payment, ctx.CancellationToken);
+
+                // تحديث حالة الحجز
+                if (payment.BookingId.HasValue)
+                {
+                    var booking = await _bookings.GetByIdAsync(payment.BookingId.Value, ctx.CancellationToken);
+                    if (booking != null)
+                    {
+                        booking.Status = success ? BookingStatus.Paid : BookingStatus.AwaitingPayment;
+                        booking.PaymentId = payment.Id;
+                        await _bookings.UpdateAsync(booking, ctx.CancellationToken);
+                    }
+                }
+            })
+            .Build();
+
+        var result = await _engine.ExecuteAsync(op, ct);
+        if (!result.Success) return this.BadRequestEnvelope("payment_callback_failed", result.ErrorMessage);
 
         return this.OkEnvelope("payment.callback", payment);
     }
@@ -139,23 +168,38 @@ public class PaymentsController : ControllerBase
             return this.BadRequestEnvelope("cannot_refund_uncaptured");
 
         var refundAmount = amount ?? payment.Amount;
-        var outcome = await _payments.RefundAsync(
-            "noon",
-            merchantId: "ashare-merchant",
-            customerId: payment.CustomerId.ToString(),
-            paymentReference: payment.GatewayReference ?? payment.Id.ToString(),
-            amount: refundAmount,
-            currency: payment.Currency,
-            reason: "customer_request",
-            ct: ct);
 
-        if (!outcome.Succeeded)
-            return this.BadRequestEnvelope("refund_failed", outcome.Error);
+        var op = Entry.Create("payment.refund")
+            .Describe($"Refund {refundAmount} for Payment:{id}")
+            .From($"Gateway:noon", refundAmount, ("role", "processor"))
+            .To($"Customer:{payment.CustomerId}", refundAmount, ("role", "recipient"))
+            .Tag("payment_id", id.ToString())
+            .Tag("refund_amount", refundAmount.ToString())
+            .Tag("currency", payment.Currency)
+            .Execute(async ctx =>
+            {
+                var outcome = await _payments.RefundAsync(
+                    "noon",
+                    merchantId: "ashare-merchant",
+                    customerId: payment.CustomerId.ToString(),
+                    paymentReference: payment.GatewayReference ?? payment.Id.ToString(),
+                    amount: refundAmount,
+                    currency: payment.Currency,
+                    reason: "customer_request",
+                    ct: ctx.CancellationToken);
 
-        payment.Status = PaymentEntityStatus.Refunded;
-        payment.RefundedAmount = refundAmount;
-        payment.RefundedAt = DateTime.UtcNow;
-        await _payRepo.UpdateAsync(payment, ct);
+                if (!outcome.Succeeded)
+                    throw new InvalidOperationException(outcome.Error);
+
+                payment.Status = PaymentEntityStatus.Refunded;
+                payment.RefundedAmount = refundAmount;
+                payment.RefundedAt = DateTime.UtcNow;
+                await _payRepo.UpdateAsync(payment, ctx.CancellationToken);
+            })
+            .Build();
+
+        var result = await _engine.ExecuteAsync(op, ct);
+        if (!result.Success) return this.BadRequestEnvelope("refund_failed", result.ErrorMessage);
 
         return this.OkEnvelope("payment.refund", payment);
     }

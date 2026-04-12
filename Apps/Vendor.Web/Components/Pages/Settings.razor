@@ -1,0 +1,41 @@
+@page "/settings"
+@inject AppStore Store
+@inject AppStateApplier Applier
+@inject ClientOpEngine Engine
+@inject NavigationManager Nav
+@implements IDisposable
+
+<PageTitle>@(Store.Ui.IsArabic ? "الإعدادات" : "Settings")</PageTitle>
+
+<AcSettingsPage Snapshot="@Snapshot"
+                Title="@(Store.Ui.IsArabic ? "الإعدادات" : "Settings")"
+                ThemeLabel="@(Store.Ui.IsArabic ? "المظهر" : "Appearance")"
+                LanguageLabel="@(Store.Ui.IsArabic ? "اللغة" : "Language")"
+                AboutLabel="@(Store.Ui.IsArabic ? "حول التطبيق" : "About")"
+                VersionLabel="@(Store.Ui.IsArabic ? "الإصدار" : "Version")"
+                LightLabel="@(Store.Ui.IsArabic ? "فاتح" : "Light")"
+                DarkLabel="@(Store.Ui.IsArabic ? "داكن" : "Dark")"
+                SignOutLabel="@(Store.Ui.IsArabic ? "تسجيل الخروج" : "Sign out")"
+                OnThemeChange="@(async t => { await Applier.ApplyLocalAsync(ClientOps.SetTheme(t)); })"
+                OnLanguageChange="@(async l => { await Applier.ApplyLocalAsync(ClientOps.SetLanguage(l)); })"
+                OnSignOut="@(Store.Auth.IsAuthenticated ? EventCallback.Factory.Create(this, SignOut) : default)" />
+
+@code {
+    private SettingsSnapshot Snapshot => new()
+    {
+        Theme = Store.Ui.IsDark ? "dark" : "light",
+        Language = Store.Ui.IsArabic ? "ar" : "en",
+        AppVersion = "1.0.0",
+        BackendInfo = "Order.Api + Vendor.Api",
+        FrontendInfo = "Vendor.Web"
+    };
+
+    protected override void OnInitialized() => Store.OnChanged += OnChanged;
+    private void OnChanged() => InvokeAsync(StateHasChanged);
+    private async Task SignOut()
+    {
+        await Engine.ExecuteAsync<object>(ClientOps.SignOut(), new { });
+        Nav.NavigateTo("/");
+    }
+    public void Dispose() => Store.OnChanged -= OnChanged;
+}

@@ -1,0 +1,56 @@
+@page "/profile"
+@inject AppStore Store
+@inject ClientOpEngine Engine
+@inject NavigationManager Nav
+
+<PageTitle>@(Store.Ui.IsArabic ? "حسابي" : "Profile")</PageTitle>
+
+@if (!Store.Auth.IsAuthenticated)
+{
+    <AcEmptyState IconName="user" Title="@(Store.Ui.IsArabic ? "غير مسجل" : "Not signed in")" ActionHref="/login" ActionLabel="@(Store.Ui.IsArabic ? "دخول" : "Sign in")" />
+}
+else
+{
+    <AcProfilePage User="@UserDto"
+                   MenuSections="@MenuList"
+                   SignOutLabel="@(Store.Ui.IsArabic ? "تسجيل الخروج" : "Sign out")"
+                   OnSignOut="SignOut" />
+}
+
+@code {
+    private ProfileUserDto UserDto => new()
+    {
+        Id = Store.Auth.UserId?.ToString() ?? "",
+        FullName = Store.Auth.FullName ?? (Store.Ui.IsArabic ? "تاجر" : "Vendor"),
+        PhoneNumber = Store.Auth.PhoneNumber
+    };
+
+    private IReadOnlyList<MenuSectionDto> MenuList => new[]
+    {
+        new MenuSectionDto
+        {
+            Title = Store.Ui.IsArabic ? "المتجر" : "Store",
+            Items = new[]
+            {
+                new MenuItemDto { Label = Store.Ui.IsArabic ? "الطلبات" : "Orders",       IconName = "receipt",  Href = "/orders" },
+                new MenuItemDto { Label = Store.Ui.IsArabic ? "العروض" : "Offers",         IconName = "tag",      Href = "/offers" },
+                new MenuItemDto { Label = Store.Ui.IsArabic ? "الرسائل" : "Messages",     IconName = "message",  Href = "/messages" },
+                new MenuItemDto { Label = Store.Ui.IsArabic ? "الإشعارات" : "Notifications", IconName = "bell", Href = "/notifications" },
+            }
+        },
+        new MenuSectionDto
+        {
+            Title = Store.Ui.IsArabic ? "التطبيق" : "App",
+            Items = new[]
+            {
+                new MenuItemDto { Label = Store.Ui.IsArabic ? "الإعدادات" : "Settings", IconName = "settings", Href = "/settings" },
+            }
+        }
+    };
+
+    private async Task SignOut()
+    {
+        await Engine.ExecuteAsync<object>(ClientOps.SignOut(), new { });
+        Nav.NavigateTo("/", forceLoad: false);
+    }
+}

@@ -1,3 +1,5 @@
+using ACommerce.OperationEngine.Core;
+using ACommerce.OperationEngine.Patterns;
 using ACommerce.SharedKernel.Abstractions.Repositories;
 using Ashare.Api.Entities;
 using Microsoft.AspNetCore.Mvc;
@@ -10,11 +12,13 @@ public class ProfilesController : ControllerBase
 {
     private readonly IBaseAsyncRepository<Profile> _profiles;
     private readonly IBaseAsyncRepository<User> _users;
+    private readonly OpEngine _engine;
 
-    public ProfilesController(IRepositoryFactory factory)
+    public ProfilesController(IRepositoryFactory factory, OpEngine engine)
     {
         _profiles = factory.CreateRepository<Profile>();
         _users    = factory.CreateRepository<User>();
+        _engine   = engine;
     }
 
     [HttpGet("user/{userId:guid}")]
@@ -47,8 +51,9 @@ public class ProfilesController : ControllerBase
 
         var existing = await _profiles.GetAllWithPredicateAsync(p => p.UserId == req.UserId);
         Profile profile;
+        bool isUpdate = existing.Count > 0;
 
-        if (existing.Count > 0)
+        if (isUpdate)
         {
             profile = existing[0];
             profile.FirstName = req.FirstName ?? profile.FirstName;
@@ -61,7 +66,6 @@ public class ProfilesController : ControllerBase
             profile.AvatarUrl = req.AvatarUrl ?? profile.AvatarUrl;
             profile.IsPhonePublic = req.IsPhonePublic ?? profile.IsPhonePublic;
             profile.IsEmailPublic = req.IsEmailPublic ?? profile.IsEmailPublic;
-            await _profiles.UpdateAsync(profile, ct);
         }
         else
         {
@@ -81,8 +85,25 @@ public class ProfilesController : ControllerBase
                 IsPhonePublic = req.IsPhonePublic ?? true,
                 IsEmailPublic = req.IsEmailPublic ?? false
             };
-            await _profiles.AddAsync(profile, ct);
         }
+
+        var op = Entry.Create("profile.upsert")
+            .Describe($"{(isUpdate ? "Update" : "Create")} profile for User:{req.UserId}")
+            .From($"User:{req.UserId}", 1, ("role", "owner"))
+            .To($"Profile:{profile.Id}", 1, ("role", "profile"))
+            .Tag("action", isUpdate ? "update" : "create")
+            .Tag("user_id", req.UserId.ToString())
+            .Execute(async ctx =>
+            {
+                if (isUpdate)
+                    await _profiles.UpdateAsync(profile, ctx.CancellationToken);
+                else
+                    await _profiles.AddAsync(profile, ctx.CancellationToken);
+            })
+            .Build();
+
+        var result = await _engine.ExecuteAsync(op, ct);
+        if (!result.Success) return this.BadRequestEnvelope("profile_upsert_failed", result.ErrorMessage);
 
         return this.OkEnvelope("profile.upsert", profile);
     }

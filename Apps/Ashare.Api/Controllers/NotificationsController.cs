@@ -78,7 +78,6 @@ public class NotificationsController : ControllerBase
             ActionUrl = req.ActionUrl,
             DeliveryStatus = "pending"
         };
-        await _repo.AddAsync(entity, ct);
 
         // === العملية المحاسبية ===
         // النظام (مدين) ← المستخدم (دائن) برسالة على قناة محددة
@@ -92,6 +91,7 @@ public class NotificationsController : ControllerBase
             .Tag("notification_id", entity.Id.ToString())
             .Execute(async ctx =>
             {
+                await _repo.AddAsync(entity, ctx.CancellationToken);
                 var sent = await channel.SendAsync(req.UserId.ToString(), req.Title, req.Body, null, ctx.CancellationToken);
 
                 // تعديل بيانات الإشعار حسب نتيجة العملية
@@ -123,7 +123,21 @@ public class NotificationsController : ControllerBase
         if (n == null) return this.NotFoundEnvelope("notification_not_found");
         n.IsRead = true;
         n.ReadAt = DateTime.UtcNow;
-        await _repo.UpdateAsync(n, ct);
+
+        var op = Entry.Create("notification.read")
+            .Describe($"Mark notification {id} as read for User:{n.UserId}")
+            .From($"User:{n.UserId}", 1, ("role", "reader"))
+            .To($"Notification:{id}", 1, ("role", "notification"))
+            .Tag("notification_id", id.ToString())
+            .Execute(async ctx =>
+            {
+                await _repo.UpdateAsync(n, ctx.CancellationToken);
+            })
+            .Build();
+
+        var result = await _engine.ExecuteAsync(op, ct);
+        if (!result.Success) return this.BadRequestEnvelope("notification_read_failed", result.ErrorMessage);
+
         return this.OkEnvelope("notification.read", n);
     }
 
@@ -136,8 +150,26 @@ public class NotificationsController : ControllerBase
         {
             n.IsRead = true;
             n.ReadAt = now;
-            await _repo.UpdateAsync(n, ct);
         }
+
+        var op = Entry.Create("notification.mark_all_read")
+            .Describe($"Mark all {unread.Count} notifications as read for User:{userId}")
+            .From($"User:{userId}", unread.Count, ("role", "reader"))
+            .To($"Notifications:batch", unread.Count, ("role", "notifications"))
+            .Tag("user_id", userId.ToString())
+            .Tag("count", unread.Count.ToString())
+            .Execute(async ctx =>
+            {
+                foreach (var n in unread)
+                {
+                    await _repo.UpdateAsync(n, ctx.CancellationToken);
+                }
+            })
+            .Build();
+
+        var result = await _engine.ExecuteAsync(op, ct);
+        if (!result.Success) return this.BadRequestEnvelope("notification_mark_all_read_failed", result.ErrorMessage);
+
         return this.OkEnvelope("notification.mark_all_read", new { markedCount = unread.Count });
     }
 }

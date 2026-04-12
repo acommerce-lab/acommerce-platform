@@ -18,7 +18,7 @@
 }
 else if (Order is null)
 {
-    <AcEmptyState Icon="🔍"
+    <AcEmptyState IconName="search"
                   Title="@(NotFoundTitle ?? "الطلب غير موجود")"
                   ActionLabel="@(BackLabel ?? "رجوع")"
                   ActionHref="@BackHref" />
@@ -67,11 +67,11 @@ else
                 </div>
                 @if (!string.IsNullOrEmpty(Order.Vendor.City))
                 {
-                    <div class="acc-order-info-row">📍 @Order.Vendor.City</div>
+                    <div class="acc-order-info-row"><AcIcon Name="map-pin" Size="16" /> @Order.Vendor.City</div>
                 }
                 @if (!string.IsNullOrEmpty(Order.Vendor.Phone))
                 {
-                    <div class="acc-order-info-row" dir="ltr">📞 @Order.Vendor.Phone</div>
+                    <div class="acc-order-info-row" dir="ltr"><AcIcon Name="phone" Size="16" /> @Order.Vendor.Phone</div>
                 }
             </div>
         }
@@ -80,10 +80,13 @@ else
         {
             <div class="s-card">
                 <div class="acc-section-label">@(PickupLabel ?? "الاستلام")</div>
-                <div class="acc-order-info-row">@Order.PickupLabel</div>
+                <div class="acc-order-info-row">
+                    <AcIcon Name="@(Order.PickupType == "Curbside" ? "car" : "store")" Size="18" />
+                    <span>@Order.PickupLabel</span>
+                </div>
                 @if (!string.IsNullOrEmpty(Order.CarModel))
                 {
-                    <div class="acc-order-info-row">🚗 @Order.CarModel @Order.CarColor @(Order.CarPlate ?? "")</div>
+                    <div class="acc-order-info-row"><AcIcon Name="car" Size="16" /> @Order.CarModel @Order.CarColor @(Order.CarPlate ?? "")</div>
                 }
             </div>
         }
@@ -92,7 +95,10 @@ else
         {
             <div class="s-card">
                 <div class="acc-section-label">@(PaymentLabel ?? "الدفع")</div>
-                <div class="acc-order-info-row">@Order.PaymentLabel</div>
+                <div class="acc-order-info-row">
+                    <AcIcon Name="@(Order.PaymentMethod == "Card" ? "credit-card" : "cash")" Size="18" />
+                    <span>@Order.PaymentLabel</span>
+                </div>
                 @if (Order.CashTendered is > 0)
                 {
                     <div class="acc-order-info-row">@(CashTenderedLabel ?? "المبلغ المقدم"): @Order.CashTendered.Value.ToString("0.##")</div>
