@@ -1,26 +1,26 @@
 @page "/notifications"
-@inject OrderApiClient Api
-@inject AuthStateService Auth
-@inject UiPreferences Ui
+@inject AppStore Store
+@inject ClientOpEngine Engine
+@inject ApiReader Api
 
 <PageTitle>الإشعارات - اوردر</PageTitle>
 
-@if (!Auth.IsAuthenticated)
+@if (!Store.Auth.IsAuthenticated)
 {
     <AcEmptyState IconName="bell"
-                  Title="@(Ui.IsArabic ? "سجّل دخولك للإشعارات" : "Sign in for notifications")"
-                  ActionLabel="@(Ui.IsArabic ? "تسجيل الدخول" : "Sign in")"
+                  Title="@(Store.Ui.IsArabic ? "سجّل دخولك للإشعارات" : "Sign in for notifications")"
+                  ActionLabel="@(Store.Ui.IsArabic ? "تسجيل الدخول" : "Sign in")"
                   ActionHref="/login" />
 }
 else
 {
     <AcNotificationsPage Notifications="@Mapped"
                          Loading="@Loading"
-                         Title="@(Ui.IsArabic ? "الإشعارات" : "Notifications")"
-                         LoadingMessage="@(Ui.IsArabic ? "جاري التحميل..." : "Loading…")"
-                         EmptyTitle="@(Ui.IsArabic ? "لا إشعارات" : "All caught up")"
-                         EmptyMessage="@(Ui.IsArabic ? "سيظهر هنا كل جديد" : "New activity will appear here")"
-                         MarkAllReadLabel="@(Ui.IsArabic ? "تعليم الكل مقروءاً" : "Mark all read")"
+                         Title="@(Store.Ui.IsArabic ? "الإشعارات" : "Notifications")"
+                         LoadingMessage="@(Store.Ui.IsArabic ? "جاري التحميل..." : "Loading…")"
+                         EmptyTitle="@(Store.Ui.IsArabic ? "لا إشعارات" : "All caught up")"
+                         EmptyMessage="@(Store.Ui.IsArabic ? "سيظهر هنا كل جديد" : "New activity will appear here")"
+                         MarkAllReadLabel="@(Store.Ui.IsArabic ? "تعليم الكل مقروءاً" : "Mark all read")"
                          OnMarkRead="HandleMarkRead"
                          OnMarkAllRead="MarkAll" />
 }
@@ -43,10 +43,9 @@ else
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (!firstRender) return;
-        await Auth.EnsureRestoredAsync();
-        if (Auth.IsAuthenticated)
+        if (Store.Auth.IsAuthenticated)
         {
-            var env = await Api.GetAsync<List<NotiApi>>($"/api/notifications/user/{Auth.UserId}");
+            var env = await Api.GetAsync<List<NotiApi>>($"/api/notifications/user/{Store.Auth.UserId}");
             Items = env.Data ?? new();
         }
         Loading = false;
@@ -57,13 +56,13 @@ else
     {
         var entity = Items.FirstOrDefault(x => x.Id.ToString() == row.Id);
         if (entity is null || entity.IsRead) return;
-        await Api.PostAsync<object>($"/api/notifications/{entity.Id}/read", new { });
+        await Engine.ExecuteAsync<object>(ClientOps.MarkNotificationRead(entity.Id), new { });
         entity.IsRead = true;
     }
 
     private async Task MarkAll()
     {
-        await Api.PostAsync<object>($"/api/notifications/user/{Auth.UserId}/mark-all-read", new { });
+        await Engine.ExecuteAsync<object>(ClientOps.MarkAllNotificationsRead(Store.Auth.UserId), new { });
         foreach (var n in Items) n.IsRead = true;
     }
 

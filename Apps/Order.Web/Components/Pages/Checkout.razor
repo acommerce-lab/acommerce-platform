@@ -1,24 +1,23 @@
 @page "/checkout"
-@inject CartService Cart
-@inject AuthStateService Auth
-@inject OrderApiClient Api
-@inject UiPreferences Ui
+@inject AppStore Store
+@inject ClientOpEngine Engine
+@inject AppStateApplier Applier
 @inject NavigationManager Nav
 
 <PageTitle>إكمال الطلب - اوردر</PageTitle>
 
-@if (!Auth.IsAuthenticated)
+@if (!Store.Auth.IsAuthenticated)
 {
     <AcEmptyState IconName="log-in"
-                  Title="@(Ui.IsArabic ? "يجب تسجيل الدخول أولاً" : "Sign in first")"
-                  ActionLabel="@(Ui.IsArabic ? "تسجيل الدخول" : "Sign in")"
+                  Title="@(Store.Ui.IsArabic ? "يجب تسجيل الدخول أولاً" : "Sign in first")"
+                  ActionLabel="@(Store.Ui.IsArabic ? "تسجيل الدخول" : "Sign in")"
                   ActionHref="/login?return=/checkout" />
 }
-else if (Cart.Items.Count == 0)
+else if (Store.Cart.Items.Count == 0)
 {
     <AcEmptyState IconName="cart"
-                  Title="@(Ui.IsArabic ? "السلة فارغة" : "Cart is empty")"
-                  ActionLabel="@(Ui.IsArabic ? "تصفّح العروض" : "Browse offers")"
+                  Title="@(Store.Ui.IsArabic ? "السلة فارغة" : "Cart is empty")"
+                  ActionLabel="@(Store.Ui.IsArabic ? "تصفّح العروض" : "Browse offers")"
                   ActionHref="/" />
 }
 else
@@ -29,28 +28,28 @@ else
                     OnSubmit="Submit"
                     Submitting="@Submitting"
                     Error="@Error"
-                    Title="@(Ui.IsArabic ? "إكمال الطلب" : "Place order")"
-                    SummaryLabel="@(Ui.IsArabic ? "ملخص الطلب" : "Order summary")"
-                    TotalLabel="@(Ui.IsArabic ? "الإجمالي" : "Total")"
-                    PickupLabel="@(Ui.IsArabic ? "طريقة الاستلام" : "Pickup method")"
-                    InStoreLabel="@(Ui.IsArabic ? "من المتجر" : "In-store")"
-                    CurbsideLabel="@(Ui.IsArabic ? "من السيارة" : "Curbside")"
-                    CarDetailsLabel="@(Ui.IsArabic ? "بيانات السيارة" : "Car details")"
-                    CarModelLabel="@(Ui.IsArabic ? "نوع السيارة" : "Model")"
-                    CarColorLabel="@(Ui.IsArabic ? "اللون" : "Color")"
-                    CarPlateLabel="@(Ui.IsArabic ? "رقم اللوحة (اختياري)" : "Plate number (optional)")"
-                    PaymentLabel="@(Ui.IsArabic ? "طريقة الدفع المفضلة" : "Preferred payment")"
-                    PaymentHint="@(Ui.IsArabic ? "الدفع يتم عند الاستلام في المتجر — لا دفع إلكتروني." : "Payment happens at pickup — no online payment.")"
-                    CashLabel="@(Ui.IsArabic ? "نقدي" : "Cash")"
-                    CardLabel="@(Ui.IsArabic ? "بطاقة" : "Card")"
-                    CashTenderedLabel="@(Ui.IsArabic ? "المبلغ بالريال" : "Amount (SAR)")"
-                    ChangeLabel="@(Ui.IsArabic ? "الباقي المتوقع" : "Expected change")"
-                    NotEnoughLabel="@(Ui.IsArabic ? "المبلغ غير كافٍ — يجب أن يساوي أو يتجاوز الإجمالي" : "Amount must cover the total")"
-                    NotesLabel="@(Ui.IsArabic ? "ملاحظات للتاجر (اختياري)" : "Notes (optional)")"
-                    SubmitLabel="@(Ui.IsArabic ? "تأكيد الطلب" : "Confirm order")"
-                    SubmittingLabel="@(Ui.IsArabic ? "جاري الإرسال..." : "Sending…")"
+                    Title="@(Store.Ui.IsArabic ? "إكمال الطلب" : "Place order")"
+                    SummaryLabel="@(Store.Ui.IsArabic ? "ملخص الطلب" : "Order summary")"
+                    TotalLabel="@(Store.Ui.IsArabic ? "الإجمالي" : "Total")"
+                    PickupLabel="@(Store.Ui.IsArabic ? "طريقة الاستلام" : "Pickup method")"
+                    InStoreLabel="@(Store.Ui.IsArabic ? "من المتجر" : "In-store")"
+                    CurbsideLabel="@(Store.Ui.IsArabic ? "من السيارة" : "Curbside")"
+                    CarDetailsLabel="@(Store.Ui.IsArabic ? "بيانات السيارة" : "Car details")"
+                    CarModelLabel="@(Store.Ui.IsArabic ? "نوع السيارة" : "Model")"
+                    CarColorLabel="@(Store.Ui.IsArabic ? "اللون" : "Color")"
+                    CarPlateLabel="@(Store.Ui.IsArabic ? "رقم اللوحة (اختياري)" : "Plate number (optional)")"
+                    PaymentLabel="@(Store.Ui.IsArabic ? "طريقة الدفع المفضلة" : "Preferred payment")"
+                    PaymentHint="@(Store.Ui.IsArabic ? "الدفع يتم عند الاستلام في المتجر — لا دفع إلكتروني." : "Payment happens at pickup — no online payment.")"
+                    CashLabel="@(Store.Ui.IsArabic ? "نقدي" : "Cash")"
+                    CardLabel="@(Store.Ui.IsArabic ? "بطاقة" : "Card")"
+                    CashTenderedLabel="@(Store.Ui.IsArabic ? "المبلغ بالريال" : "Amount (SAR)")"
+                    ChangeLabel="@(Store.Ui.IsArabic ? "الباقي المتوقع" : "Expected change")"
+                    NotEnoughLabel="@(Store.Ui.IsArabic ? "المبلغ غير كافٍ — يجب أن يساوي أو يتجاوز الإجمالي" : "Amount must cover the total")"
+                    NotesLabel="@(Store.Ui.IsArabic ? "ملاحظات للتاجر (اختياري)" : "Notes (optional)")"
+                    SubmitLabel="@(Store.Ui.IsArabic ? "تأكيد الطلب" : "Confirm order")"
+                    SubmittingLabel="@(Store.Ui.IsArabic ? "جاري الإرسال..." : "Sending…")"
                     BackToCartHref="/cart"
-                    BackToCartLabel="@(Ui.IsArabic ? "العودة للسلة" : "Back to cart")" />
+                    BackToCartLabel="@(Store.Ui.IsArabic ? "العودة للسلة" : "Back to cart")" />
 }
 
 @code {
@@ -60,7 +59,7 @@ else
 
     private CartSnapshot Snapshot => new()
     {
-        Items = Cart.Items.Select(i => new CartLineDto
+        Items = Store.Cart.Items.Select(i => new CartLineDto
         {
             OfferId = i.OfferId.ToString(),
             Title = i.Title,
@@ -68,22 +67,22 @@ else
             UnitPrice = i.UnitPrice,
             Quantity = i.Quantity
         }).ToList(),
-        Vendor = Cart.VendorId.HasValue ? new VendorMiniDto
+        Vendor = Store.Cart.VendorId.HasValue ? new VendorMiniDto
         {
-            Id = Cart.VendorId.Value.ToString(),
-            Name = Cart.VendorName ?? "",
-            LogoEmoji = Cart.VendorEmoji
+            Id = Store.Cart.VendorId.Value.ToString(),
+            Name = Store.Cart.VendorName ?? "",
+            LogoEmoji = Store.Cart.VendorEmoji
         } : null,
-        Subtotal = Cart.Subtotal,
+        Subtotal = Store.Cart.Subtotal,
         Currency = "SAR"
     };
 
     protected override void OnInitialized()
     {
-        if (Cart.Subtotal > 0)
+        if (Store.Cart.Subtotal > 0)
         {
             // Pre-fill a sensible cash amount (next 10s)
-            Draft.CashTendered = Math.Ceiling(Cart.Subtotal / 10) * 10;
+            Draft.CashTendered = Math.Ceiling(Store.Cart.Subtotal / 10) * 10;
         }
     }
 
@@ -98,15 +97,15 @@ else
     private async Task Submit()
     {
         Error = "";
-        if (!Auth.IsAuthenticated || Cart.Items.Count == 0) return;
+        if (!Store.Auth.IsAuthenticated || Store.Cart.Items.Count == 0) return;
         if (Draft.PickupType == "Curbside" && string.IsNullOrWhiteSpace(Draft.CarModel))
         {
-            Error = Ui.IsArabic ? "أدخل بيانات السيارة" : "Please enter car details";
+            Error = Store.Ui.IsArabic ? "أدخل بيانات السيارة" : "Please enter car details";
             return;
         }
-        if (Draft.PaymentMethod == "Cash" && Draft.CashTendered.HasValue && Draft.CashTendered.Value < Cart.Subtotal)
+        if (Draft.PaymentMethod == "Cash" && Draft.CashTendered.HasValue && Draft.CashTendered.Value < Store.Cart.Subtotal)
         {
-            Error = Ui.IsArabic ? "المبلغ المقدّم يجب أن يغطي الإجمالي" : "Cash amount must cover the total";
+            Error = Store.Ui.IsArabic ? "المبلغ المقدّم يجب أن يغطي الإجمالي" : "Cash amount must cover the total";
             return;
         }
         Submitting = true;
@@ -114,8 +113,8 @@ else
         {
             var payload = new
             {
-                customerId = Auth.UserId,
-                items = Cart.Items.Select(i => new { offerId = i.OfferId, quantity = i.Quantity }),
+                customerId = Store.Auth.UserId,
+                items = Store.Cart.Items.Select(i => new { offerId = i.OfferId, quantity = i.Quantity }),
                 pickupType = Draft.PickupType == "Curbside" ? 1 : 0,
                 preferredPayment = Draft.PaymentMethod == "Card" ? 1 : 0,
                 cashTendered = Draft.PaymentMethod == "Cash" ? Draft.CashTendered : null,
@@ -124,14 +123,14 @@ else
                 carPlate = Draft.PickupType == "Curbside" ? Draft.CarPlate : null,
                 customerNotes = string.IsNullOrWhiteSpace(Draft.Notes) ? null : Draft.Notes
             };
-            var env = await Api.PostAsync<CreatedOrderDto>("/api/orders", payload);
-            if (env.Operation.Status != "Success" || env.Data == null)
+            var result = await Engine.ExecuteAsync<CreatedOrderDto>(ClientOps.CreateOrder(Store.Auth.UserId), payload);
+            if (result.Operation.Status != "Success" || result.Data == null)
             {
-                Error = env.Operation.ErrorMessage ?? env.Error?.Message ?? (Ui.IsArabic ? "تعذّر إنشاء الطلب" : "Could not create order");
+                Error = result.Operation.ErrorMessage ?? result.Error?.Message ?? (Store.Ui.IsArabic ? "تعذّر إنشاء الطلب" : "Could not create order");
                 return;
             }
-            var orderId = env.Data.Id;
-            Cart.Clear();
+            var orderId = result.Data.Id;
+            await Applier.ApplyLocalAsync(ClientOps.CartClear());
             Nav.NavigateTo($"/order/{orderId}?just=1");
         }
         finally { Submitting = false; }

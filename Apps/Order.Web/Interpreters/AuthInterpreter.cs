@@ -11,10 +11,20 @@ namespace Order.Web.Interpreters;
 public class AuthInterpreter : IOperationInterpreter<AppStore>
 {
     public bool CanInterpret(OperationDescriptor op) =>
-        op.Type is "auth.sms.request" or "auth.sms.verify";
+        op.Type is "auth.sms.request" or "auth.sms.verify" or "auth.sign_out";
 
     public Task InterpretAsync(OperationDescriptor op, object? data, AppStore store, CancellationToken ct)
     {
+        if (op.Type == "auth.sign_out")
+        {
+            store.Auth.UserId = null;
+            store.Auth.PhoneNumber = null;
+            store.Auth.FullName = null;
+            store.Auth.AccessToken = null;
+            store.NotifyChanged();
+            return Task.CompletedTask;
+        }
+
         if (data == null) return Task.CompletedTask;
 
         var json = data is JsonElement je ? je : JsonSerializer.SerializeToElement(data);

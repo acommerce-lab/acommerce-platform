@@ -1,20 +1,19 @@
 @page "/vendor/{Id:guid}"
-@inject OrderApiClient Api
-@inject UiPreferences Ui
+@inject AppStore Store
+@inject ApiReader Api
 @inject NavigationManager Nav
-@inject AuthStateService Auth
 
 <PageTitle>@(Vendor?.Name ?? "متجر") - اوردر</PageTitle>
 
 @if (Loading)
 {
-    <AcLoadingState Message="@(Ui.IsArabic ? "جاري التحميل..." : "Loading…")" />
+    <AcLoadingState Message="@(Store.Ui.IsArabic ? "جاري التحميل..." : "Loading…")" />
 }
 else if (Vendor == null)
 {
     <AcEmptyState IconName="store"
-                  Title="@(Ui.IsArabic ? "المتجر غير موجود" : "Store not found")"
-                  ActionLabel="@(Ui.IsArabic ? "الرئيسية" : "Home")"
+                  Title="@(Store.Ui.IsArabic ? "المتجر غير موجود" : "Store not found")"
+                  ActionLabel="@(Store.Ui.IsArabic ? "الرئيسية" : "Home")"
                   ActionHref="/" />
 }
 else
@@ -30,7 +29,7 @@ else
                     <div class="acc-vendor-header-rating">
                         <AcIcon Name="check-circle" Size="14" />
                         <span>★ @Vendor.Rating.ToString("0.0")</span>
-                        <span class="acc-vendor-header-rating-count">(@Vendor.RatingCount @(Ui.IsArabic ? "تقييم" : "reviews"))</span>
+                        <span class="acc-vendor-header-rating-count">(@Vendor.RatingCount @(Store.Ui.IsArabic ? "تقييم" : "reviews"))</span>
                     </div>
                 }
             </div>
@@ -42,7 +41,7 @@ else
         }
 
         <div class="s-card acc-vendor-card">
-            <div class="acc-section-label">@(Ui.IsArabic ? "معلومات المتجر" : "Store info")</div>
+            <div class="acc-section-label">@(Store.Ui.IsArabic ? "معلومات المتجر" : "Store info")</div>
             @if (!string.IsNullOrEmpty(Vendor.City))
             {
                 <div class="acc-vendor-row"><AcIcon Name="map-pin" Size="16" /> @Vendor.City@(string.IsNullOrEmpty(Vendor.District) ? "" : " - " + Vendor.District)</div>
@@ -57,12 +56,12 @@ else
             }
         </div>
 
-        <h2 class="acc-section-title">@(Ui.IsArabic ? "عروض المتجر" : "Store offers")</h2>
+        <h2 class="acc-section-title">@(Store.Ui.IsArabic ? "عروض المتجر" : "Store offers")</h2>
 
         @if (MappedOffers.Count == 0)
         {
             <AcEmptyState IconName="inbox"
-                          Message="@(Ui.IsArabic ? "لا توجد عروض حالياً" : "No offers right now")" />
+                          Message="@(Store.Ui.IsArabic ? "لا توجد عروض حالياً" : "No offers right now")" />
         }
         else
         {
@@ -96,7 +95,6 @@ else
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (!firstRender) return;
-        await Auth.EnsureRestoredAsync();
         var vEnv = await Api.GetAsync<VendorApi>($"/api/vendors/{Id}");
         Vendor = vEnv.Data;
         var oEnv = await Api.GetAsync<List<OfferApi>>("/api/offers");

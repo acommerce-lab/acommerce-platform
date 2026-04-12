@@ -1,32 +1,32 @@
 @page "/chat/{Id:guid}"
-@inject OrderApiClient Api
-@inject AuthStateService Auth
-@inject UiPreferences Ui
+@inject AppStore Store
+@inject ClientOpEngine Engine
+@inject ApiReader Api
 @inject NavigationManager Nav
 
 <PageTitle>محادثة - اوردر</PageTitle>
 
-@if (!Auth.IsAuthenticated)
+@if (!Store.Auth.IsAuthenticated)
 {
     <AcEmptyState IconName="log-in"
-                  Title="@(Ui.IsArabic ? "سجل دخولك" : "Sign in")"
-                  ActionLabel="@(Ui.IsArabic ? "دخول" : "Sign in")"
+                  Title="@(Store.Ui.IsArabic ? "سجل دخولك" : "Sign in")"
+                  ActionLabel="@(Store.Ui.IsArabic ? "دخول" : "Sign in")"
                   ActionHref="/login" />
 }
 else
 {
     <AcChatPage Messages="@Mapped"
-                MySenderId="@(Auth.UserId?.ToString() ?? "")"
+                MySenderId="@(Store.Auth.UserId?.ToString() ?? "")"
                 Loading="@Loading"
                 Sending="@Sending"
                 Draft="@Draft"
                 DraftChanged="@(v => Draft = v)"
                 OnSend="Send"
-                Title="@(Ui.IsArabic ? "محادثة" : "Chat")"
-                LoadingMessage="@(Ui.IsArabic ? "جاري التحميل..." : "Loading…")"
-                EmptyMessage="@(Ui.IsArabic ? "لا رسائل بعد" : "No messages yet")"
-                InputPlaceholder="@(Ui.IsArabic ? "اكتب رسالة..." : "Type a message...")"
-                SendLabel="@(Ui.IsArabic ? "إرسال" : "Send")" />
+                Title="@(Store.Ui.IsArabic ? "محادثة" : "Chat")"
+                LoadingMessage="@(Store.Ui.IsArabic ? "جاري التحميل..." : "Loading…")"
+                EmptyMessage="@(Store.Ui.IsArabic ? "لا رسائل بعد" : "No messages yet")"
+                InputPlaceholder="@(Store.Ui.IsArabic ? "اكتب رسالة..." : "Type a message...")"
+                SendLabel="@(Store.Ui.IsArabic ? "إرسال" : "Send")" />
 }
 
 @code {
@@ -48,7 +48,6 @@ else
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (!firstRender) return;
-        await Auth.EnsureRestoredAsync();
         await Reload();
         StateHasChanged();
     }
@@ -60,9 +59,9 @@ else
         Messages = env.Data ?? new();
         Loading = false;
         // Reset unread count for this user when opening the conversation
-        if (Auth.UserId.HasValue)
-            await Api.PostAsync<object>($"/api/messages/conversations/{Id}/mark-read",
-                new { readerId = Auth.UserId.Value });
+        if (Store.Auth.UserId.HasValue)
+            await Engine.ExecuteAsync<object>(ClientOps.MarkConversationRead(Id, Store.Auth.UserId.Value),
+                new { readerId = Store.Auth.UserId.Value });
     }
 
     private async Task Send()
@@ -71,11 +70,11 @@ else
         Sending = true;
         try
         {
-            var env = await Api.PostAsync<MsgApi>("/api/messages",
-                new { conversationId = Id, senderId = Auth.UserId, content = Draft });
-            if (env.Data != null)
+            var result = await Engine.ExecuteAsync<MsgApi>(ClientOps.SendMessage(Id, Store.Auth.UserId, Draft),
+                new { conversationId = Id, senderId = Store.Auth.UserId, content = Draft });
+            if (result.Data != null)
             {
-                Messages.Add(env.Data);
+                Messages.Add(result.Data);
                 Draft = "";
             }
         }

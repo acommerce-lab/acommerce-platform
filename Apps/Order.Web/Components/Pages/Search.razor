@@ -1,30 +1,30 @@
 @page "/search"
-@inject OrderApiClient Api
-@inject UiPreferences Ui
+@inject AppStore Store
+@inject ApiReader Api
 @inject NavigationManager Nav
 @implements IDisposable
 
 <PageTitle>البحث - اوردر</PageTitle>
 
-<AcMapSearchPage Title="@(Ui.IsArabic ? "اكتشف" : "Discover")"
+<AcMapSearchPage Title="@(Store.Ui.IsArabic ? "اكتشف" : "Discover")"
                  Pins="@Pins"
                  Loading="@Loading"
                  SearchQuery="@Query"
                  SearchQueryChanged="@(q => { Query = q; StateHasChanged(); })"
-                 SearchPlaceholder="@(Ui.IsArabic ? "متجر، منتج، حي..." : "Store, product, district...")"
+                 SearchPlaceholder="@(Store.Ui.IsArabic ? "متجر، منتج، حي..." : "Store, product, district...")"
                  Categories="@MappedCategories"
                  SelectedCategoryId="@SelectedCategoryId"
                  OnSelectCategory="HandleCategory"
-                 AllLabel="@(Ui.IsArabic ? "الكل" : "All")"
+                 AllLabel="@(Store.Ui.IsArabic ? "الكل" : "All")"
                  View="@View"
                  ViewChanged="@(v => { View = v; StateHasChanged(); })"
-                 MapViewLabel="@(Ui.IsArabic ? "خريطة" : "Map")"
-                 ListViewLabel="@(Ui.IsArabic ? "قائمة" : "List")"
+                 MapViewLabel="@(Store.Ui.IsArabic ? "خريطة" : "Map")"
+                 ListViewLabel="@(Store.Ui.IsArabic ? "قائمة" : "List")"
                  SelectedPinId="@SelectedPinId"
                  OnSelectPin="HandleSelect"
-                 LoadingMessage="@(Ui.IsArabic ? "جاري التحميل..." : "Loading…")"
-                 EmptyTitle="@(Ui.IsArabic ? "لا توجد نتائج" : "No results")"
-                 EmptyMessage="@(Ui.IsArabic ? "جرّب فلتراً آخر أو ابحث باسم آخر" : "Try a different filter or search")">
+                 LoadingMessage="@(Store.Ui.IsArabic ? "جاري التحميل..." : "Loading…")"
+                 EmptyTitle="@(Store.Ui.IsArabic ? "لا توجد نتائج" : "No results")"
+                 EmptyMessage="@(Store.Ui.IsArabic ? "جرّب فلتراً آخر أو ابحث باسم آخر" : "Try a different filter or search")">
     <FilterExtras>
         @* Mode toggle *@
         <div class="acs-seg" style="margin-bottom:10px;">
@@ -32,13 +32,13 @@
                     class="acs-seg-btn @(Mode == "vendors" ? "active" : "")"
                     @onclick="@(() => SetMode("vendors"))">
                 <AcIcon Name="store" Size="14" />
-                @(Ui.IsArabic ? "المتاجر" : "Stores")
+                @(Store.Ui.IsArabic ? "المتاجر" : "Stores")
             </button>
             <button type="button"
                     class="acs-seg-btn @(Mode == "offers" ? "active" : "")"
                     @onclick="@(() => SetMode("offers"))">
                 <AcIcon Name="tag" Size="14" />
-                @(Ui.IsArabic ? "العروض" : "Offers")
+                @(Store.Ui.IsArabic ? "العروض" : "Offers")
             </button>
         </div>
 
@@ -46,7 +46,7 @@
         <div class="acc-filter-panel @(ShowFilters ? "open" : "")">
             <button type="button" class="acc-filter-toggle" @onclick="@(() => ShowFilters = !ShowFilters)">
                 <AcIcon Name="settings" Size="16" />
-                <span>@(Ui.IsArabic ? "فلاتر متقدمة" : "Advanced filters")</span>
+                <span>@(Store.Ui.IsArabic ? "فلاتر متقدمة" : "Advanced filters")</span>
                 <AcIcon Name="@(ShowFilters ? "chevron-down" : "chevron-right")" Size="14" />
             </button>
 
@@ -58,18 +58,18 @@
                         @* Has discount *@
                         <label class="acc-filter-check">
                             <input type="checkbox" @bind="OnlyDiscounted" />
-                            <span>@(Ui.IsArabic ? "مع خصم فقط" : "Discounted only")</span>
+                            <span>@(Store.Ui.IsArabic ? "مع خصم فقط" : "Discounted only")</span>
                         </label>
 
                         @* Price range *@
                         <div class="acc-filter-row">
                             <div class="acc-filter-field">
-                                <label class="form-label">@(Ui.IsArabic ? "السعر من" : "Min price")</label>
+                                <label class="form-label">@(Store.Ui.IsArabic ? "السعر من" : "Min price")</label>
                                 <input type="number" class="form-input" placeholder="0"
                                        value="@MinPrice" @oninput="@(e => { MinPrice = ParseDecimal(e); })" />
                             </div>
                             <div class="acc-filter-field">
-                                <label class="form-label">@(Ui.IsArabic ? "إلى" : "Max price")</label>
+                                <label class="form-label">@(Store.Ui.IsArabic ? "إلى" : "Max price")</label>
                                 <input type="number" class="form-input" placeholder="∞"
                                        value="@MaxPrice" @oninput="@(e => { MaxPrice = ParseDecimal(e); })" />
                             </div>
@@ -80,14 +80,14 @@
                     {
                         @* Minimum rating *@
                         <div class="acc-filter-field">
-                            <label class="form-label">@(Ui.IsArabic ? "الحد الأدنى للتقييم" : "Min rating")</label>
+                            <label class="form-label">@(Store.Ui.IsArabic ? "الحد الأدنى للتقييم" : "Min rating")</label>
                             <div class="acs-seg">
                                 @foreach (var r in new[] { 0, 3.0, 4.0, 4.5 })
                                 {
                                     <button type="button"
                                             class="acs-seg-btn @(MinRating == r ? "active" : "")"
                                             @onclick="@(() => MinRating = r)">
-                                        @(r == 0 ? (Ui.IsArabic ? "الكل" : "All") : $"★ {r:0.#}+")
+                                        @(r == 0 ? (Store.Ui.IsArabic ? "الكل" : "All") : $"★ {r:0.#}+")
                                     </button>
                                 }
                             </div>
@@ -104,7 +104,7 @@
                 @if (OnlyDiscounted)
                 {
                     <button class="acc-filter-chip" @onclick="@(() => OnlyDiscounted = false)">
-                        @(Ui.IsArabic ? "خصم" : "Discount") ✕
+                        @(Store.Ui.IsArabic ? "خصم" : "Discount") ✕
                     </button>
                 }
                 @if (MinPrice.HasValue)
@@ -126,7 +126,7 @@
                     </button>
                 }
                 <button class="acc-filter-chip acc-filter-chip-clear" @onclick="ClearFilters">
-                    @(Ui.IsArabic ? "مسح الكل" : "Clear all")
+                    @(Store.Ui.IsArabic ? "مسح الكل" : "Clear all")
                 </button>
             </div>
         }
@@ -153,8 +153,8 @@
         {
             <a class="btn btn-primary btn-block" href="@href" style="margin-top:12px;">
                 @(Mode == "vendors"
-                    ? (Ui.IsArabic ? "عرض قائمة المتجر" : "View store menu")
-                    : (Ui.IsArabic ? "عرض التفاصيل" : "View details"))
+                    ? (Store.Ui.IsArabic ? "عرض قائمة المتجر" : "View store menu")
+                    : (Store.Ui.IsArabic ? "عرض التفاصيل" : "View details"))
             </a>
         }
     </DetailsSlot>
@@ -186,7 +186,7 @@
         Categories.Select(c => new CategoryDto
         {
             Id = c.Id.ToString(),
-            Label = Ui.IsArabic ? c.NameAr : c.NameEn,
+            Label = Store.Ui.IsArabic ? c.NameAr : c.NameEn,
             Icon = c.Icon
         }).ToList();
 
@@ -245,7 +245,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        Ui.OnChanged += OnUiChange;
+        Store.OnChanged += OnUiChange;
         var catEnv = await Api.GetAsync<List<CatApi>>("/api/categories");
         if (catEnv.Data != null) Categories = catEnv.Data;
         var vEnv = await Api.GetAsync<List<VendorApi>>("/api/vendors");
@@ -278,7 +278,7 @@
     private static decimal? ParseDecimal(ChangeEventArgs e)
         => decimal.TryParse(e.Value?.ToString(), out var d) ? d : null;
 
-    public void Dispose() => Ui.OnChanged -= OnUiChange;
+    public void Dispose() => Store.OnChanged -= OnUiChange;
 
     // ── API shapes ──────────────────────────────────────────────────
     public class CatApi

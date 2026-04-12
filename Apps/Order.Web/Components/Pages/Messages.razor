@@ -1,26 +1,25 @@
 @page "/messages"
-@inject OrderApiClient Api
-@inject AuthStateService Auth
-@inject UiPreferences Ui
+@inject AppStore Store
+@inject ApiReader Api
 @inject NavigationManager Nav
 
 <PageTitle>المحادثات - اوردر</PageTitle>
 
-@if (!Auth.IsAuthenticated)
+@if (!Store.Auth.IsAuthenticated)
 {
     <AcEmptyState IconName="message"
-                  Title="@(Ui.IsArabic ? "سجّل دخولك لرؤية المحادثات" : "Sign in to chat")"
-                  ActionLabel="@(Ui.IsArabic ? "تسجيل الدخول" : "Sign in")"
+                  Title="@(Store.Ui.IsArabic ? "سجّل دخولك لرؤية المحادثات" : "Sign in to chat")"
+                  ActionLabel="@(Store.Ui.IsArabic ? "تسجيل الدخول" : "Sign in")"
                   ActionHref="/login" />
 }
 else
 {
     <AcMessagesListPage Conversations="@Mapped"
                         Loading="@Loading"
-                        Title="@(Ui.IsArabic ? "محادثاتي" : "Messages")"
-                        LoadingMessage="@(Ui.IsArabic ? "جاري التحميل..." : "Loading…")"
-                        EmptyTitle="@(Ui.IsArabic ? "لا محادثات بعد" : "No conversations")"
-                        EmptyMessage="@(Ui.IsArabic ? "ابدأ من صفحة العرض بزر «محادثة المتجر»" : "Tap \"Chat with store\" on any offer")"
+                        Title="@(Store.Ui.IsArabic ? "محادثاتي" : "Messages")"
+                        LoadingMessage="@(Store.Ui.IsArabic ? "جاري التحميل..." : "Loading…")"
+                        EmptyTitle="@(Store.Ui.IsArabic ? "لا محادثات بعد" : "No conversations")"
+                        EmptyMessage="@(Store.Ui.IsArabic ? "ابدأ من صفحة العرض بزر «محادثة المتجر»" : "Tap \"Chat with store\" on any offer")"
                         OnSelectConversation="@SelectConversation" />
 }
 
@@ -44,10 +43,9 @@ else
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (!firstRender) return;
-        await Auth.EnsureRestoredAsync();
-        if (Auth.IsAuthenticated)
+        if (Store.Auth.IsAuthenticated)
         {
-            var env = await Api.GetAsync<List<ConvApi>>($"/api/messages/conversations/by-user/{Auth.UserId}");
+            var env = await Api.GetAsync<List<ConvApi>>($"/api/messages/conversations/by-user/{Store.Auth.UserId}");
             Conversations = env.Data ?? new();
         }
         Loading = false;

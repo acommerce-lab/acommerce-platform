@@ -1,7 +1,7 @@
 @page "/order/{Id:guid}"
-@inject OrderApiClient Api
-@inject AuthStateService Auth
-@inject UiPreferences Ui
+@inject AppStore Store
+@inject ClientOpEngine Engine
+@inject ApiReader Api
 @inject NavigationManager Nav
 
 <PageTitle>تفاصيل الطلب - اوردر</PageTitle>
@@ -9,29 +9,29 @@
 @if (JustCreated && Mapped != null)
 {
     <AcOrderSuccessPage Order="@Mapped"
-                        Title="@(Ui.IsArabic ? "تم استلام طلبك" : "Order received")"
-                        Subtitle="@(Ui.IsArabic ? "سيؤكد المتجر طلبك قريباً جداً" : "The store will confirm shortly")"
-                        TotalLabel="@(Ui.IsArabic ? "الإجمالي" : "Total")"
-                        ViewOrderLabel="@(Ui.IsArabic ? "تفاصيل الطلب" : "View order")"
-                        ContinueLabel="@(Ui.IsArabic ? "متابعة التسوق" : "Continue shopping")" />
+                        Title="@(Store.Ui.IsArabic ? "تم استلام طلبك" : "Order received")"
+                        Subtitle="@(Store.Ui.IsArabic ? "سيؤكد المتجر طلبك قريباً جداً" : "The store will confirm shortly")"
+                        TotalLabel="@(Store.Ui.IsArabic ? "الإجمالي" : "Total")"
+                        ViewOrderLabel="@(Store.Ui.IsArabic ? "تفاصيل الطلب" : "View order")"
+                        ContinueLabel="@(Store.Ui.IsArabic ? "متابعة التسوق" : "Continue shopping")" />
 }
 else
 {
     <AcOrderDetailsPage Order="@Mapped"
                         Loading="@Loading"
                         BackHref="/orders"
-                        LoadingMessage="@(Ui.IsArabic ? "جاري التحميل..." : "Loading…")"
-                        NotFoundTitle="@(Ui.IsArabic ? "الطلب غير موجود" : "Order not found")"
-                        BackLabel="@(Ui.IsArabic ? "كل الطلبات" : "All orders")"
-                        ItemsLabel="@(Ui.IsArabic ? "العناصر" : "Items")"
-                        TotalLabel="@(Ui.IsArabic ? "الإجمالي" : "Total")"
-                        VendorLabel="@(Ui.IsArabic ? "المتجر" : "Store")"
-                        PickupLabel="@(Ui.IsArabic ? "الاستلام" : "Pickup")"
-                        PaymentLabel="@(Ui.IsArabic ? "الدفع (في المتجر)" : "Payment (at pickup)")"
-                        CashTenderedLabel="@(Ui.IsArabic ? "المبلغ المتوقع" : "Cash tendered")"
-                        ExpectedChangeLabel="@(Ui.IsArabic ? "الباقي المتوقع" : "Expected change")"
-                        NotesLabel="@(Ui.IsArabic ? "ملاحظاتك" : "Notes")"
-                        CancelLabel="@(Ui.IsArabic ? "إلغاء الطلب" : "Cancel order")"
+                        LoadingMessage="@(Store.Ui.IsArabic ? "جاري التحميل..." : "Loading…")"
+                        NotFoundTitle="@(Store.Ui.IsArabic ? "الطلب غير موجود" : "Order not found")"
+                        BackLabel="@(Store.Ui.IsArabic ? "كل الطلبات" : "All orders")"
+                        ItemsLabel="@(Store.Ui.IsArabic ? "العناصر" : "Items")"
+                        TotalLabel="@(Store.Ui.IsArabic ? "الإجمالي" : "Total")"
+                        VendorLabel="@(Store.Ui.IsArabic ? "المتجر" : "Store")"
+                        PickupLabel="@(Store.Ui.IsArabic ? "الاستلام" : "Pickup")"
+                        PaymentLabel="@(Store.Ui.IsArabic ? "الدفع (في المتجر)" : "Payment (at pickup)")"
+                        CashTenderedLabel="@(Store.Ui.IsArabic ? "المبلغ المتوقع" : "Cash tendered")"
+                        ExpectedChangeLabel="@(Store.Ui.IsArabic ? "الباقي المتوقع" : "Expected change")"
+                        NotesLabel="@(Store.Ui.IsArabic ? "ملاحظاتك" : "Notes")"
+                        CancelLabel="@(Store.Ui.IsArabic ? "إلغاء الطلب" : "Cancel order")"
                         OnCancel="Cancel" />
 }
 
@@ -68,12 +68,12 @@ else
         }).ToList(),
         PickupType = OrderData.PickupType == 1 ? "Curbside" : "InStore",
         PickupLabel = OrderData.PickupType == 1
-            ? (Ui.IsArabic ? "من السيارة" : "Curbside")
-            : (Ui.IsArabic ? "من المتجر" : "In-store"),
+            ? (Store.Ui.IsArabic ? "من السيارة" : "Curbside")
+            : (Store.Ui.IsArabic ? "من المتجر" : "In-store"),
         PaymentMethod = OrderData.PreferredPayment == 1 ? "Card" : "Cash",
         PaymentLabel = OrderData.PreferredPayment == 1
-            ? (Ui.IsArabic ? "بطاقة" : "Card")
-            : (Ui.IsArabic ? "نقدي" : "Cash"),
+            ? (Store.Ui.IsArabic ? "بطاقة" : "Card")
+            : (Store.Ui.IsArabic ? "نقدي" : "Cash"),
         CashTendered = OrderData.CashTendered,
         ExpectedChange = OrderData.ExpectedChange,
         CustomerNotes = OrderData.CustomerNotes,
@@ -86,7 +86,6 @@ else
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (!firstRender) return;
-        await Auth.EnsureRestoredAsync();
         var env = await Api.GetAsync<OrderApi>($"/api/orders/{Id}");
         OrderData = env.Data;
         Loading = false;
@@ -95,8 +94,8 @@ else
 
     private async Task Cancel()
     {
-        var env = await Api.PostAsync<object>($"/api/orders/{Id}/cancel", new { });
-        if (env.Operation.Status == "Success")
+        var result = await Engine.ExecuteAsync<object>(ClientOps.CancelOrder(Id), new { });
+        if (result.Operation.Status == "Success")
         {
             var refresh = await Api.GetAsync<OrderApi>($"/api/orders/{Id}");
             OrderData = refresh.Data;

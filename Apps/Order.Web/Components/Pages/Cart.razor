@@ -1,31 +1,30 @@
 @page "/cart"
-@inject CartService Bag
-@inject UiPreferences Ui
+@inject AppStore Store
+@inject AppStateApplier Applier
 @inject NavigationManager Nav
-@inject AuthStateService Auth
 @implements IDisposable
 
 <PageTitle>السلة - اوردر</PageTitle>
 
 <AcCartPage Cart="@Snapshot"
-            Title="@(Ui.IsArabic ? "سلة الطلبات" : "Your cart")"
-            EmptyTitle="@(Ui.IsArabic ? "السلة فارغة" : "Cart is empty")"
-            EmptyMessage="@(Ui.IsArabic ? "تصفّح العروض وأضف أصنافك المفضلة" : "Browse offers and add your favorites")"
-            BrowseLabel="@(Ui.IsArabic ? "تصفّح العروض" : "Browse offers")"
+            Title="@(Store.Ui.IsArabic ? "سلة الطلبات" : "Your cart")"
+            EmptyTitle="@(Store.Ui.IsArabic ? "السلة فارغة" : "Cart is empty")"
+            EmptyMessage="@(Store.Ui.IsArabic ? "تصفّح العروض وأضف أصنافك المفضلة" : "Browse offers and add your favorites")"
+            BrowseLabel="@(Store.Ui.IsArabic ? "تصفّح العروض" : "Browse offers")"
             BrowseHref="/"
-            PickupHint="@(Ui.IsArabic ? "الاستلام من المتجر أو من السيارة" : "In-store or curbside pickup")"
-            SubtotalLabel="@(Ui.IsArabic ? "المجموع الفرعي" : "Subtotal")"
-            TotalLabel="@(Ui.IsArabic ? "الإجمالي" : "Total")"
-            CheckoutLabel="@(Ui.IsArabic ? "متابعة للطلب" : "Continue to checkout")"
-            ClearLabel="@(Ui.IsArabic ? "إفراغ السلة" : "Clear cart")"
+            PickupHint="@(Store.Ui.IsArabic ? "الاستلام من المتجر أو من السيارة" : "In-store or curbside pickup")"
+            SubtotalLabel="@(Store.Ui.IsArabic ? "المجموع الفرعي" : "Subtotal")"
+            TotalLabel="@(Store.Ui.IsArabic ? "الإجمالي" : "Total")"
+            CheckoutLabel="@(Store.Ui.IsArabic ? "متابعة للطلب" : "Continue to checkout")"
+            ClearLabel="@(Store.Ui.IsArabic ? "إفراغ السلة" : "Clear cart")"
             OnQuantityChange="HandleQtyChange"
-            OnClear="@(() => { Bag.Clear(); return Task.CompletedTask; })"
+            OnClear="@(async () => { await Applier.ApplyLocalAsync(ClientOps.CartClear()); })"
             OnCheckout="GoCheckout" />
 
 @code {
     private CartSnapshot Snapshot => new()
     {
-        Items = Bag.Items.Select(i => new CartLineDto
+        Items = Store.Cart.Items.Select(i => new CartLineDto
         {
             OfferId = i.OfferId.ToString(),
             Title = i.Title,
@@ -33,29 +32,28 @@
             UnitPrice = i.UnitPrice,
             Quantity = i.Quantity
         }).ToList(),
-        Vendor = Bag.VendorId.HasValue ? new VendorMiniDto
+        Vendor = Store.Cart.VendorId.HasValue ? new VendorMiniDto
         {
-            Id = Bag.VendorId.Value.ToString(),
-            Name = Bag.VendorName ?? "",
-            LogoEmoji = Bag.VendorEmoji
+            Id = Store.Cart.VendorId.Value.ToString(),
+            Name = Store.Cart.VendorName ?? "",
+            LogoEmoji = Store.Cart.VendorEmoji
         } : null,
-        Subtotal = Bag.Subtotal,
+        Subtotal = Store.Cart.Subtotal,
         Currency = "SAR"
     };
 
-    protected override void OnInitialized() => Bag.OnChanged += OnChanged;
+    protected override void OnInitialized() => Store.OnChanged += OnChanged;
     private void OnChanged() => InvokeAsync(StateHasChanged);
-    public void Dispose() => Bag.OnChanged -= OnChanged;
+    public void Dispose() => Store.OnChanged -= OnChanged;
 
-    private Task HandleQtyChange((string OfferId, int NewQty) args)
+    private async Task HandleQtyChange((string OfferId, int NewQty) args)
     {
-        Bag.SetQuantity(Guid.Parse(args.OfferId), args.NewQty);
-        return Task.CompletedTask;
+        await Applier.ApplyLocalAsync(ClientOps.CartSetQuantity(Guid.Parse(args.OfferId), args.NewQty));
     }
 
     private void GoCheckout()
     {
-        if (!Auth.IsAuthenticated)
+        if (!Store.Auth.IsAuthenticated)
         {
             Nav.NavigateTo("/login?return=/checkout");
             return;

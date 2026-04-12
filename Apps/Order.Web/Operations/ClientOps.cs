@@ -33,8 +33,16 @@ public static class ClientOps
             .Analyze(new RequiredFieldAnalyzer("code", () => code))
             .Build();
 
+    // ── Auth (sign out — local only, clears store) ──────────────────
+    public static Operation SignOut() =>
+        Entry.Create("auth.sign_out")
+            .Describe("User signs out")
+            .From("User:self", 1, ("role", "user"))
+            .To("System:auth", 1, ("role", "auth_service"))
+            .Build();
+
     // ── Orders ────────────────────────────────────────────────────────
-    public static Operation CreateOrder(Guid customerId, object payload) =>
+    public static Operation CreateOrder(Guid? customerId) =>
         Entry.Create("order.create")
             .Describe($"User:{customerId} places order")
             .From($"User:{customerId}", 1, ("role", "customer"))
@@ -52,7 +60,7 @@ public static class ClientOps
             .Build();
 
     // ── Favorites ─────────────────────────────────────────────────────
-    public static Operation ToggleFavorite(Guid userId, Guid offerId) =>
+    public static Operation ToggleFavorite(Guid? userId, Guid offerId) =>
         Entry.Create("favorite.toggle")
             .Describe($"User:{userId} toggles favorite Offer:{offerId}")
             .From($"User:{userId}", 1, ("role", "customer"))
@@ -61,7 +69,7 @@ public static class ClientOps
             .Build();
 
     // ── Messages ──────────────────────────────────────────────────────
-    public static Operation StartConversation(Guid customerId, Guid vendorId) =>
+    public static Operation StartConversation(Guid? customerId, Guid vendorId) =>
         Entry.Create("conversation.start")
             .Describe($"User:{customerId} starts chat with Vendor:{vendorId}")
             .From($"User:{customerId}", 1, ("role", "customer"))
@@ -69,7 +77,7 @@ public static class ClientOps
             .Tag("client_dispatch", "true")
             .Build();
 
-    public static Operation SendMessage(Guid conversationId, Guid senderId, string content) =>
+    public static Operation SendMessage(Guid conversationId, Guid? senderId, string? content) =>
         Entry.Create("message.send")
             .Describe($"User:{senderId} sends message in {conversationId}")
             .From($"User:{senderId}", 1, ("role", "sender"))
@@ -94,7 +102,7 @@ public static class ClientOps
             .Tag("client_dispatch", "true")
             .Build();
 
-    public static Operation MarkAllNotificationsRead(Guid userId) =>
+    public static Operation MarkAllNotificationsRead(Guid? userId) =>
         Entry.Create("notification.mark_all_read")
             .From($"User:{userId}", 1, ("role", "reader"))
             .To("System:notifications", 1, ("role", "notification_batch"))

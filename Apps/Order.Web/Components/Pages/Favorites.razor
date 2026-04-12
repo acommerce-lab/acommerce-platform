@@ -1,26 +1,25 @@
 @page "/favorites"
-@inject OrderApiClient Api
-@inject AuthStateService Auth
-@inject UiPreferences Ui
+@inject AppStore Store
+@inject ApiReader Api
 
 <PageTitle>المفضلة - اوردر</PageTitle>
 
-@if (!Auth.IsAuthenticated)
+@if (!Store.Auth.IsAuthenticated)
 {
     <AcEmptyState IconName="heart"
-                  Title="@(Ui.IsArabic ? "سجّل دخولك للحفظ" : "Sign in to save")"
-                  ActionLabel="@(Ui.IsArabic ? "تسجيل الدخول" : "Sign in")"
+                  Title="@(Store.Ui.IsArabic ? "سجّل دخولك للحفظ" : "Sign in to save")"
+                  ActionLabel="@(Store.Ui.IsArabic ? "تسجيل الدخول" : "Sign in")"
                   ActionHref="/login" />
 }
 else
 {
     <AcFavoritesPage Items="@Mapped"
                      Loading="@Loading"
-                     Title="@(Ui.IsArabic ? "المفضلة" : "Favorites")"
-                     LoadingMessage="@(Ui.IsArabic ? "جاري التحميل..." : "Loading…")"
-                     EmptyTitle="@(Ui.IsArabic ? "لا توجد عروض محفوظة" : "No favorites yet")"
-                     EmptyMessage="@(Ui.IsArabic ? "اضغط على القلب في صفحة العرض لحفظه" : "Tap the heart on any offer to save it")"
-                     BrowseLabel="@(Ui.IsArabic ? "تصفّح العروض" : "Browse offers")"
+                     Title="@(Store.Ui.IsArabic ? "المفضلة" : "Favorites")"
+                     LoadingMessage="@(Store.Ui.IsArabic ? "جاري التحميل..." : "Loading…")"
+                     EmptyTitle="@(Store.Ui.IsArabic ? "لا توجد عروض محفوظة" : "No favorites yet")"
+                     EmptyMessage="@(Store.Ui.IsArabic ? "اضغط على القلب في صفحة العرض لحفظه" : "Tap the heart on any offer to save it")"
+                     BrowseLabel="@(Store.Ui.IsArabic ? "تصفّح العروض" : "Browse offers")"
                      BrowseHref="/" />
 }
 
@@ -49,10 +48,9 @@ else
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (!firstRender) return;
-        await Auth.EnsureRestoredAsync();
-        if (Auth.IsAuthenticated)
+        if (Store.Auth.IsAuthenticated)
         {
-            var env = await Api.GetAsync<List<FavApi>>($"/api/favorites/by-user/{Auth.UserId}");
+            var env = await Api.GetAsync<List<FavApi>>($"/api/favorites/by-user/{Store.Auth.UserId}");
             Items = env.Data ?? new();
         }
         Loading = false;
