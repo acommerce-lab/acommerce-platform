@@ -7,8 +7,9 @@ and every mutation going through the accounting engine.
 
 Prerequisites:
 
-- .NET 9 SDK (or .NET 10 with rollForward — the apps here use that)
+- .NET 10 SDK
 - Basic familiarity with ASP.NET Core minimal hosting
+- Read `MODEL.md` and `LIBRARY-ANATOMY.md` first
 
 ---
 
@@ -24,7 +25,7 @@ Create `MyApp.Api.csproj`:
 ```xml
 <Project Sdk="Microsoft.NET.Sdk.Web">
   <PropertyGroup>
-    <TargetFramework>net9.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <RollForward>LatestMajor</RollForward>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
