@@ -1,9 +1,9 @@
-@inject UiPreferences Ui
+@inject AppStore Store
 
 <!DOCTYPE html>
-<html lang="@(Ui.IsArabic ? "ar" : "en")"
-      dir="@(Ui.IsArabic ? "rtl" : "ltr")"
-      data-theme="@Ui.Theme">
+<html lang="@(Store.Ui.IsArabic ? "ar" : "en")"
+      dir="@(Store.Ui.IsArabic ? "rtl" : "ltr")"
+      data-theme="@Store.Ui.Theme">
 
 <head>
     <meta charset="utf-8" />

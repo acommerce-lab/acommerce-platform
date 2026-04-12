@@ -1,8 +1,8 @@
 @page "/offer/{Id:guid}"
-@inject OrderApiClient Api
-@inject CartService Cart
-@inject AuthStateService Auth
-@inject UiPreferences Ui
+@inject AppStore Store
+@inject ClientOpEngine Engine
+@inject AppStateApplier Applier
+@inject ApiReader Api
 @inject NavigationManager Nav
 
 <PageTitle>@(OfferApiData?.Title ?? "تفاصيل العرض") - اوردر</PageTitle>
@@ -11,16 +11,16 @@
                     Loading="@Loading"
                     InFavorites="@IsFavorite"
                     BackHref="/"
-                    LoadingMessage="@(Ui.IsArabic ? "جاري التحميل..." : "Loading…")"
-                    NotFoundTitle="@(Ui.IsArabic ? "العرض غير موجود" : "Offer not found")"
-                    BackLabel="@(Ui.IsArabic ? "العودة للرئيسية" : "Back to home")"
-                    DescriptionLabel="@(Ui.IsArabic ? "تفاصيل العرض" : "Details")"
-                    StoreInfoLabel="@(Ui.IsArabic ? "معلومات المتجر" : "Store info")"
-                    AddToCartLabel="@($"{(Ui.IsArabic ? "أضف إلى السلة" : "Add to cart")} • {OfferApiData?.Price.ToString("N0")} {OfferApiData?.Currency}")"
-                    ChatLabel="@(Ui.IsArabic ? "محادثة المتجر" : "Chat with store")"
+                    LoadingMessage="@(Store.Ui.IsArabic ? "جاري التحميل..." : "Loading…")"
+                    NotFoundTitle="@(Store.Ui.IsArabic ? "العرض غير موجود" : "Offer not found")"
+                    BackLabel="@(Store.Ui.IsArabic ? "العودة للرئيسية" : "Back to home")"
+                    DescriptionLabel="@(Store.Ui.IsArabic ? "تفاصيل العرض" : "Details")"
+                    StoreInfoLabel="@(Store.Ui.IsArabic ? "معلومات المتجر" : "Store info")"
+                    AddToCartLabel="@($"{(Store.Ui.IsArabic ? "أضف إلى السلة" : "Add to cart")} • {OfferApiData?.Price.ToString("N0")} {OfferApiData?.Currency}")"
+                    ChatLabel="@(Store.Ui.IsArabic ? "محادثة المتجر" : "Chat with store")"
                     OnAddToCart="AddToCart"
                     OnToggleFavorite="ToggleFavorite"
-                    OnChatWithStore="@(Auth.IsAuthenticated && OfferApiData?.Vendor != null ? EventCallback.Factory.Create(this, StartChat) : default)" />
+                    OnChatWithStore="@(Store.Auth.IsAuthenticated && OfferApiData?.Vendor != null ? EventCallback.Factory.Create(this, StartChat) : default)" />
 
 @code {
     [Parameter] public Guid Id { get; set; }
@@ -58,28 +58,28 @@
         Loading = false;
     }
 
-    private void AddToCart()
+    private async Task AddToCart()
     {
         if (OfferApiData == null || OfferApiData.Vendor == null) return;
-        Cart.Add(OfferApiData.Id, OfferApiData.Title, OfferApiData.Emoji, OfferApiData.Price,
-                 OfferApiData.Vendor.Id, OfferApiData.Vendor.Name, OfferApiData.Vendor.LogoEmoji);
+        await Applier.ApplyLocalAsync(ClientOps.CartAdd(OfferApiData.Id, OfferApiData.Title, OfferApiData.Emoji, OfferApiData.Price,
+                 OfferApiData.Vendor.Id, OfferApiData.Vendor.Name, OfferApiData.Vendor.LogoEmoji));
         Nav.NavigateTo("/cart");
     }
 
     private async Task ToggleFavorite()
     {
-        if (!Auth.IsAuthenticated || OfferApiData == null) { Nav.NavigateTo("/login"); return; }
-        var env = await Api.PostAsync<FavToggle>("/api/favorites/toggle",
-            new { userId = Auth.UserId, offerId = OfferApiData.Id });
-        IsFavorite = env.Data?.IsFavorite ?? IsFavorite;
+        if (!Store.Auth.IsAuthenticated || OfferApiData == null) { Nav.NavigateTo("/login"); return; }
+        var result = await Engine.ExecuteAsync<FavToggle>(ClientOps.ToggleFavorite(Store.Auth.UserId, OfferApiData.Id),
+            new { userId = Store.Auth.UserId, offerId = OfferApiData.Id });
+        IsFavorite = result.Data?.IsFavorite ?? IsFavorite;
     }
 
     private async Task StartChat()
     {
         if (OfferApiData?.Vendor == null) return;
-        var env = await Api.PostAsync<StartConvDto>("/api/messages/conversations",
-            new { customerId = Auth.UserId, vendorId = OfferApiData.Vendor.Id });
-        if (env.Data != null) Nav.NavigateTo($"/chat/{env.Data.Id}");
+        var result = await Engine.ExecuteAsync<StartConvDto>(ClientOps.StartConversation(Store.Auth.UserId, OfferApiData.Vendor.Id),
+            new { customerId = Store.Auth.UserId, vendorId = OfferApiData.Vendor.Id });
+        if (result.Data != null) Nav.NavigateTo($"/chat/{result.Data.Id}");
     }
 
     private static string FormatHours(string h)

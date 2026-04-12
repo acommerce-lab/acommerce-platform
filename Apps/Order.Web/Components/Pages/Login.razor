@@ -1,7 +1,6 @@
 @page "/login"
-@inject OrderApiClient Api
-@inject AuthStateService Auth
-@inject UiPreferences Ui
+@inject AppStore Store
+@inject ClientOpEngine Engine
 @inject NavigationManager Nav
 
 <PageTitle>تسجيل الدخول - اوردر</PageTitle>
@@ -15,28 +14,28 @@
              Busy="@Busy"
              BrandIcon="🍔"
              BrandName="اوردر"
-             BrandTagline="@(Ui.IsArabic ? "عروض الكافيهات والمطاعم" : "Cafe & restaurant deals")"
-             PhoneStepTitle="@(Ui.IsArabic ? "مرحباً بك" : "Welcome")"
-             PhoneStepSubtitle="@(Ui.IsArabic ? "أدخل رقم جوالك للمتابعة" : "Enter your phone number to continue")"
-             PhoneLabel="@(Ui.IsArabic ? "رقم الجوال" : "Phone number")"
-             RequestOtpLabel="@(Ui.IsArabic ? "إرسال رمز التحقق" : "Send verification code")"
-             SendingLabel="@(Ui.IsArabic ? "جاري الإرسال..." : "Sending...")"
-             OtpStepTitle="@(Ui.IsArabic ? "رمز التحقق" : "Verification code")"
-             OtpStepSubtitle="@(Ui.IsArabic ? "أدخل الرمز المرسل إلى" : "Enter the code sent to")"
-             OtpLabel="@(Ui.IsArabic ? "رمز التحقق (6 أرقام)" : "Verification code (6 digits)")"
-             VerifyOtpLabel="@(Ui.IsArabic ? "تحقق ودخول" : "Verify & sign in")"
-             VerifyingLabel="@(Ui.IsArabic ? "جاري التحقق..." : "Verifying...")"
-             BackLabel="@(Ui.IsArabic ? "تغيير رقم الجوال" : "Change phone")"
+             BrandTagline="@(Store.Ui.IsArabic ? "عروض الكافيهات والمطاعم" : "Cafe & restaurant deals")"
+             PhoneStepTitle="@(Store.Ui.IsArabic ? "مرحباً بك" : "Welcome")"
+             PhoneStepSubtitle="@(Store.Ui.IsArabic ? "أدخل رقم جوالك للمتابعة" : "Enter your phone number to continue")"
+             PhoneLabel="@(Store.Ui.IsArabic ? "رقم الجوال" : "Phone number")"
+             RequestOtpLabel="@(Store.Ui.IsArabic ? "إرسال رمز التحقق" : "Send verification code")"
+             SendingLabel="@(Store.Ui.IsArabic ? "جاري الإرسال..." : "Sending...")"
+             OtpStepTitle="@(Store.Ui.IsArabic ? "رمز التحقق" : "Verification code")"
+             OtpStepSubtitle="@(Store.Ui.IsArabic ? "أدخل الرمز المرسل إلى" : "Enter the code sent to")"
+             OtpLabel="@(Store.Ui.IsArabic ? "رمز التحقق (6 أرقام)" : "Verification code (6 digits)")"
+             VerifyOtpLabel="@(Store.Ui.IsArabic ? "تحقق ودخول" : "Verify & sign in")"
+             VerifyingLabel="@(Store.Ui.IsArabic ? "جاري التحقق..." : "Verifying...")"
+             BackLabel="@(Store.Ui.IsArabic ? "تغيير رقم الجوال" : "Change phone")"
              OnRequestOtp="RequestOtp"
              OnVerifyOtp="VerifyOtp"
              OnBack="GoBack">
     <HintSlot>
-        <strong>@(Ui.IsArabic ? "وضع تجريبي:" : "Demo mode:")</strong>
-        @(Ui.IsArabic
+        <strong>@(Store.Ui.IsArabic ? "وضع تجريبي:" : "Demo mode:")</strong>
+        @(Store.Ui.IsArabic
             ? "أي رقم +9665xxxxxxxx يفتح حساباً جديداً. الرمز يطبع في سجل الـ API."
             : "Any +9665xxxxxxxx number creates a new account. The code is printed in the API log.")
         <br />
-        <span style="font-size:0.78rem;">@(Ui.IsArabic ? "حسابات تجريبية: " : "Demo accounts: ")</span>
+        <span style="font-size:0.78rem;">@(Store.Ui.IsArabic ? "حسابات تجريبية: " : "Demo accounts: ")</span>
         <code dir="ltr">+966500000001</code> (سارة)
     </HintSlot>
 </AcLoginPage>
@@ -55,18 +54,18 @@
     private async Task RequestOtp()
     {
         Error = "";
-        if (string.IsNullOrWhiteSpace(Phone)) { Error = Ui.IsArabic ? "أدخل رقم الجوال" : "Enter phone"; return; }
+        if (string.IsNullOrWhiteSpace(Phone)) { Error = Store.Ui.IsArabic ? "أدخل رقم الجوال" : "Enter phone"; return; }
         Busy = true;
         try
         {
-            var env = await Api.PostAsync<OtpRequestDto>("/api/auth/sms/request", new { phoneNumber = Phone });
-            if (env.Operation.Status != "Success" || env.Data == null)
+            var result = await Engine.ExecuteAsync<OtpRequestDto>(ClientOps.RequestOtp(Phone), new { phoneNumber = Phone });
+            if (result.Operation.Status != "Success" || result.Data == null)
             {
-                Error = env.Operation.ErrorMessage ?? env.Error?.Message ?? (Ui.IsArabic ? "فشل الإرسال" : "Send failed");
+                Error = result.Operation.ErrorMessage ?? result.Error?.Message ?? (Store.Ui.IsArabic ? "فشل الإرسال" : "Send failed");
                 return;
             }
-            UserId = env.Data.UserId;
-            ChallengeId = env.Data.ChallengeId;
+            UserId = result.Data.UserId;
+            ChallengeId = result.Data.ChallengeId;
             Step = 2;
         }
         catch (Exception ex) { Error = ex.Message; }
@@ -80,18 +79,17 @@
         Busy = true;
         try
         {
-            var env = await Api.PostAsync<VerifyDto>("/api/auth/sms/verify", new
+            var result = await Engine.ExecuteAsync<VerifyDto>(ClientOps.VerifyOtp(UserId.Value, ChallengeId, Code), new
             {
                 userId = UserId.Value,
                 challengeId = ChallengeId,
                 code = Code
             });
-            if (env.Operation.Status != "Success" || env.Data == null || string.IsNullOrEmpty(env.Data.AccessToken))
+            if (result.Operation.Status != "Success" || result.Data == null || string.IsNullOrEmpty(result.Data.AccessToken))
             {
-                Error = env.Operation.ErrorMessage ?? env.Error?.Message ?? (Ui.IsArabic ? "كود غير صحيح" : "Wrong code");
+                Error = result.Operation.ErrorMessage ?? result.Error?.Message ?? (Store.Ui.IsArabic ? "كود غير صحيح" : "Wrong code");
                 return;
             }
-            await Auth.SignInAsync(env.Data.UserId, env.Data.PhoneNumber, env.Data.FullName, env.Data.AccessToken);
             Nav.NavigateTo(string.IsNullOrEmpty(ReturnUrl) ? "/" : ReturnUrl, forceLoad: false);
         }
         catch (Exception ex) { Error = ex.Message; }
