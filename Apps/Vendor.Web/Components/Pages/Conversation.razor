@@ -1,20 +1,27 @@
 @page "/chat/{Id:guid}"
-@inject VendorApiClient Api
 @inject AppStore Store
+@inject ClientOpEngine Engine
+@inject ApiReader Reader
 
 <PageTitle>@(Store.Ui.IsArabic ? "محادثة" : "Chat")</PageTitle>
 
 @if (!Store.Auth.IsAuthenticated)
 {
-    <AcEmptyState IconName="log-in" Title="@(Store.Ui.IsArabic ? "سجّل دخولك" : "Sign in")" ActionHref="/login" ActionLabel="@(Store.Ui.IsArabic ? "دخول" : "Sign in")" />
+    <AcEmptyState IconName="log-in"
+                  Title="@(Store.Ui.IsArabic ? "سجّل دخولك" : "Sign in")"
+                  ActionHref="/login"
+                  ActionLabel="@(Store.Ui.IsArabic ? "دخول" : "Sign in")" />
 }
 else
 {
-    <AcChatPage Messages="@Mapped"
+    <AcChatPage Mode="TemplateOperationMode.Operation"
+                Engine="Engine"
+                BuildSendOp="@(text => ClientOps.SendMessage(Id, Store.Auth.UserId, text))"
+                SendPayload="@(text => new { conversationId = Id, senderId = Store.Auth.UserId, content = text })"
+                OnMessageSent="OnNewMessage"
+                Messages="@Mapped"
                 MySenderId="@(Store.Auth.UserId?.ToString() ?? "")"
-                Loading="@Loading" Sending="@Sending"
-                Draft="@Draft" DraftChanged="@(v => Draft = v)"
-                OnSend="Send"
+                Loading="@Loading"
                 Title="@(Store.Ui.IsArabic ? "محادثة" : "Chat")"
                 EmptyMessage="@(Store.Ui.IsArabic ? "لا رسائل بعد" : "No messages yet")"
                 SendLabel="@(Store.Ui.IsArabic ? "إرسال" : "Send")" />
@@ -22,38 +29,50 @@ else
 
 @code {
     [Parameter] public Guid Id { get; set; }
-    private List<MsgApi> Messages = new();
+    private List<MsgApi> _messages = new();
     private bool Loading = true;
-    private bool Sending;
-    private string Draft = "";
 
     private IReadOnlyList<ChatMessageDto> Mapped =>
-        Messages.Select(m => new ChatMessageDto { Id = m.Id.ToString(), Content = m.Content, SenderId = m.SenderId.ToString(), CreatedAt = m.CreatedAt }).ToList();
+        _messages.Select(m => new ChatMessageDto
+        {
+            Id = m.Id.ToString(),
+            Content = m.Content,
+            SenderId = m.SenderId.ToString(),
+            CreatedAt = m.CreatedAt
+        }).ToList();
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (!firstRender) return;
-        await Reload(); StateHasChanged();
+        await Reload();
+        StateHasChanged();
     }
 
     private async Task Reload()
     {
         Loading = true;
-        var env = await Api.GetAsync<List<MsgApi>>($"/api/messages/conversations/{Id}/messages");
-        Messages = env.Data ?? new();
+        var env = await Reader.GetAsync<List<MsgApi>>($"/api/messages/conversations/{Id}/messages");
+        _messages = env.Data ?? new();
         Loading = false;
-        if (Store.Auth.UserId.HasValue)
-            await Api.PostAsync<object>($"/api/messages/conversations/{Id}/mark-read", new { readerId = Store.Auth.UserId.Value });
     }
 
-    private async Task Send()
+    private async Task OnNewMessage(ChatMessageDto msg)
     {
-        if (string.IsNullOrWhiteSpace(Draft) || Sending) return;
-        Sending = true;
-        var env = await Api.PostAsync<MsgApi>("/api/messages", new { conversationId = Id, senderId = Store.Auth.UserId, content = Draft });
-        if (env.Data != null) { Messages.Add(env.Data); Draft = ""; }
-        Sending = false;
+        _messages.Add(new MsgApi
+        {
+            Id = Guid.TryParse(msg.Id, out var gid) ? gid : Guid.NewGuid(),
+            SenderId = Guid.TryParse(msg.SenderId, out var sid) ? sid : Guid.Empty,
+            Content = msg.Content,
+            CreatedAt = msg.CreatedAt
+        });
+        StateHasChanged();
     }
 
-    public class MsgApi { public Guid Id { get; set; } public Guid SenderId { get; set; } public string Content { get; set; } = ""; public DateTime CreatedAt { get; set; } }
+    public class MsgApi
+    {
+        public Guid Id { get; set; }
+        public Guid SenderId { get; set; }
+        public string Content { get; set; } = "";
+        public DateTime CreatedAt { get; set; }
+    }
 }

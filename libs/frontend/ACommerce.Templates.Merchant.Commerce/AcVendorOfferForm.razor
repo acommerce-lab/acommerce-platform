@@ -1,0 +1,140 @@
+@namespace ACommerce.Templates.Merchant.Commerce
+
+@*
+    نموذج إنشاء/تعديل عرض/منتج للتاجر.
+
+    Callback mode: الصفحة تعالج OnSubmit.
+    Operation mode: القالب يُرسل العملية مباشرة.
+
+    Flex slots:
+      ExtraFields — حقول إضافية تُدرج أسفل الحقول الأساسية
+      BelowForm   — محتوى أسفل النموذج (مثل معاينة)
+*@
+
+<div class="acs-page">
+    @if (!string.IsNullOrEmpty(Title))
+    {
+        <h1 class="acs-page-title">@Title</h1>
+    }
+
+    <div class="s-card">
+        <AcField Label="@(TitleLabel ?? "اسم العرض")" Required>
+            <AcInput Value="@Form.Title"
+                     ValueChanged="@(v => Form.Title = v)"
+                     Placeholder="@(TitlePlaceholder ?? "أدخل اسم العرض")" />
+        </AcField>
+
+        <AcField Label="@(DescriptionLabel ?? "الوصف")">
+            <textarea class="form-input" rows="3"
+                      value="@Form.Description"
+                      @oninput="@(e => Form.Description = e.Value?.ToString())"
+                      placeholder="@(DescriptionPlaceholder ?? "وصف مختصر للعرض...")"></textarea>
+        </AcField>
+
+        <div class="row">
+            <div class="col-md-6">
+                <AcField Label="@(PriceLabel ?? "السعر")" Required>
+                    <AcInput Value="@Form.Price.ToString()"
+                             ValueChanged="@(v => { if (decimal.TryParse(v, out var p)) Form.Price = p; })"
+                             Type="number" Placeholder="0.00" />
+                </AcField>
+            </div>
+            <div class="col-md-6">
+                <AcField Label="@(EmojiLabel ?? "الإيموجي")">
+                    <AcInput Value="@(Form.Emoji ?? "")"
+                             ValueChanged="@(v => Form.Emoji = v)"
+                             Placeholder="🍕" />
+                </AcField>
+            </div>
+        </div>
+
+        <AcField Label="@(CategoryLabel ?? "الفئة")">
+            <AcInput Value="@(Form.Category ?? "")"
+                     ValueChanged="@(v => Form.Category = v)"
+                     Placeholder="@(CategoryPlaceholder ?? "مثال: مشروبات")" />
+        </AcField>
+
+        <div class="acm-toggle-row">
+            <label>@(AvailableLabel ?? "متاح للطلب")</label>
+            <input type="checkbox" checked="@Form.IsAvailable"
+                   @onchange="@(e => Form.IsAvailable = (bool)(e.Value ?? false))" />
+        </div>
+
+        @ExtraFields
+
+        @if (!string.IsNullOrEmpty(_error))
+        {
+            <AcAlert Variant="danger" Message="@_error" />
+        }
+
+        <AcButton Variant="primary"
+                  Text="@(SubmitLabel ?? "حفظ")"
+                  OnClick="HandleSubmit"
+                  Disabled="@_busy" />
+    </div>
+
+    @BelowForm
+</div>
+
+@code {
+    // ── وضع التشغيل ────────────────────────────────────────────────────────
+    [Parameter] public TemplateOperationMode Mode { get; set; } = TemplateOperationMode.Callback;
+
+    [Parameter] public OfferFormModel Form { get; set; } = new();
+    [Parameter] public EventCallback<OfferFormModel> FormChanged { get; set; }
+
+    // ── Callback mode ──────────────────────────────────────────────────────
+    [Parameter] public EventCallback<OfferFormModel> OnSubmit { get; set; }
+
+    // ── Operation mode ─────────────────────────────────────────────────────
+    [Parameter] public ITemplateEngine? Engine { get; set; }
+    [Parameter] public Func<OfferFormModel, Operation>? BuildSubmitOp { get; set; }
+    [Parameter] public Func<OfferFormModel, object>? SubmitPayload { get; set; }
+    [Parameter] public EventCallback OnSuccess { get; set; }
+
+    // ── Labels ─────────────────────────────────────────────────────────────
+    [Parameter] public string? Title { get; set; }
+    [Parameter] public string? TitleLabel { get; set; }
+    [Parameter] public string? TitlePlaceholder { get; set; }
+    [Parameter] public string? DescriptionLabel { get; set; }
+    [Parameter] public string? DescriptionPlaceholder { get; set; }
+    [Parameter] public string? PriceLabel { get; set; }
+    [Parameter] public string? EmojiLabel { get; set; }
+    [Parameter] public string? CategoryLabel { get; set; }
+    [Parameter] public string? CategoryPlaceholder { get; set; }
+    [Parameter] public string? AvailableLabel { get; set; }
+    [Parameter] public string? SubmitLabel { get; set; }
+
+    // ── Flex slots ─────────────────────────────────────────────────────────
+    [Parameter] public RenderFragment? ExtraFields { get; set; }
+    [Parameter] public RenderFragment? BelowForm { get; set; }
+
+    private bool _busy;
+    private string _error = "";
+
+    private async Task HandleSubmit()
+    {
+        _error = "";
+        if (string.IsNullOrWhiteSpace(Form.Title)) { _error = "اسم العرض مطلوب"; return; }
+        if (Form.Price <= 0) { _error = "السعر يجب أن يكون أكبر من صفر"; return; }
+
+        if (Mode == TemplateOperationMode.Operation && Engine != null && BuildSubmitOp != null)
+        {
+            _busy = true;
+            try
+            {
+                var payload = SubmitPayload != null ? SubmitPayload(Form) : (object)Form;
+                var result = await Engine.ExecuteAsync<object>(BuildSubmitOp(Form), payload);
+                if (result.Operation.Status != "Success")
+                {
+                    _error = result.Operation.ErrorMessage ?? result.Error?.Message ?? "حدث خطأ";
+                    return;
+                }
+                if (OnSuccess.HasDelegate) await OnSuccess.InvokeAsync();
+            }
+            finally { _busy = false; }
+        }
+        else if (OnSubmit.HasDelegate)
+            await OnSubmit.InvokeAsync(Form);
+    }
+}

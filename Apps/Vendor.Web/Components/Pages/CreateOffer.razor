@@ -1,6 +1,7 @@
 @page "/offers/new"
 @page "/offers/edit/{Id:guid}"
 @inject VendorApiClient Api
+@inject ClientOpEngine Engine
 @inject AppStore Store
 @inject NavigationManager Nav
 
@@ -107,12 +108,12 @@
 
         if (IsEdit)
         {
-            await Api.PutAsync<object>($"/api/offers/{Id}", new { Title, Description, Price, OriginalPrice, Emoji });
+            await Engine.ExecuteAsync<object>(ClientOps.UpdateOffer(Id!.Value), new { Title, Description, Price, OriginalPrice, Emoji });
         }
         else
         {
             if (!VendorId.HasValue) { Error = Store.Ui.IsArabic ? "لم يُعثر على متجرك" : "Vendor not found"; Saving = false; return; }
-            await Api.PostAsync<object>("/api/offers", new
+            await Engine.ExecuteAsync<object>(ClientOps.CreateOffer(VendorId.Value), new
             {
                 VendorId = VendorId.Value,
                 CategoryId = Guid.TryParse(SelectedCategoryId, out var cid) ? cid : Categories.First().Id,

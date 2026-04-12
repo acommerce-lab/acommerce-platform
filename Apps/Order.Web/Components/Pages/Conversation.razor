@@ -15,13 +15,14 @@
 }
 else
 {
-    <AcChatPage Messages="@Mapped"
+    <AcChatPage Mode="TemplateOperationMode.Operation"
+                Engine="Engine"
+                BuildSendOp="@(text => ClientOps.SendMessage(Id, Store.Auth.UserId, text))"
+                SendPayload="@(text => new { conversationId = Id, senderId = Store.Auth.UserId, content = text })"
+                OnMessageSent="OnNewMessage"
+                Messages="@Mapped"
                 MySenderId="@(Store.Auth.UserId?.ToString() ?? "")"
                 Loading="@Loading"
-                Sending="@Sending"
-                Draft="@Draft"
-                DraftChanged="@(v => Draft = v)"
-                OnSend="Send"
                 Title="@(Store.Ui.IsArabic ? "محادثة" : "Chat")"
                 LoadingMessage="@(Store.Ui.IsArabic ? "جاري التحميل..." : "Loading…")"
                 EmptyMessage="@(Store.Ui.IsArabic ? "لا رسائل بعد" : "No messages yet")"
@@ -33,8 +34,6 @@ else
     [Parameter] public Guid Id { get; set; }
     private List<MsgApi> Messages = new();
     private bool Loading = true;
-    private bool Sending;
-    private string Draft = "";
 
     private IReadOnlyList<ChatMessageDto> Mapped =>
         Messages.Select(m => new ChatMessageDto
@@ -58,27 +57,21 @@ else
         var env = await Api.GetAsync<List<MsgApi>>($"/api/messages/conversations/{Id}/messages");
         Messages = env.Data ?? new();
         Loading = false;
-        // Reset unread count for this user when opening the conversation
         if (Store.Auth.UserId.HasValue)
             await Engine.ExecuteAsync<object>(ClientOps.MarkConversationRead(Id, Store.Auth.UserId.Value),
                 new { readerId = Store.Auth.UserId.Value });
     }
 
-    private async Task Send()
+    private async Task OnNewMessage(ChatMessageDto msg)
     {
-        if (string.IsNullOrWhiteSpace(Draft) || Sending) return;
-        Sending = true;
-        try
+        Messages.Add(new MsgApi
         {
-            var result = await Engine.ExecuteAsync<MsgApi>(ClientOps.SendMessage(Id, Store.Auth.UserId, Draft),
-                new { conversationId = Id, senderId = Store.Auth.UserId, content = Draft });
-            if (result.Data != null)
-            {
-                Messages.Add(result.Data);
-                Draft = "";
-            }
-        }
-        finally { Sending = false; }
+            Id = Guid.TryParse(msg.Id, out var gid) ? gid : Guid.NewGuid(),
+            SenderId = Guid.TryParse(msg.SenderId, out var sid) ? sid : Guid.Empty,
+            Content = msg.Content,
+            CreatedAt = msg.CreatedAt
+        });
+        StateHasChanged();
     }
 
     public class MsgApi

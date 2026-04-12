@@ -2,18 +2,17 @@
 @rendermode InteractiveServer
 @inject ClientOpEngine Engine
 @inject AppStore Store
-@inject AppStateApplier Applier
 @inject NavigationManager Nav
 
 <PageTitle>دخول - عشير</PageTitle>
 
-<AcLoginPage Step="step"
-             Phone="@phoneNumber"
-             PhoneChanged="@(v => phoneNumber = v)"
-             Code="@otpCode"
-             CodeChanged="@(v => otpCode = v)"
-             Error="@error"
-             Busy="@loading"
+<AcLoginPage Mode="TemplateOperationMode.Operation"
+             Engine="Engine"
+             BuildRequestOtpOp="@(phone => ClientOps.RequestOtp(phone))"
+             BuildVerifyOtpOp="@((uid, cid, code) => ClientOps.VerifyOtp(uid, cid, code))"
+             PhonePayload="@(phone => new { phoneNumber = phone })"
+             VerifyPayload="@((uid, cid, code) => new { userId = uid, challengeId = cid, code })"
+             RedirectUrl="/"
              BrandIcon="🏢"
              BrandName="عشير"
              BrandTagline="سوق العقارات والإيجار"
@@ -28,10 +27,7 @@
              OtpLabel="رمز التحقق (6 أرقام)"
              VerifyOtpLabel="تحقق ودخول"
              VerifyingLabel="جاري التحقق..."
-             BackLabel="تغيير الرقم"
-             OnRequestOtp="RequestOtp"
-             OnVerifyOtp="VerifyOtp"
-             OnBack="@(() => { step = 1; error = ""; })">
+             BackLabel="تغيير الرقم">
     <HintSlot>
         <strong>وضع تجريبي:</strong> الكود أُرسل للـ logs في طرفية Ashare.Api.<br />
         <small>
@@ -41,84 +37,3 @@
         </small>
     </HintSlot>
 </AcLoginPage>
-
-@code {
-    private int step = 1;
-    private string phoneNumber = "+966500000001";
-    private string otpCode = "";
-    private string challengeId = "";
-    private Guid userId;
-    private bool loading;
-    private string error = "";
-
-    private async Task RequestOtp()
-    {
-        error = "";
-        if (string.IsNullOrWhiteSpace(phoneNumber)) { error = "أدخل رقم الهاتف"; return; }
-        loading = true;
-        try
-        {
-            var result = await Engine.ExecuteAsync<OtpRequestResult>(
-                ClientOps.RequestOtp(phoneNumber),
-                new { phoneNumber });
-
-            if (result.Operation.Status != "Success" || result.Data == null)
-            {
-                error = result.Operation.ErrorMessage ?? result.Error?.Message ?? "فشل طلب الرمز";
-                return;
-            }
-            challengeId = result.Data.ChallengeId;
-            userId = result.Data.UserId;
-            step = 2;
-        }
-        catch (Exception ex) { error = ex.Message; }
-        finally { loading = false; }
-    }
-
-    private async Task VerifyOtp()
-    {
-        error = "";
-        if (string.IsNullOrWhiteSpace(otpCode)) return;
-        loading = true;
-        try
-        {
-            var result = await Engine.ExecuteAsync<VerifyResult>(
-                ClientOps.VerifyOtp(userId, challengeId, otpCode),
-                new { userId, challengeId, code = otpCode });
-
-            if (result.Operation.Status != "Success" || result.Data == null)
-            {
-                error = result.Operation.ErrorMessage ?? result.Error?.Message ?? "كود غير صحيح";
-                return;
-            }
-
-            // Apply state bridge to update Store.Auth via AuthInterpreter
-            await Applier.ApplyAsync(new OperationEnvelope<object>
-            {
-                Data = result.Data,
-                Operation = result.Operation,
-                Error = result.Error,
-                Meta = result.Meta
-            });
-
-            Nav.NavigateTo("/");
-        }
-        catch (Exception ex) { error = ex.Message; }
-        finally { loading = false; }
-    }
-
-    public class OtpRequestResult
-    {
-        public string ChallengeId { get; set; } = "";
-        public Guid UserId { get; set; }
-        public string PhoneNumber { get; set; } = "";
-    }
-
-    public class VerifyResult
-    {
-        public Guid UserId { get; set; }
-        public string? PhoneNumber { get; set; }
-        public string? FullName { get; set; }
-        public string AccessToken { get; set; } = "";
-    }
-}

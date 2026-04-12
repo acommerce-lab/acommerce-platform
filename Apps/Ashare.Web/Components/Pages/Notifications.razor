@@ -6,13 +6,16 @@
 
 <PageTitle>الإشعارات</PageTitle>
 
-<AcNotificationsPage Notifications="@Mapped"
+<AcNotificationsPage Mode="TemplateOperationMode.Operation"
+                     Engine="Engine"
+                     BuildMarkReadOp="@(id => ClientOps.ReadNotification(Guid.Parse(id)))"
+                     BuildMarkAllReadOp="@(() => ClientOps.MarkAllNotificationsRead(Store.Auth.UserId!.Value))"
+                     Notifications="@Mapped"
                      Loading="@(notifications is null)"
                      Title="الإشعارات"
                      LoadingMessage="جاري التحميل..."
                      EmptyTitle="لا إشعارات"
-                     MarkAllReadLabel="تعليم الكل كمقروء"
-                     OnMarkAllRead="MarkAllRead" />
+                     MarkAllReadLabel="تعليم الكل كمقروء" />
 
 @if (notifications?.Count > 0)
 {
@@ -50,15 +53,6 @@
         if (!Store.Auth.UserId.HasValue) { notifications = new(); return; }
         var resp = await Reader.GetAsync<List<NotificationDto>>($"/api/notifications/user/{Store.Auth.UserId}");
         notifications = resp.Data ?? new();
-    }
-
-    private async Task MarkAllRead()
-    {
-        if (!Store.Auth.UserId.HasValue) return;
-        await Engine.ExecuteAsync<object>(
-            ClientOps.MarkAllNotificationsRead(Store.Auth.UserId.Value),
-            new { });
-        await Load();
     }
 
     private async Task Send()

@@ -16,6 +16,7 @@ builder.Services.AddRazorComponents()
 
 // ─── AppStore (حالة التطبيق — Scoped per circuit) ────────────────────
 builder.Services.AddScoped<AppStore>();
+builder.Services.AddScoped<ITemplateStore>(sp => sp.GetRequiredService<AppStore>());
 
 // ─── OpEngine for client-side local operations (ui prefs) ─────────────
 builder.Services.AddScoped<OpEngine>(sp =>
@@ -53,11 +54,13 @@ builder.Services.AddScoped<ApiReader>(sp =>
     return new ApiReader(factory.CreateClient("ashare"), sp.GetRequiredService<AppStore>());
 });
 
-// ClientOpEngine
+// ClientOpEngine — يُحقن IStateApplier لتطبيق جسر الحالة تلقائياً
 builder.Services.AddScoped<ClientOpEngine>(sp =>
     new ClientOpEngine(
         sp.GetRequiredService<IOperationDispatcher>(),
-        sp.GetRequiredService<ILogger<ClientOpEngine>>()));
+        sp.GetRequiredService<ILogger<ClientOpEngine>>(),
+        sp.GetRequiredService<IStateApplier>()));
+builder.Services.AddScoped<ITemplateEngine>(sp => sp.GetRequiredService<ClientOpEngine>());
 
 // ─── State Bridge: server operations → AppStore updates ──────────────
 builder.Services.AddScoped<OperationInterpreterRegistry<AppStore>>(sp =>

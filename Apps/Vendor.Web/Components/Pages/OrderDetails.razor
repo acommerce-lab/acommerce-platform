@@ -1,5 +1,6 @@
 @page "/order/{Id:guid}"
 @inject VendorApiClient Api
+@inject ClientOpEngine Engine
 @inject AppStore Store
 
 <PageTitle>@(Store.Ui.IsArabic ? "تفاصيل الطلب" : "Order Details")</PageTitle>
@@ -102,10 +103,10 @@ else
         Loading = false;
     }
 
-    private async Task Accept() { Acting = true; await Api.PostAsync<object>($"/api/orders/{Id}/accept", new {}); await Reload(); Acting = false; }
-    private async Task Reject() { Acting = true; await Api.PostAsync<object>($"/api/orders/{Id}/cancel", new {}); await Reload(); Acting = false; }
-    private async Task MarkReady() { Acting = true; await Api.PostAsync<object>($"/api/orders/{Id}/ready", new {}); await Reload(); Acting = false; }
-    private async Task MarkDelivered() { Acting = true; await Api.PostAsync<object>($"/api/orders/{Id}/deliver", new {}); await Reload(); Acting = false; }
+    private async Task Accept() { Acting = true; await Engine.ExecuteAsync<object>(ClientOps.AcceptOrder(Id), new {}); await Reload(); Acting = false; }
+    private async Task Reject() { Acting = true; await Engine.ExecuteAsync<object>(ClientOps.RejectOrder(Id), new {}); await Reload(); Acting = false; }
+    private async Task MarkReady() { Acting = true; await Engine.ExecuteAsync<object>(ClientOps.ReadyOrder(Id), new {}); await Reload(); Acting = false; }
+    private async Task MarkDelivered() { Acting = true; await Engine.ExecuteAsync<object>(ClientOps.DeliverOrder(Id), new {}); await Reload(); Acting = false; }
 
     private static string StatusKey(int s) => s switch { 0=>"pending", 1=>"accepted", 2=>"ready", 3=>"delivered", 4=>"cancelled", _=>"pending" };
 

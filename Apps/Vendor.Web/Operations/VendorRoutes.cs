@@ -20,6 +20,9 @@ public static class VendorRoutes
         routes.Map("offer.create", HttpMethod.Post, "/api/offers");
         routes.Map("offer.update", HttpMethod.Put, "/api/offers/{offer_id}");
 
+        // Messages (→ Order.Api)
+        routes.Map("message.send", HttpMethod.Post, "/api/messages");
+
         // Vendor Orders (→ Vendor.Api — routed via VendorApiClient, not HttpDispatcher)
         // These are registered for completeness but mutations go through VendorApiClient directly.
         routes.Map("vendor-order.accept", HttpMethod.Post, "/api/orders/{order_id}/accept");

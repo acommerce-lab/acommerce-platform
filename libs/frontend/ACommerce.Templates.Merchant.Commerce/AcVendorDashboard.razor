@@ -1,0 +1,114 @@
+@namespace ACommerce.Templates.Merchant.Commerce
+
+@*
+    لوحة تحكم التاجر — يعرض إحصاءات + قائمة أحدث الطلبات.
+
+    Flex slots:
+      AboveStats    — فوق الإحصاءات (مثل ترحيب بالاسم)
+      BelowStats    — بين الإحصاءات والطلبات
+      BelowOrders   — أسفل قائمة الطلبات (مثل تصفية أو pagination)
+      EmptyOrders   — يُستبدل بحالة فراغ مخصصة
+*@
+
+<div class="acs-page">
+    @if (!string.IsNullOrEmpty(Title))
+    {
+        <h1 class="acs-page-title">@Title</h1>
+    }
+
+    @AboveStats
+
+    @if (Stats.Count > 0)
+    {
+        <div class="acm-stats-grid">
+            @foreach (var s in Stats)
+            {
+                <div class="acm-stat-card s-card">
+                    @if (!string.IsNullOrEmpty(s.IconName))
+                    {
+                        <AcIcon Name="@s.IconName" Size="20" />
+                    }
+                    <div class="acm-stat-value">@s.Value</div>
+                    <div class="acm-stat-label">@s.Label</div>
+                    @if (!string.IsNullOrEmpty(s.TrendValue))
+                    {
+                        <div class="acm-stat-trend @(s.Trend == "up" ? "up" : "down")">
+                            @(s.Trend == "up" ? "▲" : "▼") @s.TrendValue
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    }
+
+    @BelowStats
+
+    @if (!string.IsNullOrEmpty(OrdersTitle))
+    {
+        <h2 class="acs-section-title">@OrdersTitle</h2>
+    }
+
+    @if (LoadingOrders)
+    {
+        <AcLoadingState />
+    }
+    else if (RecentOrders.Count == 0)
+    {
+        @if (EmptyOrders != null)
+        {
+            @EmptyOrders
+        }
+        else
+        {
+            <AcEmptyState IconName="package" Message="@(EmptyOrdersMessage ?? "لا توجد طلبات بعد")" />
+        }
+    }
+    else
+    {
+        @foreach (var o in RecentOrders)
+        {
+            <div class="s-card acm-order-row" @onclick="() => HandleOrderClick(o)">
+                <div class="acm-order-info">
+                    <strong>@o.CustomerName</strong>
+                    <span class="ac-text-muted">@o.CreatedAt.ToLocalTime().ToString("yyyy/MM/dd HH:mm")</span>
+                </div>
+                <div class="acm-order-meta">
+                    <span class="acm-order-total">@o.Total.ToString("N0") @o.Currency</span>
+                    <AcBadge Text="@o.Status" Variant="@StatusVariant(o.Status)" />
+                </div>
+            </div>
+        }
+    }
+
+    @BelowOrders
+</div>
+
+@code {
+    [Parameter] public string? Title { get; set; }
+    [Parameter] public string? OrdersTitle { get; set; }
+    [Parameter] public string? EmptyOrdersMessage { get; set; }
+    [Parameter] public IReadOnlyList<MerchantStatDto> Stats { get; set; } = Array.Empty<MerchantStatDto>();
+    [Parameter] public IReadOnlyList<MerchantOrderRowDto> RecentOrders { get; set; } = Array.Empty<MerchantOrderRowDto>();
+    [Parameter] public bool LoadingOrders { get; set; }
+    [Parameter] public EventCallback<MerchantOrderRowDto> OnOrderClick { get; set; }
+
+    [Parameter] public RenderFragment? AboveStats { get; set; }
+    [Parameter] public RenderFragment? BelowStats { get; set; }
+    [Parameter] public RenderFragment? BelowOrders { get; set; }
+    [Parameter] public RenderFragment? EmptyOrders { get; set; }
+
+    private async Task HandleOrderClick(MerchantOrderRowDto o)
+    {
+        if (OnOrderClick.HasDelegate) await OnOrderClick.InvokeAsync(o);
+    }
+
+    private static string StatusVariant(string status) => status.ToLowerInvariant() switch
+    {
+        "pending" or "قيد الانتظار" => "warning",
+        "confirmed" or "مؤكد" => "info",
+        "ready" or "جاهز" => "success",
+        "delivered" or "مُسلَّم" => "success",
+        "cancelled" or "ملغى" => "danger",
+        _ => "default"
+    };
+}

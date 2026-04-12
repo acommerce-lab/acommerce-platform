@@ -1,0 +1,134 @@
+@namespace ACommerce.Templates.Admin
+
+@*
+    صفحة إدارة المستخدمين.
+
+    Callback mode: الصفحة تعالج OnSuspend / OnActivate / OnSelectUser.
+    Operation mode: القالب يُرسل العمليات مباشرة.
+
+    Flex slots:
+      AboveList   — فوق القائمة (مثل فلتر البحث)
+      BelowList   — أسفل القائمة (pagination)
+      RowExtras   — إجراءات إضافية لكل صف
+*@
+
+<div class="acs-page">
+    @if (!string.IsNullOrEmpty(Title))
+    {
+        <h1 class="acs-page-title">@Title</h1>
+    }
+
+    <div class="acs-page-header-row">
+        <input class="form-input" style="max-width:280px"
+               type="search" placeholder="@(SearchPlaceholder ?? "بحث بالاسم أو الهاتف...")"
+               value="@_search"
+               @oninput="@(e => { _search = e.Value?.ToString() ?? ""; })" />
+    </div>
+
+    @AboveList
+
+    @if (Loading)
+    {
+        <AcLoadingState />
+    }
+    else if (FilteredUsers.Count == 0)
+    {
+        <AcEmptyState IconName="users" Title="@(EmptyTitle ?? "لا يوجد مستخدمون")" />
+    }
+    else
+    {
+        @foreach (var u in FilteredUsers)
+        {
+            <div class="s-card acm-admin-row" @onclick="() => HandleSelect(u)">
+                <div class="acm-admin-info">
+                    <strong>@u.DisplayName</strong>
+                    @if (!string.IsNullOrEmpty(u.Phone))
+                    {
+                        <span class="ac-text-muted" dir="ltr">@u.Phone</span>
+                    }
+                    @if (!string.IsNullOrEmpty(u.Role))
+                    {
+                        <AcBadge Text="@u.Role" Variant="info" />
+                    }
+                </div>
+                <div class="acm-admin-actions">
+                    <AcBadge Text="@u.Status" Variant="@StatusVariant(u.Status)" />
+                    @if (u.Status == "active" || u.Status == "نشط")
+                    {
+                        <AcButton Variant="ghost" Size="sm" Text="@(SuspendLabel ?? "تعليق")"
+                                  OnClick="@(() => HandleSuspend(u))" />
+                    }
+                    else if (u.Status == "suspended" || u.Status == "معلّق")
+                    {
+                        <AcButton Variant="ghost" Size="sm" Text="@(ActivateLabel ?? "تفعيل")"
+                                  OnClick="@(() => HandleActivate(u))" />
+                    }
+                    @if (RowExtras != null) { @RowExtras(u) }
+                </div>
+            </div>
+        }
+    }
+
+    @BelowList
+</div>
+
+@code {
+    [Parameter] public TemplateOperationMode Mode { get; set; } = TemplateOperationMode.Callback;
+    [Parameter] public IReadOnlyList<AdminUserRowDto> Users { get; set; } = Array.Empty<AdminUserRowDto>();
+    [Parameter] public bool Loading { get; set; }
+    [Parameter] public string? Title { get; set; }
+    [Parameter] public string? SearchPlaceholder { get; set; }
+    [Parameter] public string? EmptyTitle { get; set; }
+    [Parameter] public string? SuspendLabel { get; set; }
+    [Parameter] public string? ActivateLabel { get; set; }
+
+    [Parameter] public EventCallback<AdminUserRowDto> OnSelectUser { get; set; }
+    [Parameter] public EventCallback<AdminUserRowDto> OnSuspend { get; set; }
+    [Parameter] public EventCallback<AdminUserRowDto> OnActivate { get; set; }
+
+    [Parameter] public ITemplateEngine? Engine { get; set; }
+    [Parameter] public Func<string, Operation>? BuildSuspendOp { get; set; }
+    [Parameter] public Func<string, Operation>? BuildActivateOp { get; set; }
+
+    [Parameter] public RenderFragment? AboveList { get; set; }
+    [Parameter] public RenderFragment? BelowList { get; set; }
+    [Parameter] public RenderFragment<AdminUserRowDto>? RowExtras { get; set; }
+
+    private string _search = "";
+
+    private IReadOnlyList<AdminUserRowDto> FilteredUsers =>
+        string.IsNullOrWhiteSpace(_search)
+            ? Users
+            : Users.Where(u =>
+                u.DisplayName.Contains(_search, StringComparison.OrdinalIgnoreCase) ||
+                (u.Phone?.Contains(_search) ?? false)).ToList();
+
+    private async Task HandleSelect(AdminUserRowDto u)
+    {
+        if (OnSelectUser.HasDelegate) await OnSelectUser.InvokeAsync(u);
+    }
+
+    private async Task HandleSuspend(AdminUserRowDto u)
+    {
+        if (Mode == TemplateOperationMode.Operation && Engine != null && BuildSuspendOp != null)
+            await Engine.ExecuteAsync<object>(BuildSuspendOp(u.Id));
+        else if (OnSuspend.HasDelegate)
+            await OnSuspend.InvokeAsync(u);
+    }
+
+    private async Task HandleActivate(AdminUserRowDto u)
+    {
+        if (Mode == TemplateOperationMode.Operation && Engine != null && BuildActivateOp != null)
+            await Engine.ExecuteAsync<object>(BuildActivateOp(u.Id));
+        else if (OnActivate.HasDelegate)
+            await OnActivate.InvokeAsync(u);
+    }
+
+    private static string StatusVariant(string status) => status.ToLowerInvariant() switch
+    {
+        "active" or "نشط" => "success",
+        "suspended" or "معلّق" => "danger",
+        "pending" or "قيد المراجعة" => "warning",
+        _ => "default"
+    };
+}

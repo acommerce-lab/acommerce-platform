@@ -22,8 +22,8 @@ public class JournalInterceptor : IOperationInterceptor
     public string Name => "Journal";
     public InterceptorPhase Phase => InterceptorPhase.Post;
 
-    /// <summary>يعمل على كل العمليات (الختم يُطبَّق بواسطة الـ registry)</summary>
-    public bool AppliesTo(Operation op) => true;
+    /// <summary>يعمل على كل العمليات غير المختومة. العمليات المختومة (sealed=true) تتجاوز كل المعترضات.</summary>
+    public bool AppliesTo(Operation op) => !op.HasTag("sealed", "true");
 
     public async Task<AnalyzerResult> InterceptAsync(OperationContext context, OperationResult? result = null)
     {

@@ -1,5 +1,6 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
 using ACommerce.Authentication.Operations.Abstractions;
 using ACommerce.Authentication.Providers.Token;
@@ -79,7 +80,7 @@ public class JwtTokenStore : ITokenIssuer, ITokenValidator
             signingCredentials: _signing);
 
         var accessToken = _handler.WriteToken(jwt);
-        var refreshToken = Guid.NewGuid().ToString("N") + Guid.NewGuid().ToString("N");
+        var refreshToken = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
         _refreshTokens[refreshToken] = principal.UserId;
 
         return Task.FromResult(new AuthToken(accessToken, refreshToken, expires));

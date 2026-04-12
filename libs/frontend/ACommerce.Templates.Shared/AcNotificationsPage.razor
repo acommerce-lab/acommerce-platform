@@ -1,14 +1,19 @@
 @namespace ACommerce.Templates.Shared
 
 @*
-    Notifications list template. Type keys are mapped to CSS classes (.t-promo,
-    .t-order, .t-message, .t-general); unknown types fall back to .t-general.
+    Notifications list template.
+
+    Callback mode (افتراضي): الصفحة تعالج OnMarkRead / OnMarkAllRead.
+    Operation mode: القالب يُرسل عمليات القراءة مباشرة.
+      مطلوب: Engine + BuildMarkReadOp + BuildMarkAllReadOp.
+
+    Type keys → CSS classes (.t-promo, .t-order, .t-message, .t-general).
 
     Flex slots:
-      HeaderSlot — replaces the default title
-      EmptySlot  — replaces the default empty state
-      RowExtras  — per-row RenderFragment<NotificationRowDto>
-      HeaderActions — appended next to the title (e.g. "Mark all read")
+      HeaderSlot     — replaces the default title
+      EmptySlot      — replaces the default empty state
+      RowExtras      — per-row RenderFragment<NotificationRowDto>
+      HeaderActions  — appended next to the title
 *@
 
 <div class="acs-page">
@@ -25,9 +30,9 @@
         {
             <div class="acs-page-header-actions">@HeaderActions</div>
         }
-        else if (Notifications.Any(n => !n.IsRead) && OnMarkAllRead.HasDelegate)
+        else if (Notifications.Any(n => !n.IsRead) && (OnMarkAllRead.HasDelegate || (Mode == TemplateOperationMode.Operation && BuildMarkAllReadOp != null)))
         {
-            <button class="btn btn-ghost btn-sm" @onclick="OnMarkAllRead">
+            <button class="btn btn-ghost btn-sm" @onclick="HandleMarkAllRead">
                 @(MarkAllReadLabel ?? "تعليم الكل مقروءاً")
             </button>
         }
@@ -81,6 +86,10 @@
 </div>
 
 @code {
+    // ── وضع التشغيل ────────���────────────────────────────────────��─────────
+    [Parameter] public TemplateOperationMode Mode { get; set; } = TemplateOperationMode.Callback;
+
+    // ── البيانات ───────���──────────────────────────────────────────────────
     [Parameter] public IReadOnlyList<NotificationRowDto> Notifications { get; set; } = Array.Empty<NotificationRowDto>();
     [Parameter] public bool Loading { get; set; }
     [Parameter] public string? Title { get; set; }
@@ -89,10 +98,17 @@
     [Parameter] public string? EmptyMessage { get; set; }
     [Parameter] public string? MarkAllReadLabel { get; set; }
 
+    // ── Callback mode ───────────��─────────────────────────────��────────────
     [Parameter] public EventCallback<NotificationRowDto> OnSelectNotification { get; set; }
     [Parameter] public EventCallback<NotificationRowDto> OnMarkRead { get; set; }
     [Parameter] public EventCallback OnMarkAllRead { get; set; }
 
+    // ── Operation mode ─────────��───────────────────────────────────��───────
+    [Parameter] public ITemplateEngine? Engine { get; set; }
+    [Parameter] public Func<string, Operation>? BuildMarkReadOp { get; set; }
+    [Parameter] public Func<Operation>? BuildMarkAllReadOp { get; set; }
+
+    // ── Flex slots ──────────────────────────────────────────────���──────────
     [Parameter] public RenderFragment? HeaderSlot { get; set; }
     [Parameter] public RenderFragment? HeaderActions { get; set; }
     [Parameter] public RenderFragment? EmptySlot { get; set; }
@@ -101,7 +117,21 @@
     private async Task HandleSelect(NotificationRowDto n)
     {
         if (OnSelectNotification.HasDelegate) await OnSelectNotification.InvokeAsync(n);
-        if (!n.IsRead && OnMarkRead.HasDelegate) await OnMarkRead.InvokeAsync(n);
+        if (!n.IsRead)
+        {
+            if (Mode == TemplateOperationMode.Operation && Engine != null && BuildMarkReadOp != null)
+                await Engine.ExecuteAsync<object>(BuildMarkReadOp(n.Id));
+            else if (OnMarkRead.HasDelegate)
+                await OnMarkRead.InvokeAsync(n);
+        }
+    }
+
+    private async Task HandleMarkAllRead()
+    {
+        if (Mode == TemplateOperationMode.Operation && Engine != null && BuildMarkAllReadOp != null)
+            await Engine.ExecuteAsync<object>(BuildMarkAllReadOp());
+        else if (OnMarkAllRead.HasDelegate)
+            await OnMarkAllRead.InvokeAsync();
     }
 
     private static string TypeClass(string? t) => t switch

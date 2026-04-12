@@ -3,10 +3,10 @@
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <PackageId>ACommerce.Templates.Shared</PackageId>
+    <PackageId>ACommerce.Templates.Admin</PackageId>
     <Version>1.0.0</Version>
     <Authors>ACommerce</Authors>
-    <Description>Role-agnostic, vertical-agnostic page templates: auth, shell, bottom nav, chat, messages, notifications, profile, settings, empty/error/loading states. Every template exposes RenderFragment flex slots and accepts DTOs with an Extra bag for extensibility without forking.</Description>
+    <Description>Admin panel page templates: users management, vendors management, orders oversight, platform metrics. Dual-mode (Callback + Operation). RTL-first, role-based.</Description>
     <RazorLangVersion>latest</RazorLangVersion>
   </PropertyGroup>
   <ItemGroup>
@@ -17,6 +17,8 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\ACommerce.Widgets\ACommerce.Widgets.csproj" />
+    <ProjectReference Include="..\ACommerce.Templates.Shared\ACommerce.Templates.Shared.csproj" />
+    <ProjectReference Include="..\ACommerce.Templates.Merchant.Commerce\ACommerce.Templates.Merchant.Commerce.csproj" />
     <ProjectReference Include="..\..\..\clients\ACommerce.Client.Operations\ACommerce.Client.Operations.csproj" />
   </ItemGroup>
 </Project>

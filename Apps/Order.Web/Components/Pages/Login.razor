@@ -5,13 +5,13 @@
 
 <PageTitle>تسجيل الدخول - اوردر</PageTitle>
 
-<AcLoginPage Step="Step"
-             Phone="@Phone"
-             PhoneChanged="@(v => Phone = v)"
-             Code="@Code"
-             CodeChanged="@(v => Code = v)"
-             Error="@Error"
-             Busy="@Busy"
+<AcLoginPage Mode="TemplateOperationMode.Operation"
+             Engine="Engine"
+             BuildRequestOtpOp="@(phone => ClientOps.RequestOtp(phone))"
+             BuildVerifyOtpOp="@((uid, cid, code) => ClientOps.VerifyOtp(uid, cid, code))"
+             PhonePayload="@(phone => new { phoneNumber = phone })"
+             VerifyPayload="@((uid, cid, code) => new { userId = uid, challengeId = cid, code })"
+             RedirectUrl="@(string.IsNullOrEmpty(ReturnUrl) ? "/" : ReturnUrl)"
              BrandIcon="🍔"
              BrandName="اوردر"
              BrandTagline="@(Store.Ui.IsArabic ? "عروض الكافيهات والمطاعم" : "Cafe & restaurant deals")"
@@ -25,10 +25,7 @@
              OtpLabel="@(Store.Ui.IsArabic ? "رمز التحقق (6 أرقام)" : "Verification code (6 digits)")"
              VerifyOtpLabel="@(Store.Ui.IsArabic ? "تحقق ودخول" : "Verify & sign in")"
              VerifyingLabel="@(Store.Ui.IsArabic ? "جاري التحقق..." : "Verifying...")"
-             BackLabel="@(Store.Ui.IsArabic ? "تغيير رقم الجوال" : "Change phone")"
-             OnRequestOtp="RequestOtp"
-             OnVerifyOtp="VerifyOtp"
-             OnBack="GoBack">
+             BackLabel="@(Store.Ui.IsArabic ? "تغيير رقم الجوال" : "Change phone")">
     <HintSlot>
         <strong>@(Store.Ui.IsArabic ? "وضع تجريبي:" : "Demo mode:")</strong>
         @(Store.Ui.IsArabic
@@ -42,78 +39,4 @@
 
 @code {
     [SupplyParameterFromQuery(Name = "return")] public string? ReturnUrl { get; set; }
-
-    private int Step = 1;
-    private string Phone = "+966500000001";
-    private string Code = "";
-    private string Error = "";
-    private bool Busy;
-    private Guid? UserId;
-    private string? ChallengeId;
-
-    private async Task RequestOtp()
-    {
-        Error = "";
-        if (string.IsNullOrWhiteSpace(Phone)) { Error = Store.Ui.IsArabic ? "أدخل رقم الجوال" : "Enter phone"; return; }
-        Busy = true;
-        try
-        {
-            var result = await Engine.ExecuteAsync<OtpRequestDto>(ClientOps.RequestOtp(Phone), new { phoneNumber = Phone });
-            if (result.Operation.Status != "Success" || result.Data == null)
-            {
-                Error = result.Operation.ErrorMessage ?? result.Error?.Message ?? (Store.Ui.IsArabic ? "فشل الإرسال" : "Send failed");
-                return;
-            }
-            UserId = result.Data.UserId;
-            ChallengeId = result.Data.ChallengeId;
-            Step = 2;
-        }
-        catch (Exception ex) { Error = ex.Message; }
-        finally { Busy = false; }
-    }
-
-    private async Task VerifyOtp()
-    {
-        Error = "";
-        if (string.IsNullOrWhiteSpace(Code) || !UserId.HasValue) return;
-        Busy = true;
-        try
-        {
-            var result = await Engine.ExecuteAsync<VerifyDto>(ClientOps.VerifyOtp(UserId.Value, ChallengeId, Code), new
-            {
-                userId = UserId.Value,
-                challengeId = ChallengeId,
-                code = Code
-            });
-            if (result.Operation.Status != "Success" || result.Data == null || string.IsNullOrEmpty(result.Data.AccessToken))
-            {
-                Error = result.Operation.ErrorMessage ?? result.Error?.Message ?? (Store.Ui.IsArabic ? "كود غير صحيح" : "Wrong code");
-                return;
-            }
-            Nav.NavigateTo(string.IsNullOrEmpty(ReturnUrl) ? "/" : ReturnUrl, forceLoad: false);
-        }
-        catch (Exception ex) { Error = ex.Message; }
-        finally { Busy = false; }
-    }
-
-    private void GoBack()
-    {
-        Step = 1;
-        Code = "";
-        Error = "";
-    }
-
-    public class OtpRequestDto
-    {
-        public string ChallengeId { get; set; } = "";
-        public Guid UserId { get; set; }
-        public string PhoneNumber { get; set; } = "";
-    }
-    public class VerifyDto
-    {
-        public Guid UserId { get; set; }
-        public string? PhoneNumber { get; set; }
-        public string? FullName { get; set; }
-        public string AccessToken { get; set; } = "";
-    }
 }

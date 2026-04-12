@@ -97,6 +97,17 @@ public static class ClientOps
             .Tag("offer_id", offerId.ToString())
             .Build();
 
+    // ── Messages ──────────────────────────────────────────────────────
+    public static Operation SendMessage(Guid conversationId, Guid? senderId, string content) =>
+        Entry.Create("message.send")
+            .Describe($"Vendor:{senderId} sends message in {conversationId}")
+            .From($"User:{senderId}", 1, ("role", "sender"))
+            .To($"Conversation:{conversationId}", 1, ("role", "conversation"))
+            .Tag("client_dispatch", "true")
+            .Tag("conversation_id", conversationId.ToString())
+            .Analyze(new RequiredFieldAnalyzer("content", () => content))
+            .Build();
+
     // ── UI (محلّية — لا ترسل HTTP) ────────────────────────────────────
     public static Operation SetTheme(string theme) =>
         Entry.Create("ui.set_theme")

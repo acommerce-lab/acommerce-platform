@@ -1,14 +1,30 @@
 @namespace ACommerce.Templates.Shared
+@using ACommerce.Client.Operations
+@using ACommerce.OperationEngine.Core
+@inject NavigationManager Nav
 
 @*
-    Phone-OTP login template. Step-based (1 = phone entry, 2 = code entry).
-    Completely data-driven — the page calling this is responsible for the API
-    round-trips and the auth state, the template only renders the chrome.
+    Phone-OTP login template — يعمل في وضعين:
 
-    Flex slots:
-      HeroExtra — inserted inside the brand hero, below the tagline
-      HintSlot  — inserted below the step body (e.g. demo-mode help)
-      FooterExtra — inserted below the card
+    ┌─ Callback (الوضع الافتراضي) ──────────────────────────────────────────┐
+    │  الصفحة تتحكم في Step / Phone / Code وتعالج OnRequestOtp / OnVerifyOtp │
+    │  متوافق مع الكود القديم — لا تغيير مطلوب على الصفحات الموجودة.        │
+    └───────────────────────────────────────────────────────────────────────┘
+
+    ┌─ Operation (الوضع الجديد) ────────────────────────────────────────────┐
+    │  القالب يُدير حالته الداخلية بالكامل.                                 │
+    │  الصفحة تُمرر فقط:                                                    │
+    │    Engine="@Engine"                                                    │
+    │    BuildRequestOtpOp="@(p => ClientOps.RequestOtp(p))"                │
+    │    BuildVerifyOtpOp="@((uid,cid,code) => ClientOps.VerifyOtp(...))"   │
+    │    RedirectUrl="/"                                                     │
+    │  اختياري: PhonePayload / VerifyPayload لتمرير بيانات إضافية.          │
+    └───────────────────────────────────────────────────────────────────────┘
+
+    Flex slots (في كلا الوضعين):
+      HeroExtra     — أسفل العلامة التجارية
+      HintSlot      — أسفل الاستمارة
+      FooterExtra   — أسفل البطاقة
 *@
 
 <div class="acs-auth-page">
@@ -29,7 +45,7 @@
     </div>
 
     <div class="acs-auth-card">
-        @if (Step == 1)
+        @if (CurrentStep == 1)
         {
             <h2 class="acs-auth-title">@(PhoneStepTitle ?? "مرحباً بك")</h2>
             <p class="acs-auth-subtitle">@(PhoneStepSubtitle ?? "أدخل رقم جوالك للمتابعة")</p>
@@ -37,17 +53,17 @@
             <label class="form-label">@(PhoneLabel ?? "رقم الجوال")</label>
             <input class="form-input" type="tel" inputmode="numeric"
                    placeholder="@(PhonePlaceholder ?? "+966500000001")"
-                   value="@Phone"
-                   @oninput="OnPhoneInput" />
+                   value="@CurrentPhone"
+                   @oninput="HandlePhoneInput" />
 
-            @if (!string.IsNullOrEmpty(Error))
+            @if (!string.IsNullOrEmpty(CurrentError))
             {
-                <div class="alert alert-danger" style="margin-top:12px;">@Error</div>
+                <div class="alert alert-danger" style="margin-top:12px;">@CurrentError</div>
             }
 
             <button class="btn btn-primary btn-block" style="margin-top:16px;"
-                    @onclick="OnRequestOtp" disabled="@Busy">
-                @if (Busy)
+                    @onclick="HandleRequestOtp" disabled="@CurrentBusy">
+                @if (CurrentBusy)
                 {
                     <span>@(SendingLabel ?? "جاري الإرسال...")</span>
                 }
@@ -62,23 +78,23 @@
             <h2 class="acs-auth-title">@(OtpStepTitle ?? "رمز التحقق")</h2>
             <p class="acs-auth-subtitle">
                 @(OtpStepSubtitle ?? "أدخل الرمز المرسل إلى")<br />
-                <strong dir="ltr">@Phone</strong>
+                <strong dir="ltr">@CurrentPhone</strong>
             </p>
 
             <label class="form-label">@(OtpLabel ?? "رمز التحقق (6 أرقام)")</label>
             <input class="form-input acs-otp-input" type="text" inputmode="numeric"
                    maxlength="6" placeholder="000000"
-                   value="@Code"
-                   @oninput="OnCodeInput" />
+                   value="@CurrentCode"
+                   @oninput="HandleCodeInput" />
 
-            @if (!string.IsNullOrEmpty(Error))
+            @if (!string.IsNullOrEmpty(CurrentError))
             {
-                <div class="alert alert-danger" style="margin-top:12px;">@Error</div>
+                <div class="alert alert-danger" style="margin-top:12px;">@CurrentError</div>
             }
 
             <button class="btn btn-primary btn-block" style="margin-top:16px;"
-                    @onclick="OnVerifyOtp" disabled="@Busy">
-                @if (Busy)
+                    @onclick="HandleVerifyOtp" disabled="@CurrentBusy">
+                @if (CurrentBusy)
                 {
                     <span>@(VerifyingLabel ?? "جاري التحقق...")</span>
                 }
@@ -87,7 +103,7 @@
                     <span>@(VerifyOtpLabel ?? "تحقق ودخول")</span>
                 }
             </button>
-            <button class="btn btn-ghost btn-block" style="margin-top:8px;" @onclick="OnBack">
+            <button class="btn btn-ghost btn-block" style="margin-top:8px;" @onclick="HandleBack">
                 @(BackLabel ?? "تغيير رقم الجوال")
             </button>
         }
@@ -102,7 +118,10 @@
 </div>
 
 @code {
-    // State
+    // ── وضع التشغيل ───────────────────────────────────────────────────────
+    [Parameter] public TemplateOperationMode Mode { get; set; } = TemplateOperationMode.Callback;
+
+    // ── Callback mode — الصفحة تتحكم ─────────────────────────────────────
     [Parameter] public int Step { get; set; } = 1;
     [Parameter] public string Phone { get; set; } = "";
     [Parameter] public EventCallback<string> PhoneChanged { get; set; }
@@ -110,18 +129,24 @@
     [Parameter] public EventCallback<string> CodeChanged { get; set; }
     [Parameter] public string? Error { get; set; }
     [Parameter] public bool Busy { get; set; }
-
-    // Events
     [Parameter] public EventCallback OnRequestOtp { get; set; }
     [Parameter] public EventCallback OnVerifyOtp { get; set; }
     [Parameter] public EventCallback OnBack { get; set; }
 
-    // Brand
+    // ── Operation mode — القالب يتحكم ─────────────────────────────────────
+    [Parameter] public ITemplateEngine? Engine { get; set; }
+    [Parameter] public Func<string, Operation>? BuildRequestOtpOp { get; set; }
+    [Parameter] public Func<Guid, string, string, Operation>? BuildVerifyOtpOp { get; set; }
+    [Parameter] public Func<string, object>? PhonePayload { get; set; }
+    [Parameter] public Func<Guid, string, string, object>? VerifyPayload { get; set; }
+    [Parameter] public string RedirectUrl { get; set; } = "/";
+
+    // ── Brand ──────────────────────────────────────────────────────────────
     [Parameter] public string? BrandIcon { get; set; }
     [Parameter] public string? BrandName { get; set; }
     [Parameter] public string? BrandTagline { get; set; }
 
-    // Labels (i18n overrides)
+    // ── Labels ─────────────────────────────────────────────────────────────
     [Parameter] public string? PhoneStepTitle { get; set; }
     [Parameter] public string? PhoneStepSubtitle { get; set; }
     [Parameter] public string? PhoneLabel { get; set; }
@@ -135,20 +160,140 @@
     [Parameter] public string? VerifyingLabel { get; set; }
     [Parameter] public string? BackLabel { get; set; }
 
-    // Flex slots
+    // ── Flex slots ─────────────────────────────────────────────────────────
     [Parameter] public RenderFragment? HeroExtra { get; set; }
     [Parameter] public RenderFragment? HintSlot { get; set; }
     [Parameter] public RenderFragment? FooterExtra { get; set; }
 
-    private async Task OnPhoneInput(ChangeEventArgs e)
+    // ── حالة داخلية (Operation mode) ──────────────────────────────────────
+    private int _opStep = 1;
+    private string _opPhone = "";
+    private string _opCode = "";
+    private string _opError = "";
+    private bool _opBusy;
+    private string _challengeId = "";
+    private Guid _pendingUserId;
+
+    // ── بوابات موحّدة — تقرأ من المصدر الصحيح حسب الوضع ──────────────────
+    private int CurrentStep => Mode == TemplateOperationMode.Operation ? _opStep : Step;
+    private string CurrentPhone => Mode == TemplateOperationMode.Operation ? _opPhone : Phone;
+    private string CurrentCode => Mode == TemplateOperationMode.Operation ? _opCode : Code;
+    private string? CurrentError => Mode == TemplateOperationMode.Operation ? _opError : Error;
+    private bool CurrentBusy => Mode == TemplateOperationMode.Operation ? _opBusy : Busy;
+
+    private async Task HandlePhoneInput(ChangeEventArgs e)
     {
-        Phone = e.Value?.ToString() ?? "";
-        if (PhoneChanged.HasDelegate) await PhoneChanged.InvokeAsync(Phone);
+        var v = e.Value?.ToString() ?? "";
+        if (Mode == TemplateOperationMode.Operation)
+            _opPhone = v;
+        else
+        {
+            Phone = v;
+            if (PhoneChanged.HasDelegate) await PhoneChanged.InvokeAsync(Phone);
+        }
     }
 
-    private async Task OnCodeInput(ChangeEventArgs e)
+    private async Task HandleCodeInput(ChangeEventArgs e)
     {
-        Code = e.Value?.ToString() ?? "";
-        if (CodeChanged.HasDelegate) await CodeChanged.InvokeAsync(Code);
+        var v = e.Value?.ToString() ?? "";
+        if (Mode == TemplateOperationMode.Operation)
+            _opCode = v;
+        else
+        {
+            Code = v;
+            if (CodeChanged.HasDelegate) await CodeChanged.InvokeAsync(Code);
+        }
+    }
+
+    private async Task HandleRequestOtp()
+    {
+        if (Mode == TemplateOperationMode.Operation)
+            await OpRequestOtp();
+        else if (OnRequestOtp.HasDelegate)
+            await OnRequestOtp.InvokeAsync();
+    }
+
+    private async Task HandleVerifyOtp()
+    {
+        if (Mode == TemplateOperationMode.Operation)
+            await OpVerifyOtp();
+        else if (OnVerifyOtp.HasDelegate)
+            await OnVerifyOtp.InvokeAsync();
+    }
+
+    private async Task HandleBack()
+    {
+        if (Mode == TemplateOperationMode.Operation)
+        {
+            _opStep = 1;
+            _opError = "";
+        }
+        else if (OnBack.HasDelegate)
+            await OnBack.InvokeAsync();
+    }
+
+    // ── Operation mode — منطق داخلي ───────────────────────────────────────
+
+    private async Task OpRequestOtp()
+    {
+        if (Engine == null || BuildRequestOtpOp == null) return;
+        _opError = "";
+        if (string.IsNullOrWhiteSpace(_opPhone)) { _opError = "أدخل رقم الهاتف"; return; }
+        _opBusy = true;
+        try
+        {
+            var payload = PhonePayload != null ? PhonePayload(_opPhone) : (object)new { phoneNumber = _opPhone };
+            var op = BuildRequestOtpOp(_opPhone);
+            var result = await Engine.ExecuteAsync<OtpRequestResult>(op, payload);
+            if (result.Operation.Status != "Success" || result.Data == null)
+            {
+                _opError = result.Operation.ErrorMessage ?? result.Error?.Message ?? "فشل طلب الرمز";
+                return;
+            }
+            _challengeId = result.Data.ChallengeId;
+            _pendingUserId = result.Data.UserId;
+            _opStep = 2;
+        }
+        catch (Exception ex) { _opError = ex.Message; }
+        finally { _opBusy = false; }
+    }
+
+    private async Task OpVerifyOtp()
+    {
+        if (Engine == null || BuildVerifyOtpOp == null) return;
+        _opError = "";
+        if (string.IsNullOrWhiteSpace(_opCode)) return;
+        _opBusy = true;
+        try
+        {
+            var payload = VerifyPayload != null
+                ? VerifyPayload(_pendingUserId, _challengeId, _opCode)
+                : (object)new { userId = _pendingUserId, challengeId = _challengeId, code = _opCode };
+            var op = BuildVerifyOtpOp(_pendingUserId, _challengeId, _opCode);
+            var result = await Engine.ExecuteAsync<VerifyResult>(op, payload);
+            if (result.Operation.Status != "Success" || result.Data == null)
+            {
+                _opError = result.Operation.ErrorMessage ?? result.Error?.Message ?? "كود غير صحيح";
+                return;
+            }
+            // StateBridge تطبّق تلقائياً داخل Engine — ننتقل للصفحة المستهدفة
+            Nav.NavigateTo(RedirectUrl);
+        }
+        catch (Exception ex) { _opError = ex.Message; }
+        finally { _opBusy = false; }
+    }
+
+    // DTOs داخلية لقراءة ردود OTP في Operation mode
+    private class OtpRequestResult
+    {
+        public string ChallengeId { get; set; } = "";
+        public Guid UserId { get; set; }
+    }
+
+    private class VerifyResult
+    {
+        public Guid UserId { get; set; }
+        public string? PhoneNumber { get; set; }
+        public string AccessToken { get; set; } = "";
     }
 }

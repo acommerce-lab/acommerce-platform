@@ -1,16 +1,26 @@
+using ACommerce.Client.Operations;
+
 namespace Vendor.Web.Store;
 
 /// <summary>
 /// حالة التطبيق الكاملة — حاوية واحدة تُحدَّث عبر مُفسّرات العمليات.
 /// لا خدمات منفصلة. كل تغيير حالة = عملية → مُفسّر → تحديث هنا.
+/// يطبّق ITemplateStore حتى تتمكن القوالب المحايدة من الوصول للحالة.
 /// </summary>
-public class AppStore
+public class AppStore : ITemplateStore
 {
     public AuthState Auth { get; } = new();
     public UiState Ui { get; } = new();
 
     public event Action? OnChanged;
     public void NotifyChanged() => OnChanged?.Invoke();
+
+    // ── ITemplateStore ─────────────────────────────────────────────────────
+    bool ITemplateStore.IsAuthenticated => Auth.IsAuthenticated;
+    Guid? ITemplateStore.UserId => Auth.UserId;
+    string? ITemplateStore.AccessToken => Auth.AccessToken;
+    string ITemplateStore.Theme => Ui.Theme;
+    string ITemplateStore.Language => Ui.Language;
 }
 
 // ── Auth ──────────────────────────────────────────────────────────────────
