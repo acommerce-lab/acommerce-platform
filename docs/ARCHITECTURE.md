@@ -14,13 +14,22 @@ and `BUILDING-A-FRONTEND.md`. For the AI-agent onboarding brief see
 
 ---
 
-## The three architectural layers
+## The four architectural layers
 
 ```
 ┌──────────────────────────────────────────────────────────────────┐
-│  Layer 3 — Apps                                                   │
-│  Ashare.Api, Ashare.Web, Order.Api, Order.Web, …              │
+│  Layer 4 — Apps                                                   │
+│  Order.Api (5101), Vendor.Api (5201), Ashare.Api (5500)          │
+│  Order.Web (5701), Vendor.Web (5801), Ashare.Web                  │
 │  Domain entities, HTTP controllers, Blazor pages, brand CSS       │
+└──────────────────────────────────────────────────────────────────┘
+                               ▲
+┌──────────────────────────────────────────────────────────────────┐
+│  Layer 3 — Client Libraries                                       │
+│  ACommerce.Client.Operations  (ClientOpEngine, dispatchers)       │
+│  ACommerce.Client.Http        (HttpDispatcher, route registry)    │
+│  ACommerce.Client.StateBridge (interpreters, state applier)       │
+│  AppStore + ClientOps + Interpreters per app                      │
 └──────────────────────────────────────────────────────────────────┘
                                ▲
 ┌──────────────────────────────────────────────────────────────────┐
