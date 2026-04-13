@@ -71,7 +71,7 @@
         if (myVendor != null)
         {
             var env = await Reader.GetAsync<List<OrderRow>>(
-                $"/api/vendor-orders/by-vendor/{myVendor.Id}");
+                $"/api/orders/by-vendor/{myVendor.Id}");
             var allOrders = env.Data ?? new();
 
             var totalOrders = allOrders.Count;

@@ -60,7 +60,7 @@ else
         _vendorId = myVendor.Id;
 
         var env = await Reader.GetAsync<List<OrderRow>>(
-            $"/api/vendor-orders/by-vendor/{_vendorId}");
+            $"/api/orders/by-vendor/{_vendorId}");
         _allOrders = env.Data ?? new();
 
         var today = DateTime.UtcNow.Date;
