@@ -108,7 +108,7 @@ else
     private async Task MarkReady() { Acting = true; await Engine.ExecuteAsync<object>(ClientOps.ReadyOrder(Id), new {}); await Reload(); Acting = false; }
     private async Task MarkDelivered() { Acting = true; await Engine.ExecuteAsync<object>(ClientOps.DeliverOrder(Id), new {}); await Reload(); Acting = false; }
 
-    private static string StatusKey(int s) => s switch { 0=>"pending", 1=>"accepted", 2=>"ready", 3=>"delivered", 4=>"cancelled", _=>"pending" };
+    private static string StatusKey(int s) => ACommerce.Templates.Shared.Models.StatusHelpers.OrderStatusKey(s);
 
     public class OrderDetail
     {

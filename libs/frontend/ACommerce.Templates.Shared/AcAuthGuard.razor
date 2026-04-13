@@ -1,0 +1,27 @@
+@namespace ACommerce.Templates.Shared
+
+@if (!IsAuthenticated)
+{
+    <AcEmptyState IconName="log-in"
+                  Title="@(IsArabic ? "سجّل دخولك" : "Sign in")"
+                  ActionLabel="@(IsArabic ? "دخول" : "Sign in")"
+                  ActionHref="@LoginHref" />
+}
+else
+{
+    @ChildContent
+}
+
+@code {
+    /// <summary>هل المستخدم مُسجَّل دخوله؟ (من Store.Auth.IsAuthenticated)</summary>
+    [Parameter, EditorRequired] public bool IsAuthenticated { get; set; }
+
+    /// <summary>لغة الواجهة (من Store.Ui.IsArabic)</summary>
+    [Parameter] public bool IsArabic { get; set; }
+
+    /// <summary>مسار صفحة تسجيل الدخول</summary>
+    [Parameter] public string LoginHref { get; set; } = "/login";
+
+    /// <summary>المحتوى الذي يظهر فقط للمستخدمين المُسجَّلين</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+}

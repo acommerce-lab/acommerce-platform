@@ -1,4 +1,6 @@
-namespace ACommerce.SharedKernel.Abstractions.Entities;
+using ACommerce.SharedKernel.Abstractions.Entities;
+
+namespace ACommerce.OperationEngine.Journal;
 
 /// <summary>
 /// سجل قيد: يُحفظ لكل عملية تُنفَّذ بنجاح أو فشل.

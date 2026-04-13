@@ -3,26 +3,32 @@ using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 using ACommerce.Authentication.Operations.Abstractions;
-using ACommerce.Authentication.Providers.Token;
 using Microsoft.IdentityModel.Tokens;
 
-namespace Ashare.Api.Services;
+namespace ACommerce.Authentication.Providers.Token;
 
 /// <summary>
-/// إعدادات JWT.
+/// إعدادات JWT. سجّل نسخة مُهيأة من هذا الصف في DI:
+///   builder.Services.AddSingleton(new JwtOptions { Issuer = ..., Audience = ..., SecretKey = ... });
 /// </summary>
 public class JwtOptions
 {
-    public string Issuer { get; set; } = "https://ashare.app";
-    public string Audience { get; set; } = "ashare-api";
+    public string Issuer { get; set; } = "https://app.local";
+    public string Audience { get; set; } = "api";
     public string SecretKey { get; set; } = "ChangeThisInProduction-32-chars-min!!";
     public TimeSpan AccessTokenLifetime { get; set; } = TimeSpan.FromDays(30);
     public TimeSpan RefreshTokenLifetime { get; set; } = TimeSpan.FromDays(60);
 }
 
 /// <summary>
-/// مُصدر/مُتحقق JWT حقيقي - يطبق ITokenIssuer + ITokenValidator.
-/// يحل محل AshareTokenStore القديم القائم على Guid.
+/// مُصدر/مُتحقق JWT مُشترك — يطبق ITokenIssuer + ITokenValidator.
+/// يُستخدَم من كل APIs بتهيئة JwtOptions مختلفة (Issuer, Audience, SecretKey).
+///
+/// التسجيل:
+///   builder.Services.AddSingleton(jwtOptions);
+///   builder.Services.AddSingleton&lt;JwtTokenStore&gt;();
+///   builder.Services.AddSingleton&lt;ITokenValidator&gt;(sp => sp.GetRequiredService&lt;JwtTokenStore&gt;());
+///   builder.Services.AddSingleton&lt;ITokenIssuer&gt;(sp => sp.GetRequiredService&lt;JwtTokenStore&gt;());
 /// </summary>
 public class JwtTokenStore : ITokenIssuer, ITokenValidator
 {
@@ -109,7 +115,7 @@ public class JwtTokenStore : ITokenIssuer, ITokenValidator
 
     // === ITokenValidator ===
 
-    public Task<ACommerce.Authentication.Providers.Token.TokenValidationResult> ValidateAsync(string token, CancellationToken ct = default)
+    public Task<TokenValidationResult> ValidateAsync(string token, CancellationToken ct = default)
     {
         if (_revoked.ContainsKey(token))
             throw new AuthenticationException("revoked", "Token has been revoked");
@@ -118,11 +124,11 @@ public class JwtTokenStore : ITokenIssuer, ITokenValidator
         {
             var principal = _handler.ValidateToken(token, _validation, out var validatedToken);
 
-            var userId = principal.FindFirstValue(JwtRegisteredClaimNames.Sub)
-                      ?? principal.FindFirstValue("user_id")
+            var userId = principal.FindFirst(JwtRegisteredClaimNames.Sub)?.Value
+                      ?? principal.FindFirst("user_id")?.Value
                       ?? throw new AuthenticationException("missing_subject", "No sub claim");
 
-            var displayName = principal.FindFirstValue(JwtRegisteredClaimNames.Name);
+            var displayName = principal.FindFirst(JwtRegisteredClaimNames.Name)?.Value;
 
             var claims = principal.Claims
                 .Where(c => c.Type != JwtRegisteredClaimNames.Sub
@@ -136,7 +142,7 @@ public class JwtTokenStore : ITokenIssuer, ITokenValidator
 
             var expiresAt = ((JwtSecurityToken)validatedToken).ValidTo;
 
-            return Task.FromResult(new ACommerce.Authentication.Providers.Token.TokenValidationResult(
+            return Task.FromResult(new TokenValidationResult(
                 UserId: userId,
                 DisplayName: displayName,
                 Claims: claims,

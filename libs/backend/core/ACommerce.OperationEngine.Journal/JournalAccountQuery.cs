@@ -1,8 +1,7 @@
-using ACommerce.SharedKernel.Abstractions.Entities;
 using ACommerce.SharedKernel.Abstractions.Repositories;
 using System.Text.Json;
 
-namespace ACommerce.OperationEngine.Accounts;
+namespace ACommerce.OperationEngine.Journal;
 
 /// <summary>
 /// تنفيذ IAccountQuery فوق جدول journal_entries.
@@ -11,7 +10,7 @@ namespace ACommerce.OperationEngine.Accounts;
 /// ويُعيد قائمة JournalParty قابلة للتجميع.
 ///
 /// التسجيل:
-///   services.AddScoped&lt;IAccountQuery, JournalAccountQuery&gt;();
+///   services.AddOperationJournal();
 ///   (يُفعَّل تلقائياً ضمن AddOperationJournal)
 /// </summary>
 public class JournalAccountQuery : IAccountQuery

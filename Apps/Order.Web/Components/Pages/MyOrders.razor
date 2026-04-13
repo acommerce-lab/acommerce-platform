@@ -57,15 +57,7 @@ else
         StateHasChanged();
     }
 
-    private static string StatusKey(int s) => s switch
-    {
-        0 => "pending",
-        1 => "accepted",
-        2 => "ready",
-        3 => "delivered",
-        4 => "cancelled",
-        _ => "pending"
-    };
+    private static string StatusKey(int s) => ACommerce.Templates.Shared.Models.StatusHelpers.OrderStatusKey(s);
 
     private string PickupLabel(int t) => t == 1
         ? (Store.Ui.IsArabic ? "من السيارة" : "Curbside")

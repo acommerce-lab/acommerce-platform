@@ -1,10 +1,10 @@
 using ACommerce.OperationEngine.Core;
-using ACommerce.SharedKernel.Abstractions.Entities;
+using ACommerce.OperationEngine.Interceptors;
 using ACommerce.SharedKernel.Abstractions.Repositories;
 using Microsoft.Extensions.DependencyInjection;
 using System.Text.Json;
 
-namespace ACommerce.OperationEngine.Interceptors;
+namespace ACommerce.OperationEngine.Journal;
 
 /// <summary>
 /// معترض الدفتر: يُسجّل كل عملية (نوعها، أطرافها، علاماتها، نتيجتها) في جدول journal_entries.

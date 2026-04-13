@@ -1,4 +1,4 @@
-namespace ACommerce.OperationEngine.Accounts;
+namespace ACommerce.OperationEngine.Journal;
 
 /// <summary>
 /// واجهة استعلامات الحسابات - تُعامل الأطراف كـ "حسابات" قابلة للاستعلام.

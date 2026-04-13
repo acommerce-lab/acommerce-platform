@@ -1,10 +1,10 @@
-using ACommerce.OperationEngine.Wire;
 using Microsoft.AspNetCore.Mvc;
 
-namespace Vendor.Api.Controllers;
+namespace ACommerce.OperationEngine.Wire.Http;
 
 /// <summary>
 /// مساعدات لتغليف ردود المتحكمات في OperationEnvelope بشكل موحد.
+/// استخدم <c>using ACommerce.OperationEngine.Wire.Http;</c> (أو global using في المشروع).
 /// </summary>
 public static class EnvelopeHelpers
 {
