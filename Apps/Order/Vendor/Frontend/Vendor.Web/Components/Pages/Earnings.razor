@@ -1,6 +1,5 @@
 @page "/earnings"
 @inject AppStore Store
-@inject VendorApiClient VendorApi
 @inject ApiReader Reader
 
 <PageTitle>@(Store.Ui.IsArabic ? "الأرباح" : "Earnings")</PageTitle>
@@ -71,7 +70,7 @@
         var myVendor = vEnv.Data?.FirstOrDefault(v => v.OwnerId == Store.Auth.UserId);
         if (myVendor != null)
         {
-            var env = await VendorApi.GetAsync<List<OrderRow>>(
+            var env = await Reader.GetAsync<List<OrderRow>>(
                 $"/api/vendor-orders/by-vendor/{myVendor.Id}");
             var allOrders = env.Data ?? new();
 

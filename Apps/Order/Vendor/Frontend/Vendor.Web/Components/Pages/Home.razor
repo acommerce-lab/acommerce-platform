@@ -39,6 +39,7 @@ else
     private bool Loading = true;
 
     private List<OrderRow> _allOrders = new();
+    private Guid? _vendorId;
 
     protected override void OnInitialized() { Store.OnChanged += OnChange; }
 
@@ -52,8 +53,14 @@ else
 
     private async Task LoadDashboard()
     {
+        // Look up the vendor by OwnerId (Store.Auth.UserId = VendorUser.Id = Vendor.OwnerId)
+        var vEnv = await Reader.GetAsync<List<VendorRow>>("/api/vendors");
+        var myVendor = vEnv.Data?.FirstOrDefault(v => v.OwnerId == Store.Auth.UserId);
+        if (myVendor == null) return;
+        _vendorId = myVendor.Id;
+
         var env = await Reader.GetAsync<List<OrderRow>>(
-            $"/api/vendor-orders/by-vendor/{Store.Auth.UserId}");
+            $"/api/vendor-orders/by-vendor/{_vendorId}");
         _allOrders = env.Data ?? new();
 
         var today = DateTime.UtcNow.Date;
@@ -93,6 +100,12 @@ else
 
     private void OnChange() => InvokeAsync(StateHasChanged);
     public void Dispose() { Store.OnChanged -= OnChange; }
+
+    public class VendorRow
+    {
+        public Guid Id { get; set; }
+        public Guid OwnerId { get; set; }
+    }
 
     public class OrderRow
     {
