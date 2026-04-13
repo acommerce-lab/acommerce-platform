@@ -77,6 +77,94 @@ public static class ClientOps
             .Tag("booking_id", bookingId.ToString())
             .Build();
 
+    // ── Listings (owner actions) ───────────────────────────────────────────
+    public static Operation UpdateListing(Guid ownerId, Guid listingId) =>
+        Entry.Create("listing.update")
+            .Describe($"User:{ownerId} updates Listing:{listingId}")
+            .From($"User:{ownerId}", 1, ("role", "owner"))
+            .To($"Listing:{listingId}", 1, ("role", "listing"))
+            .Tag("client_dispatch", "true")
+            .Tag("listing_id", listingId.ToString())
+            .Build();
+
+    public static Operation DeleteListing(Guid ownerId, Guid listingId) =>
+        Entry.Create("listing.delete")
+            .Describe($"User:{ownerId} deletes Listing:{listingId}")
+            .From($"User:{ownerId}", 1, ("role", "owner"))
+            .To($"Listing:{listingId}", 1, ("role", "listing"))
+            .Tag("client_dispatch", "true")
+            .Tag("listing_id", listingId.ToString())
+            .Build();
+
+    public static Operation FeatureListing(Guid ownerId, Guid listingId) =>
+        Entry.Create("listing.feature")
+            .Describe($"User:{ownerId} toggles featured on Listing:{listingId}")
+            .From($"User:{ownerId}", 1, ("role", "owner"))
+            .To($"Listing:{listingId}", 1, ("role", "listing"))
+            .Tag("client_dispatch", "true")
+            .Tag("listing_id", listingId.ToString())
+            .Build();
+
+    // ── Bookings (owner actions) ───────────────────────────────────────────
+    public static Operation ConfirmBooking(Guid bookingId) =>
+        Entry.Create("booking.confirm")
+            .Describe($"Owner confirms booking {bookingId}")
+            .From($"Booking:{bookingId}", 1, ("role", "booking"))
+            .To("System:bookings", 1, ("role", "booking_service"))
+            .Tag("client_dispatch", "true")
+            .Tag("booking_id", bookingId.ToString())
+            .Build();
+
+    public static Operation RejectBooking(Guid bookingId) =>
+        Entry.Create("booking.reject")
+            .Describe($"Owner rejects booking {bookingId}")
+            .From($"Booking:{bookingId}", 1, ("role", "booking"))
+            .To("System:bookings", 1, ("role", "booking_service"))
+            .Tag("client_dispatch", "true")
+            .Tag("booking_id", bookingId.ToString())
+            .Build();
+
+    // ── Profile ────────────────────────────────────────────────────────────
+    public static Operation UpdateProfile(Guid userId) =>
+        Entry.Create("profile.upsert")
+            .Describe($"User:{userId} updates profile")
+            .From($"User:{userId}", 1, ("role", "owner"))
+            .To($"Profile:{userId}", 1, ("role", "profile"))
+            .Tag("client_dispatch", "true")
+            .Tag("user_id", userId.ToString())
+            .Build();
+
+    // ── Favorites ──────────────────────────────────────────────────────────
+    public static Operation AddFavorite(Guid userId, Guid entityId, string entityType) =>
+        Entry.Create("favorite.add")
+            .Describe($"User:{userId} favorites {entityType}:{entityId}")
+            .From($"User:{userId}", 1, ("role", "user"))
+            .To($"{entityType}:{entityId}", 1, ("role", "entity"))
+            .Tag("client_dispatch", "true")
+            .Tag("entity_type", entityType)
+            .Tag("entity_id", entityId.ToString())
+            .Build();
+
+    public static Operation RemoveFavorite(Guid userId, Guid entityId, string entityType) =>
+        Entry.Create("favorite.remove")
+            .Describe($"User:{userId} unfavorites {entityType}:{entityId}")
+            .From($"User:{userId}", 1, ("role", "user"))
+            .To($"{entityType}:{entityId}", 1, ("role", "entity"))
+            .Tag("client_dispatch", "true")
+            .Tag("entity_type", entityType)
+            .Tag("entity_id", entityId.ToString())
+            .Build();
+
+    // ── Media ──────────────────────────────────────────────────────────────
+    public static Operation UploadMedia(Guid uploaderId, string directory = "listings") =>
+        Entry.Create("media.upload")
+            .Describe($"User:{uploaderId} uploads media to {directory}")
+            .From($"User:{uploaderId}", 1, ("role", "uploader"))
+            .To($"Storage:{directory}", 1, ("role", "storage"))
+            .Tag("client_dispatch", "true")
+            .Tag("directory", directory)
+            .Build();
+
     // ── Subscriptions ─────────────────────────────────────────────────────
     public static Operation Subscribe(Guid userId, Guid planId) =>
         Entry.Create("subscription.create")
@@ -84,6 +172,15 @@ public static class ClientOps
             .From($"User:{userId}", 1, ("role", "subscriber"))
             .To($"Plan:{planId}", 1, ("role", "plan"))
             .Tag("client_dispatch", "true")
+            .Build();
+
+    public static Operation CancelSubscription(Guid userId, Guid subscriptionId) =>
+        Entry.Create("subscription.cancel")
+            .Describe($"User:{userId} cancels Subscription:{subscriptionId}")
+            .From($"User:{userId}", 1, ("role", "subscriber"))
+            .To($"Subscription:{subscriptionId}", 1, ("role", "subscription"))
+            .Tag("client_dispatch", "true")
+            .Tag("subscription_id", subscriptionId.ToString())
             .Build();
 
     // ── Messages ──────────────────────────────────────────────────────────

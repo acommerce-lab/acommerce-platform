@@ -18,14 +18,30 @@ public static class AshareRoutes
 
         // Listings
         routes.Map("listing.create", HttpMethod.Post, "/api/listings");
+        routes.Map("listing.update", HttpMethod.Put, "/api/listings/{listing_id}");
+        routes.Map("listing.delete", HttpMethod.Delete, "/api/listings/{listing_id}");
+        routes.Map("listing.feature", HttpMethod.Post, "/api/listings/{listing_id}/feature");
 
         // Bookings
         routes.Map("booking.create", HttpMethod.Post, "/api/bookings");
         routes.Map("booking.cancel", HttpMethod.Post, "/api/bookings/{booking_id}/cancel");
+        routes.Map("booking.confirm", HttpMethod.Post, "/api/bookings/{booking_id}/confirm");
+        routes.Map("booking.reject", HttpMethod.Post, "/api/bookings/{booking_id}/reject");
         routes.Map("booking.pay", HttpMethod.Post, "/api/bookings/{booking_id}/pay");
+
+        // Profile
+        routes.Map("profile.upsert", HttpMethod.Put, "/api/profiles");
+
+        // Favorites
+        routes.Map("favorite.add", HttpMethod.Post, "/api/favorites");
+        routes.Map("favorite.remove", HttpMethod.Delete, "/api/favorites");
+
+        // Media
+        routes.Map("media.upload", HttpMethod.Post, "/api/media/upload");
 
         // Subscriptions
         routes.Map("subscription.create", HttpMethod.Post, "/api/subscriptions");
+        routes.Map("subscription.cancel", HttpMethod.Post, "/api/subscriptions/{subscription_id}/cancel");
 
         // Messages
         routes.Map("message.send", HttpMethod.Post, "/api/messages");

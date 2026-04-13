@@ -127,6 +127,84 @@ public class BookingsController : ControllerBase
         return this.OkEnvelope("booking.list.by_customer", list.ToList());
     }
 
+    [HttpGet("by-owner/{ownerId:guid}")]
+    public async Task<IActionResult> ByOwner(Guid ownerId, CancellationToken ct)
+    {
+        var list = await _bookings.GetAllWithPredicateAsync(b => b.OwnerId == ownerId);
+        return this.OkEnvelope("booking.list.by_owner",
+            list.OrderByDescending(b => b.CreatedAt).ToList());
+    }
+
+    [HttpPost("{id:guid}/confirm")]
+    public async Task<IActionResult> Confirm(Guid id, CancellationToken ct)
+    {
+        var booking = await _bookings.GetByIdAsync(id, ct);
+        if (booking == null) return this.NotFoundEnvelope("booking_not_found");
+
+        if (booking.Status != BookingStatus.Pending && booking.Status != BookingStatus.AwaitingPayment)
+            return this.BadRequestEnvelope("cannot_confirm", "الحجز ليس في حالة انتظار");
+
+        var op = Entry.Create("booking.confirm")
+            .Describe($"Owner:{booking.OwnerId} confirms booking #{booking.Id}")
+            .From($"Owner:{booking.OwnerId}", booking.TotalPrice, ("role", "owner"))
+            .To($"Customer:{booking.CustomerId}", booking.TotalPrice, ("role", "customer"))
+            .Tag("booking_id", booking.Id.ToString())
+            .Tag("listing_id", booking.ListingId.ToString())
+            .Execute(async ctx =>
+            {
+                booking.Status = BookingStatus.Confirmed;
+                booking.UpdatedAt = DateTime.UtcNow;
+                await _bookings.UpdateAsync(booking, ctx.CancellationToken);
+                ctx.Set("bookingId", booking.Id);
+            })
+            .Build();
+
+        var result = await _engine.ExecuteAsync(op, ct);
+        if (!result.Success) return this.BadRequestEnvelope("booking_confirm_failed", result.ErrorMessage);
+
+        return this.OkEnvelope("booking.confirm", booking);
+    }
+
+    [HttpPost("{id:guid}/reject")]
+    public async Task<IActionResult> Reject(Guid id, CancellationToken ct)
+    {
+        var booking = await _bookings.GetByIdAsync(id, ct);
+        if (booking == null) return this.NotFoundEnvelope("booking_not_found");
+
+        if (booking.Status == BookingStatus.Paid || booking.Status == BookingStatus.Completed)
+            return this.BadRequestEnvelope("cannot_reject", "لا يمكن رفض حجز مدفوع أو مكتمل");
+
+        var listing = await _listings.GetByIdAsync(booking.ListingId, ct);
+
+        var op = Entry.Create("booking.reject")
+            .Describe($"Owner:{booking.OwnerId} rejects booking #{booking.Id}")
+            .From($"Owner:{booking.OwnerId}", booking.TotalPrice, ("role", "owner"))
+            .To($"Customer:{booking.CustomerId}", booking.TotalPrice, ("role", "customer"))
+            .Tag("booking_id", booking.Id.ToString())
+            .Tag("listing_id", booking.ListingId.ToString())
+            .Execute(async ctx =>
+            {
+                booking.Status = BookingStatus.Cancelled;
+                booking.UpdatedAt = DateTime.UtcNow;
+                await _bookings.UpdateAsync(booking, ctx.CancellationToken);
+
+                if (listing != null && listing.Status == ListingStatus.Reserved)
+                {
+                    listing.Status = ListingStatus.Published;
+                    listing.UpdatedAt = DateTime.UtcNow;
+                    await _listings.UpdateAsync(listing, ctx.CancellationToken);
+                }
+
+                ctx.Set("bookingId", booking.Id);
+            })
+            .Build();
+
+        var result = await _engine.ExecuteAsync(op, ct);
+        if (!result.Success) return this.BadRequestEnvelope("booking_reject_failed", result.ErrorMessage);
+
+        return this.OkEnvelope("booking.reject", booking);
+    }
+
     [HttpPost("{id:guid}/cancel")]
     public async Task<IActionResult> Cancel(Guid id, CancellationToken ct)
     {

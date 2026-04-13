@@ -171,6 +171,95 @@ public class ListingsController : ControllerBase
         return Created($"/api/listings/{listing.Id}", envelope);
     }
 
+    [HttpGet("by-owner/{ownerId:guid}")]
+    public async Task<IActionResult> ByOwner(Guid ownerId, CancellationToken ct)
+    {
+        var list = await _repo.GetAllWithPredicateAsync(l => l.OwnerId == ownerId);
+        return this.OkEnvelope("listing.list.by_owner",
+            list.OrderByDescending(l => l.CreatedAt).ToList());
+    }
+
+    public record UpdateListingRequest(
+        string? Title,
+        string? Description,
+        decimal? Price,
+        int? Duration,
+        string? TimeUnit,
+        string? City,
+        string? District,
+        string? PropertyType,
+        int? Floor,
+        double? Area,
+        int? Rooms,
+        int? Bathrooms,
+        bool? Furnished,
+        string? LicenseNumber,
+        string? ImagesCsv);
+
+    [HttpPut("{id:guid}")]
+    public async Task<IActionResult> Update(Guid id, [FromBody] UpdateListingRequest req, CancellationToken ct)
+    {
+        var listing = await _repo.GetByIdAsync(id, ct);
+        if (listing == null) return this.NotFoundEnvelope("listing_not_found");
+
+        var op = Entry.Create("listing.update")
+            .Describe($"Owner:{listing.OwnerId} updates listing #{id}")
+            .From($"User:{listing.OwnerId}", 1, ("role", "owner"))
+            .To($"Listing:{id}", 1, ("role", "listing"))
+            .Tag("listing_id", id.ToString())
+            .Execute(async ctx =>
+            {
+                if (req.Title != null) listing.Title = req.Title;
+                if (req.Description != null) listing.Description = req.Description;
+                if (req.Price.HasValue) listing.Price = req.Price.Value;
+                if (req.Duration.HasValue) listing.Duration = req.Duration.Value;
+                if (req.TimeUnit != null) listing.TimeUnit = req.TimeUnit;
+                if (req.City != null) listing.City = req.City;
+                if (req.District != null) listing.District = req.District;
+                if (req.PropertyType != null) listing.PropertyType = req.PropertyType;
+                if (req.Floor.HasValue) listing.Floor = req.Floor.Value;
+                if (req.Area.HasValue) listing.Area = req.Area.Value;
+                if (req.Rooms.HasValue) listing.Rooms = req.Rooms.Value;
+                if (req.Bathrooms.HasValue) listing.Bathrooms = req.Bathrooms.Value;
+                if (req.Furnished.HasValue) listing.Furnished = req.Furnished.Value;
+                if (req.LicenseNumber != null) listing.LicenseNumber = req.LicenseNumber;
+                if (req.ImagesCsv != null) listing.ImagesCsv = req.ImagesCsv;
+                listing.UpdatedAt = DateTime.UtcNow;
+                await _repo.UpdateAsync(listing, ctx.CancellationToken);
+            })
+            .Build();
+
+        var result = await _engine.ExecuteAsync(op, ct);
+        if (!result.Success) return this.BadRequestEnvelope("listing_update_failed", result.ErrorMessage);
+
+        return this.OkEnvelope("listing.update", listing);
+    }
+
+    [HttpPost("{id:guid}/feature")]
+    public async Task<IActionResult> Feature(Guid id, CancellationToken ct)
+    {
+        var listing = await _repo.GetByIdAsync(id, ct);
+        if (listing == null) return this.NotFoundEnvelope("listing_not_found");
+
+        var op = Entry.Create("listing.feature")
+            .Describe($"Toggle featured for listing #{id} (Owner:{listing.OwnerId})")
+            .From($"User:{listing.OwnerId}", 1, ("role", "owner"))
+            .To($"Listing:{id}", 1, ("role", "listing"))
+            .Tag("listing_id", id.ToString())
+            .Execute(async ctx =>
+            {
+                listing.IsFeatured = !listing.IsFeatured;
+                listing.UpdatedAt = DateTime.UtcNow;
+                await _repo.UpdateAsync(listing, ctx.CancellationToken);
+            })
+            .Build();
+
+        var result = await _engine.ExecuteAsync(op, ct);
+        if (!result.Success) return this.BadRequestEnvelope("listing_feature_failed", result.ErrorMessage);
+
+        return this.OkEnvelope("listing.feature", new { listing.Id, listing.IsFeatured });
+    }
+
     [HttpPost("{id:guid}/publish")]
     public async Task<IActionResult> Publish(Guid id, CancellationToken ct)
     {

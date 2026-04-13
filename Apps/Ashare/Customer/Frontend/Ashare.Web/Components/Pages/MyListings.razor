@@ -1,0 +1,142 @@
+@page "/my-listings"
+@rendermode InteractiveServer
+@inject ApiReader Reader
+@inject AppStore Store
+@inject ClientOpEngine Engine
+@inject NavigationManager Nav
+
+<PageTitle>@Store.Ui.Tr("إعلاناتي", "My Listings") - عشير</PageTitle>
+
+@if (!Store.Auth.IsAuthenticated)
+{
+    <div class="alert alert-warning">
+        <a href="/login">@Store.Ui.Tr("سجّل دخولك لرؤية إعلاناتك", "Sign in to view your listings")</a>
+    </div>
+}
+else if (Listings == null)
+{
+    <div class="spinner-border" role="status"></div>
+}
+else
+{
+    <div style="padding:16px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+            <h1 class="acs-page-title" style="margin:0;">@Store.Ui.Tr("إعلاناتي", "My Listings")</h1>
+            <a href="/create-listing" class="btn btn-primary btn-sm">
+                + @Store.Ui.Tr("إعلان جديد", "New listing")
+            </a>
+        </div>
+
+        @if (Listings.Count == 0)
+        {
+            <div class="alert alert-info">@Store.Ui.Tr("لا إعلانات حتى الآن", "No listings yet")</div>
+        }
+        else
+        {
+            @foreach (var l in Listings)
+            {
+                <div class="s-card" style="margin-bottom:10px;">
+                    <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+                        <div>
+                            <div style="font-weight:700;">@l.Title</div>
+                            <div style="font-size:0.8rem;color:var(--ac-text-muted);">
+                                @l.City @(l.District != null ? $"، {l.District}" : "") •
+                                @l.Price.ToString("0.##") SAR
+                            </div>
+                            <div style="font-size:0.75rem;margin-top:4px;">
+                                <span class="badge @StatusBadge(l.Status)">@StatusLabel(l.Status)</span>
+                                @if (l.IsFeatured)
+                                {
+                                    <span class="badge bg-warning text-dark ms-1">@Store.Ui.Tr("مميز", "Featured")</span>
+                                }
+                            </div>
+                        </div>
+                        <div style="display:flex;flex-direction:column;gap:4px;min-width:100px;">
+                            <a href="/listing/@l.Id" class="btn btn-sm btn-outline-primary">
+                                @Store.Ui.Tr("عرض", "View")
+                            </a>
+                            <button class="btn btn-sm btn-outline-secondary"
+                                    @onclick="() => ToggleFeature(l)">
+                                @(l.IsFeatured ? Store.Ui.Tr("إلغاء التمييز", "Unfeature") : Store.Ui.Tr("تمييز", "Feature"))
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger"
+                                    @onclick="() => DeleteListing(l.Id)">
+                                @Store.Ui.Tr("حذف", "Delete")
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            }
+        }
+    </div>
+}
+
+@code {
+    private List<ListingRow>? Listings;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        if (!Store.Auth.IsAuthenticated || !Store.Auth.UserId.HasValue)
+        {
+            Listings = new();
+            StateHasChanged();
+            return;
+        }
+        var env = await Reader.GetAsync<List<ListingRow>>($"/api/listings/by-owner/{Store.Auth.UserId}");
+        Listings = env.Data ?? new();
+        StateHasChanged();
+    }
+
+    private async Task ToggleFeature(ListingRow listing)
+    {
+        if (!Store.Auth.UserId.HasValue) return;
+        var result = await Engine.ExecuteAsync<object>(
+            ClientOps.FeatureListing(Store.Auth.UserId.Value, listing.Id), new { });
+        if (result.Operation.Status == "Success")
+        {
+            listing.IsFeatured = !listing.IsFeatured;
+            StateHasChanged();
+        }
+    }
+
+    private async Task DeleteListing(Guid id)
+    {
+        if (!Store.Auth.UserId.HasValue) return;
+        var result = await Engine.ExecuteAsync<object>(
+            ClientOps.DeleteListing(Store.Auth.UserId.Value, id), new { });
+        if (result.Operation.Status == "Success")
+        {
+            Listings?.RemoveAll(l => l.Id == id);
+            StateHasChanged();
+        }
+    }
+
+    private string StatusBadge(int s) => s switch
+    {
+        1 => "bg-success", 2 => "bg-info", 3 => "bg-secondary", 4 => "bg-danger", _ => "bg-secondary"
+    };
+
+    private string StatusLabel(int s) => s switch
+    {
+        0 => Store.Ui.Tr("مسودة", "Draft"),
+        1 => Store.Ui.Tr("منشور", "Published"),
+        2 => Store.Ui.Tr("محجوز", "Reserved"),
+        3 => Store.Ui.Tr("مغلق", "Closed"),
+        4 => Store.Ui.Tr("مرفوض", "Rejected"),
+        _ => "?"
+    };
+
+    public class ListingRow
+    {
+        public Guid Id { get; set; }
+        public string Title { get; set; } = "";
+        public decimal Price { get; set; }
+        public string Currency { get; set; } = "SAR";
+        public string City { get; set; } = "";
+        public string? District { get; set; }
+        public int Status { get; set; }
+        public bool IsFeatured { get; set; }
+        public DateTime CreatedAt { get; set; }
+    }
+}
