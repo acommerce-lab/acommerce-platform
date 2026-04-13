@@ -2,154 +2,326 @@
 @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap');
 
 /* =========================================================================
-   عشير - الهوية البصرية
+   عشير - الهوية البصرية الشاملة
    ========================================================================= */
 
 :root {
     /* الهوية: بنفسجي عشير */
-    --ac-primary:       #8B5CF6;
-    --ac-primary-hover: #7C3AED;
+    --ac-primary:       #7C3AED;
+    --ac-primary-hover: #6D28D9;
     --ac-on-primary:    #ffffff;
-    --ac-primary-soft:  rgba(139, 92, 246, 0.12);
+    --ac-primary-soft:  rgba(124, 58, 237, 0.10);
 
     --ac-secondary:       #F59E0B;
     --ac-secondary-hover: #D97706;
 
     /* Surfaces */
-    --ac-bg:         #F5F3FF;
-    --ac-bg-alt:     #EDE9FE;
+    --ac-bg:         #F9FAFB;
+    --ac-bg-alt:     #F3F0FF;
     --ac-surface:    #ffffff;
-    --ac-surface-2:  #FAF5FF;
-    --ac-border:     #DDD6FE;
-    --ac-border-dark:#C4B5FD;
+    --ac-surface-2:  #F5F3FF;
+    --ac-border:     #E5E7EB;
+    --ac-border-dark:#D1D5DB;
 
     /* Text */
-    --ac-text:       #1E1B4B;
+    --ac-text:       #111827;
     --ac-text-muted: #6B7280;
+    --ac-text-on-dark: #fff;
+
+    /* Status */
+    --ac-success: #059669;
+    --ac-warning: #D97706;
+    --ac-danger:  #DC2626;
+    --ac-info:    #2563EB;
 
     /* خط عربي */
     --ac-font-family: 'Cairo', 'Noto Kufi Arabic', 'Segoe UI', Tahoma, sans-serif;
+    --ac-font-weight-normal: 400;
+    --ac-font-weight-bold:   600;
 
-    /* زوايا أكثر استدارة */
-    --ac-radius-sm: 0.4rem;
+    /* زوايا */
+    --ac-radius-sm: 0.375rem;
     --ac-radius-md: 0.75rem;
-    --ac-radius-lg: 1.25rem;
+    --ac-radius-lg: 1rem;
+    --ac-radius-pill: 999px;
 
     /* ظلال */
-    --ac-shadow-sm: 0 1px 3px rgba(139,92,246,0.06), 0 1px 2px rgba(0,0,0,0.04);
-    --ac-shadow-md: 0 4px 14px rgba(139,92,246,0.10), 0 2px 4px rgba(0,0,0,0.04);
-    --ac-shadow-lg: 0 14px 28px rgba(139,92,246,0.14);
+    --ac-shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+    --ac-shadow-md: 0 4px 6px -1px rgba(0,0,0,0.08), 0 2px 4px -2px rgba(0,0,0,0.06);
+    --ac-shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.10), 0 4px 6px -4px rgba(0,0,0,0.08);
 }
 
 /* ── Dark mode ───────────────────────────────────────────────────────────── */
 html[data-theme="dark"] {
-    --ac-bg:         #0F0B1E;
-    --ac-bg-alt:     #1A1333;
-    --ac-surface:    #1E1640;
-    --ac-surface-2:  #251D4A;
-    --ac-border:     #3B2D6B;
-    --ac-border-dark:#5B4A8A;
+    --ac-bg:         #0F0D1A;
+    --ac-bg-alt:     #1A1726;
+    --ac-surface:    #1F1B2E;
+    --ac-surface-2:  #28233A;
+    --ac-border:     #3B3556;
+    --ac-border-dark:#524B72;
     --ac-text:       #F1F0FF;
-    --ac-text-muted: #A5A0C0;
-    --ac-primary-soft: rgba(139,92,246,0.18);
+    --ac-text-muted: #9CA3AF;
+    --ac-primary-soft: rgba(124,58,237,0.16);
 }
 
 body {
     font-family: var(--ac-font-family);
+    font-size: 15px;
     background: var(--ac-bg);
     color: var(--ac-text);
     margin: 0;
-    line-height: 1.6;
+    line-height: 1.65;
     -webkit-font-smoothing: antialiased;
 }
 
 a { color: var(--ac-primary); text-decoration: none; }
-a:hover { color: var(--ac-primary-hover); }
+a:hover { color: var(--ac-primary-hover); text-decoration: underline; }
 
 /* =========================================================================
-   Shell/Navbar — enhanced
+   Shell — AcShell
    ========================================================================= */
-.act-shell { background: var(--ac-bg); }
+.act-shell {
+    background: var(--ac-bg);
+}
+.act-shell-main {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 24px 20px;
+}
+
+/* =========================================================================
+   Navbar — القائمة العلوية
+   ========================================================================= */
 .act-navbar {
     background: var(--ac-surface) !important;
-    border-bottom: 1px solid var(--ac-border);
-    box-shadow: var(--ac-shadow-sm);
+    border-bottom: 2px solid var(--ac-border) !important;
+    box-shadow: var(--ac-shadow-sm) !important;
+    padding: 0 !important;
+    position: sticky;
+    top: 0;
+    z-index: 100;
 }
-.act-navbar-brand { color: var(--ac-primary) !important; font-weight: 700; }
+.act-navbar-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+    min-height: 56px;
+}
+.act-navbar-brand {
+    font-size: 1.4rem !important;
+    font-weight: 700 !important;
+    color: var(--ac-primary) !important;
+}
 .act-navbar-link {
     color: var(--ac-text) !important;
-    font-weight: 500;
-    padding: 6px 12px;
-    border-radius: var(--ac-radius-sm);
-    transition: background 150ms, color 150ms;
+    font-weight: 500 !important;
+    font-size: 0.9rem;
+    padding: 8px 14px !important;
+    border-radius: var(--ac-radius-md) !important;
 }
 .act-navbar-link:hover {
-    background: var(--ac-primary-soft) !important;
+    background: var(--ac-bg-alt) !important;
     color: var(--ac-primary) !important;
+    text-decoration: none;
 }
 .act-navbar-link.active {
     background: var(--ac-primary-soft) !important;
     color: var(--ac-primary) !important;
+    font-weight: 600 !important;
+}
+.act-navbar .btn-primary {
+    font-size: 0.85rem;
+    padding: 6px 18px;
 }
 
 /* =========================================================================
-   Cards — visible borders + subtle shadows
+   Footer
+   ========================================================================= */
+.act-footer {
+    background: var(--ac-surface) !important;
+    border-top: 1px solid var(--ac-border) !important;
+    font-size: 0.85rem;
+}
+
+/* =========================================================================
+   Cards — بطاقات
    ========================================================================= */
 .ac-card {
-    border: 1px solid var(--ac-border) !important;
-    box-shadow: var(--ac-shadow-sm) !important;
     background: var(--ac-surface) !important;
+    border: 1px solid var(--ac-border) !important;
+    border-radius: var(--ac-radius-lg) !important;
+    box-shadow: var(--ac-shadow-sm) !important;
+    overflow: hidden;
 }
 .ac-card-hover:hover {
     box-shadow: var(--ac-shadow-md) !important;
     border-color: var(--ac-primary) !important;
+    transform: translateY(-2px);
+}
+.ac-card-header {
+    background: var(--ac-bg-alt);
+    font-weight: 600;
+}
+.ac-card-body {
+    padding: 20px !important;
 }
 
 /* =========================================================================
-   Plan cards — enhanced with brand accents
+   Product cards — بطاقات العروض
+   ========================================================================= */
+.act-product-image {
+    background: var(--ac-bg-alt) !important;
+    border-bottom: 1px solid var(--ac-border);
+}
+.act-product-title {
+    font-size: 1rem !important;
+    font-weight: 700 !important;
+    color: var(--ac-text);
+}
+.act-product-meta {
+    font-size: 0.82rem !important;
+}
+.act-product-price {
+    font-size: 1.05rem !important;
+    color: var(--ac-primary) !important;
+    font-weight: 700 !important;
+}
+.act-product-body {
+    padding: 16px !important;
+}
+
+/* =========================================================================
+   Plan cards — بطاقات الباقات
    ========================================================================= */
 .act-plan-card {
     text-align: center;
-    padding: var(--ac-space-lg) !important;
+    padding: 28px 20px !important;
 }
 .act-plan-card.recommended {
-    border-color: var(--ac-primary) !important;
-    box-shadow: 0 0 0 2px var(--ac-primary-soft), var(--ac-shadow-md) !important;
+    border: 2px solid var(--ac-primary) !important;
+    box-shadow: 0 0 0 3px var(--ac-primary-soft), var(--ac-shadow-md) !important;
+}
+.act-plan-name {
+    font-size: 1.1rem !important;
+    font-weight: 700 !important;
+    margin-bottom: 4px;
 }
 .act-plan-price {
+    font-size: 2.2rem !important;
     color: var(--ac-primary) !important;
+    font-weight: 700 !important;
+    margin: 16px 0 !important;
+}
+.act-plan-price small {
+    font-size: 0.9rem !important;
+}
+.act-plan-features {
+    text-align: start;
+    margin: 16px 0 !important;
+}
+.act-plan-features li {
+    padding: 6px 0 !important;
+    border-bottom: 1px solid var(--ac-border);
+}
+.act-plan-features li:last-child { border-bottom: none; }
+.act-plan-badge {
+    font-size: 0.78rem !important;
 }
 
 /* =========================================================================
-   Input fields — visible on surface
+   Input fields — حقول الإدخال
    ========================================================================= */
 .ac-input, .ac-select, .ac-textarea,
 .form-input, .form-control, .form-select {
-    background: var(--ac-surface-2);
-    border-color: var(--ac-border-dark);
+    background: var(--ac-surface) !important;
+    border: 1.5px solid var(--ac-border-dark) !important;
+    border-radius: var(--ac-radius-md) !important;
+    padding: 10px 14px !important;
+    font-size: 0.95rem;
 }
 .ac-input:focus, .ac-select:focus, .ac-textarea:focus,
 .form-input:focus, .form-control:focus, .form-select:focus {
-    background: var(--ac-surface);
-    border-color: var(--ac-primary);
-    box-shadow: 0 0 0 3px var(--ac-primary-soft);
+    border-color: var(--ac-primary) !important;
+    box-shadow: 0 0 0 3px var(--ac-primary-soft) !important;
+    outline: none;
+}
+.ac-label, .form-label {
+    font-weight: 600 !important;
+    font-size: 0.9rem !important;
+    margin-bottom: 6px !important;
 }
 
 /* =========================================================================
-   Buttons — brand gradient on primary
+   Buttons — أزرار
    ========================================================================= */
+.btn { border-radius: var(--ac-radius-md); font-weight: 600; }
 .btn-primary {
-    background: linear-gradient(135deg, var(--ac-primary), var(--ac-primary-hover));
-    border-color: var(--ac-primary);
-    box-shadow: 0 4px 12px rgba(139,92,246,0.3);
+    background: var(--ac-primary) !important;
+    border-color: var(--ac-primary) !important;
+    color: #fff !important;
+    box-shadow: 0 2px 8px rgba(124,58,237,0.25);
 }
 .btn-primary:hover:not(:disabled) {
-    background: linear-gradient(135deg, var(--ac-primary-hover), #6D28D9);
-    box-shadow: 0 6px 16px rgba(139,92,246,0.4);
+    background: var(--ac-primary-hover) !important;
+    border-color: var(--ac-primary-hover) !important;
+    box-shadow: 0 4px 12px rgba(124,58,237,0.35);
+}
+.btn-outline-primary {
+    color: var(--ac-primary) !important;
+    border-color: var(--ac-primary) !important;
+}
+.btn-outline-primary:hover:not(:disabled) {
+    background: var(--ac-primary-soft) !important;
+    color: var(--ac-primary-hover) !important;
 }
 
 /* =========================================================================
-   Page utilities
+   Auth page — تسجيل الدخول
    ========================================================================= */
-.acs-page { padding: 16px; }
-.acs-page-title { font-size: 1.25rem; font-weight: 700; }
+.acs-auth-page { background: var(--ac-bg); padding: 48px 20px; }
+.acs-auth-hero { text-align: center; margin-bottom: 24px; }
+.acs-auth-icon  { font-size: 3rem; }
+.acs-auth-brand { font-size: 1.6rem; font-weight: 700; color: var(--ac-primary); margin: 8px 0 4px; }
+.acs-auth-tag   { font-size: 0.9rem; color: var(--ac-text-muted); }
+.acs-auth-card {
+    max-width: 420px;
+    margin: 0 auto;
+    background: var(--ac-surface);
+    border: 1px solid var(--ac-border);
+    box-shadow: var(--ac-shadow-lg);
+    border-radius: var(--ac-radius-lg);
+    padding: 28px 24px;
+}
+.acs-auth-title    { font-size: 1.2rem; font-weight: 700; text-align: center; }
+.acs-auth-subtitle { font-size: 0.88rem; color: var(--ac-text-muted); text-align: center; }
+.acs-auth-hint { font-size: 0.82rem; color: var(--ac-text-muted); margin-top: 16px; padding: 12px; background: var(--ac-bg-alt); border-radius: var(--ac-radius-md); }
+
+/* =========================================================================
+   Page header
+   ========================================================================= */
+.acs-page { padding: 0; }
+.acs-page-header { margin-bottom: 20px; }
+.acs-page-title { font-size: 1.4rem; font-weight: 700; margin: 0 0 4px; }
+.acs-page-subtitle { font-size: 0.88rem; color: var(--ac-text-muted); margin: 0; }
+
+/* =========================================================================
+   Empty state
+   ========================================================================= */
+.acs-empty { text-align: center; padding: 48px 20px; }
+.acs-empty-icon { font-size: 3rem; color: var(--ac-text-muted); margin-bottom: 12px; }
+.acs-empty-title { font-size: 1.05rem; font-weight: 600; }
+.acs-empty-message { font-size: 0.88rem; color: var(--ac-text-muted); }
+
+/* =========================================================================
+   Grid refinements
+   ========================================================================= */
+.ac-grid { gap: 20px !important; }
+@media (max-width: 768px) {
+    .ac-grid-cols-3 { grid-template-columns: 1fr !important; }
+}
+
+/* =========================================================================
+   Utilities
+   ========================================================================= */
+:focus:not(:focus-visible) { outline: none; }
+h1:focus, h2:focus, h3:focus { outline: none; }
