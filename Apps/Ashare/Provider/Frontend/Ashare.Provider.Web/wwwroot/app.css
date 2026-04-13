@@ -1,0 +1,32 @@
+/* =========================================================================
+   عشير للمُلاّك — الهوية البصرية
+   =========================================================================
+   بوابة مُلاّك العقارات — نسخة مختلفة بلون أزرق بحري لتمييزها عن الواجهة
+   يطغى على defaults الـ widgets.css عبر تعريف :root variables الخاصة.
+   ========================================================================= */
+
+:root {
+    /* الهوية: أزرق بحري للمُلاّك */
+    --ac-primary:       #1E40AF;
+    --ac-primary-hover: #1E3A8A;
+    --ac-on-primary:    #ffffff;
+
+    --ac-secondary:       #F59E0B;
+    --ac-secondary-hover: #D97706;
+
+    /* خط عربي */
+    --ac-font-family: 'Cairo', 'Noto Kufi Arabic', 'Segoe UI', Tahoma, sans-serif;
+
+    /* زوايا معتدلة */
+    --ac-radius-md: 0.6rem;
+    --ac-radius-lg: 1rem;
+}
+
+body {
+    font-family: var(--ac-font-family);
+    background: var(--ac-bg-alt);
+    margin: 0;
+}
+
+/* استيراد خط Cairo من Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap');

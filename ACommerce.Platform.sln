@@ -113,6 +113,16 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACommerce.Templates.Merchan
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACommerce.Templates.Admin", "libs\frontend\ACommerce.Templates.Admin\ACommerce.Templates.Admin.csproj", "{BD012DEF-A38D-42B3-9329-4C01D876CECE}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ashare.Provider.Web", "Apps\Ashare\Provider\Frontend\Ashare.Provider.Web\Ashare.Provider.Web.csproj", "{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACommerce.Payments.Providers.Moyasar", "libs\backend\sales\ACommerce.Payments.Providers.Moyasar\ACommerce.Payments.Providers.Moyasar.csproj", "{B2C3D4E5-F6A7-8901-BCDE-F12345678901}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACommerce.Realtime.Providers.SignalR", "libs\backend\messaging\ACommerce.Realtime.Providers.SignalR\ACommerce.Realtime.Providers.SignalR.csproj", "{C3D4E5F6-A7B8-9012-CDEF-123456789012}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACommerce.Notification.Providers.Email", "libs\backend\messaging\ACommerce.Notification.Providers.Email\ACommerce.Notification.Providers.Email.csproj", "{D4E5F6A7-B8C9-0123-DEF0-234567890123}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACommerce.Bookings.Operations", "libs\backend\marketplace\ACommerce.Bookings.Operations\ACommerce.Bookings.Operations.csproj", "{E5F6A7B8-C9D0-1234-EF01-345678901234}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -696,5 +706,10 @@ Global
 		{F94BB79E-0ECA-4235-98E8-8E70C160144C} = {1787FE1D-075E-9E68-7218-25F1BD1BBEAB}
 		{F0ADE5A6-DE77-4B9F-908A-FAD4972378E8} = {E70624DB-5086-92EA-A7DA-DA400B6A823C}
 		{BD012DEF-A38D-42B3-9329-4C01D876CECE} = {E70624DB-5086-92EA-A7DA-DA400B6A823C}
+		{A1B2C3D4-E5F6-7890-ABCD-EF1234567890} = {1787FE1D-075E-9E68-7218-25F1BD1BBEAB}
+		{B2C3D4E5-F6A7-8901-BCDE-F12345678901} = {12A621F9-E674-0EAA-5C20-628C7A461E52}
+		{C3D4E5F6-A7B8-9012-CDEF-123456789012} = {55C97B76-B746-2748-6A13-0AE8838FAAAA}
+		{D4E5F6A7-B8C9-0123-DEF0-234567890123} = {55C97B76-B746-2748-6A13-0AE8838FAAAA}
+		{E5F6A7B8-C9D0-1234-EF01-345678901234} = {5F00DC25-592E-C0F3-3685-F8A242BEDAF5}
 	EndGlobalSection
 EndGlobal
