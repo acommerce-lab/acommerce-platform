@@ -53,18 +53,23 @@ public class HttpDispatcher : IOperationDispatcher
 
         OperationEnvelope<T>? envelope = null;
 
+        // استبدال معاملات القالب من tags العملية — {booking_id} → قيمة tag
+        var resolvedUrl = route.UrlTemplate;
+        foreach (var tag in embeddedOp.Tags)
+            resolvedUrl = resolvedUrl.Replace("{" + tag.Key + "}", Uri.EscapeDataString(tag.Value));
+
         // قيد نقل http.send - محاسبي بذاته
         var transportOp = Entry.Create("http.send")
-            .Describe($"{route.Method} {route.UrlTemplate} (carries {embeddedOp.Type})")
+            .Describe($"{route.Method} {resolvedUrl} (carries {embeddedOp.Type})")
             .From(_clientPartyId, 1, ("role", "client"))
             .To(_serverPartyId, 1, ("role", "server"))
             .Tag("http.method", route.Method.ToString())
-            .Tag("http.url", route.UrlTemplate)
+            .Tag("http.url", resolvedUrl)
             .Tag("embedded_op_type", embeddedOp.Type)
             .Tag("embedded_op_id", embeddedOp.Id.ToString())
             .Execute(async ctx =>
             {
-                using var request = new HttpRequestMessage(route.Method, route.UrlTemplate);
+                using var request = new HttpRequestMessage(route.Method, resolvedUrl);
                 if (payload != null && (route.Method == HttpMethod.Post || route.Method == HttpMethod.Put || route.Method == HttpMethod.Patch))
                 {
                     request.Content = JsonContent.Create(payload);
@@ -82,7 +87,7 @@ public class HttpDispatcher : IOperationDispatcher
                 if (!response.IsSuccessStatusCode)
                 {
                     _logger.LogWarning("[HttpDispatcher] {Status} {Method} {Url}",
-                        (int)response.StatusCode, route.Method, route.UrlTemplate);
+                        (int)response.StatusCode, route.Method, resolvedUrl);
                 }
             })
             .Build();

@@ -1,0 +1,49 @@
+@inherits LayoutComponentBase
+@inject AppStore Store
+@inject AppStateApplier Applier
+@implements IDisposable
+
+<AcShell Brand="🏠 عشير للمُلاّك" FooterText="عشير - بوابة ملاك العقارات">
+    <Links>
+        @if (Store.Auth.IsAuthenticated)
+        {
+            <a class="act-navbar-link" href="/">@Store.Ui.Tr("لوحة التحكم", "Dashboard")</a>
+            <a class="act-navbar-link" href="/my-listings">@Store.Ui.Tr("إعلاناتي", "My Listings")</a>
+            <a class="act-navbar-link" href="/owner-bookings">@Store.Ui.Tr("الحجوزات", "Bookings")</a>
+            <a class="act-navbar-link" href="/plans">@Store.Ui.Tr("الباقات", "Plans")</a>
+        }
+    </Links>
+    <RightActions>
+        @if (Store.Auth.IsAuthenticated)
+        {
+            <span class="ac-text-muted">@Store.Auth.PhoneNumber</span>
+            <AcButton Variant="ghost" Size="sm" Text="@Store.Ui.Tr("خروج","Sign out")" OnClick="SignOut" />
+        }
+        else
+        {
+            <a href="/login"><AcButton Variant="primary" Size="sm" Text="@Store.Ui.Tr("دخول","Sign in")" /></a>
+        }
+    </RightActions>
+    <ChildContent>
+        @Body
+    </ChildContent>
+</AcShell>
+
+@code {
+    protected override void OnInitialized()
+    {
+        Store.OnChanged += OnChange;
+    }
+
+    private void OnChange() => InvokeAsync(StateHasChanged);
+
+    private async Task SignOut()
+    {
+        await Applier.ApplyLocalAsync(ClientOps.SignOut());
+    }
+
+    public void Dispose()
+    {
+        Store.OnChanged -= OnChange;
+    }
+}

@@ -1,0 +1,136 @@
+@page "/booking/{id:guid}"
+@rendermode InteractiveServer
+@inject ApiReader Reader
+@inject ClientOpEngine Engine
+@inject NavigationManager Nav
+
+<PageTitle>حجز #@Id.ToString()[..8]</PageTitle>
+
+<h1>تفاصيل الحجز</h1>
+
+@if (booking == null)
+{
+    <div class="spinner-border"></div>
+}
+else
+{
+    <div class="card mb-3">
+        <div class="card-body">
+            <h5>حجز #@booking.Id.ToString("N").Substring(0, 8)</h5>
+            <dl class="row">
+                <dt class="col-sm-3">المبلغ</dt>
+                <dd class="col-sm-9"><strong class="text-primary">@booking.TotalPrice @booking.Currency</strong></dd>
+                <dt class="col-sm-3">من</dt>
+                <dd class="col-sm-9">@booking.StartDate.ToString("yyyy-MM-dd")</dd>
+                <dt class="col-sm-3">إلى</dt>
+                <dd class="col-sm-9">@booking.EndDate.ToString("yyyy-MM-dd")</dd>
+                <dt class="col-sm-3">الحالة</dt>
+                <dd class="col-sm-9">@StatusText(booking.Status)</dd>
+            </dl>
+
+            @if (booking.Status == 2)  // AwaitingPayment
+            {
+                <button class="btn btn-success" @onclick="InitiatePayment" disabled="@busy">
+                    @(busy ? "..." : "ادفع الآن (محاكاة)")
+                </button>
+            }
+            else if (booking.Status == 3)
+            {
+                <div class="alert alert-success mb-0">✅ الحجز مدفوع</div>
+            }
+            else if (booking.Status == 4)
+            {
+                <div class="alert alert-secondary mb-0">❌ مُلغى</div>
+            }
+
+            @if (booking.Status == 2 || booking.Status == 0 || booking.Status == 1)
+            {
+                <button class="btn btn-outline-danger ms-2" @onclick="Cancel" disabled="@busy">إلغاء الحجز</button>
+            }
+        </div>
+    </div>
+}
+
+@if (!string.IsNullOrEmpty(message))
+{
+    <div class="alert alert-info">@message</div>
+}
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+    private BookingDto? booking;
+    private bool busy;
+    private string message = "";
+
+    protected override async Task OnInitializedAsync() => await Load();
+
+    private async Task Load()
+    {
+        var resp = await Reader.GetAsync<BookingDto>($"/api/bookings/{Id}");
+        booking = resp.Data;
+    }
+
+    private async Task InitiatePayment()
+    {
+        busy = true;
+        message = "";
+        try
+        {
+            var initResp = await Engine.ExecuteAsync<PaymentInitDto>(
+                ClientOps.InitiatePayment(Id),
+                new { bookingId = Id });
+
+            if (initResp.Operation.Status == "Success" && initResp.Data?.Id != null)
+            {
+                var cbResp = await Engine.ExecuteAsync<object>(
+                    ClientOps.SimulatePaymentCallback(initResp.Data.Id),
+                    new { });
+                message = cbResp.Operation.Status == "Success" ? "✅ تم الدفع بنجاح" : "فشل محاكاة الدفع";
+            }
+            else
+            {
+                message = "فشل initiate: " + (initResp.Error?.Message ?? initResp.Operation.ErrorMessage ?? "unknown");
+            }
+
+            await Load();
+        }
+        finally { busy = false; }
+    }
+
+    private async Task Cancel()
+    {
+        busy = true;
+        try
+        {
+            await Engine.ExecuteAsync<object>(ClientOps.CancelBooking(Id), new { });
+            await Load();
+        }
+        finally { busy = false; }
+    }
+
+    private string StatusText(int s) => s switch
+    {
+        0 => "معلّق",
+        1 => "مؤكد",
+        2 => "ينتظر الدفع",
+        3 => "مدفوع",
+        4 => "مُلغى",
+        5 => "مكتمل",
+        _ => "?"
+    };
+
+    public class BookingDto
+    {
+        public Guid Id { get; set; }
+        public decimal TotalPrice { get; set; }
+        public string Currency { get; set; } = "";
+        public DateTime StartDate { get; set; }
+        public DateTime EndDate { get; set; }
+        public int Status { get; set; }
+    }
+
+    public class PaymentInitDto
+    {
+        public Guid Id { get; set; }
+    }
+}

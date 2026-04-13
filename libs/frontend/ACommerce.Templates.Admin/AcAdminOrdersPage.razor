@@ -1,0 +1,100 @@
+@namespace ACommerce.Templates.Admin
+
+@*
+    صفحة مراقبة الطلبات للمسؤول — عرض شامل لجميع طلبات المنصة.
+
+    Flex slots:
+      AboveList  — فوق القائمة (فلتر)
+      BelowList  — أسفل القائمة (pagination)
+      RowExtras  — إجراءات إضافية لكل صف
+*@
+
+@using ACommerce.Templates.Merchant.Commerce.Models
+
+<div class="acs-page">
+    @if (!string.IsNullOrEmpty(Title))
+    {
+        <h1 class="acs-page-title">@Title</h1>
+    }
+
+    <div class="acs-page-header-row">
+        <input class="form-input" style="max-width:280px"
+               type="search" placeholder="@(SearchPlaceholder ?? "بحث بالعميل أو رقم الطلب...")"
+               value="@_search"
+               @oninput="@(e => { _search = e.Value?.ToString() ?? ""; })" />
+    </div>
+
+    @AboveList
+
+    @if (Loading)
+    {
+        <AcLoadingState />
+    }
+    else if (FilteredOrders.Count == 0)
+    {
+        <AcEmptyState IconName="package" Title="@(EmptyTitle ?? "لا توجد طلبات")" />
+    }
+    else
+    {
+        @foreach (var o in FilteredOrders)
+        {
+            <div class="s-card acm-admin-row" @onclick="() => HandleSelect(o)">
+                <div class="acm-admin-info">
+                    <strong>@o.CustomerName</strong>
+                    @if (!string.IsNullOrEmpty(VendorNameSelector?.Invoke(o)))
+                    {
+                        <span class="ac-text-muted">@VendorNameSelector!(o)</span>
+                    }
+                    <span class="ac-text-muted">@o.CreatedAt.ToLocalTime().ToString("yyyy/MM/dd HH:mm")</span>
+                </div>
+                <div class="acm-admin-actions">
+                    <span>@o.Total.ToString("N0") @o.Currency</span>
+                    <AcBadge Text="@o.Status" Variant="@StatusVariant(o.Status)" />
+                    @if (RowExtras != null) { @RowExtras(o) }
+                </div>
+            </div>
+        }
+    }
+
+    @BelowList
+</div>
+
+@code {
+    [Parameter] public IReadOnlyList<MerchantOrderRowDto> Orders { get; set; } = Array.Empty<MerchantOrderRowDto>();
+    [Parameter] public bool Loading { get; set; }
+    [Parameter] public string? Title { get; set; }
+    [Parameter] public string? SearchPlaceholder { get; set; }
+    [Parameter] public string? EmptyTitle { get; set; }
+
+    /// <summary>اختياري: لعرض اسم المتجر لكل طلب. يُمرر كـ Func لأن الـ DTO لا يحمل اسم المتجر.</summary>
+    [Parameter] public Func<MerchantOrderRowDto, string?>? VendorNameSelector { get; set; }
+
+    [Parameter] public EventCallback<MerchantOrderRowDto> OnSelectOrder { get; set; }
+
+    [Parameter] public RenderFragment? AboveList { get; set; }
+    [Parameter] public RenderFragment? BelowList { get; set; }
+    [Parameter] public RenderFragment<MerchantOrderRowDto>? RowExtras { get; set; }
+
+    private string _search = "";
+
+    private IReadOnlyList<MerchantOrderRowDto> FilteredOrders =>
+        string.IsNullOrWhiteSpace(_search)
+            ? Orders
+            : Orders.Where(o => o.CustomerName.Contains(_search, StringComparison.OrdinalIgnoreCase) ||
+                o.Id.Contains(_search)).ToList();
+
+    private async Task HandleSelect(MerchantOrderRowDto o)
+    {
+        if (OnSelectOrder.HasDelegate) await OnSelectOrder.InvokeAsync(o);
+    }
+
+    private static string StatusVariant(string status) => status.ToLowerInvariant() switch
+    {
+        "pending" or "قيد الانتظار" => "warning",
+        "confirmed" or "مؤكد" => "info",
+        "ready" or "جاهز" => "success",
+        "delivered" or "مُسلَّم" => "success",
+        "cancelled" or "ملغى" => "danger",
+        _ => "default"
+    };
+}

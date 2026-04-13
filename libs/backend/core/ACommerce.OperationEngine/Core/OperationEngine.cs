@@ -80,6 +80,15 @@ public class OpEngine
 
             // === 3. Execute ===
             op.Status = OperationStatus.Executing;
+
+            // التحقق من عقود المزودين المطلوبة قبل التنفيذ
+            foreach (var contractType in op.RequiredContracts)
+            {
+                if (_services.GetService(contractType) == null)
+                    return await FailOp(op, ctx, result, h,
+                        $"Required provider contract '{contractType.Name}' is not registered in DI.");
+            }
+
             await h.InvokeAsync(h.BeforeExecute, ctx);
 
             if (op.ExecuteFunc != null)

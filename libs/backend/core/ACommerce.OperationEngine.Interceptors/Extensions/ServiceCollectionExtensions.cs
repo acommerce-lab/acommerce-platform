@@ -7,9 +7,10 @@ public static class ServiceCollectionExtensions
 {
     /// <summary>
     /// يسجّل OperationInterceptorRegistry كـ Singleton ويعطي callback لتسجيل المعترضات.
+    /// يضم أيضاً أي IOperationInterceptor سبق تسجيله في DI (مثلاً عبر AddOperationJournal).
     ///
     /// الاستخدام:
-    ///   services.AddOperationInterceptors(registry =&gt;
+    ///   services.AddOperationInterceptors(registry =>
     ///   {
     ///       registry.Register(new TaggedInterceptor(...));
     ///       registry.Register(new SubscriptionQuotaInterceptor(...));
@@ -23,6 +24,9 @@ public static class ServiceCollectionExtensions
         {
             var registry = new OperationInterceptorRegistry();
             configure?.Invoke(registry);
+            // يضم كل IOperationInterceptor مُسجَّل في DI (مثلاً JournalInterceptor)
+            foreach (var interceptor in sp.GetServices<IOperationInterceptor>())
+                registry.Register(interceptor);
             return registry;
         });
 

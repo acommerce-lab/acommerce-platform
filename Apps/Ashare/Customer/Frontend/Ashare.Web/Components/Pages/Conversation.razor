@@ -1,0 +1,54 @@
+@page "/conversation/{id:guid}"
+@rendermode InteractiveServer
+@inject ApiReader Reader
+@inject ClientOpEngine Engine
+@inject AppStore Store
+
+<PageTitle>محادثة - عشير</PageTitle>
+
+<AcChatPage Mode="TemplateOperationMode.Operation"
+            Engine="Engine"
+            BuildSendOp="@(text => ClientOps.SendMessage(Id, Store.Auth.UserId!.Value, text))"
+            SendPayload="@(text => new { conversationId = Id, senderId = Store.Auth.UserId, content = text, messageType = "text" })"
+            OnMessageSent="OnNewMessage"
+            Messages="@Mapped"
+            MySenderId="@(Store.Auth.UserId?.ToString() ?? "")"
+            Loading="@(messages is null)"
+            Title="محادثة"
+            LoadingMessage="جاري التحميل..."
+            EmptyMessage="لا رسائل بعد"
+            InputPlaceholder="اكتب رسالة..."
+            SendLabel="إرسال" />
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+    private List<MessageDto>? messages;
+
+    private IReadOnlyList<ChatMessageDto> Mapped =>
+        messages is null ? Array.Empty<ChatMessageDto>() :
+        messages.Select(m => new ChatMessageDto
+        {
+            Id = m.Id.ToString(),
+            Content = m.Content,
+            SenderId = m.SenderId.ToString(),
+            CreatedAt = m.CreatedAt
+        }).ToList();
+
+    protected override async Task OnInitializedAsync() => await Load();
+
+    private async Task Load()
+    {
+        var resp = await Reader.GetAsync<List<MessageDto>>($"/api/messages/conversations/{Id}/messages");
+        messages = resp.Data ?? new();
+    }
+
+    private async Task OnNewMessage(ChatMessageDto _) => await Load();
+
+    public class MessageDto
+    {
+        public Guid Id { get; set; }
+        public Guid SenderId { get; set; }
+        public string Content { get; set; } = "";
+        public DateTime CreatedAt { get; set; }
+    }
+}

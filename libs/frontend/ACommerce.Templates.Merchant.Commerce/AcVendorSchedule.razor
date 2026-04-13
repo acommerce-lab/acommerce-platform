@@ -1,0 +1,94 @@
+@namespace ACommerce.Templates.Merchant.Commerce
+
+@*
+    جدول ساعات عمل التاجر — يُظهر أيام الأسبوع مع إمكانية التعديل.
+
+    Flex slots:
+      AboveTable — فوق الجدول
+      BelowTable — أسفل الجدول (مثل ملاحظات خاصة)
+*@
+
+<div class="acs-page">
+    @if (!string.IsNullOrEmpty(Title))
+    {
+        <h1 class="acs-page-title">@Title</h1>
+    }
+
+    @AboveTable
+
+    @if (Loading)
+    {
+        <AcLoadingState />
+    }
+    else
+    {
+        <div class="s-card">
+            @foreach (var slot in Schedule)
+            {
+                <div class="acm-schedule-row @(slot.IsOpen ? "open" : "closed")">
+                    <div class="acm-schedule-day">@slot.DayLabel</div>
+                    @if (slot.IsOpen)
+                    {
+                        <div class="acm-schedule-hours" dir="ltr">@slot.OpenTime — @slot.CloseTime</div>
+                    }
+                    else
+                    {
+                        <div class="acm-schedule-closed">@(ClosedLabel ?? "مغلق")</div>
+                    }
+                    @if (OnEditSlot.HasDelegate)
+                    {
+                        <AcButton Variant="ghost" Size="sm" Text="@(EditLabel ?? "تعديل")"
+                                  OnClick="@(() => OnEditSlot.InvokeAsync(slot))" />
+                    }
+                </div>
+            }
+        </div>
+
+        @if (OnSaveSchedule.HasDelegate || (Mode == TemplateOperationMode.Operation && Engine != null))
+        {
+            <AcButton Variant="primary" Text="@(SaveLabel ?? "حفظ الجدول")"
+                      OnClick="HandleSave" Disabled="@_busy" />
+        }
+    }
+
+    @BelowTable
+</div>
+
+@code {
+    [Parameter] public TemplateOperationMode Mode { get; set; } = TemplateOperationMode.Callback;
+    [Parameter] public IReadOnlyList<MerchantScheduleSlotDto> Schedule { get; set; } = Array.Empty<MerchantScheduleSlotDto>();
+    [Parameter] public bool Loading { get; set; }
+
+    [Parameter] public EventCallback<MerchantScheduleSlotDto> OnEditSlot { get; set; }
+    [Parameter] public EventCallback<IReadOnlyList<MerchantScheduleSlotDto>> OnSaveSchedule { get; set; }
+
+    [Parameter] public ITemplateEngine? Engine { get; set; }
+    [Parameter] public Func<IReadOnlyList<MerchantScheduleSlotDto>, Operation>? BuildSaveOp { get; set; }
+    [Parameter] public Func<IReadOnlyList<MerchantScheduleSlotDto>, object>? SavePayload { get; set; }
+
+    [Parameter] public string? Title { get; set; }
+    [Parameter] public string? ClosedLabel { get; set; }
+    [Parameter] public string? EditLabel { get; set; }
+    [Parameter] public string? SaveLabel { get; set; }
+
+    [Parameter] public RenderFragment? AboveTable { get; set; }
+    [Parameter] public RenderFragment? BelowTable { get; set; }
+
+    private bool _busy;
+
+    private async Task HandleSave()
+    {
+        if (Mode == TemplateOperationMode.Operation && Engine != null && BuildSaveOp != null)
+        {
+            _busy = true;
+            try
+            {
+                var payload = SavePayload != null ? SavePayload(Schedule) : (object)new { schedule = Schedule };
+                await Engine.ExecuteAsync<object>(BuildSaveOp(Schedule), payload);
+            }
+            finally { _busy = false; }
+        }
+        else if (OnSaveSchedule.HasDelegate)
+            await OnSaveSchedule.InvokeAsync(Schedule);
+    }
+}

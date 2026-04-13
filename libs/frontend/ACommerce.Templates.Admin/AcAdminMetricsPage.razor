@@ -1,0 +1,64 @@
+@namespace ACommerce.Templates.Admin
+
+@*
+    لوحة مقاييس المنصة — نظرة عامة للمسؤول.
+
+    Flex slots:
+      AboveMetrics  — فوق الشبكة (مثل فلتر الفترة الزمنية)
+      BelowMetrics  — أسفل الشبكة
+      ExtraCharts   — مساحة للمخططات (جداول/رسوم)
+*@
+
+<div class="acs-page">
+    @if (!string.IsNullOrEmpty(Title))
+    {
+        <h1 class="acs-page-title">@Title</h1>
+    }
+
+    @AboveMetrics
+
+    @if (Loading)
+    {
+        <AcLoadingState />
+    }
+    else
+    {
+        <div class="acm-stats-grid">
+            @foreach (var m in Metrics)
+            {
+                <div class="acm-stat-card s-card">
+                    @if (!string.IsNullOrEmpty(m.IconName))
+                    {
+                        <AcIcon Name="@m.IconName" Size="20" />
+                    }
+                    <div class="acm-stat-value">@m.Value</div>
+                    <div class="acm-stat-label">@m.Label</div>
+                    @if (!string.IsNullOrEmpty(m.Period))
+                    {
+                        <div class="ac-text-muted" style="font-size:0.75rem">@m.Period</div>
+                    }
+                    @if (!string.IsNullOrEmpty(m.TrendValue))
+                    {
+                        <div class="acm-stat-trend @(m.Trend == "up" ? "up" : "down")">
+                            @(m.Trend == "up" ? "▲" : "▼") @m.TrendValue
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+
+        @ExtraCharts
+    }
+
+    @BelowMetrics
+</div>
+
+@code {
+    [Parameter] public string? Title { get; set; }
+    [Parameter] public IReadOnlyList<PlatformMetricDto> Metrics { get; set; } = Array.Empty<PlatformMetricDto>();
+    [Parameter] public bool Loading { get; set; }
+
+    [Parameter] public RenderFragment? AboveMetrics { get; set; }
+    [Parameter] public RenderFragment? BelowMetrics { get; set; }
+    [Parameter] public RenderFragment? ExtraCharts { get; set; }
+}

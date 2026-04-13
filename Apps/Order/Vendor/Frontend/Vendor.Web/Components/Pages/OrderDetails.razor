@@ -1,0 +1,137 @@
+@page "/order/{Id:guid}"
+@inject VendorApiClient Api
+@inject ClientOpEngine Engine
+@inject AppStore Store
+
+<PageTitle>@(Store.Ui.IsArabic ? "تفاصيل الطلب" : "Order Details")</PageTitle>
+
+@if (Loading)
+{
+    <AcLoadingState Message="@(Store.Ui.IsArabic ? "جاري التحميل..." : "Loading…")" />
+}
+else if (Order == null)
+{
+    <AcEmptyState IconName="search" Title="@(Store.Ui.IsArabic ? "الطلب غير موجود" : "Not found")" ActionHref="/orders" ActionLabel="@(Store.Ui.IsArabic ? "الطلبات" : "Orders")" />
+}
+else
+{
+    <div style="padding:16px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+            <div>
+                <h1 class="acs-page-title" style="margin:0;">#@Order.OrderNumber</h1>
+                <div style="font-size:0.8rem;color:var(--ac-text-muted);">@Order.CustomerName • @Order.CustomerPhone</div>
+            </div>
+            <span class="vnd-status vnd-status-@StatusKey(Order.Status)">@Order.StatusAr</span>
+        </div>
+
+        <div class="s-card">
+            <div class="acc-section-label">@(Store.Ui.IsArabic ? "العناصر" : "Items")</div>
+            @foreach (var item in Order.Items)
+            {
+                <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:0.88rem;">
+                    <span>@item.Emoji @item.OfferTitle × @item.Quantity</span>
+                    <span>@item.LineTotal.ToString("0.##")</span>
+                </div>
+            }
+            <div style="display:flex;justify-content:space-between;padding-top:10px;margin-top:8px;border-top:1px solid var(--ac-border);font-weight:700;">
+                <span>@(Store.Ui.IsArabic ? "الإجمالي" : "Total")</span>
+                <span>@Order.Total.ToString("0.##") @Order.Currency</span>
+            </div>
+        </div>
+
+        @if (Order.PickupType == 1)
+        {
+            <div class="s-card">
+                <div class="acc-section-label">@(Store.Ui.IsArabic ? "بيانات السيارة" : "Car details")</div>
+                <div style="font-size:0.88rem;"><AcIcon Name="car" Size="16" /> @Order.CarModel @Order.CarColor @(Order.CarPlate ?? "")</div>
+            </div>
+        }
+
+        @if (!string.IsNullOrEmpty(Order.CustomerNotes))
+        {
+            <div class="s-card">
+                <div class="acc-section-label">@(Store.Ui.IsArabic ? "ملاحظات العميل" : "Customer notes")</div>
+                <p style="margin:0;font-size:0.88rem;">@Order.CustomerNotes</p>
+            </div>
+        }
+
+        @* Action buttons based on current status *@
+        <div style="margin-top:16px;display:flex;flex-direction:column;gap:8px;">
+            @if (Order.Status == 0)
+            {
+                <button class="btn btn-primary btn-block" @onclick="Accept" disabled="@Acting">
+                    <AcIcon Name="check" Size="18" /> @(Store.Ui.IsArabic ? "قبول الطلب" : "Accept order")
+                </button>
+                <button class="btn btn-ghost btn-block" style="color:var(--ac-danger);border-color:var(--ac-danger);" @onclick="Reject" disabled="@Acting">
+                    <AcIcon Name="x" Size="18" /> @(Store.Ui.IsArabic ? "رفض الطلب" : "Reject order")
+                </button>
+            }
+            @if (Order.Status == 1)
+            {
+                <button class="btn btn-primary btn-block" @onclick="MarkReady" disabled="@Acting">
+                    <AcIcon Name="package" Size="18" /> @(Store.Ui.IsArabic ? "الطلب جاهز" : "Mark ready")
+                </button>
+            }
+            @if (Order.Status == 2)
+            {
+                <button class="btn btn-primary btn-block" @onclick="MarkDelivered" disabled="@Acting">
+                    <AcIcon Name="check-circle" Size="18" /> @(Store.Ui.IsArabic ? "تم التسليم" : "Mark delivered")
+                </button>
+            }
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+    private OrderDetail? Order;
+    private bool Loading = true;
+    private bool Acting;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        await Reload();
+        StateHasChanged();
+    }
+
+    private async Task Reload()
+    {
+        Loading = true;
+        var env = await Api.GetAsync<OrderDetail>($"/api/orders/{Id}");
+        Order = env.Data;
+        Loading = false;
+    }
+
+    private async Task Accept() { Acting = true; await Engine.ExecuteAsync<object>(ClientOps.AcceptOrder(Id), new {}); await Reload(); Acting = false; }
+    private async Task Reject() { Acting = true; await Engine.ExecuteAsync<object>(ClientOps.RejectOrder(Id), new {}); await Reload(); Acting = false; }
+    private async Task MarkReady() { Acting = true; await Engine.ExecuteAsync<object>(ClientOps.ReadyOrder(Id), new {}); await Reload(); Acting = false; }
+    private async Task MarkDelivered() { Acting = true; await Engine.ExecuteAsync<object>(ClientOps.DeliverOrder(Id), new {}); await Reload(); Acting = false; }
+
+    private static string StatusKey(int s) => ACommerce.Templates.Shared.Models.StatusHelpers.OrderStatusKey(s);
+
+    public class OrderDetail
+    {
+        public Guid Id { get; set; }
+        public string OrderNumber { get; set; } = "";
+        public decimal Total { get; set; }
+        public string Currency { get; set; } = "SAR";
+        public int Status { get; set; }
+        public string StatusAr { get; set; } = "";
+        public int PickupType { get; set; }
+        public string? CarModel { get; set; }
+        public string? CarColor { get; set; }
+        public string? CarPlate { get; set; }
+        public string? CustomerNotes { get; set; }
+        public string CustomerName { get; set; } = "";
+        public string CustomerPhone { get; set; } = "";
+        public List<ItemRow> Items { get; set; } = new();
+    }
+    public class ItemRow
+    {
+        public string OfferTitle { get; set; } = "";
+        public string Emoji { get; set; } = "";
+        public int Quantity { get; set; }
+        public decimal LineTotal { get; set; }
+    }
+}

@@ -1,0 +1,70 @@
+@page "/my-bookings"
+@rendermode InteractiveServer
+@inject ApiReader Reader
+@inject AppStore Store
+
+<PageTitle>حجوزاتي - عشير</PageTitle>
+
+<h1>حجوزاتي</h1>
+
+@if (bookings == null)
+{
+    <div class="spinner-border"></div>
+}
+else if (bookings.Count == 0)
+{
+    <div class="alert alert-info">لا حجوزات حتى الآن</div>
+}
+else
+{
+    <table class="table table-hover">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>التاريخ</th>
+                <th>المبلغ</th>
+                <th>الحالة</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var b in bookings)
+            {
+                <tr>
+                    <td><code>@b.Id.ToString("N")[..8]</code></td>
+                    <td>@b.StartDate.ToString("yyyy-MM-dd") → @b.EndDate.ToString("yyyy-MM-dd")</td>
+                    <td>@b.TotalPrice @b.Currency</td>
+                    <td><span class="badge bg-secondary">@StatusText(b.Status)</span></td>
+                    <td><a class="btn btn-sm btn-outline-primary" href="/booking/@b.Id">تفاصيل</a></td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<BookingDto>? bookings;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Store.Auth.UserId.HasValue) { bookings = new(); return; }
+        var resp = await Reader.GetAsync<List<BookingDto>>($"/api/bookings/by-customer/{Store.Auth.UserId}");
+        bookings = resp.Data ?? new();
+    }
+
+    private string StatusText(int s) => s switch
+    {
+        0 => "معلّق", 1 => "مؤكد", 2 => "ينتظر الدفع",
+        3 => "مدفوع", 4 => "مُلغى", 5 => "مكتمل", _ => "?"
+    };
+
+    public class BookingDto
+    {
+        public Guid Id { get; set; }
+        public decimal TotalPrice { get; set; }
+        public string Currency { get; set; } = "";
+        public DateTime StartDate { get; set; }
+        public DateTime EndDate { get; set; }
+        public int Status { get; set; }
+    }
+}

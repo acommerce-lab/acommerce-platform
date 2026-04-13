@@ -1,0 +1,93 @@
+@page "/favorites"
+@rendermode InteractiveServer
+@inject ApiReader Reader
+@inject AppStore Store
+@inject ClientOpEngine Engine
+
+<PageTitle>@Store.Ui.Tr("المفضلة", "Favorites") - عشير</PageTitle>
+
+@if (!Store.Auth.IsAuthenticated)
+{
+    <div class="alert alert-warning">
+        <a href="/login">@Store.Ui.Tr("سجّل دخولك لرؤية مفضلتك", "Sign in to view favorites")</a>
+    </div>
+}
+else if (Loading)
+{
+    <div class="spinner-border" role="status"></div>
+}
+else
+{
+    <div style="padding:16px;">
+        <h1 class="acs-page-title" style="margin-bottom:16px;">
+            @Store.Ui.Tr("المفضلة", "Favorites")
+        </h1>
+
+        @if (Items.Count == 0)
+        {
+            <div class="alert alert-info">
+                @Store.Ui.Tr("لا توجد عناصر في المفضلة", "No favorites yet")
+            </div>
+        }
+        else
+        {
+            @foreach (var f in Items)
+            {
+                <div class="s-card" style="margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;">
+                    <div>
+                        <a href="/listing/@f.EntityId" style="font-weight:700;text-decoration:none;color:inherit;">
+                            @(f.Note ?? f.EntityId.ToString("N")[..8])
+                        </a>
+                        <div style="font-size:0.75rem;color:var(--ac-text-muted);">@f.EntityType</div>
+                    </div>
+                    <button class="btn btn-sm btn-outline-danger" @onclick="() => Remove(f)">
+                        @Store.Ui.Tr("إزالة", "Remove")
+                    </button>
+                </div>
+            }
+        }
+    </div>
+}
+
+@code {
+    private bool Loading = true;
+    private List<FavoriteRow> Items = new();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        if (!Store.Auth.UserId.HasValue)
+        {
+            Loading = false;
+            StateHasChanged();
+            return;
+        }
+
+        var env = await Reader.GetAsync<List<FavoriteRow>>(
+            $"/api/favorites/user/{Store.Auth.UserId}?entityType=listing");
+        Items = env.Data ?? new();
+        Loading = false;
+        StateHasChanged();
+    }
+
+    private async Task Remove(FavoriteRow f)
+    {
+        if (!Store.Auth.UserId.HasValue) return;
+        var result = await Engine.ExecuteAsync<object>(
+            ClientOps.RemoveFavorite(Store.Auth.UserId.Value, f.EntityId, f.EntityType), new { });
+        if (result.Operation.Status == "Success")
+        {
+            Items.Remove(f);
+            StateHasChanged();
+        }
+    }
+
+    public class FavoriteRow
+    {
+        public Guid Id { get; set; }
+        public Guid EntityId { get; set; }
+        public string EntityType { get; set; } = "";
+        public string? Note { get; set; }
+        public DateTime CreatedAt { get; set; }
+    }
+}

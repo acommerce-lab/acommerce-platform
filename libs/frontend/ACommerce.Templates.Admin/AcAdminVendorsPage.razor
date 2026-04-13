@@ -1,0 +1,134 @@
+@namespace ACommerce.Templates.Admin
+
+@*
+    صفحة إدارة البائعين/المتاجر.
+
+    Callback mode: الصفحة تعالج OnApprove / OnSuspend / OnSelectVendor.
+    Operation mode: القالب يُرسل العمليات مباشرة.
+
+    Flex slots:
+      AboveList  — فوق القائمة (فلتر البحث/الحالة)
+      BelowList  — أسفل القائمة (pagination)
+      RowExtras  — إجراءات إضافية لكل صف
+*@
+
+<div class="acs-page">
+    @if (!string.IsNullOrEmpty(Title))
+    {
+        <h1 class="acs-page-title">@Title</h1>
+    }
+
+    <div class="acs-page-header-row">
+        <input class="form-input" style="max-width:280px"
+               type="search" placeholder="@(SearchPlaceholder ?? "بحث بالاسم...")"
+               value="@_search"
+               @oninput="@(e => { _search = e.Value?.ToString() ?? ""; })" />
+    </div>
+
+    @AboveList
+
+    @if (Loading)
+    {
+        <AcLoadingState />
+    }
+    else if (FilteredVendors.Count == 0)
+    {
+        <AcEmptyState IconName="store" Title="@(EmptyTitle ?? "لا يوجد بائعون")" />
+    }
+    else
+    {
+        @foreach (var v in FilteredVendors)
+        {
+            <div class="s-card acm-admin-row" @onclick="() => HandleSelect(v)">
+                <div class="acm-admin-info">
+                    <strong>@v.Name</strong>
+                    @if (!string.IsNullOrEmpty(v.Phone))
+                    {
+                        <span class="ac-text-muted" dir="ltr">@v.Phone</span>
+                    }
+                    @if (!string.IsNullOrEmpty(v.Category))
+                    {
+                        <AcBadge Text="@v.Category" Variant="default" />
+                    }
+                    <span class="ac-text-muted">@v.OrderCount طلب | @v.TotalRevenue.ToString("N0") @v.Currency</span>
+                </div>
+                <div class="acm-admin-actions">
+                    <AcBadge Text="@v.Status" Variant="@StatusVariant(v.Status)" />
+                    @if (v.Status is "pending_review" or "قيد المراجعة")
+                    {
+                        <AcButton Variant="success" Size="sm" Text="@(ApproveLabel ?? "قبول")"
+                                  OnClick="@(() => HandleApprove(v))" />
+                    }
+                    @if (v.Status is "active" or "نشط")
+                    {
+                        <AcButton Variant="ghost" Size="sm" Text="@(SuspendLabel ?? "تعليق")"
+                                  OnClick="@(() => HandleSuspend(v))" />
+                    }
+                    @if (RowExtras != null) { @RowExtras(v) }
+                </div>
+            </div>
+        }
+    }
+
+    @BelowList
+</div>
+
+@code {
+    [Parameter] public TemplateOperationMode Mode { get; set; } = TemplateOperationMode.Callback;
+    [Parameter] public IReadOnlyList<AdminVendorRowDto> Vendors { get; set; } = Array.Empty<AdminVendorRowDto>();
+    [Parameter] public bool Loading { get; set; }
+    [Parameter] public string? Title { get; set; }
+    [Parameter] public string? SearchPlaceholder { get; set; }
+    [Parameter] public string? EmptyTitle { get; set; }
+    [Parameter] public string? ApproveLabel { get; set; }
+    [Parameter] public string? SuspendLabel { get; set; }
+
+    [Parameter] public EventCallback<AdminVendorRowDto> OnSelectVendor { get; set; }
+    [Parameter] public EventCallback<AdminVendorRowDto> OnApprove { get; set; }
+    [Parameter] public EventCallback<AdminVendorRowDto> OnSuspend { get; set; }
+
+    [Parameter] public ITemplateEngine? Engine { get; set; }
+    [Parameter] public Func<string, Operation>? BuildApproveOp { get; set; }
+    [Parameter] public Func<string, Operation>? BuildSuspendOp { get; set; }
+
+    [Parameter] public RenderFragment? AboveList { get; set; }
+    [Parameter] public RenderFragment? BelowList { get; set; }
+    [Parameter] public RenderFragment<AdminVendorRowDto>? RowExtras { get; set; }
+
+    private string _search = "";
+
+    private IReadOnlyList<AdminVendorRowDto> FilteredVendors =>
+        string.IsNullOrWhiteSpace(_search)
+            ? Vendors
+            : Vendors.Where(v => v.Name.Contains(_search, StringComparison.OrdinalIgnoreCase) ||
+                (v.Phone?.Contains(_search) ?? false)).ToList();
+
+    private async Task HandleSelect(AdminVendorRowDto v)
+    {
+        if (OnSelectVendor.HasDelegate) await OnSelectVendor.InvokeAsync(v);
+    }
+
+    private async Task HandleApprove(AdminVendorRowDto v)
+    {
+        if (Mode == TemplateOperationMode.Operation && Engine != null && BuildApproveOp != null)
+            await Engine.ExecuteAsync<object>(BuildApproveOp(v.Id));
+        else if (OnApprove.HasDelegate)
+            await OnApprove.InvokeAsync(v);
+    }
+
+    private async Task HandleSuspend(AdminVendorRowDto v)
+    {
+        if (Mode == TemplateOperationMode.Operation && Engine != null && BuildSuspendOp != null)
+            await Engine.ExecuteAsync<object>(BuildSuspendOp(v.Id));
+        else if (OnSuspend.HasDelegate)
+            await OnSuspend.InvokeAsync(v);
+    }
+
+    private static string StatusVariant(string status) => status.ToLowerInvariant() switch
+    {
+        "active" or "نشط" => "success",
+        "suspended" or "معلّق" => "danger",
+        "pending_review" or "قيد المراجعة" => "warning",
+        _ => "default"
+    };
+}

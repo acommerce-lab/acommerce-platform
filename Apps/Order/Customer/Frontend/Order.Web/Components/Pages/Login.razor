@@ -1,0 +1,42 @@
+@page "/login"
+@inject AppStore Store
+@inject ClientOpEngine Engine
+@inject NavigationManager Nav
+
+<PageTitle>تسجيل الدخول - اوردر</PageTitle>
+
+<AcLoginPage Mode="TemplateOperationMode.Operation"
+             Engine="Engine"
+             BuildRequestOtpOp="@(phone => ClientOps.RequestOtp(phone))"
+             BuildVerifyOtpOp="@((uid, cid, code) => ClientOps.VerifyOtp(uid, cid, code))"
+             PhonePayload="@(phone => new { phoneNumber = phone })"
+             VerifyPayload="@((uid, cid, code) => new { userId = uid, challengeId = cid, code })"
+             RedirectUrl="@(string.IsNullOrEmpty(ReturnUrl) ? "/" : ReturnUrl)"
+             BrandIcon="🍔"
+             BrandName="اوردر"
+             BrandTagline="@(Store.Ui.IsArabic ? "عروض الكافيهات والمطاعم" : "Cafe & restaurant deals")"
+             PhoneStepTitle="@(Store.Ui.IsArabic ? "مرحباً بك" : "Welcome")"
+             PhoneStepSubtitle="@(Store.Ui.IsArabic ? "أدخل رقم جوالك للمتابعة" : "Enter your phone number to continue")"
+             PhoneLabel="@(Store.Ui.IsArabic ? "رقم الجوال" : "Phone number")"
+             RequestOtpLabel="@(Store.Ui.IsArabic ? "إرسال رمز التحقق" : "Send verification code")"
+             SendingLabel="@(Store.Ui.IsArabic ? "جاري الإرسال..." : "Sending...")"
+             OtpStepTitle="@(Store.Ui.IsArabic ? "رمز التحقق" : "Verification code")"
+             OtpStepSubtitle="@(Store.Ui.IsArabic ? "أدخل الرمز المرسل إلى" : "Enter the code sent to")"
+             OtpLabel="@(Store.Ui.IsArabic ? "رمز التحقق (6 أرقام)" : "Verification code (6 digits)")"
+             VerifyOtpLabel="@(Store.Ui.IsArabic ? "تحقق ودخول" : "Verify & sign in")"
+             VerifyingLabel="@(Store.Ui.IsArabic ? "جاري التحقق..." : "Verifying...")"
+             BackLabel="@(Store.Ui.IsArabic ? "تغيير رقم الجوال" : "Change phone")">
+    <HintSlot>
+        <strong>@(Store.Ui.IsArabic ? "وضع تجريبي:" : "Demo mode:")</strong>
+        @(Store.Ui.IsArabic
+            ? "أي رقم +9665xxxxxxxx يفتح حساباً جديداً. الرمز يطبع في سجل الـ API."
+            : "Any +9665xxxxxxxx number creates a new account. The code is printed in the API log.")
+        <br />
+        <span style="font-size:0.78rem;">@(Store.Ui.IsArabic ? "حسابات تجريبية: " : "Demo accounts: ")</span>
+        <code dir="ltr">+966500000001</code> (سارة)
+    </HintSlot>
+</AcLoginPage>
+
+@code {
+    [SupplyParameterFromQuery(Name = "return")] public string? ReturnUrl { get; set; }
+}

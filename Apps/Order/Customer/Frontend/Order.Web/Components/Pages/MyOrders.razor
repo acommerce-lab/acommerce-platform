@@ -1,0 +1,86 @@
+@page "/orders"
+@inject AppStore Store
+@inject ApiReader Api
+
+<PageTitle>طلباتي - اوردر</PageTitle>
+
+@if (!Store.Auth.IsAuthenticated)
+{
+    <AcEmptyState IconName="log-in"
+                  Title="@(Store.Ui.IsArabic ? "سجل دخولك لرؤية طلباتك" : "Sign in to view orders")"
+                  ActionLabel="@(Store.Ui.IsArabic ? "تسجيل الدخول" : "Sign in")"
+                  ActionHref="/login" />
+}
+else
+{
+    <AcOrdersListPage Orders="@Mapped"
+                      Loading="@Loading"
+                      Title="@(Store.Ui.IsArabic ? "طلباتي" : "My orders")"
+                      LoadingMessage="@(Store.Ui.IsArabic ? "جاري التحميل..." : "Loading…")"
+                      EmptyTitle="@(Store.Ui.IsArabic ? "لا توجد طلبات" : "No orders yet")"
+                      EmptyMessage="@(Store.Ui.IsArabic ? "اطلب أول وجبتك من اوردر" : "Place your first order")"
+                      BrowseLabel="@(Store.Ui.IsArabic ? "تصفّح العروض" : "Browse offers")"
+                      BrowseHref="/" />
+}
+
+@code {
+    private List<OrderRowApi> Orders = new();
+    private bool Loading = true;
+
+    private IReadOnlyList<OrderRowDto> Mapped =>
+        Orders.Select(o => new OrderRowDto
+        {
+            Id = o.Id.ToString(),
+            OrderNumber = o.OrderNumber,
+            Total = o.Total,
+            Currency = o.Currency,
+            Status = StatusKey(o.Status),
+            StatusLabel = o.StatusAr,
+            PickupType = o.PickupType == 1 ? "Curbside" : "InStore",
+            PickupLabel = PickupLabel(o.PickupType),
+            PaymentMethod = o.PreferredPayment == 1 ? "Card" : "Cash",
+            PaymentLabel = PaymentLabel(o.PreferredPayment),
+            CreatedAt = o.CreatedAt,
+            VendorName = o.VendorName,
+            VendorEmoji = o.VendorEmoji
+        }).ToList();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        if (Store.Auth.IsAuthenticated)
+        {
+            var env = await Api.GetAsync<List<OrderRowApi>>($"/api/orders/by-customer/{Store.Auth.UserId}");
+            Orders = env.Data ?? new();
+        }
+        Loading = false;
+        StateHasChanged();
+    }
+
+    private static string StatusKey(int s) => ACommerce.Templates.Shared.Models.StatusHelpers.OrderStatusKey(s);
+
+    private string PickupLabel(int t) => t == 1
+        ? (Store.Ui.IsArabic ? "من السيارة" : "Curbside")
+        : (Store.Ui.IsArabic ? "من المتجر" : "In-store");
+
+    private string PaymentLabel(int p) => p == 1
+        ? (Store.Ui.IsArabic ? "بطاقة" : "Card")
+        : (Store.Ui.IsArabic ? "نقدي" : "Cash");
+
+    public class OrderRowApi
+    {
+        public Guid Id { get; set; }
+        public string OrderNumber { get; set; } = "";
+        public decimal Total { get; set; }
+        public string Currency { get; set; } = "SAR";
+        public int Status { get; set; }
+        public string StatusAr { get; set; } = "";
+        public int PickupType { get; set; }
+        public int PreferredPayment { get; set; }
+        public decimal? CashTendered { get; set; }
+        public decimal? ExpectedChange { get; set; }
+        public DateTime CreatedAt { get; set; }
+        public string VendorName { get; set; } = "";
+        public string VendorEmoji { get; set; } = "🏪";
+    }
+}

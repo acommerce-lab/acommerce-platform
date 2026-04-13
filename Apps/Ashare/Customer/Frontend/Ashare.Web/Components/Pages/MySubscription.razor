@@ -1,0 +1,95 @@
+@page "/my-subscription"
+@rendermode InteractiveServer
+@inject ApiReader Reader
+@inject AppStore Store
+
+<PageTitle>اشتراكي - عشير</PageTitle>
+
+<h1>اشتراكي الحالي</h1>
+
+@if (!Store.Auth.IsAuthenticated)
+{
+    <div class="alert alert-warning">يجب تسجيل الدخول</div>
+}
+else if (loading)
+{
+    <div class="spinner-border"></div>
+}
+else if (active == null)
+{
+    <div class="alert alert-info">
+        لا يوجد اشتراك نشط. <a href="/plans">اختر باقة</a>
+    </div>
+}
+else
+{
+    <div class="card">
+        <div class="card-body">
+            <h3>@active.Plan.Name</h3>
+            <p class="text-muted">@active.Plan.Description</p>
+
+            <div class="row">
+                <div class="col-md-6">
+                    <h5>الحالة</h5>
+                    <ul class="list-unstyled">
+                        <li><strong>الحالة:</strong> @(active.Subscription.Status == 2 ? "✅ نشط" : "⏳ معلّق")</li>
+                        <li><strong>من:</strong> @active.Subscription.StartDate.ToString("yyyy-MM-dd")</li>
+                        <li><strong>إلى:</strong> @active.Subscription.EndDate.ToString("yyyy-MM-dd")</li>
+                    </ul>
+                </div>
+                <div class="col-md-6">
+                    <h5>الاستخدام</h5>
+                    <div class="mb-2">
+                        <label>العروض</label>
+                        <div class="progress" style="height: 25px;">
+                            <div class="progress-bar" style="width:@(Percent(active.Subscription.UsedListingsCount, active.Plan.MaxListings))%">
+                                @active.Subscription.UsedListingsCount / @(active.Plan.MaxListings == -1 ? "∞" : active.Plan.MaxListings.ToString())
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private ActiveDto? active;
+    private bool loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Store.Auth.IsAuthenticated) { loading = false; return; }
+        var resp = await Reader.GetAsync<ActiveDto>($"/api/subscriptions/user/{Store.Auth.UserId}/active");
+        active = resp.Data;
+        loading = false;
+    }
+
+    private int Percent(int used, int max)
+    {
+        if (max == -1) return 10;
+        if (max == 0) return 0;
+        return Math.Min(100, used * 100 / max);
+    }
+
+    public class ActiveDto
+    {
+        public SubDto Subscription { get; set; } = new();
+        public PlanDto Plan { get; set; } = new();
+    }
+
+    public class SubDto
+    {
+        public int Status { get; set; }
+        public DateTime StartDate { get; set; }
+        public DateTime EndDate { get; set; }
+        public int UsedListingsCount { get; set; }
+    }
+
+    public class PlanDto
+    {
+        public string Name { get; set; } = "";
+        public string Description { get; set; } = "";
+        public int MaxListings { get; set; }
+    }
+}

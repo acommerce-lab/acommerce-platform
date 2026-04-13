@@ -1,0 +1,118 @@
+@page "/plans"
+@rendermode InteractiveServer
+@inject ApiReader Reader
+@inject ClientOpEngine Engine
+@inject AppStore Store
+@inject NavigationManager Nav
+
+<PageTitle>الباقات - عشير</PageTitle>
+
+<AcPageHeader Title="باقات الاشتراك"
+              Subtitle="9 باقات مطابقة لبيانات عشير الحالية" />
+
+@if (plans.Count == 0)
+{
+    <div style="text-align:center;padding:3rem;"><AcSpinner Large="true" /></div>
+}
+else
+{
+    <div class="ac-grid ac-grid-cols-3">
+        @foreach (var p in plans)
+        {
+            <AcPlanCard Name="@p.Name"
+                        Description="@p.Description"
+                        Price="@p.MonthlyPrice.ToString("N0")"
+                        Period="@($"شهر {p.Currency}")"
+                        Recommended="@p.IsRecommended">
+                <Features>
+                    <li>✅ العروض: @(p.MaxListings == -1 ? "غير محدود" : p.MaxListings.ToString())</li>
+                    <li>✅ صور: @p.MaxImagesPerListing / عرض</li>
+                    <li>✅ عمولة: @p.CommissionPercentage%</li>
+                    @if (p.HasVerifiedBadge) { <li>✅ شارة موثّق</li> }
+                    @if (p.AllowApiAccess) { <li>✅ وصول API</li> }
+                </Features>
+                <Action>
+                    @if (Store.Auth.IsAuthenticated)
+                    {
+                        <AcButton Text="اشترك" Block="true"
+                                  Loading="@(subscribing == p.Id)"
+                                  OnClick="() => Subscribe(p.Id)" />
+                    }
+                    else
+                    {
+                        <a href="/login" style="display:block;">
+                            <AcButton Text="سجّل دخول أولاً" Variant="outline-primary" Block="true" />
+                        </a>
+                    }
+                </Action>
+            </AcPlanCard>
+        }
+    </div>
+}
+
+@if (!string.IsNullOrEmpty(message))
+{
+    <div class="ac-mt-lg">
+        <AcAlert Variant="info" Message="@message" />
+    </div>
+}
+
+@code {
+    private List<PlanDto> plans = new();
+    private Guid? subscribing;
+    private string message = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        var resp = await Reader.GetAsync<List<PlanDto>>("/api/plans");
+        plans = resp.Data ?? new();
+    }
+
+    private async Task Subscribe(Guid planId)
+    {
+        if (!Store.Auth.UserId.HasValue) return;
+        subscribing = planId;
+        message = "";
+        try
+        {
+            var userId = Store.Auth.UserId.Value;
+            var resp = await Engine.ExecuteAsync<SubscribeResult>(
+                ClientOps.Subscribe(userId, planId),
+                new { userId, planId, billingCycle = "monthly" });
+
+            if (resp.Operation.Status == "Success")
+            {
+                message = "تم الاشتراك بنجاح!";
+                await Task.Delay(1200);
+                Nav.NavigateTo("/my-subscription");
+            }
+            else
+            {
+                message = "فشل: " + (resp.Operation.ErrorMessage ?? resp.Error?.Message ?? "خطأ غير معروف");
+            }
+        }
+        finally { subscribing = null; }
+    }
+
+    public class PlanDto
+    {
+        public Guid Id { get; set; }
+        public string Name { get; set; } = "";
+        public string Slug { get; set; } = "";
+        public string? Description { get; set; }
+        public decimal MonthlyPrice { get; set; }
+        public decimal? AnnualPrice { get; set; }
+        public string Currency { get; set; } = "SAR";
+        public int MaxListings { get; set; }
+        public int MaxImagesPerListing { get; set; }
+        public decimal CommissionPercentage { get; set; }
+        public bool IsRecommended { get; set; }
+        public bool HasVerifiedBadge { get; set; }
+        public bool AllowApiAccess { get; set; }
+    }
+
+    public class SubscribeResult
+    {
+        public Guid Id { get; set; }
+    }
+}

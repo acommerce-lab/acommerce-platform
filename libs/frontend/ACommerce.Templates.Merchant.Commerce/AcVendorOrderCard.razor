@@ -1,0 +1,154 @@
+@namespace ACommerce.Templates.Merchant.Commerce
+
+@*
+    بطاقة تفاصيل طلب واحد مع أزرار الإجراءات.
+
+    Callback mode: الصفحة تعالج أحداث OnConfirm / OnReady / OnCancel.
+    Operation mode: القالب يُرسل العمليات مباشرة.
+
+    Flex slots:
+      ExtraActions — أزرار/إجراءات إضافية أسفل الإجراءات الافتراضية
+      BelowItems   — أسفل قائمة البنود
+*@
+
+<div class="s-card acm-order-card">
+    @if (Order == null)
+    {
+        <AcLoadingState />
+        return;
+    }
+
+    <div class="acm-order-header">
+        <div>
+            <h3>@Order.CustomerName</h3>
+            @if (!string.IsNullOrEmpty(Order.CustomerPhone))
+            {
+                <p class="ac-text-muted" dir="ltr">@Order.CustomerPhone</p>
+            }
+        </div>
+        <AcBadge Text="@Order.Status" Variant="@StatusVariant(Order.Status)" />
+    </div>
+
+    <div class="acm-order-items">
+        @foreach (var item in Order.Items)
+        {
+            <div class="acm-order-item-row">
+                @if (!string.IsNullOrEmpty(item.Emoji))
+                {
+                    <span>@item.Emoji</span>
+                }
+                <span class="acm-item-title">@item.Title</span>
+                <span class="ac-text-muted">x@item.Quantity</span>
+                <span>@((item.UnitPrice * item.Quantity).ToString("N0")) @Order.Currency</span>
+            </div>
+        }
+    </div>
+
+    @BelowItems
+
+    <div class="acm-order-total-row">
+        <strong>@(TotalLabel ?? "الإجمالي")</strong>
+        <strong>@Order.Total.ToString("N0") @Order.Currency</strong>
+    </div>
+
+    @if (!string.IsNullOrEmpty(Order.Notes))
+    {
+        <p class="ac-text-muted">@(NotesLabel ?? "ملاحظات"): @Order.Notes</p>
+    }
+
+    <div class="acm-order-actions">
+        @if (Order.Status is "pending" or "قيد الانتظار")
+        {
+            <AcButton Variant="success" Text="@(ConfirmLabel ?? "تأكيد الطلب")"
+                      OnClick="HandleConfirm" Disabled="@_busy" />
+        }
+        @if (Order.Status is "confirmed" or "مؤكد")
+        {
+            <AcButton Variant="primary" Text="@(ReadyLabel ?? "جاهز للتسليم")"
+                      OnClick="HandleReady" Disabled="@_busy" />
+        }
+        @if (Order.Status is not ("delivered" or "مُسلَّم" or "cancelled" or "ملغى"))
+        {
+            <AcButton Variant="ghost" Text="@(CancelLabel ?? "إلغاء")"
+                      OnClick="HandleCancel" Disabled="@_busy" />
+        }
+        @ExtraActions
+    </div>
+</div>
+
+@code {
+    // ── وضع التشغيل ────────────────────────────────────────────────────────
+    [Parameter] public TemplateOperationMode Mode { get; set; } = TemplateOperationMode.Callback;
+
+    [Parameter] public MerchantOrderRowDto? Order { get; set; }
+
+    // ── Callback mode ──────────────────────────────────────────────────────
+    [Parameter] public EventCallback<MerchantOrderRowDto> OnConfirm { get; set; }
+    [Parameter] public EventCallback<MerchantOrderRowDto> OnReady { get; set; }
+    [Parameter] public EventCallback<MerchantOrderRowDto> OnCancel { get; set; }
+
+    // ── Operation mode ─────────────────────────────────────────────────────
+    [Parameter] public ITemplateEngine? Engine { get; set; }
+    [Parameter] public Func<string, Operation>? BuildConfirmOp { get; set; }
+    [Parameter] public Func<string, Operation>? BuildReadyOp { get; set; }
+    [Parameter] public Func<string, Operation>? BuildCancelOp { get; set; }
+
+    // ── Labels ─────────────────────────────────────────────────────────────
+    [Parameter] public string? TotalLabel { get; set; }
+    [Parameter] public string? NotesLabel { get; set; }
+    [Parameter] public string? ConfirmLabel { get; set; }
+    [Parameter] public string? ReadyLabel { get; set; }
+    [Parameter] public string? CancelLabel { get; set; }
+
+    // ── Flex slots ─────────────────────────────────────────────────────────
+    [Parameter] public RenderFragment? BelowItems { get; set; }
+    [Parameter] public RenderFragment? ExtraActions { get; set; }
+
+    private bool _busy;
+
+    private async Task HandleConfirm()
+    {
+        if (Order == null) return;
+        if (Mode == TemplateOperationMode.Operation && Engine != null && BuildConfirmOp != null)
+        {
+            _busy = true;
+            try { await Engine.ExecuteAsync<object>(BuildConfirmOp(Order.Id)); }
+            finally { _busy = false; }
+        }
+        else if (OnConfirm.HasDelegate) await OnConfirm.InvokeAsync(Order);
+    }
+
+    private async Task HandleReady()
+    {
+        if (Order == null) return;
+        if (Mode == TemplateOperationMode.Operation && Engine != null && BuildReadyOp != null)
+        {
+            _busy = true;
+            try { await Engine.ExecuteAsync<object>(BuildReadyOp(Order.Id)); }
+            finally { _busy = false; }
+        }
+        else if (OnReady.HasDelegate) await OnReady.InvokeAsync(Order);
+    }
+
+    private async Task HandleCancel()
+    {
+        if (Order == null) return;
+        if (Mode == TemplateOperationMode.Operation && Engine != null && BuildCancelOp != null)
+        {
+            _busy = true;
+            try { await Engine.ExecuteAsync<object>(BuildCancelOp(Order.Id)); }
+            finally { _busy = false; }
+        }
+        else if (OnCancel.HasDelegate) await OnCancel.InvokeAsync(Order);
+    }
+
+    private static string StatusVariant(string status) => status.ToLowerInvariant() switch
+    {
+        "pending" or "قيد الانتظار" => "warning",
+        "confirmed" or "مؤكد" => "info",
+        "ready" or "جاهز" => "success",
+        "delivered" or "مُسلَّم" => "success",
+        "cancelled" or "ملغى" => "danger",
+        _ => "default"
+    };
+}

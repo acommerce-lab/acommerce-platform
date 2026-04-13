@@ -1,0 +1,116 @@
+@namespace ACommerce.Templates.Merchant.Commerce
+
+@*
+    صفحة إعدادات التاجر — معلومات المتجر الأساسية.
+
+    Callback mode: الصفحة تعالج OnSave.
+    Operation mode: القالب يُرسل العملية مباشرة.
+
+    Flex slots:
+      ExtraFields  — حقول إضافية (مثل إعدادات الدفع، التوصيل)
+      BelowForm    — محتوى أسفل الاستمارة
+*@
+
+<div class="acs-page">
+    @if (!string.IsNullOrEmpty(Title))
+    {
+        <h1 class="acs-page-title">@Title</h1>
+    }
+
+    <div class="s-card">
+        <AcField Label="@(NameLabel ?? "اسم المتجر")" Required>
+            <AcInput Value="@_name" ValueChanged="@(v => _name = v)" Placeholder="@(NamePlaceholder ?? "اسم متجرك")" />
+        </AcField>
+
+        <AcField Label="@(PhoneLabel ?? "رقم التواصل")">
+            <AcInput Value="@_phone" ValueChanged="@(v => _phone = v)" Type="tel" Placeholder="+966500000000" />
+        </AcField>
+
+        <AcField Label="@(DescriptionLabel ?? "وصف المتجر")">
+            <textarea class="form-input" rows="3"
+                      value="@_description"
+                      @oninput="@(e => _description = e.Value?.ToString() ?? "")"
+                      placeholder="@(DescriptionPlaceholder ?? "نبذة عن متجرك...")"></textarea>
+        </AcField>
+
+        @ExtraFields
+
+        @if (!string.IsNullOrEmpty(_error))
+        {
+            <AcAlert Variant="danger" Message="@_error" />
+        }
+
+        <AcButton Variant="primary" Text="@(SaveLabel ?? "حفظ الإعدادات")"
+                  OnClick="HandleSave" Disabled="@_busy" />
+    </div>
+
+    @BelowForm
+</div>
+
+@code {
+    [Parameter] public TemplateOperationMode Mode { get; set; } = TemplateOperationMode.Callback;
+
+    // القيم الأولية
+    [Parameter] public string InitialName { get; set; } = "";
+    [Parameter] public string InitialPhone { get; set; } = "";
+    [Parameter] public string InitialDescription { get; set; } = "";
+
+    // Callback mode
+    [Parameter] public EventCallback<(string Name, string Phone, string Description)> OnSave { get; set; }
+
+    // Operation mode
+    [Parameter] public ITemplateEngine? Engine { get; set; }
+    [Parameter] public Func<string, string, string, Operation>? BuildSaveOp { get; set; }
+    [Parameter] public EventCallback OnSuccess { get; set; }
+
+    // Labels
+    [Parameter] public string? Title { get; set; }
+    [Parameter] public string? NameLabel { get; set; }
+    [Parameter] public string? NamePlaceholder { get; set; }
+    [Parameter] public string? PhoneLabel { get; set; }
+    [Parameter] public string? DescriptionLabel { get; set; }
+    [Parameter] public string? DescriptionPlaceholder { get; set; }
+    [Parameter] public string? SaveLabel { get; set; }
+
+    [Parameter] public RenderFragment? ExtraFields { get; set; }
+    [Parameter] public RenderFragment? BelowForm { get; set; }
+
+    private string _name = "";
+    private string _phone = "";
+    private string _description = "";
+    private bool _busy;
+    private string _error = "";
+
+    protected override void OnParametersSet()
+    {
+        _name = InitialName;
+        _phone = InitialPhone;
+        _description = InitialDescription;
+    }
+
+    private async Task HandleSave()
+    {
+        _error = "";
+        if (string.IsNullOrWhiteSpace(_name)) { _error = "اسم المتجر مطلوب"; return; }
+
+        if (Mode == TemplateOperationMode.Operation && Engine != null && BuildSaveOp != null)
+        {
+            _busy = true;
+            try
+            {
+                var result = await Engine.ExecuteAsync<object>(
+                    BuildSaveOp(_name, _phone, _description),
+                    new { name = _name, phone = _phone, description = _description });
+                if (result.Operation.Status != "Success")
+                {
+                    _error = result.Operation.ErrorMessage ?? result.Error?.Message ?? "حدث خطأ";
+                    return;
+                }
+                if (OnSuccess.HasDelegate) await OnSuccess.InvokeAsync();
+            }
+            finally { _busy = false; }
+        }
+        else if (OnSave.HasDelegate)
+            await OnSave.InvokeAsync((_name, _phone, _description));
+    }
+}

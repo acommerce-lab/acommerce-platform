@@ -1,55 +1,38 @@
 # ACommerce Platform
 
-Multi-vendor e-commerce platform built on the accounting OperationEngine.
+Multi-vendor e-commerce platform built on the **Operation-Accounting Model
+(OAM)** — every state change is a double-entry accounting operation.
 
-**Start here:** [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+## Quick start
 
-## Quick tour
+```bash
+dotnet build ACommerce.Platform.sln
+dotnet run --project Apps/Order.Api &
+dotnet run --project Apps/Order.Web
+# API → http://localhost:5101/swagger
+# Web → http://localhost:5701
+```
 
-- `libs/backend/core/` — the five non-negotiable core libraries (shared kernel, EF wrapper, OperationEngine, wire format, interceptors)
-- `libs/backend/auth/` — authentication + JWT + SMS / Email / Nafath 2FA + permissions
-- `libs/backend/messaging/` — realtime transport + in-app and Firebase notifications
+## Repository structure
+
+- `libs/backend/core/` — OperationEngine, Wire, Interceptors, SharedKernel
+- `libs/backend/auth/` — authentication + JWT + SMS/Email/Nafath 2FA
+- `libs/backend/messaging/` — realtime transport + notifications
 - `libs/backend/sales/` — payments (Noon provider)
 - `libs/backend/marketplace/` — subscriptions with quota interceptors
-- `libs/backend/files/` — file storage abstractions + Local / Aliyun OSS / Google Cloud providers
-- `libs/backend/other/` — favourites, translations
-- `libs/frontend/ACommerce.Widgets/` — atomic widgets + Bootstrap compatibility layer (664 lines of CSS)
-- `libs/frontend/ACommerce.Templates.Commerce/` — composite templates (AcShell, AcProductCard, …)
-- `clients/` — client-side accounting libraries (wire format, HTTP dispatcher, reactive bridge)
-- `Apps/Ashare.Api` + `Apps/Ashare.Web` — property classifieds demo
-- `Apps/Order.Api` + `Apps/Order.Web` — cafe/restaurant deals demo (in-store + curbside pickup, no online payment)
+- `libs/backend/files/` — file storage (Local / Aliyun OSS / Google Cloud)
+- `libs/frontend/` — Widgets, Templates.Shared, Templates.Customer.Commerce
+- `clients/` — Client.Operations, Client.Http, Client.StateBridge
+- `Apps/` — Order, Vendor, Ashare (Api + Web each)
 
 ## Documentation
 
-All docs are under `docs/`:
-
-- **ARCHITECTURE.md** — the top-level map.
-- **ACCOUNTING-PHILOSOPHY.md** — the OpEngine mental model.
-- **BUILDING-A-BACKEND.md** — step-by-step recipe for a new backend.
-- **BUILDING-A-FRONTEND.md** — step-by-step recipe for a new Blazor frontend.
-- **AI-AGENT-ONBOARDING.md** — the brief for future AI coding agents.
-- **TEMPLATES-ROADMAP.md** — what templates exist, what's missing, and why.
-
-## Running the demos
-
-```bash
-bash Apps/Order.Web/run-local.sh
-```
-
-Then open http://localhost:5701.
-
-## Using the solution file
-
-The repository ships a full **`ACommerce.Platform.sln`** at the root that
-registers every project (38 in total) and organizes them into solution
-folders (`Apps`, `libs/backend/{core,auth,files,messaging,marketplace,other,sales}`,
-`libs/frontend`, `clients`). Open it in Visual Studio / Rider / VS Code
-and you'll see the full platform tree ready to build, run, and debug.
-
-Command-line equivalents:
-
-```bash
-dotnet build ACommerce.Platform.sln       # build everything
-dotnet run --project Apps/Order.Api       # run the Order backend
-dotnet run --project Apps/Order.Web       # run the Order frontend
-```
+| Document | Contents |
+|---|---|
+| [`docs/MODEL.md`](docs/MODEL.md) | The Operation-Accounting Model — core concepts, lifecycle, algebraic structure |
+| [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Four-layer architecture, library catalog |
+| [`docs/LIBRARY-ANATOMY.md`](docs/LIBRARY-ANATOMY.md) | Three-layer pattern for domain libraries (pure accounting + providers + interceptors) |
+| [`docs/BUILDING-A-BACKEND.md`](docs/BUILDING-A-BACKEND.md) | Step-by-step recipe for a new backend service |
+| [`docs/BUILDING-A-FRONTEND.md`](docs/BUILDING-A-FRONTEND.md) | Step-by-step recipe for a new Blazor frontend |
+| [`docs/ROADMAP.md`](docs/ROADMAP.md) | Current state, modification plan, session history |
+| [`CLAUDE.md`](CLAUDE.md) | AI agent onboarding — laws, constraints, boundaries |

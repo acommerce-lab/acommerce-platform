@@ -1,0 +1,126 @@
+@page "/profile"
+@rendermode InteractiveServer
+@inject ApiReader Reader
+@inject AppStore Store
+@inject ClientOpEngine Engine
+
+<PageTitle>@Store.Ui.Tr("ملفي الشخصي", "My Profile") - عشير</PageTitle>
+
+@if (!Store.Auth.IsAuthenticated)
+{
+    <div class="alert alert-warning">
+        <a href="/login">@Store.Ui.Tr("سجّل دخولك", "Sign in")</a>
+    </div>
+}
+else if (Loading)
+{
+    <div class="spinner-border" role="status"></div>
+}
+else
+{
+    <div style="padding:16px;max-width:480px;">
+        <h1 class="acs-page-title" style="margin-bottom:20px;">
+            @Store.Ui.Tr("ملفي الشخصي", "My Profile")
+        </h1>
+
+        <div class="s-card">
+            <div style="margin-bottom:12px;">
+                <label style="font-size:0.8rem;color:var(--ac-text-muted);">@Store.Ui.Tr("الاسم الأول", "First name")</label>
+                <input class="form-control form-control-sm" @bind="FirstName" />
+            </div>
+            <div style="margin-bottom:12px;">
+                <label style="font-size:0.8rem;color:var(--ac-text-muted);">@Store.Ui.Tr("الاسم الأخير", "Last name")</label>
+                <input class="form-control form-control-sm" @bind="LastName" />
+            </div>
+            <div style="margin-bottom:12px;">
+                <label style="font-size:0.8rem;color:var(--ac-text-muted);">@Store.Ui.Tr("نبذة", "Bio")</label>
+                <textarea class="form-control form-control-sm" rows="3" @bind="Bio"></textarea>
+            </div>
+            <div style="margin-bottom:12px;">
+                <label style="font-size:0.8rem;color:var(--ac-text-muted);">@Store.Ui.Tr("المدينة", "City")</label>
+                <input class="form-control form-control-sm" @bind="City" />
+            </div>
+            <div style="margin-bottom:16px;">
+                <label style="font-size:0.8rem;color:var(--ac-text-muted);">@Store.Ui.Tr("رابط الصورة", "Avatar URL")</label>
+                <input class="form-control form-control-sm" @bind="AvatarUrl" />
+            </div>
+
+            @if (!string.IsNullOrEmpty(Message))
+            {
+                <div class="alert @(Success ? "alert-success" : "alert-danger") py-2 mb-3">@Message</div>
+            }
+
+            <button class="btn btn-primary btn-block" @onclick="Save" disabled="@Saving">
+                @(Saving ? Store.Ui.Tr("جاري الحفظ...", "Saving...") : Store.Ui.Tr("حفظ", "Save"))
+            </button>
+        </div>
+    </div>
+}
+
+@code {
+    private bool Loading = true;
+    private bool Saving;
+    private string? Message;
+    private bool Success;
+
+    private string? FirstName;
+    private string? LastName;
+    private string? Bio;
+    private string? City;
+    private string? AvatarUrl;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        if (!Store.Auth.IsAuthenticated || !Store.Auth.UserId.HasValue)
+        {
+            Loading = false;
+            StateHasChanged();
+            return;
+        }
+
+        var env = await Reader.GetAsync<ProfileDto>($"/api/profiles/user/{Store.Auth.UserId}");
+        if (env.Data != null)
+        {
+            FirstName = env.Data.FirstName;
+            LastName = env.Data.LastName;
+            Bio = env.Data.Bio;
+            City = env.Data.City;
+            AvatarUrl = env.Data.AvatarUrl;
+        }
+        Loading = false;
+        StateHasChanged();
+    }
+
+    private async Task Save()
+    {
+        if (!Store.Auth.UserId.HasValue) return;
+        Saving = true;
+        Message = null;
+
+        var result = await Engine.ExecuteAsync<object>(
+            ClientOps.UpdateProfile(Store.Auth.UserId.Value),
+            new
+            {
+                UserId = Store.Auth.UserId.Value,
+                FirstName, LastName, Bio, City, AvatarUrl
+            });
+
+        Success = result.Operation.Status == "Success";
+        Message = Success
+            ? Store.Ui.Tr("تم الحفظ بنجاح", "Saved successfully")
+            : (result.Operation.ErrorMessage ?? Store.Ui.Tr("فشل الحفظ", "Save failed"));
+        Saving = false;
+        StateHasChanged();
+    }
+
+    public class ProfileDto
+    {
+        public Guid Id { get; set; }
+        public string? FirstName { get; set; }
+        public string? LastName { get; set; }
+        public string? Bio { get; set; }
+        public string? City { get; set; }
+        public string? AvatarUrl { get; set; }
+    }
+}

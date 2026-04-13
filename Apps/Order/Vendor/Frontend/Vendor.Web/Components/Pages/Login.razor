@@ -1,0 +1,34 @@
+@page "/login"
+@inject AppStore Store
+@inject ClientOpEngine Engine
+@inject NavigationManager Nav
+
+<PageTitle>@(Store.Ui.IsArabic ? "دخول التاجر" : "Vendor Login")</PageTitle>
+
+<AcLoginPage Mode="TemplateOperationMode.Operation"
+             Engine="Engine"
+             BuildRequestOtpOp="@(phone => ClientOps.RequestOtp(phone))"
+             BuildVerifyOtpOp="@((uid, cid, code) => ClientOps.VerifyOtp(uid, cid, code))"
+             PhonePayload="@(phone => new { phoneNumber = phone })"
+             VerifyPayload="@((uid, cid, code) => new { userId = uid, challengeId = cid, code })"
+             RedirectUrl="/"
+             BrandName="@(Store.Ui.IsArabic ? "لوحة التاجر" : "Vendor Dashboard")"
+             BrandTagline="@(Store.Ui.IsArabic ? "أدر طلباتك وعروضك" : "Manage orders & offers")"
+             PhoneStepTitle="@(Store.Ui.IsArabic ? "تسجيل الدخول" : "Sign in")"
+             PhoneStepSubtitle="@(Store.Ui.IsArabic ? "أدخل رقم جوال التاجر" : "Enter your vendor phone")"
+             PhoneLabel="@(Store.Ui.IsArabic ? "رقم الجوال" : "Phone number")"
+             PhonePlaceholder="+966501111111"
+             RequestOtpLabel="@(Store.Ui.IsArabic ? "إرسال رمز التحقق" : "Send OTP")"
+             SendingLabel="@(Store.Ui.IsArabic ? "جاري الإرسال..." : "Sending...")"
+             OtpStepTitle="@(Store.Ui.IsArabic ? "رمز التحقق" : "Verification code")"
+             OtpStepSubtitle="@(Store.Ui.IsArabic ? "أدخل الرمز المرسل إلى" : "Enter the code sent to")"
+             OtpLabel="@(Store.Ui.IsArabic ? "الرمز (6 أرقام)" : "Code (6 digits)")"
+             VerifyOtpLabel="@(Store.Ui.IsArabic ? "دخول" : "Sign in")"
+             VerifyingLabel="@(Store.Ui.IsArabic ? "جاري التحقق..." : "Verifying...")"
+             BackLabel="@(Store.Ui.IsArabic ? "تغيير الرقم" : "Change number")">
+    <HintSlot>
+        <strong>@(Store.Ui.IsArabic ? "حسابات التجار التجريبية:" : "Demo vendor accounts:")</strong><br/>
+        <code dir="ltr">+966501111111</code> @(Store.Ui.IsArabic ? "(أحمد — كافيه السعادة)" : "(Ahmed — Happiness Café)")<br/>
+        <code dir="ltr">+966502222222</code> @(Store.Ui.IsArabic ? "(فاطمة — مطعم الأصيل)" : "(Fatimah — Al-Aseel)")
+    </HintSlot>
+</AcLoginPage>

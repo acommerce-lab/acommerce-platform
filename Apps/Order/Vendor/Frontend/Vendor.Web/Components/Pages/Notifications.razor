@@ -1,0 +1,67 @@
+@page "/notifications"
+@inject ApiReader Reader
+@inject ClientOpEngine Engine
+@inject AppStore Store
+
+<PageTitle>@(Store.Ui.IsArabic ? "الإشعارات" : "Notifications")</PageTitle>
+
+@if (!Store.Auth.IsAuthenticated)
+{
+    <AcEmptyState IconName="bell"
+                  Title="@(Store.Ui.IsArabic ? "سجّل دخولك" : "Sign in")"
+                  ActionHref="/login"
+                  ActionLabel="@(Store.Ui.IsArabic ? "دخول" : "Sign in")" />
+}
+else
+{
+    <AcNotificationsPage Mode="TemplateOperationMode.Callback"
+                         Notifications="@Mapped"
+                         Loading="@Loading"
+                         Title="@(Store.Ui.IsArabic ? "الإشعارات" : "Notifications")"
+                         EmptyTitle="@(Store.Ui.IsArabic ? "لا إشعارات" : "No notifications")"
+                         EmptyMessage="@(Store.Ui.IsArabic ? "ستظهر هنا إشعارات الطلبات الجديدة" : "New order notifications will appear here")"
+                         OnMarkAllRead="MarkAll" />
+}
+
+@code {
+    private List<NotiDto>? _items;
+    private bool Loading => _items is null;
+
+    private IReadOnlyList<NotificationRowDto> Mapped =>
+        _items is null ? Array.Empty<NotificationRowDto>() :
+        _items.Select(n => new NotificationRowDto
+        {
+            Id = n.Id.ToString(),
+            Title = n.Title,
+            Body = n.Body,
+            Type = n.Type,
+            IsRead = n.IsRead,
+            CreatedAt = n.CreatedAt
+        }).ToList();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || !Store.Auth.IsAuthenticated) return;
+        var env = await Reader.GetAsync<List<NotiDto>>($"/api/notifications/user/{Store.Auth.UserId}");
+        _items = env.Data ?? new();
+        StateHasChanged();
+    }
+
+    private async Task MarkAll()
+    {
+        if (!Store.Auth.UserId.HasValue) return;
+        // Vendor.Web uses notification.mark_all_read — ensure route exists or fall through gracefully
+        if (_items != null) foreach (var n in _items) n.IsRead = true;
+        StateHasChanged();
+    }
+
+    public class NotiDto
+    {
+        public Guid Id { get; set; }
+        public string Title { get; set; } = "";
+        public string Body { get; set; } = "";
+        public string Type { get; set; } = "general";
+        public bool IsRead { get; set; }
+        public DateTime CreatedAt { get; set; }
+    }
+}

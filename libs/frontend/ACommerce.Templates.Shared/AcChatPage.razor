@@ -1,14 +1,17 @@
 @namespace ACommerce.Templates.Shared
 
 @*
-    Chat bubble stream + input row. Purely presentational — consumer handles
-    load + send + paging. Bubbles are RTL-aware via the parent direction.
+    Chat bubble stream + input row.
+
+    Callback mode (افتراضي): الصفحة تُمرر Draft وتعالج OnSend.
+    Operation mode: القالب يُدير الـ draft ويُرسل العملية مباشرة.
+      مطلوب: Engine + BuildSendOp + SenderId.
 
     Flex slots:
-      HeaderSlot        — replaces the default title (e.g. peer avatar + name)
+      HeaderSlot        — replaces the default title
       AboveStream       — rendered above the message stream
-      AboveInput        — rendered above the text input row (e.g. quick replies)
-      ExtraInputActions — rendered inside the input row, before the send button
+      AboveInput        — rendered above the text input row
+      ExtraInputActions — inside the input row, before send button
 *@
 
 <div class="acs-chat-page">
@@ -53,51 +56,100 @@
         <input type="text"
                class="form-input"
                placeholder="@(InputPlaceholder ?? "اكتب رسالة...")"
-               value="@Draft"
-               @oninput="OnDraftInput"
-               @onkeydown="OnKey"
-               disabled="@Sending" />
+               value="@CurrentDraft"
+               @oninput="HandleDraftInput"
+               @onkeydown="HandleKey"
+               disabled="@CurrentSending" />
         @ExtraInputActions
         <button class="btn btn-primary"
-                @onclick="OnSend"
-                disabled="@(Sending || string.IsNullOrWhiteSpace(Draft))">
+                @onclick="HandleSend"
+                disabled="@(CurrentSending || string.IsNullOrWhiteSpace(CurrentDraft))">
             @(SendLabel ?? "إرسال")
         </button>
     </div>
 </div>
 
 @code {
+    // ── وضع التشغيل ────────────────���──────────────────────────────────────
+    [Parameter] public TemplateOperationMode Mode { get; set; } = TemplateOperationMode.Callback;
+
+    // ── البيانات ─────────────────────��────────────────────────────────────
     [Parameter] public IReadOnlyList<ChatMessageDto> Messages { get; set; } = Array.Empty<ChatMessageDto>();
     [Parameter] public required string MySenderId { get; set; }
     [Parameter] public bool Loading { get; set; }
-    [Parameter] public bool Sending { get; set; }
 
+    // ── Callback mode ──────────────────────────────────────────────────────
+    [Parameter] public bool Sending { get; set; }
     [Parameter] public string Draft { get; set; } = "";
     [Parameter] public EventCallback<string> DraftChanged { get; set; }
     [Parameter] public EventCallback OnSend { get; set; }
 
+    // ── Operation mode ──────────────────────────���──────────────────────────
+    [Parameter] public ITemplateEngine? Engine { get; set; }
+    [Parameter] public Func<string, Operation>? BuildSendOp { get; set; }
+    [Parameter] public Func<string, object>? SendPayload { get; set; }
+    [Parameter] public EventCallback<ChatMessageDto> OnMessageSent { get; set; }
+
+    // ── Labels ─────────────────────────────────────────────────────────────
     [Parameter] public string? Title { get; set; }
     [Parameter] public string? LoadingMessage { get; set; }
     [Parameter] public string? EmptyMessage { get; set; }
     [Parameter] public string? InputPlaceholder { get; set; }
     [Parameter] public string? SendLabel { get; set; }
 
+    // ── Flex slots ───────────────��─────────────────────────────────────────
     [Parameter] public RenderFragment? HeaderSlot { get; set; }
     [Parameter] public RenderFragment? AboveStream { get; set; }
     [Parameter] public RenderFragment? AboveInput { get; set; }
     [Parameter] public RenderFragment? ExtraInputActions { get; set; }
 
-    private async Task OnDraftInput(ChangeEventArgs e)
+    // ── حالة داخلية (Operation mode) ─────────────────��────────────────────
+    private string _opDraft = "";
+    private bool _opSending;
+
+    private string CurrentDraft => Mode == TemplateOperationMode.Operation ? _opDraft : Draft;
+    private bool CurrentSending => Mode == TemplateOperationMode.Operation ? _opSending : Sending;
+
+    private async Task HandleDraftInput(ChangeEventArgs e)
     {
-        Draft = e.Value?.ToString() ?? "";
-        if (DraftChanged.HasDelegate) await DraftChanged.InvokeAsync(Draft);
+        var v = e.Value?.ToString() ?? "";
+        if (Mode == TemplateOperationMode.Operation)
+            _opDraft = v;
+        else
+        {
+            Draft = v;
+            if (DraftChanged.HasDelegate) await DraftChanged.InvokeAsync(Draft);
+        }
     }
 
-    private async Task OnKey(KeyboardEventArgs e)
+    private async Task HandleKey(KeyboardEventArgs e)
     {
-        if (e.Key == "Enter" && !string.IsNullOrWhiteSpace(Draft) && !Sending)
+        if (e.Key == "Enter" && !string.IsNullOrWhiteSpace(CurrentDraft) && !CurrentSending)
+            await HandleSend();
+    }
+
+    private async Task HandleSend()
+    {
+        if (Mode == TemplateOperationMode.Operation)
+            await OpSend();
+        else if (OnSend.HasDelegate)
+            await OnSend.InvokeAsync();
+    }
+
+    private async Task OpSend()
+    {
+        if (Engine == null || BuildSendOp == null || string.IsNullOrWhiteSpace(_opDraft)) return;
+        _opSending = true;
+        var text = _opDraft;
+        _opDraft = "";
+        try
         {
-            if (OnSend.HasDelegate) await OnSend.InvokeAsync();
+            var payload = SendPayload != null ? SendPayload(text) : (object)new { content = text };
+            var op = BuildSendOp(text);
+            var result = await Engine.ExecuteAsync<ChatMessageDto>(op, payload);
+            if (result.Data != null && OnMessageSent.HasDelegate)
+                await OnMessageSent.InvokeAsync(result.Data);
         }
+        finally { _opSending = false; }
     }
 }

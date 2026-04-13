@@ -1,3 +1,4 @@
+using ACommerce.Client.Operations.Interceptors;
 using ACommerce.OperationEngine.Core;
 using ACommerce.OperationEngine.Wire;
 using Microsoft.Extensions.Logging;
@@ -11,20 +12,25 @@ namespace ACommerce.Client.Operations;
 ///   - لا ينفّذ المحللات الثقيلة (تلك مسؤولية الخادم)
 ///   - يستبدل خطوة Execute بإرسال الـ Operation عبر IOperationDispatcher
 ///   - يدمج OperationDescriptor من ردّ الخادم مع الـ Operation المحلية
-///   - يطلق أحداثاً للـ State Bridge
+///   - يُطبّق StateBridge تلقائياً عبر IStateApplier المحقون (إن وُجد)
 /// </summary>
-public class ClientOpEngine
+public class ClientOpEngine : ITemplateEngine
 {
     private readonly IOperationDispatcher _dispatcher;
     private readonly ILogger<ClientOpEngine> _logger;
+    private readonly IStateApplier? _stateApplier;
 
     public event Action<Operation, OperationEnvelope<object>>? OnOperationCompleted;
     public event Action<Operation, Exception>? OnOperationFailed;
 
-    public ClientOpEngine(IOperationDispatcher dispatcher, ILogger<ClientOpEngine> logger)
+    public ClientOpEngine(
+        IOperationDispatcher dispatcher,
+        ILogger<ClientOpEngine> logger,
+        IStateApplier? stateApplier = null)
     {
         _dispatcher = dispatcher;
         _logger = logger;
+        _stateApplier = stateApplier;
     }
 
     /// <summary>
@@ -76,7 +82,7 @@ public class ClientOpEngine
             // 3) دمج رد الخادم في القيد المحلي
             OperationMerger.Merge(localOp, envelope.Operation);
 
-            // 4) إطلاق أحداث الإكمال
+            // 4) تطبيق جسر الحالة تلقائياً (إن كان المحقون متاحاً)
             var asObject = new OperationEnvelope<object>
             {
                 Data = envelope.Data,
@@ -84,6 +90,10 @@ public class ClientOpEngine
                 Error = envelope.Error,
                 Meta = envelope.Meta
             };
+            if (_stateApplier != null)
+                await _stateApplier.ApplyAsync(asObject, ct);
+
+            // 5) إطلاق أحداث الإكمال
             OnOperationCompleted?.Invoke(localOp, asObject);
 
             return envelope;

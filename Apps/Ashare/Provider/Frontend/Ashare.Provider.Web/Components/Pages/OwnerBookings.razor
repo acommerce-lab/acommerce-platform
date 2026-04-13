@@ -1,0 +1,161 @@
+@page "/owner-bookings"
+@rendermode InteractiveServer
+@inject ApiReader Reader
+@inject AppStore Store
+@inject ClientOpEngine Engine
+
+<PageTitle>@Store.Ui.Tr("طلبات الحجز", "Booking Requests") - عشير للمُلاّك</PageTitle>
+
+@if (!Store.Auth.IsAuthenticated)
+{
+    <div class="alert alert-warning" style="margin:16px;">
+        <a href="/login">@Store.Ui.Tr("سجّل دخولك", "Sign in")</a>
+    </div>
+}
+else if (Loading)
+{
+    <AcLoadingState Message="@Store.Ui.Tr("جاري التحميل...", "Loading…")" />
+}
+else
+{
+    <div style="padding:16px;">
+        <h1 class="acs-page-title" style="margin-bottom:16px;">
+            @Store.Ui.Tr("طلبات الحجز", "Booking Requests")
+        </h1>
+
+        <div class="acs-seg" style="margin-bottom:12px;">
+            @foreach (var f in new[] {
+                ("all", Store.Ui.Tr("الكل", "All")),
+                ("pending", Store.Ui.Tr("معلقة", "Pending")),
+                ("confirmed", Store.Ui.Tr("مؤكدة", "Confirmed")),
+                ("cancelled", Store.Ui.Tr("ملغاة", "Cancelled"))
+            })
+            {
+                <button class="acs-seg-btn @(Filter == f.Item1 ? "active" : "")"
+                        @onclick="@(() => Filter = f.Item1)">@f.Item2</button>
+            }
+        </div>
+
+        @{
+            var visible = Filter switch
+            {
+                "pending" => Bookings.Where(b => b.Status == 0).ToList(),
+                "confirmed" => Bookings.Where(b => b.Status == 1).ToList(),
+                "cancelled" => Bookings.Where(b => b.Status == 4).ToList(),
+                _ => Bookings
+            };
+        }
+
+        @if (visible.Count == 0)
+        {
+            <AcEmptyState IconName="calendar" Title="@Store.Ui.Tr("لا حجوزات", "No bookings")" />
+        }
+        else
+        {
+            @foreach (var b in visible)
+            {
+                <div class="s-card" style="margin-bottom:10px;">
+                    <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+                        <div>
+                            <div style="font-weight:700;">@b.TotalPrice.ToString("0.##") @b.Currency</div>
+                            <div style="font-size:0.78rem;color:var(--ac-text-muted);">
+                                @b.StartDate.ToString("yyyy-MM-dd") → @b.EndDate.ToString("yyyy-MM-dd")
+                            </div>
+                            @if (!string.IsNullOrEmpty(b.Notes))
+                            {
+                                <div style="font-size:0.78rem;color:var(--ac-text-muted);margin-top:2px;">
+                                    @b.Notes
+                                </div>
+                            }
+                            <span class="badge @StatusBadge(b.Status)" style="margin-top:4px;">@StatusLabel(b.Status)</span>
+                        </div>
+                        @if (b.Status == 0)
+                        {
+                            <div style="display:flex;flex-direction:column;gap:4px;">
+                                <button class="btn btn-sm btn-success"
+                                        @onclick="() => Confirm(b)" disabled="@b.Acting">
+                                    @Store.Ui.Tr("قبول", "Accept")
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger"
+                                        @onclick="() => Reject(b)" disabled="@b.Acting">
+                                    @Store.Ui.Tr("رفض", "Reject")
+                                </button>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+        }
+    </div>
+}
+
+@code {
+    private bool Loading = true;
+    private List<BookingRow> Bookings = new();
+    private string Filter = "all";
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        if (!Store.Auth.IsAuthenticated || !Store.Auth.UserId.HasValue)
+        {
+            Loading = false;
+            StateHasChanged();
+            return;
+        }
+        var env = await Reader.GetAsync<List<BookingRow>>($"/api/bookings/by-owner/{Store.Auth.UserId}");
+        Bookings = env.Data ?? new();
+        Loading = false;
+        StateHasChanged();
+    }
+
+    private async Task Confirm(BookingRow b)
+    {
+        b.Acting = true;
+        var result = await Engine.ExecuteAsync<object>(ClientOps.ConfirmBooking(b.Id), new { });
+        if (result.Operation.Status == "Success")
+            b.Status = 1;
+        b.Acting = false;
+        StateHasChanged();
+    }
+
+    private async Task Reject(BookingRow b)
+    {
+        b.Acting = true;
+        var result = await Engine.ExecuteAsync<object>(ClientOps.RejectBooking(b.Id), new { });
+        if (result.Operation.Status == "Success")
+            b.Status = 4;
+        b.Acting = false;
+        StateHasChanged();
+    }
+
+    private string StatusBadge(int s) => s switch
+    {
+        0 => "bg-warning text-dark", 1 => "bg-success", 2 => "bg-info text-dark",
+        3 => "bg-primary", 4 => "bg-secondary", 5 => "bg-dark", _ => "bg-secondary"
+    };
+
+    private string StatusLabel(int s) => s switch
+    {
+        0 => Store.Ui.Tr("معلّق", "Pending"),
+        1 => Store.Ui.Tr("مؤكد", "Confirmed"),
+        2 => Store.Ui.Tr("ينتظر الدفع", "Awaiting payment"),
+        3 => Store.Ui.Tr("مدفوع", "Paid"),
+        4 => Store.Ui.Tr("مُلغى", "Cancelled"),
+        5 => Store.Ui.Tr("مكتمل", "Completed"),
+        _ => "?"
+    };
+
+    public class BookingRow
+    {
+        public Guid Id { get; set; }
+        public decimal TotalPrice { get; set; }
+        public string Currency { get; set; } = "SAR";
+        public DateTime StartDate { get; set; }
+        public DateTime EndDate { get; set; }
+        public int Status { get; set; }
+        public string? Notes { get; set; }
+        [System.Text.Json.Serialization.JsonIgnore]
+        public bool Acting { get; set; }
+    }
+}

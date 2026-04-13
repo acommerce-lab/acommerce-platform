@@ -17,5 +17,6 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\ACommerce.Widgets\ACommerce.Widgets.csproj" />
+    <ProjectReference Include="..\..\..\clients\ACommerce.Client.Operations\ACommerce.Client.Operations.csproj" />
   </ItemGroup>
 </Project>

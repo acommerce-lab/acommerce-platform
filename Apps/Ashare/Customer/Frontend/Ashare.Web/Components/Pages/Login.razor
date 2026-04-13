@@ -1,0 +1,39 @@
+@page "/login"
+@rendermode InteractiveServer
+@inject ClientOpEngine Engine
+@inject AppStore Store
+@inject NavigationManager Nav
+
+<PageTitle>دخول - عشير</PageTitle>
+
+<AcLoginPage Mode="TemplateOperationMode.Operation"
+             Engine="Engine"
+             BuildRequestOtpOp="@(phone => ClientOps.RequestOtp(phone))"
+             BuildVerifyOtpOp="@((uid, cid, code) => ClientOps.VerifyOtp(uid, cid, code))"
+             PhonePayload="@(phone => new { phoneNumber = phone })"
+             VerifyPayload="@((uid, cid, code) => new { userId = uid, challengeId = cid, code })"
+             RedirectUrl="/"
+             BrandIcon="🏢"
+             BrandName="عشير"
+             BrandTagline="سوق العقارات والإيجار"
+             PhoneStepTitle="دخول بالهاتف"
+             PhoneStepSubtitle="سنرسل لك رمز تحقق عبر SMS"
+             PhoneLabel="رقم الهاتف"
+             PhonePlaceholder="+966500000000"
+             RequestOtpLabel="إرسال رمز التحقق"
+             SendingLabel="جاري الإرسال..."
+             OtpStepTitle="رمز التحقق"
+             OtpStepSubtitle="أدخل الرمز المرسل إلى"
+             OtpLabel="رمز التحقق (6 أرقام)"
+             VerifyOtpLabel="تحقق ودخول"
+             VerifyingLabel="جاري التحقق..."
+             BackLabel="تغيير الرقم">
+    <HintSlot>
+        <strong>وضع تجريبي:</strong> الكود أُرسل للـ logs في طرفية Ashare.Api.<br />
+        <small>
+            حسابات تجريبية:
+            المالك <code dir="ltr">+966500000001</code>،
+            العميلة <code dir="ltr">+966500000002</code>
+        </small>
+    </HintSlot>
+</AcLoginPage>

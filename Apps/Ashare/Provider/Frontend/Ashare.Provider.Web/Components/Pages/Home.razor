@@ -1,0 +1,85 @@
+@page "/"
+@rendermode InteractiveServer
+@inject AppStore Store
+@inject ApiReader Reader
+
+<PageTitle>@Store.Ui.Tr("لوحة التحكم", "Dashboard") - عشير للمُلاّك</PageTitle>
+
+@if (!Store.Auth.IsAuthenticated)
+{
+    <div style="padding:32px;text-align:center;">
+        <div style="font-size:3rem;margin-bottom:16px;">🏠</div>
+        <h1>@Store.Ui.Tr("بوابة مُلاّك العقارات", "Property Owner Portal")</h1>
+        <p style="color:var(--ac-text-muted);">
+            @Store.Ui.Tr("أدر إعلاناتك وحجوزاتك من مكان واحد", "Manage your listings and bookings in one place")
+        </p>
+        <a href="/login" class="btn btn-primary">@Store.Ui.Tr("تسجيل الدخول", "Sign in")</a>
+    </div>
+}
+else
+{
+    <div style="padding:16px;">
+        <h1 class="acs-page-title" style="margin-bottom:20px;">
+            @Store.Ui.Tr("مرحباً", "Welcome") @(Store.Auth.DisplayName ?? "")
+        </h1>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px;">
+            <div class="s-card" style="text-align:center;">
+                <div style="font-size:1.8rem;font-weight:700;color:var(--ac-primary);">@ListingCount</div>
+                <div style="font-size:0.8rem;color:var(--ac-text-muted);">@Store.Ui.Tr("إعلان", "Listings")</div>
+            </div>
+            <div class="s-card" style="text-align:center;">
+                <div style="font-size:1.8rem;font-weight:700;color:var(--ac-warning);">@PendingBookings</div>
+                <div style="font-size:0.8rem;color:var(--ac-text-muted);">@Store.Ui.Tr("حجز معلق", "Pending bookings")</div>
+            </div>
+        </div>
+
+        <div class="s-card" style="margin-bottom:10px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+                <div>
+                    <div style="font-weight:700;">@Store.Ui.Tr("إعلاناتي", "My Listings")</div>
+                    <div style="font-size:0.8rem;color:var(--ac-text-muted);">
+                        @Store.Ui.Tr("أدر وعدّل إعلاناتك", "Manage and edit your listings")
+                    </div>
+                </div>
+                <a href="/my-listings" class="btn btn-outline-primary btn-sm">@Store.Ui.Tr("عرض الكل", "View all")</a>
+            </div>
+        </div>
+
+        <div class="s-card" style="margin-bottom:10px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+                <div>
+                    <div style="font-weight:700;">@Store.Ui.Tr("طلبات الحجز", "Booking requests")</div>
+                    <div style="font-size:0.8rem;color:var(--ac-text-muted);">
+                        @Store.Ui.Tr("قبول أو رفض الطلبات", "Accept or reject requests")
+                    </div>
+                </div>
+                <a href="/owner-bookings" class="btn btn-outline-primary btn-sm">@Store.Ui.Tr("عرض الكل", "View all")</a>
+            </div>
+        </div>
+
+        <a href="/create-listing" class="btn btn-primary btn-block" style="margin-top:16px;">
+            + @Store.Ui.Tr("إعلان جديد", "New listing")
+        </a>
+    </div>
+}
+
+@code {
+    private int ListingCount;
+    private int PendingBookings;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || !Store.Auth.IsAuthenticated || !Store.Auth.UserId.HasValue) return;
+
+        var listingsEnv = await Reader.GetAsync<List<object>>($"/api/listings/by-owner/{Store.Auth.UserId}");
+        ListingCount = listingsEnv.Data?.Count ?? 0;
+
+        var bookingsEnv = await Reader.GetAsync<List<BookingRow>>($"/api/bookings/by-owner/{Store.Auth.UserId}");
+        PendingBookings = bookingsEnv.Data?.Count(b => b.Status == 0) ?? 0;
+
+        StateHasChanged();
+    }
+
+    private class BookingRow { public int Status { get; set; } }
+}
