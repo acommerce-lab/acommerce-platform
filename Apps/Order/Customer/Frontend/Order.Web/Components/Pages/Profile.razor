@@ -1,6 +1,6 @@
 @page "/profile"
 @inject AppStore Store
-@inject ClientOpEngine Engine
+@inject AppStateApplier Applier
 @inject NavigationManager Nav
 
 <PageTitle>حسابي - اوردر</PageTitle>
@@ -63,7 +63,7 @@ else
 
     private async Task SignOut()
     {
-        await Engine.ExecuteAsync<object>(ClientOps.SignOut(), new { });
+        await Applier.ApplyLocalAsync(ClientOps.SignOut());
         Nav.NavigateTo("/", forceLoad: false);
     }
 }

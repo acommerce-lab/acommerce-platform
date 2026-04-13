@@ -22,52 +22,60 @@
                     <strong>@Store.Ui.Tr("البيانات الشخصية", "Personal Info")</strong>
                 </Header>
                 <ChildContent>
-                    <AcField Label="@Store.Ui.Tr("الاسم الكامل", "Full Name")" Class="ac-mb-md">
-                        <AcInput Value="@FullName"
-                                 Placeholder="@Store.Ui.Tr("أدخل اسمك الكامل", "Enter your full name")"
-                                 ValueChanged="@(v => FullName = v ?? "")" />
-                    </AcField>
-
-                    <AcField Label="@Store.Ui.Tr("البريد الإلكتروني", "Email")">
-                        <AcInput Value="@Email"
-                                 Type="email"
-                                 Placeholder="@Store.Ui.Tr("أدخل بريدك الإلكتروني", "Enter your email")"
-                                 ValueChanged="@(v => Email = v ?? "")" />
-                    </AcField>
+                    <div class="ac-mb-md">
+                        <label class="form-label">@Store.Ui.Tr("الاسم الكامل", "Full Name")</label>
+                        <input class="form-input" type="text"
+                               placeholder="@Store.Ui.Tr("أدخل اسمك الكامل", "Enter your full name")"
+                               value="@FullName"
+                               @oninput="@(e => FullName = e.Value?.ToString() ?? "")" />
+                    </div>
+                    <div>
+                        <label class="form-label">@Store.Ui.Tr("البريد الإلكتروني", "Email")</label>
+                        <input class="form-input" type="email"
+                               placeholder="@Store.Ui.Tr("أدخل بريدك الإلكتروني", "Enter your email")"
+                               value="@Email"
+                               @oninput="@(e => Email = e.Value?.ToString() ?? "")" />
+                    </div>
                 </ChildContent>
             </AcCard>
 
             <AcCard Class="ac-mb-lg">
                 <Header>
-                    <div class="ac-row ac-align-center" style="gap: 0.5rem;">
+                    <div style="display:flex;align-items:center;gap:0.5rem;">
                         <AcIcon Name="car" Size="16" />
                         <strong>@Store.Ui.Tr("بيانات السيارة", "Car Details")</strong>
                     </div>
                 </Header>
                 <ChildContent>
-                    <p class="ac-text-muted ac-text-sm ac-mb-md">
+                    <p class="ac-text-muted" style="font-size:0.85rem;margin-bottom:12px;">
                         @Store.Ui.Tr(
                             "تُستخدم عند الاستلام من السيارة (Curbside)",
                             "Used for curbside pickup orders")
                     </p>
 
-                    <AcField Label="@Store.Ui.Tr("نوع السيارة", "Car Model")" Class="ac-mb-md">
-                        <AcInput Value="@CarModel"
-                                 Placeholder="@Store.Ui.Tr("مثال: كامري 2024", "e.g. Camry 2024")"
-                                 ValueChanged="@(v => CarModel = v ?? "")" />
-                    </AcField>
+                    <div class="ac-mb-md">
+                        <label class="form-label">@Store.Ui.Tr("نوع السيارة", "Car Model")</label>
+                        <input class="form-input" type="text"
+                               placeholder="@Store.Ui.Tr("مثال: كامري 2024", "e.g. Camry 2024")"
+                               value="@CarModel"
+                               @oninput="@(e => CarModel = e.Value?.ToString() ?? "")" />
+                    </div>
 
-                    <AcField Label="@Store.Ui.Tr("لون السيارة", "Car Color")" Class="ac-mb-md">
-                        <AcInput Value="@CarColor"
-                                 Placeholder="@Store.Ui.Tr("مثال: أبيض", "e.g. White")"
-                                 ValueChanged="@(v => CarColor = v ?? "")" />
-                    </AcField>
+                    <div class="ac-mb-md">
+                        <label class="form-label">@Store.Ui.Tr("لون السيارة", "Car Color")</label>
+                        <input class="form-input" type="text"
+                               placeholder="@Store.Ui.Tr("مثال: أبيض", "e.g. White")"
+                               value="@CarColor"
+                               @oninput="@(e => CarColor = e.Value?.ToString() ?? "")" />
+                    </div>
 
-                    <AcField Label="@Store.Ui.Tr("رقم اللوحة", "Plate Number")">
-                        <AcInput Value="@CarPlate"
-                                 Placeholder="@Store.Ui.Tr("اختياري", "Optional")"
-                                 ValueChanged="@(v => CarPlate = v ?? "")" />
-                    </AcField>
+                    <div>
+                        <label class="form-label">@Store.Ui.Tr("رقم اللوحة", "Plate Number")</label>
+                        <input class="form-input" type="text"
+                               placeholder="@Store.Ui.Tr("اختياري", "Optional")"
+                               value="@CarPlate"
+                               @oninput="@(e => CarPlate = e.Value?.ToString() ?? "")" />
+                    </div>
                 </ChildContent>
             </AcCard>
 
@@ -109,15 +117,19 @@
             return;
         }
 
-        var env = await Reader.GetAsync<UserProfile>($"/api/users/{Store.Auth.UserId}");
-        if (env.Data != null)
+        try
         {
-            FullName = env.Data.FullName ?? "";
-            Email = env.Data.Email ?? "";
-            CarModel = env.Data.CarModel ?? "";
-            CarColor = env.Data.CarColor ?? "";
-            CarPlate = env.Data.CarPlate ?? "";
+            var env = await Reader.GetAsync<UserProfile>($"/api/users/{Store.Auth.UserId}");
+            if (env.Data != null)
+            {
+                FullName = env.Data.FullName ?? "";
+                Email = env.Data.Email ?? "";
+                CarModel = env.Data.CarModel ?? "";
+                CarColor = env.Data.CarColor ?? "";
+                CarPlate = env.Data.CarPlate ?? "";
+            }
         }
+        catch { }
 
         Loading = false;
         StateHasChanged();

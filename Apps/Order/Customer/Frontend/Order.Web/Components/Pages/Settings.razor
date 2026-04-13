@@ -45,7 +45,7 @@
 
     private async Task SignOut()
     {
-        await Engine.ExecuteAsync<object>(ClientOps.SignOut(), new { });
+        await Applier.ApplyLocalAsync(ClientOps.SignOut());
         Nav.NavigateTo("/");
     }
 
