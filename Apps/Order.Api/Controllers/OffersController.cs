@@ -127,7 +127,8 @@ public class OffersController : ControllerBase
             .Build();
 
         var envelope = await _engine.ExecuteEnvelopeAsync(op, offer, ct);
-        if (envelope.Operation.Status != "Success") return BadRequest(envelope);
+        if (envelope.Operation.Status != "Success")
+            return this.BadRequestEnvelope(envelope.Operation.FailedAnalyzer ?? "offer_create_failed", envelope.Operation.ErrorMessage);
         return this.OkEnvelope("offer.create", new { offer.Id, offer.Title });
     }
 
@@ -159,7 +160,8 @@ public class OffersController : ControllerBase
             .Build();
 
         var envelope = await _engine.ExecuteEnvelopeAsync(op, offer, ct);
-        if (envelope.Operation.Status != "Success") return BadRequest(envelope);
+        if (envelope.Operation.Status != "Success")
+            return this.BadRequestEnvelope(envelope.Operation.FailedAnalyzer ?? "offer_update_failed", envelope.Operation.ErrorMessage);
         return this.OkEnvelope("offer.update", new { offer.Id });
     }
 
@@ -185,7 +187,8 @@ public class OffersController : ControllerBase
             .Build();
 
         var envelope = await _engine.ExecuteEnvelopeAsync(op, new { offer.Id }, ct);
-        if (envelope.Operation.Status != "Success") return BadRequest(envelope);
+        if (envelope.Operation.Status != "Success")
+            return this.BadRequestEnvelope(envelope.Operation.FailedAnalyzer ?? "offer_delete_failed", envelope.Operation.ErrorMessage);
         return this.OkEnvelope("offer.delete", new { offer.Id });
     }
 

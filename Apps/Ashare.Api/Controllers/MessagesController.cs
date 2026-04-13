@@ -163,7 +163,7 @@ public class MessagesController : ControllerBase
         var envelope = await _engine.ExecuteEnvelopeAsync(op, msg, ct);
 
         if (envelope.Operation.Status != "Success")
-            return BadRequest(envelope);
+            return this.BadRequestEnvelope(envelope.Operation.FailedAnalyzer ?? "message_send_failed", envelope.Operation.ErrorMessage);
 
         return Created($"/api/messages/{msg.Id}", envelope);
     }

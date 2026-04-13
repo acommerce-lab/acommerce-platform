@@ -176,13 +176,16 @@ public class VendorOrdersController : ControllerBase
                 o.UpdatedAt = DateTime.UtcNow;
                 await _orders.UpdateAsync(o, ctx.CancellationToken);
             })
+            .OnAfterComplete(async ctx =>
+            {
+                o.ResponseOperationId = ctx.Operation.Id;
+                await _orders.UpdateAsync(o, ctx.CancellationToken);
+            })
             .Build();
 
         var envelope = await _engine.ExecuteEnvelopeAsync(op, new { o.Id, status = "Accepted" }, ct);
-        if (envelope.Operation.Status != "Success") return BadRequest(envelope);
-
-        o.ResponseOperationId = envelope.Operation.Id;
-        await _orders.UpdateAsync(o, ct);
+        if (envelope.Operation.Status != "Success")
+            return this.BadRequestEnvelope(envelope.Operation.FailedAnalyzer ?? "order_accept_failed", envelope.Operation.ErrorMessage);
 
         await _callback.NotifyStatusAsync(o.OrderApiId, "accepted", ct);
         return this.OkEnvelope("order.accept", new { o.Id, status = o.Status.ToString() });
@@ -212,7 +215,8 @@ public class VendorOrdersController : ControllerBase
             .Build();
 
         var envelope = await _engine.ExecuteEnvelopeAsync(op, new { o.Id, status = "Rejected" }, ct);
-        if (envelope.Operation.Status != "Success") return BadRequest(envelope);
+        if (envelope.Operation.Status != "Success")
+            return this.BadRequestEnvelope(envelope.Operation.FailedAnalyzer ?? "order_reject_failed", envelope.Operation.ErrorMessage);
 
         await _callback.NotifyStatusAsync(o.OrderApiId, "rejected", ct);
         return this.OkEnvelope("order.reject", new { o.Id, status = o.Status.ToString() });
@@ -241,7 +245,8 @@ public class VendorOrdersController : ControllerBase
             .Build();
 
         var envelope = await _engine.ExecuteEnvelopeAsync(op, new { o.Id, status = "Ready" }, ct);
-        if (envelope.Operation.Status != "Success") return BadRequest(envelope);
+        if (envelope.Operation.Status != "Success")
+            return this.BadRequestEnvelope(envelope.Operation.FailedAnalyzer ?? "order_ready_failed", envelope.Operation.ErrorMessage);
 
         await _callback.NotifyStatusAsync(o.OrderApiId, "ready", ct);
         return this.OkEnvelope("order.ready", new { o.Id, status = o.Status.ToString() });
@@ -270,7 +275,8 @@ public class VendorOrdersController : ControllerBase
             .Build();
 
         var envelope = await _engine.ExecuteEnvelopeAsync(op, new { o.Id, status = "Delivered" }, ct);
-        if (envelope.Operation.Status != "Success") return BadRequest(envelope);
+        if (envelope.Operation.Status != "Success")
+            return this.BadRequestEnvelope(envelope.Operation.FailedAnalyzer ?? "order_deliver_failed", envelope.Operation.ErrorMessage);
 
         await _callback.NotifyStatusAsync(o.OrderApiId, "delivered", ct);
         return this.OkEnvelope("order.deliver", new { o.Id, status = o.Status.ToString() });

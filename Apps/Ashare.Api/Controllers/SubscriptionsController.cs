@@ -98,7 +98,7 @@ public class SubscriptionsController : ControllerBase
         var envelope = await _engine.ExecuteEnvelopeAsync(op, subscription, ct);
 
         if (envelope.Operation.Status != "Success")
-            return BadRequest(envelope);
+            return this.BadRequestEnvelope(envelope.Operation.FailedAnalyzer ?? "subscription_create_failed", envelope.Operation.ErrorMessage);
 
         envelope.Meta = new Dictionary<string, object>
         {

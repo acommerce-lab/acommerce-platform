@@ -106,15 +106,9 @@ public class BookingsController : ControllerBase
         var envelope = await _engine.ExecuteEnvelopeAsync(op, booking, ct);
 
         if (envelope.Operation.Status != "Success")
-        {
-            if (listing.Status == ListingStatus.Reserved)
-            {
-                listing.Status = ListingStatus.Published;
-                await _listings.UpdateAsync(listing, ct);
-            }
-            envelope.Error = new OperationError { Code = "booking_failed", Message = envelope.Operation.ErrorMessage };
-            return BadRequest(envelope);
-        }
+            return this.BadRequestEnvelope(
+                envelope.Operation.FailedAnalyzer ?? "booking_failed",
+                envelope.Operation.ErrorMessage);
 
         return Created($"/api/bookings/{booking.Id}", envelope);
     }

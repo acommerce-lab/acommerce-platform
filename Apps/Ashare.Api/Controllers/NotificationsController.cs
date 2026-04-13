@@ -113,7 +113,7 @@ public class NotificationsController : ControllerBase
             .Build();
 
         var envelope = await _engine.ExecuteEnvelopeAsync(op, entity, ct);
-        return Ok(envelope);
+        return this.OkEnvelope("notify.send", entity);
     }
 
     [HttpPost("{id:guid}/read")]
