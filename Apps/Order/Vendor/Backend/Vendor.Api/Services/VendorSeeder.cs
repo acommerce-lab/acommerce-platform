@@ -36,37 +36,39 @@ public class VendorSeeder
 
     public async Task SeedAsync(CancellationToken ct = default)
     {
-        if ((await _settings.ListAllAsync(ct)).Any()) return;
-
         var now = DateTime.UtcNow;
 
-        // ─── VendorUser records (matching Order.Api User IDs + phone numbers) ──
-        await _users.AddAsync(new VendorUser
-        {
-            Id = UserIds.VendorAhmed, CreatedAt = now,
-            PhoneNumber = "+966501111111", FullName = "أحمد - كافيه السعادة",
-            Role = "vendor", IsActive = true
-        }, ct);
-        await _users.AddAsync(new VendorUser
-        {
-            Id = UserIds.VendorFatimah, CreatedAt = now,
-            PhoneNumber = "+966502222222", FullName = "فاطمة - مطعم الأصيل",
-            Role = "vendor", IsActive = true
-        }, ct);
-        await _users.AddAsync(new VendorUser
-        {
-            Id = UserIds.VendorSaad, CreatedAt = now,
-            PhoneNumber = "+966503333333", FullName = "سعد - حلويات الرياض",
-            Role = "vendor", IsActive = true
-        }, ct);
-        await _users.AddAsync(new VendorUser
-        {
-            Id = UserIds.VendorLama, CreatedAt = now,
-            PhoneNumber = "+966504444444", FullName = "لمى - عصائر كول بايتس",
-            Role = "vendor", IsActive = true
-        }, ct);
+        // ─── VendorUser records — ensure correct IDs always ────────────────
+        // If user was auto-created by AuthController with wrong ID, delete and recreate
+        var existingUsers = await _users.ListAllAsync(ct);
 
-        // ─── VendorSettings + WorkSchedule ─────────────────────────────────────
+        var demoUsers = new[]
+        {
+            (UserIds.VendorAhmed,   "+966501111111", "أحمد - كافيه السعادة"),
+            (UserIds.VendorFatimah, "+966502222222", "فاطمة - مطعم الأصيل"),
+            (UserIds.VendorSaad,    "+966503333333", "سعد - حلويات الرياض"),
+            (UserIds.VendorLama,    "+966504444444", "لمى - عصائر كول بايتس"),
+        };
+
+        foreach (var (id, phone, name) in demoUsers)
+        {
+            var existing = existingUsers.FirstOrDefault(u => u.PhoneNumber == phone);
+            if (existing != null && existing.Id == id) continue; // already correct
+            if (existing != null && existing.Id != id)
+            {
+                // Wrong ID (auto-created by AuthController) — delete it
+                await _users.DeleteAsync(existing, ct);
+            }
+            await _users.AddAsync(new VendorUser
+            {
+                Id = id, CreatedAt = now,
+                PhoneNumber = phone, FullName = name,
+                Role = "vendor", IsActive = true
+            }, ct);
+        }
+
+        // ─── VendorSettings + WorkSchedule — only if no settings exist yet ──
+        if ((await _settings.ListAllAsync(ct)).Any()) return;
         var vendors = new[] { VendorIds.HappinessCafe, VendorIds.AlAseelKitchen, VendorIds.RiyadhSweets, VendorIds.CoolBites };
         var configs = new[]
         {
