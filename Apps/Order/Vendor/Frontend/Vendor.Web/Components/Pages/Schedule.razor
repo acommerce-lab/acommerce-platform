@@ -46,13 +46,13 @@
                                 </label>
                                 @if (!day.IsOff)
                                 {
-                                    <input type="time" value="@day.OpenTime"
+                                    <input type="time" class="ac-input" value="@day.OpenTime"
                                            @onchange="@(e => day.OpenTime = e.Value?.ToString() ?? day.OpenTime)"
-                                           style="font-size:0.85rem;" />
+                                           style="font-size:0.85rem;width:auto;min-height:36px;padding:4px 8px;" />
                                     <span>-</span>
-                                    <input type="time" value="@day.CloseTime"
+                                    <input type="time" class="ac-input" value="@day.CloseTime"
                                            @onchange="@(e => day.CloseTime = e.Value?.ToString() ?? day.CloseTime)"
-                                           style="font-size:0.85rem;" />
+                                           style="font-size:0.85rem;width:auto;min-height:36px;padding:4px 8px;" />
                                 }
                                 else
                                 {

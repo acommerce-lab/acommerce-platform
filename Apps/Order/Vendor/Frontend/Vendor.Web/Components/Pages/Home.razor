@@ -14,6 +14,12 @@
                   ActionLabel="@(Store.Ui.IsArabic ? "دخول" : "Sign in")"
                   ActionHref="/login" />
 }
+else if (!string.IsNullOrEmpty(_error))
+{
+    <div class="acs-page">
+        <AcAlert Variant="danger" Message="@_error" />
+    </div>
+}
 else
 {
     <AcVendorDashboard
@@ -51,12 +57,27 @@ else
         StateHasChanged();
     }
 
+    private string? _error;
+
     private async Task LoadDashboard()
     {
         // Look up the vendor by OwnerId (Store.Auth.UserId = VendorUser.Id = Vendor.OwnerId)
         var vEnv = await Reader.GetAsync<List<VendorRow>>("/api/vendors");
+        if (vEnv.Error != null)
+        {
+            _error = Store.Ui.IsArabic
+                ? "تعذّر الاتصال بخدمة Order.Api — تأكد أنها تعمل على المنفذ 5101"
+                : "Cannot reach Order.Api — make sure it's running on port 5101";
+            return;
+        }
         var myVendor = vEnv.Data?.FirstOrDefault(v => v.OwnerId == Store.Auth.UserId);
-        if (myVendor == null) return;
+        if (myVendor == null)
+        {
+            _error = Store.Ui.IsArabic
+                ? $"لم يتم العثور على متجر مرتبط بحسابك (UserId: {Store.Auth.UserId})"
+                : $"No store linked to your account (UserId: {Store.Auth.UserId})";
+            return;
+        }
         _vendorId = myVendor.Id;
 
         var env = await Reader.GetAsync<List<OrderRow>>(

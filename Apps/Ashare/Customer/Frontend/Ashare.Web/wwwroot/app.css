@@ -159,7 +159,6 @@ a > .ac-btn { width: 100%; }
     border: 1px solid var(--ac-border) !important;
     border-radius: var(--ac-radius-lg) !important;
     box-shadow: var(--ac-shadow-sm) !important;
-    overflow: visible !important;
 }
 .ac-card-hover:hover {
     box-shadow: var(--ac-shadow-md) !important;

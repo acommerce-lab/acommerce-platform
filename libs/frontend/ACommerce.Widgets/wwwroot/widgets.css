@@ -100,17 +100,19 @@ h1:focus, h2:focus, h3:focus { outline: none; }
     align-items: center;
     justify-content: center;
     gap: var(--ac-space-sm);
-    padding: var(--ac-space-sm) var(--ac-space-md);
+    padding: var(--ac-space-sm) var(--ac-space-lg);
     font-family: inherit;
     font-size: var(--ac-font-size-base);
     font-weight: var(--ac-font-weight-bold);
-    line-height: 1.2;
+    line-height: 1.4;
+    min-height: 44px;
     border: 1px solid transparent;
     border-radius: var(--ac-radius-md);
     cursor: pointer;
-    transition: background var(--ac-transition), border-color var(--ac-transition), color var(--ac-transition);
+    transition: background var(--ac-transition), border-color var(--ac-transition), color var(--ac-transition), box-shadow var(--ac-transition);
     text-decoration: none;
     user-select: none;
+    white-space: nowrap;
 }
 .ac-btn:disabled, .ac-btn[aria-disabled="true"] { opacity: 0.6; cursor: not-allowed; }
 
@@ -145,7 +147,7 @@ h1:focus, h2:focus, h3:focus { outline: none; }
     border: 1px solid var(--ac-border);
     border-radius: var(--ac-radius-lg);
     box-shadow: var(--ac-shadow-sm);
-    overflow: hidden;
+    overflow: visible;
     transition: box-shadow var(--ac-transition), transform var(--ac-transition);
 }
 .ac-card-hover:hover { box-shadow: var(--ac-shadow-md); transform: translateY(-2px); }
