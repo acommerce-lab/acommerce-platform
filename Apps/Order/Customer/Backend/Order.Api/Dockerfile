@@ -1,20 +1,20 @@
 #  Order.Api  —  multi-stage Dockerfile
-#  Build:  docker build -t order-api -f Apps/Order.Api/Dockerfile .
+#  Build:  docker build -t order-api -f Apps/Order/Customer/Backend/Order.Api/Dockerfile .
 #  Run:    docker run --rm -p 5101:5101 -v $(pwd)/data:/app/data order-api
 
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 WORKDIR /src
 
 # Copy ONLY the csprojs first so we get layer-cached restore
-COPY Apps/Order.Api/Order.Api.csproj Apps/Order.Api/
+COPY Apps/Order/Customer/Backend/Order.Api/Order.Api.csproj Apps/Order/Customer/Backend/Order.Api/
 COPY libs/ libs/
 
-RUN dotnet restore Apps/Order.Api/Order.Api.csproj
+RUN dotnet restore Apps/Order/Customer/Backend/Order.Api/Order.Api.csproj
 
 # Now copy the source
-COPY Apps/Order.Api/ Apps/Order.Api/
+COPY Apps/Order/Customer/Backend/Order.Api/ Apps/Order/Customer/Backend/Order.Api/
 
-RUN dotnet publish Apps/Order.Api/Order.Api.csproj \
+RUN dotnet publish Apps/Order/Customer/Backend/Order.Api/Order.Api.csproj \
     -c Release \
     -o /app/publish \
     /p:UseAppHost=false

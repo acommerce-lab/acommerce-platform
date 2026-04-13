@@ -1,5 +1,5 @@
 #  Order.Web  —  multi-stage Dockerfile
-#  Build:  docker build -t order-web -f Apps/Order.Web/Dockerfile .
+#  Build:  docker build -t order-web -f Apps/Order/Customer/Frontend/Order.Web/Dockerfile .
 #  Run:    docker run --rm -p 5701:5701 \
 #               -e OrderApi__BaseUrl=http://order-api:5101 \
 #               order-web
@@ -7,15 +7,15 @@
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 WORKDIR /src
 
-COPY Apps/Order.Web/Order.Web.csproj Apps/Order.Web/
+COPY Apps/Order/Customer/Frontend/Order.Web/Order.Web.csproj Apps/Order/Customer/Frontend/Order.Web/
 COPY libs/ libs/
 COPY clients/ clients/
 
-RUN dotnet restore Apps/Order.Web/Order.Web.csproj
+RUN dotnet restore Apps/Order/Customer/Frontend/Order.Web/Order.Web.csproj
 
-COPY Apps/Order.Web/ Apps/Order.Web/
+COPY Apps/Order/Customer/Frontend/Order.Web/ Apps/Order/Customer/Frontend/Order.Web/
 
-RUN dotnet publish Apps/Order.Web/Order.Web.csproj \
+RUN dotnet publish Apps/Order/Customer/Frontend/Order.Web/Order.Web.csproj \
     -c Release \
     -o /app/publish \
     /p:UseAppHost=false

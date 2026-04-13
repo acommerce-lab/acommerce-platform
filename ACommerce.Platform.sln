@@ -97,17 +97,17 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACommerce.Client.StateBridg
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Apps", "Apps", "{1787FE1D-075E-9E68-7218-25F1BD1BBEAB}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ashare.Api", "Apps\Ashare.Api\Ashare.Api.csproj", "{3343EFDF-F2BE-40D6-B54A-017B92B2DD86}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ashare.Api", "Apps\Ashare\Customer\Backend\Ashare.Api\Ashare.Api.csproj", "{3343EFDF-F2BE-40D6-B54A-017B92B2DD86}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ashare.Web", "Apps\Ashare.Web\Ashare.Web.csproj", "{9C3D1882-BD61-48F7-BB78-9F9E72A19529}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ashare.Web", "Apps\Ashare\Customer\Frontend\Ashare.Web\Ashare.Web.csproj", "{9C3D1882-BD61-48F7-BB78-9F9E72A19529}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Order.Api", "Apps\Order.Api\Order.Api.csproj", "{29AC3A60-5C2D-42C8-8B66-C98010C1D3E0}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Order.Api", "Apps\Order\Customer\Backend\Order.Api\Order.Api.csproj", "{29AC3A60-5C2D-42C8-8B66-C98010C1D3E0}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Order.Web", "Apps\Order.Web\Order.Web.csproj", "{01118750-8436-4CCC-92A4-C2059926EA61}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Order.Web", "Apps\Order\Customer\Frontend\Order.Web\Order.Web.csproj", "{01118750-8436-4CCC-92A4-C2059926EA61}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Vendor.Web", "Apps\Vendor.Web\Vendor.Web.csproj", "{827A5D89-31C8-4F22-AEDE-B0A46A8BDDEB}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Vendor.Web", "Apps\Order\Vendor\Frontend\Vendor.Web\Vendor.Web.csproj", "{827A5D89-31C8-4F22-AEDE-B0A46A8BDDEB}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Vendor.Api", "Apps\Vendor.Api\Vendor.Api.csproj", "{F94BB79E-0ECA-4235-98E8-8E70C160144C}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Vendor.Api", "Apps\Order\Vendor\Backend\Vendor.Api\Vendor.Api.csproj", "{F94BB79E-0ECA-4235-98E8-8E70C160144C}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACommerce.Templates.Merchant.Commerce", "libs\frontend\ACommerce.Templates.Merchant.Commerce\ACommerce.Templates.Merchant.Commerce.csproj", "{F0ADE5A6-DE77-4B9F-908A-FAD4972378E8}"
 EndProject
