@@ -1,0 +1,120 @@
+@namespace ACommerce.Templates.Marketplace
+
+@*
+    بطاقة إعلان مفرد — تعرض ملخص الإعلان مع شارات الحالة والمميزات.
+
+    Flex slots:
+      Actions    — أزرار الإجراءات (تعديل، حذف، تمييز...)
+      CardExtras — محتوى إضافي أسفل صف البيانات الوصفية
+*@
+
+<div class="s-card acm-listing-card @(Listing?.IsFeatured == true ? "acm-listing-featured" : "")"
+     @onclick="HandleClick"
+     style="@(OnClick.HasDelegate ? "cursor:pointer;" : "")">
+    @if (Listing == null)
+    {
+        <AcLoadingState />
+        return;
+    }
+
+    <div class="acm-listing-header">
+        @if (!string.IsNullOrEmpty(Listing.ThumbnailUrl))
+        {
+            <img class="acm-listing-thumb" src="@Listing.ThumbnailUrl" alt="@Listing.Title" loading="lazy" />
+        }
+        <div class="acm-listing-info">
+            <div class="acm-listing-title-row">
+                <strong class="acm-listing-title">@Listing.Title</strong>
+                <div class="acm-listing-badges">
+                    @if (Listing.IsFeatured)
+                    {
+                        <AcBadge Text="@(FeaturedLabel ?? "مميز")" Variant="warning" />
+                    }
+                    @if (ShowStatus)
+                    {
+                        <AcBadge Text="@ListingStatusLabel(Listing.Status)" Variant="@ListingStatusVariant(Listing.Status)" />
+                    }
+                </div>
+            </div>
+            <div class="acm-listing-meta">
+                @if (!string.IsNullOrEmpty(Listing.City) || !string.IsNullOrEmpty(Listing.District))
+                {
+                    <span class="ac-text-muted">
+                        <AcIcon Name="map-pin" Size="14" />
+                        @string.Join("، ", new[] { Listing.City, Listing.District }.Where(x => !string.IsNullOrEmpty(x)))
+                    </span>
+                }
+                @if (!string.IsNullOrEmpty(Listing.CategoryName))
+                {
+                    <span class="ac-text-muted">@Listing.CategoryName</span>
+                }
+                <span class="acm-listing-price">
+                    @Listing.Price.ToString("N0") @Listing.Currency
+                    @if (!string.IsNullOrEmpty(Listing.TimeUnit))
+                    {
+                        <span class="ac-text-muted">/ @Listing.TimeUnit</span>
+                    }
+                </span>
+                @if (Listing.ViewCount > 0)
+                {
+                    <span class="ac-text-muted">
+                        <AcIcon Name="search" Size="14" />
+                        @Listing.ViewCount @(ViewsLabel ?? "مشاهدة")
+                    </span>
+                }
+            </div>
+            @if (ShowOwner && !string.IsNullOrEmpty(Listing.OwnerName))
+            {
+                <div class="acm-listing-owner ac-text-muted">
+                    <AcIcon Name="user" Size="14" />
+                    @Listing.OwnerName
+                </div>
+            }
+        </div>
+        @if (Actions != null)
+        {
+            <div class="acm-listing-actions" @onclick:stopPropagation="true">
+                @Actions
+            </div>
+        }
+    </div>
+
+    @CardExtras
+</div>
+
+@code {
+    [Parameter, EditorRequired] public ListingRowDto? Listing { get; set; }
+    [Parameter] public bool ShowStatus { get; set; } = true;
+    [Parameter] public bool ShowOwner { get; set; } = false;
+    [Parameter] public string? FeaturedLabel { get; set; }
+    [Parameter] public string? ViewsLabel { get; set; }
+    [Parameter] public EventCallback<ListingRowDto> OnClick { get; set; }
+    [Parameter] public RenderFragment? Actions { get; set; }
+    [Parameter] public RenderFragment? CardExtras { get; set; }
+
+    private async Task HandleClick()
+    {
+        if (Listing != null && OnClick.HasDelegate)
+            await OnClick.InvokeAsync(Listing);
+    }
+
+    private static string ListingStatusLabel(int status) => status switch
+    {
+        0 => "مسودة",
+        1 => "منشور",
+        2 => "محجوز",
+        3 => "مغلق",
+        4 => "مرفوض",
+        _ => "غير معروف"
+    };
+
+    private static string ListingStatusVariant(int status) => status switch
+    {
+        0 => "muted",
+        1 => "success",
+        2 => "info",
+        3 => "muted",
+        4 => "danger",
+        _ => "muted"
+    };
+}

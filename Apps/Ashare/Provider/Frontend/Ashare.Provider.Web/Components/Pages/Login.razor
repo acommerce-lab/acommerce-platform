@@ -1,93 +1,29 @@
 @page "/login"
 @rendermode InteractiveServer
-@inject AppStore Store
 @inject ClientOpEngine Engine
+@inject AppStore Store
 @inject NavigationManager Nav
 
-<PageTitle>@Store.Ui.Tr("تسجيل الدخول", "Sign in") - عشير للمُلاّك</PageTitle>
+<PageTitle>دخول - عشير للمُلاّك</PageTitle>
 
-<div style="padding:24px;max-width:360px;margin:auto;">
-    <h1 class="acs-page-title" style="text-align:center;margin-bottom:24px;">
-        🏠 @Store.Ui.Tr("بوابة المُلاّك", "Owner Portal")
-    </h1>
-
-    @if (!RequestSent)
-    {
-        <div class="s-card">
-            <div style="margin-bottom:12px;">
-                <label style="font-size:0.8rem;color:var(--ac-text-muted);">@Store.Ui.Tr("رقم الهاتف", "Phone number")</label>
-                <input class="form-control" type="tel" placeholder="+966..." @bind="Phone" @bind:event="oninput" />
-            </div>
-            @if (!string.IsNullOrEmpty(Error))
-            {
-                <div class="alert alert-danger py-1 mb-2">@Error</div>
-            }
-            <button class="btn btn-primary btn-block" @onclick="RequestOtp" disabled="@Loading">
-                @(Loading ? Store.Ui.Tr("جاري الإرسال...", "Sending...") : Store.Ui.Tr("إرسال الرمز", "Send code"))
-            </button>
-        </div>
-    }
-    else
-    {
-        <div class="s-card">
-            <p style="font-size:0.85rem;margin-bottom:12px;">
-                @Store.Ui.Tr("أدخل الرمز المُرسل إلى", "Enter code sent to") <strong>@Phone</strong>
-            </p>
-            <div style="margin-bottom:12px;">
-                <input class="form-control" type="text" inputmode="numeric" maxlength="6"
-                       placeholder="000000" @bind="Code" @bind:event="oninput" />
-            </div>
-            @if (!string.IsNullOrEmpty(Error))
-            {
-                <div class="alert alert-danger py-1 mb-2">@Error</div>
-            }
-            <button class="btn btn-primary btn-block" @onclick="VerifyOtp" disabled="@Loading">
-                @(Loading ? Store.Ui.Tr("جاري التحقق...", "Verifying...") : Store.Ui.Tr("تأكيد", "Confirm"))
-            </button>
-            <button class="btn btn-ghost btn-block" style="margin-top:8px;" @onclick="() => { RequestSent = false; Error = null; }">
-                @Store.Ui.Tr("رجوع", "Back")
-            </button>
-        </div>
-    }
-</div>
-
-@code {
-    private string Phone = "";
-    private string Code = "";
-    private bool Loading;
-    private bool RequestSent;
-    private string? Error;
-
-    protected override void OnInitialized()
-    {
-        if (Store.Auth.IsAuthenticated)
-            Nav.NavigateTo("/");
-    }
-
-    private async Task RequestOtp()
-    {
-        if (string.IsNullOrWhiteSpace(Phone)) { Error = Store.Ui.Tr("أدخل رقم الهاتف", "Enter phone"); return; }
-        Loading = true; Error = null;
-        var result = await Engine.ExecuteAsync<object>(ClientOps.RequestOtp(Phone), new { phone_number = Phone });
-        if (result.Operation.Status == "Success")
-            RequestSent = true;
-        else
-            Error = result.Operation.ErrorMessage ?? Store.Ui.Tr("فشل الإرسال", "Failed to send");
-        Loading = false;
-    }
-
-    private async Task VerifyOtp()
-    {
-        if (string.IsNullOrWhiteSpace(Code)) { Error = Store.Ui.Tr("أدخل الرمز", "Enter code"); return; }
-        if (!Store.Auth.PendingUserId.HasValue) { Error = "session_expired"; return; }
-        Loading = true; Error = null;
-        var result = await Engine.ExecuteAsync<object>(
-            ClientOps.VerifyOtp(Store.Auth.PendingUserId.Value, Store.Auth.ChallengeId ?? "", Code),
-            new { code = Code });
-        if (result.Operation.Status == "Success")
-            Nav.NavigateTo("/");
-        else
-            Error = result.Operation.ErrorMessage ?? Store.Ui.Tr("رمز غير صحيح", "Invalid code");
-        Loading = false;
-    }
-}
+<AcLoginPage Mode="TemplateOperationMode.Operation"
+             Engine="Engine"
+             BuildRequestOtpOp="@(phone => ClientOps.RequestOtp(phone))"
+             BuildVerifyOtpOp="@((uid, cid, code) => ClientOps.VerifyOtp(uid, cid, code))"
+             PhonePayload="@(phone => new { phoneNumber = phone })"
+             VerifyPayload="@((uid, cid, code) => new { userId = uid, challengeId = cid, code })"
+             RedirectUrl="/"
+             BrandName="عشير للمُلاّك"
+             BrandTagline="بوابة مُلاّك العقارات"
+             PhoneStepTitle="دخول بالهاتف"
+             PhoneStepSubtitle="سنرسل لك رمز تحقق عبر SMS"
+             PhoneLabel="رقم الهاتف"
+             PhonePlaceholder="+966500000001"
+             RequestOtpLabel="إرسال رمز التحقق"
+             SendingLabel="جاري الإرسال..."
+             OtpStepTitle="رمز التحقق"
+             OtpStepSubtitle="أدخل الرمز المرسل إلى"
+             OtpLabel="رمز التحقق (6 أرقام)"
+             VerifyOtpLabel="تحقق ودخول"
+             VerifyingLabel="جاري التحقق..."
+             BackLabel="تغيير الرقم" />

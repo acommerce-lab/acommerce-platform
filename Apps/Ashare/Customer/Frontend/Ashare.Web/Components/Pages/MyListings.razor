@@ -1,7 +1,7 @@
 @page "/my-listings"
 @rendermode InteractiveServer
-@inject ApiReader Reader
 @inject AppStore Store
+@inject ApiReader Reader
 @inject ClientOpEngine Engine
 @inject NavigationManager Nav
 
@@ -13,130 +13,94 @@
         <a href="/login">@Store.Ui.Tr("سجّل دخولك لرؤية إعلاناتك", "Sign in to view your listings")</a>
     </div>
 }
-else if (Listings == null)
-{
-    <div class="spinner-border" role="status"></div>
-}
 else
 {
-    <div style="padding:16px;">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-            <h1 class="acs-page-title" style="margin:0;">@Store.Ui.Tr("إعلاناتي", "My Listings")</h1>
-            <a href="/create-listing" class="btn btn-primary btn-sm">
-                + @Store.Ui.Tr("إعلان جديد", "New listing")
-            </a>
-        </div>
-
-        @if (Listings.Count == 0)
-        {
-            <div class="alert alert-info">@Store.Ui.Tr("لا إعلانات حتى الآن", "No listings yet")</div>
-        }
-        else
-        {
-            @foreach (var l in Listings)
-            {
-                <div class="s-card" style="margin-bottom:10px;">
-                    <div style="display:flex;justify-content:space-between;align-items:flex-start;">
-                        <div>
-                            <div style="font-weight:700;">@l.Title</div>
-                            <div style="font-size:0.8rem;color:var(--ac-text-muted);">
-                                @l.City @(l.District != null ? $"، {l.District}" : "") •
-                                @l.Price.ToString("0.##") SAR
-                            </div>
-                            <div style="font-size:0.75rem;margin-top:4px;">
-                                <span class="badge @StatusBadge(l.Status)">@StatusLabel(l.Status)</span>
-                                @if (l.IsFeatured)
-                                {
-                                    <span class="badge bg-warning text-dark ms-1">@Store.Ui.Tr("مميز", "Featured")</span>
-                                }
-                            </div>
-                        </div>
-                        <div style="display:flex;flex-direction:column;gap:4px;min-width:100px;">
-                            <a href="/listing/@l.Id" class="btn btn-sm btn-outline-primary">
-                                @Store.Ui.Tr("عرض", "View")
-                            </a>
-                            <button class="btn btn-sm btn-outline-secondary"
-                                    @onclick="() => ToggleFeature(l)">
-                                @(l.IsFeatured ? Store.Ui.Tr("إلغاء التمييز", "Unfeature") : Store.Ui.Tr("تمييز", "Feature"))
-                            </button>
-                            <button class="btn btn-sm btn-outline-danger"
-                                    @onclick="() => DeleteListing(l.Id)">
-                                @Store.Ui.Tr("حذف", "Delete")
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            }
-        }
-    </div>
+    <AcListingsPage
+        Title="@Store.Ui.Tr("إعلاناتي", "My Listings")"
+        Loading="@_loading"
+        Listings="@_listings"
+        EmptyMessage="@Store.Ui.Tr("لا إعلانات بعد", "No listings yet")">
+        <AboveList>
+            <div style="display:flex;justify-content:flex-end;margin-bottom:8px;">
+                <a href="/create-listing" class="btn btn-primary btn-sm">+ @Store.Ui.Tr("جديد", "New")</a>
+            </div>
+        </AboveList>
+        <CardActions Context="listing">
+            <div style="display:flex;flex-direction:column;gap:4px;min-width:90px;">
+                <button class="btn btn-sm btn-outline-secondary"
+                        @onclick="() => ToggleFeature(listing)">
+                    @(listing.IsFeatured ? Store.Ui.Tr("إلغاء التمييز","Unfeature") : Store.Ui.Tr("تمييز","Feature"))
+                </button>
+                <button class="btn btn-sm btn-outline-danger"
+                        @onclick="() => Delete(listing.Id)">
+                    @Store.Ui.Tr("حذف", "Delete")
+                </button>
+            </div>
+        </CardActions>
+    </AcListingsPage>
 }
 
 @code {
-    private List<ListingRow>? Listings;
+    private List<ListingRowDto> _listings = new();
+    private bool _loading = true;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (!firstRender) return;
         if (!Store.Auth.IsAuthenticated || !Store.Auth.UserId.HasValue)
         {
-            Listings = new();
+            _loading = false;
             StateHasChanged();
             return;
         }
-        var env = await Reader.GetAsync<List<ListingRow>>($"/api/listings/by-owner/{Store.Auth.UserId}");
-        Listings = env.Data ?? new();
+        var env = await Reader.GetAsync<List<ApiListingItem>>($"/api/listings/by-owner/{Store.Auth.UserId}");
+        _listings = (env.Data ?? new()).Select(x => new ListingRowDto
+        {
+            Id          = x.Id.ToString(),
+            Title       = x.Title,
+            Price       = x.Price,
+            TimeUnit    = x.TimeUnit,
+            City        = x.City,
+            District    = x.District,
+            Status      = x.Status,
+            IsFeatured  = x.IsFeatured,
+            ViewCount   = x.ViewCount
+        }).ToList();
+        _loading = false;
         StateHasChanged();
     }
 
-    private async Task ToggleFeature(ListingRow listing)
+    private async Task ToggleFeature(ListingRowDto l)
     {
         if (!Store.Auth.UserId.HasValue) return;
-        var result = await Engine.ExecuteAsync<object>(
-            ClientOps.FeatureListing(Store.Auth.UserId.Value, listing.Id), new { });
+        await Engine.ExecuteAsync<object>(ClientOps.FeatureListing(Store.Auth.UserId.Value, Guid.Parse(l.Id)), new { });
+        var idx = _listings.FindIndex(x => x.Id == l.Id);
+        if (idx >= 0) _listings[idx] = _listings[idx] with { IsFeatured = !_listings[idx].IsFeatured };
+        StateHasChanged();
+    }
+
+    private async Task Delete(string id)
+    {
+        if (!Store.Auth.UserId.HasValue) return;
+        var result = await Engine.ExecuteAsync<object>(ClientOps.DeleteListing(Store.Auth.UserId.Value, Guid.Parse(id)), new { });
         if (result.Operation.Status == "Success")
         {
-            listing.IsFeatured = !listing.IsFeatured;
+            _listings.RemoveAll(l => l.Id == id);
             StateHasChanged();
         }
     }
 
-    private async Task DeleteListing(Guid id)
-    {
-        if (!Store.Auth.UserId.HasValue) return;
-        var result = await Engine.ExecuteAsync<object>(
-            ClientOps.DeleteListing(Store.Auth.UserId.Value, id), new { });
-        if (result.Operation.Status == "Success")
-        {
-            Listings?.RemoveAll(l => l.Id == id);
-            StateHasChanged();
-        }
-    }
-
-    private string StatusBadge(int s) => s switch
-    {
-        1 => "bg-success", 2 => "bg-info", 3 => "bg-secondary", 4 => "bg-danger", _ => "bg-secondary"
-    };
-
-    private string StatusLabel(int s) => s switch
-    {
-        0 => Store.Ui.Tr("مسودة", "Draft"),
-        1 => Store.Ui.Tr("منشور", "Published"),
-        2 => Store.Ui.Tr("محجوز", "Reserved"),
-        3 => Store.Ui.Tr("مغلق", "Closed"),
-        4 => Store.Ui.Tr("مرفوض", "Rejected"),
-        _ => "?"
-    };
-
-    public class ListingRow
+    // Local API response shape
+    private class ApiListingItem
     {
         public Guid Id { get; set; }
         public string Title { get; set; } = "";
         public decimal Price { get; set; }
-        public string Currency { get; set; } = "SAR";
+        public string? TimeUnit { get; set; }
         public string City { get; set; } = "";
         public string? District { get; set; }
         public int Status { get; set; }
         public bool IsFeatured { get; set; }
-        public DateTime CreatedAt { get; set; }
+        public int ViewCount { get; set; }
     }
 }

@@ -2,66 +2,61 @@
 @rendermode InteractiveServer
 @inject AppStore Store
 @inject ClientOpEngine Engine
+@inject NavigationManager Nav
+@implements IDisposable
 
 <PageTitle>@Store.Ui.Tr("الإعدادات", "Settings") - عشير</PageTitle>
 
-<div style="padding:16px;max-width:400px;">
-    <h1 class="acs-page-title" style="margin-bottom:20px;">
-        @Store.Ui.Tr("الإعدادات", "Settings")
-    </h1>
-
-    <div class="s-card">
-        <div class="acc-section-label">@Store.Ui.Tr("المظهر", "Appearance")</div>
-
-        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;">
-            <span>@Store.Ui.Tr("الوضع الليلي", "Dark mode")</span>
-            <button class="btn btn-sm @(Store.Ui.IsDark ? "btn-dark" : "btn-outline-secondary")"
-                    @onclick="ToggleTheme">
-                @(Store.Ui.IsDark ? Store.Ui.Tr("تفعيل", "On") : Store.Ui.Tr("إيقاف", "Off"))
-            </button>
-        </div>
-
-        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;">
-            <span>@Store.Ui.Tr("اللغة", "Language")</span>
-            <div class="acs-seg">
-                <button class="acs-seg-btn @(Store.Ui.IsArabic ? "active" : "")"
-                        @onclick='() => SetLanguage("ar")'>عربي</button>
-                <button class="acs-seg-btn @(!Store.Ui.IsArabic ? "active" : "")"
-                        @onclick='() => SetLanguage("en")'>English</button>
-            </div>
-        </div>
-    </div>
-
-    @if (Store.Auth.IsAuthenticated)
-    {
-        <div class="s-card" style="margin-top:12px;">
-            <div class="acc-section-label">@Store.Ui.Tr("الحساب", "Account")</div>
-            <div style="padding:4px 0;font-size:0.85rem;color:var(--ac-text-muted);">
-                @Store.Ui.Tr("رقم الهاتف", "Phone"): @(Store.Auth.PhoneNumber ?? "-")
-            </div>
-            <a href="/profile" class="btn btn-outline-primary btn-sm btn-block" style="margin-top:8px;">
-                @Store.Ui.Tr("تعديل الملف الشخصي", "Edit profile")
-            </a>
-        </div>
-
-        <div class="s-card" style="margin-top:12px;">
-            <div class="acc-section-label">@Store.Ui.Tr("الاشتراك", "Subscription")</div>
-            <a href="/my-subscription" class="btn btn-outline-secondary btn-sm btn-block">
-                @Store.Ui.Tr("إدارة الاشتراك", "Manage subscription")
-            </a>
-        </div>
-    }
-</div>
+<AcSettingsPage Snapshot="@Snapshot"
+                Title="@Store.Ui.Tr("الإعدادات", "Settings")"
+                ThemeLabel="@Store.Ui.Tr("المظهر", "Appearance")"
+                LanguageLabel="@Store.Ui.Tr("اللغة", "Language")"
+                AboutLabel="@Store.Ui.Tr("حول التطبيق", "About")"
+                VersionLabel="@Store.Ui.Tr("الإصدار", "Version")"
+                LightLabel="@Store.Ui.Tr("فاتح", "Light")"
+                DarkLabel="@Store.Ui.Tr("داكن", "Dark")"
+                OnThemeChange="@OnThemeChange"
+                OnLanguageChange="@OnLanguageChange">
+    <ExtraSections>
+        @if (Store.Auth.IsAuthenticated)
+        {
+            <AcCard>
+                <div class="acs-menu-section-title">@Store.Ui.Tr("الحساب", "Account")</div>
+                <div class="acs-settings-info-row">
+                    <span>@Store.Ui.Tr("رقم الهاتف", "Phone")</span>
+                    <strong dir="ltr">@(Store.Auth.PhoneNumber ?? "-")</strong>
+                </div>
+                <div class="acs-stack-sm">
+                    <a href="/profile" class="btn btn-outline-primary btn-sm btn-block">
+                        @Store.Ui.Tr("تعديل الملف الشخصي", "Edit profile")
+                    </a>
+                    <a href="/my-subscription" class="btn btn-outline-secondary btn-sm btn-block">
+                        @Store.Ui.Tr("إدارة الاشتراك", "Manage subscription")
+                    </a>
+                    <a href="/my-bookings" class="btn btn-outline-secondary btn-sm btn-block">
+                        @Store.Ui.Tr("حجوزاتي", "My bookings")
+                    </a>
+                </div>
+            </AcCard>
+        }
+    </ExtraSections>
+</AcSettingsPage>
 
 @code {
-    private async Task ToggleTheme()
+    private SettingsSnapshot Snapshot => new()
     {
-        var newTheme = Store.Ui.IsDark ? "light" : "dark";
-        await Engine.ExecuteAsync<object>(ClientOps.SetTheme(newTheme), new { });
-    }
+        Theme    = Store.Ui.Theme,
+        Language = Store.Ui.Language,
+    };
 
-    private async Task SetLanguage(string lang)
-    {
-        await Engine.ExecuteAsync<object>(ClientOps.SetLanguage(lang), new { });
-    }
+    protected override void OnInitialized() => Store.OnChanged += OnStoreChanged;
+    private void OnStoreChanged() => InvokeAsync(StateHasChanged);
+
+    private async Task OnThemeChange(string t) =>
+        await Engine.ExecuteAsync<object>(ClientOps.SetTheme(t), new { });
+
+    private async Task OnLanguageChange(string l) =>
+        await Engine.ExecuteAsync<object>(ClientOps.SetLanguage(l), new { });
+
+    public void Dispose() => Store.OnChanged -= OnStoreChanged;
 }

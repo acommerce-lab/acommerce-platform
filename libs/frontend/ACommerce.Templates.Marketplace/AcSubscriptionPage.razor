@@ -1,0 +1,188 @@
+@namespace ACommerce.Templates.Marketplace
+
+@*
+    صفحة إدارة الاشتراك الكاملة.
+
+    Callback mode: الصفحة تعالج حدث OnCancel.
+    Operation mode: القالب يُرسل العملية مباشرة عبر ITemplateEngine.
+
+    Flex slots:
+      AboveDetails   — فوق تفاصيل الاشتراك
+      BelowDetails   — بين التفاصيل والأقسام الإضافية
+      ExtraSections  — أقسام إضافية (مثل تاريخ الفواتير)
+*@
+
+<div class="acs-page">
+    @if (!string.IsNullOrEmpty(Title))
+    {
+        <h1 class="acs-page-title">@Title</h1>
+    }
+
+    @if (Loading)
+    {
+        <AcLoadingState />
+        return;
+    }
+
+    @AboveDetails
+
+    @if (Subscription == null)
+    {
+        <AcEmptyState IconName="tag"
+                      Message="لا يوجد اشتراك نشط"
+                      ActionLabel="@(UpgradeHref != null ? "اختر خطة" : null)"
+                      ActionHref="@UpgradeHref" />
+    }
+    else
+    {
+        <div class="s-card acm-sub-details-card">
+            <div class="acm-sub-details-header">
+                <div>
+                    <h2 class="acm-sub-plan-name">@Subscription.PlanName</h2>
+                    @if (!string.IsNullOrEmpty(Subscription.PlanDescription))
+                    {
+                        <p class="ac-text-muted">@Subscription.PlanDescription</p>
+                    }
+                </div>
+                <AcBadge Text="@SubStatusLabel(Subscription.Status)" Variant="@SubStatusVariant(Subscription.Status)" />
+            </div>
+
+            <div class="acm-sub-details-price">
+                <span class="acm-sub-monthly-price">@Subscription.MonthlyPrice.ToString("N0") @Subscription.Currency</span>
+                <span class="ac-text-muted">/ شهر</span>
+            </div>
+
+            @if (Subscription.ExpiresAt.HasValue)
+            {
+                <p class="ac-text-muted">
+                    <AcIcon Name="clock" Size="14" />
+                    تاريخ الانتهاء: @Subscription.ExpiresAt.Value.ToString("yyyy/MM/dd")
+                </p>
+            }
+        </div>
+
+        <div class="s-card acm-quota-card">
+            <h3 class="acs-section-title">الحصص</h3>
+
+            @if (Subscription.ListingQuota > 0)
+            {
+                var listingPct = Math.Min(100, (int)Math.Round((double)Subscription.ListingUsed / Subscription.ListingQuota * 100));
+                <div class="acm-quota-row">
+                    <div class="acm-quota-label">
+                        <span>الإعلانات</span>
+                        <span class="ac-text-muted">@Subscription.ListingUsed من @Subscription.ListingQuota</span>
+                    </div>
+                    <div class="acm-quota-bar">
+                        <div class="acm-quota-fill" style="width:@(listingPct)%"></div>
+                    </div>
+                </div>
+            }
+
+            @if (Subscription.FeaturedQuota > 0)
+            {
+                var featuredPct = Math.Min(100, (int)Math.Round((double)Subscription.FeaturedUsed / Subscription.FeaturedQuota * 100));
+                <div class="acm-quota-row">
+                    <div class="acm-quota-label">
+                        <span>الإعلانات المميزة</span>
+                        <span class="ac-text-muted">@Subscription.FeaturedUsed من @Subscription.FeaturedQuota</span>
+                    </div>
+                    <div class="acm-quota-bar">
+                        <div class="acm-quota-fill acm-quota-fill-featured" style="width:@(featuredPct)%"></div>
+                    </div>
+                </div>
+            }
+        </div>
+
+        @BelowDetails
+
+        @if (Subscription.Status == 0 || Subscription.Status == 1)
+        {
+            <div class="acm-sub-cancel-section">
+                <AcButton Variant="danger"
+                          Text="@(CancelLabel ?? "إلغاء الاشتراك")"
+                          OnClick="HandleCancel"
+                          Disabled="@_busy" />
+            </div>
+        }
+    }
+
+    @if (AvailablePlans.Count > 0)
+    {
+        <h2 class="acs-section-title">الخطط المتاحة</h2>
+        @foreach (var plan in AvailablePlans)
+        {
+            <div class="s-card acm-plan-card">
+                <div class="acm-plan-header">
+                    <strong>@plan.Name</strong>
+                    <span class="acm-plan-price">@plan.MonthlyPrice.ToString("N0") @plan.Currency / شهر</span>
+                </div>
+                @if (!string.IsNullOrEmpty(plan.Description))
+                {
+                    <p class="ac-text-muted">@plan.Description</p>
+                }
+                @if (!string.IsNullOrEmpty(UpgradeHref))
+                {
+                    <a class="btn btn-primary btn-sm" href="@(UpgradeHref + "/" + plan.Slug)">اختر هذه الخطة</a>
+                }
+            </div>
+        }
+    }
+
+    @ExtraSections
+</div>
+
+@code {
+    // ── وضع التشغيل ────────────────────────────────────────────────────────
+    [Parameter] public TemplateOperationMode Mode { get; set; } = TemplateOperationMode.Callback;
+
+    [Parameter] public string? Title { get; set; }
+    [Parameter] public bool Loading { get; set; }
+    [Parameter] public SubscriptionInfoDto? Subscription { get; set; }
+    [Parameter] public IReadOnlyList<PlanRowDto> AvailablePlans { get; set; } = Array.Empty<PlanRowDto>();
+    [Parameter] public string? UpgradeHref { get; set; }
+    [Parameter] public string? CancelLabel { get; set; }
+
+    // ── Callback mode ──────────────────────────────────────────────────────
+    [Parameter] public EventCallback OnCancel { get; set; }
+
+    // ── Operation mode ─────────────────────────────────────────────────────
+    [Parameter] public ITemplateEngine? Engine { get; set; }
+    [Parameter] public Func<string, Operation>? BuildCancelOp { get; set; }
+
+    // ── Flex slots ─────────────────────────────────────────────────────────
+    [Parameter] public RenderFragment? AboveDetails { get; set; }
+    [Parameter] public RenderFragment? BelowDetails { get; set; }
+    [Parameter] public RenderFragment? ExtraSections { get; set; }
+
+    private bool _busy;
+
+    private async Task HandleCancel()
+    {
+        if (Subscription == null) return;
+        if (Mode == TemplateOperationMode.Operation && Engine != null && BuildCancelOp != null)
+        {
+            _busy = true;
+            try { await Engine.ExecuteAsync<object>(BuildCancelOp(Subscription.SubscriptionId ?? Subscription.PlanName)); }
+            finally { _busy = false; }
+        }
+        else if (OnCancel.HasDelegate) await OnCancel.InvokeAsync();
+    }
+
+    private static string SubStatusLabel(int status) => status switch
+    {
+        0 => "تجريبي",
+        1 => "نشط",
+        2 => "ملغى",
+        3 => "منتهي",
+        _ => "غير معروف"
+    };
+
+    private static string SubStatusVariant(int status) => status switch
+    {
+        0 => "info",
+        1 => "success",
+        2 => "muted",
+        3 => "danger",
+        _ => "muted"
+    };
+}

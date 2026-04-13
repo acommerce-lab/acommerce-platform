@@ -123,6 +123,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACommerce.Notification.Prov
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACommerce.Bookings.Operations", "libs\backend\marketplace\ACommerce.Bookings.Operations\ACommerce.Bookings.Operations.csproj", "{E5F6A7B8-C9D0-1234-EF01-345678901234}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACommerce.Templates.Marketplace", "libs\frontend\ACommerce.Templates.Marketplace\ACommerce.Templates.Marketplace.csproj", "{F1A2B3C4-D5E6-7890-ABCD-EF0123456789}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ashare.Admin.Api", "Apps\Ashare\Admin\Backend\Ashare.Admin.Api\Ashare.Admin.Api.csproj", "{A2B3C4D5-E6F7-8901-BCDE-F01234567890}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -711,5 +715,7 @@ Global
 		{C3D4E5F6-A7B8-9012-CDEF-123456789012} = {55C97B76-B746-2748-6A13-0AE8838FAAAA}
 		{D4E5F6A7-B8C9-0123-DEF0-234567890123} = {55C97B76-B746-2748-6A13-0AE8838FAAAA}
 		{E5F6A7B8-C9D0-1234-EF01-345678901234} = {5F00DC25-592E-C0F3-3685-F8A242BEDAF5}
+		{F1A2B3C4-D5E6-7890-ABCD-EF0123456789} = {E70624DB-5086-92EA-A7DA-DA400B6A823C}
+		{A2B3C4D5-E6F7-8901-BCDE-F01234567890} = {1787FE1D-075E-9E68-7218-25F1BD1BBEAB}
 	EndGlobalSection
 EndGlobal

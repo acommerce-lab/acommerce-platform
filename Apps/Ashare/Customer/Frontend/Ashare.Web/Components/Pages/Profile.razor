@@ -3,75 +3,79 @@
 @inject ApiReader Reader
 @inject AppStore Store
 @inject ClientOpEngine Engine
+@inject NavigationManager Nav
+@implements IDisposable
 
 <PageTitle>@Store.Ui.Tr("ملفي الشخصي", "My Profile") - عشير</PageTitle>
 
-@if (!Store.Auth.IsAuthenticated)
-{
-    <div class="alert alert-warning">
-        <a href="/login">@Store.Ui.Tr("سجّل دخولك", "Sign in")</a>
-    </div>
-}
-else if (Loading)
-{
-    <div class="spinner-border" role="status"></div>
-}
-else
-{
-    <div style="padding:16px;max-width:480px;">
-        <h1 class="acs-page-title" style="margin-bottom:20px;">
-            @Store.Ui.Tr("ملفي الشخصي", "My Profile")
-        </h1>
-
-        <div class="s-card">
-            <div style="margin-bottom:12px;">
-                <label style="font-size:0.8rem;color:var(--ac-text-muted);">@Store.Ui.Tr("الاسم الأول", "First name")</label>
-                <input class="form-control form-control-sm" @bind="FirstName" />
-            </div>
-            <div style="margin-bottom:12px;">
-                <label style="font-size:0.8rem;color:var(--ac-text-muted);">@Store.Ui.Tr("الاسم الأخير", "Last name")</label>
-                <input class="form-control form-control-sm" @bind="LastName" />
-            </div>
-            <div style="margin-bottom:12px;">
-                <label style="font-size:0.8rem;color:var(--ac-text-muted);">@Store.Ui.Tr("نبذة", "Bio")</label>
-                <textarea class="form-control form-control-sm" rows="3" @bind="Bio"></textarea>
-            </div>
-            <div style="margin-bottom:12px;">
-                <label style="font-size:0.8rem;color:var(--ac-text-muted);">@Store.Ui.Tr("المدينة", "City")</label>
-                <input class="form-control form-control-sm" @bind="City" />
-            </div>
-            <div style="margin-bottom:16px;">
-                <label style="font-size:0.8rem;color:var(--ac-text-muted);">@Store.Ui.Tr("رابط الصورة", "Avatar URL")</label>
-                <input class="form-control form-control-sm" @bind="AvatarUrl" />
-            </div>
-
-            @if (!string.IsNullOrEmpty(Message))
-            {
-                <div class="alert @(Success ? "alert-success" : "alert-danger") py-2 mb-3">@Message</div>
-            }
-
-            <button class="btn btn-primary btn-block" @onclick="Save" disabled="@Saving">
-                @(Saving ? Store.Ui.Tr("جاري الحفظ...", "Saving...") : Store.Ui.Tr("حفظ", "Save"))
-            </button>
-        </div>
-    </div>
-}
+<AcAuthGuard IsAuthenticated="Store.Auth.IsAuthenticated"
+             IsArabic="Store.Ui.IsArabic"
+             LoginHref="/login">
+    @if (Loading)
+    {
+        <AcLoadingState Message="@Store.Ui.Tr("جاري التحميل...", "Loading…")" />
+    }
+    else
+    {
+        <AcProfilePage User="@UserDto"
+                       Stats="@StatsList"
+                       MenuSections="@MenuSectionsList"
+                       SignOutLabel="@Store.Ui.Tr("تسجيل الخروج", "Sign out")"
+                       OnSignOut="SignOut" />
+    }
+</AcAuthGuard>
 
 @code {
     private bool Loading = true;
-    private bool Saving;
-    private string? Message;
-    private bool Success;
 
-    private string? FirstName;
-    private string? LastName;
-    private string? Bio;
-    private string? City;
-    private string? AvatarUrl;
+    // Profile data loaded from API
+    private string? _avatarUrl;
+    private string? _fullName;
+
+    private ProfileUserDto UserDto => new()
+    {
+        Id          = Store.Auth.UserId?.ToString() ?? "",
+        FullName    = _fullName ?? Store.Auth.FullName ?? Store.Ui.Tr("مستخدم عشير", "Ashare user"),
+        PhoneNumber = Store.Auth.PhoneNumber,
+        AvatarUrl   = _avatarUrl,
+        Initial     = (_fullName ?? Store.Auth.FullName)?.Length > 0
+                        ? (_fullName ?? Store.Auth.FullName)![..1]
+                        : null,
+    };
+
+    private IReadOnlyList<ProfileStatDto> StatsList => Array.Empty<ProfileStatDto>();
+
+    private IReadOnlyList<MenuSectionDto> MenuSectionsList => new[]
+    {
+        new MenuSectionDto
+        {
+            Title = Store.Ui.Tr("نشاطي", "My activity"),
+            Items = new[]
+            {
+                new MenuItemDto { Label = Store.Ui.Tr("إعلاناتي", "My listings"),    IconName = "home",     Href = "/my-listings" },
+                new MenuItemDto { Label = Store.Ui.Tr("حجوزاتي", "My bookings"),     IconName = "calendar", Href = "/my-bookings" },
+                new MenuItemDto { Label = Store.Ui.Tr("المفضلة", "Favorites"),       IconName = "heart",    Href = "/favorites" },
+                new MenuItemDto { Label = Store.Ui.Tr("محادثاتي", "Messages"),       IconName = "message",  Href = "/messages" },
+            }
+        },
+        new MenuSectionDto
+        {
+            Title = Store.Ui.Tr("الحساب", "Account"),
+            Items = new[]
+            {
+                new MenuItemDto { Label = Store.Ui.Tr("اشتراكي", "My subscription"), IconName = "star",     Href = "/my-subscription" },
+                new MenuItemDto { Label = Store.Ui.Tr("الإعدادات", "Settings"),      IconName = "settings", Href = "/settings" },
+            }
+        }
+    };
+
+    protected override void OnInitialized() => Store.OnChanged += OnStoreChanged;
+    private void OnStoreChanged() => InvokeAsync(StateHasChanged);
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (!firstRender) return;
+
         if (!Store.Auth.IsAuthenticated || !Store.Auth.UserId.HasValue)
         {
             Loading = false;
@@ -82,45 +86,31 @@ else
         var env = await Reader.GetAsync<ProfileDto>($"/api/profiles/user/{Store.Auth.UserId}");
         if (env.Data != null)
         {
-            FirstName = env.Data.FirstName;
-            LastName = env.Data.LastName;
-            Bio = env.Data.Bio;
-            City = env.Data.City;
-            AvatarUrl = env.Data.AvatarUrl;
+            _fullName  = string.Join(" ", new[] { env.Data.FirstName, env.Data.LastName }
+                             .Where(s => !string.IsNullOrWhiteSpace(s)));
+            _avatarUrl = env.Data.AvatarUrl;
         }
+
         Loading = false;
         StateHasChanged();
     }
 
-    private async Task Save()
+    private async Task SignOut()
     {
-        if (!Store.Auth.UserId.HasValue) return;
-        Saving = true;
-        Message = null;
-
-        var result = await Engine.ExecuteAsync<object>(
-            ClientOps.UpdateProfile(Store.Auth.UserId.Value),
-            new
-            {
-                UserId = Store.Auth.UserId.Value,
-                FirstName, LastName, Bio, City, AvatarUrl
-            });
-
-        Success = result.Operation.Status == "Success";
-        Message = Success
-            ? Store.Ui.Tr("تم الحفظ بنجاح", "Saved successfully")
-            : (result.Operation.ErrorMessage ?? Store.Ui.Tr("فشل الحفظ", "Save failed"));
-        Saving = false;
-        StateHasChanged();
+        await Engine.ExecuteAsync<object>(ClientOps.SignOut(), new { });
+        Nav.NavigateTo("/", forceLoad: false);
     }
 
+    public void Dispose() => Store.OnChanged -= OnStoreChanged;
+
+    // ── Local DTO matching API response ────────────────────────────────────
     public class ProfileDto
     {
-        public Guid Id { get; set; }
-        public string? FirstName { get; set; }
-        public string? LastName { get; set; }
-        public string? Bio { get; set; }
-        public string? City { get; set; }
-        public string? AvatarUrl { get; set; }
+        public Guid    Id         { get; set; }
+        public string? FirstName  { get; set; }
+        public string? LastName   { get; set; }
+        public string? Bio        { get; set; }
+        public string? City       { get; set; }
+        public string? AvatarUrl  { get; set; }
     }
 }

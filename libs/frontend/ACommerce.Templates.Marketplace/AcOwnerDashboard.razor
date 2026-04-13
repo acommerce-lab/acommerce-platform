@@ -1,0 +1,140 @@
+@namespace ACommerce.Templates.Marketplace
+
+@*
+    لوحة تحكم المالك — تعرض إحصاءات + قائمة أحدث الحجوزات.
+
+    Flex slots:
+      AboveStats       — فوق الإحصاءات
+      BelowStats       — بين الإحصاءات والحجوزات
+      QuickActions     — إجراءات سريعة (مثل زر "إعلان جديد")
+      BelowBookings    — أسفل قائمة الحجوزات
+      EmptyBookings    — يُستبدل بحالة فراغ مخصصة
+*@
+
+<div class="acs-page">
+    @if (!string.IsNullOrEmpty(Title))
+    {
+        <h1 class="acs-page-title">@Title</h1>
+    }
+    @if (!string.IsNullOrEmpty(Subtitle))
+    {
+        <p class="ac-text-muted">@Subtitle</p>
+    }
+
+    @AboveStats
+
+    @if (Stats.Count > 0)
+    {
+        <div class="acm-stats-grid">
+            @foreach (var s in Stats)
+            {
+                <div class="acm-stat-card s-card">
+                    @if (!string.IsNullOrEmpty(s.IconName))
+                    {
+                        <AcIcon Name="@s.IconName" Size="20" />
+                    }
+                    <div class="acm-stat-value">@s.Value</div>
+                    <div class="acm-stat-label">@s.Label</div>
+                    @if (!string.IsNullOrEmpty(s.TrendValue))
+                    {
+                        <div class="acm-stat-trend @(s.Trend == "up" ? "up" : "down")">
+                            @(s.Trend == "up" ? "▲" : "▼") @s.TrendValue
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    }
+
+    @BelowStats
+
+    @if (QuickActions != null)
+    {
+        <div class="acm-quick-actions">
+            @QuickActions
+        </div>
+    }
+
+    @if (!string.IsNullOrEmpty(BookingsTitle))
+    {
+        <h2 class="acs-section-title">@BookingsTitle</h2>
+    }
+
+    @if (LoadingBookings)
+    {
+        <AcLoadingState />
+    }
+    else if (RecentBookings.Count == 0)
+    {
+        @if (EmptyBookings != null)
+        {
+            @EmptyBookings
+        }
+        else
+        {
+            <AcEmptyState IconName="inbox" Message="@(EmptyBookingsMessage ?? "لا حجوزات بعد")" />
+        }
+    }
+    else
+    {
+        @foreach (var b in RecentBookings)
+        {
+            <div class="s-card acm-booking-row" @onclick="() => HandleBookingClick(b)">
+                <div class="acm-booking-row-info">
+                    <strong>@(b.ListingTitle ?? b.Id)</strong>
+                    <AcBadge Text="@BookingStatusLabel(b.Status)" Variant="@BookingStatusVariant(b.Status)" />
+                </div>
+                <div class="acm-booking-row-meta ac-text-muted">
+                    <span>@b.StartDate.ToString("yyyy/MM/dd") — @b.EndDate.ToString("yyyy/MM/dd")</span>
+                    <span>@b.TotalPrice.ToString("N0") @b.Currency</span>
+                </div>
+            </div>
+        }
+    }
+
+    @BelowBookings
+</div>
+
+@code {
+    [Parameter] public string? Title { get; set; }
+    [Parameter] public string? Subtitle { get; set; }
+    [Parameter] public IReadOnlyList<OwnerStatDto> Stats { get; set; } = Array.Empty<OwnerStatDto>();
+    [Parameter] public bool LoadingBookings { get; set; }
+    [Parameter] public IReadOnlyList<BookingRowDto> RecentBookings { get; set; } = Array.Empty<BookingRowDto>();
+    [Parameter] public string? BookingsTitle { get; set; }
+    [Parameter] public string? EmptyBookingsMessage { get; set; }
+    [Parameter] public EventCallback<BookingRowDto> OnBookingClick { get; set; }
+
+    [Parameter] public RenderFragment? AboveStats { get; set; }
+    [Parameter] public RenderFragment? BelowStats { get; set; }
+    [Parameter] public RenderFragment? BelowBookings { get; set; }
+    [Parameter] public RenderFragment? EmptyBookings { get; set; }
+    [Parameter] public RenderFragment? QuickActions { get; set; }
+
+    private async Task HandleBookingClick(BookingRowDto b)
+    {
+        if (OnBookingClick.HasDelegate) await OnBookingClick.InvokeAsync(b);
+    }
+
+    private static string BookingStatusLabel(int status) => status switch
+    {
+        0 => "معلق",
+        1 => "مؤكد",
+        2 => "ينتظر الدفع",
+        3 => "مدفوع",
+        4 => "ملغى",
+        5 => "مكتمل",
+        _ => "غير معروف"
+    };
+
+    private static string BookingStatusVariant(int status) => status switch
+    {
+        0 => "warning",
+        1 => "success",
+        2 => "info",
+        3 => "primary",
+        4 => "muted",
+        5 => "success",
+        _ => "muted"
+    };
+}

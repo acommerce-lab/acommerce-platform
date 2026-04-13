@@ -1,10 +1,10 @@
-@page "/offers/new"
+@page "/offers/edit/{Id:guid}"
 @inject VendorApiClient Api
 @inject ClientOpEngine Engine
 @inject AppStore Store
 @inject NavigationManager Nav
 
-<PageTitle>@(Store.Ui.IsArabic ? "عرض جديد" : "New Offer")</PageTitle>
+<PageTitle>@(Store.Ui.IsArabic ? "تعديل العرض" : "Edit Offer")</PageTitle>
 
 @if (!Store.Auth.IsAuthenticated)
 {
@@ -13,7 +13,7 @@
                   ActionHref="/login"
                   ActionLabel="@(Store.Ui.IsArabic ? "دخول" : "Sign in")" />
 }
-else if (_loadingVendor)
+else if (_loading)
 {
     <AcLoadingState Message="@(Store.Ui.IsArabic ? "جاري التحميل..." : "Loading…")" />
 }
@@ -22,7 +22,7 @@ else
     <AcVendorOfferForm
         Mode="TemplateOperationMode.Callback"
         Form="@_form"
-        Title="@(Store.Ui.IsArabic ? "عرض جديد" : "New Offer")"
+        Title="@(Store.Ui.IsArabic ? "تعديل العرض" : "Edit Offer")"
         TitleLabel="@(Store.Ui.IsArabic ? "اسم العرض" : "Offer title")"
         TitlePlaceholder="@(Store.Ui.IsArabic ? "أدخل اسم العرض" : "Enter offer title")"
         DescriptionLabel="@(Store.Ui.IsArabic ? "الوصف" : "Description")"
@@ -32,34 +32,44 @@ else
         CategoryLabel="@(Store.Ui.IsArabic ? "الفئة" : "Category")"
         CategoryPlaceholder="@(Store.Ui.IsArabic ? "مثال: مشروبات" : "e.g. Drinks")"
         AvailableLabel="@(Store.Ui.IsArabic ? "متاح للطلب" : "Available")"
-        SubmitLabel="@(Store.Ui.IsArabic ? "حفظ" : "Save")"
+        SubmitLabel="@(Store.Ui.IsArabic ? "حفظ التعديلات" : "Save changes")"
         OnSubmit="HandleSubmit" />
 }
 
 @code {
+    [Parameter] public Guid Id { get; set; }
+
     private OfferFormModel _form = new();
-    private Guid? _vendorId;
-    private bool _loadingVendor = true;
+    private bool _loading = true;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (!firstRender) return;
         if (Store.Auth.IsAuthenticated)
         {
-            var vEnv = await Api.GetAsync<List<VendorRow>>("/api/vendors");
-            var myV = vEnv.Data?.FirstOrDefault(v => v.OwnerId == Store.Auth.UserId);
-            _vendorId = myV?.Id;
+            var env = await Api.GetAsync<OfferDetail>($"/api/offers/{Id}");
+            if (env.Data != null)
+            {
+                var d = env.Data;
+                _form = new OfferFormModel
+                {
+                    Title       = d.Title,
+                    Description = d.Description,
+                    Price       = d.Price,
+                    Emoji       = d.Emoji,
+                    Category    = d.Category,
+                    IsAvailable = d.IsAvailable,
+                };
+            }
         }
-        _loadingVendor = false;
+        _loading = false;
         StateHasChanged();
     }
 
     private async Task HandleSubmit(OfferFormModel form)
     {
-        if (!_vendorId.HasValue) return;
-        await Engine.ExecuteAsync<object>(ClientOps.CreateOffer(_vendorId.Value), new
+        await Engine.ExecuteAsync<object>(ClientOps.UpdateOffer(Id), new
         {
-            VendorId = _vendorId.Value,
             form.Title,
             form.Description,
             form.Price,
@@ -70,5 +80,13 @@ else
         Nav.NavigateTo("/offers");
     }
 
-    public class VendorRow { public Guid Id { get; set; } public Guid OwnerId { get; set; } }
+    public class OfferDetail
+    {
+        public string Title { get; set; } = "";
+        public string? Description { get; set; }
+        public decimal Price { get; set; }
+        public string? Emoji { get; set; }
+        public string? Category { get; set; }
+        public bool IsAvailable { get; set; } = true;
+    }
 }
