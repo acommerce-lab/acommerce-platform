@@ -1,0 +1,74 @@
+@page "/plans"
+@rendermode InteractiveServer
+@inject AppStore Store
+@inject ApiReader Reader
+
+<PageTitle>الباقات - عشير الإدارة</PageTitle>
+
+<AcAuthGuard IsAuthenticated="@Store.Auth.IsAuthenticated" IsArabic="@Store.Ui.IsArabic" LoginHref="/login">
+    @if (_loading)
+    {
+        <AcLoadingState Message="جاري تحميل الباقات..." />
+    }
+    else if (_plans.Count == 0)
+    {
+        <AcEmptyState IconName="package" Title="لا توجد باقات" />
+    }
+    else
+    {
+        <div class="acs-page">
+            <h1 class="acs-page-title">الباقات</h1>
+            <div class="ac-grid ac-grid-cols-3">
+                @foreach (var p in _plans)
+                {
+                    <AcCard Hover>
+                        <ChildContent>
+                            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                                <strong>@p.Name</strong>
+                                <AcBadge Text="@(p.MonthlyPrice.ToString("N0") + " SAR/شهر")" Variant="info" />
+                            </div>
+                            @if (!string.IsNullOrEmpty(p.Description))
+                            {
+                                <p class="ac-text-muted ac-text-sm">@p.Description</p>
+                            }
+                            <div class="ac-row ac-gap-sm" style="margin-top:12px;">
+                                <AcButton Variant="ghost" Size="sm" Text="تعديل" />
+                                <AcButton Variant="danger" Size="sm" Text="حذف" />
+                            </div>
+                        </ChildContent>
+                    </AcCard>
+                }
+            </div>
+        </div>
+    }
+</AcAuthGuard>
+
+@code {
+    private List<PlanApiRow> _plans = new();
+    private bool _loading = true;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        if (!Store.Auth.IsAuthenticated)
+        {
+            _loading = false;
+            StateHasChanged();
+            return;
+        }
+
+        var env = await Reader.GetAsync<List<PlanApiRow>>("/api/admin/plans");
+        _plans = env.Data ?? new();
+        _loading = false;
+        StateHasChanged();
+    }
+
+    private class PlanApiRow
+    {
+        public Guid    Id           { get; set; }
+        public string  Name         { get; set; } = "";
+        public string? Description  { get; set; }
+        public decimal MonthlyPrice { get; set; }
+        public string  Slug         { get; set; } = "";
+    }
+}

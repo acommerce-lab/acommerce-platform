@@ -1,0 +1,117 @@
+@page "/listings"
+@rendermode InteractiveServer
+@inject AppStore Store
+@inject ApiReader Reader
+@inject ClientOpEngine Engine
+
+<PageTitle>الإعلانات - عشير الإدارة</PageTitle>
+
+<AcAuthGuard IsAuthenticated="@Store.Auth.IsAuthenticated" IsArabic="@Store.Ui.IsArabic" LoginHref="/login">
+    <AcAdminVendorsPage Title="الإعلانات"
+                        Vendors="@_rows"
+                        Loading="@_loading"
+                        SearchPlaceholder="بحث بعنوان الإعلان..."
+                        EmptyTitle="لا توجد إعلانات"
+                        ApproveLabel="قبول"
+                        SuspendLabel="رفض"
+                        OnApprove="@Approve"
+                        OnSuspend="@Reject">
+        <RowExtras Context="v">
+            <AcButton Variant="ghost" Size="sm" Text="مميز"
+                      OnClick="@(() => Feature(v))" />
+            <AcButton Variant="danger" Size="sm" Text="حذف"
+                      OnClick="@(() => Delete(v))" />
+        </RowExtras>
+    </AcAdminVendorsPage>
+</AcAuthGuard>
+
+@code {
+    private List<AdminVendorRowDto> _rows = new();
+    private bool _loading = true;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        if (!Store.Auth.IsAuthenticated)
+        {
+            _loading = false;
+            StateHasChanged();
+            return;
+        }
+
+        var env = await Reader.GetAsync<List<ListingApiRow>>("/api/admin/listings");
+        _rows = (env.Data ?? new()).Select(r => new AdminVendorRowDto
+        {
+            Id          = r.Id.ToString(),
+            Name        = r.Title,
+            Status      = MapStatus(r.Status, r.ApprovalStatus),
+            Category    = r.CategoryName,
+            OrderCount  = r.BookingCount,
+            TotalRevenue = r.TotalRevenue,
+            Currency    = "SAR",
+            CreatedAt   = r.CreatedAt,
+        }).ToList();
+
+        _loading = false;
+        StateHasChanged();
+    }
+
+    private static string MapStatus(int status, string? approval) =>
+        approval == "pending" || approval == "قيد المراجعة" ? "pending_review"
+        : status == 1 ? "active"
+        : status == 4 ? "suspended"
+        : "pending_review";
+
+    private async Task Approve(AdminVendorRowDto v)
+    {
+        if (!Guid.TryParse(v.Id, out var lid)) return;
+        var result = await Engine.ExecuteAsync<object>(ClientOps.ApproveListing(lid), new { listingId = lid });
+        if (result.Operation.Status == "Success")
+        {
+            var idx = _rows.FindIndex(x => x.Id == v.Id);
+            if (idx >= 0) _rows[idx] = _rows[idx] with { Status = "active" };
+            StateHasChanged();
+        }
+    }
+
+    private async Task Reject(AdminVendorRowDto v)
+    {
+        if (!Guid.TryParse(v.Id, out var lid)) return;
+        var result = await Engine.ExecuteAsync<object>(ClientOps.RejectListing(lid), new { listingId = lid });
+        if (result.Operation.Status == "Success")
+        {
+            var idx = _rows.FindIndex(x => x.Id == v.Id);
+            if (idx >= 0) _rows[idx] = _rows[idx] with { Status = "suspended" };
+            StateHasChanged();
+        }
+    }
+
+    private async Task Feature(AdminVendorRowDto v)
+    {
+        if (!Guid.TryParse(v.Id, out var lid)) return;
+        await Engine.ExecuteAsync<object>(ClientOps.FeatureListing(lid), new { listingId = lid });
+    }
+
+    private async Task Delete(AdminVendorRowDto v)
+    {
+        if (!Guid.TryParse(v.Id, out var lid)) return;
+        var result = await Engine.ExecuteAsync<object>(ClientOps.DeleteListing(lid), new { listingId = lid });
+        if (result.Operation.Status == "Success")
+        {
+            _rows.RemoveAll(x => x.Id == v.Id);
+            StateHasChanged();
+        }
+    }
+
+    private class ListingApiRow
+    {
+        public Guid    Id             { get; set; }
+        public string  Title          { get; set; } = "";
+        public int     Status         { get; set; }
+        public string? ApprovalStatus { get; set; }
+        public string? CategoryName   { get; set; }
+        public int     BookingCount   { get; set; }
+        public decimal TotalRevenue   { get; set; }
+        public DateTime CreatedAt     { get; set; }
+    }
+}

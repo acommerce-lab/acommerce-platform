@@ -1,0 +1,71 @@
+@page "/categories"
+@rendermode InteractiveServer
+@inject AppStore Store
+@inject ApiReader Reader
+
+<PageTitle>التصنيفات - عشير الإدارة</PageTitle>
+
+<AcAuthGuard IsAuthenticated="@Store.Auth.IsAuthenticated" IsArabic="@Store.Ui.IsArabic" LoginHref="/login">
+    @if (_loading)
+    {
+        <AcLoadingState Message="جاري تحميل التصنيفات..." />
+    }
+    else if (_categories.Count == 0)
+    {
+        <AcEmptyState IconName="tag" Title="لا توجد تصنيفات" />
+    }
+    else
+    {
+        <div class="acs-page">
+            <h1 class="acs-page-title">التصنيفات</h1>
+            @foreach (var c in _categories)
+            {
+                <div class="s-card acm-admin-row">
+                    <div class="acm-admin-info">
+                        <strong>@c.Name</strong>
+                        @if (!string.IsNullOrEmpty(c.Description))
+                        {
+                            <span class="ac-text-muted">@c.Description</span>
+                        }
+                        <span class="ac-text-muted">@c.ListingCount إعلان</span>
+                    </div>
+                    <div class="acm-admin-actions">
+                        <AcBadge Text="@(c.IsActive ? "نشط" : "معطّل")" Variant="@(c.IsActive ? "success" : "muted")" />
+                        <AcButton Variant="ghost" Size="sm" Text="تعديل" />
+                        <AcButton Variant="danger" Size="sm" Text="حذف" />
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</AcAuthGuard>
+
+@code {
+    private List<CategoryApiRow> _categories = new();
+    private bool _loading = true;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        if (!Store.Auth.IsAuthenticated)
+        {
+            _loading = false;
+            StateHasChanged();
+            return;
+        }
+
+        var env = await Reader.GetAsync<List<CategoryApiRow>>("/api/admin/categories");
+        _categories = env.Data ?? new();
+        _loading = false;
+        StateHasChanged();
+    }
+
+    private class CategoryApiRow
+    {
+        public Guid    Id           { get; set; }
+        public string  Name         { get; set; } = "";
+        public string? Description  { get; set; }
+        public bool    IsActive     { get; set; } = true;
+        public int     ListingCount { get; set; }
+    }
+}

@@ -1,0 +1,56 @@
+@inherits LayoutComponentBase
+@inject AppStore Store
+@inject AppStateApplier Applier
+@implements IDisposable
+
+<div class="ac-root" style="min-height:100vh;background:var(--ac-bg,#f5f7fa);">
+    <nav style="background:#1a2b4a;color:#fff;padding:0 24px;display:flex;align-items:center;gap:16px;height:56px;position:sticky;top:0;z-index:100;">
+        <a href="/" style="color:#fff;font-weight:700;font-size:1.1rem;text-decoration:none;">عشير — لوحة الإدارة</a>
+
+        @if (Store.Auth.IsAuthenticated)
+        {
+            <div style="display:flex;gap:8px;margin-inline-start:auto;flex-wrap:wrap;align-items:center;">
+                <a class="act-navbar-link" href="/" style="color:#b8c9e8;text-decoration:none;font-size:0.9rem;">لوحة التحكم</a>
+                <a class="act-navbar-link" href="/users" style="color:#b8c9e8;text-decoration:none;font-size:0.9rem;">المستخدمون</a>
+                <a class="act-navbar-link" href="/listings" style="color:#b8c9e8;text-decoration:none;font-size:0.9rem;">الإعلانات</a>
+                <a class="act-navbar-link" href="/bookings" style="color:#b8c9e8;text-decoration:none;font-size:0.9rem;">الحجوزات</a>
+                <a class="act-navbar-link" href="/subscriptions" style="color:#b8c9e8;text-decoration:none;font-size:0.9rem;">الاشتراكات</a>
+                <a class="act-navbar-link" href="/plans" style="color:#b8c9e8;text-decoration:none;font-size:0.9rem;">الباقات</a>
+                <a class="act-navbar-link" href="/categories" style="color:#b8c9e8;text-decoration:none;font-size:0.9rem;">التصنيفات</a>
+                <a class="act-navbar-link" href="/notifications" style="color:#b8c9e8;text-decoration:none;font-size:0.9rem;">الإشعارات</a>
+                <a class="act-navbar-link" href="/settings" style="color:#b8c9e8;text-decoration:none;font-size:0.9rem;">الإعدادات</a>
+                <span class="ac-text-muted" style="color:#8fa8cc;font-size:0.85rem;">@Store.Auth.DisplayName</span>
+                <AcButton Variant="ghost" Size="sm" Text="خروج" OnClick="SignOut" />
+            </div>
+        }
+        else
+        {
+            <div style="margin-inline-start:auto;">
+                <a href="/login"><AcButton Variant="primary" Size="sm" Text="دخول" /></a>
+            </div>
+        }
+    </nav>
+
+    <main style="max-width:1100px;margin:0 auto;padding:24px 16px;">
+        @Body
+    </main>
+</div>
+
+@code {
+    protected override void OnInitialized()
+    {
+        Store.OnChanged += OnChange;
+    }
+
+    private void OnChange() => InvokeAsync(StateHasChanged);
+
+    private async Task SignOut()
+    {
+        await Applier.ApplyLocalAsync(ClientOps.SignOut());
+    }
+
+    public void Dispose()
+    {
+        Store.OnChanged -= OnChange;
+    }
+}

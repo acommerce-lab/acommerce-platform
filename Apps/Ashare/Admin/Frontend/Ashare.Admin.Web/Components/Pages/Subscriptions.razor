@@ -1,0 +1,106 @@
+@page "/subscriptions"
+@rendermode InteractiveServer
+@inject AppStore Store
+@inject ApiReader Reader
+@inject ClientOpEngine Engine
+
+<PageTitle>الاشتراكات - عشير الإدارة</PageTitle>
+
+<AcAuthGuard IsAuthenticated="@Store.Auth.IsAuthenticated" IsArabic="@Store.Ui.IsArabic" LoginHref="/login">
+    @if (_loading)
+    {
+        <AcLoadingState Message="جاري تحميل الاشتراكات..." />
+    }
+    else if (_rows.Count == 0)
+    {
+        <AcEmptyState IconName="tag" Title="لا توجد اشتراكات" />
+    }
+    else
+    {
+        <div class="acs-page">
+            <h1 class="acs-page-title">الاشتراكات</h1>
+            @foreach (var sub in _rows)
+            {
+                <div class="s-card acm-admin-row">
+                    <div class="acm-admin-info">
+                        <strong>@sub.UserName</strong>
+                        <span class="ac-text-muted">@sub.PlanName</span>
+                        @if (sub.ExpiresAt.HasValue)
+                        {
+                            <span class="ac-text-muted">ينتهي: @sub.ExpiresAt.Value.ToString("yyyy/MM/dd")</span>
+                        }
+                    </div>
+                    <div class="acm-admin-actions">
+                        <AcBadge Text="@StatusLabel(sub.Status)" Variant="@StatusVariant(sub.Status)" />
+                        @if (sub.Status is 0 or 1)
+                        {
+                            <AcButton Variant="ghost" Size="sm" Text="إلغاء"
+                                      OnClick="@(() => Cancel(sub))" />
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</AcAuthGuard>
+
+@code {
+    private List<SubscriptionRow> _rows = new();
+    private bool _loading = true;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        if (!Store.Auth.IsAuthenticated)
+        {
+            _loading = false;
+            StateHasChanged();
+            return;
+        }
+
+        var env = await Reader.GetAsync<List<SubscriptionRow>>("/api/admin/subscriptions");
+        _rows = env.Data ?? new();
+        _loading = false;
+        StateHasChanged();
+    }
+
+    private async Task Cancel(SubscriptionRow sub)
+    {
+        var result = await Engine.ExecuteAsync<object>(
+            ClientOps.CancelSubscription(sub.Id),
+            new { subscriptionId = sub.Id });
+        if (result.Operation.Status == "Success")
+        {
+            var idx = _rows.FindIndex(x => x.Id == sub.Id);
+            if (idx >= 0) _rows[idx] = _rows[idx] with { Status = 2 };
+            StateHasChanged();
+        }
+    }
+
+    private static string StatusLabel(int s) => s switch
+    {
+        0 => "تجريبي",
+        1 => "نشط",
+        2 => "ملغى",
+        3 => "منتهي",
+        _ => "غير معروف"
+    };
+
+    private static string StatusVariant(int s) => s switch
+    {
+        0 => "info",
+        1 => "success",
+        2 => "muted",
+        3 => "danger",
+        _ => "muted"
+    };
+
+    private record SubscriptionRow
+    {
+        public Guid      Id        { get; init; }
+        public string    UserName  { get; init; } = "";
+        public string    PlanName  { get; init; } = "";
+        public int       Status    { get; init; }
+        public DateTime? ExpiresAt { get; init; }
+    }
+}

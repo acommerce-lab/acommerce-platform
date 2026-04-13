@@ -127,6 +127,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACommerce.Templates.Marketp
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ashare.Admin.Api", "Apps\Ashare\Admin\Backend\Ashare.Admin.Api\Ashare.Admin.Api.csproj", "{A2B3C4D5-E6F7-8901-BCDE-F01234567890}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ashare.Admin.Web", "Apps\Ashare\Admin\Frontend\Ashare.Admin.Web\Ashare.Admin.Web.csproj", "{0960672D-B9C3-49C2-9CC2-5866258AC28F}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -653,6 +655,18 @@ Global
 		{BD012DEF-A38D-42B3-9329-4C01D876CECE}.Release|x64.Build.0 = Release|Any CPU
 		{BD012DEF-A38D-42B3-9329-4C01D876CECE}.Release|x86.ActiveCfg = Release|Any CPU
 		{BD012DEF-A38D-42B3-9329-4C01D876CECE}.Release|x86.Build.0 = Release|Any CPU
+		{0960672D-B9C3-49C2-9CC2-5866258AC28F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0960672D-B9C3-49C2-9CC2-5866258AC28F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0960672D-B9C3-49C2-9CC2-5866258AC28F}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{0960672D-B9C3-49C2-9CC2-5866258AC28F}.Debug|x64.Build.0 = Debug|Any CPU
+		{0960672D-B9C3-49C2-9CC2-5866258AC28F}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{0960672D-B9C3-49C2-9CC2-5866258AC28F}.Debug|x86.Build.0 = Debug|Any CPU
+		{0960672D-B9C3-49C2-9CC2-5866258AC28F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0960672D-B9C3-49C2-9CC2-5866258AC28F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0960672D-B9C3-49C2-9CC2-5866258AC28F}.Release|x64.ActiveCfg = Release|Any CPU
+		{0960672D-B9C3-49C2-9CC2-5866258AC28F}.Release|x64.Build.0 = Release|Any CPU
+		{0960672D-B9C3-49C2-9CC2-5866258AC28F}.Release|x86.ActiveCfg = Release|Any CPU
+		{0960672D-B9C3-49C2-9CC2-5866258AC28F}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -717,5 +731,6 @@ Global
 		{E5F6A7B8-C9D0-1234-EF01-345678901234} = {5F00DC25-592E-C0F3-3685-F8A242BEDAF5}
 		{F1A2B3C4-D5E6-7890-ABCD-EF0123456789} = {E70624DB-5086-92EA-A7DA-DA400B6A823C}
 		{A2B3C4D5-E6F7-8901-BCDE-F01234567890} = {1787FE1D-075E-9E68-7218-25F1BD1BBEAB}
+		{0960672D-B9C3-49C2-9CC2-5866258AC28F} = {1787FE1D-075E-9E68-7218-25F1BD1BBEAB}
 	EndGlobalSection
 EndGlobal
