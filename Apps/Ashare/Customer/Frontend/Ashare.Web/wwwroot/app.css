@@ -75,7 +75,10 @@ body {
 }
 
 a { color: var(--ac-primary); text-decoration: none; }
-a:hover { color: var(--ac-primary-hover); text-decoration: underline; }
+a:hover { color: var(--ac-primary-hover); }
+/* Links wrapping buttons should not interfere with button styling */
+a:has(> .ac-btn), a:has(> button) { text-decoration: none !important; color: inherit !important; display: contents; }
+a > .ac-btn { width: 100%; }
 
 /* =========================================================================
    Shell — AcShell
