@@ -7,26 +7,20 @@
 
 <AcPageHeader Title="عروض عشير" Subtitle="استعراض كل العروض المتاحة" />
 
-<div class="ac-row ac-mb-lg">
-    <div style="flex:1;">
-        <AcField Label="الفئة">
-            <select class="ac-select" @bind="selectedCategory" @bind:after="LoadAsync">
-                <option value="">كل الفئات</option>
-                @foreach (var cat in categories)
-                {
-                    <option value="@cat.Id">@cat.NameAr</option>
-                }
-            </select>
-        </AcField>
-    </div>
-    <div style="flex:1;">
-        <AcField Label="المدينة">
-            <AcInput @bind-Value="city" Placeholder="اكتب المدينة" />
-        </AcField>
-    </div>
-    <div style="display:flex;align-items:end;">
-        <AcButton Text="بحث" OnClick="LoadAsync" Loading="@loading" />
-    </div>
+<div style="display:grid;grid-template-columns:1fr 1fr auto;gap:16px;align-items:end;margin-bottom:24px;">
+    <AcField Label="الفئة">
+        <select class="ac-select" @bind="selectedCategory" @bind:after="LoadAsync">
+            <option value="">كل الفئات</option>
+            @foreach (var cat in categories)
+            {
+                <option value="@cat.Id">@cat.NameAr</option>
+            }
+        </select>
+    </AcField>
+    <AcField Label="المدينة">
+        <AcInput @bind-Value="city" Placeholder="اكتب المدينة" />
+    </AcField>
+    <AcButton Text="🔍 بحث" Variant="primary" OnClick="LoadAsync" Loading="@loading" />
 </div>
 
 @if (loading)

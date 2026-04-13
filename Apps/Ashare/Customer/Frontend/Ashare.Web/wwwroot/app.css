@@ -159,7 +159,7 @@ a > .ac-btn { width: 100%; }
     border: 1px solid var(--ac-border) !important;
     border-radius: var(--ac-radius-lg) !important;
     box-shadow: var(--ac-shadow-sm) !important;
-    overflow: hidden;
+    overflow: visible !important;
 }
 .ac-card-hover:hover {
     box-shadow: var(--ac-shadow-md) !important;
@@ -204,10 +204,18 @@ a > .ac-btn { width: 100%; }
 .act-plan-card {
     text-align: center;
     padding: 28px 20px !important;
+    position: relative;
+    overflow: visible !important;
 }
 .act-plan-card.recommended {
     border: 2px solid var(--ac-primary) !important;
     box-shadow: 0 0 0 3px var(--ac-primary-soft), var(--ac-shadow-md) !important;
+    margin-top: 12px;
+}
+/* Ensure badge is visible above card */
+.act-plan-badge {
+    z-index: 1;
+    white-space: nowrap;
 }
 .act-plan-name {
     font-size: 1.1rem !important;
