@@ -5,16 +5,33 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <base href="/" />
-    @* ترتيب التنسيقات يحدد الـ cascade: widgets → templates → app (هوية عشير) *@
+
+    @* Google Fonts — Cairo for Arabic *@
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" />
+
+    @* 1. widgets defaults — variables + atomic styles + Bootstrap-compat layer *@
     <link rel="stylesheet" href="_content/ACommerce.Widgets/widgets.css" />
+
+    @* 2. commerce templates (AcShell, AcProductCard, AcAuthPanel, …) *@
     <link rel="stylesheet" href="_content/ACommerce.Templates.Commerce/templates.css" />
+
+    @* 3. shared page templates (auth, chat, notifications, profile, settings) *@
     <link rel="stylesheet" href="_content/ACommerce.Templates.Shared/templates-shared.css" />
+
+    @* 4. Ashare brand identity — overrides --ac-* *@
     <link rel="stylesheet" href="app.css" />
+
+    @* 5. Bootstrap Icons (self-hosted, sandbox blocks the CDN) *@
+    <link rel="stylesheet" href="lib/bootstrap-icons/bootstrap-icons.min.css" />
+
     <HeadOutlet />
 </head>
 
 <body>
     <Routes @rendermode="InteractiveServer" />
+    <script src="js/theme.js"></script>
     <script src="_framework/blazor.web.js"></script>
 </body>
 
