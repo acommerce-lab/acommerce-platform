@@ -9,9 +9,8 @@
 
 @if (!Store.Auth.IsAuthenticated)
 {
-    <div class="alert alert-warning">
-        <a href="/login">@Store.Ui.Tr("سجّل دخولك لرؤية إعلاناتك", "Sign in to view your listings")</a>
-    </div>
+    <AcEmptyState IconName="log-in" Title="@Store.Ui.Tr("سجّل دخولك لرؤية إعلاناتك", "Sign in to view your listings")"
+                  ActionLabel="@Store.Ui.Tr("دخول", "Sign in")" ActionHref="/login" />
 }
 else
 {
@@ -22,19 +21,18 @@ else
         EmptyMessage="@Store.Ui.Tr("لا إعلانات بعد", "No listings yet")">
         <AboveList>
             <div style="display:flex;justify-content:flex-end;margin-bottom:8px;">
-                <a href="/create-listing" class="btn btn-primary btn-sm">+ @Store.Ui.Tr("جديد", "New")</a>
+                <AcButton Variant="primary" Size="sm" Text="@($"+ {Store.Ui.Tr("جديد", "New")}")"
+                          OnClick="@(() => Nav.NavigateTo("/create-listing"))" />
             </div>
         </AboveList>
         <CardActions Context="listing">
             <div style="display:flex;flex-direction:column;gap:4px;min-width:90px;">
-                <button class="btn btn-sm btn-outline-secondary"
-                        @onclick="() => ToggleFeature(listing)">
-                    @(listing.IsFeatured ? Store.Ui.Tr("إلغاء التمييز","Unfeature") : Store.Ui.Tr("تمييز","Feature"))
-                </button>
-                <button class="btn btn-sm btn-outline-danger"
-                        @onclick="() => Delete(listing.Id)">
-                    @Store.Ui.Tr("حذف", "Delete")
-                </button>
+                <AcButton Size="sm" Variant="outline-primary"
+                          Text="@(listing.IsFeatured ? Store.Ui.Tr("إلغاء التمييز","Unfeature") : Store.Ui.Tr("تمييز","Feature"))"
+                          OnClick="@(() => ToggleFeature(listing))" />
+                <AcButton Size="sm" Variant="outline-danger"
+                          Text="@Store.Ui.Tr("حذف", "Delete")"
+                          OnClick="@(() => Delete(listing.Id))" />
             </div>
         </CardActions>
     </AcListingsPage>

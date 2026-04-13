@@ -2,60 +2,85 @@
 @rendermode InteractiveServer
 @inject ApiReader Reader
 @inject AppStore Store
+@inject NavigationManager Nav
 
 <PageTitle>حجوزاتي - عشير</PageTitle>
 
-<h1>حجوزاتي</h1>
+<AcAuthGuard IsAuthenticated="Store.Auth.IsAuthenticated" IsArabic="true" LoginHref="/login">
+    <div style="max-width:900px;margin:0 auto;padding:24px 16px;">
+        <AcPageHeader Title="حجوزاتي" Subtitle="جميع حجوزاتك العقارية" />
 
-@if (bookings == null)
-{
-    <div class="spinner-border"></div>
-}
-else if (bookings.Count == 0)
-{
-    <div class="alert alert-info">لا حجوزات حتى الآن</div>
-}
-else
-{
-    <table class="table table-hover">
-        <thead>
-            <tr>
-                <th>#</th>
-                <th>التاريخ</th>
-                <th>المبلغ</th>
-                <th>الحالة</th>
-                <th></th>
-            </tr>
-        </thead>
-        <tbody>
+        @if (bookings == null)
+        {
+            <AcLoadingState Message="جاري التحميل..." />
+        }
+        else if (bookings.Count == 0)
+        {
+            <AcEmptyState IconName="calendar"
+                          Title="لا حجوزات حتى الآن"
+                          Message="ابحث عن عقار واحجزه"
+                          ActionLabel="تصفح العروض"
+                          ActionHref="/" />
+        }
+        else
+        {
             @foreach (var b in bookings)
             {
-                <tr>
-                    <td><code>@b.Id.ToString("N")[..8]</code></td>
-                    <td>@b.StartDate.ToString("yyyy-MM-dd") → @b.EndDate.ToString("yyyy-MM-dd")</td>
-                    <td>@b.TotalPrice @b.Currency</td>
-                    <td><span class="badge bg-secondary">@StatusText(b.Status)</span></td>
-                    <td><a class="btn btn-sm btn-outline-primary" href="/booking/@b.Id">تفاصيل</a></td>
-                </tr>
+                <div @onclick="@(() => Nav.NavigateTo($"/booking/{b.Id}"))"
+                     style="cursor:pointer;">
+                    <AcCard Hover Class="ac-mb-sm">
+                        <ChildContent>
+                            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+                                <div>
+                                    <div style="font-weight:600;">حجز #@b.Id.ToString("N")[..8]</div>
+                                    <div class="ac-text-muted" style="font-size:0.85rem;">
+                                        @b.StartDate.ToString("yyyy-MM-dd") → @b.EndDate.ToString("yyyy-MM-dd")
+                                    </div>
+                                </div>
+                                <div style="text-align:end;">
+                                    <div style="font-weight:700;color:var(--ac-primary);">@b.TotalPrice @b.Currency</div>
+                                    <span style="padding:3px 10px;border-radius:var(--ac-radius-pill);font-size:0.78rem;font-weight:600;@StatusStyle(b.Status)">
+                                        @StatusText(b.Status)
+                                    </span>
+                                </div>
+                            </div>
+                        </ChildContent>
+                    </AcCard>
+                </div>
             }
-        </tbody>
-    </table>
-}
+        }
+    </div>
+</AcAuthGuard>
 
 @code {
     private List<BookingDto>? bookings;
 
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (!Store.Auth.UserId.HasValue) { bookings = new(); return; }
-        var resp = await Reader.GetAsync<List<BookingDto>>($"/api/bookings/by-customer/{Store.Auth.UserId}");
-        bookings = resp.Data ?? new();
+        if (!firstRender) return;
+        if (!Store.Auth.UserId.HasValue) { bookings = new(); StateHasChanged(); return; }
+        try
+        {
+            var resp = await Reader.GetAsync<List<BookingDto>>($"/api/bookings/by-customer/{Store.Auth.UserId}");
+            bookings = resp.Data ?? new();
+        }
+        catch { bookings = new(); }
+        StateHasChanged();
     }
 
     private string StatusText(int s) => s switch
     {
         0 => "معلّق", 1 => "مؤكد", 2 => "ينتظر الدفع",
         3 => "مدفوع", 4 => "مُلغى", 5 => "مكتمل", _ => "?"
+    };
+
+    private string StatusStyle(int s) => s switch
+    {
+        0 or 1 => "background:color-mix(in srgb, var(--ac-warning) 15%, transparent);color:var(--ac-warning);",
+        2 => "background:color-mix(in srgb, var(--ac-info) 15%, transparent);color:var(--ac-info);",
+        3 or 5 => "background:color-mix(in srgb, var(--ac-success) 15%, transparent);color:var(--ac-success);",
+        4 => "background:color-mix(in srgb, var(--ac-danger) 15%, transparent);color:var(--ac-danger);",
+        _ => ""
     };
 
     public class BookingDto

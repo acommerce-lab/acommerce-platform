@@ -26,16 +26,10 @@
                     <span>@Store.Ui.Tr("رقم الهاتف", "Phone")</span>
                     <strong dir="ltr">@(Store.Auth.PhoneNumber ?? "-")</strong>
                 </div>
-                <div class="acs-stack-sm">
-                    <a href="/profile" class="btn btn-outline-primary btn-sm btn-block">
-                        @Store.Ui.Tr("تعديل الملف الشخصي", "Edit profile")
-                    </a>
-                    <a href="/my-subscription" class="btn btn-outline-secondary btn-sm btn-block">
-                        @Store.Ui.Tr("إدارة الاشتراك", "Manage subscription")
-                    </a>
-                    <a href="/my-bookings" class="btn btn-outline-secondary btn-sm btn-block">
-                        @Store.Ui.Tr("حجوزاتي", "My bookings")
-                    </a>
+                <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px;">
+                    <a href="/profile"><AcButton Variant="outline-primary" Size="sm" Block="true" Text="@Store.Ui.Tr("تعديل الملف الشخصي", "Edit profile")" /></a>
+                    <a href="/my-subscription"><AcButton Variant="ghost" Size="sm" Block="true" Text="@Store.Ui.Tr("إدارة الاشتراك", "Manage subscription")" /></a>
+                    <a href="/my-bookings"><AcButton Variant="ghost" Size="sm" Block="true" Text="@Store.Ui.Tr("حجوزاتي", "My bookings")" /></a>
                 </div>
             </AcCard>
         }

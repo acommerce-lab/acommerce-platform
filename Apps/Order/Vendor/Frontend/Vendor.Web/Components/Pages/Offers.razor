@@ -6,7 +6,7 @@
 <PageTitle>@(Store.Ui.IsArabic ? "عروضي" : "My Offers")</PageTitle>
 
 <AcAuthGuard IsAuthenticated="@Store.Auth.IsAuthenticated" IsArabic="@Store.Ui.IsArabic" LoginHref="/login">
-    <div class="acs-page" style="padding:16px;">
+    <div class="acs-page">
         <AcPageHeader Title="@(Store.Ui.IsArabic ? "عروضي" : "My Offers")">
             <Actions>
                 <AcButton Variant="primary" Size="sm" Text="@(Store.Ui.IsArabic ? "+ عرض جديد" : "+ New offer")"

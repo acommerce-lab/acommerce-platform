@@ -197,6 +197,24 @@ html[dir="rtl"] .vnd-bottom-nav { transform: translateX(50%); }
 .vnd-offer-price { font-size: 0.84rem; color: var(--ac-text-muted); }
 .vnd-offer-actions { display: flex; gap: 6px; flex-shrink: 0; }
 
+/* ── Global page padding ──────────────────────────────────────────────── */
+.acs-page { padding: 16px; }
+
+/* ── Merchant template overrides ──────────────────────────────────────── */
+.acm-toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 0;
+    border-top: 1px solid var(--ac-border);
+    margin-top: 12px;
+}
+.acm-toggle-row label { font-weight: 500; }
+
+/* AcVendorOfferForm uses s-card wrapper — add padding */
+.acs-page .s-card { padding: 20px; }
+.acs-page .acs-page-title { padding: 0; margin: 0 0 16px; }
+
 /* ── Input fields — enhanced visibility ────────────────────────────────── */
 .ac-input, .ac-select, .ac-textarea,
 .form-input, .form-control, .form-select {
