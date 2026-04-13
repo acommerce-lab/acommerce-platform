@@ -1,0 +1,29 @@
+@page "/login"
+@rendermode InteractiveServer
+@inject ClientOpEngine Engine
+@inject AppStore Store
+@inject NavigationManager Nav
+
+<PageTitle>@Store.Ui.Tr("دخول - إدارة الطلبات", "Sign In - Order Admin")</PageTitle>
+
+<AcLoginPage Mode="TemplateOperationMode.Operation"
+             Engine="Engine"
+             BuildRequestOtpOp="@(phone => ClientOps.RequestOtp(phone))"
+             BuildVerifyOtpOp="@((uid, cid, code) => ClientOps.VerifyOtp(uid, cid, code))"
+             PhonePayload="@(phone => new { phoneNumber = phone })"
+             VerifyPayload="@((uid, cid, code) => new { userId = uid, challengeId = cid, code })"
+             RedirectUrl="/"
+             BrandName="@Store.Ui.Tr("طلبات — لوحة الإدارة", "Orders — Admin Panel")"
+             BrandTagline="@Store.Ui.Tr("بوابة المسؤولين والمشرفين", "Admin & supervisor portal")"
+             PhoneStepTitle="@Store.Ui.Tr("دخول بالهاتف", "Sign in with phone")"
+             PhoneStepSubtitle="@Store.Ui.Tr("سنرسل لك رمز تحقق عبر SMS", "We will send you an OTP via SMS")"
+             PhoneLabel="@Store.Ui.Tr("رقم الهاتف", "Phone number")"
+             PhonePlaceholder="+966500000001"
+             RequestOtpLabel="@Store.Ui.Tr("إرسال رمز التحقق", "Send OTP")"
+             SendingLabel="@Store.Ui.Tr("جاري الإرسال...", "Sending...")"
+             OtpStepTitle="@Store.Ui.Tr("رمز التحقق", "Verification code")"
+             OtpStepSubtitle="@Store.Ui.Tr("أدخل الرمز المرسل إلى", "Enter the code sent to")"
+             OtpLabel="@Store.Ui.Tr("رمز التحقق (6 أرقام)", "Verification code (6 digits)")"
+             VerifyOtpLabel="@Store.Ui.Tr("تحقق ودخول", "Verify & sign in")"
+             VerifyingLabel="@Store.Ui.Tr("جاري التحقق...", "Verifying...")"
+             BackLabel="@Store.Ui.Tr("تغيير الرقم", "Change number")" />

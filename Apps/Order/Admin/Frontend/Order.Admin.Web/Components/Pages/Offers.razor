@@ -1,0 +1,140 @@
+@page "/offers"
+@rendermode InteractiveServer
+@inject AppStore Store
+@inject ApiReader Reader
+@inject ClientOpEngine Engine
+
+<PageTitle>@Store.Ui.Tr("العروض - إدارة الطلبات", "Offers - Order Admin")</PageTitle>
+
+<AcAuthGuard IsAuthenticated="@Store.Auth.IsAuthenticated" IsArabic="@Store.Ui.IsArabic" LoginHref="/login">
+    @if (_loading)
+    {
+        <AcLoadingState Message="@Store.Ui.Tr("جاري تحميل العروض...", "Loading offers...")" />
+    }
+    else if (_offers.Count == 0)
+    {
+        <AcEmptyState IconName="tag" Title="@Store.Ui.Tr("لا توجد عروض", "No offers found")" />
+    }
+    else
+    {
+        <div class="acs-page">
+            <h1 class="acs-page-title">@Store.Ui.Tr("العروض", "Offers")</h1>
+
+            <div class="acs-page-header-row">
+                <input class="form-input" style="max-width:280px"
+                       type="search"
+                       placeholder="@Store.Ui.Tr("بحث بعنوان العرض...", "Search by offer title...")"
+                       @oninput="@(e => _search = e.Value?.ToString() ?? "")" />
+            </div>
+
+            <div class="ac-grid ac-grid-cols-3">
+                @foreach (var offer in FilteredOffers)
+                {
+                    <AcCard Hover>
+                        <ChildContent>
+                            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                                <strong>@offer.Title</strong>
+                                <AcBadge Text="@(offer.IsAvailable ? Store.Ui.Tr("متاح", "Available") : Store.Ui.Tr("غير متاح", "Unavailable"))"
+                                         Variant="@(offer.IsAvailable ? "success" : "muted")" />
+                            </div>
+                            @if (!string.IsNullOrEmpty(offer.Category))
+                            {
+                                <AcBadge Text="@offer.Category" Variant="default" />
+                            }
+                            <div class="ac-text-muted ac-text-sm" style="margin-top:4px;">
+                                @offer.Price.ToString("N0") @offer.Currency
+                            </div>
+                            @if (!string.IsNullOrEmpty(offer.VendorName))
+                            {
+                                <div class="ac-text-muted ac-text-sm">
+                                    @Store.Ui.Tr("البائع:", "Vendor:") @offer.VendorName
+                                </div>
+                            }
+                            <div class="ac-row ac-gap-sm" style="margin-top:12px;">
+                                <AcButton Variant="success" Size="sm"
+                                          Text="@Store.Ui.Tr("قبول", "Approve")"
+                                          OnClick="@(() => Approve(offer))" />
+                                <AcButton Variant="ghost" Size="sm"
+                                          Text="@Store.Ui.Tr("تعليق", "Suspend")"
+                                          OnClick="@(() => Suspend(offer))" />
+                                <AcButton Variant="danger" Size="sm"
+                                          Text="@Store.Ui.Tr("حذف", "Delete")"
+                                          OnClick="@(() => Delete(offer))" />
+                            </div>
+                        </ChildContent>
+                    </AcCard>
+                }
+            </div>
+        </div>
+    }
+</AcAuthGuard>
+
+@code {
+    private List<OfferRow> _offers = new();
+    private bool _loading = true;
+    private string _search = "";
+
+    private List<OfferRow> FilteredOffers =>
+        string.IsNullOrWhiteSpace(_search)
+            ? _offers
+            : _offers.Where(o => o.Title.Contains(_search, StringComparison.OrdinalIgnoreCase)).ToList();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        if (!Store.Auth.IsAuthenticated)
+        {
+            _loading = false;
+            StateHasChanged();
+            return;
+        }
+
+        var env = await Reader.GetAsync<List<OfferRow>>("/api/admin/offers");
+        _offers = env.Data ?? new();
+        _loading = false;
+        StateHasChanged();
+    }
+
+    private async Task Approve(OfferRow o)
+    {
+        var result = await Engine.ExecuteAsync<object>(ClientOps.ApproveOffer(o.Id), new { offerId = o.Id });
+        if (result.Operation.Status == "Success")
+        {
+            var idx = _offers.FindIndex(x => x.Id == o.Id);
+            if (idx >= 0) _offers[idx] = _offers[idx] with { IsAvailable = true };
+            StateHasChanged();
+        }
+    }
+
+    private async Task Suspend(OfferRow o)
+    {
+        var result = await Engine.ExecuteAsync<object>(ClientOps.SuspendOffer(o.Id), new { offerId = o.Id });
+        if (result.Operation.Status == "Success")
+        {
+            var idx = _offers.FindIndex(x => x.Id == o.Id);
+            if (idx >= 0) _offers[idx] = _offers[idx] with { IsAvailable = false };
+            StateHasChanged();
+        }
+    }
+
+    private async Task Delete(OfferRow o)
+    {
+        var result = await Engine.ExecuteAsync<object>(ClientOps.DeleteOffer(o.Id), new { offerId = o.Id });
+        if (result.Operation.Status == "Success")
+        {
+            _offers.RemoveAll(x => x.Id == o.Id);
+            StateHasChanged();
+        }
+    }
+
+    private record OfferRow
+    {
+        public Guid    Id          { get; init; }
+        public string  Title       { get; init; } = "";
+        public decimal Price       { get; init; }
+        public string  Currency    { get; init; } = "SAR";
+        public bool    IsAvailable { get; init; }
+        public string? Category    { get; init; }
+        public string? VendorName  { get; init; }
+    }
+}

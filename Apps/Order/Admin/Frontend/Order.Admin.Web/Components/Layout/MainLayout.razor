@@ -1,0 +1,70 @@
+@inherits LayoutComponentBase
+@inject AppStore Store
+@inject AppStateApplier Applier
+@implements IDisposable
+
+<div class="ac-root" style="min-height:100vh;background:var(--ac-bg,#0d1b2a);">
+    <nav style="background:var(--ac-nav-bg,#0a1628);color:#fff;padding:0 24px;display:flex;align-items:center;gap:16px;height:56px;position:sticky;top:0;z-index:100;border-bottom:1px solid rgba(255,255,255,0.08);">
+        <a href="/" style="color:#fff;font-weight:700;font-size:1.1rem;text-decoration:none;">
+            @Store.Ui.Tr("طلبات — لوحة الإدارة", "Orders — Admin Panel")
+        </a>
+
+        @if (Store.Auth.IsAuthenticated)
+        {
+            <div style="display:flex;gap:8px;margin-inline-start:auto;flex-wrap:wrap;align-items:center;">
+                <a class="act-navbar-link" href="/" style="color:#8fb8de;text-decoration:none;font-size:0.9rem;">
+                    @Store.Ui.Tr("لوحة التحكم", "Dashboard")
+                </a>
+                <a class="act-navbar-link" href="/users" style="color:#8fb8de;text-decoration:none;font-size:0.9rem;">
+                    @Store.Ui.Tr("المستخدمون", "Users")
+                </a>
+                <a class="act-navbar-link" href="/vendors" style="color:#8fb8de;text-decoration:none;font-size:0.9rem;">
+                    @Store.Ui.Tr("البائعون", "Vendors")
+                </a>
+                <a class="act-navbar-link" href="/orders" style="color:#8fb8de;text-decoration:none;font-size:0.9rem;">
+                    @Store.Ui.Tr("الطلبات", "Orders")
+                </a>
+                <a class="act-navbar-link" href="/offers" style="color:#8fb8de;text-decoration:none;font-size:0.9rem;">
+                    @Store.Ui.Tr("العروض", "Offers")
+                </a>
+                <a class="act-navbar-link" href="/categories" style="color:#8fb8de;text-decoration:none;font-size:0.9rem;">
+                    @Store.Ui.Tr("التصنيفات", "Categories")
+                </a>
+                <a class="act-navbar-link" href="/settings" style="color:#8fb8de;text-decoration:none;font-size:0.9rem;">
+                    @Store.Ui.Tr("الإعدادات", "Settings")
+                </a>
+                <span class="ac-text-muted" style="color:#6a8caa;font-size:0.85rem;">@Store.Auth.DisplayName</span>
+                <AcButton Variant="ghost" Size="sm" Text="@Store.Ui.Tr("خروج", "Sign Out")" OnClick="SignOut" />
+            </div>
+        }
+        else
+        {
+            <div style="margin-inline-start:auto;">
+                <a href="/login"><AcButton Variant="primary" Size="sm" Text="@Store.Ui.Tr("دخول", "Sign In")" /></a>
+            </div>
+        }
+    </nav>
+
+    <main style="max-width:1100px;margin:0 auto;padding:24px 16px;">
+        @Body
+    </main>
+</div>
+
+@code {
+    protected override void OnInitialized()
+    {
+        Store.OnChanged += OnChange;
+    }
+
+    private void OnChange() => InvokeAsync(StateHasChanged);
+
+    private async Task SignOut()
+    {
+        await Applier.ApplyLocalAsync(ClientOps.SignOut());
+    }
+
+    public void Dispose()
+    {
+        Store.OnChanged -= OnChange;
+    }
+}

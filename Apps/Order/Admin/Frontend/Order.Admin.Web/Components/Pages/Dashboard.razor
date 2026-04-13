@@ -1,0 +1,67 @@
+@page "/"
+@rendermode InteractiveServer
+@inject AppStore Store
+@inject ApiReader Reader
+@inject NavigationManager Nav
+
+<PageTitle>@Store.Ui.Tr("لوحة التحكم - إدارة الطلبات", "Dashboard - Order Admin")</PageTitle>
+
+<AcAuthGuard IsAuthenticated="@Store.Auth.IsAuthenticated" IsArabic="@Store.Ui.IsArabic" LoginHref="/login">
+    <AcAdminMetricsPage Title="@Store.Ui.Tr("لوحة التحكم", "Dashboard")"
+                        Metrics="@_metrics"
+                        Loading="@_loading" />
+</AcAuthGuard>
+
+@code {
+    private List<PlatformMetricDto> _metrics = new();
+    private bool _loading = true;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        if (!Store.Auth.IsAuthenticated)
+        {
+            _loading = false;
+            StateHasChanged();
+            return;
+        }
+
+        var env = await Reader.GetAsync<DashboardApiRow>("/api/admin/dashboard");
+        var d = env.Data;
+
+        _metrics = new List<PlatformMetricDto>
+        {
+            new() { Label = Store.Ui.Tr("إجمالي المستخدمين", "Total Users"),
+                    Value = (d?.TotalUsers ?? 0).ToString("N0"),
+                    IconName = "users" },
+            new() { Label = Store.Ui.Tr("إجمالي البائعين", "Total Vendors"),
+                    Value = (d?.TotalVendors ?? 0).ToString("N0"),
+                    IconName = "store" },
+            new() { Label = Store.Ui.Tr("إجمالي الطلبات", "Total Orders"),
+                    Value = (d?.TotalOrders ?? 0).ToString("N0"),
+                    IconName = "package" },
+            new() { Label = Store.Ui.Tr("طلبات معلّقة", "Pending Orders"),
+                    Value = (d?.PendingOrders ?? 0).ToString("N0"),
+                    IconName = "clock" },
+            new() { Label = Store.Ui.Tr("العروض النشطة", "Active Offers"),
+                    Value = (d?.ActiveOffers ?? 0).ToString("N0"),
+                    IconName = "tag" },
+            new() { Label = Store.Ui.Tr("الإيرادات الإجمالية", "Total Revenue"),
+                    Value = (d?.TotalRevenue ?? 0).ToString("N0") + " SAR",
+                    IconName = "trending-up" },
+        };
+
+        _loading = false;
+        StateHasChanged();
+    }
+
+    private class DashboardApiRow
+    {
+        public int     TotalUsers    { get; set; }
+        public int     TotalVendors  { get; set; }
+        public int     TotalOrders   { get; set; }
+        public int     PendingOrders { get; set; }
+        public int     ActiveOffers  { get; set; }
+        public decimal TotalRevenue  { get; set; }
+    }
+}
