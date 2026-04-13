@@ -1,6 +1,6 @@
 @page "/chat/{Id:guid}"
 @inject AppStore Store
-@inject ClientOpEngine Engine
+@inject OrderApiClient OrderApi
 @inject ApiReader Reader
 
 <PageTitle>@(Store.Ui.IsArabic ? "محادثة" : "Chat")</PageTitle>
@@ -14,11 +14,8 @@
 }
 else
 {
-    <AcChatPage Mode="TemplateOperationMode.Operation"
-                Engine="Engine"
-                BuildSendOp="@(text => ClientOps.SendMessage(Id, Store.Auth.UserId, text))"
-                SendPayload="@(text => new { conversationId = Id, senderId = Store.Auth.UserId, content = text })"
-                OnMessageSent="OnNewMessage"
+    <AcChatPage Mode="TemplateOperationMode.Callback"
+                OnSendMessage="HandleSend"
                 Messages="@Mapped"
                 MySenderId="@(Store.Auth.UserId?.ToString() ?? "")"
                 Loading="@Loading"
@@ -56,15 +53,29 @@ else
         Loading = false;
     }
 
-    private async Task OnNewMessage(ChatMessageDto msg)
+    private async Task HandleSend(string text)
     {
-        _messages.Add(new MsgApi
+        if (string.IsNullOrWhiteSpace(text)) return;
+        var result = await OrderApi.PostAsync<MsgApi>("/api/messages", new
         {
-            Id = Guid.TryParse(msg.Id, out var gid) ? gid : Guid.NewGuid(),
-            SenderId = Guid.TryParse(msg.SenderId, out var sid) ? sid : Guid.Empty,
-            Content = msg.Content,
-            CreatedAt = msg.CreatedAt
+            conversationId = Id,
+            senderId = Store.Auth.UserId,
+            content = text,
         });
+        if (result.Data != null)
+        {
+            _messages.Add(result.Data);
+        }
+        else
+        {
+            _messages.Add(new MsgApi
+            {
+                Id = Guid.NewGuid(),
+                SenderId = Store.Auth.UserId ?? Guid.Empty,
+                Content = text,
+                CreatedAt = DateTime.UtcNow,
+            });
+        }
         StateHasChanged();
     }
 

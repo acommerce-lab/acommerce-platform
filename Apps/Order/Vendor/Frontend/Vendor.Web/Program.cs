@@ -25,8 +25,15 @@ builder.Services.AddScoped<ITemplateStore>(sp => sp.GetRequiredService<AppStore>
 builder.Services.AddScoped<OpEngine>(sp =>
     new OpEngine(sp, sp.GetRequiredService<ILogger<OpEngine>>()));
 
-// ─── ClientOpEngine + HttpDispatcher → Order.Api ─────────────────────
-var orderApiBase = builder.Configuration["OrderApi:BaseUrl"] ?? "http://localhost:5101";
+// ─── HTTP Clients ────────────────────────────────────────────────────
+var vendorApiBase = builder.Configuration["VendorApi:BaseUrl"] ?? "http://localhost:5201";
+var orderApiBase  = builder.Configuration["OrderApi:BaseUrl"]  ?? "http://localhost:5101";
+
+builder.Services.AddHttpClient("vendor-api", c =>
+{
+    c.BaseAddress = new Uri(vendorApiBase);
+    c.Timeout = TimeSpan.FromSeconds(30);
+});
 builder.Services.AddHttpClient("order-api", c =>
 {
     c.BaseAddress = new Uri(orderApiBase);
@@ -38,19 +45,19 @@ var routeRegistry = new HttpRouteRegistry();
 VendorRoutes.Register(routeRegistry);
 builder.Services.AddSingleton(routeRegistry);
 
-// HttpDispatcher (IOperationDispatcher)
+// HttpDispatcher → Vendor.Api (auth + vendor-orders + settings)
 builder.Services.AddScoped<HttpDispatcher>(sp =>
 {
     var factory = sp.GetRequiredService<IHttpClientFactory>();
     return new HttpDispatcher(
-        factory.CreateClient("order-api"),
+        factory.CreateClient("vendor-api"),
         sp.GetRequiredService<HttpRouteRegistry>(),
         sp.GetRequiredService<OpEngine>(),
         sp.GetRequiredService<ILogger<HttpDispatcher>>());
 });
 builder.Services.AddScoped<IOperationDispatcher>(sp => sp.GetRequiredService<HttpDispatcher>());
 
-// ApiReader: GET-only for Order.Api
+// ApiReader: GET-only for Order.Api (offers, categories, vendors)
 builder.Services.AddScoped<ApiReader>(sp =>
 {
     var factory = sp.GetRequiredService<IHttpClientFactory>();
@@ -65,13 +72,7 @@ builder.Services.AddScoped<ClientOpEngine>(sp =>
         sp.GetRequiredService<IStateApplier>()));
 builder.Services.AddScoped<ITemplateEngine>(sp => sp.GetRequiredService<ClientOpEngine>());
 
-// ─── HTTP Client → Vendor.Api (orders, settings, schedule) ────────────
-var vendorApiBase = builder.Configuration["VendorApi:BaseUrl"] ?? "http://localhost:5201";
-builder.Services.AddHttpClient("vendor-api", c =>
-{
-    c.BaseAddress = new Uri(vendorApiBase);
-    c.Timeout = TimeSpan.FromSeconds(30);
-});
+// ─── Typed clients for direct API calls ──────────────────────────────
 builder.Services.AddScoped<VendorApiClient>(sp =>
 {
     var factory = sp.GetRequiredService<IHttpClientFactory>();

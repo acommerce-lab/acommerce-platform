@@ -1,5 +1,5 @@
 @page "/offers"
-@inject VendorApiClient Api
+@inject ApiReader Reader
 @inject AppStore Store
 @inject NavigationManager Nav
 
@@ -70,11 +70,11 @@ else
         if (!firstRender) return;
         if (Store.Auth.IsAuthenticated)
         {
-            var vEnv = await Api.GetAsync<List<VendorRow>>("/api/vendors");
+            var vEnv = await Reader.GetAsync<List<VendorRow>>("/api/vendors");
             var myV = vEnv.Data?.FirstOrDefault(v => v.OwnerId == Store.Auth.UserId);
             if (myV != null)
             {
-                var env = await Api.GetAsync<List<OfferRow>>($"/api/offers?vendorId={myV.Id}");
+                var env = await Reader.GetAsync<List<OfferRow>>($"/api/offers?vendorId={myV.Id}");
                 MyOffers = env.Data ?? new();
             }
         }

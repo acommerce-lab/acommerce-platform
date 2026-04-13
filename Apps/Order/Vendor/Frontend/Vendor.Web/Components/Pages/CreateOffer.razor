@@ -1,6 +1,6 @@
 @page "/offers/new"
-@inject VendorApiClient Api
-@inject ClientOpEngine Engine
+@inject OrderApiClient OrderApi
+@inject ApiReader Reader
 @inject AppStore Store
 @inject NavigationManager Nav
 
@@ -46,7 +46,7 @@ else
         if (!firstRender) return;
         if (Store.Auth.IsAuthenticated)
         {
-            var vEnv = await Api.GetAsync<List<VendorRow>>("/api/vendors");
+            var vEnv = await Reader.GetAsync<List<VendorRow>>("/api/vendors");
             var myV = vEnv.Data?.FirstOrDefault(v => v.OwnerId == Store.Auth.UserId);
             _vendorId = myV?.Id;
         }
@@ -57,7 +57,7 @@ else
     private async Task HandleSubmit(OfferFormModel form)
     {
         if (!_vendorId.HasValue) return;
-        await Engine.ExecuteAsync<object>(ClientOps.CreateOffer(_vendorId.Value), new
+        var result = await OrderApi.PostAsync<object>("/api/offers", new
         {
             VendorId = _vendorId.Value,
             form.Title,
@@ -67,7 +67,7 @@ else
             form.Category,
             form.IsAvailable,
         });
-        Nav.NavigateTo("/offers");
+        if (result.Error == null) Nav.NavigateTo("/offers");
     }
 
     public class VendorRow { public Guid Id { get; set; } public Guid OwnerId { get; set; } }

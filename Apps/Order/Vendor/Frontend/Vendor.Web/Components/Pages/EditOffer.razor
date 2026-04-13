@@ -1,6 +1,6 @@
 @page "/offers/edit/{Id:guid}"
-@inject VendorApiClient Api
-@inject ClientOpEngine Engine
+@inject OrderApiClient OrderApi
+@inject ApiReader Reader
 @inject AppStore Store
 @inject NavigationManager Nav
 
@@ -47,7 +47,7 @@ else
         if (!firstRender) return;
         if (Store.Auth.IsAuthenticated)
         {
-            var env = await Api.GetAsync<OfferDetail>($"/api/offers/{Id}");
+            var env = await Reader.GetAsync<OfferDetail>($"/api/offers/{Id}");
             if (env.Data != null)
             {
                 var d = env.Data;
@@ -68,7 +68,7 @@ else
 
     private async Task HandleSubmit(OfferFormModel form)
     {
-        await Engine.ExecuteAsync<object>(ClientOps.UpdateOffer(Id), new
+        var result = await OrderApi.PutAsync<object>($"/api/offers/{Id}", new
         {
             form.Title,
             form.Description,
@@ -77,7 +77,7 @@ else
             form.Category,
             form.IsAvailable,
         });
-        Nav.NavigateTo("/offers");
+        if (result.Error == null) Nav.NavigateTo("/offers");
     }
 
     public class OfferDetail

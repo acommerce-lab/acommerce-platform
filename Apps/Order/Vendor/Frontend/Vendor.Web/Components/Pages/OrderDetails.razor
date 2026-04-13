@@ -1,5 +1,5 @@
 @page "/order/{Id:guid}"
-@inject VendorApiClient Api
+@inject ApiReader Reader
 @inject ClientOpEngine Engine
 @inject AppStore Store
 
@@ -98,7 +98,7 @@ else
     private async Task Reload()
     {
         Loading = true;
-        var env = await Api.GetAsync<OrderDetail>($"/api/orders/{Id}");
+        var env = await Reader.GetAsync<OrderDetail>($"/api/orders/{Id}");
         Order = env.Data;
         Loading = false;
     }

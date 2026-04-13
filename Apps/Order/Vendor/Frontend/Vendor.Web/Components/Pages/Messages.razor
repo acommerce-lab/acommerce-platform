@@ -1,5 +1,5 @@
 @page "/messages"
-@inject VendorApiClient Api
+@inject ApiReader Reader
 @inject AppStore Store
 @inject NavigationManager Nav
 
@@ -39,7 +39,7 @@ else
         if (!firstRender) return;
         if (Store.Auth.IsAuthenticated)
         {
-            var env = await Api.GetAsync<List<ConvApi>>($"/api/messages/conversations/by-user/{Store.Auth.UserId}");
+            var env = await Reader.GetAsync<List<ConvApi>>($"/api/messages/conversations/by-user/{Store.Auth.UserId}");
             Conversations = env.Data ?? new();
         }
         Loading = false; StateHasChanged();
