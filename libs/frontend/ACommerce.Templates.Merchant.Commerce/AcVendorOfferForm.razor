@@ -31,21 +31,17 @@
                       placeholder="@(DescriptionPlaceholder ?? "وصف مختصر للعرض...")"></textarea>
         </AcField>
 
-        <div class="row">
-            <div class="col-md-6">
-                <AcField Label="@(PriceLabel ?? "السعر")" Required>
-                    <AcInput Value="@Form.Price.ToString()"
-                             ValueChanged="@(v => { if (decimal.TryParse(v, out var p)) Form.Price = p; })"
-                             Type="number" Placeholder="0.00" />
-                </AcField>
-            </div>
-            <div class="col-md-6">
-                <AcField Label="@(EmojiLabel ?? "الإيموجي")">
-                    <AcInput Value="@(Form.Emoji ?? "")"
-                             ValueChanged="@(v => Form.Emoji = v)"
-                             Placeholder="🍕" />
-                </AcField>
-            </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <AcField Label="@(PriceLabel ?? "السعر")" Required>
+                <AcInput Value="@Form.Price.ToString()"
+                         ValueChanged="@(v => { if (decimal.TryParse(v, out var p)) Form.Price = p; })"
+                         Type="number" Placeholder="0.00" />
+            </AcField>
+            <AcField Label="@(EmojiLabel ?? "الإيموجي")">
+                <AcInput Value="@(Form.Emoji ?? "")"
+                         ValueChanged="@(v => Form.Emoji = v)"
+                         Placeholder="🍕" />
+            </AcField>
         </div>
 
         <AcField Label="@(CategoryLabel ?? "الفئة")">

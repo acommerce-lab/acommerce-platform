@@ -5,18 +5,12 @@
 
 <PageTitle>@(Store.Ui.IsArabic ? "عروضي" : "My Offers")</PageTitle>
 
-@if (!Store.Auth.IsAuthenticated)
-{
-    <AcEmptyState IconName="log-in" Title="@(Store.Ui.IsArabic ? "سجّل دخولك" : "Sign in")" ActionHref="/login" ActionLabel="@(Store.Ui.IsArabic ? "دخول" : "Sign in")" />
-}
-else
-{
-    <div class="acs-page">
+<AcAuthGuard IsAuthenticated="@Store.Auth.IsAuthenticated" IsArabic="@Store.Ui.IsArabic" LoginHref="/login">
+    <div class="acs-page" style="padding:16px;">
         <AcPageHeader Title="@(Store.Ui.IsArabic ? "عروضي" : "My Offers")">
             <Actions>
-                <a class="btn btn-primary btn-sm" href="/offers/new">
-                    <AcIcon Name="plus" Size="16" /> @(Store.Ui.IsArabic ? "عرض جديد" : "New offer")
-                </a>
+                <AcButton Variant="primary" Size="sm" Text="@(Store.Ui.IsArabic ? "+ عرض جديد" : "+ New offer")"
+                          OnClick="@(() => Nav.NavigateTo("/offers/new"))" />
             </Actions>
         </AcPageHeader>
 
@@ -36,30 +30,26 @@ else
         {
             @foreach (var o in MyOffers)
             {
-                <AcCard Hover Class="acm-offer-row">
-                    <ChildContent>
-                        <div class="acm-offer-emoji">@(o.Emoji ?? "🍽️")</div>
-                        <div class="acm-offer-body">
-                            <div class="acm-offer-title">@o.Title</div>
-                            <div class="acm-offer-price">
-                                @o.Price.ToString("0.##") @o.Currency
-                                @if (o.OriginalPrice is > 0 && o.OriginalPrice > o.Price)
-                                {
-                                    <span class="acm-offer-original-price">@o.OriginalPrice.Value.ToString("0.##")</span>
-                                }
-                            </div>
+                <div @onclick="@(() => Nav.NavigateTo($"/offers/edit/{o.Id}"))"
+                     style="cursor:pointer;display:flex;gap:12px;align-items:center;padding:14px;margin-bottom:10px;background:var(--ac-surface);border:1px solid var(--ac-border);border-radius:var(--ac-radius-md);transition:box-shadow 150ms,border-color 150ms;"
+                     @onmouseover="@(e => {})" class="vnd-offer-card">
+                    <div style="font-size:1.8rem;width:44px;text-align:center;flex-shrink:0;">@(o.Emoji ?? "🍽️")</div>
+                    <div style="flex:1;min-width:0;">
+                        <div style="font-weight:600;">@o.Title</div>
+                        <div class="ac-text-muted" style="font-size:0.85rem;">
+                            @o.Price.ToString("0.##") @o.Currency
+                            @if (o.OriginalPrice is > 0 && o.OriginalPrice > o.Price)
+                            {
+                                <span style="text-decoration:line-through;margin-inline-start:6px;opacity:0.5;">@o.OriginalPrice.Value.ToString("0.##")</span>
+                            }
                         </div>
-                        <div class="acm-offer-actions">
-                            <a class="btn btn-ghost btn-sm" href="/offers/edit/@o.Id">
-                                <AcIcon Name="settings" Size="14" />
-                            </a>
-                        </div>
-                    </ChildContent>
-                </AcCard>
+                    </div>
+                    <AcIcon Name="chevron-left" Size="18" />
+                </div>
             }
         }
     </div>
-}
+</AcAuthGuard>
 
 @code {
     private List<OfferRow> MyOffers = new();

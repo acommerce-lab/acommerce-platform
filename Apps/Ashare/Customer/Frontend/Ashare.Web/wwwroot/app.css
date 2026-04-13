@@ -129,9 +129,14 @@ a:hover { color: var(--ac-primary-hover); text-decoration: underline; }
     color: var(--ac-primary) !important;
     font-weight: 600 !important;
 }
-.act-navbar .btn-primary {
+.act-navbar .ac-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-shrink: 0;
+}
+.act-navbar .ac-btn, .act-navbar .btn {
     font-size: 0.85rem;
-    padding: 6px 18px;
 }
 
 /* =========================================================================
@@ -252,28 +257,49 @@ a:hover { color: var(--ac-primary-hover); text-decoration: underline; }
 }
 
 /* =========================================================================
-   Buttons — أزرار
+   Buttons — أزرار (ac-btn from AcButton + btn from raw HTML)
    ========================================================================= */
-.btn { border-radius: var(--ac-radius-md); font-weight: 600; }
-.btn-primary {
+.ac-btn {
+    border-radius: var(--ac-radius-md) !important;
+    font-weight: 600 !important;
+    gap: 6px;
+}
+.ac-btn-primary, .btn-primary {
     background: var(--ac-primary) !important;
     border-color: var(--ac-primary) !important;
     color: #fff !important;
     box-shadow: 0 2px 8px rgba(124,58,237,0.25);
 }
-.btn-primary:hover:not(:disabled) {
+.ac-btn-primary:hover:not(:disabled), .btn-primary:hover:not(:disabled) {
     background: var(--ac-primary-hover) !important;
     border-color: var(--ac-primary-hover) !important;
     box-shadow: 0 4px 12px rgba(124,58,237,0.35);
 }
-.btn-outline-primary {
+.ac-btn-outline-primary, .btn-outline-primary {
+    background: transparent !important;
     color: var(--ac-primary) !important;
-    border-color: var(--ac-primary) !important;
+    border: 1.5px solid var(--ac-primary) !important;
 }
-.btn-outline-primary:hover:not(:disabled) {
+.ac-btn-outline-primary:hover:not(:disabled), .btn-outline-primary:hover:not(:disabled) {
     background: var(--ac-primary-soft) !important;
     color: var(--ac-primary-hover) !important;
 }
+.ac-btn-ghost, .btn-ghost {
+    background: transparent !important;
+    color: var(--ac-text-muted) !important;
+    border-color: transparent !important;
+}
+.ac-btn-ghost:hover:not(:disabled), .btn-ghost:hover:not(:disabled) {
+    background: var(--ac-bg-alt) !important;
+    color: var(--ac-text) !important;
+}
+.ac-btn-outline-danger {
+    background: transparent !important;
+    color: var(--ac-danger) !important;
+    border: 1.5px solid var(--ac-danger) !important;
+}
+.ac-btn-sm, .btn-sm { font-size: 0.82rem !important; padding: 6px 14px !important; }
+.ac-btn-block { width: 100% !important; justify-content: center; }
 
 /* =========================================================================
    Auth page — تسجيل الدخول
