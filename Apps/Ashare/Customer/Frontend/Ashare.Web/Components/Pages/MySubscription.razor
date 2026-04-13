@@ -5,64 +5,84 @@
 
 <PageTitle>اشتراكي - عشير</PageTitle>
 
-<h1>اشتراكي الحالي</h1>
+<AcAuthGuard IsAuthenticated="Store.Auth.IsAuthenticated" IsArabic="true" LoginHref="/login">
+    <div class="acs-page" style="max-width:800px;margin:0 auto;padding:24px 16px;">
+        <AcPageHeader Title="اشتراكي الحالي" Subtitle="تفاصيل باقتك والاستخدام" />
 
-@if (!Store.Auth.IsAuthenticated)
-{
-    <div class="alert alert-warning">يجب تسجيل الدخول</div>
-}
-else if (loading)
-{
-    <div class="spinner-border"></div>
-}
-else if (active == null)
-{
-    <div class="alert alert-info">
-        لا يوجد اشتراك نشط. <a href="/plans">اختر باقة</a>
-    </div>
-}
-else
-{
-    <div class="card">
-        <div class="card-body">
-            <h3>@active.Plan.Name</h3>
-            <p class="text-muted">@active.Plan.Description</p>
+        @if (loading)
+        {
+            <AcLoadingState Message="جاري التحميل..." />
+        }
+        else if (active == null)
+        {
+            <AcEmptyState IconName="credit-card"
+                          Title="لا يوجد اشتراك نشط"
+                          Message="اختر باقة مناسبة لبدء نشر عروضك"
+                          ActionLabel="اختر باقة"
+                          ActionHref="/plans" />
+        }
+        else
+        {
+            <AcCard Class="ac-mb-lg">
+                <Header>
+                    <strong>@active.Plan.Name</strong>
+                </Header>
+                <ChildContent>
+                    <p class="ac-text-muted" style="margin-bottom:16px;">@active.Plan.Description</p>
 
-            <div class="row">
-                <div class="col-md-6">
-                    <h5>الحالة</h5>
-                    <ul class="list-unstyled">
-                        <li><strong>الحالة:</strong> @(active.Subscription.Status == 2 ? "✅ نشط" : "⏳ معلّق")</li>
-                        <li><strong>من:</strong> @active.Subscription.StartDate.ToString("yyyy-MM-dd")</li>
-                        <li><strong>إلى:</strong> @active.Subscription.EndDate.ToString("yyyy-MM-dd")</li>
-                    </ul>
-                </div>
-                <div class="col-md-6">
-                    <h5>الاستخدام</h5>
-                    <div class="mb-2">
-                        <label>العروض</label>
-                        <div class="progress" style="height: 25px;">
-                            <div class="progress-bar" style="width:@(Percent(active.Subscription.UsedListingsCount, active.Plan.MaxListings))%">
-                                @active.Subscription.UsedListingsCount / @(active.Plan.MaxListings == -1 ? "∞" : active.Plan.MaxListings.ToString())
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+                        <div>
+                            <div class="ac-text-muted" style="font-size:0.82rem;margin-bottom:4px;">الحالة</div>
+                            <div style="font-weight:600;">
+                                @(active.Subscription.Status == 2 ? "✅ نشط" : "⏳ معلّق")
+                            </div>
+                        </div>
+                        <div>
+                            <div class="ac-text-muted" style="font-size:0.82rem;margin-bottom:4px;">الفترة</div>
+                            <div style="font-weight:600;">
+                                @active.Subscription.StartDate.ToString("yyyy-MM-dd") — @active.Subscription.EndDate.ToString("yyyy-MM-dd")
                             </div>
                         </div>
                     </div>
-                </div>
-            </div>
-        </div>
+                </ChildContent>
+            </AcCard>
+
+            <AcCard>
+                <Header>
+                    <strong>الاستخدام</strong>
+                </Header>
+                <ChildContent>
+                    <div style="margin-bottom:8px;display:flex;justify-content:space-between;">
+                        <span>العروض المنشورة</span>
+                        <strong>@active.Subscription.UsedListingsCount / @(active.Plan.MaxListings == -1 ? "∞" : active.Plan.MaxListings.ToString())</strong>
+                    </div>
+                    <div style="height:8px;background:var(--ac-bg-alt);border-radius:var(--ac-radius-pill);overflow:hidden;">
+                        <div style="height:100%;width:@(Percent(active.Subscription.UsedListingsCount, active.Plan.MaxListings))%;background:var(--ac-primary);border-radius:var(--ac-radius-pill);transition:width 300ms;"></div>
+                    </div>
+                </ChildContent>
+            </AcCard>
+        }
     </div>
-}
+</AcAuthGuard>
 
 @code {
     private ActiveDto? active;
     private bool loading = true;
 
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (!Store.Auth.IsAuthenticated) { loading = false; return; }
-        var resp = await Reader.GetAsync<ActiveDto>($"/api/subscriptions/user/{Store.Auth.UserId}/active");
-        active = resp.Data;
+        if (!firstRender) return;
+        if (!Store.Auth.IsAuthenticated) { loading = false; StateHasChanged(); return; }
+
+        try
+        {
+            var resp = await Reader.GetAsync<ActiveDto>($"/api/subscriptions/user/{Store.Auth.UserId}/active");
+            active = resp.Data;
+        }
+        catch { }
+
         loading = false;
+        StateHasChanged();
     }
 
     private int Percent(int used, int max)

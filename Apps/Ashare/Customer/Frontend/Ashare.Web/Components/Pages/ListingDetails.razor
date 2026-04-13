@@ -7,77 +7,149 @@
 
 <PageTitle>تفاصيل العرض - عشير</PageTitle>
 
-@if (loading)
-{
-    <div class="spinner-border"></div>
-}
-else if (listing == null)
-{
-    <div class="alert alert-danger">العرض غير موجود</div>
-}
-else
-{
-    <div class="row">
-        <div class="col-md-8">
-            <h1>@listing.Title</h1>
-            <p class="text-muted">@listing.City @(listing.District != null ? $"• {listing.District}" : "")</p>
-            <p>@listing.Description</p>
+<div style="max-width:1000px;margin:0 auto;padding:24px 16px;">
+    @if (loading)
+    {
+        <AcLoadingState Message="جاري التحميل..." />
+    }
+    else if (listing == null)
+    {
+        <AcEmptyState IconName="alert-circle" Title="العرض غير موجود"
+                      ActionLabel="العودة للعروض" ActionHref="/" />
+    }
+    else
+    {
+        <div style="display:grid;grid-template-columns:1fr 340px;gap:24px;align-items:start;">
+            @* Main content *@
+            <div>
+                <AcPageHeader Title="@listing.Title"
+                              Subtitle="@($"{listing.City}{(listing.District != null ? $" • {listing.District}" : "")}")" />
 
-            <div class="row g-2 my-3">
-                @if (listing.Rooms.HasValue) { <div class="col-6 col-md-3"><div class="border rounded p-2 text-center">🛏️ <br/>@listing.Rooms غرف</div></div> }
-                @if (listing.Bathrooms.HasValue) { <div class="col-6 col-md-3"><div class="border rounded p-2 text-center">🚿 <br/>@listing.Bathrooms حمام</div></div> }
-                @if (listing.Area.HasValue) { <div class="col-6 col-md-3"><div class="border rounded p-2 text-center">📐 <br/>@listing.Area م²</div></div> }
-                @if (listing.Floor.HasValue) { <div class="col-6 col-md-3"><div class="border rounded p-2 text-center">🏢 <br/>الطابق @listing.Floor</div></div> }
+                <AcCard Class="ac-mb-lg">
+                    <ChildContent>
+                        <p style="line-height:1.8;margin:0;">@listing.Description</p>
+                    </ChildContent>
+                </AcCard>
+
+                @if (listing.Rooms.HasValue || listing.Bathrooms.HasValue || listing.Area.HasValue || listing.Floor.HasValue)
+                {
+                    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:12px;margin-bottom:20px;">
+                        @if (listing.Rooms.HasValue)
+                        {
+                            <AcCard>
+                                <ChildContent>
+                                    <div style="text-align:center;padding:8px 0;">
+                                        <div style="font-size:1.5rem;">🛏️</div>
+                                        <div style="font-weight:600;">@listing.Rooms غرف</div>
+                                    </div>
+                                </ChildContent>
+                            </AcCard>
+                        }
+                        @if (listing.Bathrooms.HasValue)
+                        {
+                            <AcCard>
+                                <ChildContent>
+                                    <div style="text-align:center;padding:8px 0;">
+                                        <div style="font-size:1.5rem;">🚿</div>
+                                        <div style="font-weight:600;">@listing.Bathrooms حمام</div>
+                                    </div>
+                                </ChildContent>
+                            </AcCard>
+                        }
+                        @if (listing.Area.HasValue)
+                        {
+                            <AcCard>
+                                <ChildContent>
+                                    <div style="text-align:center;padding:8px 0;">
+                                        <div style="font-size:1.5rem;">📐</div>
+                                        <div style="font-weight:600;">@listing.Area م²</div>
+                                    </div>
+                                </ChildContent>
+                            </AcCard>
+                        }
+                        @if (listing.Floor.HasValue)
+                        {
+                            <AcCard>
+                                <ChildContent>
+                                    <div style="text-align:center;padding:8px 0;">
+                                        <div style="font-size:1.5rem;">🏢</div>
+                                        <div style="font-weight:600;">الطابق @listing.Floor</div>
+                                    </div>
+                                </ChildContent>
+                            </AcCard>
+                        }
+                    </div>
+                }
+            </div>
+
+            @* Sidebar *@
+            <div style="position:sticky;top:72px;">
+                <AcCard>
+                    <ChildContent>
+                        <div style="text-align:center;padding:8px 0;">
+                            <div style="font-size:1.8rem;font-weight:700;color:var(--ac-primary);margin-bottom:4px;">
+                                @listing.Price.ToString("N0") @listing.Currency
+                            </div>
+                            <div class="ac-text-muted" style="font-size:0.88rem;margin-bottom:20px;">
+                                / @listing.TimeUnit
+                            </div>
+
+                            @if (Store.Auth.IsAuthenticated)
+                            {
+                                <div style="display:flex;flex-direction:column;gap:10px;">
+                                    <AcButton Text="احجز الآن" Variant="primary" Block="true" OnClick="StartBooking" />
+                                    <AcButton Text="راسل المالك" Variant="outline-primary" Block="true" OnClick="StartChat" />
+                                </div>
+                            }
+                            else
+                            {
+                                <a href="/login" style="display:block;">
+                                    <AcButton Text="دخول للحجز" Variant="primary" Block="true" />
+                                </a>
+                            }
+
+                            <div class="ac-text-muted" style="font-size:0.78rem;margin-top:16px;padding-top:12px;border-top:1px solid var(--ac-border);">
+                                رقم العرض: @listing.Id.ToString("N")[..8]
+                            </div>
+                        </div>
+                    </ChildContent>
+                </AcCard>
             </div>
         </div>
-        <div class="col-md-4">
-            <div class="card sticky-top" style="top: 80px;">
-                <div class="card-body">
-                    <h3 class="text-primary">@listing.Price.ToString("N0") @listing.Currency</h3>
-                    <p class="text-muted">/ @listing.TimeUnit</p>
-
-                    @if (Store.Auth.IsAuthenticated)
-                    {
-                        <button class="btn btn-primary w-100 mb-2" @onclick="StartBooking">احجز الآن</button>
-                        <button class="btn btn-outline-primary w-100" @onclick="StartChat">راسل المالك</button>
-                    }
-                    else
-                    {
-                        <a class="btn btn-primary w-100" href="/login">دخول للحجز</a>
-                    }
-
-                    <hr />
-                    <small class="text-muted">رقم العرض: @listing.Id.ToString("N")[..8]</small>
-                </div>
-            </div>
-        </div>
-    </div>
-}
+    }
+</div>
 
 @code {
     [Parameter] public Guid Id { get; set; }
     private ListingDto? listing;
     private bool loading = true;
 
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        var resp = await Reader.GetAsync<ListingDto>($"/api/listings/{Id}");
-        listing = resp.Data;
+        if (!firstRender) return;
+        try
+        {
+            var resp = await Reader.GetAsync<ListingDto>($"/api/listings/{Id}");
+            listing = resp.Data;
+        }
+        catch { }
         loading = false;
+        StateHasChanged();
     }
 
-    private void StartBooking()
-    {
-        Nav.NavigateTo($"/booking/new/{Id}");
-    }
+    private void StartBooking() => Nav.NavigateTo($"/booking/new/{Id}");
 
     private async Task StartChat()
     {
-        var resp = await Engine.ExecuteAsync<ConversationDto>(
-            ClientOps.StartConversation(Id, Store.Auth.UserId),
-            new { listingId = Id, customerId = Store.Auth.UserId });
-        if (resp.Data != null)
-            Nav.NavigateTo($"/conversation/{resp.Data.Id}");
+        try
+        {
+            var resp = await Engine.ExecuteAsync<ConversationDto>(
+                ClientOps.StartConversation(Id, Store.Auth.UserId),
+                new { listingId = Id, customerId = Store.Auth.UserId });
+            if (resp.Data != null)
+                Nav.NavigateTo($"/conversation/{resp.Data.Id}");
+        }
+        catch { }
     }
 
     public class ListingDto
@@ -94,11 +166,7 @@ else
         public int? Bathrooms { get; set; }
         public double? Area { get; set; }
         public int? Floor { get; set; }
-        public Guid CategoryId { get; set; }
     }
 
-    public class ConversationDto
-    {
-        public Guid Id { get; set; }
-    }
+    public class ConversationDto { public Guid Id { get; set; } }
 }
