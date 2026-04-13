@@ -1,0 +1,156 @@
+@page "/store-settings"
+@inject AppStore Store
+@inject VendorApiClient VendorApi
+@inject ApiReader Reader
+@inject NavigationManager Nav
+
+<PageTitle>@(Store.Ui.IsArabic ? "إعدادات المتجر" : "Store Settings")</PageTitle>
+
+<AcAuthGuard IsAuthenticated="@Store.Auth.IsAuthenticated" IsArabic="@Store.Ui.IsArabic" LoginHref="/login">
+    @if (_loading)
+    {
+        <AcLoadingState Message="@(Store.Ui.IsArabic ? "جاري التحميل..." : "Loading…")" />
+    }
+    else
+    {
+        <AcVendorSettings
+            Mode="TemplateOperationMode.Callback"
+            InitialName="@_name"
+            InitialPhone="@_phone"
+            InitialDescription="@_description"
+            Title="@(Store.Ui.IsArabic ? "إعدادات المتجر" : "Store Settings")"
+            NameLabel="@(Store.Ui.IsArabic ? "اسم المتجر" : "Store Name")"
+            NamePlaceholder="@(Store.Ui.IsArabic ? "أدخل اسم المتجر" : "Enter store name")"
+            PhoneLabel="@(Store.Ui.IsArabic ? "رقم التواصل" : "Phone")"
+            DescriptionLabel="@(Store.Ui.IsArabic ? "وصف المتجر" : "Description")"
+            DescriptionPlaceholder="@(Store.Ui.IsArabic ? "نبذة عن متجرك..." : "About your store…")"
+            SaveLabel="@(Store.Ui.IsArabic ? "حفظ الإعدادات" : "Save Settings")"
+            OnSave="HandleSave">
+            <ExtraFields>
+                <div class="ac-mb-md">
+                    <label class="form-label">
+                        @(Store.Ui.IsArabic ? "قبول الطلبات" : "Accepting Orders")
+                    </label>
+                    <div>
+                        <input type="checkbox" checked="@_acceptingOrders"
+                               @onchange="@(e => _acceptingOrders = (bool)(e.Value ?? false))" />
+                        <span style="margin-inline-start:8px;">
+                            @(Store.Ui.IsArabic
+                                ? (_acceptingOrders ? "مفعّل" : "معطّل")
+                                : (_acceptingOrders ? "Enabled" : "Disabled"))
+                        </span>
+                    </div>
+                </div>
+                <div class="ac-mb-md">
+                    <label class="form-label">
+                        @(Store.Ui.IsArabic ? "الحد الأقصى للطلبات" : "Max Concurrent Orders")
+                    </label>
+                    <input type="number" class="form-input" min="1"
+                           value="@_maxConcurrentOrders"
+                           @onchange="@(e => _maxConcurrentOrders = int.TryParse(e.Value?.ToString(), out var v) ? v : _maxConcurrentOrders)" />
+                </div>
+            </ExtraFields>
+        </AcVendorSettings>
+
+        @if (!string.IsNullOrEmpty(_successMessage))
+        {
+            <AcAlert Variant="success" Message="@_successMessage" />
+        }
+        @if (!string.IsNullOrEmpty(_errorMessage))
+        {
+            <AcAlert Variant="danger" Message="@_errorMessage" />
+        }
+    }
+</AcAuthGuard>
+
+@code {
+    private Guid? _vendorId;
+    private bool _loading = true;
+
+    private string _name = "";
+    private string _phone = "";
+    private string _description = "";
+    private bool _acceptingOrders = true;
+    private int _maxConcurrentOrders = 10;
+    private int _orderTimeoutMinutes = 30;
+
+    private string? _successMessage;
+    private string? _errorMessage;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        if (!Store.Auth.IsAuthenticated)
+        {
+            _loading = false;
+            StateHasChanged();
+            return;
+        }
+
+        var vEnv = await Reader.GetAsync<List<VendorRow>>("/api/vendors");
+        var myVendor = vEnv.Data?.FirstOrDefault(v => v.OwnerId == Store.Auth.UserId);
+        if (myVendor != null)
+        {
+            _vendorId = myVendor.Id;
+            var settingsEnv = await VendorApi.GetAsync<VendorSettingsApi>(
+                $"/api/vendor-settings/{_vendorId}");
+            if (settingsEnv.Data != null)
+            {
+                var s = settingsEnv.Data;
+                _name = s.Name ?? "";
+                _phone = s.Phone ?? "";
+                _description = s.Description ?? "";
+                _acceptingOrders = s.AcceptingOrders;
+                _maxConcurrentOrders = s.MaxConcurrentOrders;
+                _orderTimeoutMinutes = s.OrderTimeoutMinutes;
+            }
+        }
+
+        _loading = false;
+        StateHasChanged();
+    }
+
+    private async Task HandleSave((string Name, string Phone, string Description) data)
+    {
+        _successMessage = null;
+        _errorMessage = null;
+
+        if (!_vendorId.HasValue) return;
+
+        var payload = new
+        {
+            Name = data.Name,
+            Phone = data.Phone,
+            Description = data.Description,
+            AcceptingOrders = _acceptingOrders,
+            MaxConcurrentOrders = _maxConcurrentOrders,
+            OrderTimeoutMinutes = _orderTimeoutMinutes
+        };
+
+        var result = await VendorApi.PutAsync<object>(
+            $"/api/vendor-settings/{_vendorId}", payload);
+
+        if (result.Error == null)
+            _successMessage = Store.Ui.IsArabic ? "تم حفظ الإعدادات بنجاح" : "Settings saved successfully";
+        else
+            _errorMessage = Store.Ui.IsArabic ? "حدث خطأ أثناء الحفظ" : "An error occurred while saving";
+
+        StateHasChanged();
+    }
+
+    public class VendorRow
+    {
+        public Guid Id { get; set; }
+        public Guid OwnerId { get; set; }
+    }
+
+    public class VendorSettingsApi
+    {
+        public string? Name { get; set; }
+        public string? Phone { get; set; }
+        public string? Description { get; set; }
+        public bool AcceptingOrders { get; set; } = true;
+        public int MaxConcurrentOrders { get; set; } = 10;
+        public int OrderTimeoutMinutes { get; set; } = 30;
+    }
+}

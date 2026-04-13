@@ -3,65 +3,72 @@
 @inject ApiReader Api
 @inject NavigationManager Nav
 
-<PageTitle>@(Vendor?.Name ?? "متجر") - اوردر</PageTitle>
+<PageTitle>@(Vendor?.Name ?? Store.Ui.Tr("متجر", "Store")) - @Store.Ui.Tr("اوردر", "Order")</PageTitle>
 
 @if (Loading)
 {
-    <AcLoadingState Message="@(Store.Ui.IsArabic ? "جاري التحميل..." : "Loading…")" />
+    <AcLoadingState Message="@Store.Ui.Tr("جاري التحميل...", "Loading...")" />
 }
 else if (Vendor == null)
 {
     <AcEmptyState IconName="store"
-                  Title="@(Store.Ui.IsArabic ? "المتجر غير موجود" : "Store not found")"
-                  ActionLabel="@(Store.Ui.IsArabic ? "الرئيسية" : "Home")"
+                  Title="@Store.Ui.Tr("المتجر غير موجود", "Store not found")"
+                  ActionLabel="@Store.Ui.Tr("الرئيسية", "Home")"
                   ActionHref="/" />
 }
 else
 {
-    <div class="acc-vendor-profile">
-        @* Vendor header card *@
-        <div class="acc-vendor-header">
-            <div class="acc-vendor-header-emoji">@(Vendor.LogoEmoji ?? "🏪")</div>
-            <div class="acc-vendor-header-body">
-                <h1 class="acc-vendor-header-name">@Vendor.Name</h1>
+    <div class="acs-page">
+        <AcPageHeader Title="@Vendor.Name"
+                      Subtitle="@Vendor.Description">
+            <Actions>
                 @if (Vendor.Rating > 0)
                 {
-                    <div class="acc-vendor-header-rating">
-                        <AcIcon Name="check-circle" Size="14" />
-                        <span>★ @Vendor.Rating.ToString("0.0")</span>
-                        <span class="acc-vendor-header-rating-count">(@Vendor.RatingCount @(Store.Ui.IsArabic ? "تقييم" : "reviews"))</span>
+                    <AcBadge Variant="success">
+                        <span>@Vendor.Rating.ToString("0.0") @Store.Ui.Tr("تقييم", "rating") (@Vendor.RatingCount)</span>
+                    </AcBadge>
+                }
+            </Actions>
+        </AcPageHeader>
+
+        <AcCard Class="ac-mb-lg">
+            <Header>
+                <div class="ac-row ac-align-center" style="gap: 0.5rem;">
+                    <span style="font-size: 1.6rem;">@(Vendor.LogoEmoji ?? "🏪")</span>
+                    <strong>@Store.Ui.Tr("معلومات المتجر", "Store info")</strong>
+                </div>
+            </Header>
+            <ChildContent>
+                @if (!string.IsNullOrEmpty(Vendor.City))
+                {
+                    <div class="ac-row ac-align-center ac-mb-sm" style="gap: 0.5rem;">
+                        <AcIcon Name="map-pin" Size="16" />
+                        <span>@Vendor.City@(string.IsNullOrEmpty(Vendor.District) ? "" : " - " + Vendor.District)</span>
                     </div>
                 }
-            </div>
-        </div>
+                @if (!string.IsNullOrEmpty(Vendor.OpenHours))
+                {
+                    <div class="ac-row ac-align-center ac-mb-sm" style="gap: 0.5rem;">
+                        <AcIcon Name="clock" Size="16" />
+                        <span>@Vendor.OpenHours</span>
+                    </div>
+                }
+                @if (!string.IsNullOrEmpty(Vendor.Phone))
+                {
+                    <div class="ac-row ac-align-center" dir="ltr" style="gap: 0.5rem;">
+                        <AcIcon Name="phone" Size="16" />
+                        <span>@Vendor.Phone</span>
+                    </div>
+                }
+            </ChildContent>
+        </AcCard>
 
-        @if (!string.IsNullOrEmpty(Vendor.Description))
-        {
-            <p class="acc-vendor-profile-desc">@Vendor.Description</p>
-        }
-
-        <div class="s-card acc-vendor-card">
-            <div class="acc-section-label">@(Store.Ui.IsArabic ? "معلومات المتجر" : "Store info")</div>
-            @if (!string.IsNullOrEmpty(Vendor.City))
-            {
-                <div class="acc-vendor-row"><AcIcon Name="map-pin" Size="16" /> @Vendor.City@(string.IsNullOrEmpty(Vendor.District) ? "" : " - " + Vendor.District)</div>
-            }
-            @if (!string.IsNullOrEmpty(Vendor.OpenHours))
-            {
-                <div class="acc-vendor-row"><AcIcon Name="clock" Size="16" /> @Vendor.OpenHours</div>
-            }
-            @if (!string.IsNullOrEmpty(Vendor.Phone))
-            {
-                <div class="acc-vendor-row" dir="ltr"><AcIcon Name="phone" Size="16" /> @Vendor.Phone</div>
-            }
-        </div>
-
-        <h2 class="acc-section-title">@(Store.Ui.IsArabic ? "عروض المتجر" : "Store offers")</h2>
+        <AcPageHeader Title="@Store.Ui.Tr("عروض المتجر", "Store offers")" />
 
         @if (MappedOffers.Count == 0)
         {
             <AcEmptyState IconName="inbox"
-                          Message="@(Store.Ui.IsArabic ? "لا توجد عروض حالياً" : "No offers right now")" />
+                          Message="@Store.Ui.Tr("لا توجد عروض حالياً", "No offers right now")" />
         }
         else
         {

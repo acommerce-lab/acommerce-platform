@@ -1,0 +1,144 @@
+@page "/schedule"
+@inject AppStore Store
+@inject VendorApiClient VendorApi
+@inject ApiReader Reader
+
+<PageTitle>@(Store.Ui.IsArabic ? "جدول العمل" : "Schedule")</PageTitle>
+
+<AcAuthGuard IsAuthenticated="@Store.Auth.IsAuthenticated" IsArabic="@Store.Ui.IsArabic" LoginHref="/login">
+    <AcVendorSchedule
+        Mode="TemplateOperationMode.Callback"
+        Schedule="@_schedule"
+        Loading="@_loading"
+        Title="@(Store.Ui.IsArabic ? "جدول العمل" : "Work Schedule")"
+        ClosedLabel="@(Store.Ui.IsArabic ? "مغلق" : "Closed")"
+        EditLabel="@(Store.Ui.IsArabic ? "تعديل" : "Edit")"
+        SaveLabel="@(Store.Ui.IsArabic ? "حفظ الجدول" : "Save Schedule")"
+        OnSaveSchedule="HandleSave">
+        <AboveTable>
+            @if (!string.IsNullOrEmpty(_successMessage))
+            {
+                <AcAlert Variant="success" Message="@_successMessage" />
+            }
+            @if (!string.IsNullOrEmpty(_errorMessage))
+            {
+                <AcAlert Variant="danger" Message="@_errorMessage" />
+            }
+        </AboveTable>
+    </AcVendorSchedule>
+</AcAuthGuard>
+
+@code {
+    private Guid? _vendorId;
+    private bool _loading = true;
+    private List<MerchantScheduleSlotDto> _schedule = new();
+
+    private string? _successMessage;
+    private string? _errorMessage;
+
+    private static readonly (string Ar, string En)[] DayNames = new[]
+    {
+        ("السبت",    "Saturday"),
+        ("الأحد",    "Sunday"),
+        ("الاثنين",  "Monday"),
+        ("الثلاثاء", "Tuesday"),
+        ("الأربعاء", "Wednesday"),
+        ("الخميس",   "Thursday"),
+        ("الجمعة",   "Friday"),
+    };
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        if (!Store.Auth.IsAuthenticated)
+        {
+            _loading = false;
+            StateHasChanged();
+            return;
+        }
+
+        var vEnv = await Reader.GetAsync<List<VendorRow>>("/api/vendors");
+        var myVendor = vEnv.Data?.FirstOrDefault(v => v.OwnerId == Store.Auth.UserId);
+        if (myVendor != null)
+        {
+            _vendorId = myVendor.Id;
+            var env = await VendorApi.GetAsync<List<ScheduleRow>>(
+                $"/api/vendor-settings/{_vendorId}/schedule");
+
+            if (env.Data != null && env.Data.Count > 0)
+            {
+                _schedule = env.Data.Select(r => new MerchantScheduleSlotDto
+                {
+                    DayLabel  = Store.Ui.IsArabic ? r.DayLabelAr ?? r.DayLabel : r.DayLabel,
+                    OpenTime  = r.OpenTime ?? "09:00",
+                    CloseTime = r.CloseTime ?? "22:00",
+                    IsOpen    = r.IsOpen,
+                }).ToList();
+            }
+            else
+            {
+                _schedule = BuildDefaultSchedule();
+            }
+        }
+        else
+        {
+            _schedule = BuildDefaultSchedule();
+        }
+
+        _loading = false;
+        StateHasChanged();
+    }
+
+    private List<MerchantScheduleSlotDto> BuildDefaultSchedule()
+    {
+        return DayNames.Select(d => new MerchantScheduleSlotDto
+        {
+            DayLabel  = Store.Ui.IsArabic ? d.Ar : d.En,
+            OpenTime  = "09:00",
+            CloseTime = "22:00",
+            IsOpen    = d.En != "Friday",
+        }).ToList();
+    }
+
+    private async Task HandleSave(IReadOnlyList<MerchantScheduleSlotDto> schedule)
+    {
+        _successMessage = null;
+        _errorMessage = null;
+
+        if (!_vendorId.HasValue) return;
+
+        var payload = schedule.Select((s, i) => new
+        {
+            DayLabel    = DayNames.ElementAtOrDefault(i).En ?? s.DayLabel,
+            DayLabelAr  = DayNames.ElementAtOrDefault(i).Ar ?? s.DayLabel,
+            s.OpenTime,
+            s.CloseTime,
+            s.IsOpen,
+        }).ToList();
+
+        var result = await VendorApi.PutAsync<object>(
+            $"/api/vendor-settings/{_vendorId}/schedule", payload);
+
+        if (result.Error == null)
+            _successMessage = Store.Ui.IsArabic ? "تم حفظ الجدول بنجاح" : "Schedule saved successfully";
+        else
+            _errorMessage = Store.Ui.IsArabic ? "حدث خطأ أثناء الحفظ" : "An error occurred while saving";
+
+        StateHasChanged();
+    }
+
+    public class VendorRow
+    {
+        public Guid Id { get; set; }
+        public Guid OwnerId { get; set; }
+    }
+
+    public class ScheduleRow
+    {
+        public string DayLabel { get; set; } = "";
+        public string? DayLabelAr { get; set; }
+        public string? OpenTime { get; set; }
+        public string? CloseTime { get; set; }
+        public bool IsOpen { get; set; }
+    }
+}

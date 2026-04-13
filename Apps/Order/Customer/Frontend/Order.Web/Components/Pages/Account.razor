@@ -1,0 +1,187 @@
+@page "/account"
+@inject AppStore Store
+@inject ApiReader Reader
+@inject ClientOpEngine Engine
+@inject NavigationManager Nav
+
+<PageTitle>@Store.Ui.Tr("تعديل الحساب", "Edit Account") - @Store.Ui.Tr("اوردر", "Order")</PageTitle>
+
+<AcAuthGuard IsAuthenticated="@Store.Auth.IsAuthenticated" IsArabic="@Store.Ui.IsArabic" LoginHref="/login">
+    @if (Loading)
+    {
+        <AcLoadingState Message="@Store.Ui.Tr("جاري التحميل...", "Loading...")" />
+    }
+    else
+    {
+        <div class="acs-page">
+            <AcPageHeader Title="@Store.Ui.Tr("تعديل الحساب", "Edit Account")"
+                          Subtitle="@Store.Ui.Tr("حدّث بياناتك الشخصية", "Update your personal info")" />
+
+            <AcCard Class="ac-mb-lg">
+                <Header>
+                    <strong>@Store.Ui.Tr("البيانات الشخصية", "Personal Info")</strong>
+                </Header>
+                <ChildContent>
+                    <AcField Label="@Store.Ui.Tr("الاسم الكامل", "Full Name")" Class="ac-mb-md">
+                        <AcInput Value="@FullName"
+                                 Placeholder="@Store.Ui.Tr("أدخل اسمك الكامل", "Enter your full name")"
+                                 ValueChanged="@(v => FullName = v ?? "")" />
+                    </AcField>
+
+                    <AcField Label="@Store.Ui.Tr("البريد الإلكتروني", "Email")">
+                        <AcInput Value="@Email"
+                                 Type="email"
+                                 Placeholder="@Store.Ui.Tr("أدخل بريدك الإلكتروني", "Enter your email")"
+                                 ValueChanged="@(v => Email = v ?? "")" />
+                    </AcField>
+                </ChildContent>
+            </AcCard>
+
+            <AcCard Class="ac-mb-lg">
+                <Header>
+                    <div class="ac-row ac-align-center" style="gap: 0.5rem;">
+                        <AcIcon Name="car" Size="16" />
+                        <strong>@Store.Ui.Tr("بيانات السيارة", "Car Details")</strong>
+                    </div>
+                </Header>
+                <ChildContent>
+                    <p class="ac-text-muted ac-text-sm ac-mb-md">
+                        @Store.Ui.Tr(
+                            "تُستخدم عند الاستلام من السيارة (Curbside)",
+                            "Used for curbside pickup orders")
+                    </p>
+
+                    <AcField Label="@Store.Ui.Tr("نوع السيارة", "Car Model")" Class="ac-mb-md">
+                        <AcInput Value="@CarModel"
+                                 Placeholder="@Store.Ui.Tr("مثال: كامري 2024", "e.g. Camry 2024")"
+                                 ValueChanged="@(v => CarModel = v ?? "")" />
+                    </AcField>
+
+                    <AcField Label="@Store.Ui.Tr("لون السيارة", "Car Color")" Class="ac-mb-md">
+                        <AcInput Value="@CarColor"
+                                 Placeholder="@Store.Ui.Tr("مثال: أبيض", "e.g. White")"
+                                 ValueChanged="@(v => CarColor = v ?? "")" />
+                    </AcField>
+
+                    <AcField Label="@Store.Ui.Tr("رقم اللوحة", "Plate Number")">
+                        <AcInput Value="@CarPlate"
+                                 Placeholder="@Store.Ui.Tr("اختياري", "Optional")"
+                                 ValueChanged="@(v => CarPlate = v ?? "")" />
+                    </AcField>
+                </ChildContent>
+            </AcCard>
+
+            @if (!string.IsNullOrEmpty(Message))
+            {
+                <AcAlert Variant="@MessageVariant" Message="@Message" Class="ac-mb-md" />
+            }
+
+            <AcButton Variant="primary"
+                      Block="true"
+                      Text="@(Saving ? Store.Ui.Tr("جاري الحفظ...", "Saving...") : Store.Ui.Tr("حفظ التعديلات", "Save Changes"))"
+                      Loading="@Saving"
+                      Disabled="@Saving"
+                      OnClick="Save" />
+        </div>
+    }
+</AcAuthGuard>
+
+@code {
+    private bool Loading = true;
+    private bool Saving;
+    private string? Message;
+    private string MessageVariant = "info";
+
+    private string FullName = "";
+    private string Email = "";
+    private string CarModel = "";
+    private string CarColor = "";
+    private string CarPlate = "";
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+
+        if (!Store.Auth.IsAuthenticated || !Store.Auth.UserId.HasValue)
+        {
+            Loading = false;
+            StateHasChanged();
+            return;
+        }
+
+        var env = await Reader.GetAsync<UserProfile>($"/api/users/{Store.Auth.UserId}");
+        if (env.Data != null)
+        {
+            FullName = env.Data.FullName ?? "";
+            Email = env.Data.Email ?? "";
+            CarModel = env.Data.CarModel ?? "";
+            CarColor = env.Data.CarColor ?? "";
+            CarPlate = env.Data.CarPlate ?? "";
+        }
+
+        Loading = false;
+        StateHasChanged();
+    }
+
+    private async Task Save()
+    {
+        Message = null;
+        if (string.IsNullOrWhiteSpace(FullName))
+        {
+            Message = Store.Ui.Tr("الاسم مطلوب", "Name is required");
+            MessageVariant = "warning";
+            return;
+        }
+
+        Saving = true;
+        try
+        {
+            var payload = new
+            {
+                fullName = FullName.Trim(),
+                email = Email.Trim(),
+                carModel = CarModel.Trim(),
+                carColor = CarColor.Trim(),
+                carPlate = CarPlate.Trim()
+            };
+
+            var result = await Engine.ExecuteAsync<object>(
+                ClientOps.UpdateProfile(Store.Auth.UserId!.Value), payload);
+
+            if (result.Operation.Status == "Success")
+            {
+                Message = Store.Ui.Tr("تم حفظ التعديلات بنجاح", "Changes saved successfully");
+                MessageVariant = "success";
+            }
+            else
+            {
+                Message = result.Operation.ErrorMessage
+                          ?? result.Error?.Message
+                          ?? Store.Ui.Tr("تعذّر حفظ التعديلات", "Could not save changes");
+                MessageVariant = "danger";
+            }
+        }
+        catch (Exception ex)
+        {
+            Message = ex.Message;
+            MessageVariant = "danger";
+        }
+        finally
+        {
+            Saving = false;
+            StateHasChanged();
+        }
+    }
+
+    public class UserProfile
+    {
+        public Guid Id { get; set; }
+        public string? FullName { get; set; }
+        public string? Email { get; set; }
+        public string? Theme { get; set; }
+        public string? Language { get; set; }
+        public string? CarModel { get; set; }
+        public string? CarColor { get; set; }
+        public string? CarPlate { get; set; }
+    }
+}

@@ -1,0 +1,95 @@
+@page "/legal"
+@inject AppStore Store
+
+<PageTitle>@Store.Ui.Tr("الشروط والأحكام", "Terms & Conditions") - @Store.Ui.Tr("اوردر", "Order")</PageTitle>
+
+<div class="acs-page">
+    <AcPageHeader Title="@Store.Ui.Tr("الشروط والأحكام", "Terms & Conditions")"
+                  Subtitle="@Store.Ui.Tr("آخر تحديث: أبريل 2026", "Last updated: April 2026")" />
+
+    <AcCard Class="ac-mb-lg">
+        <Header>
+            <strong>@Store.Ui.Tr("شروط الاستخدام", "Terms of Use")</strong>
+        </Header>
+        <ChildContent>
+            @if (Store.Ui.IsArabic)
+            {
+                <p class="ac-mb-sm">باستخدامك تطبيق اوردر فإنك توافق على الشروط التالية:</p>
+                <ul style="padding-inline-start: 1.2rem;">
+                    <li class="ac-mb-sm">يجب أن يكون عمرك 18 سنة أو أكثر لاستخدام الخدمة.</li>
+                    <li class="ac-mb-sm">أنت مسؤول عن دقة المعلومات المقدّمة في حسابك.</li>
+                    <li class="ac-mb-sm">يُحظر استخدام التطبيق لأي غرض غير قانوني أو غير مصرّح به.</li>
+                    <li class="ac-mb-sm">نحتفظ بحق تعليق أو إنهاء حسابك في حال مخالفة هذه الشروط.</li>
+                    <li>الأسعار المعروضة تحدّدها المتاجر وقد تتغير دون إشعار مسبق.</li>
+                </ul>
+            }
+            else
+            {
+                <p class="ac-mb-sm">By using the Order app, you agree to the following terms:</p>
+                <ul style="padding-inline-start: 1.2rem;">
+                    <li class="ac-mb-sm">You must be 18 years or older to use the service.</li>
+                    <li class="ac-mb-sm">You are responsible for the accuracy of the information provided in your account.</li>
+                    <li class="ac-mb-sm">Using the app for any illegal or unauthorized purpose is prohibited.</li>
+                    <li class="ac-mb-sm">We reserve the right to suspend or terminate your account for violations of these terms.</li>
+                    <li>Prices displayed are set by individual stores and may change without prior notice.</li>
+                </ul>
+            }
+        </ChildContent>
+    </AcCard>
+
+    <AcCard Class="ac-mb-lg">
+        <Header>
+            <strong>@Store.Ui.Tr("سياسة الخصوصية", "Privacy Policy")</strong>
+        </Header>
+        <ChildContent>
+            @if (Store.Ui.IsArabic)
+            {
+                <p class="ac-mb-sm">نحن نأخذ خصوصيتك على محمل الجد. إليك كيف نتعامل مع بياناتك:</p>
+                <ul style="padding-inline-start: 1.2rem;">
+                    <li class="ac-mb-sm">نجمع فقط البيانات الضرورية لتقديم الخدمة (الاسم، رقم الهاتف، بيانات الطلب).</li>
+                    <li class="ac-mb-sm">لا نشارك بياناتك الشخصية مع أطراف ثالثة إلا بموافقتك أو حسب ما يقتضيه القانون.</li>
+                    <li class="ac-mb-sm">بيانات السيارة تُستخدم فقط لتسهيل خدمة الاستلام من السيارة.</li>
+                    <li>يمكنك طلب حذف بياناتك في أي وقت عبر التواصل مع الدعم الفني.</li>
+                </ul>
+            }
+            else
+            {
+                <p class="ac-mb-sm">We take your privacy seriously. Here is how we handle your data:</p>
+                <ul style="padding-inline-start: 1.2rem;">
+                    <li class="ac-mb-sm">We only collect data necessary to provide the service (name, phone number, order details).</li>
+                    <li class="ac-mb-sm">We do not share your personal data with third parties without your consent or as required by law.</li>
+                    <li class="ac-mb-sm">Car details are used solely to facilitate curbside pickup service.</li>
+                    <li>You can request deletion of your data at any time by contacting support.</li>
+                </ul>
+            }
+        </ChildContent>
+    </AcCard>
+
+    <AcCard Class="ac-mb-lg">
+        <Header>
+            <strong>@Store.Ui.Tr("سياسة الاسترجاع", "Refund Policy")</strong>
+        </Header>
+        <ChildContent>
+            @if (Store.Ui.IsArabic)
+            {
+                <p class="ac-mb-sm">سياسة الاسترجاع الخاصة بنا:</p>
+                <ul style="padding-inline-start: 1.2rem;">
+                    <li class="ac-mb-sm">يمكنك إلغاء الطلب قبل أن يبدأ المتجر بتحضيره.</li>
+                    <li class="ac-mb-sm">بعد بدء التحضير، لا يمكن الإلغاء تلقائياً — يرجى التواصل مع المتجر مباشرة.</li>
+                    <li class="ac-mb-sm">في حالة وجود مشكلة في الطلب، تواصل مع المتجر خلال 24 ساعة من الاستلام.</li>
+                    <li>الاسترجاع المالي (إن وُجد) يتم وفقاً لسياسة المتجر وطريقة الدفع المستخدمة.</li>
+                </ul>
+            }
+            else
+            {
+                <p class="ac-mb-sm">Our refund policy:</p>
+                <ul style="padding-inline-start: 1.2rem;">
+                    <li class="ac-mb-sm">You can cancel an order before the store starts preparing it.</li>
+                    <li class="ac-mb-sm">After preparation begins, automatic cancellation is not available — please contact the store directly.</li>
+                    <li class="ac-mb-sm">If there is an issue with your order, contact the store within 24 hours of pickup.</li>
+                    <li>Monetary refunds (if applicable) are handled according to the store's policy and the payment method used.</li>
+                </ul>
+            }
+        </ChildContent>
+    </AcCard>
+</div>

@@ -19,6 +19,9 @@ public static class OrderRoutes
         routes.Map("order.create", HttpMethod.Post, "/api/orders");
         routes.Map("order.cancel", HttpMethod.Post, "/api/orders/{order_id}/cancel");
 
+        // Profile
+        routes.Map("profile.update", HttpMethod.Put, "/api/users/{user_id}");
+
         // Favorites
         routes.Map("favorite.toggle", HttpMethod.Post, "/api/favorites/toggle");
 
