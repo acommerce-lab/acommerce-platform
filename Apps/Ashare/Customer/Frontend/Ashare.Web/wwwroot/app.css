@@ -3,9 +3,6 @@
 
 /* =========================================================================
    عشير - الهوية البصرية
-   =========================================================================
-   يطغى على defaults الـ widgets.css عبر تعريف :root variables الخاصة بعشير.
-   تغيير لون الهوية يكفي ليتأثر كل الـ widgets + templates تلقائياً.
    ========================================================================= */
 
 :root {
@@ -13,21 +10,146 @@
     --ac-primary:       #8B5CF6;
     --ac-primary-hover: #7C3AED;
     --ac-on-primary:    #ffffff;
+    --ac-primary-soft:  rgba(139, 92, 246, 0.12);
 
     --ac-secondary:       #F59E0B;
     --ac-secondary-hover: #D97706;
+
+    /* Surfaces */
+    --ac-bg:         #F5F3FF;
+    --ac-bg-alt:     #EDE9FE;
+    --ac-surface:    #ffffff;
+    --ac-surface-2:  #FAF5FF;
+    --ac-border:     #DDD6FE;
+    --ac-border-dark:#C4B5FD;
+
+    /* Text */
+    --ac-text:       #1E1B4B;
+    --ac-text-muted: #6B7280;
 
     /* خط عربي */
     --ac-font-family: 'Cairo', 'Noto Kufi Arabic', 'Segoe UI', Tahoma, sans-serif;
 
     /* زوايا أكثر استدارة */
+    --ac-radius-sm: 0.4rem;
     --ac-radius-md: 0.75rem;
     --ac-radius-lg: 1.25rem;
+
+    /* ظلال */
+    --ac-shadow-sm: 0 1px 3px rgba(139,92,246,0.06), 0 1px 2px rgba(0,0,0,0.04);
+    --ac-shadow-md: 0 4px 14px rgba(139,92,246,0.10), 0 2px 4px rgba(0,0,0,0.04);
+    --ac-shadow-lg: 0 14px 28px rgba(139,92,246,0.14);
+}
+
+/* ── Dark mode ───────────────────────────────────────────────────────────── */
+html[data-theme="dark"] {
+    --ac-bg:         #0F0B1E;
+    --ac-bg-alt:     #1A1333;
+    --ac-surface:    #1E1640;
+    --ac-surface-2:  #251D4A;
+    --ac-border:     #3B2D6B;
+    --ac-border-dark:#5B4A8A;
+    --ac-text:       #F1F0FF;
+    --ac-text-muted: #A5A0C0;
+    --ac-primary-soft: rgba(139,92,246,0.18);
 }
 
 body {
     font-family: var(--ac-font-family);
-    background: var(--ac-bg-alt);
+    background: var(--ac-bg);
+    color: var(--ac-text);
     margin: 0;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
 }
 
+a { color: var(--ac-primary); text-decoration: none; }
+a:hover { color: var(--ac-primary-hover); }
+
+/* =========================================================================
+   Shell/Navbar — enhanced
+   ========================================================================= */
+.act-shell { background: var(--ac-bg); }
+.act-navbar {
+    background: var(--ac-surface) !important;
+    border-bottom: 1px solid var(--ac-border);
+    box-shadow: var(--ac-shadow-sm);
+}
+.act-navbar-brand { color: var(--ac-primary) !important; font-weight: 700; }
+.act-navbar-link {
+    color: var(--ac-text) !important;
+    font-weight: 500;
+    padding: 6px 12px;
+    border-radius: var(--ac-radius-sm);
+    transition: background 150ms, color 150ms;
+}
+.act-navbar-link:hover {
+    background: var(--ac-primary-soft) !important;
+    color: var(--ac-primary) !important;
+}
+.act-navbar-link.active {
+    background: var(--ac-primary-soft) !important;
+    color: var(--ac-primary) !important;
+}
+
+/* =========================================================================
+   Cards — visible borders + subtle shadows
+   ========================================================================= */
+.ac-card {
+    border: 1px solid var(--ac-border) !important;
+    box-shadow: var(--ac-shadow-sm) !important;
+    background: var(--ac-surface) !important;
+}
+.ac-card-hover:hover {
+    box-shadow: var(--ac-shadow-md) !important;
+    border-color: var(--ac-primary) !important;
+}
+
+/* =========================================================================
+   Plan cards — enhanced with brand accents
+   ========================================================================= */
+.act-plan-card {
+    text-align: center;
+    padding: var(--ac-space-lg) !important;
+}
+.act-plan-card.recommended {
+    border-color: var(--ac-primary) !important;
+    box-shadow: 0 0 0 2px var(--ac-primary-soft), var(--ac-shadow-md) !important;
+}
+.act-plan-price {
+    color: var(--ac-primary) !important;
+}
+
+/* =========================================================================
+   Input fields — visible on surface
+   ========================================================================= */
+.ac-input, .ac-select, .ac-textarea,
+.form-input, .form-control, .form-select {
+    background: var(--ac-surface-2);
+    border-color: var(--ac-border-dark);
+}
+.ac-input:focus, .ac-select:focus, .ac-textarea:focus,
+.form-input:focus, .form-control:focus, .form-select:focus {
+    background: var(--ac-surface);
+    border-color: var(--ac-primary);
+    box-shadow: 0 0 0 3px var(--ac-primary-soft);
+}
+
+/* =========================================================================
+   Buttons — brand gradient on primary
+   ========================================================================= */
+.btn-primary {
+    background: linear-gradient(135deg, var(--ac-primary), var(--ac-primary-hover));
+    border-color: var(--ac-primary);
+    box-shadow: 0 4px 12px rgba(139,92,246,0.3);
+}
+.btn-primary:hover:not(:disabled) {
+    background: linear-gradient(135deg, var(--ac-primary-hover), #6D28D9);
+    box-shadow: 0 6px 16px rgba(139,92,246,0.4);
+}
+
+/* =========================================================================
+   Page utilities
+   ========================================================================= */
+.acs-page { padding: 16px; }
+.acs-page-title { font-size: 1.25rem; font-weight: 700; }

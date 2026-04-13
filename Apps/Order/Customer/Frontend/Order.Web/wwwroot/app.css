@@ -309,14 +309,17 @@ html[dir="rtl"] .ord-bottom-nav { transform: translateX(50%); }
 }
 
 /* =========================================================================
-   Input fields — subtle, focused ring uses brand color (small accent)
+   Input fields — enhanced visibility with alt background + stronger border
    ========================================================================= */
+.ac-input, .ac-select, .ac-textarea,
 .form-input, .form-control, .form-select {
-    background: var(--ac-surface);
-    border-color: var(--ac-border);
+    background: var(--ac-surface-2);
+    border-color: var(--ac-border-dark);
     color: var(--ac-text);
 }
+.ac-input:focus, .ac-select:focus, .ac-textarea:focus,
 .form-input:focus, .form-control:focus, .form-select:focus {
+    background: var(--ac-surface);
     border-color: var(--ac-primary);
     box-shadow: 0 0 0 3px var(--ac-primary-soft);
 }

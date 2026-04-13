@@ -197,5 +197,18 @@ html[dir="rtl"] .vnd-bottom-nav { transform: translateX(50%); }
 .vnd-offer-price { font-size: 0.84rem; color: var(--ac-text-muted); }
 .vnd-offer-actions { display: flex; gap: 6px; flex-shrink: 0; }
 
+/* ── Input fields — enhanced visibility ────────────────────────────────── */
+.ac-input, .ac-select, .ac-textarea,
+.form-input, .form-control, .form-select {
+    background: var(--ac-surface-2);
+    border-color: var(--ac-border-dark);
+}
+.ac-input:focus, .ac-select:focus, .ac-textarea:focus,
+.form-input:focus, .form-control:focus, .form-select:focus {
+    background: var(--ac-surface);
+    border-color: var(--ac-primary);
+    box-shadow: 0 0 0 3px var(--ac-primary-soft);
+}
+
 :focus:not(:focus-visible) { outline: none; }
 h1:focus, h2:focus, h3:focus { outline: none; }

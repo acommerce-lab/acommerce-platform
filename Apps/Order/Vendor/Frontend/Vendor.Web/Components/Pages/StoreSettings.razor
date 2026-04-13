@@ -55,36 +55,25 @@
                     <strong>@(Store.Ui.IsArabic ? "إعدادات الطلبات" : "Order Settings")</strong>
                 </Header>
                 <ChildContent>
-                    <div class="ac-mb-md">
-                        <label class="form-label">
-                            @(Store.Ui.IsArabic ? "قبول الطلبات" : "Accepting Orders")
-                        </label>
-                        <div>
+                    <AcField Label="@(Store.Ui.IsArabic ? "قبول الطلبات" : "Accepting Orders")" Class="ac-mb-md">
+                        <div style="display:flex;align-items:center;gap:8px;">
                             <input type="checkbox" checked="@_acceptingOrders"
                                    @onchange="@(e => _acceptingOrders = (bool)(e.Value ?? false))" />
-                            <span style="margin-inline-start:8px;">
+                            <span>
                                 @(Store.Ui.IsArabic
                                     ? (_acceptingOrders ? "مفعّل" : "معطّل")
                                     : (_acceptingOrders ? "Enabled" : "Disabled"))
                             </span>
                         </div>
-                    </div>
-                    <div class="ac-mb-md">
-                        <label class="form-label">
-                            @(Store.Ui.IsArabic ? "الحد الأقصى للطلبات المعلقة" : "Max Concurrent Pending")
-                        </label>
-                        <input type="number" class="form-input" min="0"
-                               value="@_maxConcurrentPending"
-                               @onchange="@(e => _maxConcurrentPending = int.TryParse(e.Value?.ToString(), out var v) ? v : _maxConcurrentPending)" />
-                    </div>
-                    <div class="ac-mb-md">
-                        <label class="form-label">
-                            @(Store.Ui.IsArabic ? "مهلة الطلب (دقائق)" : "Order Timeout (minutes)")
-                        </label>
-                        <input type="number" class="form-input" min="1"
-                               value="@_orderTimeoutMinutes"
-                               @onchange="@(e => _orderTimeoutMinutes = int.TryParse(e.Value?.ToString(), out var v) ? Math.Max(1,v) : _orderTimeoutMinutes)" />
-                    </div>
+                    </AcField>
+                    <AcField Label="@(Store.Ui.IsArabic ? "الحد الأقصى للطلبات المعلقة" : "Max Concurrent Pending")" Class="ac-mb-md">
+                        <AcInput Type="number" Value="@_maxConcurrentPending.ToString()"
+                                 ValueChanged="@(v => _maxConcurrentPending = int.TryParse(v, out var n) ? n : _maxConcurrentPending)" />
+                    </AcField>
+                    <AcField Label="@(Store.Ui.IsArabic ? "مهلة الطلب (دقائق)" : "Order Timeout (minutes)")" Class="ac-mb-md">
+                        <AcInput Type="number" Value="@_orderTimeoutMinutes.ToString()"
+                                 ValueChanged="@(v => _orderTimeoutMinutes = int.TryParse(v, out var n) ? Math.Max(1,n) : _orderTimeoutMinutes)" />
+                    </AcField>
 
                     <AcButton Variant="primary" Block="true"
                               Text="@(_saving ? (Store.Ui.IsArabic ? "جاري الحفظ..." : "Saving...") : (Store.Ui.IsArabic ? "حفظ الإعدادات" : "Save Settings"))"

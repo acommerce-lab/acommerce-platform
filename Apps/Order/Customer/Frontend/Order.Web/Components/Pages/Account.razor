@@ -13,7 +13,7 @@
     }
     else
     {
-        <div class="acs-page">
+        <div class="acs-page" style="padding:16px;">
             <AcPageHeader Title="@Store.Ui.Tr("تعديل الحساب", "Edit Account")"
                           Subtitle="@Store.Ui.Tr("حدّث بياناتك الشخصية", "Update your personal info")" />
 
@@ -22,20 +22,18 @@
                     <strong>@Store.Ui.Tr("البيانات الشخصية", "Personal Info")</strong>
                 </Header>
                 <ChildContent>
-                    <div class="ac-mb-md">
-                        <label class="form-label">@Store.Ui.Tr("الاسم الكامل", "Full Name")</label>
-                        <input class="form-input" type="text"
-                               placeholder="@Store.Ui.Tr("أدخل اسمك الكامل", "Enter your full name")"
-                               value="@FullName"
-                               @oninput="@(e => FullName = e.Value?.ToString() ?? "")" />
-                    </div>
-                    <div>
-                        <label class="form-label">@Store.Ui.Tr("البريد الإلكتروني", "Email")</label>
-                        <input class="form-input" type="email"
-                               placeholder="@Store.Ui.Tr("أدخل بريدك الإلكتروني", "Enter your email")"
-                               value="@Email"
-                               @oninput="@(e => Email = e.Value?.ToString() ?? "")" />
-                    </div>
+                    <AcField Label="@Store.Ui.Tr("الاسم الكامل", "Full Name")" Class="ac-mb-md">
+                        <AcInput Value="@FullName"
+                                 Placeholder="@Store.Ui.Tr("أدخل اسمك الكامل", "Enter your full name")"
+                                 ValueChanged="@(v => FullName = v ?? "")" />
+                    </AcField>
+
+                    <AcField Label="@Store.Ui.Tr("البريد الإلكتروني", "Email")">
+                        <AcInput Value="@Email"
+                                 Type="email"
+                                 Placeholder="@Store.Ui.Tr("أدخل بريدك الإلكتروني", "Enter your email")"
+                                 ValueChanged="@(v => Email = v ?? "")" />
+                    </AcField>
                 </ChildContent>
             </AcCard>
 
@@ -47,35 +45,29 @@
                     </div>
                 </Header>
                 <ChildContent>
-                    <p class="ac-text-muted" style="font-size:0.85rem;margin-bottom:12px;">
+                    <p class="ac-text-muted ac-text-sm ac-mb-md">
                         @Store.Ui.Tr(
                             "تُستخدم عند الاستلام من السيارة (Curbside)",
                             "Used for curbside pickup orders")
                     </p>
 
-                    <div class="ac-mb-md">
-                        <label class="form-label">@Store.Ui.Tr("نوع السيارة", "Car Model")</label>
-                        <input class="form-input" type="text"
-                               placeholder="@Store.Ui.Tr("مثال: كامري 2024", "e.g. Camry 2024")"
-                               value="@CarModel"
-                               @oninput="@(e => CarModel = e.Value?.ToString() ?? "")" />
-                    </div>
+                    <AcField Label="@Store.Ui.Tr("نوع السيارة", "Car Model")" Class="ac-mb-md">
+                        <AcInput Value="@CarModel"
+                                 Placeholder="@Store.Ui.Tr("مثال: كامري 2024", "e.g. Camry 2024")"
+                                 ValueChanged="@(v => CarModel = v ?? "")" />
+                    </AcField>
 
-                    <div class="ac-mb-md">
-                        <label class="form-label">@Store.Ui.Tr("لون السيارة", "Car Color")</label>
-                        <input class="form-input" type="text"
-                               placeholder="@Store.Ui.Tr("مثال: أبيض", "e.g. White")"
-                               value="@CarColor"
-                               @oninput="@(e => CarColor = e.Value?.ToString() ?? "")" />
-                    </div>
+                    <AcField Label="@Store.Ui.Tr("لون السيارة", "Car Color")" Class="ac-mb-md">
+                        <AcInput Value="@CarColor"
+                                 Placeholder="@Store.Ui.Tr("مثال: أبيض", "e.g. White")"
+                                 ValueChanged="@(v => CarColor = v ?? "")" />
+                    </AcField>
 
-                    <div>
-                        <label class="form-label">@Store.Ui.Tr("رقم اللوحة", "Plate Number")</label>
-                        <input class="form-input" type="text"
-                               placeholder="@Store.Ui.Tr("اختياري", "Optional")"
-                               value="@CarPlate"
-                               @oninput="@(e => CarPlate = e.Value?.ToString() ?? "")" />
-                    </div>
+                    <AcField Label="@Store.Ui.Tr("رقم اللوحة", "Plate Number")">
+                        <AcInput Value="@CarPlate"
+                                 Placeholder="@Store.Ui.Tr("اختياري", "Optional")"
+                                 ValueChanged="@(v => CarPlate = v ?? "")" />
+                    </AcField>
                 </ChildContent>
             </AcCard>
 
