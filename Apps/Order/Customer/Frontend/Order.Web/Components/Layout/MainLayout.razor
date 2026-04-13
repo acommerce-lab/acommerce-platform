@@ -1,5 +1,6 @@
 @inherits LayoutComponentBase
 @inject AppStore Store
+@inject AuthStateService AuthService
 @inject IJSRuntime JS
 @implements IDisposable
 
@@ -46,17 +47,32 @@
 
     private string _lastAppliedTheme = "";
     private string _lastAppliedLang  = "";
+    private Guid? _lastPersistedUserId;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
+            // Restore auth from ProtectedLocalStorage → AppStore
+            await AuthService.EnsureRestoredAsync();
+            if (AuthService.IsAuthenticated)
+            {
+                Store.Auth.UserId = AuthService.UserId;
+                Store.Auth.PhoneNumber = AuthService.PhoneNumber;
+                Store.Auth.FullName = AuthService.FullName;
+                Store.Auth.AccessToken = AuthService.AccessToken;
+                _lastPersistedUserId = AuthService.UserId;
+                Store.NotifyChanged();
+            }
+
             _lastAppliedTheme = Store.Ui.Theme;
             _lastAppliedLang  = Store.Ui.Language;
         }
-        // The root <html> element lives outside the interactive Blazor
-        // tree, so Blazor can't flip its attributes directly — we push
-        // the new values via JS interop whenever Ui notifies a change.
+
+        // Persist auth state when it changes
+        await SyncAuthToStorageAsync();
+
+        // Push theme/lang to <html> attributes via JS interop
         if (_lastAppliedTheme != Store.Ui.Theme)
         {
             _lastAppliedTheme = Store.Ui.Theme;
@@ -66,6 +82,28 @@
         {
             _lastAppliedLang = Store.Ui.Language;
             try { await JS.InvokeVoidAsync("acLang.set", Store.Ui.Language); } catch { }
+        }
+    }
+
+    private async Task SyncAuthToStorageAsync()
+    {
+        if (Store.Auth.IsAuthenticated && Store.Auth.UserId != _lastPersistedUserId)
+        {
+            _lastPersistedUserId = Store.Auth.UserId;
+            try
+            {
+                await AuthService.SignInAsync(
+                    Store.Auth.UserId!.Value,
+                    Store.Auth.PhoneNumber,
+                    Store.Auth.FullName,
+                    Store.Auth.AccessToken!);
+            }
+            catch { }
+        }
+        else if (!Store.Auth.IsAuthenticated && _lastPersistedUserId.HasValue)
+        {
+            _lastPersistedUserId = null;
+            try { await AuthService.SignOutAsync(); } catch { }
         }
     }
 

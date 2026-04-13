@@ -99,6 +99,9 @@ builder.Services.AddScoped<OperationInterpreterRegistry<AppStore>>(sp =>
 builder.Services.AddScoped<AppStateApplier>();
 builder.Services.AddScoped<IStateApplier>(sp => sp.GetRequiredService<AppStateApplier>());
 
+// ─── Auth persistence (ProtectedLocalStorage) ───────────────────────
+builder.Services.AddScoped<AuthStateService>();
+
 // ─── Build ───────────────────────────────────────────────────────────
 var app = builder.Build();
 

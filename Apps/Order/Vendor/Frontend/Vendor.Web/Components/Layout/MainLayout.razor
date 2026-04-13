@@ -1,5 +1,6 @@
 @inherits LayoutComponentBase
 @inject AppStore Store
+@inject AuthStateService AuthService
 @inject IJSRuntime JS
 @implements IDisposable
 
@@ -35,6 +36,7 @@
 @code {
     private string _lastTheme = "";
     private string _lastLang  = "";
+    private Guid? _lastPersistedUserId;
 
     protected override void OnInitialized()
     {
@@ -45,11 +47,49 @@
     {
         if (firstRender)
         {
+            // Restore auth from ProtectedLocalStorage → AppStore
+            await AuthService.EnsureRestoredAsync();
+            if (AuthService.IsAuthenticated)
+            {
+                Store.Auth.UserId = AuthService.UserId;
+                Store.Auth.PhoneNumber = AuthService.PhoneNumber;
+                Store.Auth.FullName = AuthService.FullName;
+                Store.Auth.AccessToken = AuthService.AccessToken;
+                _lastPersistedUserId = AuthService.UserId;
+                Store.NotifyChanged();
+            }
+
             _lastTheme = Store.Ui.Theme;
             _lastLang  = Store.Ui.Language;
         }
+
+        // Persist auth state when it changes
+        await SyncAuthToStorageAsync();
+
         if (_lastTheme != Store.Ui.Theme) { _lastTheme = Store.Ui.Theme; try { await JS.InvokeVoidAsync("acTheme.set", Store.Ui.Theme); } catch { } }
         if (_lastLang != Store.Ui.Language) { _lastLang = Store.Ui.Language; try { await JS.InvokeVoidAsync("acLang.set", Store.Ui.Language); } catch { } }
+    }
+
+    private async Task SyncAuthToStorageAsync()
+    {
+        if (Store.Auth.IsAuthenticated && Store.Auth.UserId != _lastPersistedUserId)
+        {
+            _lastPersistedUserId = Store.Auth.UserId;
+            try
+            {
+                await AuthService.SignInAsync(
+                    Store.Auth.UserId!.Value,
+                    Store.Auth.PhoneNumber,
+                    Store.Auth.FullName,
+                    Store.Auth.AccessToken!);
+            }
+            catch { }
+        }
+        else if (!Store.Auth.IsAuthenticated && _lastPersistedUserId.HasValue)
+        {
+            _lastPersistedUserId = null;
+            try { await AuthService.SignOutAsync(); } catch { }
+        }
     }
 
     private void OnChange() => InvokeAsync(StateHasChanged);

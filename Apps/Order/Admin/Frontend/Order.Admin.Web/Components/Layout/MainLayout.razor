@@ -1,6 +1,7 @@
 @inherits LayoutComponentBase
 @inject AppStore Store
 @inject AppStateApplier Applier
+@inject AuthStateService AuthService
 @implements IDisposable
 
 <div class="ac-root" style="min-height:100vh;background:var(--ac-bg,#0d1b2a);">
@@ -51,9 +52,52 @@
 </div>
 
 @code {
+    private Guid? _lastPersistedUserId;
+
     protected override void OnInitialized()
     {
         Store.OnChanged += OnChange;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await AuthService.EnsureRestoredAsync();
+            if (AuthService.IsAuthenticated)
+            {
+                Store.Auth.UserId = AuthService.UserId;
+                Store.Auth.PhoneNumber = AuthService.PhoneNumber;
+                Store.Auth.DisplayName = AuthService.DisplayName;
+                Store.Auth.AccessToken = AuthService.AccessToken;
+                _lastPersistedUserId = AuthService.UserId;
+                Store.NotifyChanged();
+            }
+        }
+
+        await SyncAuthToStorageAsync();
+    }
+
+    private async Task SyncAuthToStorageAsync()
+    {
+        if (Store.Auth.IsAuthenticated && Store.Auth.UserId != _lastPersistedUserId)
+        {
+            _lastPersistedUserId = Store.Auth.UserId;
+            try
+            {
+                await AuthService.SignInAsync(
+                    Store.Auth.UserId!.Value,
+                    Store.Auth.PhoneNumber,
+                    Store.Auth.DisplayName,
+                    Store.Auth.AccessToken!);
+            }
+            catch { }
+        }
+        else if (!Store.Auth.IsAuthenticated && _lastPersistedUserId.HasValue)
+        {
+            _lastPersistedUserId = null;
+            try { await AuthService.SignOutAsync(); } catch { }
+        }
     }
 
     private void OnChange() => InvokeAsync(StateHasChanged);

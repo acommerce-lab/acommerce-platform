@@ -7,6 +7,7 @@ using ACommerce.OperationEngine.Core;
 using Order.Admin.Web.Components;
 using Order.Admin.Web.Interpreters;
 using Order.Admin.Web.Operations;
+using Order.Admin.Web.Services;
 using Order.Admin.Web.Store;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -74,6 +75,9 @@ builder.Services.AddScoped<OperationInterpreterRegistry<AppStore>>(sp =>
 
 builder.Services.AddScoped<AppStateApplier>();
 builder.Services.AddScoped<IStateApplier>(sp => sp.GetRequiredService<AppStateApplier>());
+
+// ─── Auth persistence (ProtectedLocalStorage) ───────────────────────
+builder.Services.AddScoped<AuthStateService>();
 
 // ─── Build ───────────────────────────────────────────────────────────
 var app = builder.Build();
