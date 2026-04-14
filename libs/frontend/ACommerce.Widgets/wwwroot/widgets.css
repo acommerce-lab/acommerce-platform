@@ -209,6 +209,7 @@ h1:focus, h2:focus, h3:focus { outline: none; }
     border: 1px solid transparent;
     border-radius: var(--ac-radius-md);
     margin-bottom: var(--ac-space-md);
+    background: var(--ac-bg-alt);
 }
 .ac-alert-info    { background: color-mix(in srgb, var(--ac-info)    12%, transparent); border-color: var(--ac-info);    color: var(--ac-text); }
 .ac-alert-success { background: color-mix(in srgb, var(--ac-success) 12%, transparent); border-color: var(--ac-success); color: var(--ac-text); }
