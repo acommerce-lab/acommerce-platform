@@ -14,6 +14,10 @@ using Order.Web.Store;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Enable static web assets in ALL environments (default-enables only in Dev).
+// Without this, _content/<RclLib>/* returns 404 at runtime.
+builder.WebHost.UseStaticWebAssets();
+
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 

@@ -12,6 +12,9 @@ using Order.Admin.Web.Store;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Enable static web assets so _content/<RclLib>/* is served (see Order.Web).
+builder.WebHost.UseStaticWebAssets();
+
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 

@@ -87,7 +87,14 @@ switch (dbProvider.ToLowerInvariant())
 // ─────────────────────────────────────────────────────────
 // MVC + Swagger + CORS
 // ─────────────────────────────────────────────────────────
-builder.Services.AddControllers();
+// Only scan this assembly for controllers. Order.Api.dll (referenced for its
+// entities) also contains an AuthController on /api/auth — scanning both
+// would produce AmbiguousMatchException at runtime.
+builder.Services.AddControllers()
+    .PartManager.ApplicationParts.Clear();
+var mvcBuilder = builder.Services.AddControllers();
+mvcBuilder.PartManager.ApplicationParts.Add(
+    new Microsoft.AspNetCore.Mvc.ApplicationParts.AssemblyPart(typeof(Program).Assembly));
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
@@ -273,6 +280,26 @@ try
         .GetRequiredService<ACommerce.SharedKernel.Infrastructure.EFCores.Context.ApplicationDbContext>();
     await db.Database.EnsureCreatedAsync();
     Log.Information("Database schema ready");
+
+    // Seed a demo admin so Order.Admin login is testable end-to-end.
+    var userRepo = scope.ServiceProvider
+        .GetRequiredService<ACommerce.SharedKernel.Abstractions.Repositories.IRepositoryFactory>()
+        .CreateRepository<Order.Api.Entities.User>();
+    var existing = await userRepo.GetAllWithPredicateAsync(u => u.Role == "admin");
+    if (!existing.Any())
+    {
+        await userRepo.AddAsync(new Order.Api.Entities.User
+        {
+            Id = Guid.NewGuid(),
+            CreatedAt = DateTime.UtcNow,
+            PhoneNumber = "+966599999999",
+            FullName = "Demo Admin",
+            Email = "admin@order.test",
+            Role = "admin",
+            IsActive = true
+        }, default);
+        Log.Information("Seeded demo admin (+966599999999)");
+    }
 }
 catch (Exception ex)
 {

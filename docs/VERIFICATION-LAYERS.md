@@ -38,6 +38,35 @@ Concretely:
 | Spacing value on 4-px grid | Layer 3 (per-value) | — |
 | Spacing distinct count | Layer 4 (per-app, limit 20) | — |
 
+## Static vs runtime — what Layer 6 does and does NOT repeat
+
+The first five layers read source files. Layer 6 loads rendered pages with
+a real browser (Playwright). The two are **complementary**, not duplicates.
+This matrix shows the rule:
+
+| Static layer | Does Layer 6 re-run it? | Why / why not |
+|---|---|---|
+| **1 — code hygiene** (forbidden patterns) | ❌ No | The rendered HTML contains only what the source emitted. Blazor Server does not synthesize `<button>` or `.btn` out of thin air. Static is authoritative. |
+| **2 — class existence** | ⚠ Partially | Static confirms `.foo` is *defined*. Runtime additionally detects: (a) CSS bundle failed to load, (b) a later rule overrode `.foo`, (c) specificity war made the rule inert. These are orthogonal failures and live in the Layer 5 computed-style assertions of Layer 6. |
+| **3 — per-value scale** (inline values) | ⚠ Partially | Static only inspects *inline* values. Runtime `getComputedStyle` reveals the *cascaded* final value — a font-size of `17px` can appear in the computed layer without ever appearing in source (inherited `rem`, browser default, media query, etc.). |
+| **4 — per-app diversity counts** | ❌ No | Distinct-value counts at runtime are always **≤** static counts — a source that declares 40 colors cannot render 41. Static is an **upper bound**, so if static passes, runtime passes. Re-running it at runtime adds zero information. |
+| **5 — widget property contracts** | ⚠ Partially | Static confirms `.ac-input` *declares* `padding` in CSS. Runtime confirms the padding *actually applied* to the rendered element after the cascade. Layer 6 re-checks computed values for every contracted widget. |
+
+What **only** Layer 6 can catch (no static equivalent exists):
+
+- **Position** — sticky bars actually at `top: 0` on scroll; bottom navs
+  glued to viewport bottom; anchored badges attached to parent edge.
+- **Containment** — child elements not escaping their parent's bounding
+  box horizontally or vertically (overflow issues).
+- **Alignment** — flex/grid siblings on the same horizontal centre-line.
+- **Overlap** — sibling cards not stacking on top of each other.
+- **Contrast** — computed foreground vs. background `rgb` pair hitting
+  WCAG AA 4.5:1 ratio (inherited colours matter; source can't predict).
+
+The principle: **if a check only needs source, it lives in layers 1–5;
+if it needs the rendered tree, it lives in Layer 6.** Nothing is measured
+twice.
+
 ## Why per-app for Layer 4?
 
 A user loads exactly **one** app at a time.  Global counts summed across all

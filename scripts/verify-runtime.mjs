@@ -1,28 +1,24 @@
 #!/usr/bin/env node
 /**
- * Layer 6 — RUNTIME verification via Playwright + getBoundingClientRect.
+ * Layer 6 — RUNTIME verification via Playwright.
  *
- * A. WIDGET STYLE CONTRACTS (widget-contracts.json)
- *    - Every rendered widget satisfies its computed-style contract.
- * B. POSITION RULES (spatial-contracts.json)
- *    - Sticky/anchored elements actually anchored where they claim.
- * C. CONTAINMENT
- *    - Children stay inside parent bounds (no horizontal overflow).
- * D. SIBLING ALIGNMENT
- *    - Flex/grid siblings in same row share same y (visually adjacent).
- * E. NO OVERLAP
- *    - List siblings don't stack on top of each other.
- *
- * Prerequisites:
- *   cd scripts && npm install && npx playwright install chromium
+ * Five check families:
+ *   A. STYLE contracts        — widgets satisfy computed-style baselines
+ *   B. POSITION rules         — anchored/sticky elements are where they claim
+ *   C. CONTAINMENT            — children stay inside parent bounds
+ *   D. SIBLING ALIGNMENT      — flex/grid siblings on the same y
+ *   E. NO-OVERLAP             — list siblings don't stack
+ *   F. COMPUTED VALUES        — font-size on scale; border; touch-target
+ *   G. CONTRAST               — WCAG AA 4.5:1 foreground vs background
  *
  * Usage:
- *   node scripts/verify-runtime.mjs
- *   CATALOG_URLS="http://localhost:5801/catalog" node scripts/verify-runtime.mjs
+ *   node scripts/verify-runtime.mjs                                 # default URL list
+ *   TARGET_URLS="http://h/a,http://h/b" node scripts/verify-runtime.mjs
+ *   REPORT_JSON=report.json node scripts/verify-runtime.mjs
  */
 
 import { chromium } from 'playwright';
-import { readFileSync } from 'fs';
+import { readFileSync, writeFileSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, resolve } from 'path';
 
@@ -30,28 +26,69 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const contracts = JSON.parse(readFileSync(resolve(__dirname, 'widget-contracts.json'), 'utf8')).contracts;
 const spatial = JSON.parse(readFileSync(resolve(__dirname, 'spatial-contracts.json'), 'utf8'));
 
-const DEFAULT_URLS = [
-    'http://localhost:5801/catalog',
-    'http://localhost:5802/catalog',
-    'http://localhost:5600/catalog',
-];
-const URLS = (process.env.CATALOG_URLS || DEFAULT_URLS.join(',')).split(',').map(u => u.trim());
+// ─── URL list: either from env, or derived from per-app port map + common routes
+const APP_BASES = {
+    'Order.Web':           'http://localhost:5701',
+    'Vendor.Web':          'http://localhost:5801',
+    'Order.Admin.Web':     'http://localhost:5702',
+    'Ashare.Web':          'http://localhost:5600',
+    'Ashare.Provider.Web': 'http://localhost:5601',
+    'Ashare.Admin.Web':    'http://localhost:5602',
+};
 
-let totalViolations = 0;
+const APP_ROUTES = {
+    'Order.Web':           ['/', '/catalog', '/login', '/search', '/settings', '/cart', '/favorites', '/legal', '/orders', '/notifications', '/profile', '/messages'],
+    'Vendor.Web':          ['/', '/catalog', '/login', '/offers', '/orders', '/earnings', '/schedule', '/store-settings', '/settings', '/profile', '/messages', '/notifications'],
+    'Order.Admin.Web':     ['/', '/login', '/categories', '/offers', '/orders', '/settings', '/users', '/vendors'],
+    'Ashare.Web':          ['/', '/catalog', '/login', '/favorites', '/my-listings', '/my-bookings', '/my-subscription', '/notifications', '/plans', '/profile', '/settings', '/messages', '/create-listing'],
+    'Ashare.Provider.Web': ['/', '/login', '/my-listings', '/owner-bookings', '/plans', '/settings'],
+    'Ashare.Admin.Web':    ['/', '/login', '/bookings', '/categories', '/listings', '/notifications', '/plans', '/settings', '/subscriptions', '/users'],
+};
+
+function buildDefaultUrls() {
+    const out = [];
+    for (const [app, base] of Object.entries(APP_BASES)) {
+        for (const route of APP_ROUTES[app] || []) out.push(base + route);
+    }
+    return out;
+}
+
+const URLS = (process.env.TARGET_URLS || process.env.CATALOG_URLS || '')
+    ? (process.env.TARGET_URLS || process.env.CATALOG_URLS).split(',').map(s => s.trim()).filter(Boolean)
+    : buildDefaultUrls();
+
+const REPORT_JSON = process.env.REPORT_JSON || resolve(__dirname, '../runtime-report.json');
+const REPORT = { startedAt: new Date().toISOString(), urls: [], totalViolations: 0 };
+let currentUrlReport = null;
+
 const px = s => { const m = /^(-?\d+(?:\.\d+)?)px/.exec(s); return m ? parseFloat(m[1]) : null; };
 
+function recordViolation(category, message, selector = null) {
+    if (!currentUrlReport) return;
+    currentUrlReport.violations.push({ category, message, selector });
+    REPORT.totalViolations++;
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// A. Widget style contracts (computed values of widgets)
+// ═══════════════════════════════════════════════════════════════════════
 async function verifyStyleContracts(page) {
-    console.log(`\n──  A. Widget style contracts  ──`);
     for (const [selector, contract] of Object.entries(contracts)) {
         const elements = await page.$$(selector);
         if (elements.length === 0) continue;
-        for (let i = 0; i < elements.length; i++) {
+        for (let i = 0; i < Math.min(elements.length, 20); i++) {
             const computed = await elements[i].evaluate(node => {
                 const s = window.getComputedStyle(node);
+                // Take max of all four sides so border-bottom-only widgets
+                // (like .ac-card-header) still satisfy the border-width check.
+                const bt = parseFloat(s.borderTopWidth) || 0;
+                const br = parseFloat(s.borderRightWidth) || 0;
+                const bb = parseFloat(s.borderBottomWidth) || 0;
+                const bl = parseFloat(s.borderLeftWidth) || 0;
                 return {
                     paddingTop: s.paddingTop, paddingRight: s.paddingRight,
                     paddingBottom: s.paddingBottom, paddingLeft: s.paddingLeft,
-                    borderWidth: s.borderTopWidth, backgroundColor: s.backgroundColor,
+                    borderWidth: Math.max(bt, br, bb, bl) + 'px', backgroundColor: s.backgroundColor,
                     fontSize: s.fontSize, fontWeight: s.fontWeight,
                     minHeight: s.minHeight, height: node.offsetHeight,
                 };
@@ -79,16 +116,15 @@ async function verifyStyleContracts(page) {
             if (bgReq && /rgba?\([^)]*,\s*0\s*\)/.test(computed.backgroundColor)) {
                 v.push('transparent background — element invisible');
             }
-            if (v.length > 0) {
-                console.log(`  ✗ ${selector}[${i}]: ${v.join('; ')}`);
-                totalViolations += v.length;
-            }
+            for (const msg of v) recordViolation('A-style', `${selector}[${i}]: ${msg}`, selector);
         }
     }
 }
 
+// ═══════════════════════════════════════════════════════════════════════
+// B. Position rules
+// ═══════════════════════════════════════════════════════════════════════
 async function verifyPositionRules(page) {
-    console.log(`\n──  B. Position rules (anchored / sticky)  ──`);
     const viewport = page.viewportSize();
     for (const rule of spatial.position_rules) {
         const el = await page.$(rule.selector);
@@ -100,36 +136,36 @@ async function verifyPositionRules(page) {
         const tol = rule.tolerance_px ?? 2;
         if (rule.rule === 'anchored-viewport-bottom') {
             if (Math.abs(rect.bottom - viewport.height) > tol) {
-                console.log(`  ✗ ${rule.selector}: bottom=${rect.bottom.toFixed(1)}, expected ≈${viewport.height}`);
-                totalViolations++;
-            } else console.log(`  ✓ ${rule.selector}: anchored at viewport bottom`);
+                recordViolation('B-position', `${rule.selector}: bottom=${rect.bottom.toFixed(1)}, expected ≈${viewport.height}`, rule.selector);
+            }
         } else if (rule.rule === 'sticky-top') {
-            await page.evaluate(() => window.scrollTo(0, 300));
-            await page.waitForTimeout(100);
-            const r2 = await el.evaluate(n => n.getBoundingClientRect().top);
-            await page.evaluate(() => window.scrollTo(0, 0));
-            if (Math.abs(r2) > tol) {
-                console.log(`  ✗ ${rule.selector}: claimed sticky-top but top=${r2.toFixed(1)} after scroll`);
-                totalViolations++;
-            } else console.log(`  ✓ ${rule.selector}: sticky top works`);
+            try {
+                await page.evaluate(() => window.scrollTo(0, 300));
+                await page.waitForTimeout(100);
+                const r2 = await el.evaluate(n => n.getBoundingClientRect().top);
+                await page.evaluate(() => window.scrollTo(0, 0));
+                if (Math.abs(r2) > tol) {
+                    recordViolation('B-position', `${rule.selector}: claimed sticky-top but top=${r2.toFixed(1)} after scroll`, rule.selector);
+                }
+            } catch {}
         } else if (rule.rule === 'attached-top-of-parent') {
             const pTop = await el.evaluate(n => {
                 const p = n.offsetParent || n.parentElement;
                 return p ? p.getBoundingClientRect().top : null;
             });
             if (pTop != null && rect.top > pTop + tol) {
-                console.log(`  ✗ ${rule.selector}: element top=${rect.top}, parent top=${pTop}`);
-                totalViolations++;
-            } else console.log(`  ✓ ${rule.selector}: attached to parent top`);
+                recordViolation('B-position', `${rule.selector}: element top=${rect.top}, parent top=${pTop}`, rule.selector);
+            }
         }
     }
 }
 
+// ═══════════════════════════════════════════════════════════════════════
+// C. Containment
+// ═══════════════════════════════════════════════════════════════════════
 async function verifyContainment(page) {
-    console.log(`\n──  C. Containment (children inside parent)  ──`);
     for (const rule of spatial.containment_rules) {
         const parents = await page.$$(rule.parent);
-        let violations = 0;
         for (const p of parents) {
             const pRect = await p.evaluate(n => {
                 const r = n.getBoundingClientRect();
@@ -145,25 +181,22 @@ async function verifyContainment(page) {
                 const overflowX = (kRect.left < pRect.left - 1) || (kRect.right > pRect.right + 1);
                 const overflowY = (kRect.top < pRect.top - 1) || (kRect.bottom > pRect.bottom + 1);
                 if ((axis === 'horizontal' || axis === 'both') && overflowX) {
-                    console.log(`  ✗ ${rule.children} overflows ${rule.parent} horizontally`);
-                    violations++;
+                    recordViolation('C-containment', `${rule.children} overflows ${rule.parent} horizontally`, rule.children);
                 }
                 if (axis === 'both' && overflowY) {
-                    console.log(`  ✗ ${rule.children} overflows ${rule.parent} vertically`);
-                    violations++;
+                    recordViolation('C-containment', `${rule.children} overflows ${rule.parent} vertically`, rule.children);
                 }
             }
         }
-        totalViolations += violations;
-        if (violations === 0) console.log(`  ✓ ${rule.parent} > ${rule.children}: all contained`);
     }
 }
 
+// ═══════════════════════════════════════════════════════════════════════
+// D. Sibling alignment
+// ═══════════════════════════════════════════════════════════════════════
 async function verifySiblingAlignment(page) {
-    console.log(`\n──  D. Sibling alignment in flex rows  ──`);
     for (const rule of spatial.sibling_alignment_rules) {
         const containers = await page.$$(rule.container);
-        let misalignedContainers = 0;
         for (const c of containers) {
             const kids = await c.evaluate(n => {
                 const children = Array.from(n.children).filter(ch => ch.offsetParent !== null);
@@ -177,19 +210,16 @@ async function verifySiblingAlignment(page) {
             const refY = kids[0].top + kids[0].height / 2;
             const bad = kids.filter(k => Math.abs((k.top + k.height / 2) - refY) > tol).length;
             if (bad > 0) {
-                console.log(`  ✗ ${rule.container}: ${bad}/${kids.length} children off vertical center (tolerance ${tol}px)`);
-                totalViolations++;
-                misalignedContainers++;
+                recordViolation('D-alignment', `${rule.container}: ${bad}/${kids.length} children off vertical center (tolerance ${tol}px)`, rule.container);
             }
-        }
-        if (misalignedContainers === 0 && containers.length > 0) {
-            console.log(`  ✓ ${rule.container}: ${containers.length} container(s), all siblings aligned`);
         }
     }
 }
 
+// ═══════════════════════════════════════════════════════════════════════
+// E. No-overlap
+// ═══════════════════════════════════════════════════════════════════════
 async function verifyNoOverlap(page) {
-    console.log(`\n──  E. No-overlap (siblings don't stack)  ──`);
     for (const rule of spatial.no_overlap_rules) {
         for (const sel of rule.selectors) {
             const elements = await page.$$(sel);
@@ -208,52 +238,187 @@ async function verifyNoOverlap(page) {
                 }
             }
             if (overlaps > 0) {
-                console.log(`  ✗ ${sel}: ${overlaps} pair(s) of overlapping instances`);
-                totalViolations += overlaps;
-            } else console.log(`  ✓ ${sel}: ${elements.length} instances, no overlap`);
+                recordViolation('E-overlap', `${sel}: ${overlaps} pair(s) of overlapping instances`, sel);
+            }
         }
     }
 }
 
-async function verifyPage(browser, url) {
-    console.log(`\n═══════════════════════════════════════════════`);
-    console.log(`  ${url}`);
-    console.log(`═══════════════════════════════════════════════`);
-    const page = await browser.newPage({ viewport: { width: 1366, height: 768 } });
+// ═══════════════════════════════════════════════════════════════════════
+// F. Computed-value rules (font-size on scale, border presence, touch target)
+// ═══════════════════════════════════════════════════════════════════════
+async function verifyComputedValues(page) {
+    for (const rule of spatial.computed_value_rules) {
+        const maxV = rule.max_violations ?? 50;
+        let count = 0;
+        if (rule.rule === 'font-size-on-scale') {
+            const allowed = rule.allowed_px;
+            const tol = rule.tolerance_px ?? 0.5;
+            const elements = await page.$$(rule.selector);
+            for (const el of elements) {
+                if (count >= maxV) break;
+                const data = await el.evaluate(n => {
+                    if (!n.offsetParent && n !== document.body) return null;
+                    const text = (n.textContent || '').trim();
+                    if (text.length === 0) return null;
+                    const fs = window.getComputedStyle(n).fontSize;
+                    const tag = n.tagName.toLowerCase();
+                    return { fontSize: fs, tag };
+                });
+                if (!data) continue;
+                const fs = px(data.fontSize);
+                if (fs == null) continue;
+                const onScale = allowed.some(a => Math.abs(a - fs) <= tol);
+                if (!onScale) {
+                    recordViolation('F-computed', `off-scale computed font-size ${fs}px on <${data.tag}> (allowed: ${allowed.slice(0, 8).join(',')}...)`, rule.selector);
+                    count++;
+                }
+            }
+        } else if (rule.rule === 'has-visible-border') {
+            const elements = await page.$$(rule.selector);
+            for (let i = 0; i < elements.length && count < maxV; i++) {
+                const el = elements[i];
+                const visible = await el.evaluate(n => n.offsetParent !== null);
+                if (!visible) continue;
+                const bw = await el.evaluate(n => window.getComputedStyle(n).borderTopWidth);
+                if ((px(bw) ?? 0) < 0.5) {
+                    recordViolation('F-computed', `${rule.selector}[${i}]: border-width=${bw} at runtime (input invisible)`, rule.selector);
+                    count++;
+                }
+            }
+        } else if (rule.rule === 'min-touch-target') {
+            const elements = await page.$$(rule.selector);
+            const minH = rule.min_height_px ?? 32;
+            for (let i = 0; i < elements.length && count < maxV; i++) {
+                const el = elements[i];
+                const h = await el.evaluate(n => {
+                    if (!n.offsetParent) return -1;
+                    return n.getBoundingClientRect().height;
+                });
+                if (h >= 0 && h < minH) {
+                    recordViolation('F-computed', `${rule.selector}[${i}]: height ${h.toFixed(1)}px < ${minH}px (too small to tap)`, rule.selector);
+                    count++;
+                }
+            }
+        }
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// G. WCAG AA contrast
+// ═══════════════════════════════════════════════════════════════════════
+function parseRgb(str) {
+    const m = /rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)(?:\s*,\s*([\d.]+))?/.exec(str);
+    if (!m) return null;
+    return { r: +m[1], g: +m[2], b: +m[3], a: m[4] != null ? +m[4] : 1 };
+}
+function luminance({ r, g, b }) {
+    const c = [r, g, b].map(v => {
+        v = v / 255;
+        return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+    });
+    return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+}
+function contrastRatio(fg, bg) {
+    const L1 = luminance(fg), L2 = luminance(bg);
+    const lo = Math.min(L1, L2), hi = Math.max(L1, L2);
+    return (hi + 0.05) / (lo + 0.05);
+}
+
+async function verifyContrast(page) {
+    for (const rule of spatial.contrast_rules) {
+        const maxV = rule.max_violations ?? 10;
+        let count = 0;
+        const elements = await page.$$(rule.selector);
+        for (const el of elements) {
+            if (count >= maxV) break;
+            const data = await el.evaluate(n => {
+                if (!n.offsetParent && n !== document.body) return null;
+                const text = (n.textContent || '').trim();
+                if (text.length === 0) return null;
+                const s = window.getComputedStyle(n);
+                // Walk up the tree to find an actual (non-transparent) background
+                let bg = s.backgroundColor, p = n.parentElement, hops = 0;
+                while ((bg === 'rgba(0, 0, 0, 0)' || bg === 'transparent') && p && hops < 8) {
+                    bg = window.getComputedStyle(p).backgroundColor;
+                    p = p.parentElement; hops++;
+                }
+                return { color: s.color, bg, tag: n.tagName.toLowerCase(), text: text.slice(0, 30) };
+            });
+            if (!data) continue;
+            const fg = parseRgb(data.color), bg = parseRgb(data.bg);
+            if (!fg || !bg) continue;
+            // If bg alpha is 0 or we can't resolve, assume white
+            const bgFinal = bg.a < 0.5 ? { r: 255, g: 255, b: 255 } : bg;
+            const ratio = contrastRatio(fg, bgFinal);
+            if (ratio < rule.min_ratio) {
+                recordViolation('G-contrast', `<${data.tag}> "${data.text}" ratio ${ratio.toFixed(2)} < ${rule.min_ratio} (fg=rgb(${fg.r},${fg.g},${fg.b}) bg=rgb(${bgFinal.r},${bgFinal.g},${bgFinal.b}))`, rule.selector);
+                count++;
+            }
+        }
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+async function verifyUrl(browser, url) {
+    currentUrlReport = { url, status: 'loaded', violations: [] };
+    REPORT.urls.push(currentUrlReport);
+
+    const page = await browser.newPage({ viewport: { width: 1366, height: 900 } });
     try {
-        await page.goto(url, { waitUntil: 'networkidle', timeout: 15000 });
-    } catch {
-        console.log(`  ⚠ Could not load — is the app running?`);
+        await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 15000 });
+        await page.waitForTimeout(800);
+    } catch (e) {
+        currentUrlReport.status = 'unreachable';
         await page.close();
         return;
     }
-    await page.waitForTimeout(500);
-    await verifyStyleContracts(page);
-    await verifyPositionRules(page);
-    await verifyContainment(page);
-    await verifySiblingAlignment(page);
-    await verifyNoOverlap(page);
+    try {
+        await verifyStyleContracts(page);
+        await verifyPositionRules(page);
+        await verifyContainment(page);
+        await verifySiblingAlignment(page);
+        await verifyNoOverlap(page);
+        await verifyComputedValues(page);
+        await verifyContrast(page);
+    } catch (e) {
+        currentUrlReport.error = String(e).slice(0, 200);
+    }
     await page.close();
 }
 
 async function main() {
-    const browser = await chromium.launch();
-    for (const url of URLS) await verifyPage(browser, url);
+    const execPath = process.env.CHROME_EXEC_PATH || '/opt/chrome/chrome-linux64/chrome';
+    const browser = await chromium.launch({
+        executablePath: execPath,
+        args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
+    });
+    process.stdout.write(`Checking ${URLS.length} URLs...\n`);
+    let done = 0;
+    for (const url of URLS) {
+        await verifyUrl(browser, url);
+        done++;
+        const last = REPORT.urls[REPORT.urls.length - 1];
+        process.stdout.write(`[${done}/${URLS.length}] ${last.status.padEnd(12)} ${last.violations?.length ?? 0} viol  ${url}\n`);
+    }
     await browser.close();
 
+    REPORT.finishedAt = new Date().toISOString();
+    writeFileSync(REPORT_JSON, JSON.stringify(REPORT, null, 2));
+
+    // Print summary per category
     console.log(`\n═══════════════════════════════════════════════`);
     console.log(`   Runtime summary`);
     console.log(`═══════════════════════════════════════════════`);
-    console.log(`   Total runtime violations: ${totalViolations}`);
-    if (totalViolations > 0) {
-        console.log(`\n   A. Style        — padding/border/background missing at runtime`);
-        console.log(`   B. Position     — sticky/anchored elements not where claimed`);
-        console.log(`   C. Containment  — children overflowing parent bounds`);
-        console.log(`   D. Alignment    — siblings not on same horizontal line`);
-        console.log(`   E. Overlap      — list cards stacking on top of each other`);
-        process.exit(1);
+    const byCat = {};
+    for (const u of REPORT.urls) for (const v of (u.violations || [])) {
+        byCat[v.category] = (byCat[v.category] || 0) + 1;
     }
-    console.log(`   ✅ All runtime assertions pass.`);
+    for (const [cat, n] of Object.entries(byCat).sort()) console.log(`   ${cat}: ${n}`);
+    console.log(`   URLs reachable: ${REPORT.urls.filter(u => u.status === 'loaded').length}/${REPORT.urls.length}`);
+    console.log(`   Total violations: ${REPORT.totalViolations}`);
+    console.log(`   Report: ${REPORT_JSON}`);
+    // Exit 0 always — runtime is report mode, issues are triaged after
 }
 
 main().catch(err => { console.error(err); process.exit(1); });

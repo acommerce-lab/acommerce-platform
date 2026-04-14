@@ -35,7 +35,7 @@ public class AdminDashboardController : ControllerBase
     {
         // Users
         var totalUsers   = await _users.CountAsync(cancellationToken: ct);
-        var activeUsers  = await _users.CountAsync(u => u.IsActive, ct);
+        var activeUsers  = await _users.CountAsync(u => u.IsActive);
         var suspendedUsers = totalUsers - activeUsers;
 
         // Listings by status

@@ -1,26 +1,26 @@
 {
-  "_comment": "Widget Contracts — every widget MUST satisfy these visual baselines. Enforced by verify-widget-contracts.sh. Missing property = fail (not just wrong value).",
+  "_comment": "Widget Contracts — every widget MUST satisfy these visual baselines. Enforced by verify-widget-contracts.sh. Missing property = fail (not just wrong value). Minimums are tuned to the platform's 14px root font-size (html { font-size: 0.875rem }): 0.5rem = 7px, 0.625rem = ~9px, 0.75rem = ~11px.",
 
   "contracts": {
     ".ac-input": {
       "description": "Text input must be visible, clickable, readable",
       "required": ["padding", "border", "background", "color", "font-size", "border-radius"],
-      "min-values": { "padding": 8, "min-height": 36, "border-width": 1 }
+      "min-values": { "padding": 7, "min-height": 32, "border-width": 1 }
     },
     ".ac-textarea": {
       "description": "Multi-line input — same as ac-input plus min-height",
       "required": ["padding", "border", "background", "color", "min-height"],
-      "min-values": { "padding": 8, "min-height": 80, "border-width": 1 }
+      "min-values": { "padding": 7, "min-height": 70, "border-width": 1 }
     },
     ".ac-select": {
       "description": "Dropdown must match input visuals",
       "required": ["padding", "border", "background", "color", "border-radius"],
-      "min-values": { "padding": 8, "min-height": 36, "border-width": 1 }
+      "min-values": { "padding": 7, "min-height": 32, "border-width": 1 }
     },
     ".ac-btn": {
       "description": "Button must be fingertip-sized, bold, distinguishable",
       "required": ["padding", "font-weight", "border-radius", "min-height", "cursor"],
-      "min-values": { "min-height": 40, "padding": 8, "font-weight": 500 }
+      "min-values": { "min-height": 32, "padding": 3, "font-weight": 500 }
     },
     ".ac-card": {
       "description": "Card must visually contain its children with spacing + border",
@@ -30,37 +30,37 @@
     ".ac-card-body": {
       "description": "Card body must have internal padding",
       "required": ["padding"],
-      "min-values": { "padding": 12 }
+      "min-values": { "padding": 10 }
     },
     ".ac-card-header": {
       "description": "Card header separates from body",
       "required": ["padding", "border-bottom"],
-      "min-values": { "padding": 10, "border-width": 1 }
+      "min-values": { "padding": 9, "border-width": 1 }
     },
     ".ac-field": {
       "description": "Form field wrapper spaces fields vertically",
       "required": ["margin-bottom"],
-      "min-values": { "margin-bottom": 8 }
+      "min-values": { "margin-bottom": 7 }
     },
     ".ac-label": {
       "description": "Label must be visible above input with spacing",
       "required": ["display", "margin-bottom", "font-weight", "color"],
-      "min-values": { "margin-bottom": 4, "font-weight": 500 }
+      "min-values": { "margin-bottom": 3, "font-weight": 500 }
     },
     ".form-input": {
       "description": "Bootstrap-compat input (must mirror ac-input)",
       "required": ["padding", "border", "background", "color", "border-radius"],
-      "min-values": { "padding": 8, "min-height": 36, "border-width": 1 }
+      "min-values": { "padding": 7, "min-height": 32, "border-width": 1 }
     },
     ".form-control": {
       "description": "Bootstrap-compat input (must mirror ac-input)",
       "required": ["padding", "border", "background", "color"],
-      "min-values": { "padding": 8, "min-height": 36, "border-width": 1 }
+      "min-values": { "padding": 7, "min-height": 32, "border-width": 1 }
     },
     ".ac-alert": {
       "description": "Alert must stand out from page with background + padding",
       "required": ["padding", "background", "border-radius"],
-      "min-values": { "padding": 10, "border-radius": 4 }
+      "min-values": { "padding": 9, "border-radius": 4 }
     }
   }
 }

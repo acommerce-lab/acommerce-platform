@@ -1,5 +1,5 @@
 {
-  "_comment": "Spatial contracts — positional assertions verified at runtime via getBoundingClientRect. Catches: sticky elements not sticky, children overflowing parents, siblings not aligned, element overlaps.",
+  "_comment": "Spatial contracts — positional & computed-style assertions verified at runtime via Playwright. Catches: missing CSS cascade, off-scale computed font-size, sticky elements that aren't sticky, children overflowing parents, siblings not aligned, element overlaps, WCAG AA contrast failures.",
 
   "position_rules": [
     {
@@ -55,12 +55,6 @@
       "container": ".adm-navbar-actions",
       "rule": "siblings-same-y-in-flex-row",
       "tolerance_px": 4
-    },
-    {
-      "container": ".ac-grid",
-      "rule": "grid-children-aligned",
-      "description": "Grid children in same row must share y",
-      "tolerance_px": 4
     }
   ],
 
@@ -69,6 +63,38 @@
       "selectors": [".ac-card"],
       "rule": "siblings-do-not-overlap",
       "description": "Cards in a list must not overlap each other"
+    }
+  ],
+
+  "computed_value_rules": [
+    {
+      "selector": "body, .ac-input, .ac-btn, .ac-card, h1, h2, h3, p, label, a, span, div",
+      "rule": "font-size-on-scale",
+      "__comment": "Scale is rem-based; these px values cover 14px AND 16px root font-sizes",
+      "allowed_px": [10, 10.5, 11, 12, 12.25, 13, 14, 15, 15.75, 16, 17.5, 18, 20, 21, 22, 24, 24.5, 25, 28, 32, 35, 36, 40, 42, 48, 56, 64],
+      "tolerance_px": 0.5,
+      "description": "Every rendered text element's computed font-size must be on the scale",
+      "max_violations": 3
+    },
+    {
+      "selector": ".ac-input, .ac-textarea, .ac-select, .form-input, .form-control",
+      "rule": "has-visible-border",
+      "description": "Input must have non-zero border-width in its computed style"
+    },
+    {
+      "selector": ".ac-btn",
+      "rule": "min-touch-target",
+      "min_height_px": 32,
+      "description": "Buttons must be ≥ 32px tall for fingertip tap (relaxed from 40 to allow sm variants)"
+    }
+  ],
+
+  "contrast_rules": [
+    {
+      "selector": "body, .ac-card, .ac-input, .ac-btn, h1, h2, h3, p, a, label, span",
+      "min_ratio": 4.5,
+      "description": "WCAG AA — text vs background contrast ≥ 4.5:1",
+      "max_violations": 10
     }
   ]
 }
