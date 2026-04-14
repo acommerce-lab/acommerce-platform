@@ -62,21 +62,23 @@ done < <(find "$ROOT/Apps" "$ROOT/libs" -name '*.razor' -not -path '*/bin/*' -no
 # ── 4. Spacing tokens — raw px in inline styles ─────────────────────────
 echo ""
 echo "--- Checking inline spacing... ---"
-# Tolerate: small alignment-only px values (0-8px) OR CSS vars OR percentages
 RAW_COUNT=0
 while IFS= read -r hit; do
     [ -z "$hit" ] && continue
-    # Extract every padding/margin declaration
-    val=$(echo "$hit" | grep -oE '(padding|margin)(-(top|right|bottom|left|inline|block|inline-start|inline-end))?:\s*[0-9]+px' | grep -oE '[0-9]+px')
-    [ -z "$val" ] && continue
-    px=${val%px}
-    # Accept 0, or multiples of 4 up to 48
-    if [ "$px" -ne 0 ] && [ "$px" -lt 4 ] || [ "$px" -gt 48 ]; then
-        report "off-scale spacing ($val): $hit"
-    elif [ "$((px % 2))" -ne 0 ]; then
-        report "odd-pixel spacing ($val): $hit"
-    fi
-    RAW_COUNT=$((RAW_COUNT + 1))
+    # Extract EACH px value (may have multiple per line)
+    for val in $(echo "$hit" | grep -oE '(padding|margin)(-(top|right|bottom|left|inline|block|inline-start|inline-end))?:\s*[0-9]+px' | grep -oE '[0-9]+px'); do
+        px=${val%px}
+        # Accept 0, or values 4..48 that are even
+        if [ "$px" = "0" ]; then continue; fi
+        if [ "$px" -lt 4 ] 2>/dev/null; then
+            report "off-scale spacing ($val): $hit"
+        elif [ "$px" -gt 48 ] 2>/dev/null; then
+            report "off-scale spacing ($val): $hit"
+        elif [ "$((px % 2))" -ne 0 ] 2>/dev/null; then
+            report "odd-pixel spacing ($val): $hit"
+        fi
+        RAW_COUNT=$((RAW_COUNT + 1))
+    done
 done < <(find "$ROOT/Apps" "$ROOT/libs" -name '*.razor' -not -path '*/bin/*' -not -path '*/obj/*' \
     -exec grep -HnE 'style="[^"]*(padding|margin)[^:]*:\s*[0-9]+px' {} \; 2>/dev/null | head -30)
 echo "Raw spacing declarations scanned: $RAW_COUNT (ok if multiples of 4, 0-48)"

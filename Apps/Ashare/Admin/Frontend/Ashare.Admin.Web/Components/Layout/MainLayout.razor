@@ -3,35 +3,35 @@
 @inject AppStateApplier Applier
 @implements IDisposable
 
-<div class="ac-root" style="min-height:100vh;background:var(--ac-bg,#f5f7fa);">
-    <nav style="background:#1a2b4a;color:#fff;padding:0 24px;display:flex;align-items:center;gap:16px;height:56px;position:sticky;top:0;z-index:100;">
-        <a href="/" style="color:#fff;font-weight:700;font-size:1.1rem;text-decoration:none;">عشير — لوحة الإدارة</a>
+<div class="adm-shell">
+    <nav class="adm-navbar">
+        <a href="/" class="adm-navbar-brand">عشير — لوحة الإدارة</a>
 
         @if (Store.Auth.IsAuthenticated)
         {
-            <div style="display:flex;gap:8px;margin-inline-start:auto;flex-wrap:wrap;align-items:center;">
-                <a class="act-navbar-link" href="/" style="color:#b8c9e8;text-decoration:none;font-size:0.9rem;">لوحة التحكم</a>
-                <a class="act-navbar-link" href="/users" style="color:#b8c9e8;text-decoration:none;font-size:0.9rem;">المستخدمون</a>
-                <a class="act-navbar-link" href="/listings" style="color:#b8c9e8;text-decoration:none;font-size:0.9rem;">الإعلانات</a>
-                <a class="act-navbar-link" href="/bookings" style="color:#b8c9e8;text-decoration:none;font-size:0.9rem;">الحجوزات</a>
-                <a class="act-navbar-link" href="/subscriptions" style="color:#b8c9e8;text-decoration:none;font-size:0.9rem;">الاشتراكات</a>
-                <a class="act-navbar-link" href="/plans" style="color:#b8c9e8;text-decoration:none;font-size:0.9rem;">الباقات</a>
-                <a class="act-navbar-link" href="/categories" style="color:#b8c9e8;text-decoration:none;font-size:0.9rem;">التصنيفات</a>
-                <a class="act-navbar-link" href="/notifications" style="color:#b8c9e8;text-decoration:none;font-size:0.9rem;">الإشعارات</a>
-                <a class="act-navbar-link" href="/settings" style="color:#b8c9e8;text-decoration:none;font-size:0.9rem;">الإعدادات</a>
-                <span class="ac-text-muted" style="color:#8fa8cc;font-size:0.85rem;">@Store.Auth.DisplayName</span>
+            <div class="adm-navbar-actions">
+                <a class="adm-navbar-link" href="/">لوحة التحكم</a>
+                <a class="adm-navbar-link" href="/users">المستخدمون</a>
+                <a class="adm-navbar-link" href="/listings">الإعلانات</a>
+                <a class="adm-navbar-link" href="/bookings">الحجوزات</a>
+                <a class="adm-navbar-link" href="/subscriptions">الاشتراكات</a>
+                <a class="adm-navbar-link" href="/plans">الباقات</a>
+                <a class="adm-navbar-link" href="/categories">التصنيفات</a>
+                <a class="adm-navbar-link" href="/notifications">الإشعارات</a>
+                <a class="adm-navbar-link" href="/settings">الإعدادات</a>
+                <span class="adm-user-badge">@Store.Auth.DisplayName</span>
                 <AcButton Variant="ghost" Size="sm" Text="خروج" OnClick="SignOut" />
             </div>
         }
         else
         {
-            <div style="margin-inline-start:auto;">
+            <div class="adm-navbar-actions">
                 <a href="/login"><AcButton Variant="primary" Size="sm" Text="دخول" /></a>
             </div>
         }
     </nav>
 
-    <main style="max-width:1100px;margin:0 auto;padding:24px 16px;">
+    <main class="adm-main">
         @Body
     </main>
 </div>

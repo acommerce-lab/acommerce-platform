@@ -247,3 +247,50 @@ textarea::placeholder {
         margin-top: 8px;
     }
 }
+
+/* ── Admin shell (no inline hex needed) ────────────────────────────────── */
+.adm-shell {
+    min-height: 100vh;
+    background: var(--ac-bg);
+}
+.adm-navbar {
+    background: var(--ac-nav-bg);
+    color: #fff;
+    padding: 0 24px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    height: 56px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    border-bottom: 1px solid var(--ac-border);
+}
+.adm-navbar-brand {
+    color: #fff;
+    font-weight: 700;
+    font-size: 1.1rem;
+    text-decoration: none;
+}
+.adm-navbar-link {
+    color: var(--ac-nav-text);
+    text-decoration: none;
+    font-size: 0.9rem;
+}
+.adm-navbar-link:hover { color: #fff; }
+.adm-user-badge {
+    color: var(--ac-text-muted);
+    font-size: 0.85rem;
+}
+.adm-navbar-actions {
+    display: flex;
+    gap: 8px;
+    margin-inline-start: auto;
+    flex-wrap: wrap;
+    align-items: center;
+}
+.adm-main {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 24px 16px;
+}
