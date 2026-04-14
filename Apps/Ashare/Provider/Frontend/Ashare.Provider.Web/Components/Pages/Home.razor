@@ -21,8 +21,9 @@ else
                       OnBookingClick="@(b => Nav.NavigateTo($"/owner-bookings"))">
         <AboveStats></AboveStats>
         <QuickActions>
-            <a href="/create-listing" class="btn btn-primary btn-block" style="margin-top:8px;">
-                + @Store.Ui.Tr("إعلان جديد", "New listing")
+            <a href="/create-listing" style="margin-top:8px;display:block;">
+                <AcButton Variant="primary" Block="true"
+                          Text="@($"+ {Store.Ui.Tr("إعلان جديد", "New listing")}")" />
             </a>
         </QuickActions>
     </AcOwnerDashboard>

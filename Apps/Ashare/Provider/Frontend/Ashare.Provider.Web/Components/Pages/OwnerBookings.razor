@@ -8,9 +8,10 @@
 
 @if (!Store.Auth.IsAuthenticated)
 {
-    <div class="alert alert-warning" style="margin:16px;">
-        <a href="/login">@Store.Ui.Tr("سجّل دخولك", "Sign in")</a>
-    </div>
+    <AcEmptyState IconName="log-in"
+                  Title="@Store.Ui.Tr("سجّل دخولك", "Sign in")"
+                  ActionLabel="@Store.Ui.Tr("دخول", "Sign in")"
+                  ActionHref="/login" />
 }
 else
 {

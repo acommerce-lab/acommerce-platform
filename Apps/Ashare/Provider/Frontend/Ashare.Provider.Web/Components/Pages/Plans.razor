@@ -26,15 +26,15 @@ else
                 <Action>
                     @if (Store.Auth.IsAuthenticated)
                     {
-                        <button class="btn btn-primary btn-sm btn-block"
-                                @onclick="() => Subscribe(p.Id)">
-                            @Store.Ui.Tr("اشترك الآن", "Subscribe now")
-                        </button>
+                        <AcButton Variant="primary" Size="sm" Block="true"
+                                  Text="@Store.Ui.Tr("اشترك الآن", "Subscribe now")"
+                                  OnClick="@(() => Subscribe(p.Id))" />
                     }
                     else
                     {
-                        <a href="/login" class="btn btn-outline-primary btn-sm btn-block">
-                            @Store.Ui.Tr("سجّل دخولك للاشتراك", "Sign in to subscribe")
+                        <a href="/login">
+                            <AcButton Variant="outline-primary" Size="sm" Block="true"
+                                      Text="@Store.Ui.Tr("سجّل دخولك للاشتراك", "Sign in to subscribe")" />
                         </a>
                     }
                 </Action>

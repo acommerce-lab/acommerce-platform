@@ -151,10 +151,11 @@
         </div>
         @if (!string.IsNullOrEmpty(href))
         {
-            <a class="btn btn-primary btn-block" href="@href" style="margin-top:12px;">
-                @(Mode == "vendors"
-                    ? (Store.Ui.IsArabic ? "عرض قائمة المتجر" : "View store menu")
-                    : (Store.Ui.IsArabic ? "عرض التفاصيل" : "View details"))
+            <a href="@href" style="margin-top:12px;display:block;">
+                <AcButton Variant="primary" Block="true"
+                          Text="@(Mode == "vendors"
+                                  ? (Store.Ui.IsArabic ? "عرض قائمة المتجر" : "View store menu")
+                                  : (Store.Ui.IsArabic ? "عرض التفاصيل" : "View details"))" />
             </a>
         }
     </DetailsSlot>
