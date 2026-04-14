@@ -27,13 +27,13 @@
                 </Header>
                 <ChildContent>
                     <div class="ac-mb-sm">
-                        <span class="ac-text-muted" style="font-size:0.85rem;">
+                        <span class="ac-text-muted" style="font-size:0.875rem">
                             @(Store.Ui.IsArabic ? "اسم المتجر:" : "Store Name:")
                         </span>
-                        <div style="font-weight:600;">@_storeName</div>
+                        <div style="font-weight:600">@_storeName</div>
                     </div>
                     <div class="ac-mb-sm">
-                        <span class="ac-text-muted" style="font-size:0.85rem;">
+                        <span class="ac-text-muted" style="font-size:0.875rem">
                             @(Store.Ui.IsArabic ? "رقم التواصل:" : "Phone:")
                         </span>
                         <div dir="ltr">@_storePhone</div>
@@ -41,7 +41,7 @@
                     @if (!string.IsNullOrEmpty(_storeDescription))
                     {
                         <div>
-                            <span class="ac-text-muted" style="font-size:0.85rem;">
+                            <span class="ac-text-muted" style="font-size:0.875rem">
                                 @(Store.Ui.IsArabic ? "الوصف:" : "Description:")
                             </span>
                             <div>@_storeDescription</div>
@@ -56,7 +56,7 @@
                 </Header>
                 <ChildContent>
                     <AcField Label="@(Store.Ui.IsArabic ? "قبول الطلبات" : "Accepting Orders")" Class="ac-mb-md">
-                        <div style="display:flex;align-items:center;gap:8px;">
+                        <div style="display:flex;align-items:center;gap: 8px">
                             <input type="checkbox" checked="@_acceptingOrders"
                                    @onchange="@(e => _acceptingOrders = (bool)(e.Value ?? false))" />
                             <span>

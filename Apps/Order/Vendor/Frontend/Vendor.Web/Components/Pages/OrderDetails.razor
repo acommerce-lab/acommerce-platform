@@ -15,11 +15,11 @@ else if (Order == null)
 }
 else
 {
-    <div style="padding:16px;">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+    <div style="padding: 16px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
             <div>
-                <h1 class="acs-page-title" style="margin:0;">#@Order.OrderNumber</h1>
-                <div style="font-size:0.8rem;color:var(--ac-text-muted);">@Order.CustomerName • @Order.CustomerPhone</div>
+                <h1 class="acs-page-title" style="margin:0">#@Order.OrderNumber</h1>
+                <div style="font-size:0.875rem;color:var(--ac-text-muted)">@Order.CustomerName • @Order.CustomerPhone</div>
             </div>
             <span class="vnd-status vnd-status-@StatusKey(Order.Status)">@Order.StatusAr</span>
         </div>
@@ -28,12 +28,12 @@ else
             <div class="acc-section-label">@(Store.Ui.IsArabic ? "العناصر" : "Items")</div>
             @foreach (var item in Order.Items)
             {
-                <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:0.88rem;">
+                <div style="display:flex;justify-content:space-between;padding: 4px 0;font-size:0.875rem">
                     <span>@item.Emoji @item.OfferTitle × @item.Quantity</span>
                     <span>@item.LineTotal.ToString("0.##")</span>
                 </div>
             }
-            <div style="display:flex;justify-content:space-between;padding-top:10px;margin-top:8px;border-top:1px solid var(--ac-border);font-weight:700;">
+            <div style="display:flex;justify-content:space-between;padding-top:8px;margin-top: 8px;border-top:1px solid var(--ac-border);font-weight:700">
                 <span>@(Store.Ui.IsArabic ? "الإجمالي" : "Total")</span>
                 <span>@Order.Total.ToString("0.##") @Order.Currency</span>
             </div>
@@ -43,7 +43,7 @@ else
         {
             <div class="s-card">
                 <div class="acc-section-label">@(Store.Ui.IsArabic ? "بيانات السيارة" : "Car details")</div>
-                <div style="font-size:0.88rem;"><AcIcon Name="car" Size="16" /> @Order.CarModel @Order.CarColor @(Order.CarPlate ?? "")</div>
+                <div style="font-size:0.875rem"><AcIcon Name="car" Size="16" /> @Order.CarModel @Order.CarColor @(Order.CarPlate ?? "")</div>
             </div>
         }
 
@@ -51,12 +51,12 @@ else
         {
             <div class="s-card">
                 <div class="acc-section-label">@(Store.Ui.IsArabic ? "ملاحظات العميل" : "Customer notes")</div>
-                <p style="margin:0;font-size:0.88rem;">@Order.CustomerNotes</p>
+                <p style="margin:0;font-size:0.875rem">@Order.CustomerNotes</p>
             </div>
         }
 
         @* Action buttons based on current status *@
-        <div style="margin-top:16px;display:flex;flex-direction:column;gap:8px;">
+        <div style="margin-top: 16px;display:flex;flex-direction:column;gap: 8px">
             @if (Order.Status == 0)
             {
                 <AcButton Variant="primary" Block="true" Disabled="@Acting" OnClick="Accept"

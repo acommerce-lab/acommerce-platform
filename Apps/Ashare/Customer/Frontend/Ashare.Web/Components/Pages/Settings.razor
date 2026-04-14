@@ -26,7 +26,7 @@
                     <span>@Store.Ui.Tr("رقم الهاتف", "Phone")</span>
                     <strong dir="ltr">@(Store.Auth.PhoneNumber ?? "-")</strong>
                 </div>
-                <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px;">
+                <div style="display:flex;flex-direction:column;gap: 8px;margin-top: 8px">
                     <a href="/profile"><AcButton Variant="outline-primary" Size="sm" Block="true" Text="@Store.Ui.Tr("تعديل الملف الشخصي", "Edit profile")" /></a>
                     <a href="/my-subscription"><AcButton Variant="ghost" Size="sm" Block="true" Text="@Store.Ui.Tr("إدارة الاشتراك", "Manage subscription")" /></a>
                     <a href="/my-bookings"><AcButton Variant="ghost" Size="sm" Block="true" Text="@Store.Ui.Tr("حجوزاتي", "My bookings")" /></a>

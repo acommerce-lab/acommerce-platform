@@ -33,29 +33,29 @@ else
 
         <AcCard Class="ac-mb-lg">
             <Header>
-                <div class="ac-row ac-align-center" style="gap: 0.5rem;">
-                    <span style="font-size: 1.6rem;">@(Vendor.LogoEmoji ?? "🏪")</span>
+                <div class="ac-row ac-align-center" style="gap:0.5rem">
+                    <span style="font-size:1.5rem">@(Vendor.LogoEmoji ?? "🏪")</span>
                     <strong>@Store.Ui.Tr("معلومات المتجر", "Store info")</strong>
                 </div>
             </Header>
             <ChildContent>
                 @if (!string.IsNullOrEmpty(Vendor.City))
                 {
-                    <div class="ac-row ac-align-center ac-mb-sm" style="gap: 0.5rem;">
+                    <div class="ac-row ac-align-center ac-mb-sm" style="gap:0.5rem">
                         <AcIcon Name="map-pin" Size="16" />
                         <span>@Vendor.City@(string.IsNullOrEmpty(Vendor.District) ? "" : " - " + Vendor.District)</span>
                     </div>
                 }
                 @if (!string.IsNullOrEmpty(Vendor.OpenHours))
                 {
-                    <div class="ac-row ac-align-center ac-mb-sm" style="gap: 0.5rem;">
+                    <div class="ac-row ac-align-center ac-mb-sm" style="gap:0.5rem">
                         <AcIcon Name="clock" Size="16" />
                         <span>@Vendor.OpenHours</span>
                     </div>
                 }
                 @if (!string.IsNullOrEmpty(Vendor.Phone))
                 {
-                    <div class="ac-row ac-align-center" dir="ltr" style="gap: 0.5rem;">
+                    <div class="ac-row ac-align-center" dir="ltr" style="gap:0.5rem">
                         <AcIcon Name="phone" Size="16" />
                         <span>@Vendor.Phone</span>
                     </div>

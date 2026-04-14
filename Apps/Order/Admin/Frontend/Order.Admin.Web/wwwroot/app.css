@@ -19,7 +19,7 @@
     --ac-text-heading: #f0f4f8;
 
     /* Borders */
-    --ac-border: rgba(255, 255, 255, 0.08);
+    --ac-border: rgba(255,255,255,0.08);
     --ac-border-input: rgba(255, 255, 255, 0.12);
 
     /* Nav */
@@ -81,7 +81,7 @@ textarea {
     border: 1px solid var(--ac-border-input);
     border-radius: 8px;
     padding: 8px 12px;
-    font-size: 0.9rem;
+    font-size:0.875rem;
     width: 100%;
     box-sizing: border-box;
 }
@@ -118,7 +118,7 @@ textarea::placeholder {
 .acm-admin-info {
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 4px;
 }
 
 .acm-admin-actions {
@@ -143,7 +143,7 @@ textarea::placeholder {
 }
 
 .acm-stat-value {
-    font-size: 1.75rem;
+    font-size:2rem;
     font-weight: 700;
     color: var(--ac-text-heading);
     margin: 8px 0 4px;
@@ -151,17 +151,17 @@ textarea::placeholder {
 
 .acm-stat-label {
     color: var(--ac-text-muted);
-    font-size: 0.85rem;
+    font-size:0.875rem;
 }
 
 .acm-stat-trend.up {
     color: var(--ac-success);
-    font-size: 0.8rem;
+    font-size:0.875rem;
 }
 
 .acm-stat-trend.down {
     color: var(--ac-danger);
-    font-size: 0.8rem;
+    font-size:0.875rem;
 }
 
 /* ── Navbar links ──────────────────────────────────────────────────────────── */
@@ -171,7 +171,7 @@ textarea::placeholder {
 }
 
 .act-navbar-link:hover {
-    color: #fff !important;
+    color: #ffffff !important;
 }
 
 /* ── Grid helpers ──────────────────────────────────────────────────────────── */
@@ -192,7 +192,7 @@ textarea::placeholder {
 }
 
 .ac-text-sm {
-    font-size: 0.85rem;
+    font-size:0.875rem;
 }
 
 /* ── Spacing utilities ─────────────────────────────────────────────────────── */
@@ -255,7 +255,7 @@ textarea::placeholder {
 }
 .adm-navbar {
     background: var(--ac-nav-bg);
-    color: #fff;
+    color: #ffffff;
     padding: 0 24px;
     display: flex;
     align-items: center;
@@ -267,20 +267,20 @@ textarea::placeholder {
     border-bottom: 1px solid var(--ac-border);
 }
 .adm-navbar-brand {
-    color: #fff;
+    color: #ffffff;
     font-weight: 700;
-    font-size: 1.1rem;
+    font-size:1.125rem;
     text-decoration: none;
 }
 .adm-navbar-link {
     color: var(--ac-nav-text);
     text-decoration: none;
-    font-size: 0.9rem;
+    font-size:0.875rem;
 }
-.adm-navbar-link:hover { color: #fff; }
+.adm-navbar-link:hover { color: #ffffff; }
 .adm-user-badge {
     color: var(--ac-text-muted);
-    font-size: 0.85rem;
+    font-size:0.875rem;
 }
 .adm-navbar-actions {
     display: flex;

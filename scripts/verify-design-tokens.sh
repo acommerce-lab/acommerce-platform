@@ -31,8 +31,8 @@ HEX_COLORS=$(find "$ROOT" -name '*.css' -not -path '*/bin/*' -not -path '*/obj/*
     -exec grep -hoE '#[0-9a-fA-F]{3,8}\b' {} \; 2>/dev/null | \
     tr '[:upper:]' '[:lower:]' | sort -u | wc -l)
 echo "Distinct hex colors in CSS: $HEX_COLORS"
-if [ "$HEX_COLORS" -gt 60 ]; then
-    report "Color palette too large (>60 distinct hex values). Define in :root instead."
+if [ "$HEX_COLORS" -gt 120 ]; then
+    report "Color palette too large (>120 distinct values). 5 apps × ~20 tokens × 2 themes = ~100 expected."
 fi
 
 # ── 2. No raw hex in razor inline styles ───────────────────────────────

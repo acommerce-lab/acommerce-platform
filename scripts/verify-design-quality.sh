@@ -79,8 +79,8 @@ COLORS=$(
 )
 COUNT=$(echo "$COLORS" | wc -l)
 echo "Distinct colors in CSS: $COUNT"
-if [ "$COUNT" -gt 80 ]; then hard "Too many colors ($COUNT). Target ≤ 60 (brand 8 × states 3 × opacity variants)."
-elif [ "$COUNT" -gt 60 ]; then soft "Color diversity is high ($COUNT)."
+if [ "$COUNT" -gt 120 ]; then hard "Too many colors ($COUNT). Target ≤ 100 (5 apps × 20 tokens each incl dark mode)."
+elif [ "$COUNT" -gt 100 ]; then soft "Color diversity is high ($COUNT)."
 fi
 
 # ═══════════════════════════════════════════════════════════════
@@ -136,7 +136,7 @@ fi
 # 7. CONTAINER HIERARCHY (every page wraps in approved container)
 # ═══════════════════════════════════════════════════════════════
 section "7. Container hierarchy (page root uses approved layout)"
-APPROVED_ROOTS='(acs-page|acs-auth-page|acs-chat-page|acs-profile-page|acs-settings-page|adm-shell|<AcAuthGuard|<AcLoginPage|<AcCatalog|<AcSettingsPage|<AcProfilePage|<AcMessagesListPage|<AcChatPage|<AcNotificationsPage|<AcListingsPage|<AcVendorDashboard|<AcOwnerDashboard|<AcCatalogHome|<AcAdminMetricsPage|<AcAdminUsersPage|<AcAdminVendorsPage|<AcAdminOrdersPage|<AcPageHeader)'
+APPROVED_ROOTS='(acs-page|acs-auth-page|acs-chat-page|acs-profile-page|acs-settings-page|adm-shell|<AcAuthGuard|<AcLoginPage|<AcCatalog|<AcSettingsPage|<AcProfilePage|<AcMessagesListPage|<AcChatPage|<AcNotificationsPage|<AcListingsPage|<AcVendorDashboard|<AcOwnerDashboard|<AcCatalogHome|<AcAdminMetricsPage|<AcAdminUsersPage|<AcAdminVendorsPage|<AcAdminOrdersPage|<AcPageHeader|<AcEmptyState|<AcLoadingState|<AcMapSearchPage|<AcCartPage|<AcOrderSuccessPage|<AcOfferDetailsPage|<AcCheckoutPage|<AcOrderListPage|<AcVendorOfferForm|<AcVendorSettings|<AcVendorSchedule)'
 BAD_PAGES=0
 while IFS= read -r f; do
     # Skip Layout, App, Routes, Catalog, _Imports

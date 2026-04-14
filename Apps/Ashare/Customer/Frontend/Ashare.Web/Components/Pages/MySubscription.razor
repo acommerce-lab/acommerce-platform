@@ -6,7 +6,7 @@
 <PageTitle>اشتراكي - عشير</PageTitle>
 
 <AcAuthGuard IsAuthenticated="Store.Auth.IsAuthenticated" IsArabic="true" LoginHref="/login">
-    <div class="acs-page" style="max-width:800px;margin:0 auto;padding:24px 16px;">
+    <div class="acs-page" style="max-width:800px;margin:0 auto;padding: 24px 16px">
         <AcPageHeader Title="اشتراكي الحالي" Subtitle="تفاصيل باقتك والاستخدام" />
 
         @if (loading)
@@ -28,18 +28,18 @@
                     <strong>@active.Plan.Name</strong>
                 </Header>
                 <ChildContent>
-                    <p class="ac-text-muted" style="margin-bottom:16px;">@active.Plan.Description</p>
+                    <p class="ac-text-muted" style="margin-bottom: 16px">@active.Plan.Description</p>
 
-                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap: 16px">
                         <div>
-                            <div class="ac-text-muted" style="font-size:0.82rem;margin-bottom:4px;">الحالة</div>
-                            <div style="font-weight:600;">
+                            <div class="ac-text-muted" style="font-size:0.875rem;margin-bottom: 4px">الحالة</div>
+                            <div style="font-weight:600">
                                 @(active.Subscription.Status == 2 ? "✅ نشط" : "⏳ معلّق")
                             </div>
                         </div>
                         <div>
-                            <div class="ac-text-muted" style="font-size:0.82rem;margin-bottom:4px;">الفترة</div>
-                            <div style="font-weight:600;">
+                            <div class="ac-text-muted" style="font-size:0.875rem;margin-bottom: 4px">الفترة</div>
+                            <div style="font-weight:600">
                                 @active.Subscription.StartDate.ToString("yyyy-MM-dd") — @active.Subscription.EndDate.ToString("yyyy-MM-dd")
                             </div>
                         </div>
@@ -52,12 +52,12 @@
                     <strong>الاستخدام</strong>
                 </Header>
                 <ChildContent>
-                    <div style="margin-bottom:8px;display:flex;justify-content:space-between;">
+                    <div style="margin-bottom: 8px;display:flex;justify-content:space-between">
                         <span>العروض المنشورة</span>
                         <strong>@active.Subscription.UsedListingsCount / @(active.Plan.MaxListings == -1 ? "∞" : active.Plan.MaxListings.ToString())</strong>
                     </div>
-                    <div style="height:8px;background:var(--ac-bg-alt);border-radius:var(--ac-radius-pill);overflow:hidden;">
-                        <div style="height:100%;width:@(Percent(active.Subscription.UsedListingsCount, active.Plan.MaxListings))%;background:var(--ac-primary);border-radius:var(--ac-radius-pill);transition:width 300ms;"></div>
+                    <div style="height:8px;background:var(--ac-bg-alt);border-radius:var(--ac-radius-pill);overflow:hidden">
+                        <div style="height:100%;width:@(Percent(active.Subscription.UsedListingsCount, active.Plan.MaxListings))%;background:var(--ac-primary);border-radius:var(--ac-radius-pill);transition:width 300ms"></div>
                     </div>
                 </ChildContent>
             </AcCard>

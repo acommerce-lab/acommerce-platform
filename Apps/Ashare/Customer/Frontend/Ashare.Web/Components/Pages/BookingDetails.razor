@@ -6,7 +6,7 @@
 
 <PageTitle>تفاصيل الحجز - عشير</PageTitle>
 
-<div style="max-width:700px;margin:0 auto;padding:24px 16px;">
+<div style="max-width:700px;margin:0 auto;padding: 24px 16px">
     <AcPageHeader Title="تفاصيل الحجز" Subtitle="@($"حجز #{Id.ToString()[..8]}")" />
 
     @if (booking == null)
@@ -17,30 +17,30 @@
     {
         <AcCard Class="ac-mb-lg">
             <Header>
-                <div style="display:flex;justify-content:space-between;align-items:center;">
+                <div style="display:flex;justify-content:space-between;align-items:center">
                     <strong>حجز #@booking.Id.ToString("N")[..8]</strong>
-                    <span style="padding:4px 12px;border-radius:var(--ac-radius-pill);font-size:0.8rem;font-weight:600;@StatusStyle(booking.Status)">
+                    <span style="padding: 4px 12px;border-radius:var(--ac-radius-pill);font-size:0.875rem;font-weight:600;@StatusStyle(booking.Status)">
                         @StatusText(booking.Status)
                     </span>
                 </div>
             </Header>
             <ChildContent>
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap: 16px;margin-bottom: 20px">
                     <div>
-                        <div class="ac-text-muted" style="font-size:0.82rem;">المبلغ</div>
-                        <div style="font-size:1.3rem;font-weight:700;color:var(--ac-primary);">
+                        <div class="ac-text-muted" style="font-size:0.875rem">المبلغ</div>
+                        <div style="font-size:1.25rem;font-weight:700;color:var(--ac-primary)">
                             @booking.TotalPrice.ToString("N0") @booking.Currency
                         </div>
                     </div>
                     <div>
-                        <div class="ac-text-muted" style="font-size:0.82rem;">الفترة</div>
-                        <div style="font-weight:600;">
+                        <div class="ac-text-muted" style="font-size:0.875rem">الفترة</div>
+                        <div style="font-weight:600">
                             @booking.StartDate.ToString("yyyy-MM-dd") — @booking.EndDate.ToString("yyyy-MM-dd")
                         </div>
                     </div>
                 </div>
 
-                <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                <div style="display:flex;gap: 8px;flex-wrap:wrap">
                     @if (booking.Status == 2)
                     {
                         <AcButton Text="@(busy ? "جاري الدفع..." : "ادفع الآن")"

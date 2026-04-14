@@ -1,8 +1,8 @@
 @namespace ACommerce.Widgets
 
-<div class="acs-location-picker @(Class ?? "")" style="display:flex;gap:8px;align-items:center;">
-    <div style="flex:1;">
-        <label style="font-size:0.75rem;color:var(--ac-text-muted);">@(CityLabel ?? "المدينة")</label>
+<div class="acs-location-picker @(Class ?? "")" style="display:flex;gap: 8px;align-items:center">
+    <div style="flex:1">
+        <label style="font-size:0.75rem;color:var(--ac-text-muted)">@(CityLabel ?? "المدينة")</label>
         <select class="form-select form-select-sm" @onchange="HandleCityChange">
             <option value="">@(AllCitiesLabel ?? "كل المدن")</option>
             @foreach (var city in Cities)
@@ -13,8 +13,8 @@
     </div>
     @if (ShowDistrict && Districts.Count > 0)
     {
-        <div style="flex:1;">
-            <label style="font-size:0.75rem;color:var(--ac-text-muted);">@(DistrictLabel ?? "الحي")</label>
+        <div style="flex:1">
+            <label style="font-size:0.75rem;color:var(--ac-text-muted)">@(DistrictLabel ?? "الحي")</label>
             <select class="form-select form-select-sm" @onchange="HandleDistrictChange">
                 <option value="">@(AllDistrictsLabel ?? "كل الأحياء")</option>
                 @foreach (var district in Districts)

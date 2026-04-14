@@ -8,7 +8,7 @@
 <PageTitle>عرض جديد - عشير</PageTitle>
 
 <AcAuthGuard IsAuthenticated="Store.Auth.IsAuthenticated" IsArabic="true" LoginHref="/login">
-    <div style="max-width:800px;margin:0 auto;padding:24px 16px;">
+    <div style="max-width:800px;margin:0 auto;padding: 24px 16px">
         <AcPageHeader Title="إضافة عرض جديد"
                       Subtitle="أدخل بيانات العقار ليظهر في سوق عشير" />
 
@@ -31,11 +31,11 @@
                 </AcField>
 
                 <AcField Label="الوصف" Class="ac-mb-md">
-                    <textarea class="ac-input" style="min-height:100px;resize:vertical;"
+                    <textarea class="ac-input" style="min-height:100px;resize:vertical"
                               @bind="form.Description"></textarea>
                 </AcField>
 
-                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;" class="ac-mb-md">
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap: 12px" class="ac-mb-md">
                     <AcField Label="السعر">
                         <AcInput Type="number" Value="@form.Price.ToString()"
                                  ValueChanged="@(v => { if (decimal.TryParse(v, out var n)) form.Price = n; })" />
@@ -53,7 +53,7 @@
                     </AcField>
                 </div>
 
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap: 12px">
                     <AcField Label="المدينة">
                         <AcInput Value="@form.City" ValueChanged="@(v => form.City = v ?? "")" />
                     </AcField>
@@ -68,7 +68,7 @@
         <AcCard Class="ac-mb-lg">
             <Header><strong>مواصفات العقار</strong></Header>
             <ChildContent>
-                <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px;">
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap: 12px">
                     <AcField Label="الغرف">
                         <AcInput Type="number" Value="@(form.Rooms?.ToString() ?? "")"
                                  ValueChanged="@(v => form.Rooms = int.TryParse(v, out var n) ? n : null)"

@@ -25,7 +25,7 @@
                 <strong class="acm-booking-listing-title">@Booking.ListingTitle</strong>
             }
             <div class="acm-booking-dates ac-text-muted">
-                <AcIcon Name="clock" Size="14" />
+                <AcIcon Name="clock" Size="16" />
                 @Booking.StartDate.ToString("yyyy/MM/dd") — @Booking.EndDate.ToString("yyyy/MM/dd")
             </div>
         </div>
@@ -41,7 +41,7 @@
     @if (IsOwnerView && (!string.IsNullOrEmpty(Booking.CustomerName) || !string.IsNullOrEmpty(Booking.CustomerPhone)))
     {
         <div class="acm-booking-customer ac-text-muted">
-            <AcIcon Name="user" Size="14" />
+            <AcIcon Name="user" Size="16" />
             @if (!string.IsNullOrEmpty(Booking.CustomerName))
             {
                 <span>@Booking.CustomerName</span>

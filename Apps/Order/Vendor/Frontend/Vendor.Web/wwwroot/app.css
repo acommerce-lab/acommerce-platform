@@ -7,15 +7,15 @@
     --ac-primary:         #0D9488;
     --ac-primary-hover:   #0F766E;
     --ac-primary-soft:    #ECFDF5;
-    --ac-on-primary:      #FFFFFF;
+    --ac-on-primary:      #ffffff;
     --ac-secondary:       #14B8A6;
     --ac-secondary-hover: #0D9488;
-    --ac-on-secondary:    #FFFFFF;
+    --ac-on-secondary:    #ffffff;
 
-    --ac-bg:         #F7F8FA;
-    --ac-bg-alt:     #F1F3F6;
-    --ac-surface:    #FFFFFF;
-    --ac-surface-2:  #FAFBFC;
+    --ac-bg:         #f3f4f6;
+    --ac-bg-alt:     #f3f4f6;
+    --ac-surface:    #ffffff;
+    --ac-surface-2:  #f3f4f6;
     --ac-border:     #E5E7EB;
     --ac-border-dark:#D1D5DB;
 
@@ -31,9 +31,9 @@
     --ac-radius-sm: 0.4rem;
     --ac-radius-md: 0.75rem;
     --ac-radius-lg: 1rem;
-    --ac-shadow-sm: 0 1px 2px rgba(15,23,42,0.04), 0 1px 3px rgba(15,23,42,0.04);
-    --ac-shadow-md: 0 4px 10px -2px rgba(15,23,42,0.06), 0 2px 4px -2px rgba(15,23,42,0.04);
-    --ac-shadow-lg: 0 14px 28px -6px rgba(15,23,42,0.10);
+    --ac-shadow-sm: 0 1px 2px rgba(0,0,0,0.04), 0 1px 3px rgba(0,0,0,0.04);
+    --ac-shadow-md: 0 4px 10px -2px rgba(0,0,0,0.08), 0 2px 4px -2px rgba(0,0,0,0.04);
+    --ac-shadow-lg: 0 14px 28px -6px rgba(0,0,0,0.08);
 
     --ac-font-family: 'Tajawal', 'Inter', -apple-system, BlinkMacSystemFont,
                       'Segoe UI', Tahoma, sans-serif;
@@ -51,16 +51,16 @@ html[data-theme="dark"] {
     --ac-surface-2:  #1B2130;
     --ac-border:     #283244;
     --ac-border-dark:#3D4759;
-    --ac-text:         #F1F5F9;
+    --ac-text:         #f3f4f6;
     --ac-text-muted:   #94A3B8;
     --ac-text-faint:   #64748B;
     --ac-primary-soft: rgba(13,148,136,0.14);
-    --ac-shadow-sm: 0 1px 2px rgba(0,0,0,0.45);
-    --ac-shadow-md: 0 6px 14px rgba(0,0,0,0.5);
-    --ac-shadow-lg: 0 18px 36px rgba(0,0,0,0.6);
+    --ac-shadow-sm: 0 1px 2px rgba(0,0,0,0.50);
+    --ac-shadow-md: 0 6px 14px rgba(0,0,0,0.50);
+    --ac-shadow-lg: 0 18px 36px rgba(0,0,0,0.50);
 }
 
-html { font-size: 14px; }
+html { font-size:0.875rem; }
 body {
     margin: 0; padding: 0; min-height: 100vh;
     background: var(--ac-bg); color: var(--ac-text);
@@ -80,7 +80,7 @@ img { max-width: 100%; }
     min-height: 100vh;
     margin: 0 auto;
     background: var(--ac-bg);
-    box-shadow: 0 0 40px rgba(15,23,42,0.04);
+    box-shadow: 0 0 40px rgba(0,0,0,0.04);
     display: flex;
     flex-direction: column;
 }
@@ -107,8 +107,8 @@ html[dir="rtl"] .vnd-bottom-nav { transform: translateX(50%); }
 .vnd-nav-item {
     flex: 1;
     display: flex; flex-direction: column; align-items: center; justify-content: center;
-    gap: 2px; color: var(--ac-text-muted); text-decoration: none;
-    padding: 6px 4px; font-size: 0.68rem; font-weight: 500;
+    gap: 4px; color: var(--ac-text-muted); text-decoration: none;
+    padding: 8px 4px; font-size:0.75rem; font-weight: 500;
     transition: color 150ms;
 }
 .vnd-nav-item:hover { color: var(--ac-text); }
@@ -133,25 +133,25 @@ html[dir="rtl"] .vnd-bottom-nav { transform: translateX(50%); }
 
 /* ── Auth page overrides ───────────────────────────────────────────────── */
 .acs-auth-page { background: var(--ac-bg); padding: 40px 20px; }
-.acs-auth-icon { font-size: 2.8rem; color: var(--ac-primary); }
+.acs-auth-icon { font-size:3rem; color: var(--ac-primary); }
 .acs-auth-brand { font-size: 1.5rem; font-weight: 700; color: var(--ac-text); }
-.acs-auth-tag { font-size: 0.85rem; color: var(--ac-text-muted); }
+.acs-auth-tag { font-size:0.875rem; color: var(--ac-text-muted); }
 .acs-auth-card { background: var(--ac-surface); border: 1px solid var(--ac-border); box-shadow: var(--ac-shadow-md); }
-.acs-auth-title { font-size: 1.15rem; font-weight: 700; color: var(--ac-text); }
-.acs-auth-subtitle { font-size: 0.84rem; color: var(--ac-text-muted); }
+.acs-auth-title { font-size:1.125rem; font-weight: 700; color: var(--ac-text); }
+.acs-auth-subtitle { font-size:0.875rem; color: var(--ac-text-muted); }
 
 /* ── Tighter heading sizes ─────────────────────────────────────────────── */
-.acs-page-title    { font-size: 1.05rem; font-weight: 700; }
-.acs-empty-icon    { font-size: 2.5rem; }
-.acs-empty-title   { font-size: 0.92rem; }
-.acc-section-title { font-size: 0.9rem; }
+.acs-page-title    { font-size:1.125rem; font-weight: 700; }
+.acs-empty-icon    { font-size:3rem; }
+.acs-empty-title   { font-size:0.875rem; }
+.acc-section-title { font-size:0.875rem; }
 .acc-section-label { font-size: 0.75rem; }
 
 /* ── Dashboard stat cards ──────────────────────────────────────────────── */
 .vnd-stats {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 10px;
+    gap:8px;
     padding: 16px;
 }
 .vnd-stat-card {
@@ -167,16 +167,16 @@ html[dir="rtl"] .vnd-bottom-nav { transform: translateX(50%); }
     color: var(--ac-primary);
 }
 .vnd-stat-label {
-    font-size: 0.78rem;
+    font-size:0.875rem;
     color: var(--ac-text-muted);
-    margin-top: 2px;
+    margin-top: 4px;
 }
 
 /* ── Order status badges ───────────────────────────────────────────────── */
 .vnd-status {
     display: inline-flex; align-items: center; gap: 4px;
-    padding: 4px 10px; border-radius: 999px;
-    font-size: 0.72rem; font-weight: 700;
+    8px; border-radius: 999px;
+    font-size:0.75rem; font-weight: 700;
 }
 .vnd-status-pending   { background: color-mix(in srgb, var(--ac-warning) 14%, transparent); color: var(--ac-warning); }
 .vnd-status-accepted  { background: color-mix(in srgb, var(--ac-info)    14%, transparent); color: var(--ac-info); }
@@ -187,15 +187,15 @@ html[dir="rtl"] .vnd-bottom-nav { transform: translateX(50%); }
 /* ── Offer card (vendor view) ──────────────────────────────────────────── */
 .vnd-offer-card {
     display: flex; gap: 12px; align-items: center;
-    padding: 14px; margin-bottom: 10px;
+    padding:16px; margin-bottom:8px;
     background: var(--ac-surface); border: 1px solid var(--ac-border);
     border-radius: var(--ac-radius-md);
 }
 .vnd-offer-emoji { font-size: 1.5rem; width: 40px; text-align: center; }
 .vnd-offer-body { flex: 1; min-width: 0; }
 .vnd-offer-title { font-weight: 700; }
-.vnd-offer-price { font-size: 0.84rem; color: var(--ac-text-muted); }
-.vnd-offer-actions { display: flex; gap: 6px; flex-shrink: 0; }
+.vnd-offer-price { font-size:0.875rem; color: var(--ac-text-muted); }
+.vnd-offer-actions { display: flex; gap: 8px; flex-shrink: 0; }
 
 /* ── Global page padding ──────────────────────────────────────────────── */
 .acs-page { padding: 16px; }

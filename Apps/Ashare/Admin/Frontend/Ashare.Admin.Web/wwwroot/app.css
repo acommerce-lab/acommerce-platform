@@ -4,7 +4,7 @@
     --ac-primary-hover: #4c6cab;
     --ac-on-primary: #ffffff;
 
-    --ac-bg: #f5f7fa;
+    --ac-bg: #f3f4f6;
     --ac-surface: #ffffff;
     --ac-bg-alt: #eef2f7;
     --ac-border: #e0e6ed;
@@ -12,13 +12,13 @@
     --ac-text-muted: #6a7a94;
 
     /* Admin shell palette */
-    --adm-shell-bg: #f5f7fa;
+    --adm-shell-bg: #f3f4f6;
     --adm-nav-bg: #1a2b4a;
     --adm-nav-brand: #ffffff;
     --adm-nav-link: #b8c9e8;
     --adm-nav-link-hover: #ffffff;
     --adm-user-badge: #8fa8cc;
-    --adm-nav-border: rgba(255, 255, 255, 0.08);
+    --adm-nav-border: rgba(255,255,255,0.08);
 }
 
 body {
@@ -49,19 +49,19 @@ body {
 .adm-navbar-brand {
     color: var(--adm-nav-brand);
     font-weight: 700;
-    font-size: 1.1rem;
+    font-size:1.125rem;
     text-decoration: none;
 }
 .adm-navbar-link {
     color: var(--adm-nav-link);
     text-decoration: none;
-    font-size: 0.9rem;
+    font-size:0.875rem;
     transition: color 0.15s;
 }
 .adm-navbar-link:hover { color: var(--adm-nav-link-hover); }
 .adm-user-badge {
     color: var(--adm-user-badge);
-    font-size: 0.85rem;
+    font-size:0.875rem;
 }
 .adm-navbar-actions {
     display: flex;

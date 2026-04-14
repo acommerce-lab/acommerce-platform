@@ -8,7 +8,7 @@
 <PageTitle>حجز جديد - عشير</PageTitle>
 
 <AcAuthGuard IsAuthenticated="Store.Auth.IsAuthenticated" IsArabic="true" LoginHref="/login">
-    <div style="max-width:800px;margin:0 auto;padding:24px 16px;">
+    <div style="max-width:800px;margin:0 auto;padding: 24px 16px">
         <AcPageHeader Title="حجز جديد" Subtitle="أكمل بيانات الحجز" />
 
         @if (listing == null)
@@ -17,7 +17,7 @@
         }
         else
         {
-            <div style="display:grid;grid-template-columns:3fr 2fr;gap:24px;align-items:start;">
+            <div style="display:grid;grid-template-columns:3fr 2fr;gap: 24px;align-items:start">
                 <AcCard>
                     <Header>
                         <strong>تفاصيل الحجز</strong>
@@ -30,7 +30,7 @@
                             <input type="date" class="ac-input" @bind="endDate" />
                         </AcField>
                         <AcField Label="ملاحظات" Class="ac-mb-md">
-                            <textarea class="ac-input" style="min-height:100px;resize:vertical;" @bind="notes"></textarea>
+                            <textarea class="ac-input" style="min-height:100px;resize:vertical" @bind="notes"></textarea>
                         </AcField>
                         <AcButton Text="@(saving ? "جاري الحجز..." : "تأكيد الحجز")"
                                   Variant="primary" Block="true" Disabled="@saving"
@@ -40,11 +40,11 @@
 
                 <AcCard>
                     <ChildContent>
-                        <div style="text-align:center;padding:8px 0;">
-                            <div style="font-size:1.4rem;margin-bottom:8px;">🏠</div>
-                            <div style="font-weight:600;margin-bottom:4px;">@listing.Title</div>
-                            <div class="ac-text-muted" style="font-size:0.85rem;margin-bottom:8px;">@listing.City</div>
-                            <div style="font-weight:700;color:var(--ac-primary);font-size:1.1rem;">
+                        <div style="text-align:center;padding: 8px 0">
+                            <div style="font-size:1.5rem;margin-bottom: 8px">🏠</div>
+                            <div style="font-weight:600;margin-bottom: 4px">@listing.Title</div>
+                            <div class="ac-text-muted" style="font-size:0.875rem;margin-bottom: 8px">@listing.City</div>
+                            <div style="font-weight:700;color:var(--ac-primary);font-size:1.125rem">
                                 @listing.Price @listing.Currency
                             </div>
                         </div>

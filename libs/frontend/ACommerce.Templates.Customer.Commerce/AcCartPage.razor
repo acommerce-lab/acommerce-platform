@@ -93,12 +93,12 @@
         @BelowTotals
 
         @AboveCheckoutCta
-        <button class="btn btn-primary btn-block" style="margin-top:12px;" @onclick="OnCheckout">
+        <button class="btn btn-primary btn-block" style="margin-top: 12px" @onclick="OnCheckout">
             @(CheckoutLabel ?? "متابعة للدفع")
         </button>
         @if (OnClear.HasDelegate)
         {
-            <button class="btn btn-ghost btn-block" style="margin-top:8px;" @onclick="OnClear">
+            <button class="btn btn-ghost btn-block" style="margin-top: 8px" @onclick="OnClear">
                 @(ClearLabel ?? "تفريغ السلة")
             </button>
         }

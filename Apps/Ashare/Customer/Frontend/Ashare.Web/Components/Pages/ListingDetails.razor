@@ -7,7 +7,7 @@
 
 <PageTitle>تفاصيل العرض - عشير</PageTitle>
 
-<div style="max-width:1000px;margin:0 auto;padding:24px 16px;">
+<div style="max-width:1000px;margin:0 auto;padding: 24px 16px">
     @if (loading)
     {
         <AcLoadingState Message="جاري التحميل..." />
@@ -19,7 +19,7 @@
     }
     else
     {
-        <div style="display:grid;grid-template-columns:1fr 340px;gap:24px;align-items:start;">
+        <div style="display:grid;grid-template-columns:1fr 340px;gap: 24px;align-items:start">
             @* Main content *@
             <div>
                 <AcPageHeader Title="@listing.Title"
@@ -27,20 +27,20 @@
 
                 <AcCard Class="ac-mb-lg">
                     <ChildContent>
-                        <p style="line-height:1.8;margin:0;">@listing.Description</p>
+                        <p style="line-height:1.8;margin:0">@listing.Description</p>
                     </ChildContent>
                 </AcCard>
 
                 @if (listing.Rooms.HasValue || listing.Bathrooms.HasValue || listing.Area.HasValue || listing.Floor.HasValue)
                 {
-                    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:12px;margin-bottom:20px;">
+                    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap: 12px;margin-bottom: 20px">
                         @if (listing.Rooms.HasValue)
                         {
                             <AcCard>
                                 <ChildContent>
-                                    <div style="text-align:center;padding:8px 0;">
-                                        <div style="font-size:1.5rem;">🛏️</div>
-                                        <div style="font-weight:600;">@listing.Rooms غرف</div>
+                                    <div style="text-align:center;padding: 8px 0">
+                                        <div style="font-size:1.5rem">🛏️</div>
+                                        <div style="font-weight:600">@listing.Rooms غرف</div>
                                     </div>
                                 </ChildContent>
                             </AcCard>
@@ -49,9 +49,9 @@
                         {
                             <AcCard>
                                 <ChildContent>
-                                    <div style="text-align:center;padding:8px 0;">
-                                        <div style="font-size:1.5rem;">🚿</div>
-                                        <div style="font-weight:600;">@listing.Bathrooms حمام</div>
+                                    <div style="text-align:center;padding: 8px 0">
+                                        <div style="font-size:1.5rem">🚿</div>
+                                        <div style="font-weight:600">@listing.Bathrooms حمام</div>
                                     </div>
                                 </ChildContent>
                             </AcCard>
@@ -60,9 +60,9 @@
                         {
                             <AcCard>
                                 <ChildContent>
-                                    <div style="text-align:center;padding:8px 0;">
-                                        <div style="font-size:1.5rem;">📐</div>
-                                        <div style="font-weight:600;">@listing.Area م²</div>
+                                    <div style="text-align:center;padding: 8px 0">
+                                        <div style="font-size:1.5rem">📐</div>
+                                        <div style="font-weight:600">@listing.Area م²</div>
                                     </div>
                                 </ChildContent>
                             </AcCard>
@@ -71,9 +71,9 @@
                         {
                             <AcCard>
                                 <ChildContent>
-                                    <div style="text-align:center;padding:8px 0;">
-                                        <div style="font-size:1.5rem;">🏢</div>
-                                        <div style="font-weight:600;">الطابق @listing.Floor</div>
+                                    <div style="text-align:center;padding: 8px 0">
+                                        <div style="font-size:1.5rem">🏢</div>
+                                        <div style="font-weight:600">الطابق @listing.Floor</div>
                                     </div>
                                 </ChildContent>
                             </AcCard>
@@ -83,32 +83,32 @@
             </div>
 
             @* Sidebar *@
-            <div style="position:sticky;top:72px;">
+            <div style="position:sticky;top:72px">
                 <AcCard>
                     <ChildContent>
-                        <div style="text-align:center;padding:8px 0;">
-                            <div style="font-size:1.8rem;font-weight:700;color:var(--ac-primary);margin-bottom:4px;">
+                        <div style="text-align:center;padding: 8px 0">
+                            <div style="font-size:2rem;font-weight:700;color:var(--ac-primary);margin-bottom: 4px">
                                 @listing.Price.ToString("N0") @listing.Currency
                             </div>
-                            <div class="ac-text-muted" style="font-size:0.88rem;margin-bottom:20px;">
+                            <div class="ac-text-muted" style="font-size:0.875rem;margin-bottom: 20px">
                                 / @listing.TimeUnit
                             </div>
 
                             @if (Store.Auth.IsAuthenticated)
                             {
-                                <div style="display:flex;flex-direction:column;gap:10px;">
+                                <div style="display:flex;flex-direction:column;gap: 8px">
                                     <AcButton Text="احجز الآن" Variant="primary" Block="true" OnClick="StartBooking" />
                                     <AcButton Text="راسل المالك" Variant="outline-primary" Block="true" OnClick="StartChat" />
                                 </div>
                             }
                             else
                             {
-                                <a href="/login" style="display:block;">
+                                <a href="/login" style="display:block">
                                     <AcButton Text="دخول للحجز" Variant="primary" Block="true" />
                                 </a>
                             }
 
-                            <div class="ac-text-muted" style="font-size:0.78rem;margin-top:16px;padding-top:12px;border-top:1px solid var(--ac-border);">
+                            <div class="ac-text-muted" style="font-size:0.875rem;margin-top: 16px;padding-top: 12px;border-top:1px solid var(--ac-border)">
                                 رقم العرض: @listing.Id.ToString("N")[..8]
                             </div>
                         </div>

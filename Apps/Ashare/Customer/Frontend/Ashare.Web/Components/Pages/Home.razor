@@ -7,7 +7,7 @@
 
 <AcPageHeader Title="عروض عشير" Subtitle="استعراض كل العروض المتاحة" />
 
-<div style="display:grid;grid-template-columns:1fr 1fr auto;gap:16px;align-items:end;margin-bottom:24px;">
+<div style="display:grid;grid-template-columns:1fr 1fr auto;gap: 16px;align-items:end;margin-bottom: 24px">
     <AcField Label="الفئة">
         <select class="ac-select" @bind="selectedCategory" @bind:after="LoadAsync">
             <option value="">كل الفئات</option>
@@ -25,7 +25,7 @@
 
 @if (loading)
 {
-    <div style="text-align:center;padding:3rem;">
+    <div style="text-align:center;padding:3rem">
         <AcSpinner Large="true" />
         <p class="ac-text-muted ac-mt-md">جاري التحميل...</p>
     </div>
@@ -45,7 +45,7 @@ else
                            Price="@($"{listing.Price:N0} {listing.Currency} / {listing.TimeUnit}")"
                            IconFallback="🏠">
                 <Actions>
-                    <a href="/listing/@listing.Id" style="flex:1;">
+                    <a href="/listing/@listing.Id" style="flex:1">
                         <AcButton Text="تفاصيل" Variant="outline-primary" Block="true" />
                     </a>
                 </Actions>

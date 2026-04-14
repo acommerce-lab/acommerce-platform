@@ -7,7 +7,7 @@
 <PageTitle>حجوزاتي - عشير</PageTitle>
 
 <AcAuthGuard IsAuthenticated="Store.Auth.IsAuthenticated" IsArabic="true" LoginHref="/login">
-    <div style="max-width:900px;margin:0 auto;padding:24px 16px;">
+    <div style="max-width:900px;margin:0 auto;padding: 24px 16px">
         <AcPageHeader Title="حجوزاتي" Subtitle="جميع حجوزاتك العقارية" />
 
         @if (bookings == null)
@@ -27,19 +27,19 @@
             @foreach (var b in bookings)
             {
                 <div @onclick="@(() => Nav.NavigateTo($"/booking/{b.Id}"))"
-                     style="cursor:pointer;">
+                     style="cursor:pointer">
                     <AcCard Hover Class="ac-mb-sm">
                         <ChildContent>
-                            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+                            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap: 8px">
                                 <div>
-                                    <div style="font-weight:600;">حجز #@b.Id.ToString("N")[..8]</div>
-                                    <div class="ac-text-muted" style="font-size:0.85rem;">
+                                    <div style="font-weight:600">حجز #@b.Id.ToString("N")[..8]</div>
+                                    <div class="ac-text-muted" style="font-size:0.875rem">
                                         @b.StartDate.ToString("yyyy-MM-dd") → @b.EndDate.ToString("yyyy-MM-dd")
                                     </div>
                                 </div>
-                                <div style="text-align:end;">
-                                    <div style="font-weight:700;color:var(--ac-primary);">@b.TotalPrice @b.Currency</div>
-                                    <span style="padding:3px 10px;border-radius:var(--ac-radius-pill);font-size:0.78rem;font-weight:600;@StatusStyle(b.Status)">
+                                <div style="text-align:end">
+                                    <div style="font-weight:700;color:var(--ac-primary)">@b.TotalPrice @b.Currency</div>
+                                    <span style="padding: 4px 8px;border-radius:var(--ac-radius-pill);font-size:0.875rem;font-weight:600;@StatusStyle(b.Status)">
                                         @StatusText(b.Status)
                                     </span>
                                 </div>

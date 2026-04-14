@@ -32,7 +32,7 @@
                 {
                     <AcCard Hover>
                         <ChildContent>
-                            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom: 8px">
                                 <strong>@offer.Title</strong>
                                 <AcBadge Text="@(offer.IsAvailable ? Store.Ui.Tr("متاح", "Available") : Store.Ui.Tr("غير متاح", "Unavailable"))"
                                          Variant="@(offer.IsAvailable ? "success" : "muted")" />
@@ -41,7 +41,7 @@
                             {
                                 <AcBadge Text="@offer.Category" Variant="default" />
                             }
-                            <div class="ac-text-muted ac-text-sm" style="margin-top:4px;">
+                            <div class="ac-text-muted ac-text-sm" style="margin-top: 4px">
                                 @offer.Price.ToString("N0") @offer.Currency
                             </div>
                             @if (!string.IsNullOrEmpty(offer.VendorName))
@@ -50,7 +50,7 @@
                                     @Store.Ui.Tr("البائع:", "Vendor:") @offer.VendorName
                                 </div>
                             }
-                            <div class="ac-row ac-gap-sm" style="margin-top:12px;">
+                            <div class="ac-row ac-gap-sm" style="margin-top: 12px">
                                 <AcButton Variant="success" Size="sm"
                                           Text="@Store.Ui.Tr("قبول", "Approve")"
                                           OnClick="@(() => Approve(offer))" />

@@ -31,20 +31,20 @@
             @foreach (var o in MyOffers)
             {
                 <div @onclick="@(() => Nav.NavigateTo($"/offers/edit/{o.Id}"))"
-                     style="cursor:pointer;display:flex;gap:12px;align-items:center;padding:14px;margin-bottom:10px;background:var(--ac-surface);border:1px solid var(--ac-border);border-radius:var(--ac-radius-md);transition:box-shadow 150ms,border-color 150ms;"
+                     style="cursor:pointer;display:flex;gap: 12px;align-items:center;padding:16px;margin-bottom:8px;background:var(--ac-surface);border:1px solid var(--ac-border);border-radius:var(--ac-radius-md);transition:box-shadow 150ms,border-color 150ms"
                      @onmouseover="@(e => {})" class="vnd-offer-card">
-                    <div style="font-size:1.8rem;width:44px;text-align:center;flex-shrink:0;">@(o.Emoji ?? "🍽️")</div>
-                    <div style="flex:1;min-width:0;">
-                        <div style="font-weight:600;">@o.Title</div>
-                        <div class="ac-text-muted" style="font-size:0.85rem;">
+                    <div style="font-size:2rem;width:44px;text-align:center;flex-shrink:0">@(o.Emoji ?? "🍽️")</div>
+                    <div style="flex:1;min-width:0">
+                        <div style="font-weight:600">@o.Title</div>
+                        <div class="ac-text-muted" style="font-size:0.875rem">
                             @o.Price.ToString("0.##") @o.Currency
                             @if (o.OriginalPrice is > 0 && o.OriginalPrice > o.Price)
                             {
-                                <span style="text-decoration:line-through;margin-inline-start:6px;opacity:0.5;">@o.OriginalPrice.Value.ToString("0.##")</span>
+                                <span style="text-decoration:line-through;margin-inline-start: 8px;opacity:0.5">@o.OriginalPrice.Value.ToString("0.##")</span>
                             }
                         </div>
                     </div>
-                    <AcIcon Name="chevron-left" Size="18" />
+                    <AcIcon Name="chevron-left" Size="20" />
                 </div>
             }
         }

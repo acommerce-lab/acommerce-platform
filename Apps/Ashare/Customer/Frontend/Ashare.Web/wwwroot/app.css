@@ -16,7 +16,7 @@
     --ac-secondary-hover: #D97706;
 
     /* Surfaces */
-    --ac-bg:         #F9FAFB;
+    --ac-bg:         #f3f4f6;
     --ac-bg-alt:     #F3F0FF;
     --ac-surface:    #ffffff;
     --ac-surface-2:  #F5F3FF;
@@ -26,7 +26,7 @@
     /* Text */
     --ac-text:       #111827;
     --ac-text-muted: #6B7280;
-    --ac-text-on-dark: #fff;
+    --ac-text-on-dark: #ffffff;
 
     /* Status */
     --ac-success: #059669;
@@ -46,8 +46,8 @@
     --ac-radius-pill: 999px;
 
     /* ظلال */
-    --ac-shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
-    --ac-shadow-md: 0 4px 6px -1px rgba(0,0,0,0.08), 0 2px 4px -2px rgba(0,0,0,0.06);
+    --ac-shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
+    --ac-shadow-md: 0 4px 6px -1px rgba(0,0,0,0.08), 0 2px 4px -2px rgba(0,0,0,0.08);
     --ac-shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.10), 0 4px 6px -4px rgba(0,0,0,0.08);
 }
 
@@ -60,13 +60,13 @@ html[data-theme="dark"] {
     --ac-border:     #3B3556;
     --ac-border-dark:#524B72;
     --ac-text:       #F1F0FF;
-    --ac-text-muted: #9CA3AF;
+    --ac-text-muted: #94a3b8;
     --ac-primary-soft: rgba(124,58,237,0.16);
 }
 
 body {
     font-family: var(--ac-font-family);
-    font-size: 15px;
+    font-size:1rem;
     background: var(--ac-bg);
     color: var(--ac-text);
     margin: 0;
@@ -111,15 +111,15 @@ a > .ac-btn { width: 100%; }
     min-height: 56px;
 }
 .act-navbar-brand {
-    font-size: 1.4rem !important;
+    font-size:1.5rem !important;
     font-weight: 700 !important;
     color: var(--ac-primary) !important;
 }
 .act-navbar-link {
     color: var(--ac-text) !important;
     font-weight: 500 !important;
-    font-size: 0.9rem;
-    padding: 8px 14px !important;
+    font-size:0.875rem;
+    padding: 8px 16px !important;
     border-radius: var(--ac-radius-md) !important;
 }
 .act-navbar-link:hover {
@@ -139,7 +139,7 @@ a > .ac-btn { width: 100%; }
     flex-shrink: 0;
 }
 .act-navbar .ac-btn, .act-navbar .btn {
-    font-size: 0.85rem;
+    font-size:0.875rem;
 }
 
 /* =========================================================================
@@ -148,7 +148,7 @@ a > .ac-btn { width: 100%; }
 .act-footer {
     background: var(--ac-surface) !important;
     border-top: 1px solid var(--ac-border) !important;
-    font-size: 0.85rem;
+    font-size:0.875rem;
 }
 
 /* =========================================================================
@@ -186,10 +186,10 @@ a > .ac-btn { width: 100%; }
     color: var(--ac-text);
 }
 .act-product-meta {
-    font-size: 0.82rem !important;
+    font-size:0.875rem !important;
 }
 .act-product-price {
-    font-size: 1.05rem !important;
+    font-size:1.125rem !important;
     color: var(--ac-primary) !important;
     font-weight: 700 !important;
 }
@@ -202,7 +202,7 @@ a > .ac-btn { width: 100%; }
    ========================================================================= */
 .act-plan-card {
     text-align: center;
-    padding: 28px 20px !important;
+    padding: 32px 20px !important;
     position: relative;
     overflow: visible !important;
 }
@@ -217,30 +217,30 @@ a > .ac-btn { width: 100%; }
     white-space: nowrap;
 }
 .act-plan-name {
-    font-size: 1.1rem !important;
+    font-size:1.125rem !important;
     font-weight: 700 !important;
     margin-bottom: 4px;
 }
 .act-plan-price {
-    font-size: 2.2rem !important;
+    font-size:2rem !important;
     color: var(--ac-primary) !important;
     font-weight: 700 !important;
     margin: 16px 0 !important;
 }
 .act-plan-price small {
-    font-size: 0.9rem !important;
+    font-size:0.875rem !important;
 }
 .act-plan-features {
     text-align: start;
     margin: 16px 0 !important;
 }
 .act-plan-features li {
-    padding: 6px 0 !important;
+    padding: 8px 0 !important;
     border-bottom: 1px solid var(--ac-border);
 }
 .act-plan-features li:last-child { border-bottom: none; }
 .act-plan-badge {
-    font-size: 0.78rem !important;
+    font-size:0.875rem !important;
 }
 
 /* =========================================================================
@@ -251,8 +251,8 @@ a > .ac-btn { width: 100%; }
     background: var(--ac-surface) !important;
     border: 1.5px solid var(--ac-border-dark) !important;
     border-radius: var(--ac-radius-md) !important;
-    padding: 10px 14px !important;
-    font-size: 0.95rem;
+    padding: 8px 16px !important;
+    font-size:1rem;
 }
 .ac-input:focus, .ac-select:focus, .ac-textarea:focus,
 .form-input:focus, .form-control:focus, .form-select:focus {
@@ -262,8 +262,8 @@ a > .ac-btn { width: 100%; }
 }
 .ac-label, .form-label {
     font-weight: 600 !important;
-    font-size: 0.9rem !important;
-    margin-bottom: 6px !important;
+    font-size:0.875rem !important;
+    margin-bottom: 8px !important;
 }
 
 /* =========================================================================
@@ -272,12 +272,12 @@ a > .ac-btn { width: 100%; }
 .ac-btn {
     border-radius: var(--ac-radius-md) !important;
     font-weight: 600 !important;
-    gap: 6px;
+    gap: 8px;
 }
 .ac-btn-primary, .btn-primary {
     background: var(--ac-primary) !important;
     border-color: var(--ac-primary) !important;
-    color: #fff !important;
+    color: #ffffff !important;
     box-shadow: 0 2px 8px rgba(124,58,237,0.25);
 }
 .ac-btn-primary:hover:not(:disabled), .btn-primary:hover:not(:disabled) {
@@ -308,7 +308,7 @@ a > .ac-btn { width: 100%; }
     color: var(--ac-danger) !important;
     border: 1.5px solid var(--ac-danger) !important;
 }
-.ac-btn-sm, .btn-sm { font-size: 0.82rem !important; padding: 6px 14px !important; }
+.ac-btn-sm, .btn-sm { font-size:0.875rem !important; padding: 8px 16px !important; }
 .ac-btn-block { width: 100% !important; justify-content: center; }
 
 /* =========================================================================
@@ -317,8 +317,8 @@ a > .ac-btn { width: 100%; }
 .acs-auth-page { background: var(--ac-bg); padding: 48px 20px; }
 .acs-auth-hero { text-align: center; margin-bottom: 24px; }
 .acs-auth-icon  { font-size: 3rem; }
-.acs-auth-brand { font-size: 1.6rem; font-weight: 700; color: var(--ac-primary); margin: 8px 0 4px; }
-.acs-auth-tag   { font-size: 0.9rem; color: var(--ac-text-muted); }
+.acs-auth-brand { font-size:1.5rem; font-weight: 700; color: var(--ac-primary); margin: 8px 0 4px; }
+.acs-auth-tag   { font-size:0.875rem; color: var(--ac-text-muted); }
 .acs-auth-card {
     max-width: 420px;
     margin: 0 auto;
@@ -326,27 +326,27 @@ a > .ac-btn { width: 100%; }
     border: 1px solid var(--ac-border);
     box-shadow: var(--ac-shadow-lg);
     border-radius: var(--ac-radius-lg);
-    padding: 28px 24px;
+    padding: 32px 24px;
 }
-.acs-auth-title    { font-size: 1.2rem; font-weight: 700; text-align: center; }
-.acs-auth-subtitle { font-size: 0.88rem; color: var(--ac-text-muted); text-align: center; }
-.acs-auth-hint { font-size: 0.82rem; color: var(--ac-text-muted); margin-top: 16px; padding: 12px; background: var(--ac-bg-alt); border-radius: var(--ac-radius-md); }
+.acs-auth-title    { font-size:1.25rem; font-weight: 700; text-align: center; }
+.acs-auth-subtitle { font-size:0.875rem; color: var(--ac-text-muted); text-align: center; }
+.acs-auth-hint { font-size:0.875rem; color: var(--ac-text-muted); margin-top: 16px; padding: 12px; background: var(--ac-bg-alt); border-radius: var(--ac-radius-md); }
 
 /* =========================================================================
    Page header
    ========================================================================= */
 .acs-page { padding: 0; }
 .acs-page-header { margin-bottom: 20px; }
-.acs-page-title { font-size: 1.4rem; font-weight: 700; margin: 0 0 4px; }
-.acs-page-subtitle { font-size: 0.88rem; color: var(--ac-text-muted); margin: 0; }
+.acs-page-title { font-size:1.5rem; font-weight: 700; margin: 0 0 4px; }
+.acs-page-subtitle { font-size:0.875rem; color: var(--ac-text-muted); margin: 0; }
 
 /* =========================================================================
    Empty state
    ========================================================================= */
 .acs-empty { text-align: center; padding: 48px 20px; }
 .acs-empty-icon { font-size: 3rem; color: var(--ac-text-muted); margin-bottom: 12px; }
-.acs-empty-title { font-size: 1.05rem; font-weight: 600; }
-.acs-empty-message { font-size: 0.88rem; color: var(--ac-text-muted); }
+.acs-empty-title { font-size:1.125rem; font-weight: 600; }
+.acs-empty-message { font-size:0.875rem; color: var(--ac-text-muted); }
 
 /* =========================================================================
    Grid refinements

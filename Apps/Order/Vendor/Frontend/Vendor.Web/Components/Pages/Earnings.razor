@@ -32,14 +32,14 @@
                 {
                     <AcCard Class="ac-mb-sm">
                         <ChildContent>
-                            <div style="display:flex;justify-content:space-between;align-items:center;">
+                            <div style="display:flex;justify-content:space-between;align-items:center">
                                 <div>
-                                    <div style="font-weight:600;">@order.CustomerName</div>
-                                    <div style="font-size:0.85rem;color:var(--ac-text-muted);">
+                                    <div style="font-weight:600">@order.CustomerName</div>
+                                    <div style="font-size:0.875rem;color:var(--ac-text-muted)">
                                         @order.CreatedAt.ToString("yyyy-MM-dd HH:mm")
                                     </div>
                                 </div>
-                                <div style="font-weight:700;color:var(--ac-primary);">
+                                <div style="font-weight:700;color:var(--ac-primary)">
                                     @order.Total.ToString("N2") @order.Currency
                                 </div>
                             </div>

@@ -11,16 +11,16 @@
 
     <nav class="ord-bottom-nav">
         <NavLink href="/" Match="NavLinkMatch.All" class="ord-nav-item">
-            <AcIcon Name="home" Size="22" />
+            <AcIcon Name="home" Size="20" />
             <span>@(Store.Ui.IsArabic ? "الرئيسية" : "Home")</span>
         </NavLink>
         <NavLink href="/search" class="ord-nav-item">
-            <AcIcon Name="search" Size="22" />
+            <AcIcon Name="search" Size="20" />
             <span>@(Store.Ui.IsArabic ? "بحث" : "Search")</span>
         </NavLink>
         <NavLink href="/cart" class="ord-nav-item ord-nav-cart">
             <div class="ord-nav-cart-btn">
-                <AcIcon Name="bag" Size="22" />
+                <AcIcon Name="bag" Size="20" />
                 @if (Store.Cart.Count > 0)
                 {
                     <span class="ord-cart-badge">@Store.Cart.Count</span>
@@ -29,11 +29,11 @@
             <span>@(Store.Ui.IsArabic ? "السلة" : "Cart")</span>
         </NavLink>
         <NavLink href="/orders" class="ord-nav-item">
-            <AcIcon Name="receipt" Size="22" />
+            <AcIcon Name="receipt" Size="20" />
             <span>@(Store.Ui.IsArabic ? "طلباتي" : "Orders")</span>
         </NavLink>
         <NavLink href="@(Store.Auth.IsAuthenticated ? "/profile" : "/login")" class="ord-nav-item">
-            <AcIcon Name="user" Size="22" />
+            <AcIcon Name="user" Size="20" />
             <span>@(Store.Ui.IsArabic ? "حسابي" : "Profile")</span>
         </NavLink>
     </nav>

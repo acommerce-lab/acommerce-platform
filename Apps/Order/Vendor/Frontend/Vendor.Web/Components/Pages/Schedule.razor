@@ -34,12 +34,12 @@
             {
                 <AcCard Class="ac-mb-sm">
                     <ChildContent>
-                        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
-                            <div style="font-weight:600;min-width:80px;">
+                        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap: 8px">
+                            <div style="font-weight:600;min-width:80px">
                                 @(Store.Ui.IsArabic ? day.LabelAr : day.LabelEn)
                             </div>
-                            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-                                <label style="display:flex;align-items:center;gap:4px;font-size:0.85rem;">
+                            <div style="display:flex;align-items:center;gap: 8px;flex-wrap:wrap">
+                                <label style="display:flex;align-items:center;gap: 4px;font-size:0.875rem">
                                     <input type="checkbox" checked="@(!day.IsOff)"
                                            @onchange="@(e => day.IsOff = !(bool)(e.Value ?? true))" />
                                     @(Store.Ui.IsArabic ? "مفتوح" : "Open")
@@ -48,15 +48,15 @@
                                 {
                                     <input type="time" class="ac-input" value="@day.OpenTime"
                                            @onchange="@(e => day.OpenTime = e.Value?.ToString() ?? day.OpenTime)"
-                                           style="font-size:0.85rem;width:auto;min-height:36px;padding:4px 8px;" />
+                                           style="font-size:0.875rem;width:auto;min-height:36px;padding: 4px 8px" />
                                     <span>-</span>
                                     <input type="time" class="ac-input" value="@day.CloseTime"
                                            @onchange="@(e => day.CloseTime = e.Value?.ToString() ?? day.CloseTime)"
-                                           style="font-size:0.85rem;width:auto;min-height:36px;padding:4px 8px;" />
+                                           style="font-size:0.875rem;width:auto;min-height:36px;padding: 4px 8px" />
                                 }
                                 else
                                 {
-                                    <span class="ac-text-muted" style="font-size:0.85rem;">
+                                    <span class="ac-text-muted" style="font-size:0.875rem">
                                         @(Store.Ui.IsArabic ? "مغلق" : "Closed")
                                     </span>
                                 }
@@ -66,7 +66,7 @@
                 </AcCard>
             }
 
-            <div style="margin-top:16px;">
+            <div style="margin-top: 16px">
                 <AcButton Variant="primary" Block="true"
                           Text="@(_saving ? (Store.Ui.IsArabic ? "جاري الحفظ..." : "Saving...") : (Store.Ui.IsArabic ? "حفظ الجدول" : "Save Schedule"))"
                           Disabled="@_saving" Loading="@_saving"

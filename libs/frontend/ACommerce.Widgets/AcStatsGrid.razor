@@ -1,20 +1,20 @@
 @namespace ACommerce.Widgets
 
-<div class="@(Class ?? "")" style="display:grid;grid-template-columns:repeat(@Columns,1fr);gap:10px;">
+<div class="@(Class ?? "")" style="display:grid;grid-template-columns:repeat(@Columns,1fr);gap:8px">
     @foreach (var stat in Stats)
     {
-        <div class="s-card" style="padding:16px;">
+        <div class="s-card" style="padding: 16px">
             @if (!string.IsNullOrEmpty(stat.IconName))
             {
-                <div style="font-size:1.5rem;margin-bottom:8px;">@stat.IconName</div>
+                <div style="font-size:1.5rem;margin-bottom: 8px">@stat.IconName</div>
             }
-            <div style="font-size:1.75rem;font-weight:700;color:@(stat.ValueColor ?? "inherit");">
+            <div style="font-size:2rem;font-weight:700;color:@(stat.ValueColor ??"inherit");">
                 @stat.Value
             </div>
-            <div style="font-size:0.875rem;color:var(--ac-text-muted);">@stat.Label</div>
+            <div style="font-size:0.875rem;color:var(--ac-text-muted)">@stat.Label</div>
             @if (!string.IsNullOrEmpty(stat.Trend) && !string.IsNullOrEmpty(stat.TrendValue))
             {
-                <div style="font-size:0.75rem;margin-top:4px;color:@(stat.Trend == "up" ? "var(--ac-success, #28a745)" : "var(--ac-danger, #dc3545)");">
+                <div style="font-size:0.75rem;margin-top: 4px;color:@(stat.Trend =="up" ? "var(--ac-success, #28a745)" : "var(--ac-danger, #dc3545)");">
                     @(stat.Trend == "up" ? "▲" : "▼") @stat.TrendValue
                 </div>
             }

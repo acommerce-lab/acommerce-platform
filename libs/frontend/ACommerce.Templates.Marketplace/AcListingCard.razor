@@ -10,7 +10,7 @@
 
 <div class="s-card acm-listing-card @(Listing?.IsFeatured == true ? "acm-listing-featured" : "")"
      @onclick="HandleClick"
-     style="@(OnClick.HasDelegate ? "cursor:pointer;" : "")">
+     style="@(OnClick.HasDelegate ?"cursor:pointer;" : "")">
     @if (Listing == null)
     {
         <AcLoadingState />
@@ -40,7 +40,7 @@
                 @if (!string.IsNullOrEmpty(Listing.City) || !string.IsNullOrEmpty(Listing.District))
                 {
                     <span class="ac-text-muted">
-                        <AcIcon Name="map-pin" Size="14" />
+                        <AcIcon Name="map-pin" Size="16" />
                         @string.Join("، ", new[] { Listing.City, Listing.District }.Where(x => !string.IsNullOrEmpty(x)))
                     </span>
                 }
@@ -58,7 +58,7 @@
                 @if (Listing.ViewCount > 0)
                 {
                     <span class="ac-text-muted">
-                        <AcIcon Name="search" Size="14" />
+                        <AcIcon Name="search" Size="16" />
                         @Listing.ViewCount @(ViewsLabel ?? "مشاهدة")
                     </span>
                 }
@@ -66,7 +66,7 @@
             @if (ShowOwner && !string.IsNullOrEmpty(Listing.OwnerName))
             {
                 <div class="acm-listing-owner ac-text-muted">
-                    <AcIcon Name="user" Size="14" />
+                    <AcIcon Name="user" Size="16" />
                     @Listing.OwnerName
                 </div>
             }

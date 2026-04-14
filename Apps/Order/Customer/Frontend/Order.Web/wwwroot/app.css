@@ -9,19 +9,19 @@
    ========================================================================= */
 :root {
     /* ── Brand identity (used sparingly, <10% of the surface) ────────── */
-    --ac-primary:         #FF6B35;
+    --ac-primary:         #ff6b35;
     --ac-primary-hover:   #E55A2B;
     --ac-primary-soft:    #FFF3EC;       /* ~8% tint for hover bgs */
-    --ac-on-primary:      #FFFFFF;
+    --ac-on-primary:      #ffffff;
     --ac-secondary:       #F7931E;
     --ac-secondary-hover: #D67C15;
-    --ac-on-secondary:    #FFFFFF;
+    --ac-on-secondary:    #ffffff;
 
     /* ── Neutral surfaces (the other 90%) ─────────────────────────────── */
-    --ac-bg:         #F7F8FA;   /* page background */
-    --ac-bg-alt:     #F1F3F6;   /* subtle alt surface */
-    --ac-surface:    #FFFFFF;   /* cards, inputs, sheets */
-    --ac-surface-2:  #FAFBFC;   /* slightly sunk cells */
+    --ac-bg:         #f3f4f6;   /* page background */
+    --ac-bg-alt:     #f3f4f6;   /* subtle alt surface */
+    --ac-surface:    #ffffff;   /* cards, inputs, sheets */
+    --ac-surface-2:  #f3f4f6;   /* slightly sunk cells */
     --ac-border:     #E5E7EB;   /* hairline dividers */
     --ac-border-dark:#D1D5DB;   /* emphasized borders */
 
@@ -40,9 +40,9 @@
     --ac-radius-sm: 0.4rem;
     --ac-radius-md: 0.75rem;
     --ac-radius-lg: 1rem;
-    --ac-shadow-sm: 0 1px 2px rgba(15,23,42,0.04), 0 1px 3px rgba(15,23,42,0.04);
-    --ac-shadow-md: 0 4px 10px -2px rgba(15,23,42,0.06), 0 2px 4px -2px rgba(15,23,42,0.04);
-    --ac-shadow-lg: 0 14px 28px -6px rgba(15,23,42,0.10);
+    --ac-shadow-sm: 0 1px 2px rgba(0,0,0,0.04), 0 1px 3px rgba(0,0,0,0.04);
+    --ac-shadow-md: 0 4px 10px -2px rgba(0,0,0,0.08), 0 2px 4px -2px rgba(0,0,0,0.04);
+    --ac-shadow-lg: 0 14px 28px -6px rgba(0,0,0,0.08);
 
     /* ── Typography ────────────────────────────────────────────────────── */
     --ac-font-family: 'Tajawal', 'Inter', -apple-system, BlinkMacSystemFont,
@@ -54,7 +54,7 @@
     --ord-shell-max:   540px;
     --ord-bottom-nav:  72px;
     /* Brand gradient — reserved for the FAB cart button only */
-    --ord-accent-grad: linear-gradient(135deg, #FF6B35 0%, #F7931E 100%);
+    --ord-accent-grad: linear-gradient(135deg, #ff6b35 0%, #F7931E 100%);
 }
 
 /* ── Dark mode ─────────────────────────────────────────────────────────── */
@@ -65,18 +65,18 @@ html[data-theme="dark"] {
     --ac-surface-2:  #1B2130;
     --ac-border:     #283244;
     --ac-border-dark:#3D4759;
-    --ac-text:         #F1F5F9;
+    --ac-text:         #f3f4f6;
     --ac-text-muted:   #94A3B8;
     --ac-text-faint:   #64748B;
     --ac-primary-soft: rgba(255,107,53,0.14);
-    --ac-shadow-sm: 0 1px 2px rgba(0,0,0,0.45);
-    --ac-shadow-md: 0 6px 14px rgba(0,0,0,0.5);
-    --ac-shadow-lg: 0 18px 36px rgba(0,0,0,0.6);
+    --ac-shadow-sm: 0 1px 2px rgba(0,0,0,0.50);
+    --ac-shadow-md: 0 6px 14px rgba(0,0,0,0.50);
+    --ac-shadow-lg: 0 18px 36px rgba(0,0,0,0.50);
 }
 
 html {
     /* 14px base — professional density. All rem values auto-scale. */
-    font-size: 14px;
+    font-size:0.875rem;
 }
 body {
     margin: 0;
@@ -104,13 +104,13 @@ img { max-width: 100%; }
     min-height: 100vh;
     margin: 0 auto;
     background: var(--ac-bg);
-    box-shadow: 0 0 40px rgba(15,23,42,0.04);
+    box-shadow: 0 0 40px rgba(0,0,0,0.04);
     display: flex;
     flex-direction: column;
     position: relative;
     overflow-x: hidden;
 }
-html[data-theme="dark"] .ord-shell { box-shadow: 0 0 80px rgba(0,0,0,0.5); }
+html[data-theme="dark"] .ord-shell { box-shadow: 0 0 80px rgba(0,0,0,0.50); }
 
 .ord-main {
     flex: 1;
@@ -131,7 +131,7 @@ html[data-theme="dark"] .ord-shell { box-shadow: 0 0 80px rgba(0,0,0,0.5); }
     align-items: center;
     justify-content: space-around;
     z-index: 100;
-    box-shadow: 0 -2px 12px rgba(15,23,42,0.04);
+    box-shadow: 0 -2px 12px rgba(0,0,0,0.04);
 }
 html[dir="rtl"] .ord-bottom-nav { transform: translateX(50%); }
 
@@ -141,11 +141,11 @@ html[dir="rtl"] .ord-bottom-nav { transform: translateX(50%); }
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 2px;
+    gap: 4px;
     color: var(--ac-text-muted);
     text-decoration: none;
-    padding: 6px 4px;
-    font-size: 0.68rem;
+    padding: 8px 4px;
+    font-size:0.75rem;
     font-weight: 500;
     transition: color 150ms;
 }
@@ -158,7 +158,7 @@ html[dir="rtl"] .ord-bottom-nav { transform: translateX(50%); }
     height: 56px;
     border-radius: 50%;
     background: var(--ord-accent-grad);
-    color: #fff;
+    color: #ffffff;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -171,8 +171,8 @@ html[dir="rtl"] .ord-bottom-nav { transform: translateX(50%); }
     top: -4px;
     inset-inline-end: -4px;
     background: var(--ac-danger);
-    color: #fff;
-    font-size: 0.65rem;
+    color: #ffffff;
+    font-size:0.75rem;
     font-weight: 700;
     border-radius: 999px;
     min-width: 18px;
@@ -191,7 +191,7 @@ html[dir="rtl"] .ord-bottom-nav { transform: translateX(50%); }
     color: var(--ac-text);
     border: 1px solid var(--ac-border);
     box-shadow: var(--ac-shadow-sm);
-    padding: 26px 22px 24px;
+    padding:20px 22px 24px;
     position: relative;
     overflow: hidden;
     border-radius: var(--ac-radius-lg);
@@ -208,19 +208,19 @@ html[dir="rtl"] .ord-bottom-nav { transform: translateX(50%); }
 }
 .acc-hero-title {
     color: var(--ac-text);
-    font-size: 1.25rem;
+    font-size:1.25rem;
     font-weight: 700;
     margin: 0 0 4px;
 }
 .acc-hero-sub {
     color: var(--ac-text-muted);
-    font-size: 0.85rem;
+    font-size:0.875rem;
     margin: 0;
 }
 .acc-hero-actions {
     margin-top: 16px;
     display: flex;
-    gap: 10px;
+    gap:8px;
     flex-wrap: wrap;
     justify-content: flex-start;
 }
@@ -255,30 +255,30 @@ html[dir="rtl"] .ord-bottom-nav { transform: translateX(50%); }
     background: var(--ac-bg);
     padding: 40px 20px;
 }
-.acs-auth-icon  { font-size: 2.8rem; color: var(--ac-primary); }
+.acs-auth-icon  { font-size:3rem; color: var(--ac-primary); }
 .acs-auth-brand { font-size: 1.5rem; font-weight: 700; color: var(--ac-text); }
-.acs-auth-tag   { font-size: 0.85rem; color: var(--ac-text-muted); }
+.acs-auth-tag   { font-size:0.875rem; color: var(--ac-text-muted); }
 .acs-auth-card {
     background: var(--ac-surface);
     border: 1px solid var(--ac-border);
     box-shadow: var(--ac-shadow-md);
 }
-.acs-auth-title    { font-size: 1.15rem; font-weight: 700; color: var(--ac-text); }
-.acs-auth-subtitle { font-size: 0.84rem; color: var(--ac-text-muted); }
-.acs-otp-input     { font-size: 1.4rem; letter-spacing: 0.4rem; }
+.acs-auth-title    { font-size:1.125rem; font-weight: 700; color: var(--ac-text); }
+.acs-auth-subtitle { font-size:0.875rem; color: var(--ac-text-muted); }
+.acs-otp-input     { font-size:1.5rem; letter-spacing: 0.4rem; }
 
 /* ── Tighter heading sizes throughout ─────────────────────────────────── */
-.acs-page-title    { font-size: 1.05rem; font-weight: 700; }
-.acs-empty-icon    { font-size: 2.5rem; }
-.acs-empty-title   { font-size: 0.92rem; }
-.acs-empty-message { font-size: 0.84rem; }
-.acc-offer-info-title { font-size: 1.15rem; font-weight: 700; }
-.acc-offer-hero-emoji { font-size: 4rem; }
-.acc-offer-info-price { font-size: 0.95rem; }
-.acc-section-title { font-size: 0.9rem; }
+.acs-page-title    { font-size:1.125rem; font-weight: 700; }
+.acs-empty-icon    { font-size:3rem; }
+.acs-empty-title   { font-size:0.875rem; }
+.acs-empty-message { font-size:0.875rem; }
+.acc-offer-info-title { font-size:1.125rem; font-weight: 700; }
+.acc-offer-hero-emoji { font-size:3rem; }
+.acc-offer-info-price { font-size:1rem; }
+.acc-section-title { font-size:0.875rem; }
 .acc-section-label { font-size: 0.75rem; }
-.acc-order-number  { font-size: 1.1rem; }
-.acc-success-title { font-size: 1.15rem; }
+.acc-order-number  { font-size:1.125rem; }
+.acc-success-title { font-size:1.125rem; }
 .acc-success-icon  { font-size: 0; /* AcIcon handles size */ }
 
 /* =========================================================================
