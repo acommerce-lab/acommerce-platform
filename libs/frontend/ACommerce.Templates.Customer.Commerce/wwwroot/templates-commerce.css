@@ -111,7 +111,7 @@
 .acc-offer-top {
     position: relative;
     background: var(--ac-bg-alt);
-    16px;
+    padding: 16px;
     text-align: center;
 }
 .acc-offer-emoji {
@@ -372,7 +372,7 @@
     margin-top:8px;
     background: color-mix(in srgb, var(--ac-success) 10%, transparent);
     color: var(--ac-success);
-    16px;
+    padding: 16px;
     border-radius: var(--ac-radius-md, 12px);
     display: flex;
     justify-content: space-between;
@@ -417,7 +417,7 @@
 .acc-order-status {
     font-size:0.75rem;
     font-weight: 700;
-    8px;
+    padding: 8px;
     border-radius: 999px;
     background: var(--ac-bg-alt);
     color: var(--ac-text);
@@ -661,7 +661,7 @@
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    8px;
+    padding: 8px;
     border-radius: 999px;
     border: 1px solid var(--ac-border);
     background: var(--ac-surface);
@@ -760,7 +760,7 @@
     color: var(--ac-text);
     border: 1px solid var(--ac-border);
     border-radius: var(--ac-radius-md, 12px);
-    16px;
+    padding: 16px;
     min-width: 180px;
     max-width: 240px;
     box-shadow: var(--ac-shadow-lg, 0 14px 28px rgba(0,0,0,0.16));
@@ -831,6 +831,6 @@
     color: var(--ac-primary);
     font-size:0.75rem;
     font-weight: 700;
-    8px;
+    padding: 8px;
     border-radius: 999px;
 }

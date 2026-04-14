@@ -170,7 +170,7 @@
 }
 .acs-auth-hint {
     margin-top:16px;
-    16px;
+    padding: 16px;
     background: var(--ac-bg-alt);
     border-radius: var(--ac-radius-md, 12px);
     font-size:0.875rem;
@@ -327,12 +327,15 @@
     justify-content: flex-end;
 }
 .acs-bubble {
+    display: inline-block;
     max-width: 75%;
-    16px;
+    padding: 10px 14px;
     border-radius: 18px;
-    font-size:1rem;
-    line-height: 1.4;
+    font-size: 1rem;
+    line-height: 1.5;
     word-break: break-word;
+    overflow-wrap: anywhere;
+    box-sizing: border-box;
 }
 .acs-bubble-mine {
     background: var(--ac-primary);
@@ -485,7 +488,7 @@
     margin-bottom: 12px;
 }
 .acs-menu-section-title {
-    16px 4px;
+    padding: 16px 4px;
     font-size:0.875rem;
     font-weight: 700;
     color: var(--ac-text-muted);
@@ -497,7 +500,7 @@
     display: flex;
     align-items: center;
     gap: 12px;
-    16px;
+    padding: 16px;
     background: transparent;
     border: none;
     text-align: inherit;

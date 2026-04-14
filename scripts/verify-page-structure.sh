@@ -116,6 +116,41 @@ while IFS=: read -r file line content; do
     report "ui-op-routed-to-http" "$(realpath --relative-to="$ROOT" "$file")" "$line" "$content"
 done < <(grep -HnE 'Engine\.(Execute|Dispatch)[A-Za-z]*\Async.*ClientOps\.(SetLanguage|SetTheme|SignOut|SetRtl)' $FILES 2>/dev/null || true)
 
+# Rule 12: Any AuthController that queries users by PhoneNumber MUST call
+# PhoneNormalization.Normalize first — otherwise "0501…", "+9665…" and
+# "9665…" create three different records for the same person.
+echo ""
+echo "--- Rule 12: AuthController normalises PhoneNumber before query ---"
+for ctrl in $(find "$ROOT/Apps" -name 'AuthController.cs' -not -path '*/bin/*' -not -path '*/obj/*'); do
+    # Does the file query by PhoneNumber? If yes, it must reference PhoneNormalization.
+    if grep -qE 'PhoneNumber\s*==' "$ctrl" && ! grep -qE 'PhoneNormalization\.Normalize' "$ctrl"; then
+        rel=$(realpath --relative-to="$ROOT" "$ctrl")
+        report "auth-missing-phone-normalization" "$rel" "0" \
+            "AuthController queries by PhoneNumber but doesn't call PhoneNormalization.Normalize; users typing with/without +, spaces, or 05x prefix get treated as different people"
+    fi
+done
+
+# Rule 13: A backend service that references another service's csproj for its
+# entity model MUST restrict AddControllers() to its own assembly, otherwise
+# the other controller also registers and produces an AmbiguousMatchException.
+echo ""
+echo "--- Rule 13: AddControllers must not scan piggy-backed service assemblies ---"
+for prog in $(find "$ROOT/Apps" -name 'Program.cs' -path '*/Backend/*' -not -path '*/bin/*' -not -path '*/obj/*'); do
+    csproj_dir=$(dirname "$prog")
+    csproj=$(ls "$csproj_dir"/*.csproj 2>/dev/null | head -1)
+    [ -z "$csproj" ] && continue
+    # Does it reference another service's backend project (piggy-backing entities)?
+    # Paths are relative, e.g. ..\..\..\Customer\Backend\Ashare.Api\Ashare.Api.csproj
+    piggy=$(grep -E 'ProjectReference.*[/\\]Backend[/\\][^"]*\.Api\.csproj' "$csproj" 2>/dev/null | head -1 || true)
+    [ -z "$piggy" ] && continue
+    # It does; ensure AddControllers is restricted.
+    if ! grep -qE 'PartManager\.ApplicationParts|\.AddControllers\(\)\s*\.ConfigureApplicationPartManager|AssemblyPart\(typeof\(Program\)\.Assembly\)' "$prog"; then
+        rel=$(realpath --relative-to="$ROOT" "$prog")
+        report "unrestricted-controller-scan" "$rel" "0" \
+            "Program.cs piggy-backs another service's project but calls AddControllers() without restricting ApplicationParts — duplicate [Route] registrations will AmbiguousMatchException"
+    fi
+done
+
 # Rule 11: Consumed RCL CSS cohesion.
 # For each App frontend, cross-check that App.razor links the CSS of every
 # libs/frontend/<Lib> that the .csproj references.  If a template widget is

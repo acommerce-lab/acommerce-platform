@@ -112,7 +112,7 @@
 
   "text_overflow_rules": [
     {
-      "selector": ".act-bubble, .ac-card, .ac-alert, .ac-btn, .acs-page > *, .ord-bottom-nav",
+      "selector": ".act-bubble, .acs-bubble, .ord-chat-bubble, .ac-card, .ac-alert, .ac-btn, .acs-page > *, .ord-bottom-nav",
       "rule": "text-content-not-overflowing",
       "description": "Rendered text must not extend past its parent's clientWidth (scrollWidth > clientWidth indicates horizontal clipping/overflow)",
       "max_violations": 10

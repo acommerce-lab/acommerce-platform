@@ -103,7 +103,14 @@ switch (dbProvider.ToLowerInvariant())
 // ─────────────────────────────────────────────────────────
 // MVC + Swagger + CORS
 // ─────────────────────────────────────────────────────────
-builder.Services.AddControllers();
+// Only scan this assembly for controllers. Ashare.Api.dll (referenced for
+// its entities) also contains an AuthController on /api/auth — scanning
+// both would produce AmbiguousMatchException at runtime.
+builder.Services.AddControllers()
+    .PartManager.ApplicationParts.Clear();
+builder.Services.AddControllers()
+    .PartManager.ApplicationParts.Add(
+        new Microsoft.AspNetCore.Mvc.ApplicationParts.AssemblyPart(typeof(Program).Assembly));
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 

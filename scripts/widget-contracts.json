@@ -63,8 +63,13 @@
       "min-values": { "padding": 9, "border-radius": 4 }
     },
     ".act-bubble": {
-      "description": "Chat bubble must have padding on all sides and a background fill that visually contains its text (no overflow past the coloured pill).",
+      "description": "Commerce-templates chat bubble: padding on all sides + background fill that visually contains its text.",
       "required": ["padding", "background", "border-radius"],
+      "min-values": { "padding": 6, "border-radius": 4 }
+    },
+    ".acs-bubble": {
+      "description": "Shared-templates chat bubble (used by AcChatPage): padding on all sides + border-radius. Background is set by .acs-bubble-mine / .acs-bubble-other variants.",
+      "required": ["padding", "border-radius"],
       "min-values": { "padding": 6, "border-radius": 4 }
     },
     ".s-card": {

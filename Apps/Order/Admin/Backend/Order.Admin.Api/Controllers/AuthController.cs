@@ -46,8 +46,8 @@ public class AuthController : ControllerBase
     [HttpPost("sms/request")]
     public async Task<IActionResult> RequestSms([FromBody] RequestSmsOtp req, CancellationToken ct)
     {
-        // التحقق من وجود مستخدم بهذا الرقم وأنه admin
-        var users = await _users.GetAllWithPredicateAsync(u => u.PhoneNumber == req.PhoneNumber);
+        var phone = PhoneNormalization.Normalize(req.PhoneNumber);
+        var users = await _users.GetAllWithPredicateAsync(u => u.PhoneNumber == phone);
         var user = users.FirstOrDefault();
 
         if (user == null)
@@ -62,7 +62,7 @@ public class AuthController : ControllerBase
             return this.BadRequestEnvelope("admin_suspended",
                 "حساب المسؤول معطّل");
 
-        var result = await _tfa.InitiateAsync("sms", user.Id.ToString(), target: req.PhoneNumber, ct);
+        var result = await _tfa.InitiateAsync("sms", user.Id.ToString(), target: phone, ct);
 
         if (!result.Succeeded)
             return this.BadRequestEnvelope("otp_initiate_failed", result.Error);
@@ -71,7 +71,7 @@ public class AuthController : ControllerBase
         {
             challengeId = result.ChallengeId,
             userId = user.Id,
-            phoneNumber = req.PhoneNumber,
+            phoneNumber = phone,
             message = "تم إرسال الكود (راجع الـ logs في الوضع التجريبي)"
         });
     }

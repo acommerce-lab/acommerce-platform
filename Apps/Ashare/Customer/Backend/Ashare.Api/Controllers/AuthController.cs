@@ -44,25 +44,24 @@ public class AuthController : ControllerBase
     [HttpPost("sms/request")]
     public async Task<IActionResult> RequestSms([FromBody] RequestSmsOtp req, CancellationToken ct)
     {
-        // التحقق من وجود مستخدم بهذا الرقم
-        var users = await _users.GetAllWithPredicateAsync(u => u.PhoneNumber == req.PhoneNumber);
+        var phone = PhoneNormalization.Normalize(req.PhoneNumber);
+        var users = await _users.GetAllWithPredicateAsync(u => u.PhoneNumber == phone);
         var user = users.FirstOrDefault();
 
-        // إنشاء المستخدم تلقائياً إذا لم يكن موجوداً (سلوك Ashare)
         if (user == null)
         {
             user = new User
             {
                 Id = Guid.NewGuid(),
                 CreatedAt = DateTime.UtcNow,
-                PhoneNumber = req.PhoneNumber,
+                PhoneNumber = phone,
                 Role = "customer"
             };
             var createOp = Entry.Create("auth.user_create")
-                .Describe($"Auto-create user for phone {req.PhoneNumber}")
+                .Describe($"Auto-create user for phone {phone}")
                 .From($"System:auth", 1, ("role", "system"))
                 .To($"User:{user.Id}", 1, ("role", "customer"))
-                .Tag("phone_number", req.PhoneNumber)
+                .Tag("phone_number", phone)
                 .Tag("channel", "sms")
                 .Execute(async ctx =>
                 {
@@ -74,7 +73,7 @@ public class AuthController : ControllerBase
             if (!createResult.Success) return this.BadRequestEnvelope("user_create_failed", createResult.ErrorMessage);
         }
 
-        var result = await _tfa.InitiateAsync("sms", user.Id.ToString(), target: req.PhoneNumber, ct);
+        var result = await _tfa.InitiateAsync("sms", user.Id.ToString(), target: phone, ct);
 
         if (!result.Succeeded)
             return this.BadRequestEnvelope("otp_initiate_failed", result.Error);
@@ -83,7 +82,7 @@ public class AuthController : ControllerBase
         {
             challengeId = result.ChallengeId,
             userId = user.Id,
-            phoneNumber = req.PhoneNumber,
+            phoneNumber = phone,
             message = "تم إرسال الكود (راجع الـ logs في الوضع التجريبي)"
         });
     }

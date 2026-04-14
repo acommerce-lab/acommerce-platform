@@ -737,6 +737,6 @@ textarea.form-control, textarea.form-input { min-height: 6rem; resize: vertical;
 .form-select-sm,
 .form-input-sm {
     font-size: var(--ac-font-size-sm);
-    8px;
+    padding: 8px;
     min-height: 36px;
 }
