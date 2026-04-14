@@ -1,5 +1,6 @@
 using ACommerce.Client.Http;
 using ACommerce.Client.Http.Extensions;
+using ACommerce.Culture.Blazor;
 using ACommerce.Client.Operations;
 using ACommerce.Client.Operations.Interceptors;
 using ACommerce.Client.StateBridge;
@@ -20,6 +21,10 @@ builder.WebHost.UseStaticWebAssets();
 
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
+
+// Culture stack — per-circuit browser-derived TZ + numeral system, used to
+// render timestamps (chat, orders) in the viewing user's local time.
+builder.Services.AddBlazorCultureStack();
 
 // ─── AppStore (حالة التطبيق — Scoped per circuit) ────────────────────
 builder.Services.AddScoped<AppStore>();

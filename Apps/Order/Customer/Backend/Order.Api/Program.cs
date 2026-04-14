@@ -5,6 +5,7 @@ using ACommerce.Authentication.Providers.Token.Extensions;
 using ACommerce.Authentication.TwoFactor.Operations;
 using ACommerce.Authentication.TwoFactor.Operations.Abstractions;
 using ACommerce.Authentication.TwoFactor.Providers.Sms.Extensions;
+using ACommerce.Culture.Interceptors;
 using ACommerce.Notification.Operations;
 using ACommerce.Notification.Operations.Abstractions;
 using ACommerce.Notification.Providers.InApp.Extensions;
@@ -64,6 +65,9 @@ switch (dbProvider.ToLowerInvariant())
 // ─────────────────────────────────────────────────────────
 // MVC + Swagger + CORS
 // ─────────────────────────────────────────────────────────
+// ─── Culture stack (numerals, datetime, phone, context middleware) ──
+builder.Services.AddCultureStack();
+
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -193,6 +197,8 @@ using (var chScope = app.Services.CreateScope())
 }
 
 app.UseCors();
+// Populate ICultureContext per-request from X-Timezone / Accept-Language.
+app.UseCultureContext();
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseSwagger();

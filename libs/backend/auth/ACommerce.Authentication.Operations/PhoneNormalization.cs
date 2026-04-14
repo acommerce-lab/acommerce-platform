@@ -15,7 +15,23 @@ public static class PhoneNormalization
     public static string Normalize(string? phone)
     {
         if (string.IsNullOrWhiteSpace(phone)) return "";
-        var digits = new string(phone.Where(char.IsDigit).ToArray());
+        // First convert Arabic-Indic (٠-٩) and Persian (۰-۹) digits to Latin
+        // so `char.IsDigit` further down (which accepts Latin only for our
+        // output) sees them as digits to keep.  Each code point maps 1-to-1:
+        //   '\u0660' + n  →  '0' + n   (Arabic-Indic)
+        //   '\u06F0' + n  →  '0' + n   (Persian / Extended Arabic-Indic)
+        var buf = new System.Text.StringBuilder(phone.Length);
+        foreach (var ch in phone)
+        {
+            char mapped = ch;
+            if (ch >= '\u0660' && ch <= '\u0669')       mapped = (char)('0' + (ch - '\u0660'));
+            else if (ch >= '\u06F0' && ch <= '\u06F9')  mapped = (char)('0' + (ch - '\u06F0'));
+            buf.Append(mapped);
+        }
+        var normalized = buf.ToString();
+
+        // Strip all non-Latin-digit characters (spaces, punctuation, '+', …).
+        var digits = new string(normalized.Where(c => c >= '0' && c <= '9').ToArray());
         if (digits.StartsWith("00")) digits = digits[2..];
         // "05xxxxxxxx" → "9665xxxxxxxx"
         if (digits.Length == 10 && digits.StartsWith("05")) digits = "966" + digits[1..];

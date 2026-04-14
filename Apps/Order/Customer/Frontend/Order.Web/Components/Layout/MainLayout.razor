@@ -2,6 +2,7 @@
 @inject AppStore Store
 @inject AuthStateService AuthService
 @inject IJSRuntime JS
+@inject ACommerce.Culture.Blazor.BrowserCultureProbe CultureProbe
 @implements IDisposable
 
 <div class="ord-shell">
@@ -53,6 +54,11 @@
     {
         if (firstRender)
         {
+            // Populate ICultureContext from the browser's Intl API so that
+            // every subsequent render can use the user's actual timezone
+            // (chat timestamps, order dates, etc.).
+            try { await CultureProbe.InitAsync(); } catch { }
+
             // Restore auth from ProtectedLocalStorage → AppStore
             await AuthService.EnsureRestoredAsync();
             if (AuthService.IsAuthenticated)
