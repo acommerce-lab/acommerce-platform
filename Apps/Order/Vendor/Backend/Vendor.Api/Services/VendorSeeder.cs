@@ -38,10 +38,11 @@ public class VendorSeeder
     {
         var now = DateTime.UtcNow;
 
-        // ─── VendorUser records — ensure correct IDs always ────────────────
-        // If user was auto-created by AuthController with wrong ID, delete and recreate
-        var existingUsers = await _users.ListAllAsync(ct);
-
+        // ─── VendorUser records — AGGRESSIVE: delete all demo-phone users, then recreate ──
+        // Why: over time, AuthController auto-creates users with random IDs when
+        // it can't find them by phone for any reason. This guarantees that on
+        // every startup, demo users have the CORRECT ID regardless of what
+        // happened in previous sessions.
         var demoUsers = new[]
         {
             (UserIds.VendorAhmed,   "+966501111111", "أحمد - كافيه السعادة"),
@@ -49,16 +50,16 @@ public class VendorSeeder
             (UserIds.VendorSaad,    "+966503333333", "سعد - حلويات الرياض"),
             (UserIds.VendorLama,    "+966504444444", "لمى - عصائر كول بايتس"),
         };
+        var demoPhones = demoUsers.Select(u => u.Item2).ToHashSet();
+
+        var allExisting = await _users.ListAllAsync(ct);
+        foreach (var u in allExisting.Where(x => demoPhones.Contains(x.PhoneNumber)))
+        {
+            await _users.DeleteAsync(u, ct);
+        }
 
         foreach (var (id, phone, name) in demoUsers)
         {
-            var existing = existingUsers.FirstOrDefault(u => u.PhoneNumber == phone);
-            if (existing != null && existing.Id == id) continue; // already correct
-            if (existing != null && existing.Id != id)
-            {
-                // Wrong ID (auto-created by AuthController) — delete it
-                await _users.DeleteAsync(existing, ct);
-            }
             await _users.AddAsync(new VendorUser
             {
                 Id = id, CreatedAt = now,

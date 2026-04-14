@@ -22,13 +22,10 @@
     <HeroActions>
         @if (!Store.Auth.IsAuthenticated)
         {
-            <a class="btn btn-primary btn-sm" href="/login">
-                @(Store.Ui.IsArabic ? "تسجيل الدخول" : "Sign in")
-            </a>
+            <a href="/login"><AcButton Variant="primary" Size="sm" Text="@(Store.Ui.IsArabic ? "تسجيل الدخول" : "Sign in")" /></a>
         }
-        <button type="button" class="btn btn-ghost btn-sm" @onclick="ToggleLanguage">
-            @(Store.Ui.IsArabic ? "English" : "العربية")
-        </button>
+        <AcButton Variant="ghost" Size="sm" OnClick="ToggleLanguage"
+                  Text="@(Store.Ui.IsArabic ? "English" : "العربية")" />
     </HeroActions>
 </AcCatalogHome>
 

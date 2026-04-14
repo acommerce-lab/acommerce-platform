@@ -59,24 +59,20 @@ else
         <div style="margin-top:16px;display:flex;flex-direction:column;gap:8px;">
             @if (Order.Status == 0)
             {
-                <button class="btn btn-primary btn-block" @onclick="Accept" disabled="@Acting">
-                    <AcIcon Name="check" Size="18" /> @(Store.Ui.IsArabic ? "قبول الطلب" : "Accept order")
-                </button>
-                <button class="btn btn-ghost btn-block" style="color:var(--ac-danger);border-color:var(--ac-danger);" @onclick="Reject" disabled="@Acting">
-                    <AcIcon Name="x" Size="18" /> @(Store.Ui.IsArabic ? "رفض الطلب" : "Reject order")
-                </button>
+                <AcButton Variant="primary" Block="true" Disabled="@Acting" OnClick="Accept"
+                          Text="@(Store.Ui.IsArabic ? "قبول الطلب" : "Accept order")" />
+                <AcButton Variant="outline-danger" Block="true" Disabled="@Acting" OnClick="Reject"
+                          Text="@(Store.Ui.IsArabic ? "رفض الطلب" : "Reject order")" />
             }
             @if (Order.Status == 1)
             {
-                <button class="btn btn-primary btn-block" @onclick="MarkReady" disabled="@Acting">
-                    <AcIcon Name="package" Size="18" /> @(Store.Ui.IsArabic ? "الطلب جاهز" : "Mark ready")
-                </button>
+                <AcButton Variant="primary" Block="true" Disabled="@Acting" OnClick="MarkReady"
+                          Text="@(Store.Ui.IsArabic ? "الطلب جاهز" : "Mark ready")" />
             }
             @if (Order.Status == 2)
             {
-                <button class="btn btn-primary btn-block" @onclick="MarkDelivered" disabled="@Acting">
-                    <AcIcon Name="check-circle" Size="18" /> @(Store.Ui.IsArabic ? "تم التسليم" : "Mark delivered")
-                </button>
+                <AcButton Variant="primary" Block="true" Disabled="@Acting" OnClick="MarkDelivered"
+                          Text="@(Store.Ui.IsArabic ? "تم التسليم" : "Mark delivered")" />
             }
         </div>
     </div>
