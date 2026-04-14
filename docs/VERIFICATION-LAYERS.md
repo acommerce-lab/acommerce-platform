@@ -1,121 +1,120 @@
-# The Four Verification Layers — what each catches
+# The Verification Layers — what each catches (and why none overlap)
 
-There are FOUR distinct layers, each with a different responsibility.
-Running all four gives near-complete coverage without needing manual
-screenshot review.
+Five **static** layers plus one **runtime** layer give near-complete coverage
+without manual screenshot review.  Each layer answers exactly one question;
+no question is answered by two layers.
 
 ## Quick reference
 
-| Script | Layer | Type | Catches | Example failure |
-|--------|-------|------|---------|-----------------|
-| `verify-page-structure.sh` | 1 — **Code hygiene** | Forbidden patterns | Raw `<button>`, Bootstrap classes, `<table>` | `<button class="btn">` |
-| `verify-css.sh` | 2 — **Existence** | Missing definitions | Used class has no CSS | `class="foo"` but no `.foo {}` |
-| `verify-design-tokens.sh` | 3 — **Direct values** | Raw values that should be tokens | Inline hex, off-scale font-size | `style="color:#ff0000"` |
-| `verify-design-quality.sh` | 4 — **Visual quality** | Systemic design metrics | Too many font-sizes, broken rhythm | 45 distinct font-sizes |
+| Script | Layer | Question | Scope | Unique to this layer |
+|---|---|---|---|---|
+| `verify-page-structure.sh` | 1 — Code hygiene | "Does every page use widgets correctly?" | lexical | Raw `<button>`, Bootstrap classes, inline hex in razor |
+| `verify-css.sh` | 2 — Class existence | "Does every class used in razor exist in CSS?" | semantic | Undefined classes, typos |
+| `verify-design-tokens.sh` | 3 — Per-value scale | "Is THIS value on the allowed scale?" | per-value | Off-scale font-size/spacing/icon-size, deep nesting |
+| `verify-design-quality.sh` | 4 — Per-app diversity | "How many distinct values does THIS app ship?" | per-app aggregate | Color / spacing / font-size / icon-size counts, widget distribution, sibling symmetry |
+| `verify-widget-contracts.sh` | 5 — Property contracts | "Does each widget declare its required properties?" | per-widget | Missing padding / border / background |
+| `verify-runtime.mjs` | 6 — Spatial contracts | "Do rendered elements sit where they should?" | runtime | Overlap, alignment, position, computed style |
+
+## Scope separation — why no check is duplicated
+
+The layers are stacked by **abstraction level**, not by feature area. Each
+value in the codebase is inspected by at most one aggregate check:
+
+- **Is it present?** → Layer 1 (lexical) and Layer 2 (semantic)
+- **Is it valid?** → Layer 3 asks per-value; Layer 5 asks per-widget
+- **How many distinct values?** → Layer 4 asks per-app aggregate
+- **Does it render correctly?** → Layer 6
+
+Concretely:
+
+| Concern | Sole owner | Not in… |
+|---|---|---|
+| Raw `#hex` in razor inline style | Layer 2 rule 8 | (removed from Layer 3 — was duplicate) |
+| Distinct color count | Layer 4, **per-app** (limit 60) | (removed from Layer 3 — was global count) |
+| Off-scale icon `Size="..."` | Layer 3 (per-value) | (removed from Layer 4 — kept only count) |
+| Distinct icon size count | Layer 4 (per-app, limit 6) | — |
+| Font-size value on scale | Layer 3 (per-value) | — |
+| Font-size distinct count | Layer 4 (per-app, limit 10) | — |
+| Spacing value on 4-px grid | Layer 3 (per-value) | — |
+| Spacing distinct count | Layer 4 (per-app, limit 20) | — |
+
+## Why per-app for Layer 4?
+
+A user loads exactly **one** app at a time.  Global counts summed across all
+apps (≈95 colors platform-wide) misrepresent what any single user sees.
+Layer 4 resolves each app's CSS scope from its `.csproj`:
+
+```
+scope = app's CSS + each referenced libs/frontend/<Lib>/*.css
+```
+
+With that scope, every current app ships fewer than 60 colors (range 22–42),
+fewer than 20 spacing values, 8 font-sizes, and at most 2 icon sizes —
+well inside the well-known usability limits.
 
 ## Layer-by-layer
 
 ### Layer 1 — Code Hygiene (`verify-page-structure.sh`)
-**Question it answers**: "Are pages written using the component library correctly?"
-**Catches**: Use of raw HTML instead of widget components.
-**Example**:
-```razor
-✗ <button class="btn btn-primary">Save</button>
-✓ <AcButton Variant="primary" Text="Save" />
-```
-**Failure = build breaker**.
+"Are pages written against the component library correctly?"  Forbids raw
+`<button>`, Bootstrap classes (`row`, `col-md-*`, `btn`, `card`, `alert alert-*`,
+`spinner-border`, `form-control`) and inline hex colors.  **Blocks CI.**
 
 ### Layer 2 — Class Existence (`verify-css.sh`)
-**Question**: "Does every class used in razor actually exist in CSS?"
-**Catches**: Typos, undocumented classes, components referring to nonexistent styles.
-**Example**:
-```razor
-<div class="acm-typo-class">  <!-- no CSS defines this -->
-```
-**Failure = build breaker**.
+"Does every class used in razor resolve to a CSS rule?"  Catches typos and
+dangling references.  **Blocks CI.**
 
-### Layer 3 — Direct Values (`verify-design-tokens.sh`)
-**Question**: "Are we using design tokens, or hardcoded values?"
-**Catches**: Inline hex colors, px font-sizes, odd-pixel spacing.
-**Example**:
-```razor
-✗ style="color:#ff6600;padding:13px"
-✓ style="color:var(--ac-primary);padding:var(--ac-space-md)"
-```
-**Failure = build breaker**.
+### Layer 3 — Per-Value Scale (`verify-design-tokens.sh`)
+"Is each individual value on the allowed scale?"  Inspects every inline
+`font-size`, `padding`, `margin`, `AcIcon Size=`, and razor nesting depth.
+Does **not** count distinct values — that is Layer 4's job.  **Blocks CI.**
 
-### Layer 4 — Design Quality (`verify-design-quality.sh`)
-**Question**: "Is our visual system internally consistent?"
-**Catches**: Systemic issues that no single line shows — emergent properties
-of the whole codebase:
-- **Spacing rhythm**: how many distinct spacing values are used platform-wide?
-- **Typography scale**: how many distinct font-sizes?
-- **Color palette**: how many distinct colors?
-- **Icon consistency**: are icons on a size scale?
-- **Widget distribution**: which widgets dominate (= app is well-abstracted)?
-- **Per-page sibling consistency**: does a page mix sm+lg buttons in the same view?
-- **Container hierarchy**: every page starts with approved root?
+### Layer 4 — Per-App Diversity (`verify-design-quality.sh`)
+"How many distinct values does each individual app ship?"  Iterates each
+`Apps/*/Frontend/*.csproj`, resolves its referenced libs, measures:
 
-**Example metrics from current codebase**:
-```
-Distinct spacing values: 32  ← target ≤ 20 (we use 10px, 11px, 13px, 15px, 80px, etc — no rhythm)
-Distinct font-sizes:     45  ← target ≤ 8  (MASSIVE problem — no clear hierarchy)
-Distinct colors:        119  ← target ≤ 60 (palette drift)
-Distinct icon sizes:      8  ← target ≤ 5  (too varied)
-```
+| Metric | Hard limit per app | Soft limit per app |
+|---|---|---|
+| Distinct colors | 60 | 50 |
+| Distinct spacings | 20 | 12 |
+| Distinct font-sizes | 10 | 8 |
+| Distinct icon sizes | 6 | — |
 
-**Failure = warning, not build breaker**. These metrics improve over time
-as the platform matures. Hard-fail would prevent all commits.
+Also reports top-10 widget usage and container-hierarchy conformance.
+**Report-only (exit 0)** — intended to trend over time.
 
-## Why four layers, not one?
+### Layer 5 — Widget Property Contracts (`verify-widget-contracts.sh`)
+"Does each contracted widget declare padding, border, background, color,
+font-size, border-radius as required?"  Catches MISSING properties
+(Layer 3 catches WRONG values).  **Blocks CI.**
 
-The four layers detect **increasing abstraction**:
-
-1. **Lexical**: "the string `class=\"btn\"` appears" — regex match
-2. **Semantic**: "the class named `foo` has no corresponding rule" — set comparison
-3. **Stylistic**: "this inline style uses a hex value instead of a token" — value inspection
-4. **Systemic**: "the platform uses 45 distinct font-sizes" — aggregate statistics
-
-A single-layer tool would either:
-- Flag too much (all inline styles are suspicious)
-- Miss too much (token-compliant code can still produce inconsistent designs)
-
-Multi-layer verification = each layer only asks ONE question, cleanly.
+### Layer 6 — Runtime Spatial Contracts (`verify-runtime.mjs`)
+Playwright loads each page and asserts positions, alignments, overlap,
+and computed styles from `spatial-contracts.json`.  **Blocks CI.**
 
 ## The full pipeline
 
 ```bash
-# Layer 1 — build breaker
-./scripts/verify-page-structure.sh
-
-# Layer 2 — build breaker
-./scripts/verify-css.sh
-
-# Layer 3 — build breaker
-./scripts/verify-design-tokens.sh
-
-# Layer 4 — warning + metrics
-./scripts/verify-design-quality.sh
+./scripts/verify-page-structure.sh      # Layer 1 — build breaker
+./scripts/verify-css.sh                 # Layer 2 — build breaker
+./scripts/verify-design-tokens.sh       # Layer 3 — build breaker
+./scripts/verify-design-quality.sh      # Layer 4 — report (per-app)
+./scripts/verify-widget-contracts.sh    # Layer 5 — build breaker
+./scripts/verify-runtime.sh             # Layer 6 — build breaker (Playwright)
 ```
 
-All four should run in CI. Layers 1-3 block merge. Layer 4 is a report
-that trends over time — if spacing values drop from 32 → 20, we know
-the team is tightening discipline.
+## What this does NOT cover
 
-## What this does NOT cover (still needs a browser)
-
-- **Computed color contrast** (WCAG AA 4.5:1) — needs rendered DOM
-- **Actual rendered pixel sizes** under specific fonts/zoom
+- **Computed color-contrast** beyond what Layer 6 asserts (WCAG AA is an
+  explicit spatial-contracts entry, not a universal sweep)
 - **Animation timing / jank**
-- **Viewport overflow on mobile**
-
-These require Playwright/Puppeteer. Future Phase 3 work.
+- **Viewport overflow on narrow mobile** (can be added to Layer 6 with a
+  viewport preset)
 
 ## For the designer / reviewer
 
 Instead of clicking through every page:
-1. Open `/catalog` in each app → verify the design system rendering
-2. Run `verify-design-quality.sh` → get a score
-3. If metrics trend in wrong direction, investigate that specific metric
+1. Open `/catalog` in each app → verify widget rendering.
+2. Run Layer 4 → per-app diversity score.
+3. If a metric trends wrong, investigate that metric — not every page.
 
-One URL + one script = no more screenshot reviews.
+One URL + one script = no more screenshot review.
