@@ -11,6 +11,15 @@
 .acs-settings-page,
 .acs-auth-page {
     padding: 16px;
+    width: 100%;
+    max-width: 900px;
+    margin: 0 auto;
+    box-sizing: border-box;
+}
+
+/* Full-width variants for content-heavy pages (dashboards, listings) */
+.acs-page-wide {
+    max-width: 1200px;
 }
 
 .acs-page-title {
@@ -228,6 +237,8 @@
     margin-bottom: 10px;
     cursor: pointer;
     position: relative;
+    width: 100%;
+    box-sizing: border-box;
 }
 .acs-chat-row.unread {
     background: var(--ac-bg-alt, #fff7ed);
@@ -289,10 +300,13 @@
 
 /* ── Chat page (bubbles) ──────────────────────────────────────────────── */
 .acs-msg-stream {
-    max-height: calc(100vh - 200px);
+    min-height: 400px;
+    max-height: calc(100vh - 280px);
     overflow-y: auto;
-    padding: 12px;
+    padding: 16px;
     margin-bottom: 12px;
+    width: 100%;
+    box-sizing: border-box;
 }
 .acs-bubble-wrap {
     display: flex;
@@ -538,3 +552,31 @@
 .acs-settings-info-row:first-of-type { border-top: none; }
 .acs-settings-info-row span { color: var(--ac-text-muted, #6b7280); }
 .acs-settings-info-row strong { color: var(--ac-text, #1a1a1a); }
+
+/* ── Filter bar (widget) ──────────────────────────────────────────────── */
+.acs-filter-bar {
+    display: flex;
+    gap: 12px;
+    padding: 14px;
+    background: var(--ac-surface);
+    border: 1px solid var(--ac-border);
+    border-radius: var(--ac-radius-md);
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+    align-items: end;
+}
+
+/* ── Location picker (widget) ─────────────────────────────────────────── */
+.acs-location-picker {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+/* ── Section title (reused across templates) ─────────────────────────── */
+.acs-section-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin: 16px 0 10px;
+    color: var(--ac-text);
+}

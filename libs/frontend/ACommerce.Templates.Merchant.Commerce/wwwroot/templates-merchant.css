@@ -1,0 +1,39 @@
+/* =========================================================================
+   ACommerce.Templates.Merchant.Commerce — CSS for merchant-side templates
+   ========================================================================= */
+
+/* Order item inside a vendor order card */
+.acm-item-title {
+    font-weight: 600;
+    color: var(--ac-text);
+}
+
+/* Toggle row (used in offer form for "available" flag) */
+.acm-toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 0;
+    border-top: 1px solid var(--ac-border);
+    margin-top: 12px;
+}
+.acm-toggle-row label { font-weight: 500; }
+
+/* ── Vendor order card ────────────────────────────────────────────────── */
+.acm-order-card { padding: 16px; background: var(--ac-surface); border: 1px solid var(--ac-border); border-radius: var(--ac-radius-md); margin-bottom: 12px; box-shadow: var(--ac-shadow-sm); }
+.acm-order-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid var(--ac-border); }
+.acm-order-info { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+.acm-order-meta { color: var(--ac-text-muted); font-size: 0.85rem; }
+.acm-order-items { margin: 12px 0; }
+.acm-order-item-row { display: flex; justify-content: space-between; padding: 6px 0; font-size: 0.9rem; }
+.acm-order-total-row { display: flex; justify-content: space-between; padding-top: 10px; border-top: 1px solid var(--ac-border); margin-top: 10px; }
+.acm-order-total { font-weight: 700; color: var(--ac-primary); font-size: 1.1rem; }
+.acm-order-actions { display: flex; gap: 8px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--ac-border); flex-wrap: wrap; }
+.acm-order-row { display: flex; justify-content: space-between; padding: 10px 14px; margin-bottom: 8px; background: var(--ac-surface); border: 1px solid var(--ac-border); border-radius: var(--ac-radius-md); }
+
+/* ── Schedule (work hours) ────────────────────────────────────────────── */
+.acm-schedule-row { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid var(--ac-border); gap: 12px; flex-wrap: wrap; }
+.acm-schedule-row:last-child { border-bottom: none; }
+.acm-schedule-day { font-weight: 600; min-width: 80px; }
+.acm-schedule-hours { color: var(--ac-text-muted); font-size: 0.9rem; }
+.acm-schedule-closed { color: var(--ac-danger); font-style: italic; }

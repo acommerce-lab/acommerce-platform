@@ -1,0 +1,161 @@
+/* =========================================================================
+   ACommerce.Templates.Marketplace — CSS for marketplace-specific components
+   ========================================================================= */
+
+/* ── Booking card ─────────────────────────────────────────────────────── */
+.acm-booking-card {
+    background: var(--ac-surface);
+    border: 1px solid var(--ac-border);
+    border-radius: var(--ac-radius-md);
+    padding: 16px;
+    margin-bottom: 12px;
+    box-shadow: var(--ac-shadow-sm);
+}
+.acm-booking-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--ac-border);
+}
+.acm-booking-listing-title { font-weight: 700; font-size: 1.05rem; }
+.acm-booking-status {
+    padding: 4px 12px;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    background: color-mix(in srgb, var(--ac-info) 14%, transparent);
+    color: var(--ac-info);
+}
+.acm-booking-info {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+.acm-booking-customer { font-weight: 600; }
+.acm-booking-dates { color: var(--ac-text-muted); font-size: 0.88rem; }
+.acm-booking-price,
+.acm-booking-total {
+    font-weight: 700;
+    color: var(--ac-primary);
+    font-size: 1.1rem;
+}
+.acm-booking-notes {
+    background: var(--ac-bg-alt);
+    padding: 10px 12px;
+    border-radius: var(--ac-radius-sm);
+    margin-top: 10px;
+    font-size: 0.88rem;
+    color: var(--ac-text-muted);
+}
+.acm-booking-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--ac-border);
+    flex-wrap: wrap;
+}
+
+/* Compact booking row (used in owner dashboard) */
+.acm-booking-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 14px;
+    margin-bottom: 8px;
+    background: var(--ac-surface);
+    border: 1px solid var(--ac-border);
+    border-radius: var(--ac-radius-md);
+    gap: 12px;
+}
+.acm-booking-row-info { flex: 1; min-width: 0; }
+.acm-booking-row-meta {
+    color: var(--ac-text-muted);
+    font-size: 0.82rem;
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+/* ── Listing card ─────────────────────────────────────────────────────── */
+.acm-listing-card {
+    background: var(--ac-surface);
+    border: 1px solid var(--ac-border);
+    border-radius: var(--ac-radius-md);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    box-shadow: var(--ac-shadow-sm);
+    transition: box-shadow var(--ac-transition), transform var(--ac-transition);
+}
+.acm-listing-card:hover {
+    box-shadow: var(--ac-shadow-md);
+    transform: translateY(-2px);
+}
+.acm-listing-badges {
+    display: flex;
+    gap: 6px;
+    padding: 8px 12px;
+    flex-wrap: wrap;
+}
+.acm-listing-featured {
+    background: var(--ac-secondary, #f59e0b);
+    color: #fff;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+.acm-listing-actions {
+    padding: 12px;
+    margin-top: auto;
+    border-top: 1px solid var(--ac-border);
+    display: flex;
+    gap: 8px;
+}
+
+/* ── Full listing card (expanded) ─────────────────────────────────────── */
+.acm-listing-header { display: flex; gap: 12px; padding: 12px; align-items: flex-start; }
+.acm-listing-thumb { width: 80px; height: 80px; border-radius: var(--ac-radius-sm); background: var(--ac-bg-alt); flex-shrink: 0; overflow: hidden; }
+.acm-listing-info { flex: 1; min-width: 0; }
+.acm-listing-title-row { display: flex; justify-content: space-between; gap: 8px; margin-bottom: 4px; }
+.acm-listing-title { font-weight: 700; }
+.acm-listing-meta { color: var(--ac-text-muted); font-size: 0.85rem; }
+.acm-listing-owner { color: var(--ac-text-muted); font-size: 0.85rem; margin-top: 4px; }
+.acm-listing-price { color: var(--ac-primary); font-weight: 700; font-size: 1.05rem; }
+
+/* ── Plan card ────────────────────────────────────────────────────────── */
+.acm-plan-card { padding: 20px; background: var(--ac-surface); border: 1px solid var(--ac-border); border-radius: var(--ac-radius-md); margin-bottom: 12px; }
+.acm-plan-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+.acm-plan-price { font-size: 1.5rem; font-weight: 700; color: var(--ac-primary); }
+
+/* ── Subscription card ────────────────────────────────────────────────── */
+.acm-subscription-card, .acm-sub-details-card {
+    padding: 20px;
+    background: var(--ac-surface);
+    border: 1px solid var(--ac-border);
+    border-radius: var(--ac-radius-md);
+    margin-bottom: 16px;
+}
+.acm-sub-header, .acm-sub-details-header { display: flex; justify-content: space-between; margin-bottom: 12px; }
+.acm-sub-plan-name { font-weight: 700; font-size: 1.1rem; }
+.acm-sub-desc { color: var(--ac-text-muted); font-size: 0.9rem; margin-bottom: 8px; }
+.acm-sub-monthly-price, .acm-sub-details-price { font-size: 1.4rem; font-weight: 700; color: var(--ac-primary); }
+.acm-sub-expiry { font-size: 0.85rem; color: var(--ac-text-muted); }
+.acm-sub-footer { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--ac-border); }
+.acm-sub-cancel-section { margin-top: 16px; padding: 12px; background: color-mix(in srgb, var(--ac-danger) 8%, transparent); border-radius: var(--ac-radius-sm); }
+
+/* ── Quota widgets ────────────────────────────────────────────────────── */
+.acm-quota-card { padding: 16px; background: var(--ac-surface); border: 1px solid var(--ac-border); border-radius: var(--ac-radius-md); margin-bottom: 12px; }
+.acm-quota-row { display: flex; justify-content: space-between; margin-bottom: 6px; }
+.acm-quota-label { font-size: 0.88rem; color: var(--ac-text-muted); }
+.acm-quota-bar { height: 8px; background: var(--ac-bg-alt); border-radius: 4px; overflow: hidden; }
+.acm-quota-fill { height: 100%; background: var(--ac-primary); border-radius: 4px; transition: width 300ms; }
+.acm-quota-fill-featured { background: var(--ac-secondary, #f59e0b); }
+
+/* ── Quick actions dashboard row ──────────────────────────────────────── */
+.acm-quick-actions { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 16px; }

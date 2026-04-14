@@ -712,3 +712,20 @@ textarea.form-control, textarea.form-input { min-height: 6rem; resize: vertical;
 .overflow-hidden   { overflow: hidden !important; }
 .overflow-auto     { overflow: auto !important; }
 
+
+/* =========================================================================
+   Additional utility classes — added to close the used-vs-defined gap
+   ========================================================================= */
+.ac-align-center { align-items: center !important; }
+.ac-text-strong  { font-weight: var(--ac-font-weight-bold, 600); }
+.ac-link-plain   { color: inherit; text-decoration: none; }
+.ac-link-plain:hover { color: inherit; text-decoration: none; }
+
+/* Small variants for form controls (used in compact search bars) */
+.form-control-sm,
+.form-select-sm,
+.form-input-sm {
+    font-size: var(--ac-font-size-sm);
+    padding: 6px 10px;
+    min-height: 36px;
+}
