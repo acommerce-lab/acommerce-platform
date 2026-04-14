@@ -9,7 +9,7 @@ Short answer:
 - The missing 15% requires runtime (browser-based) checks.
 - This document is honest about where each approach succeeds and fails.
 
-## The Five Layers — what each actually catches
+## The Six Layers — what each actually catches
 
 | Layer | Catches WRONG value? | Catches MISSING property? | Catches VISUAL adjacency? |
 |-------|---------------------|---------------------------|---------------------------|
@@ -17,8 +17,8 @@ Short answer:
 | 2. `verify-css.sh` | — | ✓ (undefined class) | ✗ |
 | 3. `verify-design-tokens.sh` | ✓ (off-scale px) | ✗ | ✗ |
 | 4. `verify-design-quality.sh` | ✓ (too many sizes) | ✗ | ✗ |
-| **5. `verify-widget-contracts.sh`** | **✓ (value < min)** | **✓ (property missing)** | ✗ |
-| 6. Runtime (Playwright) | ✓ | ✓ | **✓** |
+| 5. `verify-widget-contracts.sh` | ✓ (value < min) | ✓ (property missing in CSS) | ✗ |
+| **6. `verify-runtime.sh` (Playwright)** | **✓** | **✓ (at computed style)** | **✓ (bounding rects)** |
 
 ## Layer 5 — Widget Contracts (catches MISSING features)
 
@@ -106,11 +106,31 @@ test('every ac-input has visible padding at runtime', async ({ page }) => {
 - Reviewing it ONCE = verifying the design system
 - If catalog is correct + all pages use only catalog widgets, pages are correct
 
-### Phase 3 (future): Runtime verification
-- Playwright/Puppeteer script loads each page
-- Extracts `getComputedStyle` for key elements
-- Asserts: padding ≥ 8px, min-height ≥ 40px, contrast ≥ 4.5
-- Only needed for the 15% that static can't catch
+### Phase 3 (done): Runtime verification — `scripts/verify-runtime.mjs`
+Playwright-based script that:
+- Loads every `/catalog` page in a headless Chromium
+- Extracts `getComputedStyle` for every contract selector (.ac-input, .ac-btn, etc.)
+- For each element instance asserts:
+  - padding ≥ contract min (real computed, not declared)
+  - min-height ≥ contract min
+  - border-width ≥ contract min
+  - background is not rgba(...,0) — invisible element check
+  - font-weight ≥ contract min
+
+Usage:
+```bash
+# First time:
+cd scripts && npm install && npx playwright install chromium
+
+# Then (apps must be running):
+./scripts/verify-runtime.sh
+```
+
+This catches the LAST 15% that static layers can't:
+- CSS cascade specificity conflicts
+- Actually rendered pixel dimensions
+- Empty/transparent backgrounds due to `!important` loss
+- Real `offsetHeight` of rendered elements
 
 ## The Honest Limits
 
@@ -128,18 +148,17 @@ runtime for the rest."
 ## The Practical Workflow
 
 ```bash
-# Every commit:
+# Every commit (all static — fast):
 ./scripts/verify-page-structure.sh     # Layer 1
 ./scripts/verify-css.sh                 # Layer 2
 ./scripts/verify-design-tokens.sh       # Layer 3
-./scripts/verify-widget-contracts.sh    # Layer 5 — THE MISSING-FEATURES check
+./scripts/verify-widget-contracts.sh    # Layer 5 — missing-features check
 
 # Weekly / pre-release:
 ./scripts/verify-design-quality.sh      # Layer 4 — design drift report
-# + visit /catalog in each app        — visual spot-check
 
-# Pre-release (future):
-npx playwright test                      # Layer 6 — runtime
+# After running apps locally (or in CI with services up):
+./scripts/verify-runtime.sh             # Layer 6 — real browser rendering
 ```
 
 If all layers pass AND the catalog looks right, the app is correct.

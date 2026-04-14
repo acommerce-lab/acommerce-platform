@@ -16,3 +16,4 @@ obj/
 .vs/
 .vscode/
 .idea/
+scripts/node_modules/
