@@ -4,7 +4,7 @@
    the merchant app visually from the customer app.
    ========================================================================= */
 :root {
-    --ac-primary:         #0D9488;
+    --ac-primary:         #0f766e;
     --ac-primary-hover:   #0F766E;
     --ac-primary-soft:    #ECFDF5;
     --ac-on-primary:      #ffffff;
@@ -70,8 +70,8 @@ body {
     transition: background-color 180ms, color 180ms;
 }
 
-a { color: var(--ac-primary); text-decoration: none; }
-a:hover { color: var(--ac-primary-hover); }
+a { color: var(--ac-link); text-decoration: underline; text-underline-offset: 2px; }
+a:hover { color: var(--ac-link-hover); }
 img { max-width: 100%; }
 
 /* ── Shell ────────────────────────────────────────────────────────────── */

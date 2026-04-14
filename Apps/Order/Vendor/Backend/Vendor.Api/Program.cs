@@ -39,7 +39,7 @@ EntityDiscoveryRegistry.RegisterEntity(typeof(IncomingOrder));
 // ─── Database (own SQLite — separate from Order.Api) ─────────────────────
 Directory.CreateDirectory("data");
 builder.Services.AddACommerceSQLite(
-    builder.Configuration["Database:ConnectionString"] ?? "Data Source=data/vendor.db");
+    builder.Configuration["Database:ConnectionString"] ?? "Data Source=data/order-platform.db");
 
 // ─── MVC + Swagger + CORS ────────────────────────────────────────────────
 builder.Services.AddControllers();

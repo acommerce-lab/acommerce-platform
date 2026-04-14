@@ -74,8 +74,8 @@ body {
     -webkit-font-smoothing: antialiased;
 }
 
-a { color: var(--ac-primary); text-decoration: none; }
-a:hover { color: var(--ac-primary-hover); }
+a { color: var(--ac-link); text-decoration: underline; text-underline-offset: 2px; }
+a:hover { color: var(--ac-link-hover); }
 /* Links wrapping buttons should not interfere with button styling */
 a:has(> .ac-btn), a:has(> button) { text-decoration: none !important; color: inherit !important; display: contents; }
 a > .ac-btn { width: 100%; }

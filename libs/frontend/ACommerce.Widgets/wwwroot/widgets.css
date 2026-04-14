@@ -30,6 +30,13 @@
     --ac-secondary-hover:  #5c636a;
     --ac-on-secondary:     #ffffff;
 
+    /* Dedicated link colour — intentionally darker than --ac-primary so
+       anchor-on-surface text passes WCAG AA 4.5:1.  Apps may override by
+       setting --ac-link in their own :root.  Fallback to color-mix against
+       black (15%) if app doesn't override. */
+    --ac-link:       color-mix(in srgb, var(--ac-primary) 70%, #000 30%);
+    --ac-link-hover: color-mix(in srgb, var(--ac-primary) 55%, #000 45%);
+
     --ac-success: #198754;
     --ac-danger:  #dc3545;
     --ac-warning: #ffc107;
@@ -108,6 +115,7 @@ h1:focus, h2:focus, h3:focus { outline: none; }
     border: 1px solid transparent;
     border-radius: var(--ac-radius-md);
     cursor: pointer;
+    box-sizing: border-box;
     transition: background var(--ac-transition), border-color var(--ac-transition), color var(--ac-transition), box-shadow var(--ac-transition);
     text-decoration: none;
     user-select: none;
@@ -147,13 +155,14 @@ h1:focus, h2:focus, h3:focus { outline: none; }
     border-radius: var(--ac-radius-lg);
     box-shadow: var(--ac-shadow-sm);
     overflow: visible;
+    box-sizing: border-box;
     transition: box-shadow var(--ac-transition), transform var(--ac-transition);
 }
 .ac-card-hover:hover { box-shadow: var(--ac-shadow-md); transform: translateY(-2px); }
 
-.ac-card-header { padding: var(--ac-space-md) var(--ac-space-lg); border-bottom: 1px solid var(--ac-border); }
-.ac-card-body   { padding: var(--ac-space-lg); }
-.ac-card-footer { padding: var(--ac-space-md) var(--ac-space-lg); border-top: 1px solid var(--ac-border); background: var(--ac-bg-alt); }
+.ac-card-header { padding: var(--ac-space-md) var(--ac-space-lg); border-bottom: 1px solid var(--ac-border); box-sizing: border-box; }
+.ac-card-body   { padding: var(--ac-space-lg); box-sizing: border-box; }
+.ac-card-footer { padding: var(--ac-space-md) var(--ac-space-lg); border-top: 1px solid var(--ac-border); background: var(--ac-bg-alt); box-sizing: border-box; }
 
 /* =========================================================================
    Input (.ac-input)
@@ -173,6 +182,7 @@ h1:focus, h2:focus, h3:focus { outline: none; }
     background: var(--ac-surface);
     border: 1px solid var(--ac-border);
     border-radius: var(--ac-radius-md);
+    box-sizing: border-box;
     transition: border-color var(--ac-transition), box-shadow var(--ac-transition);
 }
 .ac-input:focus, .ac-select:focus, .ac-textarea:focus {
@@ -209,6 +219,7 @@ h1:focus, h2:focus, h3:focus { outline: none; }
     border-radius: var(--ac-radius-md);
     margin-bottom: var(--ac-space-md);
     background: var(--ac-bg-alt);
+    box-sizing: border-box;
 }
 .ac-alert-info    { background: color-mix(in srgb, var(--ac-info)    12%, transparent); border-color: var(--ac-info);    color: var(--ac-text); }
 .ac-alert-success { background: color-mix(in srgb, var(--ac-success) 12%, transparent); border-color: var(--ac-success); color: var(--ac-text); }

@@ -360,6 +360,188 @@ async function verifyContrast(page) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════
+// L. Box-model hygiene — border-box + symmetric padding guarantees a
+// widget stays inside its frame regardless of parent width/flex behavior.
+// ═══════════════════════════════════════════════════════════════════════
+async function verifyBoxModel(page) {
+    for (const rule of (spatial.box_model_rules || [])) {
+        const max = rule.max_violations ?? 10;
+        const els = await page.$$(rule.selector);
+        let count = 0;
+        if (rule.rule === 'box-sizing-border-box') {
+            for (const el of els) {
+                if (count >= max) break;
+                const data = await el.evaluate(n => {
+                    if (!n.offsetParent) return null;
+                    return { boxSizing: getComputedStyle(n).boxSizing, cls: n.className.slice(0, 60) };
+                });
+                if (!data) continue;
+                if (data.boxSizing !== 'border-box') {
+                    recordViolation('L-box-model', `${rule.selector}: "${data.cls}" computed box-sizing=${data.boxSizing} (expected border-box) — padding may push element outside its frame`, rule.selector);
+                    count++;
+                }
+            }
+        } else if (rule.rule === 'symmetric-padding') {
+            const minPad = rule.min_padding_px ?? 4;
+            for (const el of els) {
+                if (count >= max) break;
+                const data = await el.evaluate(n => {
+                    if (!n.offsetParent) return null;
+                    const s = getComputedStyle(n);
+                    return {
+                        top: parseFloat(s.paddingTop) || 0,
+                        right: parseFloat(s.paddingRight) || 0,
+                        bottom: parseFloat(s.paddingBottom) || 0,
+                        left: parseFloat(s.paddingLeft) || 0,
+                        cls: n.className.slice(0, 60)
+                    };
+                });
+                if (!data) continue;
+                const sides = [data.top, data.right, data.bottom, data.left];
+                const zeros = sides.filter(v => v < minPad).length;
+                if (zeros > 0) {
+                    recordViolation('L-box-model', `${rule.selector}: "${data.cls}" padding (${data.top}/${data.right}/${data.bottom}/${data.left}) — ${zeros} side(s) below ${minPad}px minimum`, rule.selector);
+                    count++;
+                }
+            }
+        }
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// H. Text overflow — scrollWidth > clientWidth means text bleeds out
+// ═══════════════════════════════════════════════════════════════════════
+async function verifyTextOverflow(page) {
+    for (const rule of (spatial.text_overflow_rules || [])) {
+        const max = rule.max_violations ?? 10;
+        let count = 0;
+        const elements = await page.$$(rule.selector);
+        for (const el of elements) {
+            if (count >= max) break;
+            const info = await el.evaluate(n => {
+                if (!n.offsetParent) return null;
+                const overflowX = n.scrollWidth - n.clientWidth;
+                const overflowY = n.scrollHeight - n.clientHeight;
+                const text = (n.textContent || '').trim().slice(0, 40);
+                return { overflowX, overflowY, text, tag: n.tagName.toLowerCase() };
+            });
+            if (!info) continue;
+            // Allow 2-pixel rounding slack; > 2px means real overflow
+            if (info.overflowX > 2) {
+                recordViolation('H-overflow', `${rule.selector}: "${info.text}" overflows ${info.overflowX}px horizontally`, rule.selector);
+                count++;
+            }
+        }
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// I. Cluster atomicity — stat cards where icon/value/label lost their layout
+// ═══════════════════════════════════════════════════════════════════════
+async function verifyClusterAtomicity(page) {
+    for (const rule of (spatial.cluster_atomicity_rules || [])) {
+        const max = rule.max_violations ?? 5;
+        let count = 0;
+        const cards = await page.$$(rule.container);
+        for (const c of cards) {
+            if (count >= max) break;
+            const h = await c.evaluate(n => {
+                if (!n.offsetParent) return null;
+                return n.getBoundingClientRect().height;
+            });
+            if (h && h > (rule.max_intra_card_height_px ?? 200)) {
+                recordViolation('I-cluster', `${rule.container} is ${h.toFixed(0)}px tall (>${rule.max_intra_card_height_px}px) — children likely un-gridded`, rule.container);
+                count++;
+            }
+        }
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// J. Template compliance — the top-level shell itself AND its navbar/footer
+// must receive non-default template styling (background or border).  "Has
+// children" is NOT enough: a shell with zero background + zero border is
+// indistinguishable from raw page flow — a clear sign the template CSS
+// failed to load or was not linked for this app.
+// ═══════════════════════════════════════════════════════════════════════
+async function verifyTemplateCompliance(page) {
+    for (const rule of (spatial.template_compliance_rules || [])) {
+        const approvedSelectors = rule.approved_shell_selectors || [];
+        const result = await page.evaluate(selectors => {
+            const check = el => {
+                if (!el) return null;
+                const s = getComputedStyle(el);
+                const bg = s.backgroundColor;
+                const hasBg = bg !== 'rgba(0, 0, 0, 0)' && bg !== 'transparent';
+                const borders = ['Top','Right','Bottom','Left'].map(d => parseFloat(s['border'+d+'Width'])||0);
+                const hasBorder = borders.some(b => b > 0);
+                return { bg, hasBg, hasBorder, borders };
+            };
+            // Shell itself
+            let shell = null;
+            for (const sel of selectors) {
+                const el = document.querySelector(sel);
+                if (el) { shell = { sel, ...check(el) }; break; }
+            }
+            if (!shell) return { noShell: true, fallback: document.body.children[0]?.tagName };
+            // Navbar inside shell
+            const navEl = document.querySelector('nav, header, .act-navbar, .adm-navbar, .ord-bottom-nav, .vnd-bottom-nav');
+            const nav   = navEl ? { tag: navEl.tagName.toLowerCase(), cls: navEl.className, ...check(navEl) } : null;
+            // Footer
+            const footEl = document.querySelector('footer, .act-footer');
+            const foot   = footEl ? { tag: footEl.tagName.toLowerCase(), ...check(footEl) } : null;
+            return { shell, nav, foot };
+        }, approvedSelectors);
+
+        if (result.noShell) {
+            recordViolation('J-template', `no top-level shell found matching ${approvedSelectors.join(' / ')} (body starts with <${result.fallback}>)`, 'shell');
+            continue;
+        }
+        if (!result.shell.hasBg && !result.shell.hasBorder) {
+            recordViolation('J-template', `${result.shell.sel}: shell has no background and no border (template CSS likely not loaded)`, result.shell.sel);
+        }
+        if (result.nav && !result.nav.hasBg && !result.nav.hasBorder) {
+            recordViolation('J-template', `<${result.nav.tag} class="${result.nav.cls}">: navbar has no background and no border — template CSS missing`, 'navbar');
+        }
+        if (result.foot && !result.foot.hasBg && !result.foot.hasBorder) {
+            recordViolation('J-template', `<${result.foot.tag}>: footer has no background and no border — template CSS missing`, 'footer');
+        }
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// K. UI-only operations must not fire /api/ requests when toggled
+// ═══════════════════════════════════════════════════════════════════════
+async function verifyUiOnlyOps(page, url) {
+    for (const rule of (spatial.ui_only_ops_rules || [])) {
+        // Only run on /settings pages — that's where language/theme toggles live
+        if (!/\/settings(\?|$)/.test(url)) continue;
+        // Locate a candidate toggle (button with Arabic/English labels inside)
+        const toggle = await page.evaluateHandle(() => {
+            const all = [...document.querySelectorAll('button')];
+            return all.find(b => {
+                const t = (b.textContent || '').trim();
+                return /English|عربي|عربية|ar|en/i.test(t) && t.length < 20;
+            }) || null;
+        });
+        const el = toggle.asElement();
+        if (!el) continue;
+        // Install a request sniffer for /api/* and click
+        const captured = [];
+        const handler = req => { if (req.url().includes('/api/')) captured.push(req.url()); };
+        page.on('request', handler);
+        try {
+            await el.click();
+            await page.waitForTimeout(800);
+        } catch {}
+        page.off('request', handler);
+        if (captured.length > 0) {
+            recordViolation('K-ui-op-routed', `language/theme toggle on ${url} fired ${captured.length} /api/* request(s); first: ${captured[0]}`, 'settings-lang-btn');
+        }
+    }
+}
+
 async function verifyUrl(browser, url) {
     currentUrlReport = { url, status: 'loaded', violations: [] };
     REPORT.urls.push(currentUrlReport);
@@ -381,6 +563,11 @@ async function verifyUrl(browser, url) {
         await verifyNoOverlap(page);
         await verifyComputedValues(page);
         await verifyContrast(page);
+        await verifyTextOverflow(page);
+        await verifyClusterAtomicity(page);
+        await verifyTemplateCompliance(page);
+        await verifyBoxModel(page);
+        await verifyUiOnlyOps(page, url);
     } catch (e) {
         currentUrlReport.error = String(e).slice(0, 200);
     }

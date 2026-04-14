@@ -62,14 +62,14 @@ switch (dbProvider.ToLowerInvariant())
 {
     case "sqlite":
         Directory.CreateDirectory("data");
-        builder.Services.AddACommerceSQLite(dbConnection ?? "Data Source=data/order-admin.db");
+        builder.Services.AddACommerceSQLite(dbConnection ?? "Data Source=data/order-platform.db");
         break;
 
     case "sqlserver":
         if (string.IsNullOrWhiteSpace(dbConnection) || dbConnection.Contains("${"))
         {
             Log.Warning("Database:ConnectionString غير مُعيّن في env vars - الرجوع لـ InMemory");
-            builder.Services.AddACommerceInMemoryDatabase("OrderAdminDb");
+            builder.Services.AddACommerceInMemoryDatabase("OrderPlatformDb");
         }
         else
         {
@@ -80,7 +80,7 @@ switch (dbProvider.ToLowerInvariant())
 
     default:
         Log.Information("Using InMemory database");
-        builder.Services.AddACommerceInMemoryDatabase("OrderAdminDb");
+        builder.Services.AddACommerceInMemoryDatabase("OrderPlatformDb");
         break;
 }
 

@@ -1,7 +1,7 @@
 @page "/settings"
 @rendermode InteractiveServer
 @inject AppStore Store
-@inject ClientOpEngine Engine
+@inject AppStateApplier Applier
 @inject NavigationManager Nav
 @implements IDisposable
 
@@ -47,10 +47,10 @@
     private void OnStoreChanged() => InvokeAsync(StateHasChanged);
 
     private async Task OnThemeChange(string t) =>
-        await Engine.ExecuteAsync<object>(ClientOps.SetTheme(t), new { });
+        await Applier.ApplyLocalAsync(ClientOps.SetTheme(t));
 
     private async Task OnLanguageChange(string l) =>
-        await Engine.ExecuteAsync<object>(ClientOps.SetLanguage(l), new { });
+        await Applier.ApplyLocalAsync(ClientOps.SetLanguage(l));
 
     public void Dispose() => Store.OnChanged -= OnStoreChanged;
 }

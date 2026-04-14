@@ -54,10 +54,10 @@ switch (dbProvider.ToLowerInvariant())
 {
     case "sqlite":
         Directory.CreateDirectory("data");
-        builder.Services.AddACommerceSQLite(dbConnection ?? "Data Source=data/order.db");
+        builder.Services.AddACommerceSQLite(dbConnection ?? "Data Source=data/order-platform.db");
         break;
     default:
-        builder.Services.AddACommerceInMemoryDatabase("OrderApiDb");
+        builder.Services.AddACommerceInMemoryDatabase("OrderPlatformDb");
         break;
 }
 

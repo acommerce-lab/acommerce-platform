@@ -1,7 +1,7 @@
 @page "/settings"
 @rendermode InteractiveServer
 @inject AppStore Store
-@inject ClientOpEngine Engine
+@inject AppStateApplier Applier
 @implements IDisposable
 
 <PageTitle>@Store.Ui.Tr("الإعدادات", "Settings") - عشير للمُلاّك</PageTitle>
@@ -12,8 +12,8 @@
                 LanguageLabel="@Store.Ui.Tr("اللغة", "Language")"
                 LightLabel="@Store.Ui.Tr("فاتح", "Light")"
                 DarkLabel="@Store.Ui.Tr("داكن", "Dark")"
-                OnThemeChange="@(t => Engine.ExecuteAsync<object>(ClientOps.SetTheme(t), new {}))"
-                OnLanguageChange="@(l => Engine.ExecuteAsync<object>(ClientOps.SetLanguage(l), new {}))">
+                OnThemeChange="@(t => Applier.ApplyLocalAsync(ClientOps.SetTheme(t)))"
+                OnLanguageChange="@(l => Applier.ApplyLocalAsync(ClientOps.SetLanguage(l)))">
     <ExtraSections>
         @if (Store.Auth.IsAuthenticated)
         {

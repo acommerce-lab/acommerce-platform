@@ -105,6 +105,45 @@ while IFS=: read -r file line content; do
     report "no-form-control" "$(realpath --relative-to="$ROOT" "$file")" "$line" "$content"
 done < <(grep -HnE 'class="[^"]*\bform-control\b(?![-])' $FILES 2>/dev/null || true)
 
+# Rule 10: UI-only operations must not dispatch to the HTTP engine.
+# SetLanguage / SetTheme / SignOut are pure client-side state mutations — they
+# MUST be applied via Applier.ApplyLocalAsync (or UiPreferences.*).  Passing
+# them to Engine.ExecuteAsync / Engine.DispatchAsync round-trips to the
+# backend for no reason and breaks language/theme toggling when the API is
+# down or unauthenticated.
+while IFS=: read -r file line content; do
+    [ -z "$file" ] && continue
+    report "ui-op-routed-to-http" "$(realpath --relative-to="$ROOT" "$file")" "$line" "$content"
+done < <(grep -HnE 'Engine\.(Execute|Dispatch)[A-Za-z]*\Async.*ClientOps\.(SetLanguage|SetTheme|SignOut|SetRtl)' $FILES 2>/dev/null || true)
+
+# Rule 11: Consumed RCL CSS cohesion.
+# For each App frontend, cross-check that App.razor links the CSS of every
+# libs/frontend/<Lib> that the .csproj references.  If a template widget is
+# used via ProjectReference but its CSS is never linked, the widget renders
+# unstyled at runtime (e.g. AcShell falling back to browser defaults).
+echo ""
+echo "--- Rule 11: RCL CSS cohesion (App.razor links every referenced frontend lib CSS) ---"
+while IFS= read -r csproj; do
+    [ -z "$csproj" ] && continue
+    app_dir=$(dirname "$csproj")
+    app_razor="$app_dir/Components/App.razor"
+    [ -f "$app_razor" ] || continue
+    # Library project references → package IDs expected in _content/<Pkg>/
+    refs=$(grep -oE 'libs[/\\]frontend[/\\][^"]+\.csproj' "$csproj" 2>/dev/null | \
+           tr '\\' '/' | sed 's|.*libs/frontend/||; s|/[^/]*\.csproj$||' | sort -u)
+    # _content/<Pkg>/ links actually present in App.razor
+    links=$(grep -oE '_content/[^/]+/' "$app_razor" | sed 's|_content/||; s|/$||' | sort -u)
+    for pkg in $refs; do
+        # Skip libs that contain NO css (only .razor components).
+        # `|| true` guards against SIGPIPE tripping `set -eo pipefail`.
+        has_css=$(ls "$ROOT/libs/frontend/$pkg/wwwroot"/*.css 2>/dev/null || true)
+        [ -z "$has_css" ] && continue
+        if ! echo "$links" | grep -qxF "$pkg" ; then
+            report "missing-css-link [$pkg]" "$(realpath --relative-to="$ROOT" "$app_razor")" "1" "referenced via .csproj but App.razor doesn't link _content/$pkg/*.css"
+        fi
+    done
+done < <(find "$ROOT/Apps" -name '*.csproj' -path '*/Frontend/*' -not -path '*/bin/*' -not -path '*/obj/*' 2>/dev/null | sort)
+
 echo ""
 echo "=== Report ==="
 if [ "$VIOLATIONS" -gt 0 ]; then

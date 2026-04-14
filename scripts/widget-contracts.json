@@ -61,6 +61,24 @@
       "description": "Alert must stand out from page with background + padding",
       "required": ["padding", "background", "border-radius"],
       "min-values": { "padding": 9, "border-radius": 4 }
+    },
+    ".act-bubble": {
+      "description": "Chat bubble must have padding on all sides and a background fill that visually contains its text (no overflow past the coloured pill).",
+      "required": ["padding", "background", "border-radius"],
+      "min-values": { "padding": 6, "border-radius": 4 }
+    },
+    ".s-card": {
+      "description": "Generic card (AcStatsGrid, settings panel, dashboard tiles). Must have background + border so the card shape is visible.",
+      "required": ["background", "border", "border-radius", "padding"],
+      "min-values": { "border-width": 1, "border-radius": 4, "padding": 8 }
+    },
+    ".act-navbar": {
+      "description": "Top navbar shell — needs a non-transparent background AND a visible bottom border. Horizontal padding is legitimately 0 because .act-navbar-inner controls the inner margin, so don't require padding here.",
+      "required": ["background"]
+    },
+    ".act-footer": {
+      "description": "Bottom footer — needs a top border or a distinguishing background to separate it from page content. Horizontal padding optional.",
+      "required": ["background"]
     }
   }
 }

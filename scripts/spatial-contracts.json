@@ -41,6 +41,18 @@
       "rule": "child-inside-parent-bounds",
       "description": "Page children must not overflow container horizontally",
       "axis": "horizontal"
+    },
+    {
+      "parent": ".act-chat-list, .ord-chat-list",
+      "children": ".act-bubble, .ord-chat-bubble",
+      "rule": "child-inside-parent-bounds",
+      "description": "Chat bubbles must not escape their chat-list container"
+    },
+    {
+      "parent": ".act-bubble, .ord-chat-bubble",
+      "children": "*",
+      "rule": "child-inside-parent-bounds",
+      "description": "Text and time labels must stay inside the visible bubble fill (no spilling past the coloured pill)"
     }
   ],
 
@@ -95,6 +107,66 @@
       "min_ratio": 4.5,
       "description": "WCAG AA — text vs background contrast ≥ 4.5:1",
       "max_violations": 10
+    }
+  ],
+
+  "text_overflow_rules": [
+    {
+      "selector": ".act-bubble, .ac-card, .ac-alert, .ac-btn, .acs-page > *, .ord-bottom-nav",
+      "rule": "text-content-not-overflowing",
+      "description": "Rendered text must not extend past its parent's clientWidth (scrollWidth > clientWidth indicates horizontal clipping/overflow)",
+      "max_violations": 10
+    }
+  ],
+
+  "box_model_rules": [
+    {
+      "selector": ".ac-btn, .ac-card, .ac-card-body, .ac-card-header, .ac-alert, .ac-input, .ac-textarea, .act-bubble, .s-card",
+      "rule": "box-sizing-border-box",
+      "description": "Widgets that may declare width/max-width together with padding MUST compute `box-sizing: border-box` so padding stays inside the box and the widget never exceeds its parent's width.",
+      "max_violations": 10
+    },
+    {
+      "selector": ".ac-btn, .ac-input, .ac-alert, .act-bubble, .ac-card-body, .ac-card-header, .ac-card-footer",
+      "rule": "symmetric-padding",
+      "description": "Widgets must have non-zero padding on every side (top, right, bottom, left) so their inner content never touches the border. One-sided padding indicates a broken CSS rule (e.g. `padding: 8px 0` on a pill bubble).",
+      "min_padding_px": 4,
+      "max_violations": 10
+    }
+  ],
+
+  "cluster_atomicity_rules": [
+    {
+      "container": ".s-card, .ac-stat-card",
+      "rule": "children-tightly-clustered",
+      "description": "Stat-card children (icon, value, label) must sit in a compact cluster — if the tallest child is > 40px taller than the shortest, the card likely lost its grid/flex layout.",
+      "max_intra_card_height_px": 200,
+      "max_violations": 5
+    }
+  ],
+
+  "template_compliance_rules": [
+    {
+      "selector": "body > div, body > main, .act-shell, .adm-shell, .acs-page, .ord-shell, .vnd-shell",
+      "rule": "top-level-shell-styled",
+      "description": "Every rendered page's top-level wrapper must be one of the approved shell classes AND receive non-default computed styles (background or border). Unstyled <nav>/<div> indicates missing template CSS.",
+      "approved_shell_selectors": [".act-shell", ".adm-shell", ".acs-page", ".acs-auth-page", ".ord-shell", ".vnd-shell"]
+    }
+  ],
+
+  "ui_only_ops_rules": [
+    {
+      "description": "Clicking a language or theme toggle must not fire any /api/ HTTP request — these are pure client-side state mutations",
+      "trigger_selectors": [
+        "button[aria-label*='lang' i]",
+        "button[aria-label*='language' i]",
+        "button[aria-label*='اللغة' i]",
+        ".settings-lang-btn",
+        "button:has(> span:contains('عربي'))",
+        "button:has(> span:contains('English'))"
+      ],
+      "forbidden_network_pattern": "/api/",
+      "max_violations": 3
     }
   ]
 }

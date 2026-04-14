@@ -39,7 +39,7 @@ const APPS = [
         apiBase:  'http://localhost:5101',
         apiLog:   '/tmp/Order.Api.log',
         phone:    '+966500000001',
-        protected:['/profile','/orders','/favorites','/cart','/messages','/notifications','/account']
+        protected:['/profile','/orders','/favorites','/cart','/messages','/notifications','/account','/settings','/catalog']
     },
     {
         name:     'Vendor.Web',
@@ -47,7 +47,7 @@ const APPS = [
         apiBase:  'http://localhost:5201',
         apiLog:   '/tmp/Vendor.Api.log',
         phone:    '+966501111111',
-        protected:['/offers','/orders','/earnings','/schedule','/store-settings','/profile','/messages','/notifications']
+        protected:['/offers','/orders','/earnings','/schedule','/store-settings','/profile','/messages','/notifications','/settings','/catalog']
     },
     {
         name:     'Order.Admin.Web',
@@ -191,17 +191,23 @@ async function loginViaUi(page, app) {
     return true;
 }
 
-// Inline the same checks used by verify-runtime.mjs, trimmed.
+// Runtime checks for authenticated pages.  Covers: widget style contracts
+// (A), font-size scale (F), text-overflow against bubble/card bounds (H),
+// template-shell styling presence (J).
 async function checkPage(page, url) {
-    // A. widget style baselines
+    // A. widget style baselines (now includes .act-bubble, .s-card, .act-navbar, .act-footer)
     for (const [selector, contract] of Object.entries(contracts)) {
         const els = await page.$$(selector);
         for (let i = 0; i < Math.min(els.length, 12); i++) {
             const c = await els[i].evaluate(n => {
                 const s = getComputedStyle(n);
+                const bt = parseFloat(s.borderTopWidth) || 0;
+                const br = parseFloat(s.borderRightWidth) || 0;
+                const bb = parseFloat(s.borderBottomWidth) || 0;
+                const bl = parseFloat(s.borderLeftWidth) || 0;
                 return {
                     padTop: s.paddingTop, padLeft: s.paddingLeft, padRight: s.paddingRight, padBot: s.paddingBottom,
-                    bw: s.borderTopWidth, bg: s.backgroundColor, fw: s.fontWeight,
+                    bw: Math.max(bt, br, bb, bl) + 'px', bg: s.backgroundColor, fw: s.fontWeight,
                     mh: s.minHeight, h: n.offsetHeight,
                 };
             });
@@ -222,8 +228,8 @@ async function checkPage(page, url) {
             }
         }
     }
-    // B. computed font-size on scale
-    const allowed = [10,11,12,13,14,15,16,18,20,22,24,28,32,36,40,48,56,64];
+    // F. computed font-size on scale
+    const allowed = [10,10.5,11,12,12.25,13,14,15,15.75,16,17.5,18,20,21,22,24,24.5,25,28,32,35,36,40,42,48,56,64];
     const offs = await page.$$eval('h1,h2,h3,p,label,a,button,span', (nodes, allowed) => {
         const out = [];
         for (const n of nodes) {
@@ -238,6 +244,37 @@ async function checkPage(page, url) {
         return out;
     }, allowed);
     for (const o of offs) record(url, 'F-computed', `off-scale font-size ${o.fs}px on <${o.tag.toLowerCase()}>`, 'any');
+
+    // H. text overflow inside bubbles, cards, alerts
+    const overflows = await page.$$eval('.act-bubble, .ord-chat-bubble, .ac-card, .ac-alert', nodes =>
+        nodes.filter(n => n.offsetParent && n.scrollWidth > n.clientWidth + 2)
+             .slice(0, 5)
+             .map(n => ({ cls: n.className.slice(0, 60), d: n.scrollWidth - n.clientWidth, t: (n.textContent||'').trim().slice(0,40) }))
+    );
+    for (const o of overflows) record(url, 'H-overflow', `${o.cls}: "${o.t}" overflows ${o.d}px`, 'bubble/card');
+
+    // J. template shell styling present (shell / navbar / footer)
+    const tpl = await page.evaluate(() => {
+        const check = el => {
+            if (!el) return null;
+            const s = getComputedStyle(el);
+            const bg = s.backgroundColor;
+            const hasBg = bg !== 'rgba(0, 0, 0, 0)' && bg !== 'transparent';
+            const borders = ['Top','Right','Bottom','Left'].map(d => parseFloat(s['border'+d+'Width'])||0);
+            return { bg, hasBg, hasBorder: borders.some(b => b > 0) };
+        };
+        return {
+            shell: check(document.querySelector('.act-shell, .adm-shell, .acs-page, .acs-auth-page, .vnd-shell, .ord-shell')),
+            nav:   check(document.querySelector('nav, header, .act-navbar, .adm-navbar')),
+            foot:  check(document.querySelector('footer, .act-footer'))
+        };
+    });
+    if (tpl.shell && !tpl.shell.hasBg && !tpl.shell.hasBorder)
+        record(url, 'J-template', 'shell has no background + no border (template CSS missing)', 'shell');
+    if (tpl.nav && !tpl.nav.hasBg && !tpl.nav.hasBorder)
+        record(url, 'J-template', 'navbar has no background + no border (template CSS missing)', 'navbar');
+    if (tpl.foot && !tpl.foot.hasBg && !tpl.foot.hasBorder)
+        record(url, 'J-template', 'footer has no background + no border (template CSS missing)', 'footer');
 }
 
 async function verifyApp(browser, app) {

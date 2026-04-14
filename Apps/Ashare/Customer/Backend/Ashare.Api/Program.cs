@@ -79,7 +79,7 @@ switch (dbProvider.ToLowerInvariant())
         if (string.IsNullOrWhiteSpace(dbConnection) || dbConnection.Contains("${"))
         {
             Log.Warning("Database:ConnectionString غير مُعيّن في env vars - الرجوع لـ InMemory");
-            builder.Services.AddACommerceInMemoryDatabase("AshareApiDb");
+            builder.Services.AddACommerceInMemoryDatabase("AsharePlatformDb");
         }
         else
         {
@@ -89,12 +89,12 @@ switch (dbProvider.ToLowerInvariant())
         break;
 
     case "sqlite":
-        builder.Services.AddACommerceSQLite(dbConnection ?? "Data Source=ashare2.db");
+        builder.Services.AddACommerceSQLite(dbConnection ?? "Data Source=data/ashare-platform.db");
         break;
 
     default:
         Log.Information("Using InMemory database");
-        builder.Services.AddACommerceInMemoryDatabase("AshareApiDb");
+        builder.Services.AddACommerceInMemoryDatabase("AsharePlatformDb");
         break;
 }
 

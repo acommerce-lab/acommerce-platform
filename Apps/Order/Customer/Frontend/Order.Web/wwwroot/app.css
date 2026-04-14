@@ -9,7 +9,7 @@
    ========================================================================= */
 :root {
     /* ── Brand identity (used sparingly, <10% of the surface) ────────── */
-    --ac-primary:         #ff6b35;
+    --ac-primary:         #d14718;
     --ac-primary-hover:   #E55A2B;
     --ac-primary-soft:    #FFF3EC;       /* ~8% tint for hover bgs */
     --ac-on-primary:      #ffffff;
@@ -92,8 +92,8 @@ body {
     transition: background-color 180ms ease, color 180ms ease;
 }
 
-a { color: var(--ac-primary); text-decoration: none; }
-a:hover { color: var(--ac-primary-hover); text-decoration: underline; }
+a { color: var(--ac-link); text-decoration: underline; text-underline-offset: 2px; }
+a:hover { color: var(--ac-link-hover); }
 img { max-width: 100%; }
 
 /* =========================================================================

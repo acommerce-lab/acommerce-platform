@@ -4,6 +4,17 @@
    Consumers override brand by setting :root variables in their own app.css.
    ───────────────────────────────────────────────────────────────────────── */
 
+/* ── Generic card (consumed by AcStatsGrid, dashboards, settings panels).
+   Lives in templates-shared so every app that pulls widgets gets it.   */
+.s-card {
+    background: var(--ac-surface);
+    border: 1px solid var(--ac-border);
+    border-radius: var(--ac-radius-md);
+    padding: var(--ac-space-md);
+    margin: 0 0 var(--ac-space-sm);
+    box-sizing: border-box;
+}
+
 /* ── Shared page primitives ───────────────────────────────────────────── */
 .acs-page,
 .acs-chat-page,
