@@ -20,6 +20,8 @@ public static class CultureBlazorServiceExtensions
         s.TryAddScoped<ICultureContext>(sp => sp.GetRequiredService<MutableCultureContext>());
         s.TryAddScoped<BrowserCultureProbe>();
         s.TryAddScoped<CultureTimeFormatter>();
+        s.TryAddScoped<ViewportState>();
+        s.TryAddScoped<ViewportProbe>();
         return s;
     }
 }

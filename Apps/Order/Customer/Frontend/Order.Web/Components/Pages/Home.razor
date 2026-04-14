@@ -7,27 +7,57 @@
 
 <PageTitle>اوردر — عروض اليوم</PageTitle>
 
-<AcCatalogHome Categories="@MappedCategories"
-               SelectedCategoryId="@SelectedCategoryId"
-               OnSelectCategory="SelectCategory"
-               Offers="@MappedOffers"
-               Loading="@Loading"
-               Columns="2"
-               DetailsHrefPrefix="/offer"
-               HeroTitle="@(Store.Ui.IsArabic ? "اوردر" : "Order")"
-               HeroSubtitle="@(Store.Ui.IsArabic ? "عروض اليوم من كافيهات ومطاعم المدينة" : "Today's deals from local cafes and restaurants")"
-               AllLabel="@(Store.Ui.IsArabic ? "الكل" : "All")"
-               LoadingMessage="@(Store.Ui.IsArabic ? "جاري تحميل العروض..." : "Loading offers…")"
-               EmptyMessage="@(Store.Ui.IsArabic ? "لا توجد عروض" : "No offers")">
-    <HeroActions>
-        @if (!Store.Auth.IsAuthenticated)
-        {
-            <a href="/login"><AcButton Variant="primary" Size="sm" Text="@(Store.Ui.IsArabic ? "تسجيل الدخول" : "Sign in")" /></a>
-        }
-        <AcButton Variant="ghost" Size="sm" OnClick="ToggleLanguage"
-                  Text="@(Store.Ui.IsArabic ? "English" : "العربية")" />
-    </HeroActions>
-</AcCatalogHome>
+@*
+    Two independent template trees for the same URL.  Desktop gets a
+    2-column grid and a taller hero; Mobile collapses to a single column
+    with a compact hero.  Both trees paint; CSS hides the off-viewport one.
+*@
+<AcViewportSwitch>
+    <Desktop>
+        <AcCatalogHome Categories="@MappedCategories"
+                       SelectedCategoryId="@SelectedCategoryId"
+                       OnSelectCategory="SelectCategory"
+                       Offers="@MappedOffers"
+                       Loading="@Loading"
+                       Columns="2"
+                       DetailsHrefPrefix="/offer"
+                       HeroTitle="@(Store.Ui.IsArabic ? "اوردر" : "Order")"
+                       HeroSubtitle="@(Store.Ui.IsArabic ? "عروض اليوم من كافيهات ومطاعم المدينة" : "Today's deals from local cafes and restaurants")"
+                       AllLabel="@(Store.Ui.IsArabic ? "الكل" : "All")"
+                       LoadingMessage="@(Store.Ui.IsArabic ? "جاري تحميل العروض..." : "Loading offers…")"
+                       EmptyMessage="@(Store.Ui.IsArabic ? "لا توجد عروض" : "No offers")">
+            <HeroActions>
+                @if (!Store.Auth.IsAuthenticated)
+                {
+                    <a href="/login"><AcButton Variant="primary" Size="sm" Text="@(Store.Ui.IsArabic ? "تسجيل الدخول" : "Sign in")" /></a>
+                }
+                <AcButton Variant="ghost" Size="sm" OnClick="ToggleLanguage"
+                          Text="@(Store.Ui.IsArabic ? "English" : "العربية")" />
+            </HeroActions>
+        </AcCatalogHome>
+    </Desktop>
+    <Mobile>
+        <AcCatalogHome Categories="@MappedCategories"
+                       SelectedCategoryId="@SelectedCategoryId"
+                       OnSelectCategory="SelectCategory"
+                       Offers="@MappedOffers"
+                       Loading="@Loading"
+                       Columns="1"
+                       DetailsHrefPrefix="/offer"
+                       HeroTitle="@(Store.Ui.IsArabic ? "اوردر" : "Order")"
+                       HeroSubtitle="@(Store.Ui.IsArabic ? "عروض اليوم" : "Today's deals")"
+                       AllLabel="@(Store.Ui.IsArabic ? "الكل" : "All")"
+                       LoadingMessage="@(Store.Ui.IsArabic ? "جاري التحميل..." : "Loading…")"
+                       EmptyMessage="@(Store.Ui.IsArabic ? "لا عروض" : "No offers")">
+            <HeroActions>
+                @if (!Store.Auth.IsAuthenticated)
+                {
+                    <a href="/login"><AcButton Variant="primary" Size="sm" Block="true" Text="@(Store.Ui.IsArabic ? "دخول" : "Sign in")" /></a>
+                }
+            </HeroActions>
+        </AcCatalogHome>
+    </Mobile>
+</AcViewportSwitch>
 
 @code {
     private List<CatApi> Categories = new();

@@ -91,7 +91,11 @@ switch (dbProvider.ToLowerInvariant())
         break;
 
     case "sqlite":
-        builder.Services.AddACommerceSQLite(dbConnection ?? "Data Source=data/ashare-platform.db");
+        var dataRoot = Environment.GetEnvironmentVariable("ACOMMERCE_DATA_ROOT")
+            ?? System.IO.Path.Combine(builder.Environment.ContentRootPath, "data");
+        System.IO.Directory.CreateDirectory(dataRoot);
+        var dbPath = System.IO.Path.Combine(dataRoot, "ashare-platform.db");
+        builder.Services.AddACommerceSQLite(dbConnection ?? $"Data Source={dbPath}");
         break;
 
     default:
@@ -421,5 +425,23 @@ app.MapGet("/health", (IServiceProvider sp) => Results.Ok(new
     nafathEnabled = sp.GetServices<ITwoFactorChannel>().Any(c => c.Name == "nafath"),
     firebaseEnabled = sp.GetServices<INotificationChannel>().Any(c => c.ChannelName == "firebase")
 }));
+
+// === DB schema guarantee ===
+// Admin shares the Ashare platform DB with Ashare.Api.  Whichever API starts
+// first creates the schema; EnsureCreatedAsync here is idempotent so the
+// Admin can run standalone (empty DB) OR alongside the customer API (tables
+// already there — it's a no-op).
+try
+{
+    using var scope = app.Services.CreateScope();
+    var db = scope.ServiceProvider
+        .GetRequiredService<ACommerce.SharedKernel.Infrastructure.EFCores.Context.ApplicationDbContext>();
+    await db.Database.EnsureCreatedAsync();
+    Log.Information("Ashare.Admin.Api database schema ready");
+}
+catch (Exception ex)
+{
+    Log.Error(ex, "Ashare.Admin.Api DB init failed");
+}
 
 app.Run();

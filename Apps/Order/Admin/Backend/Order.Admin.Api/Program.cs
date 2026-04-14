@@ -61,8 +61,11 @@ var dbConnection = builder.Configuration["Database:ConnectionString"];
 switch (dbProvider.ToLowerInvariant())
 {
     case "sqlite":
-        Directory.CreateDirectory("data");
-        builder.Services.AddACommerceSQLite(dbConnection ?? "Data Source=data/order-platform.db");
+        var dataRoot = Environment.GetEnvironmentVariable("ACOMMERCE_DATA_ROOT")
+            ?? System.IO.Path.Combine(builder.Environment.ContentRootPath, "data");
+        System.IO.Directory.CreateDirectory(dataRoot);
+        var dbPath = System.IO.Path.Combine(dataRoot, "order-platform.db");
+        builder.Services.AddACommerceSQLite(dbConnection ?? $"Data Source={dbPath}");
         break;
 
     case "sqlserver":

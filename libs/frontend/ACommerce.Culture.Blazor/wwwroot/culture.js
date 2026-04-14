@@ -11,3 +11,26 @@ window.acCulture = {
         return "latin";
     }
 };
+
+// Viewport probe — reports current breakpoint + emits on every crossing.
+window.acViewport = (() => {
+    let mq = null, dotnet = null;
+    const fire = () => {
+        if (!dotnet || !mq) return;
+        dotnet.invokeMethodAsync('OnChange', mq.matches, window.innerWidth);
+    };
+    return {
+        register: (dotnetRef, breakpointPx) => {
+            dotnet = dotnetRef;
+            mq = window.matchMedia(`(max-width: ${breakpointPx}px)`);
+            mq.addEventListener('change', fire);
+            window.addEventListener('resize', fire, { passive: true });
+            fire();
+        },
+        unregister: () => {
+            if (mq) mq.removeEventListener('change', fire);
+            window.removeEventListener('resize', fire);
+            dotnet = null; mq = null;
+        }
+    };
+})();

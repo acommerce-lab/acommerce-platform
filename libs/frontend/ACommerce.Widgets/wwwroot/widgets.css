@@ -740,3 +740,30 @@ textarea.form-control, textarea.form-input { min-height: 6rem; resize: vertical;
     padding: 8px;
     min-height: 36px;
 }
+
+/* =========================================================================
+   Viewport switch (AcViewportSwitch widget)
+   ─────────────────────────────────────────────────────────────────────────
+   Two independent template trees paint in the same DOM; the browser hides
+   the one that doesn't match the current viewport width.  Apps override
+   --ac-viewport-breakpoint on :root if they want a different cutoff.
+   ========================================================================= */
+:root { --ac-viewport-breakpoint: 768px; }
+
+.ac-viewport-desktop { display: block; }
+.ac-viewport-mobile  { display: none; }
+
+@media (max-width: 768px) {
+    .ac-viewport-desktop { display: none !important; }
+    .ac-viewport-mobile  { display: block !important; }
+}
+
+/* Helper utilities that pages can sprinkle on individual elements inside a
+   single shared template (for cases where a full AcViewportSwitch is
+   overkill). */
+.ac-only-desktop { }
+.ac-only-mobile  { display: none; }
+@media (max-width: 768px) {
+    .ac-only-desktop { display: none !important; }
+    .ac-only-mobile  { display: initial !important; }
+}

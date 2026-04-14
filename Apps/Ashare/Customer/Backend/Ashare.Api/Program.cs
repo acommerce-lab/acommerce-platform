@@ -89,7 +89,11 @@ switch (dbProvider.ToLowerInvariant())
         break;
 
     case "sqlite":
-        builder.Services.AddACommerceSQLite(dbConnection ?? "Data Source=data/ashare-platform.db");
+        var dataRoot = Environment.GetEnvironmentVariable("ACOMMERCE_DATA_ROOT")
+            ?? System.IO.Path.Combine(builder.Environment.ContentRootPath, "data");
+        System.IO.Directory.CreateDirectory(dataRoot);
+        var dbPath = System.IO.Path.Combine(dataRoot, "ashare-platform.db");
+        builder.Services.AddACommerceSQLite(dbConnection ?? $"Data Source={dbPath}");
         break;
 
     default:
@@ -438,10 +442,15 @@ app.MapGet("/health", (IServiceProvider sp) => Results.Ok(new
     firebaseEnabled = sp.GetServices<INotificationChannel>().Any(c => c.ChannelName == "firebase")
 }));
 
-// === تشغيل البذر ===
+// === DB schema + seeding ===
 try
 {
     using var scope = app.Services.CreateScope();
+    var db = scope.ServiceProvider
+        .GetRequiredService<ACommerce.SharedKernel.Infrastructure.EFCores.Context.ApplicationDbContext>();
+    await db.Database.EnsureCreatedAsync();
+    Log.Information("Ashare.Api database schema ready");
+
     var seeder = scope.ServiceProvider.GetRequiredService<AshareSeeder>();
     await seeder.SeedAsync();
 }

@@ -36,10 +36,13 @@ EntityDiscoveryRegistry.RegisterEntity(typeof(VendorSettings));
 EntityDiscoveryRegistry.RegisterEntity(typeof(WorkSchedule));
 EntityDiscoveryRegistry.RegisterEntity(typeof(IncomingOrder));
 
-// ─── Database (own SQLite — separate from Order.Api) ─────────────────────
-Directory.CreateDirectory("data");
+// ─── Database (shared order-platform DB across Order.Api + Order.Admin.Api + Vendor.Api) ─────
+var vendorDataRoot = Environment.GetEnvironmentVariable("ACOMMERCE_DATA_ROOT")
+    ?? System.IO.Path.Combine(builder.Environment.ContentRootPath, "data");
+System.IO.Directory.CreateDirectory(vendorDataRoot);
 builder.Services.AddACommerceSQLite(
-    builder.Configuration["Database:ConnectionString"] ?? "Data Source=data/order-platform.db");
+    builder.Configuration["Database:ConnectionString"]
+        ?? $"Data Source={System.IO.Path.Combine(vendorDataRoot, "order-platform.db")}");
 
 // ─── MVC + Swagger + CORS ────────────────────────────────────────────────
 builder.Services.AddControllers();
