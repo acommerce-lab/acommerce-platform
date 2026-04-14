@@ -1,0 +1,74 @@
+{
+  "_comment": "Spatial contracts — positional assertions verified at runtime via getBoundingClientRect. Catches: sticky elements not sticky, children overflowing parents, siblings not aligned, element overlaps.",
+
+  "position_rules": [
+    {
+      "selector": ".ord-bottom-nav",
+      "rule": "anchored-viewport-bottom",
+      "description": "Bottom nav must touch viewport bottom",
+      "tolerance_px": 2
+    },
+    {
+      "selector": ".act-navbar",
+      "rule": "sticky-top",
+      "description": "Top navbar must be sticky at y=0 on scroll",
+      "tolerance_px": 2
+    },
+    {
+      "selector": ".adm-navbar",
+      "rule": "sticky-top",
+      "description": "Admin navbar sticky at top",
+      "tolerance_px": 2
+    },
+    {
+      "selector": ".act-plan-badge",
+      "rule": "attached-top-of-parent",
+      "description": "Badge must sit at top of its plan card (possibly extending above)",
+      "tolerance_px": 16
+    }
+  ],
+
+  "containment_rules": [
+    {
+      "parent": ".ac-card",
+      "children": ".ac-card-body, .ac-card-header, .ac-card-footer",
+      "rule": "child-inside-parent-bounds",
+      "description": "Card children must stay within card bounds"
+    },
+    {
+      "parent": ".acs-page, .acs-page-wide",
+      "children": "> *",
+      "rule": "child-inside-parent-bounds",
+      "description": "Page children must not overflow container horizontally",
+      "axis": "horizontal"
+    }
+  ],
+
+  "sibling_alignment_rules": [
+    {
+      "container": ".act-navbar",
+      "rule": "siblings-same-y-in-flex-row",
+      "description": "All navbar items must be on the same horizontal line",
+      "tolerance_px": 4
+    },
+    {
+      "container": ".adm-navbar-actions",
+      "rule": "siblings-same-y-in-flex-row",
+      "tolerance_px": 4
+    },
+    {
+      "container": ".ac-grid",
+      "rule": "grid-children-aligned",
+      "description": "Grid children in same row must share y",
+      "tolerance_px": 4
+    }
+  ],
+
+  "no_overlap_rules": [
+    {
+      "selectors": [".ac-card"],
+      "rule": "siblings-do-not-overlap",
+      "description": "Cards in a list must not overlap each other"
+    }
+  ]
+}
