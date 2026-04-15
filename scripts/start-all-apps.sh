@@ -22,11 +22,26 @@ start() {
     echo "started $name (pid=$pid, port=$port)"
 }
 
-# Backends first
+# Wait for a backend to finish seeding before the next one in the same
+# platform opens a SQLite connection — EF Core's prepared-statement cache
+# poisons if the user table doesn't exist at connection-prepare time.
+wait_ready() {
+    local port="$1"; local log="$2"; local marker="${3:-Seeding complete}"
+    for _ in $(seq 1 60); do
+        if grep -qE "$marker" "$log" 2>/dev/null; then return 0; fi
+        sleep 0.5
+    done
+}
+
+# Customer-facing backends seed first; admin backends follow so they open
+# their first connection against a fully-populated schema.
 start Order.Api            Apps/Order/Customer/Backend/Order.Api            5101
-start Order.Admin.Api      Apps/Order/Admin/Backend/Order.Admin.Api         5102
+wait_ready 5101 /tmp/Order.Api.log
 start Vendor.Api           Apps/Order/Vendor/Backend/Vendor.Api             5201
+start Order.Admin.Api      Apps/Order/Admin/Backend/Order.Admin.Api         5102
+
 start Ashare.Api           Apps/Ashare/Customer/Backend/Ashare.Api          5500
+wait_ready 5500 /tmp/Ashare.Api.log
 start Ashare.Admin.Api     Apps/Ashare/Admin/Backend/Ashare.Admin.Api       5502
 
 # Frontends

@@ -115,10 +115,12 @@ img { max-width: 100%; }
     max-width: var(--ord-shell-max);
     box-shadow: 0 0 40px rgba(0,0,0,0.04);
 }
-:root[data-ac-mode="desktop"] .ord-shell {
-    max-width: 1200px;
-    box-shadow: none;
+/* Desktop widens the shell regardless of JS (@media is the primary gate). */
+@media (min-width: 769px) {
+    .ord-shell { max-width: 1200px; box-shadow: none; }
 }
+:root[data-ac-mode="desktop"] .ord-shell { max-width: 1200px; box-shadow: none; }
+:root[data-ac-mode="mobile"]  .ord-shell { max-width: var(--ord-shell-max); }
 html[data-theme="dark"] .ord-shell { box-shadow: 0 0 80px rgba(0,0,0,0.50); }
 
 /* ── Top nav: desktop only ─────────────────────────────────────────────── */
@@ -155,16 +157,20 @@ html[data-theme="dark"] .ord-shell { box-shadow: 0 0 80px rgba(0,0,0,0.50); }
     font-size: 0.75rem; font-weight: 700;
     margin-inline-start: 6px;
 }
+/* Desktop top-nav visible + wider main — via @media so CSS wins from the
+   very first paint, without waiting for the JS viewport probe. */
+@media (min-width: 769px) {
+    .ord-top-nav { display: block; }
+    .ord-main    { padding: 24px 32px 32px; max-width: 1200px; margin: 0 auto; width: 100%; }
+}
 :root[data-ac-mode="desktop"] .ord-top-nav { display: block; }
+:root[data-ac-mode="mobile"]  .ord-top-nav { display: none;  }
 
 .ord-main {
     flex: 1;
     padding-bottom: calc(var(--ord-bottom-nav) + 16px);
 }
-:root[data-ac-mode="desktop"] .ord-main {
-    padding: 24px 32px 32px; /* no bottom-nav clearance on desktop */
-    max-width: 1200px; margin: 0 auto; width: 100%;
-}
+:root[data-ac-mode="desktop"] .ord-main { padding: 24px 32px 32px; max-width: 1200px; margin: 0 auto; width: 100%; }
 
 .ord-bottom-nav {
     position: fixed;
@@ -182,7 +188,9 @@ html[data-theme="dark"] .ord-shell { box-shadow: 0 0 80px rgba(0,0,0,0.50); }
     z-index: 100;
     box-shadow: 0 -2px 12px rgba(0,0,0,0.04);
 }
+@media (min-width: 769px) { .ord-bottom-nav { display: none; } }
 :root[data-ac-mode="desktop"] .ord-bottom-nav { display: none; }
+:root[data-ac-mode="mobile"]  .ord-bottom-nav { display: flex; }
 html[dir="rtl"] .ord-bottom-nav { transform: translateX(50%); }
 
 .ord-nav-item {

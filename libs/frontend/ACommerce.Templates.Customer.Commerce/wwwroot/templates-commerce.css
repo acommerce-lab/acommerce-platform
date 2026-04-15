@@ -95,14 +95,25 @@
     /* Default (mobile): single column. */
     grid-template-columns: 1fr;
 }
-/* Desktop: 3-column grid regardless of any inline `Columns` hint.  We
-   purposefully OVERRIDE the inline style-attribute by using !important
-   here so C# components that guess wrong (before the browser probe runs)
-   don't leak a 3-column layout into mobile or a 1-column layout into
-   desktop.  CSS is the single source of truth for column count. */
+/* Desktop: 3-column grid via viewport width.  Uses @media so CSS alone
+   decides — no JS / Blazor round-trip required and the rule wins over
+   the inline `style="grid-template-columns: repeat(1, …)"` hint the C#
+   component writes. */
+@media (min-width: 769px) {
+    .acc-offer-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+        gap: 16px;
+    }
+}
+/* Opt-in override when the data-ac-mode attribute is also applied — lets
+   C# force a mode (e.g. desktop preview on a mobile device). */
 :root[data-ac-mode="desktop"] .acc-offer-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
     gap: 16px;
+}
+:root[data-ac-mode="mobile"] .acc-offer-grid {
+    grid-template-columns: 1fr !important;
+    gap: 12px;
 }
 .acc-offer-card {
     background: var(--ac-surface);

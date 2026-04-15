@@ -12,8 +12,12 @@ public class AuthInterpreter : IOperationInterpreter<AppStore>
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase
     };
 
+    // Accept both "auth.sms.*" (customer APIs) and "auth.admin.sms.*"
+    // (admin APIs like Order.Admin.Api and Ashare.Admin.Api which return
+    // distinct envelope types so analytics can separate them).
     public bool CanInterpret(OperationDescriptor op) =>
-        op.Type is "auth.sms.request" or "auth.sms.verify" or "auth.sign_out";
+        op.Type is "auth.sms.request" or "auth.sms.verify" or "auth.sign_out"
+                or "auth.admin.sms.request" or "auth.admin.sms.verify";
 
     public Task InterpretAsync(OperationDescriptor op, object? data, AppStore store, CancellationToken ct)
     {
@@ -36,6 +40,7 @@ public class AuthInterpreter : IOperationInterpreter<AppStore>
         switch (op.Type)
         {
             case "auth.sms.request":
+            case "auth.admin.sms.request":
                 if (json.TryGetProperty("userId", out var uid))
                     store.Auth.PendingUserId = Guid.Parse(uid.GetString()!);
                 if (json.TryGetProperty("challengeId", out var cid))
@@ -43,6 +48,7 @@ public class AuthInterpreter : IOperationInterpreter<AppStore>
                 break;
 
             case "auth.sms.verify":
+            case "auth.admin.sms.verify":
                 if (json.TryGetProperty("userId", out var userId))
                     store.Auth.UserId = Guid.Parse(userId.GetString()!);
                 if (json.TryGetProperty("phoneNumber", out var phone))
