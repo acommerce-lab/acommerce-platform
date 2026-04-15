@@ -30,11 +30,26 @@ Log.Logger = new LoggerConfiguration()
 builder.Host.UseSerilog();
 
 // ─── Entity Discovery ────────────────────────────────────────────────────
+// Vendor-specific entities
 EntityDiscoveryRegistry.RegisterEntity(typeof(VendorUser));
 EntityDiscoveryRegistry.RegisterEntity(typeof(TwoFactorChallengeRecord));
 EntityDiscoveryRegistry.RegisterEntity(typeof(VendorSettings));
 EntityDiscoveryRegistry.RegisterEntity(typeof(WorkSchedule));
 EntityDiscoveryRegistry.RegisterEntity(typeof(IncomingOrder));
+
+// Shared order-platform entities (Vendor.Api might be the first backend
+// to call EnsureCreatedAsync against the unified DB).  Registering them
+// all here guarantees the schema is complete regardless of startup order.
+EntityDiscoveryRegistry.RegisterEntity(typeof(Order.Api.Entities.User));
+EntityDiscoveryRegistry.RegisterEntity(typeof(Order.Api.Entities.Category));
+EntityDiscoveryRegistry.RegisterEntity(typeof(Order.Api.Entities.Vendor));
+EntityDiscoveryRegistry.RegisterEntity(typeof(Order.Api.Entities.Offer));
+EntityDiscoveryRegistry.RegisterEntity(typeof(Order.Api.Entities.OrderRecord));
+EntityDiscoveryRegistry.RegisterEntity(typeof(Order.Api.Entities.OrderItem));
+EntityDiscoveryRegistry.RegisterEntity(typeof(Order.Api.Entities.Conversation));
+EntityDiscoveryRegistry.RegisterEntity(typeof(Order.Api.Entities.Message));
+EntityDiscoveryRegistry.RegisterEntity(typeof(Order.Api.Entities.Notification));
+EntityDiscoveryRegistry.RegisterEntity(typeof(Order.Api.Entities.Favorite));
 
 // ─── Database (shared order-platform DB across Order.Api + Order.Admin.Api + Vendor.Api) ─────
 var vendorDataRoot = Environment.GetEnvironmentVariable("ACOMMERCE_DATA_ROOT")
@@ -45,7 +60,14 @@ builder.Services.AddACommerceSQLite(
         ?? $"Data Source={System.IO.Path.Combine(vendorDataRoot, "order-platform.db")}");
 
 // ─── MVC + Swagger + CORS ────────────────────────────────────────────────
-builder.Services.AddControllers();
+// Restrict controller scan to Vendor.Api's own assembly.  Order.Api.dll is
+// referenced for its entity types only — letting MVC discover its
+// AuthController too would race with this one on /api/auth/sms/request.
+builder.Services.AddControllers()
+    .PartManager.ApplicationParts.Clear();
+builder.Services.AddControllers()
+    .PartManager.ApplicationParts.Add(
+        new Microsoft.AspNetCore.Mvc.ApplicationParts.AssemblyPart(typeof(Program).Assembly));
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 

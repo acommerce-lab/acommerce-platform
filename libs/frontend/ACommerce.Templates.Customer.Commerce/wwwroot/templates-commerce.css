@@ -92,6 +92,17 @@
 .acc-offer-grid {
     display: grid;
     gap: 12px;
+    /* Default (mobile): single column. */
+    grid-template-columns: 1fr;
+}
+/* Desktop: 3-column grid regardless of any inline `Columns` hint.  We
+   purposefully OVERRIDE the inline style-attribute by using !important
+   here so C# components that guess wrong (before the browser probe runs)
+   don't leak a 3-column layout into mobile or a 1-column layout into
+   desktop.  CSS is the single source of truth for column count. */
+:root[data-ac-mode="desktop"] .acc-offer-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 16px;
 }
 .acc-offer-card {
     background: var(--ac-surface);

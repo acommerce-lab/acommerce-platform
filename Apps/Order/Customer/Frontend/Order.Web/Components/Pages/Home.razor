@@ -3,22 +3,23 @@
 @inject AppStateApplier Applier
 @inject ApiReader Api
 @inject NavigationManager Nav
-@inject ACommerce.Culture.Blazor.IViewportMode Viewport
 @implements IDisposable
 
 <PageTitle>اوردر — عروض اليوم</PageTitle>
 
 @*
-    Single template — viewport adaptation happens via the global
-    [data-ac-mode] attribute.  Columns grows to 3 on desktop by default
-    because .ac-grid reads its count dynamically; keep the markup flat.
+    Single template — viewport adaptation is purely CSS:
+    .acc-offer-grid defaults to 1 column (mobile), and a desktop rule
+    at `:root[data-ac-mode="desktop"]` promotes it to 3 columns.  We
+    still pass a Columns="1" hint for downstream components that read
+    it, but CSS has the final word via !important.
 *@
 <AcCatalogHome Categories="@MappedCategories"
                SelectedCategoryId="@SelectedCategoryId"
                OnSelectCategory="SelectCategory"
                Offers="@MappedOffers"
                Loading="@Loading"
-               Columns="@(Viewport.IsDesktop ? 3 : 1)"
+               Columns="1"
                DetailsHrefPrefix="/offer"
                HeroTitle="@(Store.Ui.IsArabic ? "اوردر" : "Order")"
                HeroSubtitle="@(Store.Ui.IsArabic ? "عروض اليوم من كافيهات ومطاعم المدينة" : "Today's deals from local cafes and restaurants")"

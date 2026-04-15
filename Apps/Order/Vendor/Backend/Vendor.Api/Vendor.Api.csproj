@@ -34,5 +34,10 @@
     <ProjectReference Include="..\..\..\..\..\libs\backend\messaging\ACommerce.Realtime.Providers.InMemory\ACommerce.Realtime.Providers.InMemory.csproj" />
     <ProjectReference Include="..\..\..\..\..\libs\backend\messaging\ACommerce.Notification.Operations\ACommerce.Notification.Operations.csproj" />
     <ProjectReference Include="..\..\..\..\..\libs\backend\messaging\ACommerce.Notification.Providers.InApp\ACommerce.Notification.Providers.InApp.csproj" />
+
+    <!-- Order.Api entity set — shared order-platform DB requires that whichever
+         backend creates the schema first register ALL of the platform's
+         entities, else tables for the omitted ones never exist. -->
+    <ProjectReference Include="..\..\..\Customer\Backend\Order.Api\Order.Api.csproj" />
   </ItemGroup>
 </Project>
