@@ -3,6 +3,7 @@ using ACommerce.OperationEngine.Patterns;
 using ACommerce.SharedKernel.Abstractions.Repositories;
 using Microsoft.AspNetCore.Mvc;
 using Vendor.Api.Entities;
+using ACommerce.OrderPlatform.Entities;
 
 namespace Vendor.Api.Controllers;
 

@@ -45,6 +45,15 @@ EntityDiscoveryRegistry.RegisterEntity(typeof(Notification));
 EntityDiscoveryRegistry.RegisterEntity(typeof(Favorite));
 EntityDiscoveryRegistry.RegisterEntity(typeof(TwoFactorChallengeRecord));
 
+// Shared platform entities used by Vendor.Api — registered here too so
+// whichever Order-platform backend creates the schema first creates
+// EVERY table, avoiding "no such table: VendorUser" when Vendor.Api
+// queries the shared DB.
+EntityDiscoveryRegistry.RegisterEntity(typeof(ACommerce.OrderPlatform.Entities.VendorUser));
+EntityDiscoveryRegistry.RegisterEntity(typeof(ACommerce.OrderPlatform.Entities.VendorSettings));
+EntityDiscoveryRegistry.RegisterEntity(typeof(ACommerce.OrderPlatform.Entities.WorkSchedule));
+EntityDiscoveryRegistry.RegisterEntity(typeof(ACommerce.OrderPlatform.Entities.IncomingOrder));
+
 // ─────────────────────────────────────────────────────────
 // Database (SQLite by default — file lives at ./data/order.db)
 // ─────────────────────────────────────────────────────────
@@ -54,11 +63,14 @@ var dbConnection = builder.Configuration["Database:ConnectionString"];
 switch (dbProvider.ToLowerInvariant())
 {
     case "sqlite":
-        var dataRoot = Environment.GetEnvironmentVariable("ACOMMERCE_DATA_ROOT")
-            ?? System.IO.Path.Combine(builder.Environment.ContentRootPath, "data");
-        System.IO.Directory.CreateDirectory(dataRoot);
-        var dbPath = System.IO.Path.Combine(dataRoot, "order-platform.db");
-        builder.Services.AddACommerceSQLite(dbConnection ?? $"Data Source={dbPath}");
+        // Walk up from ContentRootPath to find the repo root (.sln) and use
+        // its /data folder.  Works from Visual Studio F5 or plain dotnet run
+        // without any env-var setup.  See PlatformDataRoot.Resolve.
+        var orderDbConn = !string.IsNullOrWhiteSpace(dbConnection)
+            ? dbConnection
+            : ACommerce.SharedKernel.Infrastructure.EFCores.PlatformDataRoot
+                .SqliteConnectionString(builder.Environment.ContentRootPath, "order-platform.db");
+        builder.Services.AddACommerceSQLite(orderDbConn);
         break;
     default:
         builder.Services.AddACommerceInMemoryDatabase("OrderPlatformDb");
@@ -231,8 +243,12 @@ try
     using var scope = app.Services.CreateScope();
     var db = scope.ServiceProvider
         .GetRequiredService<ACommerce.SharedKernel.Infrastructure.EFCores.Context.ApplicationDbContext>();
-    await db.Database.EnsureCreatedAsync();
-    Log.Information("Database schema ready");
+    // EnsureCreatedAsync creates all-or-nothing; when another platform
+    // backend got there first it throws "table X already exists".  That's
+    // benign — swallow it and carry on to seeding, which only inserts
+    // missing rows.
+    try { await db.Database.EnsureCreatedAsync(); Log.Information("Database schema ready"); }
+    catch (Exception schemaEx) { Log.Information(schemaEx, "Schema already created by another service — continuing"); }
 
     var seeder = scope.ServiceProvider.GetRequiredService<OrderSeeder>();
     await seeder.SeedAsync();

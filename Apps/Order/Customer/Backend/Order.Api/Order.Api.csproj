@@ -45,4 +45,8 @@
     <ProjectReference Include="..\..\..\..\..\libs\backend\culture\ACommerce.Culture.Defaults\ACommerce.Culture.Defaults.csproj" />
     <ProjectReference Include="..\..\..\..\..\libs\backend\culture\ACommerce.Culture.Interceptors\ACommerce.Culture.Interceptors.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <!-- Shared entities: VendorUser, VendorSettings, WorkSchedule, IncomingOrder -->
+    <ProjectReference Include="..\..\..\..\..\libs\backend\platform\ACommerce.OrderPlatform.Entities\ACommerce.OrderPlatform.Entities.csproj" />
+  </ItemGroup>
 </Project>

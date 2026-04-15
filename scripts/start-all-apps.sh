@@ -12,11 +12,9 @@ start() {
     local name="$1"; local path="$2"; local port="$3"
     local log="/tmp/$name.log"
     : > "$log"
-    # ACOMMERCE_DATA_ROOT is an absolute path every API resolves via the
-    # Database:DataRoot config.  Without this, each API's "data/xxx.db"
-    # relative path lands in its own bin/Debug dir and they never share.
+    # PlatformDataRoot in Program.cs walks up to the repo's .sln and uses
+    # <repo>/data automatically — works from VS F5 too, no env var required.
     (cd "$ROOT/$path" && \
-        ACOMMERCE_DATA_ROOT="$ROOT/data" \
         ASPNETCORE_ENVIRONMENT=Development \
         exec dotnet run --no-build -c Debug >> "$log" 2>&1) &
     local pid=$!

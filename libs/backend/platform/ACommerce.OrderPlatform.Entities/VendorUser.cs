@@ -1,6 +1,6 @@
 using ACommerce.SharedKernel.Abstractions.Entities;
 
-namespace Vendor.Api.Entities;
+namespace ACommerce.OrderPlatform.Entities;
 
 /// <summary>
 /// مستخدم تاجر — تسجيل الدخول برقم الجوال (SMS OTP).

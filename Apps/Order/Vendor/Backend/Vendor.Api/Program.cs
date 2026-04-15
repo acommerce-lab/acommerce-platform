@@ -17,6 +17,7 @@ using ACommerce.SharedKernel.Abstractions.Repositories;
 using ACommerce.SharedKernel.Infrastructure.EFCores.Extensions;
 using Serilog;
 using Vendor.Api.Entities;
+using ACommerce.OrderPlatform.Entities;
 using Vendor.Api.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -52,12 +53,14 @@ EntityDiscoveryRegistry.RegisterEntity(typeof(Order.Api.Entities.Notification));
 EntityDiscoveryRegistry.RegisterEntity(typeof(Order.Api.Entities.Favorite));
 
 // ─── Database (shared order-platform DB across Order.Api + Order.Admin.Api + Vendor.Api) ─────
-var vendorDataRoot = Environment.GetEnvironmentVariable("ACOMMERCE_DATA_ROOT")
-    ?? System.IO.Path.Combine(builder.Environment.ContentRootPath, "data");
-System.IO.Directory.CreateDirectory(vendorDataRoot);
-builder.Services.AddACommerceSQLite(
-    builder.Configuration["Database:ConnectionString"]
-        ?? $"Data Source={System.IO.Path.Combine(vendorDataRoot, "order-platform.db")}");
+// PlatformDataRoot walks up to the repo's .sln so the path is the same
+// regardless of which service launches or from where (Visual Studio F5,
+// dotnet run, container).  No env var required.
+var vendorDbConn = builder.Configuration["Database:ConnectionString"];
+if (string.IsNullOrWhiteSpace(vendorDbConn))
+    vendorDbConn = ACommerce.SharedKernel.Infrastructure.EFCores.PlatformDataRoot
+        .SqliteConnectionString(builder.Environment.ContentRootPath, "order-platform.db");
+builder.Services.AddACommerceSQLite(vendorDbConn);
 
 // ─── MVC + Swagger + CORS ────────────────────────────────────────────────
 // Restrict controller scan to Vendor.Api's own assembly.  Order.Api.dll is
@@ -304,7 +307,11 @@ try
     using var scope = app.Services.CreateScope();
     var db = scope.ServiceProvider
         .GetRequiredService<ACommerce.SharedKernel.Infrastructure.EFCores.Context.ApplicationDbContext>();
-    await db.Database.EnsureCreatedAsync();
+    // EnsureCreatedAsync creates all-or-nothing; when another platform
+    // backend created tables first it throws.  Treat that as benign so
+    // we still run the seeder below.
+    try { await db.Database.EnsureCreatedAsync(); }
+    catch (Exception schemaEx) { Log.Information(schemaEx, "Schema already created by another service — continuing"); }
     Log.Information("Vendor.Api database ready");
 
     var seeder = scope.ServiceProvider.GetRequiredService<VendorSeeder>();

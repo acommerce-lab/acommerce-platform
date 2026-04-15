@@ -1,6 +1,6 @@
 using ACommerce.SharedKernel.Abstractions.Entities;
 
-namespace Vendor.Api.Entities;
+namespace ACommerce.OrderPlatform.Entities;
 
 /// <summary>
 /// نسخة المتجر من الطلب — تصله عبر webhook من Order.Api.

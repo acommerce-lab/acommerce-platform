@@ -52,6 +52,12 @@ EntityDiscoveryRegistry.RegisterEntity(typeof(Notification));
 EntityDiscoveryRegistry.RegisterEntity(typeof(Favorite));
 EntityDiscoveryRegistry.RegisterEntity(typeof(TwoFactorChallengeRecord));
 
+// Shared platform entities (see Order.Api/Program.cs for why).
+EntityDiscoveryRegistry.RegisterEntity(typeof(ACommerce.OrderPlatform.Entities.VendorUser));
+EntityDiscoveryRegistry.RegisterEntity(typeof(ACommerce.OrderPlatform.Entities.VendorSettings));
+EntityDiscoveryRegistry.RegisterEntity(typeof(ACommerce.OrderPlatform.Entities.WorkSchedule));
+EntityDiscoveryRegistry.RegisterEntity(typeof(ACommerce.OrderPlatform.Entities.IncomingOrder));
+
 // ─────────────────────────────────────────────────────────
 // Database: SQLite بشكل افتراضي، InMemory كبديل
 // ─────────────────────────────────────────────────────────
@@ -61,11 +67,13 @@ var dbConnection = builder.Configuration["Database:ConnectionString"];
 switch (dbProvider.ToLowerInvariant())
 {
     case "sqlite":
-        var dataRoot = Environment.GetEnvironmentVariable("ACOMMERCE_DATA_ROOT")
-            ?? System.IO.Path.Combine(builder.Environment.ContentRootPath, "data");
-        System.IO.Directory.CreateDirectory(dataRoot);
-        var dbPath = System.IO.Path.Combine(dataRoot, "order-platform.db");
-        builder.Services.AddACommerceSQLite(dbConnection ?? $"Data Source={dbPath}");
+        // See PlatformDataRoot.Resolve — walks up to the repo root so every
+        // Order-platform backend points at the same physical file.
+        var adminDbConn = !string.IsNullOrWhiteSpace(dbConnection)
+            ? dbConnection
+            : ACommerce.SharedKernel.Infrastructure.EFCores.PlatformDataRoot
+                .SqliteConnectionString(builder.Environment.ContentRootPath, "order-platform.db");
+        builder.Services.AddACommerceSQLite(adminDbConn);
         break;
 
     case "sqlserver":
@@ -281,7 +289,11 @@ try
     using var scope = app.Services.CreateScope();
     var db = scope.ServiceProvider
         .GetRequiredService<ACommerce.SharedKernel.Infrastructure.EFCores.Context.ApplicationDbContext>();
-    await db.Database.EnsureCreatedAsync();
+    // EnsureCreatedAsync creates all-or-nothing; when another platform
+    // backend created tables first it throws.  Treat that as benign so
+    // we still run the seeder below.
+    try { await db.Database.EnsureCreatedAsync(); }
+    catch (Exception schemaEx) { Log.Information(schemaEx, "Schema already created by another service — continuing"); }
     Log.Information("Database schema ready");
 
     // Seed a demo admin so Order.Admin login is testable end-to-end.

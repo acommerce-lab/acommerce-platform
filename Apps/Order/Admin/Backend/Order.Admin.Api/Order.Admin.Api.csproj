@@ -49,4 +49,8 @@
     <!-- Shared entities from Customer API -->
     <ProjectReference Include="..\..\..\Customer\Backend\Order.Api\Order.Api.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <!-- Shared entities: VendorUser, VendorSettings, WorkSchedule, IncomingOrder -->
+    <ProjectReference Include="..\..\..\..\..\libs\backend\platform\ACommerce.OrderPlatform.Entities\ACommerce.OrderPlatform.Entities.csproj" />
+  </ItemGroup>
 </Project>

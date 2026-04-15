@@ -1,5 +1,6 @@
 using ACommerce.SharedKernel.Abstractions.Repositories;
 using Vendor.Api.Entities;
+using ACommerce.OrderPlatform.Entities;
 
 namespace Vendor.Api.Services;
 

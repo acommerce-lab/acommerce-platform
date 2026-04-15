@@ -89,11 +89,13 @@ switch (dbProvider.ToLowerInvariant())
         break;
 
     case "sqlite":
-        var dataRoot = Environment.GetEnvironmentVariable("ACOMMERCE_DATA_ROOT")
-            ?? System.IO.Path.Combine(builder.Environment.ContentRootPath, "data");
-        System.IO.Directory.CreateDirectory(dataRoot);
-        var dbPath = System.IO.Path.Combine(dataRoot, "ashare-platform.db");
-        builder.Services.AddACommerceSQLite(dbConnection ?? $"Data Source={dbPath}");
+        // See PlatformDataRoot.Resolve — walks up to the repo root so both
+        // Ashare backends hit the same physical file.
+        var ashareDbConn = !string.IsNullOrWhiteSpace(dbConnection)
+            ? dbConnection
+            : ACommerce.SharedKernel.Infrastructure.EFCores.PlatformDataRoot
+                .SqliteConnectionString(builder.Environment.ContentRootPath, "ashare-platform.db");
+        builder.Services.AddACommerceSQLite(ashareDbConn);
         break;
 
     default:
@@ -448,7 +450,11 @@ try
     using var scope = app.Services.CreateScope();
     var db = scope.ServiceProvider
         .GetRequiredService<ACommerce.SharedKernel.Infrastructure.EFCores.Context.ApplicationDbContext>();
-    await db.Database.EnsureCreatedAsync();
+    // EnsureCreatedAsync creates all-or-nothing; when another platform
+    // backend created tables first it throws.  Treat that as benign so
+    // we still run the seeder below.
+    try { await db.Database.EnsureCreatedAsync(); }
+    catch (Exception schemaEx) { Log.Information(schemaEx, "Schema already created by another service — continuing"); }
     Log.Information("Ashare.Api database schema ready");
 
     var seeder = scope.ServiceProvider.GetRequiredService<AshareSeeder>();

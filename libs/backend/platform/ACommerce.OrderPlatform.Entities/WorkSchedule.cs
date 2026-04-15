@@ -1,6 +1,6 @@
 using ACommerce.SharedKernel.Abstractions.Entities;
 
-namespace Vendor.Api.Entities;
+namespace ACommerce.OrderPlatform.Entities;
 
 /// <summary>
 /// يوم واحد في جدول عمل المتجر. لكل يوم سطر واحد.
