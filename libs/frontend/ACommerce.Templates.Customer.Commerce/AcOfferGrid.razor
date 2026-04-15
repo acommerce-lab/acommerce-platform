@@ -26,7 +26,12 @@
 }
 else
 {
-    <div class="acc-offer-grid" style="@GridStyle()">
+    @*  Column count is decided by CSS @media queries on .acc-offer-grid
+        (1 col ≤ 768 px, 3 cols ≥ 769 px).  No inline style — otherwise
+        the C# Columns guess would race the viewport media and beat the
+        stylesheet on specificity.  Columns is now a legacy hint kept
+        for API compatibility; pages can ignore it. *@
+    <div class="acc-offer-grid">
         @foreach (var o in Offers)
         {
             var href = DetailsHrefPrefix + "/" + o.Id;

@@ -82,7 +82,17 @@ public class AuthController : ControllerBase
         if (user.Role != "admin")
             return this.UnauthorizedEnvelope("not_admin", "هذا الحساب ليس حساب مسؤول");
 
-        var principal = new AsharePrincipal { UserId = user.Id.ToString(), DisplayName = user.FullName };
+        // Issue JWT with admin role claim. Without this, the AdminOnly
+        // policy (RequireClaim("role", "admin")) rejects every request.
+        var principal = new AsharePrincipal
+        {
+            UserId = user.Id.ToString(),
+            DisplayName = user.FullName,
+            Claims = new Dictionary<string, string>
+            {
+                ["role"] = user.Role ?? "admin"
+            }
+        };
         var token = await _tokenStore.IssueAsync(principal, ct);
 
         var verifyOp = Entry.Create("auth.admin.verify")

@@ -34,6 +34,7 @@ public class AdminVendorsController : ControllerBase
         [FromQuery] int pageSize = 20,
         CancellationToken ct = default)
     {
+        // Frontend expects a flat list — return `.Items` directly.
         var result = await _repo.GetPagedAsync(
             pageNumber: page,
             pageSize: pageSize,
@@ -43,7 +44,20 @@ public class AdminVendorsController : ControllerBase
             orderBy: v => v.CreatedAt,
             ascending: false);
 
-        return this.OkEnvelope("admin.vendor.list", result);
+        var rows = result.Items.Select(v => new
+        {
+            id           = v.Id,
+            storeName    = v.Name,
+            ownerName    = (string?)null,
+            phone        = (string?)null,
+            status       = v.IsActive ? "active" : "suspended",
+            category     = v.City,
+            orderCount   = 0,
+            totalRevenue = 0m,
+            createdAt    = v.CreatedAt
+        }).ToList();
+
+        return this.OkEnvelope("admin.vendor.list", rows);
     }
 
     /// <summary>

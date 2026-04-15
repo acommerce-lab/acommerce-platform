@@ -32,6 +32,7 @@ public class AdminBookingsController : ControllerBase
         if (!string.IsNullOrWhiteSpace(status) && Enum.TryParse<BookingStatus>(status, true, out var s))
             parsedStatus = s;
 
+        // Frontend expects a flat list — return `.Items` directly.
         var result = await _repo.GetPagedAsync(
             pageNumber: page,
             pageSize: pageSize,
@@ -39,7 +40,20 @@ public class AdminBookingsController : ControllerBase
             orderBy: b => b.CreatedAt,
             ascending: false);
 
-        return this.OkEnvelope("admin.booking.list", result);
+        var rows = result.Items.Select(b => new
+        {
+            id            = b.Id,
+            customerName  = (string?)null,
+            customerPhone = (string?)null,
+            totalPrice    = b.TotalPrice,
+            currency      = b.Currency,
+            status        = (int)b.Status,
+            startDate     = b.StartDate,
+            endDate       = b.EndDate,
+            notes         = b.Notes
+        }).ToList();
+
+        return this.OkEnvelope("admin.booking.list", rows);
     }
 
     /// <summary>

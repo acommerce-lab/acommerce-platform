@@ -215,6 +215,10 @@ builder.Services.AddTokenAuthenticator();
 builder.Services.AddAuthentication(Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
+        // Keep raw JWT claim names (e.g. "role") instead of having the
+        // handler remap them to the WS-Federation URIs (ClaimTypes.Role).
+        // Without this, RequireClaim("role", "admin") fails to match.
+        options.MapInboundClaims = false;
         options.TokenValidationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters
         {
             ValidateIssuerSigningKey = true,

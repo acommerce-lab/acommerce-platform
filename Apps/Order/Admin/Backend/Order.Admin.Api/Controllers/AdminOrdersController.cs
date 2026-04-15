@@ -32,6 +32,7 @@ public class AdminOrdersController : ControllerBase
         if (!string.IsNullOrWhiteSpace(status) && Enum.TryParse<OrderStatus>(status, true, out var s))
             parsedStatus = s;
 
+        // Frontend expects a flat list — return `.Items` directly.
         var result = await _repo.GetPagedAsync(
             pageNumber: page,
             pageSize: pageSize,
@@ -39,7 +40,19 @@ public class AdminOrdersController : ControllerBase
             orderBy: o => o.CreatedAt,
             ascending: false);
 
-        return this.OkEnvelope("admin.order.list", result);
+        var rows = result.Items.Select(o => new
+        {
+            id            = o.Id,
+            customerName  = (string?)null,
+            customerPhone = (string?)null,
+            totalPrice    = o.Total,
+            currency      = o.Currency,
+            status        = (int)o.Status,
+            createdAt     = o.CreatedAt,
+            notes         = (string?)null
+        }).ToList();
+
+        return this.OkEnvelope("admin.order.list", rows);
     }
 
     /// <summary>

@@ -37,6 +37,7 @@ public class AdminSubscriptionsController : ControllerBase
         if (!string.IsNullOrWhiteSpace(status) && Enum.TryParse<SubscriptionStatus>(status, true, out var s))
             parsedStatus = s;
 
+        // Frontend expects a flat list — return `.Items` directly.
         var result = await _repo.GetPagedAsync(
             pageNumber: page,
             pageSize: pageSize,
@@ -44,7 +45,16 @@ public class AdminSubscriptionsController : ControllerBase
             orderBy: sub => sub.CreatedAt,
             ascending: false);
 
-        return this.OkEnvelope("admin.subscription.list", result);
+        var rows = result.Items.Select(s => new
+        {
+            id        = s.Id,
+            userName  = s.UserId.ToString(),
+            planName  = s.BillingCycle,
+            status    = (int)s.Status,
+            expiresAt = (DateTime?)s.EndDate
+        }).ToList();
+
+        return this.OkEnvelope("admin.subscription.list", rows);
     }
 
     /// <summary>

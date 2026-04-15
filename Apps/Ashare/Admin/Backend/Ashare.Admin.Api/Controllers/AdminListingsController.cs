@@ -38,6 +38,7 @@ public class AdminListingsController : ControllerBase
         if (!string.IsNullOrWhiteSpace(status) && Enum.TryParse<ListingStatus>(status, true, out var s))
             parsedStatus = s;
 
+        // Frontend expects a flat list — return `.Items` directly.
         var result = await _repo.GetPagedAsync(
             pageNumber: page,
             pageSize: pageSize,
@@ -47,7 +48,21 @@ public class AdminListingsController : ControllerBase
             orderBy: l => l.CreatedAt,
             ascending: false);
 
-        return this.OkEnvelope("admin.listing.list", result);
+        var rows = result.Items.Select(l => new
+        {
+            id             = l.Id,
+            title          = l.Title,
+            status         = (int)l.Status,
+            approvalStatus = l.Status == ListingStatus.Published ? "approved"
+                           : l.Status == ListingStatus.Rejected  ? "rejected"
+                           : "pending",
+            categoryName   = l.City,
+            bookingCount   = 0,
+            totalRevenue   = 0m,
+            createdAt      = l.CreatedAt
+        }).ToList();
+
+        return this.OkEnvelope("admin.listing.list", rows);
     }
 
     /// <summary>

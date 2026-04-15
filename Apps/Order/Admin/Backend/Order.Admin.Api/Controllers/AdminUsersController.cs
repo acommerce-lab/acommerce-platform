@@ -33,6 +33,8 @@ public class AdminUsersController : ControllerBase
         [FromQuery] int pageSize = 20,
         CancellationToken ct = default)
     {
+        // Frontend expects a flat list — return `.Items` directly. Pagination
+        // metadata (TotalCount/PageSize) is not used by any admin screen today.
         var result = await _repo.GetPagedAsync(
             pageNumber: page,
             pageSize: pageSize,
@@ -44,7 +46,18 @@ public class AdminUsersController : ControllerBase
             orderBy: u => u.CreatedAt,
             ascending: false);
 
-        return this.OkEnvelope("admin.user.list", result);
+        var rows = result.Items.Select(u => new
+        {
+            id          = u.Id,
+            fullName    = u.FullName,
+            phoneNumber = u.PhoneNumber,
+            email       = u.Email,
+            status      = u.IsActive ? "active" : "suspended",
+            role        = u.Role,
+            createdAt   = u.CreatedAt
+        }).ToList();
+
+        return this.OkEnvelope("admin.user.list", rows);
     }
 
     /// <summary>
