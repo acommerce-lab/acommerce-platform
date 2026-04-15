@@ -22,6 +22,7 @@ public static class CultureBlazorServiceExtensions
         s.TryAddScoped<CultureTimeFormatter>();
         s.TryAddScoped<ViewportState>();
         s.TryAddScoped<ViewportProbe>();
+        s.TryAddScoped<IViewportMode, ViewportModeAdapter>();
         return s;
     }
 }

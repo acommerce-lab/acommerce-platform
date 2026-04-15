@@ -97,24 +97,73 @@ a:hover { color: var(--ac-link-hover); }
 img { max-width: 100%; }
 
 /* =========================================================================
-   Order app shell — single mobile column, centered on desktop
+   Order app shell — ONE HTML tree, TWO appearances
+   ─────────────────────────────────────────────────────────────────────────
+   Mobile  (default / data-ac-mode="mobile"):  narrow centered column,
+                                               top nav hidden, bottom nav shown.
+   Desktop (data-ac-mode="desktop"):           wider layout, top nav shown,
+                                               bottom nav hidden, more padding.
    ========================================================================= */
 .ord-shell {
-    max-width: var(--ord-shell-max);
     min-height: 100vh;
     margin: 0 auto;
     background: var(--ac-bg);
-    box-shadow: 0 0 40px rgba(0,0,0,0.04);
     display: flex;
     flex-direction: column;
     position: relative;
     overflow-x: hidden;
+    max-width: var(--ord-shell-max);
+    box-shadow: 0 0 40px rgba(0,0,0,0.04);
+}
+:root[data-ac-mode="desktop"] .ord-shell {
+    max-width: 1200px;
+    box-shadow: none;
 }
 html[data-theme="dark"] .ord-shell { box-shadow: 0 0 80px rgba(0,0,0,0.50); }
+
+/* ── Top nav: desktop only ─────────────────────────────────────────────── */
+.ord-top-nav {
+    display: none;
+    position: sticky; top: 0; z-index: 50;
+    background: var(--ac-surface);
+    border-bottom: 1px solid var(--ac-border);
+    padding: 12px 24px;
+}
+.ord-top-nav-inner {
+    display: flex; align-items: center; gap: 24px;
+    max-width: 1200px; margin: 0 auto;
+}
+.ord-top-nav-brand {
+    font-weight: 800; font-size: 1.25rem; color: var(--ac-primary);
+    text-decoration: none;
+}
+.ord-top-nav-links {
+    display: flex; gap: 8px; flex: 1;
+}
+.ord-top-nav-link {
+    padding: 8px 14px; border-radius: 8px;
+    color: var(--ac-text); text-decoration: none; font-weight: 600;
+    transition: background 150ms;
+}
+.ord-top-nav-link:hover      { background: var(--ac-bg-alt); }
+.ord-top-nav-link.active     { background: color-mix(in srgb, var(--ac-primary) 14%, transparent); color: var(--ac-primary); }
+.ord-top-nav-actions { display: flex; gap: 10px; align-items: center; }
+.ord-top-nav-cart-badge {
+    background: var(--ac-primary); color: var(--ac-on-primary);
+    min-width: 20px; height: 20px; border-radius: 10px; padding: 0 6px;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 0.75rem; font-weight: 700;
+    margin-inline-start: 6px;
+}
+:root[data-ac-mode="desktop"] .ord-top-nav { display: block; }
 
 .ord-main {
     flex: 1;
     padding-bottom: calc(var(--ord-bottom-nav) + 16px);
+}
+:root[data-ac-mode="desktop"] .ord-main {
+    padding: 24px 32px 32px; /* no bottom-nav clearance on desktop */
+    max-width: 1200px; margin: 0 auto; width: 100%;
 }
 
 .ord-bottom-nav {
@@ -133,6 +182,7 @@ html[data-theme="dark"] .ord-shell { box-shadow: 0 0 80px rgba(0,0,0,0.50); }
     z-index: 100;
     box-shadow: 0 -2px 12px rgba(0,0,0,0.04);
 }
+:root[data-ac-mode="desktop"] .ord-bottom-nav { display: none; }
 html[dir="rtl"] .ord-bottom-nav { transform: translateX(50%); }
 
 .ord-nav-item {

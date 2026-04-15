@@ -767,3 +767,22 @@ textarea.form-control, textarea.form-input { min-height: 6rem; resize: vertical;
     .ac-only-desktop { display: none !important; }
     .ac-only-mobile  { display: initial !important; }
 }
+
+/* =========================================================================
+   Viewport-mode pattern — ONE widget, TWO CSS variants
+   ─────────────────────────────────────────────────────────────────────────
+   JS sets `<html data-ac-mode="mobile|desktop">`.  CSS selectors target
+   either mode at the root:
+
+     [data-ac-mode="desktop"] .ord-top-nav    { display: flex; }
+     [data-ac-mode="mobile"]  .ord-top-nav    { display: none; }
+     [data-ac-mode="mobile"]  .ord-bottom-nav { display: flex; }
+     [data-ac-mode="desktop"] .ord-bottom-nav { display: none; }
+
+   This means a single widget (e.g. AcCard) can have fundamentally
+   different padding, radius, typography on desktop vs. mobile WITHOUT
+   branching inside its Razor markup.  Widgets that need explicit C#
+   access inject IViewportMode.
+   ========================================================================= */
+:root[data-ac-mode="mobile"]  .ac-mode-desktop { display: none !important; }
+:root[data-ac-mode="desktop"] .ac-mode-mobile  { display: none !important; }
