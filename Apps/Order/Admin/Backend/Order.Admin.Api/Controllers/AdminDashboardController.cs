@@ -67,6 +67,16 @@ public class AdminDashboardController : ControllerBase
 
         var stats = new
         {
+            // Flat shape consumed by Dashboard.razor — every property the
+            // frontend DashboardApiRow declares must appear at this level.
+            totalUsers,
+            totalVendors,
+            totalOrders,
+            pendingOrders,
+            activeOffers,
+            totalRevenue,
+
+            // Nested breakdowns kept for future admin widgets / BI.
             users = new
             {
                 total     = totalUsers,

@@ -7,6 +7,7 @@ using ACommerce.OperationEngine.Core;
 using Ashare.Admin.Web.Components;
 using Ashare.Admin.Web.Interpreters;
 using Ashare.Admin.Web.Operations;
+using Ashare.Admin.Web.Services;
 using Ashare.Admin.Web.Store;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -26,7 +27,7 @@ builder.Services.AddScoped<OpEngine>(sp =>
     new OpEngine(sp, sp.GetRequiredService<ILogger<OpEngine>>()));
 
 // ─── ClientOpEngine + HttpDispatcher → Ashare.Admin.Api ───────────────
-var apiBase = builder.Configuration["AshareAdminApi:BaseUrl"] ?? "http://localhost:5600";
+var apiBase = builder.Configuration["AshareAdminApi:BaseUrl"] ?? "http://localhost:5502";
 builder.Services.AddHttpClient("ashare-admin", client =>
 {
     client.BaseAddress = new Uri(apiBase);
@@ -77,6 +78,9 @@ builder.Services.AddScoped<OperationInterpreterRegistry<AppStore>>(sp =>
 
 builder.Services.AddScoped<AppStateApplier>();
 builder.Services.AddScoped<IStateApplier>(sp => sp.GetRequiredService<AppStateApplier>());
+
+// ─── Auth persistence (ProtectedLocalStorage) ───────────────────────
+builder.Services.AddScoped<AuthStateService>();
 
 // ─── Build ───────────────────────────────────────────────────────────
 var app = builder.Build();

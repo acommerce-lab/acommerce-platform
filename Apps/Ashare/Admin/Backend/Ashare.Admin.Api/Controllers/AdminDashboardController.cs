@@ -73,8 +73,22 @@ public class AdminDashboardController : ControllerBase
             .Where(p => p.Status == PaymentStatus.Pending || p.Status == PaymentStatus.Authorized)
             .Sum(p => p.Amount);
 
+        // Pending listings the admin cares about: drafts + anything not yet
+        // published or closed — anything awaiting admin review.
+        var pendingListings = draftListings + reservedListings;
+
         var stats = new
         {
+            // Flat shape consumed by Dashboard.razor — every property the
+            // frontend DashboardApiRow declares must appear at this level.
+            totalUsers,
+            totalListings,
+            pendingListings,
+            totalBookings,
+            activeSubscriptions,
+            totalRevenue,
+
+            // Nested breakdowns kept for future admin widgets / BI.
             users = new
             {
                 total     = totalUsers,

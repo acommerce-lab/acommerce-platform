@@ -74,7 +74,14 @@ a { color: var(--ac-link); text-decoration: underline; text-underline-offset: 2p
 a:hover { color: var(--ac-link-hover); }
 img { max-width: 100%; }
 
-/* ── Shell ────────────────────────────────────────────────────────────── */
+/* =========================================================================
+   Vendor app shell — ONE HTML tree, TWO appearances
+   ─────────────────────────────────────────────────────────────────────────
+   Mobile  (default / data-ac-mode="mobile"):  narrow centered column,
+                                               top nav hidden, bottom nav shown.
+   Desktop (data-ac-mode="desktop"):           wider layout, top nav shown,
+                                               bottom nav hidden, more padding.
+   ========================================================================= */
 .vnd-shell {
     max-width: var(--vnd-shell-max);
     min-height: 100vh;
@@ -83,11 +90,57 @@ img { max-width: 100%; }
     box-shadow: 0 0 40px rgba(0,0,0,0.04);
     display: flex;
     flex-direction: column;
+    position: relative;
+    overflow-x: hidden;
 }
+@media (min-width: 769px) {
+    .vnd-shell { max-width: 1200px; box-shadow: none; }
+}
+:root[data-ac-mode="desktop"] .vnd-shell { max-width: 1200px; box-shadow: none; }
+:root[data-ac-mode="mobile"]  .vnd-shell { max-width: var(--vnd-shell-max); }
+html[data-theme="dark"] .vnd-shell { box-shadow: 0 0 80px rgba(0,0,0,0.50); }
+
+/* ── Top nav: desktop only ─────────────────────────────────────────────── */
+.vnd-top-nav {
+    display: none;
+    position: sticky; top: 0; z-index: 50;
+    background: var(--ac-surface);
+    border-bottom: 1px solid var(--ac-border);
+    padding: 12px 24px;
+}
+.vnd-top-nav-inner {
+    display: flex; align-items: center; gap: 24px;
+    max-width: 1200px; margin: 0 auto;
+}
+.vnd-top-nav-brand {
+    font-weight: 800; font-size: 1.25rem; color: var(--ac-primary);
+    text-decoration: none;
+}
+.vnd-top-nav-links {
+    display: flex; gap: 8px; flex: 1;
+}
+.vnd-top-nav-link {
+    padding: 8px 14px; border-radius: 8px;
+    color: var(--ac-text); text-decoration: none; font-weight: 600;
+    transition: background 150ms;
+}
+.vnd-top-nav-link:hover      { background: var(--ac-bg-alt); }
+.vnd-top-nav-link.active     { background: color-mix(in srgb, var(--ac-primary) 14%, transparent); color: var(--ac-primary); }
+.vnd-top-nav-actions { display: flex; gap: 10px; align-items: center; }
+
+@media (min-width: 769px) {
+    .vnd-top-nav { display: block; }
+    .vnd-main    { padding: 24px 32px 32px; max-width: 1200px; margin: 0 auto; width: 100%; }
+}
+:root[data-ac-mode="desktop"] .vnd-top-nav { display: block; }
+:root[data-ac-mode="mobile"]  .vnd-top-nav { display: none;  }
+
 .vnd-main {
     flex: 1;
     padding-bottom: calc(var(--vnd-bottom-nav) + 16px);
 }
+:root[data-ac-mode="desktop"] .vnd-main { padding: 24px 32px 32px; max-width: 1200px; margin: 0 auto; width: 100%; }
+
 .vnd-bottom-nav {
     position: fixed;
     inset-inline-start: 50%;
@@ -104,6 +157,9 @@ img { max-width: 100%; }
     z-index: 100;
 }
 html[dir="rtl"] .vnd-bottom-nav { transform: translateX(50%); }
+@media (min-width: 769px) { .vnd-bottom-nav { display: none; } }
+:root[data-ac-mode="desktop"] .vnd-bottom-nav { display: none; }
+:root[data-ac-mode="mobile"]  .vnd-bottom-nav { display: flex; }
 .vnd-nav-item {
     flex: 1;
     display: flex; flex-direction: column; align-items: center; justify-content: center;

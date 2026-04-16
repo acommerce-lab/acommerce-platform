@@ -5,10 +5,31 @@
 @implements IDisposable
 
 <div class="vnd-shell">
+    @* Desktop-only top navbar — hidden by CSS when data-ac-mode="mobile" *@
+    <nav class="vnd-top-nav">
+        <div class="vnd-top-nav-inner">
+            <NavLink class="vnd-top-nav-brand" href="/" Match="NavLinkMatch.All">🏪 @(Store.Ui.IsArabic ? "لوحة التاجر" : "Vendor")</NavLink>
+            <div class="vnd-top-nav-links">
+                <NavLink class="vnd-top-nav-link" href="/" Match="NavLinkMatch.All">@(Store.Ui.IsArabic ? "الرئيسية" : "Home")</NavLink>
+                <NavLink class="vnd-top-nav-link" href="/orders">@(Store.Ui.IsArabic ? "الطلبات" : "Orders")</NavLink>
+                <NavLink class="vnd-top-nav-link" href="/offers">@(Store.Ui.IsArabic ? "العروض" : "Offers")</NavLink>
+                <NavLink class="vnd-top-nav-link" href="/messages">@(Store.Ui.IsArabic ? "الرسائل" : "Messages")</NavLink>
+            </div>
+            <div class="vnd-top-nav-actions">
+                <NavLink class="vnd-top-nav-link" href="@(Store.Auth.IsAuthenticated ? "/profile" : "/login")">
+                    @(Store.Auth.IsAuthenticated
+                        ? (Store.Ui.IsArabic ? "حسابي" : "Profile")
+                        : (Store.Ui.IsArabic ? "دخول" : "Sign in"))
+                </NavLink>
+            </div>
+        </div>
+    </nav>
+
     <main class="vnd-main">
         @Body
     </main>
 
+    @* Mobile-only bottom navbar — hidden by CSS when data-ac-mode="desktop" *@
     <nav class="vnd-bottom-nav">
         <NavLink href="/" Match="NavLinkMatch.All" class="vnd-nav-item">
             <AcIcon Name="home" Size="20" />
