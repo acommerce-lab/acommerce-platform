@@ -32,16 +32,20 @@ public static class Program
         var srcConn = config["Source"] ?? config.GetConnectionString("Source");
         var dstConn = config["Target"] ?? config.GetConnectionString("Target");
         var truncate = string.Equals(config["Truncate"], "true", StringComparison.OrdinalIgnoreCase);
+        var discover = args.Contains("--discover");
 
-        if (string.IsNullOrWhiteSpace(srcConn) || string.IsNullOrWhiteSpace(dstConn))
+        if (string.IsNullOrWhiteSpace(srcConn))
         {
             Console.Error.WriteLine("""
-                ✖ مطلوب سلسلتا اتصال:
-                  Source = SQL Server القديم (عشير الإنتاجي)
-                  Target = SQLite المحلي الجديد
-                أضفهما في appsettings.json أو عبر متغير بيئة ASHARE_MIGRATOR_Source / ASHARE_MIGRATOR_Target،
-                أو كوسائط: --src "..." --dst "..."
+                ✖ مطلوب سلسلة اتصال المصدر:
+                  أضفها في appsettings.json (مفتاح Source) أو عبر ASHARE_MIGRATOR_Source أو --src "..."
                 """);
+            return 1;
+        }
+
+        if (!discover && string.IsNullOrWhiteSpace(dstConn))
+        {
+            Console.Error.WriteLine("✖ مطلوب سلسلة اتصال الهدف (Target) لوضع الترحيل.");
             return 1;
         }
 
@@ -55,7 +59,7 @@ public static class Program
             .UseSqlServer(srcConnClean, o => o.CommandTimeout(120))
             .Options;
 
-        EnsureDirectoryForSqlite(dstConn);
+        EnsureDirectoryForSqlite(dstConn!);
 
         var dstOptions = new DbContextOptionsBuilder<TargetDbContext>()
             .UseSqlite(dstConn)
@@ -76,6 +80,12 @@ public static class Program
             Console.Error.WriteLine($"\n✖ تعذّر الاتصال بـ SQL Server:\n  {ex.Message}");
             Console.Error.WriteLine("  تحقق من عنوان الخادم، بيانات الاعتماد، وإمكانية الوصول الشبكي.");
             return 3;
+        }
+
+        if (discover)
+        {
+            await DiscoverTablesAsync(src);
+            return 0;
         }
 
         Console.WriteLine("🔧 التأكد من إنشاء قاعدة البيانات الهدف...");
@@ -275,6 +285,27 @@ public static class Program
     }
 
     // ─── Helpers ───
+
+    private static async Task DiscoverTablesAsync(LegacyDbContext src)
+    {
+        Console.WriteLine("\n📋 الجداول الموجودة في قاعدة المصدر:\n");
+        var conn = src.Database.GetDbConnection();
+        await conn.OpenAsync();
+        await using var cmd = conn.CreateCommand();
+        cmd.CommandText = """
+            SELECT TABLE_SCHEMA, TABLE_NAME,
+                   (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS c
+                    WHERE c.TABLE_SCHEMA = t.TABLE_SCHEMA AND c.TABLE_NAME = t.TABLE_NAME) AS Cols
+            FROM INFORMATION_SCHEMA.TABLES t
+            WHERE TABLE_TYPE = 'BASE TABLE'
+            ORDER BY TABLE_SCHEMA, TABLE_NAME
+            """;
+        await using var reader = await cmd.ExecuteReaderAsync();
+        while (await reader.ReadAsync())
+            Console.WriteLine($"  [{reader.GetString(0)}].[{reader.GetString(1)}]  ({reader.GetInt32(2)} عمود)");
+        await conn.CloseAsync();
+        Console.WriteLine("\nاستخدم هذه الأسماء لضبط LegacyDbContext.OnModelCreating إذا اختلفت عن المتوقّع.");
+    }
 
     private static async Task TruncateAsync(TargetDbContext dst)
     {
