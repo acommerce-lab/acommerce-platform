@@ -450,6 +450,19 @@ try
     using var scope = app.Services.CreateScope();
     var db = scope.ServiceProvider
         .GetRequiredService<ACommerce.SharedKernel.Infrastructure.EFCores.Context.ApplicationDbContext>();
+
+    var dbConnStr = Microsoft.EntityFrameworkCore.RelationalDatabaseFacadeExtensions
+        .GetDbConnection(db.Database).ConnectionString ?? "(null)";
+    var dbExistsBefore = false;
+    var dbFilePath = "";
+    try
+    {
+        var sb = new Microsoft.Data.Sqlite.SqliteConnectionStringBuilder(dbConnStr);
+        dbFilePath = sb.DataSource;
+        dbExistsBefore = System.IO.File.Exists(dbFilePath);
+    } catch { }
+    Log.Information("SQLite DB path: {Path} (exists before: {Exists})", dbFilePath, dbExistsBefore);
+
     // SQLite dev mode: detect schema drift (entity changed without migration)
     // and reset the file so EnsureCreatedAsync can recreate everything fresh.
     // ASHARE_SKIP_SCHEMA_GUARD=true → تعطيل الحارس عند استخدام ملف مُرحَّل من الإنتاج
@@ -467,6 +480,16 @@ try
     if (!skipGuard)
         ACommerce.SharedKernel.Infrastructure.EFCores.SqliteSchemaGuard.StampFingerprint(db);
     Log.Information("Ashare.Api database schema ready");
+
+    // عدّاد تشخيصي — يظهر إذا كانت بيانات الترحيل حُفظت
+    try
+    {
+        var listingRepo = scope.ServiceProvider
+            .GetRequiredService<ACommerce.SharedKernel.Abstractions.Repositories.IRepositoryFactory>()
+            .CreateRepository<Ashare.Api.Entities.Listing>();
+        var existingListings = await listingRepo.CountAsync();
+        Log.Information("Existing listings before seed: {Count}", existingListings);
+    } catch (Exception cntEx) { Log.Warning(cntEx, "count failed"); }
 
     var seeder = scope.ServiceProvider.GetRequiredService<AshareSeeder>();
     await seeder.SeedAsync();
