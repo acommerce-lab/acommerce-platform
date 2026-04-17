@@ -186,27 +186,26 @@ public static class Program
 
         await dst.SaveChangesAsync();
 
-        // vendorId → userId للعروض والاشتراكات
-        var vendorToUser = new Dictionary<Guid, Guid>();
+        // خريطة موسّعة: Profile.Id→UserId + Vendor.Id→UserId
+        // ProductListing.VendorId في هذا النظام يشير إلى Profile.Id مباشرةً (Vendor table فارغ)
+        var ownerMap = new Dictionary<Guid, Guid>();
+
+        // أولاً: كل Profile.Id → UserId
+        foreach (var p in profiles)
+            ownerMap[p.Id] = UserMapper.ParseUserId(p);
+
+        // ثانياً: Vendor.Id → UserId عبر Vendor.ProfileId (إن وُجدت سجلات)
         var vendorNoProfile = 0;
         foreach (var v in vendors)
         {
             var profile = profiles.FirstOrDefault(p => p.Id == v.ProfileId);
-            if (profile != null) vendorToUser[v.Id] = UserMapper.ParseUserId(profile);
+            if (profile != null) ownerMap[v.Id] = UserMapper.ParseUserId(profile);
             else vendorNoProfile++;
         }
 
         Console.WriteLine($"{profiles.Count} ملف شخصي، {newUsers.Count} مستخدم مضاف، {newProfiles.Count} ملف مضاف.");
-        Console.WriteLine($"  ↳ بائعون محمّلون: {vendors.Count}، مُعيَّنون لمستخدم: {vendorToUser.Count}، بلا ملف: {vendorNoProfile}");
-        if (vendors.Count > 0 && vendorToUser.Count == 0)
-        {
-            Console.ForegroundColor = ConsoleColor.Yellow;
-            Console.WriteLine("  ⚠ كل البائعين بلا ملفات — سيُتخطى جميع العروض والاشتراكات.");
-            Console.WriteLine($"  مثال ProfileId من أول بائع : {vendors[0].ProfileId}");
-            Console.WriteLine($"  مثال Id من أول ملف شخصي   : {profiles[0].Id}");
-            Console.ResetColor();
-        }
-        return (userMap, vendorToUser);
+        Console.WriteLine($"  ↳ بائعون: {vendors.Count}، خريطة مالكين: {ownerMap.Count} إدخال");
+        return (userMap, ownerMap);
     }
 
     private static async Task MigrateListingsAsync(
@@ -231,20 +230,11 @@ public static class Program
         {
             if (existing.Contains(l.Id)) continue;
 
-            // محاولة 1: VendorId يشير إلى Vendor.Id
-            // محاولة 2: VendorId يشير مباشرةً إلى Profile.Id أو UserId (بعض الأنظمة القديمة)
+            // ownerMap = Profile.Id→UserId + Vendor.Id→UserId
             if (!vendorToUserMap.TryGetValue(l.VendorId, out var ownerUserId))
             {
-                // fallback: VendorId ← Profile.Id مباشرةً (إذا لم يوجد جدول Vendor كوسيط)
-                if (vendorToUserMap.ContainsValue(l.VendorId))
-                    ownerUserId = l.VendorId;
-                else
-                {
-                    skipped++;
-                    if (skipped <= 3)
-                        Console.Write($"\n    ⚠ VendorId {l.VendorId} غير موجود في خريطة البائعين");
-                    continue;
-                }
+                skipped++;
+                continue;
             }
 
             var catId = l.CategoryId ?? defaultCategoryId;
