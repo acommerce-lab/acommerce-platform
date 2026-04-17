@@ -111,10 +111,20 @@ public static class Program
         }
         catch (Exception ex) when (ex.Message.Contains("Invalid object name", StringComparison.OrdinalIgnoreCase))
         {
-            Console.Error.WriteLine($"\n✖ جدول غير موجود في قاعدة المصدر: {ex.Message}");
+            Console.Error.WriteLine($"\n✖ جدول غير موجود في قاعدة المصدر: {ex.Message.Split('\n')[0]}");
             Console.Error.WriteLine("\nالجداول المتاحة في قاعدة المصدر الفعلية:\n");
             await DiscoverTablesAsync(src);
             Console.Error.WriteLine("\nحدّث LegacyDbContext.OnModelCreating لتطابق الأسماء الصحيحة ثم أعد التشغيل.");
+            return 2;
+        }
+        catch (Exception ex) when (ex.Message.Contains("Invalid column name", StringComparison.OrdinalIgnoreCase))
+        {
+            Console.Error.WriteLine($"\n✖ عمود غير موجود:\n{ex.Message.Split('\n')[0]}");
+            Console.Error.WriteLine("\nأعمدة الجداول المعيّنة في قاعدة المصدر:\n");
+            await DiscoverTableColumnsAsync(src,
+                "Profile", "Vendor", "ProductCategory",
+                "ProductListing", "Booking", "SubscriptionPlans", "Subscriptions");
+            Console.Error.WriteLine("\nحدّث LegacyEntities.cs بالأسماء الصحيحة ثم أعد التشغيل.");
             return 2;
         }
         catch (Exception ex)
@@ -309,6 +319,31 @@ public static class Program
             Console.WriteLine($"  [{reader.GetString(0)}].[{reader.GetString(1)}]  ({reader.GetInt32(2)} عمود)");
         await conn.CloseAsync();
         Console.WriteLine("\nاستخدم هذه الأسماء لضبط LegacyDbContext.OnModelCreating إذا اختلفت عن المتوقّع.");
+    }
+
+    private static async Task DiscoverTableColumnsAsync(LegacyDbContext src, params string[] tableNames)
+    {
+        var conn = src.Database.GetDbConnection();
+        if (conn.State != System.Data.ConnectionState.Open) await conn.OpenAsync();
+        foreach (var table in tableNames)
+        {
+            await using var cmd = conn.CreateCommand();
+            cmd.CommandText = $"""
+                SELECT COLUMN_NAME, DATA_TYPE, IS_NULLABLE, CHARACTER_MAXIMUM_LENGTH
+                FROM INFORMATION_SCHEMA.COLUMNS
+                WHERE TABLE_NAME = '{table}'
+                ORDER BY ORDINAL_POSITION
+                """;
+            Console.WriteLine($"── {table} ─────────────────────");
+            await using var reader = await cmd.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                var len = reader.IsDBNull(3) ? "" : $"({reader.GetValue(3)})";
+                Console.WriteLine($"  {reader.GetString(0)}  {reader.GetString(1)}{len}  {reader.GetString(2)}");
+            }
+            Console.WriteLine();
+        }
+        await conn.CloseAsync();
     }
 
     private static async Task TruncateAsync(TargetDbContext dst)
