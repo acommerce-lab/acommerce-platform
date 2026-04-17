@@ -1,6 +1,7 @@
 using ACommerce.OperationEngine.Core;
 using ACommerce.OperationEngine.Wire;
 using ACommerce.OperationEngine.Patterns;
+using ACommerce.SharedKernel.Abstractions.DynamicAttributes;
 using ACommerce.SharedKernel.Abstractions.Repositories;
 using Ashare.Api.Entities;
 using ACommerce.Subscriptions.Operations;
@@ -55,8 +56,6 @@ public class ListingsController : ControllerBase
         var listing = await _repo.GetByIdAsync(id, ct);
         if (listing == null) return this.NotFoundEnvelope("listing_not_found");
 
-        // المشاهدة = قيد محاسبي: المشاهد ← العرض (بلا معكوس).
-        // المعترض ReportingInterceptor يراقب "listing.view" ويحصي التقارير.
         var viewOp = Entry.Create("listing.view")
             .Describe($"View listing {id}")
             .From("Viewer:anonymous", 1, ("role", "viewer"))
@@ -84,21 +83,20 @@ public class ListingsController : ControllerBase
         string TimeUnit,
         string City,
         string? District,
-        string? PropertyType,
-        int? Floor,
-        double? Area,
-        int? Rooms,
-        int? Bathrooms,
-        bool? Furnished,
-        string? LicenseNumber);
+        double? Latitude,
+        double? Longitude,
+        string? LicenseNumber,
+        Dictionary<string, object?>? Attributes);
 
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateListingRequest req, CancellationToken ct)
     {
-        // نحتاج slug الفئة لمعترض الحصة (للتحقق من النطاق المسموح به)
         var catRepo = _factory.CreateRepository<Category>();
         var category = await catRepo.GetByIdAsync(req.CategoryId, ct);
         if (category == null) return this.NotFoundEnvelope("category_not_found");
+
+        var template = DynamicAttributeHelper.ParseTemplate(category.AttributeTemplateJson) ?? new AttributeTemplate();
+        var snapshot = DynamicAttributeHelper.BuildSnapshot(template, req.Attributes ?? new());
 
         var listing = new Listing
         {
@@ -113,32 +111,25 @@ public class ListingsController : ControllerBase
             TimeUnit = req.TimeUnit,
             City = req.City,
             District = req.District,
-            PropertyType = req.PropertyType,
-            Floor = req.Floor,
-            Area = req.Area,
-            Rooms = req.Rooms,
-            Bathrooms = req.Bathrooms,
-            Furnished = req.Furnished,
+            Latitude = req.Latitude,
+            Longitude = req.Longitude,
             LicenseNumber = req.LicenseNumber,
+            DynamicAttributesJson = DynamicAttributeHelper.SerializeAttributes(snapshot),
             Status = ListingStatus.Draft
         };
 
-        // === قيد بسيط - الجوانب المتقاطعة محقونة من الـ registry ===
-        // القيد يستخدم كتالوجات typed: AshareOps, AshareTags, QuotaTagKeys
         var op = Entry.Create(AshareOps.ListingCreate)
             .Describe($"Owner:{req.OwnerId} creates listing in Category:{req.CategoryId}")
             .From($"User:{req.OwnerId}", 1, ("role", AshareRoles.Owner.Name))
             .To($"Category:{req.CategoryId}", 1, ("role", AshareRoles.Category.Name))
             .Tag(AshareTags.ListingId, listing.Id)
             .Tag(AshareTags.CategoryId, req.CategoryId)
-            // ↓↓↓ علامات typed تُفعّل معترضات الاشتراكات تلقائياً:
             .Tag(QuotaTagKeys.Check, QuotaCheckKinds.ListingsCreate)
             .Tag(QuotaTagKeys.UserId, req.OwnerId)
             .Tag(QuotaTagKeys.ScopeKey, "listing_categories")
             .Tag(QuotaTagKeys.ScopeValue, category.Slug)
             .Execute(async ctx =>
             {
-                // المعترض ربط العرض باشتراك - نستخدم بياناته من الـ context
                 ctx.TryGet<Ashare.Api.Entities.Subscription>("linked_subscription", out var sub);
                 ctx.TryGet<Ashare.Api.Entities.Plan>("linked_plan", out var plan);
 
@@ -187,14 +178,11 @@ public class ListingsController : ControllerBase
         string? TimeUnit,
         string? City,
         string? District,
-        string? PropertyType,
-        int? Floor,
-        double? Area,
-        int? Rooms,
-        int? Bathrooms,
-        bool? Furnished,
+        double? Latitude,
+        double? Longitude,
         string? LicenseNumber,
-        string? ImagesCsv);
+        string? ImagesCsv,
+        Dictionary<string, object?>? Attributes);
 
     [HttpPut("{id:guid}")]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateListingRequest req, CancellationToken ct)
@@ -216,14 +204,20 @@ public class ListingsController : ControllerBase
                 if (req.TimeUnit != null) listing.TimeUnit = req.TimeUnit;
                 if (req.City != null) listing.City = req.City;
                 if (req.District != null) listing.District = req.District;
-                if (req.PropertyType != null) listing.PropertyType = req.PropertyType;
-                if (req.Floor.HasValue) listing.Floor = req.Floor.Value;
-                if (req.Area.HasValue) listing.Area = req.Area.Value;
-                if (req.Rooms.HasValue) listing.Rooms = req.Rooms.Value;
-                if (req.Bathrooms.HasValue) listing.Bathrooms = req.Bathrooms.Value;
-                if (req.Furnished.HasValue) listing.Furnished = req.Furnished.Value;
+                if (req.Latitude.HasValue) listing.Latitude = req.Latitude;
+                if (req.Longitude.HasValue) listing.Longitude = req.Longitude;
                 if (req.LicenseNumber != null) listing.LicenseNumber = req.LicenseNumber;
                 if (req.ImagesCsv != null) listing.ImagesCsv = req.ImagesCsv;
+
+                if (req.Attributes != null)
+                {
+                    var catRepo = _factory.CreateRepository<Category>();
+                    var category = await catRepo.GetByIdAsync(listing.CategoryId, ctx.CancellationToken);
+                    var template = DynamicAttributeHelper.ParseTemplate(category?.AttributeTemplateJson) ?? new AttributeTemplate();
+                    var snapshot = DynamicAttributeHelper.BuildSnapshot(template, req.Attributes);
+                    listing.DynamicAttributesJson = DynamicAttributeHelper.SerializeAttributes(snapshot);
+                }
+
                 listing.UpdatedAt = DateTime.UtcNow;
                 await _repo.UpdateAsync(listing, ctx.CancellationToken);
             })

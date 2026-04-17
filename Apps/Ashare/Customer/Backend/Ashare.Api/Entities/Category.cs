@@ -20,4 +20,10 @@ public class Category : IBaseEntity
     public string? Icon { get; set; }
     public int SortOrder { get; set; }
     public bool IsActive { get; set; } = true;
+
+    /// <summary>
+    /// قالب السمات الديناميكية لهذه الفئة (AttributeTemplate JSON).
+    /// كل عرض يُنشأ تحت هذه الفئة يأخذ لقطة منه على Listing.DynamicAttributesJson.
+    /// </summary>
+    public string? AttributeTemplateJson { get; set; }
 }

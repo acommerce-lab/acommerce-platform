@@ -31,55 +31,7 @@
                     </ChildContent>
                 </AcCard>
 
-                @if (listing.Rooms.HasValue || listing.Bathrooms.HasValue || listing.Area.HasValue || listing.Floor.HasValue)
-                {
-                    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap: 12px;margin-bottom: 20px">
-                        @if (listing.Rooms.HasValue)
-                        {
-                            <AcCard>
-                                <ChildContent>
-                                    <div style="text-align:center;padding: 8px 0">
-                                        <div style="font-size:1.5rem">🛏️</div>
-                                        <div style="font-weight:600">@listing.Rooms غرف</div>
-                                    </div>
-                                </ChildContent>
-                            </AcCard>
-                        }
-                        @if (listing.Bathrooms.HasValue)
-                        {
-                            <AcCard>
-                                <ChildContent>
-                                    <div style="text-align:center;padding: 8px 0">
-                                        <div style="font-size:1.5rem">🚿</div>
-                                        <div style="font-weight:600">@listing.Bathrooms حمام</div>
-                                    </div>
-                                </ChildContent>
-                            </AcCard>
-                        }
-                        @if (listing.Area.HasValue)
-                        {
-                            <AcCard>
-                                <ChildContent>
-                                    <div style="text-align:center;padding: 8px 0">
-                                        <div style="font-size:1.5rem">📐</div>
-                                        <div style="font-weight:600">@listing.Area م²</div>
-                                    </div>
-                                </ChildContent>
-                            </AcCard>
-                        }
-                        @if (listing.Floor.HasValue)
-                        {
-                            <AcCard>
-                                <ChildContent>
-                                    <div style="text-align:center;padding: 8px 0">
-                                        <div style="font-size:1.5rem">🏢</div>
-                                        <div style="font-weight:600">الطابق @listing.Floor</div>
-                                    </div>
-                                </ChildContent>
-                            </AcCard>
-                        }
-                    </div>
-                }
+                <AcAttrGrid Attributes="attributes" IsArabic="true" />
             </div>
 
             @* Sidebar *@
@@ -122,6 +74,7 @@
 @code {
     [Parameter] public Guid Id { get; set; }
     private ListingDto? listing;
+    private List<DynamicAttribute> attributes = new();
     private bool loading = true;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -131,6 +84,7 @@
         {
             var resp = await Reader.GetAsync<ListingDto>($"/api/listings/{Id}");
             listing = resp.Data;
+            attributes = DynamicAttributeHelper.ParseAttributes(listing?.DynamicAttributesJson);
         }
         catch { }
         loading = false;
@@ -162,10 +116,7 @@
         public string City { get; set; } = "";
         public string? District { get; set; }
         public string TimeUnit { get; set; } = "";
-        public int? Rooms { get; set; }
-        public int? Bathrooms { get; set; }
-        public double? Area { get; set; }
-        public int? Floor { get; set; }
+        public string? DynamicAttributesJson { get; set; }
     }
 
     public class ConversationDto { public Guid Id { get; set; } }

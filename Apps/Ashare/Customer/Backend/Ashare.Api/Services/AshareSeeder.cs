@@ -1,10 +1,12 @@
 using Ashare.Api.Entities;
 using ACommerce.SharedKernel.Abstractions.Repositories;
+using ACommerce.SharedKernel.Abstractions.DynamicAttributes;
 
 namespace Ashare.Api.Services;
 
 /// <summary>
-/// بذر البيانات الأولية لعشير - يطابق الفئات الخمس في AshareSeedDataService.
+/// بذر البيانات الأولية لعشير: الفئات الخمس مع قوالب السمات الديناميكية،
+/// المستخدمين، 16 إعلان مشاركة سكنية مستخرج من بيانات الإنتاج، و8 منتجات اختبارية.
 /// </summary>
 public class AshareSeeder
 {
@@ -22,13 +24,6 @@ public class AshareSeeder
         public static readonly Guid OwnerAhmed   = Guid.Parse("00000000-0000-0000-0001-000000000001");
         public static readonly Guid CustomerSara = Guid.Parse("00000000-0000-0000-0001-000000000002");
         public static readonly Guid AdminUser    = Guid.Parse("00000000-0000-0000-0001-000000000003");
-    }
-
-    public static class ListingIds
-    {
-        public static readonly Guid Apartment1 = Guid.Parse("30000000-0000-0000-0001-000000000001");
-        public static readonly Guid Villa1     = Guid.Parse("30000000-0000-0000-0001-000000000002");
-        public static readonly Guid Office1    = Guid.Parse("30000000-0000-0000-0002-000000000001");
     }
 
     private readonly IRepositoryFactory _repoFactory;
@@ -58,7 +53,6 @@ public class AshareSeeder
         var subRepo = _repoFactory.CreateRepository<Subscription>();
         if (await subRepo.CountAsync(cancellationToken: ct) > 0) return;
 
-        // اشتراك تجريبي للمالك أحمد على باقة المنشآت السنوية
         var now = DateTime.UtcNow;
         await subRepo.AddAsync(new Subscription
         {
@@ -90,7 +84,8 @@ public class AshareSeeder
                 NameEn = "Residential",
                 Description = "عرض سكني (شقة/فيلا/استوديو/غرفة)",
                 Icon = "home",
-                SortOrder = 1
+                SortOrder = 1,
+                AttributeTemplateJson = DynamicAttributeHelper.SerializeTemplate(AshareCategoryTemplates.Residential())
             },
             new()
             {
@@ -100,7 +95,8 @@ public class AshareSeeder
                 NameEn = "Looking for Housing",
                 Description = "أبحث عن سكن",
                 Icon = "search",
-                SortOrder = 2
+                SortOrder = 2,
+                AttributeTemplateJson = DynamicAttributeHelper.SerializeTemplate(AshareCategoryTemplates.LookingForHousing())
             },
             new()
             {
@@ -110,7 +106,8 @@ public class AshareSeeder
                 NameEn = "Looking for Roommate",
                 Description = "أبحث عن شريك سكن",
                 Icon = "users",
-                SortOrder = 3
+                SortOrder = 3,
+                AttributeTemplateJson = DynamicAttributeHelper.SerializeTemplate(AshareCategoryTemplates.LookingForPartner())
             },
             new()
             {
@@ -120,7 +117,8 @@ public class AshareSeeder
                 NameEn = "Administrative",
                 Description = "مساحات إدارية ومكاتب",
                 Icon = "briefcase",
-                SortOrder = 4
+                SortOrder = 4,
+                AttributeTemplateJson = DynamicAttributeHelper.SerializeTemplate(AshareCategoryTemplates.Administrative())
             },
             new()
             {
@@ -130,7 +128,8 @@ public class AshareSeeder
                 NameEn = "Commercial",
                 Description = "مساحات تجارية ومحلات",
                 Icon = "store",
-                SortOrder = 5
+                SortOrder = 5,
+                AttributeTemplateJson = DynamicAttributeHelper.SerializeTemplate(AshareCategoryTemplates.Commercial())
             }
         };
 
@@ -192,75 +191,6 @@ public class AshareSeeder
         if (await repo.CountAsync(cancellationToken: ct) > 0) return;
 
         var now = DateTime.UtcNow;
-        await repo.AddRangeAsync(new[]
-        {
-            new Listing
-            {
-                Id = ListingIds.Apartment1,
-                CreatedAt = now,
-                OwnerId = UserIds.OwnerAhmed,
-                CategoryId = CategoryIds.Residential,
-                Title = "شقة فاخرة في حي الياسمين",
-                Description = "شقة 3 غرف نوم، صالة، مطبخ، 2 حمام. مفروشة بالكامل.",
-                Price = 4500m,
-                Duration = 1,
-                TimeUnit = "month",
-                City = "الرياض",
-                District = "الياسمين",
-                PropertyType = "apartment",
-                UnitType = "apartment",
-                Floor = 3,
-                Area = 140,
-                Rooms = 3,
-                Bathrooms = 2,
-                Furnished = true,
-                Amenities = "wifi,ac,elevator,parking",
-                LicenseNumber = "RG-1234567",
-                Status = ListingStatus.Published,
-                PublishedAt = now
-            },
-            new Listing
-            {
-                Id = ListingIds.Villa1,
-                CreatedAt = now,
-                OwnerId = UserIds.OwnerAhmed,
-                CategoryId = CategoryIds.Residential,
-                Title = "فيلا واسعة بمسبح",
-                Description = "فيلا دورين، 5 غرف نوم، حديقة ومسبح خاص.",
-                Price = 12000m,
-                Duration = 1,
-                TimeUnit = "month",
-                City = "جدة",
-                District = "الشاطئ",
-                PropertyType = "villa",
-                Area = 450,
-                Rooms = 5,
-                Bathrooms = 4,
-                Furnished = false,
-                LicenseNumber = "RG-7654321",
-                Status = ListingStatus.Published,
-                PublishedAt = now
-            },
-            new Listing
-            {
-                Id = ListingIds.Office1,
-                CreatedAt = now,
-                OwnerId = UserIds.OwnerAhmed,
-                CategoryId = CategoryIds.Commercial,
-                Title = "مكتب تجاري مجهز",
-                Description = "مكتب 80م، مجهز بالأثاث، إنترنت، استقبال.",
-                Price = 6000m,
-                Duration = 1,
-                TimeUnit = "month",
-                City = "الرياض",
-                District = "العليا",
-                PropertyType = "office",
-                Floor = 5,
-                Area = 80,
-                LicenseNumber = "CO-9876543",
-                Status = ListingStatus.Published,
-                PublishedAt = now
-            }
-        }, ct);
+        await repo.AddRangeAsync(AshareListingsSeed.All(now, UserIds.OwnerAhmed), ct);
     }
 }

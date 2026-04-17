@@ -16,7 +16,7 @@
             <Header><strong>بيانات العرض الأساسية</strong></Header>
             <ChildContent>
                 <AcField Label="الفئة" Class="ac-mb-md">
-                    <select class="ac-input" @bind="form.CategoryId">
+                    <select class="ac-input" @bind="form.CategoryId" @bind:after="OnCategoryChangedAsync">
                         <option value="">-- اختر الفئة --</option>
                         @foreach (var cat in categories)
                         {
@@ -49,6 +49,7 @@
                             <option value="month">شهر</option>
                             <option value="week">أسبوع</option>
                             <option value="day">يوم</option>
+                            <option value="year">سنة</option>
                         </select>
                     </AcField>
                 </div>
@@ -65,33 +66,18 @@
             </ChildContent>
         </AcCard>
 
-        <AcCard Class="ac-mb-lg">
-            <Header><strong>مواصفات العقار</strong></Header>
-            <ChildContent>
-                <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap: 12px">
-                    <AcField Label="الغرف">
-                        <AcInput Type="number" Value="@(form.Rooms?.ToString() ?? "")"
-                                 ValueChanged="@(v => form.Rooms = int.TryParse(v, out var n) ? n : null)"
-                                 Placeholder="0" />
-                    </AcField>
-                    <AcField Label="الحمامات">
-                        <AcInput Type="number" Value="@(form.Bathrooms?.ToString() ?? "")"
-                                 ValueChanged="@(v => form.Bathrooms = int.TryParse(v, out var n) ? n : null)"
-                                 Placeholder="0" />
-                    </AcField>
-                    <AcField Label="المساحة م²">
-                        <AcInput Type="number" Value="@(form.Area?.ToString() ?? "")"
-                                 ValueChanged="@(v => form.Area = double.TryParse(v, out var n) ? n : null)"
-                                 Placeholder="0" />
-                    </AcField>
-                    <AcField Label="الطابق">
-                        <AcInput Type="number" Value="@(form.Floor?.ToString() ?? "")"
-                                 ValueChanged="@(v => form.Floor = int.TryParse(v, out var n) ? n : null)"
-                                 Placeholder="0" />
-                    </AcField>
-                </div>
-            </ChildContent>
-        </AcCard>
+        @if (template != null && template.Fields.Count > 0)
+        {
+            <AcCard Class="ac-mb-lg">
+                <Header><strong>مواصفات إضافية حسب الفئة</strong></Header>
+                <ChildContent>
+                    <AcAttrEditor Template="template"
+                                  Values="attributeValues"
+                                  ValuesChanged="@(v => attributeValues = v)"
+                                  IsArabic="true" />
+                </ChildContent>
+            </AcCard>
+        }
 
         @if (!string.IsNullOrEmpty(error))
         {
@@ -111,6 +97,8 @@
 @code {
     private CreateForm form = new();
     private List<CategoryDto> categories = new();
+    private AttributeTemplate? template;
+    private Dictionary<string, object?> attributeValues = new();
     private bool saving;
     private string error = "";
     private string success = "";
@@ -127,6 +115,21 @@
         StateHasChanged();
     }
 
+    private async Task OnCategoryChangedAsync()
+    {
+        attributeValues = new();
+        template = null;
+        if (form.CategoryId == Guid.Empty) { StateHasChanged(); return; }
+
+        try
+        {
+            var resp = await Reader.GetAsync<CategoryDto>($"/api/categories/{form.CategoryId}");
+            template = DynamicAttributeHelper.ParseTemplate(resp.Data?.AttributeTemplateJson);
+        }
+        catch { }
+        StateHasChanged();
+    }
+
     private async Task Submit()
     {
         if (!Store.Auth.UserId.HasValue) return;
@@ -137,13 +140,19 @@
             var ownerId = Store.Auth.UserId.Value;
             var payload = new
             {
-                ownerId, categoryId = form.CategoryId, title = form.Title,
-                description = form.Description, price = form.Price,
-                duration = form.Duration, timeUnit = form.TimeUnit,
-                city = form.City, district = form.District,
-                propertyType = (string?)null, floor = form.Floor,
-                area = form.Area, rooms = form.Rooms, bathrooms = form.Bathrooms,
-                furnished = (bool?)null, licenseNumber = (string?)null
+                ownerId,
+                categoryId = form.CategoryId,
+                title = form.Title,
+                description = form.Description,
+                price = form.Price,
+                duration = form.Duration,
+                timeUnit = form.TimeUnit,
+                city = form.City,
+                district = form.District,
+                latitude = (double?)null,
+                longitude = (double?)null,
+                licenseNumber = (string?)null,
+                attributes = attributeValues
             };
 
             var resp = await Engine.ExecuteAsync<ListingDto>(
@@ -155,7 +164,7 @@
                 return;
             }
 
-            success = $"تم إنشاء العرض بنجاح!";
+            success = "تم إنشاء العرض بنجاح!";
             StateHasChanged();
             await Task.Delay(800);
             Nav.NavigateTo($"/listing/{resp.Data.Id}");
@@ -174,12 +183,14 @@
         public string TimeUnit { get; set; } = "month";
         public string City { get; set; } = "الرياض";
         public string? District { get; set; }
-        public int? Rooms { get; set; }
-        public int? Bathrooms { get; set; }
-        public double? Area { get; set; }
-        public int? Floor { get; set; }
     }
 
-    public class CategoryDto { public Guid Id { get; set; } public string NameAr { get; set; } = ""; }
+    public class CategoryDto
+    {
+        public Guid Id { get; set; }
+        public string NameAr { get; set; } = "";
+        public string? AttributeTemplateJson { get; set; }
+    }
+
     public class ListingDto { public Guid Id { get; set; } }
 }
