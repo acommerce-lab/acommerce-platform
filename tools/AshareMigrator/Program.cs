@@ -88,14 +88,24 @@ public static class Program
             return 0;
         }
 
-        Console.WriteLine("🔧 التأكد من إنشاء قاعدة البيانات الهدف...");
-        await dst.Database.EnsureCreatedAsync();
-
+        // --truncate يحذف ملف SQLite بأكمله ليُعاد إنشاؤه بالمخطط الحالي.
+        // هذا ضروري عند تغيير أسماء الجداول أو أعمدتها بين التشغيلات —
+        // EnsureCreatedAsync لا يُعدّل قاعدة موجودة.
         if (truncate)
         {
-            Console.WriteLine("🗑 مسح البيانات الحالية من الهدف...");
-            await TruncateAsync(dst);
+            var path = ExtractSqlitePath(dstConn!);
+            if (!string.IsNullOrEmpty(path) && File.Exists(path))
+            {
+                Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
+                File.Delete(path);
+                if (File.Exists(path + "-wal")) File.Delete(path + "-wal");
+                if (File.Exists(path + "-shm")) File.Delete(path + "-shm");
+                Console.WriteLine($"🗑 حُذف الملف السابق: {path}");
+            }
         }
+
+        Console.WriteLine("🔧 التأكد من إنشاء قاعدة البيانات الهدف...");
+        await dst.Database.EnsureCreatedAsync();
 
         try
         {
@@ -358,15 +368,16 @@ public static class Program
         await conn.CloseAsync();
     }
 
-    private static async Task TruncateAsync(TargetDbContext dst)
+    private static string ExtractSqlitePath(string conn)
     {
-        await dst.Database.ExecuteSqlRawAsync("DELETE FROM Subscription;");
-        await dst.Database.ExecuteSqlRawAsync("DELETE FROM Plan;");
-        await dst.Database.ExecuteSqlRawAsync("DELETE FROM Booking;");
-        await dst.Database.ExecuteSqlRawAsync("DELETE FROM Listing;");
-        await dst.Database.ExecuteSqlRawAsync("DELETE FROM Profile;");
-        await dst.Database.ExecuteSqlRawAsync("DELETE FROM [User];");
-        await dst.Database.ExecuteSqlRawAsync("DELETE FROM Category;");
+        var parts = conn.Split(';', StringSplitOptions.RemoveEmptyEntries);
+        foreach (var p in parts)
+        {
+            var kv = p.Split('=', 2);
+            if (kv.Length == 2 && kv[0].Trim().Equals("Data Source", StringComparison.OrdinalIgnoreCase))
+                return kv[1].Trim();
+        }
+        return "";
     }
 
     private static string MaskConn(string conn)
