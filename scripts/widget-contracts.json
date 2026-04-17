@@ -84,6 +84,26 @@
     ".act-footer": {
       "description": "Bottom footer — needs a top border or a distinguishing background to separate it from page content. Horizontal padding optional.",
       "required": ["background"]
+    },
+    ".ac-search": {
+      "description": "Search box: must contain the input within a bordered, padded shell that users can tap anywhere on.",
+      "required": ["background", "border", "border-radius", "padding", "min-height"],
+      "min-values": { "padding": 6, "min-height": 32, "border-width": 1 }
+    },
+    ".ac-tile": {
+      "description": "Square category tile — icon + label. Needs visible bounds + padding so tapped area matches WCAG 2.5.5.",
+      "required": ["background", "border", "border-radius", "padding", "min-height"],
+      "min-values": { "padding": 8, "min-height": 72, "border-width": 1 }
+    },
+    ".ac-space": {
+      "description": "Listing / space preview card. Must visually contain image + body with border and radius.",
+      "required": ["background", "border", "border-radius"],
+      "min-values": { "border-width": 1, "border-radius": 4 }
+    },
+    ".ac-space-body": {
+      "description": "Space card body — padding so text doesn't touch image edge.",
+      "required": ["padding"],
+      "min-values": { "padding": 8 }
     }
   }
 }

@@ -863,3 +863,236 @@ textarea.form-control, textarea.form-input { min-height: 6rem; resize: vertical;
 
 .ac-attr-bool { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; }
 .ac-attr-bool input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--ac-primary, #0d6efd); }
+
+/* =========================================================================
+   Home-slice widgets — search, category tiles, space cards, horizontal
+   scroll rail, section headers. Brand-agnostic; colours inherit via
+   currentColor / var(--ac-*).
+   ========================================================================= */
+
+/* ── AcSearchBox ─────────────────────────────────────────────────────── */
+.ac-search {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: var(--ac-surface, #ffffff);
+    border: 1px solid var(--ac-border, #e5e7eb);
+    border-radius: var(--ac-radius-md, 8px);
+    min-height: 40px;
+}
+.ac-search:focus-within { border-color: var(--ac-primary, #0d6efd); }
+.ac-search-icon { display: inline-flex; color: var(--ac-text-muted, #6b7280); }
+.ac-search-input {
+    flex: 1;
+    border: 0;
+    outline: none;
+    background: transparent;
+    color: var(--ac-text, #111827);
+    font-size: 14px;
+    font-family: inherit;
+    min-height: 24px;
+    padding: 0;
+}
+.ac-search-input::placeholder { color: var(--ac-text-muted, #6b7280); }
+.ac-search-submit {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border: 0;
+    background: transparent;
+    color: var(--ac-primary, #0d6efd);
+    cursor: pointer;
+    border-radius: var(--ac-radius-sm, 4px);
+}
+.ac-search-submit:hover { background: var(--ac-bg-alt, #f3f4f6); }
+
+/* ── AcCategoryTile ──────────────────────────────────────────────────── */
+.ac-tile {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    width: 88px;
+    min-height: 88px;
+    padding: 12px 8px;
+    background: var(--ac-surface, #ffffff);
+    border: 1px solid var(--ac-border, #e5e7eb);
+    border-radius: var(--ac-radius-md, 8px);
+    cursor: pointer;
+    color: var(--ac-text, #111827);
+    font-family: inherit;
+    transition: border-color 120ms, transform 120ms;
+}
+.ac-tile:hover { border-color: var(--ac-primary, #0d6efd); }
+.ac-tile-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    color: var(--ac-primary, #0d6efd);
+}
+.ac-tile-label {
+    font-size: 12px;
+    font-weight: 500;
+    color: inherit;
+    text-align: center;
+    line-height: 1.3;
+}
+.ac-tile-selected {
+    border-color: var(--ac-primary, #0d6efd);
+    background: color-mix(in srgb, var(--ac-primary, #0d6efd) 8%, transparent);
+}
+
+/* ── AcSpaceCard ─────────────────────────────────────────────────────── */
+.ac-space {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    background: var(--ac-surface, #ffffff);
+    border: 1px solid var(--ac-border, #e5e7eb);
+    border-radius: var(--ac-radius-md, 8px);
+    overflow: hidden;
+    cursor: pointer;
+    color: var(--ac-text, #111827);
+    transition: border-color 120ms, transform 120ms;
+}
+.ac-space:hover { border-color: var(--ac-primary, #0d6efd); }
+.ac-space-media {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    background: var(--ac-bg-alt, #f3f4f6);
+    overflow: hidden;
+}
+.ac-space-media img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+.ac-space-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    color: var(--ac-text-muted, #6b7280);
+}
+.ac-space-ribbon {
+    position: absolute;
+    top: 8px;
+    inset-inline-start: 8px;
+    padding: 4px 8px;
+    background: var(--ac-surface, #ffffff);
+    border: 1px solid var(--ac-border, #e5e7eb);
+    border-radius: var(--ac-radius-sm, 4px);
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--ac-text, #111827);
+}
+.ac-space-fav {
+    position: absolute;
+    top: 8px;
+    inset-inline-end: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    background: var(--ac-surface, #ffffff);
+    border: 1px solid var(--ac-border, #e5e7eb);
+    border-radius: 999px;
+    color: var(--ac-text, #111827);
+    cursor: pointer;
+}
+.ac-space-fav:hover { color: var(--ac-primary, #0d6efd); }
+.ac-space-body {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 12px;
+}
+.ac-space-title {
+    font-size: 14px;
+    font-weight: 600;
+    margin: 0;
+    color: var(--ac-text, #111827);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.ac-space-meta {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 12px;
+    color: var(--ac-text-muted, #6b7280);
+}
+.ac-space-meta > span {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+.ac-space-price {
+    margin-top: 4px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--ac-primary, #0d6efd);
+}
+
+/* ── AcSectionHeader ─────────────────────────────────────────────────── */
+.ac-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin: 16px 0 8px;
+}
+.ac-section-title {
+    font-size: 16px;
+    font-weight: 600;
+    margin: 0;
+    color: var(--ac-text, #111827);
+}
+.ac-section-subtitle {
+    font-size: 12px;
+    color: var(--ac-text-muted, #6b7280);
+    margin: 0;
+}
+.ac-section-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: transparent;
+    border: 0;
+    color: var(--ac-primary, #0d6efd);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: var(--ac-radius-sm, 4px);
+    font-family: inherit;
+}
+.ac-section-action:hover { background: var(--ac-bg-alt, #f3f4f6); }
+
+/* ── AcHScroll ───────────────────────────────────────────────────────── */
+.ac-hscroll {
+    width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x proximity;
+}
+.ac-hscroll::-webkit-scrollbar { display: none; }
+.ac-hscroll-track {
+    display: inline-flex;
+    gap: 12px;
+    padding: 4px 0;
+}
+.ac-hscroll-track > * { scroll-snap-align: start; flex-shrink: 0; }

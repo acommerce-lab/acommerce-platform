@@ -7,6 +7,12 @@ e-commerce applications in days. The core idea: **every state change is a
 double-entry accounting operation**. Read `docs/MODEL.md` before writing
 any code.
 
+## Session bootstrap
+
+Before anything else in a fresh web session, run the two `apt-get`
+commands in **`docs/DOTNET-SETUP.md`** to install .NET 10. Without it
+no `.csproj` in this repo can be built.
+
 ## Read order
 
 1. **`docs/MODEL.md`** — the Operation-Accounting Model (OAM). This is the

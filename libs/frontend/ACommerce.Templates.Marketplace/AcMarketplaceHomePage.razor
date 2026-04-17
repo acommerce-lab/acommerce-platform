@@ -1,0 +1,198 @@
+@namespace ACommerce.Templates.Marketplace
+
+@*
+    AcMarketplaceHomePage — صفحة رئيسية لتطبيق سوق (مستوحاة من تصميم عشير).
+
+    Operation-aware:
+      - Engine : ITemplateEngine يُصدر عمليات (entries) للخادم.
+      - Store  : ITemplateStore لقراءة اللغة/السمة.
+      - Data   : MarketplaceHomeDto يُقرأ من ApiReader قبل الرسم.
+
+    العمليات التي يُصدرها:
+      - catalog.search       (عند الإرسال من AcSearchBox)
+      - category.select      (عند نقر AcCategoryTile)
+      - listing.favorite     (عند قلب القلب في AcSpaceCard)
+      - listing.view         (عند فتح بطاقة)
+      - listing.view_all     (عند نقر "عرض الكل")
+
+    تصميم بلا كود-خلف: كل تفاعل يُحوَّل إلى Entry ويُرسَل عبر Engine.
+*@
+
+<div class="acs-page acm-home">
+
+    <header class="acm-home-hero">
+        <h1 class="acm-home-title">@Title</h1>
+        @if (!string.IsNullOrEmpty(Subtitle))
+        {
+            <p class="acm-home-subtitle">@Subtitle</p>
+        }
+        <AcSearchBox Placeholder="@SearchPlaceholder"
+                     Value="@_query"
+                     ValueChanged="v => _query = v"
+                     OnSubmit="SubmitSearch" />
+    </header>
+
+    @if (Data is null)
+    {
+        <AcLoadingState />
+    }
+    else
+    {
+        @if (Data.Categories.Count > 0)
+        {
+            <AcSectionHeader Title="@CategoriesTitle" />
+            <AcHScroll>
+                @foreach (var c in Data.Categories)
+                {
+                    <AcCategoryTile Label="@c.Label"
+                                    Icon="@c.Icon"
+                                    OnClick="() => SelectCategory(c)" />
+                }
+            </AcHScroll>
+        }
+
+        @if (Data.Featured.Count > 0)
+        {
+            <AcSectionHeader Title="@FeaturedTitle"
+                             ActionLabel="@ViewAllLabel"
+                             OnAction="@(() => ViewAll("featured"))" />
+            <AcHScroll Class="acm-home-rail">
+                @foreach (var l in Data.Featured)
+                {
+                    <div class="acm-home-rail-item">
+                        <AcSpaceCard Title="@l.Title"
+                                     ImageUrl="@l.ThumbnailUrl"
+                                     Location="@LocationText(l)"
+                                     PriceLabel="@PriceText(l)"
+                                     Ribbon="@(l.IsFeatured ? "مميّز" : null)"
+                                     IsFavorite="@IsFavorite(l.Id)"
+                                     OnOpen="() => OpenListing(l)"
+                                     OnToggleFavorite="on => ToggleFavorite(l, on)" />
+                    </div>
+                }
+            </AcHScroll>
+        }
+
+        @if (Data.New.Count > 0)
+        {
+            <AcSectionHeader Title="@NewTitle"
+                             ActionLabel="@ViewAllLabel"
+                             OnAction="@(() => ViewAll("new"))" />
+            <div class="acm-home-grid">
+                @foreach (var l in Data.New)
+                {
+                    <AcSpaceCard Title="@l.Title"
+                                 ImageUrl="@l.ThumbnailUrl"
+                                 Location="@LocationText(l)"
+                                 PriceLabel="@PriceText(l)"
+                                 IsFavorite="@IsFavorite(l.Id)"
+                                 OnOpen="() => OpenListing(l)"
+                                 OnToggleFavorite="on => ToggleFavorite(l, on)" />
+                }
+            </div>
+        }
+
+        @if (Data.Categories.Count == 0 && Data.Featured.Count == 0 && Data.New.Count == 0)
+        {
+            <AcEmptyState IconName="building" Message="@EmptyMessage" />
+        }
+    }
+</div>
+
+@code {
+    [Parameter] public MarketplaceHomeDto? Data { get; set; }
+    [Parameter] public ITemplateEngine? Engine { get; set; }
+    [Parameter] public ITemplateStore? Store { get; set; }
+
+    [Parameter] public string Title { get; set; } = "ابحث عن سكنك المشترك";
+    [Parameter] public string? Subtitle { get; set; }
+    [Parameter] public string SearchPlaceholder { get; set; } = "ابحث في المدن والأحياء…";
+    [Parameter] public string CategoriesTitle { get; set; } = "الفئات";
+    [Parameter] public string FeaturedTitle { get; set; } = "إعلانات مميّزة";
+    [Parameter] public string NewTitle { get; set; } = "جديد";
+    [Parameter] public string ViewAllLabel { get; set; } = "عرض الكل";
+    [Parameter] public string EmptyMessage { get; set; } = "لا توجد إعلانات حالياً";
+    [Parameter] public ISet<string>? FavoriteIds { get; set; }
+
+    [Parameter] public EventCallback<string?> OnSearch { get; set; }
+    [Parameter] public EventCallback<CategoryTileDto> OnCategorySelected { get; set; }
+    [Parameter] public EventCallback<ListingRowDto> OnListingOpen { get; set; }
+    [Parameter] public EventCallback<(ListingRowDto Listing, bool On)> OnFavoriteToggled { get; set; }
+    [Parameter] public EventCallback<string> OnViewAll { get; set; }
+
+    private string? _query;
+
+    private bool IsFavorite(string id) => FavoriteIds?.Contains(id) ?? false;
+
+    private static string? LocationText(ListingRowDto l) =>
+        string.Join(" — ", new[] { l.City, l.District }.Where(s => !string.IsNullOrWhiteSpace(s)));
+
+    private static string PriceText(ListingRowDto l)
+    {
+        var unit = l.TimeUnit switch
+        {
+            "day" or "يوم" => "/ يوم",
+            "night" or "ليلة" => "/ ليلة",
+            "week" or "أسبوع" => "/ أسبوع",
+            "month" or "شهر" => "/ شهر",
+            _ => ""
+        };
+        return $"{l.Price:0} {l.Currency} {unit}".Trim();
+    }
+
+    private async Task SubmitSearch()
+    {
+        if (Engine is not null)
+        {
+            var op = Entry.Create("catalog.search")
+                .From($"User:{Store?.UserId?.ToString() ?? "anon"}", 1, ("role", "searcher"))
+                .To("Catalog:listings", 1, ("role", "target"))
+                .Tag("q", _query ?? "")
+                .Build();
+            await Engine.ExecuteAsync<object>(op, new { Query = _query });
+        }
+        await OnSearch.InvokeAsync(_query);
+    }
+
+    private async Task SelectCategory(CategoryTileDto c)
+    {
+        if (Engine is not null)
+        {
+            var op = Entry.Create("category.select")
+                .From($"User:{Store?.UserId?.ToString() ?? "anon"}", 1, ("role", "selector"))
+                .To($"Category:{c.Id}", 1, ("role", "target"))
+                .Build();
+            await Engine.ExecuteAsync<object>(op, new { CategoryId = c.Id });
+        }
+        await OnCategorySelected.InvokeAsync(c);
+    }
+
+    private async Task OpenListing(ListingRowDto l)
+    {
+        if (Engine is not null)
+        {
+            var op = Entry.Create("listing.view")
+                .From($"User:{Store?.UserId?.ToString() ?? "anon"}", 1, ("role", "viewer"))
+                .To($"Listing:{l.Id}", 1, ("role", "target"))
+                .Build();
+            await Engine.ExecuteAsync<object>(op, new { ListingId = l.Id });
+        }
+        await OnListingOpen.InvokeAsync(l);
+    }
+
+    private async Task ToggleFavorite(ListingRowDto l, bool on)
+    {
+        if (Engine is not null && Store?.UserId is not null)
+        {
+            var op = Entry.Create("listing.favorite")
+                .From($"User:{Store.UserId}", 1, ("role", "user"))
+                .To($"Listing:{l.Id}", 1, ("role", "target"))
+                .Tag("state", on ? "on" : "off")
+                .Build();
+            await Engine.ExecuteAsync<object>(op, new { ListingId = l.Id, On = on });
+        }
+        await OnFavoriteToggled.InvokeAsync((l, on));
+    }
+
+    private Task ViewAll(string section) => OnViewAll.InvokeAsync(section);
+}

@@ -1,0 +1,26 @@
+/* Ashare V2 brand override — الألوان الحقيقيّة تُحدَّد هنا فقط.
+   كل الودجات ترث عبر var(--ac-*). */
+:root {
+    --ac-primary:       #1E40AF;   /* Royal Blue */
+    --ac-primary-hover: #1E3A8A;
+    --ac-secondary:     #F4844C;   /* Warm Orange */
+    --ac-secondary-hover:#E06D34;
+    --ac-radius-sm: 8px;
+    --ac-radius-md: 12px;
+    --ac-radius-lg: 16px;
+    --ac-font-family: "Cairo", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+html, body {
+    font-family: var(--ac-font-family);
+    font-size: 14px;
+    margin: 0;
+    background: var(--ac-bg);
+    color: var(--ac-text);
+}
+
+main {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 16px;
+}

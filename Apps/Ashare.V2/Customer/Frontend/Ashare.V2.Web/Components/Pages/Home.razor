@@ -1,0 +1,80 @@
+@page "/"
+@inject AppStore Store
+@inject ApiReader Api
+@inject ITemplateEngine Engine
+@implements IDisposable
+
+<PageTitle>عشير</PageTitle>
+
+<AcMarketplaceHomePage Data="_data"
+                       Engine="Engine"
+                       Store="Store"
+                       FavoriteIds="Store.FavoriteListingIds"
+                       OnFavoriteToggled="OnFavoriteToggled" />
+
+@code {
+    private MarketplaceHomeDto? _data;
+
+    protected override void OnInitialized()
+    {
+        Store.OnChanged += OnChange;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var env = await Api.GetAsync<HomeResponse>("/home/view");
+            if (env.Data is not null)
+            {
+                _data = new MarketplaceHomeDto
+                {
+                    Categories = env.Data.Categories.Select(c =>
+                        new CategoryTileDto { Id = c.Id, Label = c.Label, Icon = c.Icon }).ToList(),
+                    Featured = env.Data.Featured.Select(ToRow).ToList(),
+                    New = env.Data.New.Select(ToRow).ToList()
+                };
+                await InvokeAsync(StateHasChanged);
+            }
+        }
+    }
+
+    private static ListingRowDto ToRow(ListingDto l) => new()
+    {
+        Id = l.Id,
+        Title = l.Title,
+        Description = l.Description,
+        Price = l.Price,
+        Currency = l.Currency,
+        TimeUnit = l.TimeUnit,
+        City = l.City,
+        District = l.District,
+        Status = l.Status,
+        IsFeatured = l.IsFeatured,
+        ThumbnailUrl = l.ThumbnailUrl
+    };
+
+    private void OnFavoriteToggled((ListingRowDto Listing, bool On) e)
+    {
+        if (e.On) Store.FavoriteListingIds.Add(e.Listing.Id);
+        else Store.FavoriteListingIds.Remove(e.Listing.Id);
+        Store.NotifyChanged();
+    }
+
+    private void OnChange() => InvokeAsync(StateHasChanged);
+    public void Dispose() => Store.OnChanged -= OnChange;
+
+    // DTOs لاستقبال استجابة /home/view
+    private sealed record HomeResponse(
+        List<CategoryDto> Categories,
+        List<ListingDto> Featured,
+        List<ListingDto> New);
+
+    private sealed record CategoryDto(string Id, string Label, string Icon);
+
+    private sealed record ListingDto(
+        string Id, string Title, string? Description, decimal Price, string Currency,
+        string? TimeUnit, string? City, string? District, string? CategoryName,
+        int Status, bool IsFeatured, int ViewCount, string? ThumbnailUrl,
+        string? OwnerName, string? OwnerAvatarUrl);
+}

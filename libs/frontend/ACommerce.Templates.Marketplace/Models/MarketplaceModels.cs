@@ -108,3 +108,24 @@ public sealed record PlanRowDto
     public string Currency { get; init; } = "SAR";
     public string Slug { get; init; } = "";
 }
+
+/// <summary>
+/// فئة في الصفحة الرئيسية (صف أفقي من AcCategoryTile).
+/// </summary>
+public sealed record CategoryTileDto
+{
+    public required string Id { get; init; }
+    public required string Label { get; init; }
+    public string Icon { get; init; } = "tag";
+}
+
+/// <summary>
+/// حمولة الصفحة الرئيسية: فئات + مميّزة + جديدة.
+/// تُقرأ بواسطة ApiReader، ثم تُمرّر إلى AcMarketplaceHomePage.
+/// </summary>
+public sealed record MarketplaceHomeDto
+{
+    public IReadOnlyList<CategoryTileDto> Categories { get; init; } = Array.Empty<CategoryTileDto>();
+    public IReadOnlyList<ListingRowDto> Featured { get; init; } = Array.Empty<ListingRowDto>();
+    public IReadOnlyList<ListingRowDto> New { get; init; } = Array.Empty<ListingRowDto>();
+}
