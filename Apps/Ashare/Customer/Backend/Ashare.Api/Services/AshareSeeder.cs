@@ -41,11 +41,13 @@ public class AshareSeeder
 
     public async Task SeedAsync(CancellationToken ct = default)
     {
+        Log.Information(">>> AshareSeeder.SeedAsync starting");
         await SeedCategoriesAsync(ct);
         await SeedUsersAsync(ct);
         await SeedListingsFromProductionAsync(ct);
         await SeedPlansAsync(ct);
         await SeedDefaultSubscriptionsAsync(ct);
+        Log.Information(">>> AshareSeeder.SeedAsync finished");
     }
 
     // ─── Listings: production API first, fallback to local seed ───
@@ -53,26 +55,34 @@ public class AshareSeeder
     private async Task SeedListingsFromProductionAsync(CancellationToken ct)
     {
         var repo = _repoFactory.CreateRepository<Listing>();
-        if (await repo.CountAsync(cancellationToken: ct) > 0) return;
+        var existingCount = await repo.CountAsync(cancellationToken: ct);
+        Log.Information(">>> SeedListings: existing listings = {Count}", existingCount);
+        if (existingCount > 0)
+        {
+            Log.Information(">>> SeedListings: skipping (already populated)");
+            return;
+        }
 
+        Log.Information(">>> SeedListings: calling FetchFromProductionAsync...");
         try
         {
             var (listings, owners) = await FetchFromProductionAsync(ct);
+            Log.Information(">>> SeedListings: fetched {L} listings + {O} owners", listings.Count, owners.Count);
             if (listings.Count > 0)
             {
                 var userRepo = _repoFactory.CreateRepository<User>();
                 await userRepo.AddRangeAsync(owners, ct);
                 await repo.AddRangeAsync(listings, ct);
-                Log.Information("Seeded {Count} listings + {Owners} owners from production API",
-                    listings.Count, owners.Count);
+                Log.Information(">>> SeedListings: saved {Count} production listings", listings.Count);
                 return;
             }
         }
         catch (Exception ex)
         {
-            Log.Warning(ex, "Production API fetch failed — falling back to local seed data");
+            Log.Error(ex, ">>> SeedListings: production fetch FAILED — falling back to local");
         }
 
+        Log.Information(">>> SeedListings: using local seed data (24 listings)");
         var now = DateTime.UtcNow;
         await repo.AddRangeAsync(AshareListingsSeed.All(now, UserIds.OwnerAhmed), ct);
     }
