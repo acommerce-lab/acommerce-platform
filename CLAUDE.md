@@ -13,6 +13,10 @@ Before anything else in a fresh web session, run the two `apt-get`
 commands in **`docs/DOTNET-SETUP.md`** to install .NET 10. Without it
 no `.csproj` in this repo can be built.
 
+To run Layer 6 runtime verification (Playwright), also download the
+Chrome-for-Testing zip as documented in the same file — the default
+Playwright CDN is blocked in sandboxed sessions.
+
 ## Read order
 
 1. **`docs/MODEL.md`** — the Operation-Accounting Model (OAM). This is the

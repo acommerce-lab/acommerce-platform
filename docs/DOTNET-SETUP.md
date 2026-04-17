@@ -45,36 +45,61 @@ dotnet build libs/backend/core/ACommerce.OperationEngine/ACommerce.OperationEngi
 
 ## Playwright / Layer 6 runtime verification
 
-`scripts/verify-runtime.sh` يعتمد على Playwright الذي يحتاج تنزيل
-متصفّح Chromium من `cdn.playwright.dev`. هذا الـ CDN محجوب بـ 403
-في صندوق Claude Web (`Host not in allowlist`). كذلك `chromium-browser`
-في Ubuntu 24.04 تحوَّل إلى snap transitional لا يُكمل التثبيت داخل الحاوية.
+`scripts/verify-runtime.sh` يعتمد على Playwright. في صندوق Claude Web
+يُحجَب `cdn.playwright.dev` بـ 403 (Host not in allowlist)، وحزمة
+`chromium-browser` في Ubuntu 24.04 صارت snap transitional لا تُثبَّت.
 
-**البديل الحالي** داخل هذه البيئة هو فحص HTTP spot-check يدوي:
+**الحل**: نزّل Chrome for Testing من `storage.googleapis.com`
+(مسموح به) ووجّه `verify-runtime.mjs` إليه عبر `CHROME_EXEC_PATH`.
+
+### تثبيت Chrome for Testing
 
 ```bash
-# شغّل الخدمة + الواجهة في الخلفية
+mkdir -p /opt/browsers && cd /opt/browsers
+curl -sSL -o chrome-linux64.zip \
+  "https://storage.googleapis.com/chrome-for-testing-public/131.0.6778.204/linux64/chrome-linux64.zip"
+unzip -q chrome-linux64.zip
+chmod +x chrome-linux64/chrome
+/opt/browsers/chrome-linux64/chrome --version    # يطبع: Google Chrome for Testing 131.x
+```
+
+> إصدارات بديلة على: `https://googlechromelabs.github.io/chrome-for-testing/`.
+
+### تبعيّات npm
+
+```bash
+cd scripts && npm install --silent    # يجلب حزمة playwright فقط (بدون تنزيل متصفح)
+```
+
+### تشغيل الفحوص على Ashare.V2
+
+```bash
+# 1. شغّل الـ API والواجهة
 cd Apps/Ashare.V2/Customer/Backend/Ashare.V2.Api && \
   dotnet run --no-build --urls http://localhost:5600 > /tmp/v2-api.log 2>&1 &
 cd Apps/Ashare.V2/Customer/Frontend/Ashare.V2.Web && \
   dotnet run --no-build --urls http://localhost:5900 > /tmp/v2-web.log 2>&1 &
 
-# انتظر الإقلاع
+# 2. انتظر الإقلاع
 until curl -sf http://localhost:5600/home/view >/dev/null; do sleep 1; done
 until curl -sf http://localhost:5900/             >/dev/null; do sleep 1; done
 
-# تحقق من الـ envelope + تسلسل الـ CSS + التشغيل
-curl -s http://localhost:5600/home/view | python3 -m json.tool | head -20
-curl -s http://localhost:5900/ | grep -c 'class="acs-page acm-home"'
-curl -s -o /dev/null -w '%{http_code}\n' http://localhost:5900/_content/ACommerce.Widgets/widgets.css
+# 3. شغّل Layer 6
+cd scripts && \
+  CHROME_EXEC_PATH=/opt/browsers/chrome-linux64/chrome \
+  TARGET_URLS="http://localhost:5900/" \
+  node verify-runtime.mjs
 ```
 
-هذا يثبت عمل الـ end-to-end (API → envelope → Web → الـ CSS الذريّ)
-لكنّه **لا يغني** عن Layer 6 الذي يفحص computed styles والمحاذاة
-والتداخل بـ Playwright. عند توفّر بيئة غير ساندبوكس (مضيف محلي أو CI)،
-شغّل:
+ينبغي أن تطبع: `[1/1] loaded  0 viol  http://localhost:5900/`. التقرير
+الكامل في `runtime-report.json` (JSON). أيّ قيمة `viol > 0` تكشف مشكلة
+runtime (تباين ألوان، تخطيط، مواضع، etc.) — عالجها قبل الاستمرار.
 
-```bash
-cd scripts && npm install && npx playwright install chromium
-./scripts/verify-runtime.sh     # أو: TARGET_URLS=http://localhost:5900/ node verify-runtime.mjs
-```
+### لماذا Chrome for Testing وليس Playwright default؟
+
+- Playwright يُنزّل من `cdn.playwright.dev` المحجوب.
+- `storage.googleapis.com/chrome-for-testing-public/` مسموح به في الصندوق.
+- ‍`chromium.launch({ executablePath })` يتجاوز تنزيل Playwright الداخلي
+  تماماً — لا حاجة لـ `npx playwright install`.
+- Chrome for Testing مبنيٌّ من نفس شجرة Chromium ويتحدّث بـ DevTools
+  Protocol الذي يستخدمه Playwright؛ التوافق كامل.

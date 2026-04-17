@@ -24,3 +24,12 @@ main {
     margin: 0 auto;
     padding: 16px;
 }
+
+/* Home-slice layout: no navbar/bottom-nav yet, so the page container
+   itself carries the shell look (surface + border). Layer 6's J-template
+   rule expects any approved shell to have a visible background. */
+.acs-page {
+    background: var(--ac-surface);
+    border: 1px solid var(--ac-border);
+    border-radius: var(--ac-radius-lg);
+}
