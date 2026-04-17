@@ -52,6 +52,8 @@ public static class Program
             .UseSqlServer(srcConn)
             .Options;
 
+        EnsureDirectoryForSqlite(dstConn);
+
         var dstOptions = new DbContextOptionsBuilder<TargetDbContext>()
             .UseSqlite(dstConn)
             .Options;
@@ -283,5 +285,21 @@ public static class Program
             return p;
         });
         return string.Join(";", masked);
+    }
+
+    private static void EnsureDirectoryForSqlite(string connString)
+    {
+        var kvs = connString.Split(';', StringSplitOptions.RemoveEmptyEntries);
+        foreach (var kv in kvs)
+        {
+            var pair = kv.Split('=', 2);
+            if (pair.Length != 2) continue;
+            if (!pair[0].Trim().Equals("Data Source", StringComparison.OrdinalIgnoreCase)) continue;
+            var path = pair[1].Trim();
+            var dir = Path.GetDirectoryName(path);
+            if (!string.IsNullOrEmpty(dir))
+                Directory.CreateDirectory(dir);
+            return;
+        }
     }
 }
