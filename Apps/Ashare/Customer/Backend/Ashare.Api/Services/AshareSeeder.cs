@@ -8,7 +8,7 @@ namespace Ashare.Api.Services;
 
 /// <summary>
 /// بذر البيانات الأولية لعشير. يحاول جلب العروض من الخدمة الخلفية الإنتاجية
-/// (api.ashare.com) وتحويلها إلى الصيغة الجديدة. إن فشل — يعود لبيانات البذر المحلية.
+/// (api.ashare.sa) وتحويلها إلى الصيغة الجديدة. إن فشل — يعود لبيانات البذر المحلية.
 /// </summary>
 public class AshareSeeder
 {
@@ -28,7 +28,7 @@ public class AshareSeeder
         public static readonly Guid AdminUser    = Guid.Parse("00000000-0000-0000-0001-000000000003");
     }
 
-    private const string ProductionApiBase = "https://api.ashare.com";
+    private const string ProductionApiBase = "https://api.ashare.sa";
 
     private static readonly JsonSerializerOptions JsonOpts = new()
     {
