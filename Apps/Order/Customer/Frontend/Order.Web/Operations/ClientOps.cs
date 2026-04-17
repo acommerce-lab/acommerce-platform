@@ -109,6 +109,16 @@ public static class ClientOps
             .Tag("client_dispatch", "true")
             .Build();
 
+    // ── Profile ────────────────────────────────────────────────────────
+    public static Operation UpdateProfile(Guid userId) =>
+        Entry.Create("profile.update")
+            .Describe($"User:{userId} updates profile")
+            .From($"User:{userId}", 1, ("role", "user"))
+            .To($"Profile:{userId}", 1, ("role", "profile"))
+            .Tag("client_dispatch", "true")
+            .Tag("user_id", userId.ToString())
+            .Build();
+
     // ── Cart (محلّية — لا ترسل HTTP) ──────────────────────────────────
     public static Operation CartAdd(Guid offerId, string title, string emoji, decimal price,
         Guid vendorId, string vendorName, string vendorEmoji) =>

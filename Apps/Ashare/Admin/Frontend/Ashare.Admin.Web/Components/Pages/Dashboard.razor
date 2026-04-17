@@ -1,0 +1,55 @@
+@page "/"
+@rendermode InteractiveServer
+@inject AppStore Store
+@inject ApiReader Reader
+@inject NavigationManager Nav
+
+<PageTitle>لوحة التحكم - عشير الإدارة</PageTitle>
+
+<AcAuthGuard IsAuthenticated="@Store.Auth.IsAuthenticated" IsArabic="@Store.Ui.IsArabic" LoginHref="/login">
+    <AcAdminMetricsPage Title="لوحة التحكم"
+                        Metrics="@_metrics"
+                        Loading="@_loading" />
+</AcAuthGuard>
+
+@code {
+    private List<PlatformMetricDto> _metrics = new();
+    private bool _loading = true;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        if (!Store.Auth.IsAuthenticated)
+        {
+            _loading = false;
+            StateHasChanged();
+            return;
+        }
+
+        var env = await Reader.GetAsync<DashboardApiRow>("/api/admin/dashboard");
+        var d = env.Data;
+
+        _metrics = new List<PlatformMetricDto>
+        {
+            new() { Label = "إجمالي المستخدمين",    Value = (d?.TotalUsers       ?? 0).ToString("N0"), IconName = "users"       },
+            new() { Label = "إجمالي الإعلانات",     Value = (d?.TotalListings    ?? 0).ToString("N0"), IconName = "home"        },
+            new() { Label = "إعلانات معلّقة",       Value = (d?.PendingListings  ?? 0).ToString("N0"), IconName = "clock"       },
+            new() { Label = "إجمالي الحجوزات",      Value = (d?.TotalBookings    ?? 0).ToString("N0"), IconName = "package"     },
+            new() { Label = "اشتراكات نشطة",        Value = (d?.ActiveSubscriptions ?? 0).ToString("N0"), IconName = "tag"     },
+            new() { Label = "الإيرادات الإجمالية",  Value = (d?.TotalRevenue     ?? 0).ToString("N0") + " SAR", IconName = "trending-up" },
+        };
+
+        _loading = false;
+        StateHasChanged();
+    }
+
+    private class DashboardApiRow
+    {
+        public int     TotalUsers           { get; set; }
+        public int     TotalListings        { get; set; }
+        public int     PendingListings      { get; set; }
+        public int     TotalBookings        { get; set; }
+        public int     ActiveSubscriptions  { get; set; }
+        public decimal TotalRevenue         { get; set; }
+    }
+}

@@ -81,7 +81,7 @@ else
             <div class="s-card">
                 <div class="acc-section-label">@(PickupLabel ?? "الاستلام")</div>
                 <div class="acc-order-info-row">
-                    <AcIcon Name="@(Order.PickupType == "Curbside" ? "car" : "store")" Size="18" />
+                    <AcIcon Name="@(Order.PickupType == "Curbside" ? "car" : "store")" Size="20" />
                     <span>@Order.PickupLabel</span>
                 </div>
                 @if (!string.IsNullOrEmpty(Order.CarModel))
@@ -96,7 +96,7 @@ else
             <div class="s-card">
                 <div class="acc-section-label">@(PaymentLabel ?? "الدفع")</div>
                 <div class="acc-order-info-row">
-                    <AcIcon Name="@(Order.PaymentMethod == "Card" ? "credit-card" : "cash")" Size="18" />
+                    <AcIcon Name="@(Order.PaymentMethod == "Card" ? "credit-card" : "cash")" Size="20" />
                     <span>@Order.PaymentLabel</span>
                 </div>
                 @if (Order.CashTendered is > 0)
@@ -123,7 +123,7 @@ else
 
         @if (Order.CanCancel && OnCancel.HasDelegate)
         {
-            <button class="btn btn-ghost btn-block" style="margin-top:12px;" @onclick="OnCancel">
+            <button class="btn btn-ghost btn-block" style="margin-top: 12px" @onclick="OnCancel">
                 @(CancelLabel ?? "إلغاء الطلب")
             </button>
         }

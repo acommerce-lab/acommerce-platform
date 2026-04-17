@@ -19,14 +19,20 @@
 
 @if (notifications?.Count > 0)
 {
-    <div class="s-card" style="margin-top:16px;">
-        <div class="acc-section-label" style="font-weight:700;">إرسال إشعار تجريبي لنفسي</div>
-        <div class="row g-2">
-            <div class="col-md-5"><input class="form-control" placeholder="العنوان" @bind="title" /></div>
-            <div class="col-md-5"><input class="form-control" placeholder="المحتوى" @bind="body" /></div>
-            <div class="col-md-2"><button class="btn btn-primary w-100" @onclick="Send">إرسال</button></div>
-        </div>
-    </div>
+    <AcCard Class="ac-mt-md">
+        <ChildContent>
+            <div style="font-weight:700;margin-bottom: 8px">إرسال إشعار تجريبي لنفسي</div>
+            <div style="display:flex;gap: 8px;flex-wrap:wrap;align-items:flex-end">
+                <div style="flex:2;min-width:140px">
+                    <AcInput Value="@title" ValueChanged="@(v => title = v ?? "")" Placeholder="العنوان" />
+                </div>
+                <div style="flex:3;min-width:180px">
+                    <AcInput Value="@body" ValueChanged="@(v => body = v ?? "")" Placeholder="المحتوى" />
+                </div>
+                <AcButton Variant="primary" Text="إرسال" OnClick="Send" />
+            </div>
+        </ChildContent>
+    </AcCard>
 }
 
 @code {

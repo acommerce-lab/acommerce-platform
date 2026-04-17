@@ -66,9 +66,9 @@
             <div class="acc-section-label">@(CarDetailsLabel ?? "معلومات السيارة")</div>
             <label class="form-label">@(CarModelLabel ?? "الموديل")</label>
             <input class="form-input" value="@Draft.CarModel" @oninput="@(e => SetField("CarModel", e))" />
-            <label class="form-label" style="margin-top:8px;">@(CarColorLabel ?? "اللون")</label>
+            <label class="form-label" style="margin-top: 8px">@(CarColorLabel ?? "اللون")</label>
             <input class="form-input" value="@Draft.CarColor" @oninput="@(e => SetField("CarColor", e))" />
-            <label class="form-label" style="margin-top:8px;">@(CarPlateLabel ?? "اللوحة (اختياري)")</label>
+            <label class="form-label" style="margin-top: 8px">@(CarPlateLabel ?? "اللوحة (اختياري)")</label>
             <input class="form-input" value="@Draft.CarPlate" @oninput="@(e => SetField("CarPlate", e))" />
         </div>
     }
@@ -125,19 +125,19 @@
 
     @if (!string.IsNullOrEmpty(Error))
     {
-        <div class="alert alert-danger" style="margin-top:12px;">@Error</div>
+        <div class="alert alert-danger" style="margin-top: 12px">@Error</div>
     }
 
     @BelowForm
     @AboveSubmit
 
-    <button class="btn btn-primary btn-block" style="margin-top:12px;"
+    <button class="btn btn-primary btn-block" style="margin-top: 12px"
             @onclick="OnSubmit" disabled="@Submitting">
         @(Submitting ? (SubmittingLabel ?? "جاري الإرسال...") : (SubmitLabel ?? "تأكيد الطلب"))
     </button>
     @if (!string.IsNullOrEmpty(BackToCartHref))
     {
-        <a class="btn btn-ghost btn-block" href="@BackToCartHref" style="margin-top:8px;">
+        <a class="btn btn-ghost btn-block" href="@BackToCartHref" style="margin-top: 8px">
             @(BackToCartLabel ?? "العودة للسلة")
         </a>
     }

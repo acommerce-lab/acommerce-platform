@@ -1,0 +1,138 @@
+@page "/earnings"
+@inject AppStore Store
+@inject ApiReader Reader
+
+<PageTitle>@(Store.Ui.IsArabic ? "الأرباح" : "Earnings")</PageTitle>
+
+<AcAuthGuard IsAuthenticated="@Store.Auth.IsAuthenticated" IsArabic="@Store.Ui.IsArabic" LoginHref="/login">
+    <div class="acs-page">
+        <AcPageHeader Title="@(Store.Ui.IsArabic ? "الأرباح" : "Earnings")"
+                      Subtitle="@(Store.Ui.IsArabic ? "ملخص الإيرادات والطلبات" : "Revenue and orders overview")" />
+
+        @if (_loading)
+        {
+            <AcLoadingState Message="@(Store.Ui.IsArabic ? "جاري التحميل..." : "Loading…")" />
+        }
+        else
+        {
+            <AcStatsGrid Stats="@_stats" Columns="4" Class="ac-mb-lg" />
+
+            <h2 class="ac-text-lg ac-mb-md">
+                @(Store.Ui.IsArabic ? "آخر الطلبات المسلّمة" : "Recent Delivered Orders")
+            </h2>
+
+            @if (_deliveredOrders.Count == 0)
+            {
+                <AcEmptyState IconName="package"
+                              Title="@(Store.Ui.IsArabic ? "لا توجد طلبات مسلّمة" : "No delivered orders yet")" />
+            }
+            else
+            {
+                @foreach (var order in _deliveredOrders.Take(10))
+                {
+                    <AcCard Class="ac-mb-sm">
+                        <ChildContent>
+                            <div style="display:flex;justify-content:space-between;align-items:center">
+                                <div>
+                                    <div style="font-weight:600">@order.CustomerName</div>
+                                    <div style="font-size:0.875rem;color:var(--ac-text-muted)">
+                                        @order.CreatedAt.ToString("yyyy-MM-dd HH:mm")
+                                    </div>
+                                </div>
+                                <div style="font-weight:700;color:var(--ac-primary)">
+                                    @order.Total.ToString("N2") @order.Currency
+                                </div>
+                            </div>
+                        </ChildContent>
+                    </AcCard>
+                }
+            }
+        }
+    </div>
+</AcAuthGuard>
+
+@code {
+    private bool _loading = true;
+    private List<AcStatsGrid.StatItem> _stats = new();
+    private List<OrderRow> _deliveredOrders = new();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        if (!Store.Auth.IsAuthenticated)
+        {
+            _loading = false;
+            StateHasChanged();
+            return;
+        }
+
+        var vEnv = await Reader.GetAsync<List<VendorRow>>("/api/vendors");
+        var myVendor = vEnv.Data?.FirstOrDefault(v => v.OwnerId == Store.Auth.UserId);
+        if (myVendor != null)
+        {
+            var env = await Reader.GetAsync<List<OrderRow>>(
+                $"/api/orders/by-vendor/{myVendor.Id}");
+            var allOrders = env.Data ?? new();
+
+            var totalOrders = allOrders.Count;
+            var delivered = allOrders.Where(o => o.Status == 3).ToList();
+            var deliveredCount = delivered.Count;
+            var totalRevenue = delivered.Sum(o => o.Total);
+            var avgOrderValue = deliveredCount > 0 ? totalRevenue / deliveredCount : 0m;
+
+            _stats = new List<AcStatsGrid.StatItem>
+            {
+                new()
+                {
+                    Label = Store.Ui.IsArabic ? "إجمالي الطلبات" : "Total Orders",
+                    Value = totalOrders.ToString("N0"),
+                    IconName = "receipt",
+                },
+                new()
+                {
+                    Label = Store.Ui.IsArabic ? "طلبات مسلّمة" : "Delivered",
+                    Value = deliveredCount.ToString("N0"),
+                    IconName = "check-circle",
+                },
+                new()
+                {
+                    Label = Store.Ui.IsArabic ? "إجمالي الإيرادات" : "Total Revenue",
+                    Value = totalRevenue.ToString("N2") + " SAR",
+                    IconName = "trending-up",
+                },
+                new()
+                {
+                    Label = Store.Ui.IsArabic ? "متوسط قيمة الطلب" : "Avg Order Value",
+                    Value = avgOrderValue.ToString("N2") + " SAR",
+                    IconName = "bar-chart",
+                },
+            };
+
+            _deliveredOrders = delivered
+                .OrderByDescending(o => o.CreatedAt)
+                .ToList();
+        }
+
+        _loading = false;
+        StateHasChanged();
+    }
+
+    public class VendorRow
+    {
+        public Guid Id { get; set; }
+        public Guid OwnerId { get; set; }
+    }
+
+    public class OrderRow
+    {
+        public Guid Id { get; set; }
+        public string OrderNumber { get; set; } = "";
+        public decimal Total { get; set; }
+        public string Currency { get; set; } = "SAR";
+        public int Status { get; set; }
+        public DateTime CreatedAt { get; set; }
+        public string CustomerName { get; set; } = "";
+        public string? CustomerPhone { get; set; }
+        public string? CustomerNotes { get; set; }
+    }
+}

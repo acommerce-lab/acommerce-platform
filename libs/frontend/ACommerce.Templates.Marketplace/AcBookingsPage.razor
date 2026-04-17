@@ -1,0 +1,95 @@
+@namespace ACommerce.Templates.Marketplace
+
+@*
+    صفحة قائمة الحجوزات — تصفية بالتبويبات + قائمة بطاقات الحجوزات.
+
+    Flex slots:
+      AboveList   — محتوى فوق القائمة (بحث أو فلاتر إضافية)
+      BelowList   — محتوى أسفل القائمة (pagination مثلاً)
+      CardExtras  — محتوى إضافي لكل بطاقة (قالب مُصنَّف حسب العنصر)
+      ExtraActions — أزرار إضافية لكل بطاقة
+*@
+
+<div class="acs-page">
+    @if (!string.IsNullOrEmpty(Title))
+    {
+        <h1 class="acs-page-title">@Title</h1>
+    }
+
+    @AboveList
+
+    <div class="acs-seg">
+        <button class="acs-seg-btn @(ActiveFilter == "all" ? "active" : "")"
+                @onclick='() => HandleFilterChange("all")'>
+            الكل
+        </button>
+        <button class="acs-seg-btn @(ActiveFilter == "pending" ? "active" : "")"
+                @onclick='() => HandleFilterChange("pending")'>
+            معلق
+        </button>
+        <button class="acs-seg-btn @(ActiveFilter == "confirmed" ? "active" : "")"
+                @onclick='() => HandleFilterChange("confirmed")'>
+            مؤكد
+        </button>
+        <button class="acs-seg-btn @(ActiveFilter == "cancelled" ? "active" : "")"
+                @onclick='() => HandleFilterChange("cancelled")'>
+            ملغى
+        </button>
+    </div>
+
+    @if (Loading)
+    {
+        <AcLoadingState />
+    }
+    else if (Visible.Count == 0)
+    {
+        <AcEmptyState IconName="inbox"
+                      Message="@(EmptyMessage ?? "لا حجوزات بعد")" />
+    }
+    else
+    {
+        @foreach (var booking in Visible)
+        {
+            <AcBookingCard Booking="@booking"
+                           IsOwnerView="@IsOwnerView"
+                           OnConfirm="OnConfirm"
+                           OnReject="OnReject"
+                           OnCancel="OnCancel"
+                           CardExtras="@(CardExtras != null ? CardExtras(booking) : null)"
+                           ExtraActions="@(ExtraActions != null ? ExtraActions(booking) : null)" />
+        }
+    }
+
+    @BelowList
+</div>
+
+@code {
+    [Parameter] public string? Title { get; set; }
+    [Parameter] public bool Loading { get; set; }
+    [Parameter] public IReadOnlyList<BookingRowDto> Bookings { get; set; } = Array.Empty<BookingRowDto>();
+    [Parameter] public string ActiveFilter { get; set; } = "all";
+    [Parameter] public EventCallback<string> OnFilterChange { get; set; }
+    [Parameter] public bool IsOwnerView { get; set; } = false;
+    [Parameter] public EventCallback<BookingRowDto> OnConfirm { get; set; }
+    [Parameter] public EventCallback<BookingRowDto> OnReject { get; set; }
+    [Parameter] public EventCallback<BookingRowDto> OnCancel { get; set; }
+    [Parameter] public string? EmptyMessage { get; set; }
+    [Parameter] public RenderFragment? AboveList { get; set; }
+    [Parameter] public RenderFragment? BelowList { get; set; }
+    [Parameter] public RenderFragment<BookingRowDto>? CardExtras { get; set; }
+    [Parameter] public RenderFragment<BookingRowDto>? ExtraActions { get; set; }
+
+    private IReadOnlyList<BookingRowDto> Visible => ActiveFilter switch
+    {
+        "pending"   => Bookings.Where(b => b.Status == 0).ToList(),
+        "confirmed" => Bookings.Where(b => b.Status == 1).ToList(),
+        "cancelled" => Bookings.Where(b => b.Status == 4 || b.Status == 3).ToList(),
+        _           => Bookings
+    };
+
+    private async Task HandleFilterChange(string filter)
+    {
+        if (OnFilterChange.HasDelegate)
+            await OnFilterChange.InvokeAsync(filter);
+    }
+}

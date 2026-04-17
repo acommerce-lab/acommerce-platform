@@ -1,23 +1,18 @@
 @page "/offers"
-@inject VendorApiClient Api
+@inject ApiReader Reader
 @inject AppStore Store
 @inject NavigationManager Nav
 
 <PageTitle>@(Store.Ui.IsArabic ? "عروضي" : "My Offers")</PageTitle>
 
-@if (!Store.Auth.IsAuthenticated)
-{
-    <AcEmptyState IconName="log-in" Title="@(Store.Ui.IsArabic ? "سجّل دخولك" : "Sign in")" ActionHref="/login" ActionLabel="@(Store.Ui.IsArabic ? "دخول" : "Sign in")" />
-}
-else
-{
-    <div style="padding:16px;">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-            <h1 class="acs-page-title" style="margin:0;">@(Store.Ui.IsArabic ? "عروضي" : "My Offers")</h1>
-            <a class="btn btn-primary btn-sm" href="/offers/new">
-                <AcIcon Name="plus" Size="16" /> @(Store.Ui.IsArabic ? "عرض جديد" : "New offer")
-            </a>
-        </div>
+<AcAuthGuard IsAuthenticated="@Store.Auth.IsAuthenticated" IsArabic="@Store.Ui.IsArabic" LoginHref="/login">
+    <div class="acs-page">
+        <AcPageHeader Title="@(Store.Ui.IsArabic ? "عروضي" : "My Offers")">
+            <Actions>
+                <AcButton Variant="primary" Size="sm" Text="@(Store.Ui.IsArabic ? "+ عرض جديد" : "+ New offer")"
+                          OnClick="@(() => Nav.NavigateTo("/offers/new"))" />
+            </Actions>
+        </AcPageHeader>
 
         @if (Loading)
         {
@@ -35,28 +30,26 @@ else
         {
             @foreach (var o in MyOffers)
             {
-                <div class="vnd-offer-card">
-                    <div class="vnd-offer-emoji">@(o.Emoji ?? "🍽️")</div>
-                    <div class="vnd-offer-body">
-                        <div class="vnd-offer-title">@o.Title</div>
-                        <div class="vnd-offer-price">
+                <div @onclick="@(() => Nav.NavigateTo($"/offers/edit/{o.Id}"))"
+                     style="cursor:pointer;display:flex;gap: 12px;align-items:center;padding:16px;margin-bottom:8px;background:var(--ac-surface);border:1px solid var(--ac-border);border-radius:var(--ac-radius-md);transition:box-shadow 150ms,border-color 150ms"
+                     @onmouseover="@(e => {})" class="vnd-offer-card">
+                    <div style="font-size:2rem;width:44px;text-align:center;flex-shrink:0">@(o.Emoji ?? "🍽️")</div>
+                    <div style="flex:1;min-width:0">
+                        <div style="font-weight:600">@o.Title</div>
+                        <div class="ac-text-muted" style="font-size:0.875rem">
                             @o.Price.ToString("0.##") @o.Currency
                             @if (o.OriginalPrice is > 0 && o.OriginalPrice > o.Price)
                             {
-                                <span style="text-decoration:line-through;margin-inline-start:6px;">@o.OriginalPrice.Value.ToString("0.##")</span>
+                                <span style="text-decoration:line-through;margin-inline-start: 8px;opacity:0.5">@o.OriginalPrice.Value.ToString("0.##")</span>
                             }
                         </div>
                     </div>
-                    <div class="vnd-offer-actions">
-                        <a class="btn btn-ghost btn-sm" href="/offers/edit/@o.Id">
-                            <AcIcon Name="settings" Size="14" />
-                        </a>
-                    </div>
+                    <AcIcon Name="chevron-left" Size="20" />
                 </div>
             }
         }
     </div>
-}
+</AcAuthGuard>
 
 @code {
     private List<OfferRow> MyOffers = new();
@@ -67,11 +60,11 @@ else
         if (!firstRender) return;
         if (Store.Auth.IsAuthenticated)
         {
-            var vEnv = await Api.GetAsync<List<VendorRow>>("/api/vendors");
+            var vEnv = await Reader.GetAsync<List<VendorRow>>("/api/vendors");
             var myV = vEnv.Data?.FirstOrDefault(v => v.OwnerId == Store.Auth.UserId);
             if (myV != null)
             {
-                var env = await Api.GetAsync<List<OfferRow>>($"/api/offers?vendorId={myV.Id}");
+                var env = await Reader.GetAsync<List<OfferRow>>($"/api/offers?vendorId={myV.Id}");
                 MyOffers = env.Data ?? new();
             }
         }

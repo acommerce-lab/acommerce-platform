@@ -1,0 +1,296 @@
+/* ── Order Admin — Dark Blue Theme ─────────────────────────────────────────── */
+
+:root {
+    /* Primary brand — dark navy blue */
+    --ac-primary: #1b3a5c;
+    --ac-primary-hover: #244b73;
+    --ac-primary-active: #0f2a44;
+    --ac-primary-rgb: 27, 58, 92;
+
+    /* Background — dark theme */
+    --ac-bg: #0d1b2a;
+    --ac-bg-card: #132238;
+    --ac-bg-input: #1a2d42;
+    --ac-bg-hover: #1e3650;
+
+    /* Text */
+    --ac-text: #e0e8f0;
+    --ac-text-muted: #7a94ad;
+    --ac-text-heading: #f0f4f8;
+
+    /* Borders */
+    --ac-border: rgba(255,255,255,0.08);
+    --ac-border-input: rgba(255, 255, 255, 0.12);
+
+    /* Nav */
+    --ac-nav-bg: #0a1628;
+    --ac-nav-text: #8fb8de;
+    --ac-nav-active: #4da3ff;
+
+    /* Accent colours */
+    --ac-success: #22c55e;
+    --ac-danger: #ef4444;
+    --ac-warning: #f59e0b;
+    --ac-info: #3b82f6;
+}
+
+/* ── Base ──────────────────────────────────────────────────────────────────── */
+
+html, body {
+    background: var(--ac-bg);
+    color: var(--ac-text);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    margin: 0;
+    padding: 0;
+}
+
+/* ── Cards ─────────────────────────────────────────────────────────────────── */
+
+.s-card,
+.ac-card {
+    background: var(--ac-bg-card);
+    border: 1px solid var(--ac-border);
+    border-radius: 10px;
+    padding: 16px;
+    margin-bottom: 12px;
+    color: var(--ac-text);
+}
+
+.s-card:hover,
+.ac-card:hover {
+    border-color: rgba(255, 255, 255, 0.15);
+}
+
+/* ── Page titles ───────────────────────────────────────────────────────────── */
+
+.acs-page-title {
+    color: var(--ac-text-heading);
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 20px;
+}
+
+/* ── Form inputs ───────────────────────────────────────────────────────────── */
+
+.form-input,
+input[type="search"],
+input[type="text"],
+textarea {
+    background: var(--ac-bg-input);
+    color: var(--ac-text);
+    border: 1px solid var(--ac-border-input);
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size:0.875rem;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.form-input:focus,
+input:focus,
+textarea:focus {
+    border-color: var(--ac-info);
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.25);
+}
+
+.form-input::placeholder,
+input::placeholder,
+textarea::placeholder {
+    color: var(--ac-text-muted);
+}
+
+/* ── Admin rows ────────────────────────────────────────────────────────────── */
+
+.acm-admin-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    transition: background 0.15s;
+    cursor: pointer;
+}
+
+.acm-admin-row:hover {
+    background: var(--ac-bg-hover);
+}
+
+.acm-admin-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.acm-admin-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+/* ── Stats grid ────────────────────────────────────────────────────────────── */
+
+.acm-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.acm-stat-card {
+    text-align: center;
+    padding: 20px 16px;
+}
+
+.acm-stat-value {
+    font-size:2rem;
+    font-weight: 700;
+    color: var(--ac-text-heading);
+    margin: 8px 0 4px;
+}
+
+.acm-stat-label {
+    color: var(--ac-text-muted);
+    font-size:0.875rem;
+}
+
+.acm-stat-trend.up {
+    color: var(--ac-success);
+    font-size:0.875rem;
+}
+
+.acm-stat-trend.down {
+    color: var(--ac-danger);
+    font-size:0.875rem;
+}
+
+/* ── Navbar links ──────────────────────────────────────────────────────────── */
+
+.act-navbar-link {
+    transition: color 0.15s;
+}
+
+.act-navbar-link:hover {
+    color: #ffffff !important;
+}
+
+/* ── Grid helpers ──────────────────────────────────────────────────────────── */
+
+.ac-grid {
+    display: grid;
+    gap: 16px;
+}
+
+.ac-grid-cols-3 {
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+}
+
+/* ── Muted text ────────────────────────────────────────────────────────────── */
+
+.ac-text-muted {
+    color: var(--ac-text-muted);
+}
+
+.ac-text-sm {
+    font-size:0.875rem;
+}
+
+/* ── Spacing utilities ─────────────────────────────────────────────────────── */
+
+.ac-mt-md {
+    margin-top: 12px;
+}
+
+.ac-row {
+    display: flex;
+    align-items: center;
+}
+
+.ac-gap-sm {
+    gap: 8px;
+}
+
+/* ── Page header row ───────────────────────────────────────────────────────── */
+
+.acs-page-header-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+/* ── Settings ──────────────────────────────────────────────────────────────── */
+
+.acs-settings-row-label {
+    font-weight: 600;
+    color: var(--ac-text-heading);
+    margin-bottom: 4px;
+}
+
+/* ── Responsive ────────────────────────────────────────────────────────────── */
+
+@media (max-width: 768px) {
+    .acm-stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .ac-grid-cols-3 {
+        grid-template-columns: 1fr;
+    }
+
+    .acm-admin-row {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .acm-admin-actions {
+        margin-top: 8px;
+    }
+}
+
+/* ── Admin shell (no inline hex needed) ────────────────────────────────── */
+.adm-shell {
+    min-height: 100vh;
+    background: var(--ac-bg);
+}
+.adm-navbar {
+    background: var(--ac-nav-bg);
+    color: #ffffff;
+    padding: 0 24px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    height: 56px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    border-bottom: 1px solid var(--ac-border);
+}
+.adm-navbar-brand {
+    color: #ffffff;
+    font-weight: 700;
+    font-size:1.125rem;
+    text-decoration: none;
+}
+.adm-navbar-link {
+    color: var(--ac-nav-text);
+    text-decoration: none;
+    font-size:0.875rem;
+}
+.adm-navbar-link:hover { color: #ffffff; }
+.adm-user-badge {
+    color: var(--ac-text-muted);
+    font-size:0.875rem;
+}
+.adm-navbar-actions {
+    display: flex;
+    gap: 8px;
+    margin-inline-start: auto;
+    flex-wrap: wrap;
+    align-items: center;
+}
+.adm-main {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 24px 16px;
+}

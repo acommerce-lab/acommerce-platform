@@ -4,18 +4,18 @@
    the merchant app visually from the customer app.
    ========================================================================= */
 :root {
-    --ac-primary:         #0D9488;
+    --ac-primary:         #0f766e;
     --ac-primary-hover:   #0F766E;
     --ac-primary-soft:    #ECFDF5;
-    --ac-on-primary:      #FFFFFF;
+    --ac-on-primary:      #ffffff;
     --ac-secondary:       #14B8A6;
     --ac-secondary-hover: #0D9488;
-    --ac-on-secondary:    #FFFFFF;
+    --ac-on-secondary:    #ffffff;
 
-    --ac-bg:         #F7F8FA;
-    --ac-bg-alt:     #F1F3F6;
-    --ac-surface:    #FFFFFF;
-    --ac-surface-2:  #FAFBFC;
+    --ac-bg:         #f3f4f6;
+    --ac-bg-alt:     #f3f4f6;
+    --ac-surface:    #ffffff;
+    --ac-surface-2:  #f3f4f6;
     --ac-border:     #E5E7EB;
     --ac-border-dark:#D1D5DB;
 
@@ -31,9 +31,9 @@
     --ac-radius-sm: 0.4rem;
     --ac-radius-md: 0.75rem;
     --ac-radius-lg: 1rem;
-    --ac-shadow-sm: 0 1px 2px rgba(15,23,42,0.04), 0 1px 3px rgba(15,23,42,0.04);
-    --ac-shadow-md: 0 4px 10px -2px rgba(15,23,42,0.06), 0 2px 4px -2px rgba(15,23,42,0.04);
-    --ac-shadow-lg: 0 14px 28px -6px rgba(15,23,42,0.10);
+    --ac-shadow-sm: 0 1px 2px rgba(0,0,0,0.04), 0 1px 3px rgba(0,0,0,0.04);
+    --ac-shadow-md: 0 4px 10px -2px rgba(0,0,0,0.08), 0 2px 4px -2px rgba(0,0,0,0.04);
+    --ac-shadow-lg: 0 14px 28px -6px rgba(0,0,0,0.08);
 
     --ac-font-family: 'Tajawal', 'Inter', -apple-system, BlinkMacSystemFont,
                       'Segoe UI', Tahoma, sans-serif;
@@ -51,16 +51,16 @@ html[data-theme="dark"] {
     --ac-surface-2:  #1B2130;
     --ac-border:     #283244;
     --ac-border-dark:#3D4759;
-    --ac-text:         #F1F5F9;
+    --ac-text:         #f3f4f6;
     --ac-text-muted:   #94A3B8;
     --ac-text-faint:   #64748B;
     --ac-primary-soft: rgba(13,148,136,0.14);
-    --ac-shadow-sm: 0 1px 2px rgba(0,0,0,0.45);
-    --ac-shadow-md: 0 6px 14px rgba(0,0,0,0.5);
-    --ac-shadow-lg: 0 18px 36px rgba(0,0,0,0.6);
+    --ac-shadow-sm: 0 1px 2px rgba(0,0,0,0.50);
+    --ac-shadow-md: 0 6px 14px rgba(0,0,0,0.50);
+    --ac-shadow-lg: 0 18px 36px rgba(0,0,0,0.50);
 }
 
-html { font-size: 14px; }
+html { font-size:0.875rem; }
 body {
     margin: 0; padding: 0; min-height: 100vh;
     background: var(--ac-bg); color: var(--ac-text);
@@ -70,24 +70,77 @@ body {
     transition: background-color 180ms, color 180ms;
 }
 
-a { color: var(--ac-primary); text-decoration: none; }
-a:hover { color: var(--ac-primary-hover); }
+a { color: var(--ac-link); text-decoration: underline; text-underline-offset: 2px; }
+a:hover { color: var(--ac-link-hover); }
 img { max-width: 100%; }
 
-/* ── Shell ────────────────────────────────────────────────────────────── */
+/* =========================================================================
+   Vendor app shell — ONE HTML tree, TWO appearances
+   ─────────────────────────────────────────────────────────────────────────
+   Mobile  (default / data-ac-mode="mobile"):  narrow centered column,
+                                               top nav hidden, bottom nav shown.
+   Desktop (data-ac-mode="desktop"):           wider layout, top nav shown,
+                                               bottom nav hidden, more padding.
+   ========================================================================= */
 .vnd-shell {
     max-width: var(--vnd-shell-max);
     min-height: 100vh;
     margin: 0 auto;
     background: var(--ac-bg);
-    box-shadow: 0 0 40px rgba(15,23,42,0.04);
+    box-shadow: 0 0 40px rgba(0,0,0,0.04);
     display: flex;
     flex-direction: column;
+    position: relative;
+    overflow-x: hidden;
 }
+@media (min-width: 769px) {
+    .vnd-shell { max-width: 1200px; box-shadow: none; }
+}
+:root[data-ac-mode="desktop"] .vnd-shell { max-width: 1200px; box-shadow: none; }
+:root[data-ac-mode="mobile"]  .vnd-shell { max-width: var(--vnd-shell-max); }
+html[data-theme="dark"] .vnd-shell { box-shadow: 0 0 80px rgba(0,0,0,0.50); }
+
+/* ── Top nav: desktop only ─────────────────────────────────────────────── */
+.vnd-top-nav {
+    display: none;
+    position: sticky; top: 0; z-index: 50;
+    background: var(--ac-surface);
+    border-bottom: 1px solid var(--ac-border);
+    padding: 12px 24px;
+}
+.vnd-top-nav-inner {
+    display: flex; align-items: center; gap: 24px;
+    max-width: 1200px; margin: 0 auto;
+}
+.vnd-top-nav-brand {
+    font-weight: 800; font-size: 1.25rem; color: var(--ac-primary);
+    text-decoration: none;
+}
+.vnd-top-nav-links {
+    display: flex; gap: 8px; flex: 1;
+}
+.vnd-top-nav-link {
+    padding: 8px 14px; border-radius: 8px;
+    color: var(--ac-text); text-decoration: none; font-weight: 600;
+    transition: background 150ms;
+}
+.vnd-top-nav-link:hover      { background: var(--ac-bg-alt); }
+.vnd-top-nav-link.active     { background: color-mix(in srgb, var(--ac-primary) 14%, transparent); color: var(--ac-primary); }
+.vnd-top-nav-actions { display: flex; gap: 10px; align-items: center; }
+
+@media (min-width: 769px) {
+    .vnd-top-nav { display: block; }
+    .vnd-main    { padding: 24px 32px 32px; max-width: 1200px; margin: 0 auto; width: 100%; }
+}
+:root[data-ac-mode="desktop"] .vnd-top-nav { display: block; }
+:root[data-ac-mode="mobile"]  .vnd-top-nav { display: none;  }
+
 .vnd-main {
     flex: 1;
     padding-bottom: calc(var(--vnd-bottom-nav) + 16px);
 }
+:root[data-ac-mode="desktop"] .vnd-main { padding: 24px 32px 32px; max-width: 1200px; margin: 0 auto; width: 100%; }
+
 .vnd-bottom-nav {
     position: fixed;
     inset-inline-start: 50%;
@@ -104,11 +157,14 @@ img { max-width: 100%; }
     z-index: 100;
 }
 html[dir="rtl"] .vnd-bottom-nav { transform: translateX(50%); }
+@media (min-width: 769px) { .vnd-bottom-nav { display: none; } }
+:root[data-ac-mode="desktop"] .vnd-bottom-nav { display: none; }
+:root[data-ac-mode="mobile"]  .vnd-bottom-nav { display: flex; }
 .vnd-nav-item {
     flex: 1;
     display: flex; flex-direction: column; align-items: center; justify-content: center;
-    gap: 2px; color: var(--ac-text-muted); text-decoration: none;
-    padding: 6px 4px; font-size: 0.68rem; font-weight: 500;
+    gap: 4px; color: var(--ac-text-muted); text-decoration: none;
+    padding: 8px 4px; font-size:0.75rem; font-weight: 500;
     transition: color 150ms;
 }
 .vnd-nav-item:hover { color: var(--ac-text); }
@@ -133,25 +189,25 @@ html[dir="rtl"] .vnd-bottom-nav { transform: translateX(50%); }
 
 /* ── Auth page overrides ───────────────────────────────────────────────── */
 .acs-auth-page { background: var(--ac-bg); padding: 40px 20px; }
-.acs-auth-icon { font-size: 2.8rem; color: var(--ac-primary); }
+.acs-auth-icon { font-size:3rem; color: var(--ac-primary); }
 .acs-auth-brand { font-size: 1.5rem; font-weight: 700; color: var(--ac-text); }
-.acs-auth-tag { font-size: 0.85rem; color: var(--ac-text-muted); }
+.acs-auth-tag { font-size:0.875rem; color: var(--ac-text-muted); }
 .acs-auth-card { background: var(--ac-surface); border: 1px solid var(--ac-border); box-shadow: var(--ac-shadow-md); }
-.acs-auth-title { font-size: 1.15rem; font-weight: 700; color: var(--ac-text); }
-.acs-auth-subtitle { font-size: 0.84rem; color: var(--ac-text-muted); }
+.acs-auth-title { font-size:1.125rem; font-weight: 700; color: var(--ac-text); }
+.acs-auth-subtitle { font-size:0.875rem; color: var(--ac-text-muted); }
 
 /* ── Tighter heading sizes ─────────────────────────────────────────────── */
-.acs-page-title    { font-size: 1.05rem; font-weight: 700; }
-.acs-empty-icon    { font-size: 2.5rem; }
-.acs-empty-title   { font-size: 0.92rem; }
-.acc-section-title { font-size: 0.9rem; }
+.acs-page-title    { font-size:1.125rem; font-weight: 700; }
+.acs-empty-icon    { font-size:3rem; }
+.acs-empty-title   { font-size:0.875rem; }
+.acc-section-title { font-size:0.875rem; }
 .acc-section-label { font-size: 0.75rem; }
 
 /* ── Dashboard stat cards ──────────────────────────────────────────────── */
 .vnd-stats {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 10px;
+    gap:8px;
     padding: 16px;
 }
 .vnd-stat-card {
@@ -167,16 +223,16 @@ html[dir="rtl"] .vnd-bottom-nav { transform: translateX(50%); }
     color: var(--ac-primary);
 }
 .vnd-stat-label {
-    font-size: 0.78rem;
+    font-size:0.875rem;
     color: var(--ac-text-muted);
-    margin-top: 2px;
+    margin-top: 4px;
 }
 
 /* ── Order status badges ───────────────────────────────────────────────── */
 .vnd-status {
     display: inline-flex; align-items: center; gap: 4px;
-    padding: 4px 10px; border-radius: 999px;
-    font-size: 0.72rem; font-weight: 700;
+    8px; border-radius: 999px;
+    font-size:0.75rem; font-weight: 700;
 }
 .vnd-status-pending   { background: color-mix(in srgb, var(--ac-warning) 14%, transparent); color: var(--ac-warning); }
 .vnd-status-accepted  { background: color-mix(in srgb, var(--ac-info)    14%, transparent); color: var(--ac-info); }
@@ -187,15 +243,46 @@ html[dir="rtl"] .vnd-bottom-nav { transform: translateX(50%); }
 /* ── Offer card (vendor view) ──────────────────────────────────────────── */
 .vnd-offer-card {
     display: flex; gap: 12px; align-items: center;
-    padding: 14px; margin-bottom: 10px;
+    padding:16px; margin-bottom:8px;
     background: var(--ac-surface); border: 1px solid var(--ac-border);
     border-radius: var(--ac-radius-md);
 }
 .vnd-offer-emoji { font-size: 1.5rem; width: 40px; text-align: center; }
 .vnd-offer-body { flex: 1; min-width: 0; }
 .vnd-offer-title { font-weight: 700; }
-.vnd-offer-price { font-size: 0.84rem; color: var(--ac-text-muted); }
-.vnd-offer-actions { display: flex; gap: 6px; flex-shrink: 0; }
+.vnd-offer-price { font-size:0.875rem; color: var(--ac-text-muted); }
+.vnd-offer-actions { display: flex; gap: 8px; flex-shrink: 0; }
+
+/* ── Global page padding ──────────────────────────────────────────────── */
+.acs-page { padding: 16px; }
+
+/* ── Merchant template overrides ──────────────────────────────────────── */
+.acm-toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 0;
+    border-top: 1px solid var(--ac-border);
+    margin-top: 12px;
+}
+.acm-toggle-row label { font-weight: 500; }
+
+/* AcVendorOfferForm uses s-card wrapper — add padding */
+.acs-page .s-card { padding: 20px; }
+.acs-page .acs-page-title { padding: 0; margin: 0 0 16px; }
+
+/* ── Input fields — enhanced visibility ────────────────────────────────── */
+.ac-input, .ac-select, .ac-textarea,
+.form-input, .form-control, .form-select {
+    background: var(--ac-surface-2);
+    border-color: var(--ac-border-dark);
+}
+.ac-input:focus, .ac-select:focus, .ac-textarea:focus,
+.form-input:focus, .form-control:focus, .form-select:focus {
+    background: var(--ac-surface);
+    border-color: var(--ac-primary);
+    box-shadow: 0 0 0 3px var(--ac-primary-soft);
+}
 
 :focus:not(:focus-visible) { outline: none; }
 h1:focus, h2:focus, h3:focus { outline: none; }

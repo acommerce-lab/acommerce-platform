@@ -16,3 +16,9 @@ obj/
 .vs/
 .vscode/
 .idea/
+scripts/node_modules/
+
+# Layer 6 runtime reports (regenerated each run)
+runtime-report.json
+runtime-auth-report.json
+scripts/package-lock.json

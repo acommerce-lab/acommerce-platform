@@ -4,57 +4,73 @@
 @inject ClientOpEngine Engine
 @inject NavigationManager Nav
 
-<PageTitle>حجز #@Id.ToString()[..8]</PageTitle>
+<PageTitle>تفاصيل الحجز - عشير</PageTitle>
 
-<h1>تفاصيل الحجز</h1>
+<div style="max-width:700px;margin:0 auto;padding: 24px 16px">
+    <AcPageHeader Title="تفاصيل الحجز" Subtitle="@($"حجز #{Id.ToString()[..8]}")" />
 
-@if (booking == null)
-{
-    <div class="spinner-border"></div>
-}
-else
-{
-    <div class="card mb-3">
-        <div class="card-body">
-            <h5>حجز #@booking.Id.ToString("N").Substring(0, 8)</h5>
-            <dl class="row">
-                <dt class="col-sm-3">المبلغ</dt>
-                <dd class="col-sm-9"><strong class="text-primary">@booking.TotalPrice @booking.Currency</strong></dd>
-                <dt class="col-sm-3">من</dt>
-                <dd class="col-sm-9">@booking.StartDate.ToString("yyyy-MM-dd")</dd>
-                <dt class="col-sm-3">إلى</dt>
-                <dd class="col-sm-9">@booking.EndDate.ToString("yyyy-MM-dd")</dd>
-                <dt class="col-sm-3">الحالة</dt>
-                <dd class="col-sm-9">@StatusText(booking.Status)</dd>
-            </dl>
+    @if (booking == null)
+    {
+        <AcLoadingState Message="جاري التحميل..." />
+    }
+    else
+    {
+        <AcCard Class="ac-mb-lg">
+            <Header>
+                <div style="display:flex;justify-content:space-between;align-items:center">
+                    <strong>حجز #@booking.Id.ToString("N")[..8]</strong>
+                    <span style="padding: 4px 12px;border-radius:var(--ac-radius-pill);font-size:0.875rem;font-weight:600;@StatusStyle(booking.Status)">
+                        @StatusText(booking.Status)
+                    </span>
+                </div>
+            </Header>
+            <ChildContent>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap: 16px;margin-bottom: 20px">
+                    <div>
+                        <div class="ac-text-muted" style="font-size:0.875rem">المبلغ</div>
+                        <div style="font-size:1.25rem;font-weight:700;color:var(--ac-primary)">
+                            @booking.TotalPrice.ToString("N0") @booking.Currency
+                        </div>
+                    </div>
+                    <div>
+                        <div class="ac-text-muted" style="font-size:0.875rem">الفترة</div>
+                        <div style="font-weight:600">
+                            @booking.StartDate.ToString("yyyy-MM-dd") — @booking.EndDate.ToString("yyyy-MM-dd")
+                        </div>
+                    </div>
+                </div>
 
-            @if (booking.Status == 2)  // AwaitingPayment
-            {
-                <button class="btn btn-success" @onclick="InitiatePayment" disabled="@busy">
-                    @(busy ? "..." : "ادفع الآن (محاكاة)")
-                </button>
-            }
-            else if (booking.Status == 3)
-            {
-                <div class="alert alert-success mb-0">✅ الحجز مدفوع</div>
-            }
-            else if (booking.Status == 4)
-            {
-                <div class="alert alert-secondary mb-0">❌ مُلغى</div>
-            }
+                <div style="display:flex;gap: 8px;flex-wrap:wrap">
+                    @if (booking.Status == 2)
+                    {
+                        <AcButton Text="@(busy ? "جاري الدفع..." : "ادفع الآن")"
+                                  Variant="primary" Disabled="@busy" Loading="@busy"
+                                  OnClick="InitiatePayment" />
+                    }
+                    else if (booking.Status == 3)
+                    {
+                        <AcAlert Variant="success" Message="✅ الحجز مدفوع" />
+                    }
+                    else if (booking.Status == 4)
+                    {
+                        <AcAlert Variant="danger" Message="❌ الحجز مُلغى" />
+                    }
 
-            @if (booking.Status == 2 || booking.Status == 0 || booking.Status == 1)
-            {
-                <button class="btn btn-outline-danger ms-2" @onclick="Cancel" disabled="@busy">إلغاء الحجز</button>
-            }
-        </div>
-    </div>
-}
+                    @if (booking.Status is 0 or 1 or 2)
+                    {
+                        <AcButton Text="إلغاء الحجز" Variant="outline-danger"
+                                  Disabled="@busy" OnClick="Cancel" />
+                    }
+                </div>
+            </ChildContent>
+        </AcCard>
 
-@if (!string.IsNullOrEmpty(message))
-{
-    <div class="alert alert-info">@message</div>
-}
+        @if (!string.IsNullOrEmpty(message))
+        {
+            <AcAlert Variant="info" Message="@message" />
+        }
+    }
+</div>
 
 @code {
     [Parameter] public Guid Id { get; set; }
@@ -62,39 +78,45 @@ else
     private bool busy;
     private string message = "";
 
-    protected override async Task OnInitializedAsync() => await Load();
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        await Load();
+        StateHasChanged();
+    }
 
     private async Task Load()
     {
-        var resp = await Reader.GetAsync<BookingDto>($"/api/bookings/{Id}");
-        booking = resp.Data;
+        try
+        {
+            var resp = await Reader.GetAsync<BookingDto>($"/api/bookings/{Id}");
+            booking = resp.Data;
+        }
+        catch { }
     }
 
     private async Task InitiatePayment()
     {
-        busy = true;
-        message = "";
+        busy = true; message = "";
         try
         {
             var initResp = await Engine.ExecuteAsync<PaymentInitDto>(
-                ClientOps.InitiatePayment(Id),
-                new { bookingId = Id });
+                ClientOps.InitiatePayment(Id), new { bookingId = Id });
 
             if (initResp.Operation.Status == "Success" && initResp.Data?.Id != null)
             {
                 var cbResp = await Engine.ExecuteAsync<object>(
-                    ClientOps.SimulatePaymentCallback(initResp.Data.Id),
-                    new { });
+                    ClientOps.SimulatePaymentCallback(initResp.Data.Id), new { });
                 message = cbResp.Operation.Status == "Success" ? "✅ تم الدفع بنجاح" : "فشل محاكاة الدفع";
             }
             else
             {
-                message = "فشل initiate: " + (initResp.Error?.Message ?? initResp.Operation.ErrorMessage ?? "unknown");
+                message = initResp.Error?.Message ?? initResp.Operation.ErrorMessage ?? "فشل بدء الدفع";
             }
-
             await Load();
         }
-        finally { busy = false; }
+        catch (Exception ex) { message = ex.Message; }
+        finally { busy = false; StateHasChanged(); }
     }
 
     private async Task Cancel()
@@ -105,18 +127,23 @@ else
             await Engine.ExecuteAsync<object>(ClientOps.CancelBooking(Id), new { });
             await Load();
         }
-        finally { busy = false; }
+        catch { }
+        finally { busy = false; StateHasChanged(); }
     }
 
     private string StatusText(int s) => s switch
     {
-        0 => "معلّق",
-        1 => "مؤكد",
-        2 => "ينتظر الدفع",
-        3 => "مدفوع",
-        4 => "مُلغى",
-        5 => "مكتمل",
-        _ => "?"
+        0 => "معلّق", 1 => "مؤكد", 2 => "ينتظر الدفع",
+        3 => "مدفوع", 4 => "مُلغى", 5 => "مكتمل", _ => "?"
+    };
+
+    private string StatusStyle(int s) => s switch
+    {
+        0 or 1 => "background:color-mix(in srgb, var(--ac-warning) 15%, transparent);color:var(--ac-warning);",
+        2 => "background:color-mix(in srgb, var(--ac-info) 15%, transparent);color:var(--ac-info);",
+        3 or 5 => "background:color-mix(in srgb, var(--ac-success) 15%, transparent);color:var(--ac-success);",
+        4 => "background:color-mix(in srgb, var(--ac-danger) 15%, transparent);color:var(--ac-danger);",
+        _ => ""
     };
 
     public class BookingDto
@@ -129,8 +156,5 @@ else
         public int Status { get; set; }
     }
 
-    public class PaymentInitDto
-    {
-        public Guid Id { get; set; }
-    }
+    public class PaymentInitDto { public Guid Id { get; set; } }
 }

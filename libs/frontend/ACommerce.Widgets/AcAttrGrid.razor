@@ -1,0 +1,45 @@
+@namespace ACommerce.Widgets
+
+@if (Visible.Count > 0)
+{
+    <div class="ac-attr-grid @(Class ?? "")">
+        @foreach (var a in Visible)
+        {
+            <div class="ac-attr-tile">
+                @if (!string.IsNullOrEmpty(a.Icon))
+                {
+                    <div class="ac-attr-tile-icon"><i class="bi bi-@a.Icon"></i></div>
+                }
+                <div class="ac-attr-tile-label">@(IsArabic ? (a.LabelAr ?? a.Label) : a.Label)</div>
+                <div class="ac-attr-tile-value">
+                    @FormatValue(a)
+                    @if (!string.IsNullOrEmpty(a.Unit))
+                    {
+                        <span class="ac-attr-tile-unit">@a.Unit</span>
+                    }
+                </div>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    [Parameter] public List<DynamicAttribute>? Attributes { get; set; }
+    [Parameter] public bool IsArabic { get; set; } = true;
+    [Parameter] public string? Class { get; set; }
+
+    private List<DynamicAttribute> Visible =>
+        (Attributes ?? new())
+            .Where(a => a.Value != null && !string.IsNullOrWhiteSpace(a.Value.ToString()))
+            .OrderBy(a => a.SortOrder)
+            .ToList();
+
+    private string FormatValue(DynamicAttribute a)
+    {
+        if (a.Type is "select" or "multi")
+            return IsArabic ? (a.DisplayValueAr ?? a.DisplayValue ?? a.Value?.ToString() ?? "") : (a.DisplayValue ?? a.Value?.ToString() ?? "");
+        if (a.Type == "bool")
+            return (a.Value is bool b && b) ? (IsArabic ? "نعم" : "Yes") : (IsArabic ? "لا" : "No");
+        return a.Value?.ToString() ?? "";
+    }
+}

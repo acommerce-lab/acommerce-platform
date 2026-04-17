@@ -1,0 +1,55 @@
+@namespace ACommerce.Templates.Marketplace
+
+@*
+    صفحة قائمة الإعلانات — عنوان الصفحة + قائمة بطاقات الإعلانات.
+
+    Flex slots:
+      AboveList   — شريط التصفية أو التحكم في الشريحة
+      BelowList   — محتوى أسفل القائمة (pagination مثلاً)
+      CardActions — أزرار الإجراءات لكل بطاقة (قالب مُصنَّف حسب العنصر)
+      CardExtras  — محتوى إضافي لكل بطاقة (قالب مُصنَّف حسب العنصر)
+*@
+
+<div class="acs-page">
+    @if (!string.IsNullOrEmpty(Title))
+    {
+        <h1 class="acs-page-title">@Title</h1>
+    }
+
+    @AboveList
+
+    @if (Loading)
+    {
+        <AcLoadingState />
+    }
+    else if (Listings.Count == 0)
+    {
+        <AcEmptyState IconName="@(EmptyIcon ?? "home")"
+                      Message="@(EmptyMessage ?? "لا إعلانات بعد")" />
+    }
+    else
+    {
+        @foreach (var listing in Listings)
+        {
+            <AcListingCard Listing="@listing"
+                           OnClick="OnCardClick"
+                           Actions="@(CardActions != null ? CardActions(listing) : null)"
+                           CardExtras="@(CardExtras != null ? CardExtras(listing) : null)" />
+        }
+    }
+
+    @BelowList
+</div>
+
+@code {
+    [Parameter] public string? Title { get; set; }
+    [Parameter] public bool Loading { get; set; }
+    [Parameter] public IReadOnlyList<ListingRowDto> Listings { get; set; } = Array.Empty<ListingRowDto>();
+    [Parameter] public string? EmptyMessage { get; set; }
+    [Parameter] public string? EmptyIcon { get; set; }
+    [Parameter] public RenderFragment? AboveList { get; set; }
+    [Parameter] public RenderFragment? BelowList { get; set; }
+    [Parameter] public RenderFragment<ListingRowDto>? CardActions { get; set; }
+    [Parameter] public RenderFragment<ListingRowDto>? CardExtras { get; set; }
+    [Parameter] public EventCallback<ListingRowDto> OnCardClick { get; set; }
+}

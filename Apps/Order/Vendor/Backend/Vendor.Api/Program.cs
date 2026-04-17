@@ -17,6 +17,7 @@ using ACommerce.SharedKernel.Abstractions.Repositories;
 using ACommerce.SharedKernel.Infrastructure.EFCores.Extensions;
 using Serilog;
 using Vendor.Api.Entities;
+using ACommerce.OrderPlatform.Entities;
 using Vendor.Api.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -30,19 +31,46 @@ Log.Logger = new LoggerConfiguration()
 builder.Host.UseSerilog();
 
 // ─── Entity Discovery ────────────────────────────────────────────────────
+// Vendor-specific entities
 EntityDiscoveryRegistry.RegisterEntity(typeof(VendorUser));
 EntityDiscoveryRegistry.RegisterEntity(typeof(TwoFactorChallengeRecord));
 EntityDiscoveryRegistry.RegisterEntity(typeof(VendorSettings));
 EntityDiscoveryRegistry.RegisterEntity(typeof(WorkSchedule));
 EntityDiscoveryRegistry.RegisterEntity(typeof(IncomingOrder));
 
-// ─── Database (own SQLite — separate from Order.Api) ─────────────────────
-Directory.CreateDirectory("data");
-builder.Services.AddACommerceSQLite(
-    builder.Configuration["Database:ConnectionString"] ?? "Data Source=data/vendor.db");
+// Shared order-platform entities (Vendor.Api might be the first backend
+// to call EnsureCreatedAsync against the unified DB).  Registering them
+// all here guarantees the schema is complete regardless of startup order.
+EntityDiscoveryRegistry.RegisterEntity(typeof(Order.Api.Entities.User));
+EntityDiscoveryRegistry.RegisterEntity(typeof(Order.Api.Entities.Category));
+EntityDiscoveryRegistry.RegisterEntity(typeof(Order.Api.Entities.Vendor));
+EntityDiscoveryRegistry.RegisterEntity(typeof(Order.Api.Entities.Offer));
+EntityDiscoveryRegistry.RegisterEntity(typeof(Order.Api.Entities.OrderRecord));
+EntityDiscoveryRegistry.RegisterEntity(typeof(Order.Api.Entities.OrderItem));
+EntityDiscoveryRegistry.RegisterEntity(typeof(Order.Api.Entities.Conversation));
+EntityDiscoveryRegistry.RegisterEntity(typeof(Order.Api.Entities.Message));
+EntityDiscoveryRegistry.RegisterEntity(typeof(Order.Api.Entities.Notification));
+EntityDiscoveryRegistry.RegisterEntity(typeof(Order.Api.Entities.Favorite));
+
+// ─── Database (shared order-platform DB across Order.Api + Order.Admin.Api + Vendor.Api) ─────
+// PlatformDataRoot walks up to the repo's .sln so the path is the same
+// regardless of which service launches or from where (Visual Studio F5,
+// dotnet run, container).  No env var required.
+var vendorDbConn = builder.Configuration["Database:ConnectionString"];
+if (string.IsNullOrWhiteSpace(vendorDbConn))
+    vendorDbConn = ACommerce.SharedKernel.Infrastructure.EFCores.PlatformDataRoot
+        .SqliteConnectionString(builder.Environment.ContentRootPath, "order-platform.db");
+builder.Services.AddACommerceSQLite(vendorDbConn);
 
 // ─── MVC + Swagger + CORS ────────────────────────────────────────────────
-builder.Services.AddControllers();
+// Restrict controller scan to Vendor.Api's own assembly.  Order.Api.dll is
+// referenced for its entity types only — letting MVC discover its
+// AuthController too would race with this one on /api/auth/sms/request.
+builder.Services.AddControllers()
+    .PartManager.ApplicationParts.Clear();
+builder.Services.AddControllers()
+    .PartManager.ApplicationParts.Add(
+        new Microsoft.AspNetCore.Mvc.ApplicationParts.AssemblyPart(typeof(Program).Assembly));
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
@@ -279,7 +307,16 @@ try
     using var scope = app.Services.CreateScope();
     var db = scope.ServiceProvider
         .GetRequiredService<ACommerce.SharedKernel.Infrastructure.EFCores.Context.ApplicationDbContext>();
-    await db.Database.EnsureCreatedAsync();
+    // SQLite dev mode: detect schema drift (entity changed without migration)
+    // and reset the file so EnsureCreatedAsync can recreate everything fresh.
+    if (ACommerce.SharedKernel.Infrastructure.EFCores.SqliteSchemaGuard.ResetIfDrifted(db))
+        Log.Warning("Vendor.Api: SQLite schema drift detected — DB file rebuilt");
+    // EnsureCreatedAsync creates all-or-nothing; when another platform
+    // backend created tables first it throws.  Treat that as benign so
+    // we still run the seeder below.
+    try { await db.Database.EnsureCreatedAsync(); }
+    catch (Exception schemaEx) { Log.Information(schemaEx, "Schema already created by another service — continuing"); }
+    ACommerce.SharedKernel.Infrastructure.EFCores.SqliteSchemaGuard.StampFingerprint(db);
     Log.Information("Vendor.Api database ready");
 
     var seeder = scope.ServiceProvider.GetRequiredService<VendorSeeder>();

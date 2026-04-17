@@ -59,14 +59,14 @@
                     @if (!string.IsNullOrEmpty(o.PickupLabel))
                     {
                         <span class="acc-order-meta-item">
-                            <AcIcon Name="@(o.PickupType == "Curbside" ? "car" : "store")" Size="14" />
+                            <AcIcon Name="@(o.PickupType == "Curbside" ? "car" : "store")" Size="16" />
                             @o.PickupLabel
                         </span>
                     }
                     @if (!string.IsNullOrEmpty(o.PaymentLabel))
                     {
                         <span class="acc-order-meta-item">
-                            <AcIcon Name="@(o.PaymentMethod == "Card" ? "credit-card" : "cash")" Size="14" />
+                            <AcIcon Name="@(o.PaymentMethod == "Card" ? "credit-card" : "cash")" Size="16" />
                             @o.PaymentLabel
                         </span>
                     }

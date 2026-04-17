@@ -3,6 +3,7 @@
 @inject ClientOpEngine Engine
 @inject ApiReader Api
 @inject NavigationManager Nav
+@inject ACommerce.Culture.Blazor.CultureTimeFormatter TimeFormatter
 
 <PageTitle>محادثة - اوردر</PageTitle>
 
@@ -41,7 +42,11 @@ else
             Id = m.Id.ToString(),
             Content = m.Content,
             SenderId = m.SenderId.ToString(),
-            CreatedAt = m.CreatedAt
+            // Convert the DB-UTC timestamp to the viewer's actual timezone
+            // (from the browser), then mark it Kind=Local so that
+            // AcChatPage's .ToLocalTime() is idempotent and doesn't shift
+            // it again by the server's timezone.
+            CreatedAt = DateTime.SpecifyKind(TimeFormatter.AsLocal(m.CreatedAt), DateTimeKind.Local)
         }).ToList();
 
     protected override async Task OnAfterRenderAsync(bool firstRender)

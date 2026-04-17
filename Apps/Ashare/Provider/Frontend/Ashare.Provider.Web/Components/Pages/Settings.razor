@@ -1,55 +1,36 @@
 @page "/settings"
 @rendermode InteractiveServer
 @inject AppStore Store
-@inject ClientOpEngine Engine
+@inject AppStateApplier Applier
+@implements IDisposable
 
 <PageTitle>@Store.Ui.Tr("الإعدادات", "Settings") - عشير للمُلاّك</PageTitle>
 
-<div style="padding:16px;max-width:400px;">
-    <h1 class="acs-page-title" style="margin-bottom:20px;">@Store.Ui.Tr("الإعدادات", "Settings")</h1>
-
-    <div class="s-card">
-        <div class="acc-section-label">@Store.Ui.Tr("المظهر", "Appearance")</div>
-        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;">
-            <span>@Store.Ui.Tr("الوضع الليلي", "Dark mode")</span>
-            <button class="btn btn-sm @(Store.Ui.IsDark ? "btn-dark" : "btn-outline-secondary")"
-                    @onclick="ToggleTheme">
-                @(Store.Ui.IsDark ? "On" : "Off")
-            </button>
-        </div>
-        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;">
-            <span>@Store.Ui.Tr("اللغة", "Language")</span>
-            <div class="acs-seg">
-                <button class="acs-seg-btn @(Store.Ui.IsArabic ? "active" : "")"
-                        @onclick='() => SetLanguage("ar")'>عربي</button>
-                <button class="acs-seg-btn @(!Store.Ui.IsArabic ? "active" : "")"
-                        @onclick='() => SetLanguage("en")'>English</button>
+<AcSettingsPage Snapshot="@(new SettingsSnapshot { Theme = Store.Ui.Theme, Language = Store.Ui.Language })"
+                Title="@Store.Ui.Tr("الإعدادات", "Settings")"
+                ThemeLabel="@Store.Ui.Tr("المظهر", "Appearance")"
+                LanguageLabel="@Store.Ui.Tr("اللغة", "Language")"
+                LightLabel="@Store.Ui.Tr("فاتح", "Light")"
+                DarkLabel="@Store.Ui.Tr("داكن", "Dark")"
+                OnThemeChange="@(t => Applier.ApplyLocalAsync(ClientOps.SetTheme(t)))"
+                OnLanguageChange="@(l => Applier.ApplyLocalAsync(ClientOps.SetLanguage(l)))">
+    <ExtraSections>
+        @if (Store.Auth.IsAuthenticated)
+        {
+            <div class="s-card">
+                <div class="acs-settings-row-label">@Store.Ui.Tr("الحساب", "Account")</div>
+                <div class="ac-text-muted ac-text-sm" style="padding: 4px 0">@Store.Auth.PhoneNumber</div>
+                <a href="/plans" style="margin-top: 8px;display:block">
+                    <AcButton Variant="outline-primary" Size="sm" Block="true"
+                              Text="@Store.Ui.Tr("إدارة الاشتراك", "Manage subscription")" />
+                </a>
             </div>
-        </div>
-    </div>
-
-    @if (Store.Auth.IsAuthenticated)
-    {
-        <div class="s-card" style="margin-top:12px;">
-            <div class="acc-section-label">@Store.Ui.Tr("الحساب", "Account")</div>
-            <div style="font-size:0.85rem;color:var(--ac-text-muted);padding:4px 0;">
-                @Store.Auth.PhoneNumber
-            </div>
-            <a href="/plans" class="btn btn-outline-primary btn-sm btn-block" style="margin-top:8px;">
-                @Store.Ui.Tr("إدارة الاشتراك", "Manage subscription")
-            </a>
-        </div>
-    }
-</div>
+        }
+    </ExtraSections>
+</AcSettingsPage>
 
 @code {
-    private async Task ToggleTheme()
-    {
-        await Engine.ExecuteAsync<object>(ClientOps.SetTheme(Store.Ui.IsDark ? "light" : "dark"), new { });
-    }
-
-    private async Task SetLanguage(string lang)
-    {
-        await Engine.ExecuteAsync<object>(ClientOps.SetLanguage(lang), new { });
-    }
+    protected override void OnInitialized() => Store.OnChanged += OnChanged;
+    private void OnChanged() => InvokeAsync(StateHasChanged);
+    public void Dispose() => Store.OnChanged -= OnChanged;
 }

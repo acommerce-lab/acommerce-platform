@@ -7,53 +7,58 @@
 
 <PageTitle>حجز جديد - عشير</PageTitle>
 
-<h1>حجز جديد</h1>
+<AcAuthGuard IsAuthenticated="Store.Auth.IsAuthenticated" IsArabic="true" LoginHref="/login">
+    <div style="max-width:800px;margin:0 auto;padding: 24px 16px">
+        <AcPageHeader Title="حجز جديد" Subtitle="أكمل بيانات الحجز" />
 
-@if (listing == null)
-{
-    <div class="spinner-border"></div>
-}
-else
-{
-    <div class="row">
-        <div class="col-md-7">
-            <div class="card">
-                <div class="card-body">
-                    <h5>تفاصيل الحجز</h5>
-                    <div class="mb-3">
-                        <label>من تاريخ</label>
-                        <input type="date" class="form-control" @bind="startDate" />
-                    </div>
-                    <div class="mb-3">
-                        <label>إلى تاريخ</label>
-                        <input type="date" class="form-control" @bind="endDate" />
-                    </div>
-                    <div class="mb-3">
-                        <label>ملاحظات</label>
-                        <textarea class="form-control" @bind="notes"></textarea>
-                    </div>
-                    <button class="btn btn-primary" @onclick="CreateBooking" disabled="@saving">
-                        @(saving ? "جاري الحجز..." : "تأكيد الحجز")
-                    </button>
-                </div>
+        @if (listing == null)
+        {
+            <AcLoadingState Message="جاري التحميل..." />
+        }
+        else
+        {
+            <div style="display:grid;grid-template-columns:3fr 2fr;gap: 24px;align-items:start">
+                <AcCard>
+                    <Header>
+                        <strong>تفاصيل الحجز</strong>
+                    </Header>
+                    <ChildContent>
+                        <AcField Label="من تاريخ" Class="ac-mb-md">
+                            <input type="date" class="ac-input" @bind="startDate" />
+                        </AcField>
+                        <AcField Label="إلى تاريخ" Class="ac-mb-md">
+                            <input type="date" class="ac-input" @bind="endDate" />
+                        </AcField>
+                        <AcField Label="ملاحظات" Class="ac-mb-md">
+                            <textarea class="ac-input" style="min-height:100px;resize:vertical" @bind="notes"></textarea>
+                        </AcField>
+                        <AcButton Text="@(saving ? "جاري الحجز..." : "تأكيد الحجز")"
+                                  Variant="primary" Block="true" Disabled="@saving"
+                                  Loading="@saving" OnClick="CreateBooking" />
+                    </ChildContent>
+                </AcCard>
+
+                <AcCard>
+                    <ChildContent>
+                        <div style="text-align:center;padding: 8px 0">
+                            <div style="font-size:1.5rem;margin-bottom: 8px">🏠</div>
+                            <div style="font-weight:600;margin-bottom: 4px">@listing.Title</div>
+                            <div class="ac-text-muted" style="font-size:0.875rem;margin-bottom: 8px">@listing.City</div>
+                            <div style="font-weight:700;color:var(--ac-primary);font-size:1.125rem">
+                                @listing.Price @listing.Currency
+                            </div>
+                        </div>
+                    </ChildContent>
+                </AcCard>
             </div>
-        </div>
-        <div class="col-md-5">
-            <div class="card bg-light">
-                <div class="card-body">
-                    <h5>@listing.Title</h5>
-                    <p class="text-muted">@listing.City</p>
-                    <strong class="text-primary">@listing.Price @listing.Currency</strong>
-                </div>
-            </div>
-        </div>
+
+            @if (!string.IsNullOrEmpty(error))
+            {
+                <AcAlert Variant="danger" Message="@error" Class="ac-mt-md" />
+            }
+        }
     </div>
-}
-
-@if (!string.IsNullOrEmpty(error))
-{
-    <div class="alert alert-danger mt-3">@error</div>
-}
+</AcAuthGuard>
 
 @code {
     [Parameter] public Guid ListingId { get; set; }
@@ -64,10 +69,16 @@ else
     private bool saving;
     private string error = "";
 
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        var resp = await Reader.GetAsync<ListingDto>($"/api/listings/{ListingId}");
-        listing = resp.Data;
+        if (!firstRender) return;
+        try
+        {
+            var resp = await Reader.GetAsync<ListingDto>($"/api/listings/{ListingId}");
+            listing = resp.Data;
+        }
+        catch { }
+        StateHasChanged();
     }
 
     private async Task CreateBooking()
@@ -87,10 +98,10 @@ else
                 error = resp.Operation.ErrorMessage ?? "فشل الحجز";
                 return;
             }
-
             Nav.NavigateTo($"/booking/{resp.Data.Id}");
         }
-        finally { saving = false; }
+        catch (Exception ex) { error = ex.Message; }
+        finally { saving = false; StateHasChanged(); }
     }
 
     public class ListingDto
@@ -102,8 +113,5 @@ else
         public string Currency { get; set; } = "";
     }
 
-    public class BookingDto
-    {
-        public Guid Id { get; set; }
-    }
+    public class BookingDto { public Guid Id { get; set; } }
 }

@@ -1,6 +1,6 @@
 @page "/profile"
 @inject AppStore Store
-@inject ClientOpEngine Engine
+@inject AppStateApplier Applier
 @inject NavigationManager Nav
 
 <PageTitle>حسابي - اوردر</PageTitle>
@@ -48,6 +48,7 @@ else
                 new MenuItemDto { Label = Store.Ui.IsArabic ? "المفضلة" : "Favorites",       IconName = "heart",    Href = "/favorites" },
                 new MenuItemDto { Label = Store.Ui.IsArabic ? "محادثاتي" : "Messages",       IconName = "message",  Href = "/messages" },
                 new MenuItemDto { Label = Store.Ui.IsArabic ? "الإشعارات" : "Notifications", IconName = "bell",     Href = "/notifications" },
+                new MenuItemDto { Label = Store.Ui.IsArabic ? "بياناتي" : "My Account",      IconName = "user",     Href = "/account" },
             }
         },
         new MenuSectionDto
@@ -62,7 +63,7 @@ else
 
     private async Task SignOut()
     {
-        await Engine.ExecuteAsync<object>(ClientOps.SignOut(), new { });
+        await Applier.ApplyLocalAsync(ClientOps.SignOut());
         Nav.NavigateTo("/", forceLoad: false);
     }
 }

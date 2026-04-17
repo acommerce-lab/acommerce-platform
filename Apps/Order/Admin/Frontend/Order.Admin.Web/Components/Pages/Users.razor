@@ -1,0 +1,85 @@
+@page "/users"
+@rendermode InteractiveServer
+@inject AppStore Store
+@inject ApiReader Reader
+@inject ClientOpEngine Engine
+
+<PageTitle>@Store.Ui.Tr("المستخدمون - إدارة الطلبات", "Users - Order Admin")</PageTitle>
+
+<AcAuthGuard IsAuthenticated="@Store.Auth.IsAuthenticated" IsArabic="@Store.Ui.IsArabic" LoginHref="/login">
+    <AcAdminUsersPage Title="@Store.Ui.Tr("المستخدمون", "Users")"
+                      Users="@_users"
+                      Loading="@_loading"
+                      SearchPlaceholder="@Store.Ui.Tr("بحث بالاسم أو الهاتف...", "Search by name or phone...")"
+                      EmptyTitle="@Store.Ui.Tr("لا يوجد مستخدمون", "No users found")"
+                      SuspendLabel="@Store.Ui.Tr("تعليق", "Suspend")"
+                      ActivateLabel="@Store.Ui.Tr("تفعيل", "Activate")"
+                      OnSuspend="@Suspend"
+                      OnActivate="@Activate" />
+</AcAuthGuard>
+
+@code {
+    private List<AdminUserRowDto> _users = new();
+    private bool _loading = true;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        if (!Store.Auth.IsAuthenticated)
+        {
+            _loading = false;
+            StateHasChanged();
+            return;
+        }
+
+        var env = await Reader.GetAsync<List<AdminUserApiRow>>("/api/admin/users");
+        _users = (env.Data ?? new()).Select(r => new AdminUserRowDto
+        {
+            Id          = r.Id.ToString(),
+            DisplayName = r.FullName ?? r.PhoneNumber ?? r.Id.ToString(),
+            Phone       = r.PhoneNumber,
+            Email       = r.Email,
+            Status      = r.Status,
+            Role        = r.Role,
+            JoinedAt    = r.CreatedAt,
+        }).ToList();
+
+        _loading = false;
+        StateHasChanged();
+    }
+
+    private async Task Suspend(AdminUserRowDto u)
+    {
+        if (!Guid.TryParse(u.Id, out var uid)) return;
+        var result = await Engine.ExecuteAsync<object>(ClientOps.SuspendUser(uid), new { userId = uid });
+        if (result.Operation.Status == "Success")
+        {
+            var idx = _users.FindIndex(x => x.Id == u.Id);
+            if (idx >= 0) _users[idx] = _users[idx] with { Status = "suspended" };
+            StateHasChanged();
+        }
+    }
+
+    private async Task Activate(AdminUserRowDto u)
+    {
+        if (!Guid.TryParse(u.Id, out var uid)) return;
+        var result = await Engine.ExecuteAsync<object>(ClientOps.ActivateUser(uid), new { userId = uid });
+        if (result.Operation.Status == "Success")
+        {
+            var idx = _users.FindIndex(x => x.Id == u.Id);
+            if (idx >= 0) _users[idx] = _users[idx] with { Status = "active" };
+            StateHasChanged();
+        }
+    }
+
+    private class AdminUserApiRow
+    {
+        public Guid    Id          { get; set; }
+        public string? FullName    { get; set; }
+        public string? PhoneNumber { get; set; }
+        public string? Email       { get; set; }
+        public string  Status      { get; set; } = "active";
+        public string? Role        { get; set; }
+        public DateTime CreatedAt  { get; set; }
+    }
+}

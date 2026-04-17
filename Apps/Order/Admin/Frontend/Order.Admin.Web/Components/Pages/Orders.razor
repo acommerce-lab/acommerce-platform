@@ -1,0 +1,103 @@
+@page "/orders"
+@rendermode InteractiveServer
+@inject AppStore Store
+@inject ApiReader Reader
+@inject ClientOpEngine Engine
+
+<PageTitle>@Store.Ui.Tr("الطلبات - إدارة الطلبات", "Orders - Order Admin")</PageTitle>
+
+<AcAuthGuard IsAuthenticated="@Store.Auth.IsAuthenticated" IsArabic="@Store.Ui.IsArabic" LoginHref="/login">
+    <AcAdminOrdersPage Title="@Store.Ui.Tr("الطلبات", "Orders")"
+                       Orders="@_orders"
+                       Loading="@_loading"
+                       SearchPlaceholder="@Store.Ui.Tr("بحث بالعميل أو رقم الطلب...", "Search by customer or order number...")"
+                       EmptyTitle="@Store.Ui.Tr("لا توجد طلبات", "No orders found")">
+        <RowExtras Context="o">
+            @if (o.Status is "pending" or "confirmed")
+            {
+                <AcButton Variant="ghost" Size="sm"
+                          Text="@Store.Ui.Tr("إلغاء", "Cancel")"
+                          OnClick="@(() => CancelOrder(o))" />
+            }
+            @if (o.Status is "delivered")
+            {
+                <AcButton Variant="ghost" Size="sm"
+                          Text="@Store.Ui.Tr("استرجاع", "Refund")"
+                          OnClick="@(() => RefundOrder(o))" />
+            }
+        </RowExtras>
+    </AcAdminOrdersPage>
+</AcAuthGuard>
+
+@code {
+    private List<MerchantOrderRowDto> _orders = new();
+    private bool _loading = true;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        if (!Store.Auth.IsAuthenticated)
+        {
+            _loading = false;
+            StateHasChanged();
+            return;
+        }
+
+        var env = await Reader.GetAsync<List<OrderApiRow>>("/api/admin/orders");
+        _orders = (env.Data ?? new()).Select(r => new MerchantOrderRowDto
+        {
+            Id            = r.Id.ToString(),
+            CustomerName  = r.CustomerName ?? r.CustomerPhone ?? r.Id.ToString(),
+            CustomerPhone = r.CustomerPhone,
+            Total         = r.TotalPrice,
+            Currency      = r.Currency,
+            Status        = MapStatus(r.Status),
+            CreatedAt     = r.CreatedAt,
+            Notes         = r.Notes,
+        }).ToList();
+
+        _loading = false;
+        StateHasChanged();
+    }
+
+    private static string MapStatus(int s) => s switch
+    {
+        0 => "pending",
+        1 => "confirmed",
+        2 => "ready",
+        3 => "delivered",
+        4 => "cancelled",
+        _ => "pending"
+    };
+
+    private async Task CancelOrder(MerchantOrderRowDto o)
+    {
+        if (!Guid.TryParse(o.Id, out var oid)) return;
+        var result = await Engine.ExecuteAsync<object>(ClientOps.CancelOrder(oid), new { orderId = oid });
+        if (result.Operation.Status == "Success")
+        {
+            var idx = _orders.FindIndex(x => x.Id == o.Id);
+            if (idx >= 0) _orders[idx] = _orders[idx] with { Status = "cancelled" };
+            StateHasChanged();
+        }
+    }
+
+    private async Task RefundOrder(MerchantOrderRowDto o)
+    {
+        if (!Guid.TryParse(o.Id, out var oid)) return;
+        await Engine.ExecuteAsync<object>(ClientOps.RefundOrder(oid), new { orderId = oid });
+        StateHasChanged();
+    }
+
+    private class OrderApiRow
+    {
+        public Guid    Id            { get; set; }
+        public string? CustomerName  { get; set; }
+        public string? CustomerPhone { get; set; }
+        public decimal TotalPrice    { get; set; }
+        public string  Currency      { get; set; } = "SAR";
+        public int     Status        { get; set; }
+        public DateTime CreatedAt    { get; set; }
+        public string?  Notes        { get; set; }
+    }
+}

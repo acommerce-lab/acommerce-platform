@@ -58,10 +58,10 @@
 
             @if (!string.IsNullOrEmpty(CurrentError))
             {
-                <div class="alert alert-danger" style="margin-top:12px;">@CurrentError</div>
+                <div class="alert alert-danger" style="margin-top: 12px">@CurrentError</div>
             }
 
-            <button class="btn btn-primary btn-block" style="margin-top:16px;"
+            <button class="btn btn-primary btn-block" style="margin-top: 16px"
                     @onclick="HandleRequestOtp" disabled="@CurrentBusy">
                 @if (CurrentBusy)
                 {
@@ -89,10 +89,10 @@
 
             @if (!string.IsNullOrEmpty(CurrentError))
             {
-                <div class="alert alert-danger" style="margin-top:12px;">@CurrentError</div>
+                <div class="alert alert-danger" style="margin-top: 12px">@CurrentError</div>
             }
 
-            <button class="btn btn-primary btn-block" style="margin-top:16px;"
+            <button class="btn btn-primary btn-block" style="margin-top: 16px"
                     @onclick="HandleVerifyOtp" disabled="@CurrentBusy">
                 @if (CurrentBusy)
                 {
@@ -103,7 +103,7 @@
                     <span>@(VerifyOtpLabel ?? "تحقق ودخول")</span>
                 }
             </button>
-            <button class="btn btn-ghost btn-block" style="margin-top:8px;" @onclick="HandleBack">
+            <button class="btn btn-ghost btn-block" style="margin-top: 8px" @onclick="HandleBack">
                 @(BackLabel ?? "تغيير رقم الجوال")
             </button>
         }

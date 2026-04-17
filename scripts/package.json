@@ -1,0 +1,13 @@
+{
+  "name": "acommerce-verify-runtime",
+  "version": "1.0.0",
+  "description": "Layer 6 runtime verification — Playwright-based browser tests",
+  "type": "module",
+  "scripts": {
+    "verify": "node verify-runtime.mjs",
+    "install-browsers": "playwright install chromium"
+  },
+  "devDependencies": {
+    "playwright": "^1.48.0"
+  }
+}

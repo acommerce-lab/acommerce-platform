@@ -1,0 +1,89 @@
+@page "/vendors"
+@rendermode InteractiveServer
+@inject AppStore Store
+@inject ApiReader Reader
+@inject ClientOpEngine Engine
+
+<PageTitle>@Store.Ui.Tr("البائعون - إدارة الطلبات", "Vendors - Order Admin")</PageTitle>
+
+<AcAuthGuard IsAuthenticated="@Store.Auth.IsAuthenticated" IsArabic="@Store.Ui.IsArabic" LoginHref="/login">
+    <AcAdminVendorsPage Title="@Store.Ui.Tr("البائعون", "Vendors")"
+                        Vendors="@_rows"
+                        Loading="@_loading"
+                        SearchPlaceholder="@Store.Ui.Tr("بحث باسم البائع...", "Search by vendor name...")"
+                        EmptyTitle="@Store.Ui.Tr("لا يوجد بائعون", "No vendors found")"
+                        ApproveLabel="@Store.Ui.Tr("قبول", "Approve")"
+                        SuspendLabel="@Store.Ui.Tr("تعليق", "Suspend")"
+                        OnApprove="@Approve"
+                        OnSuspend="@Suspend" />
+</AcAuthGuard>
+
+@code {
+    private List<AdminVendorRowDto> _rows = new();
+    private bool _loading = true;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        if (!Store.Auth.IsAuthenticated)
+        {
+            _loading = false;
+            StateHasChanged();
+            return;
+        }
+
+        var env = await Reader.GetAsync<List<VendorApiRow>>("/api/admin/vendors");
+        _rows = (env.Data ?? new()).Select(r => new AdminVendorRowDto
+        {
+            Id           = r.Id.ToString(),
+            Name         = r.StoreName ?? r.OwnerName ?? r.Id.ToString(),
+            Phone        = r.Phone,
+            Status       = r.Status,
+            Category     = r.Category,
+            OrderCount   = r.OrderCount,
+            TotalRevenue = r.TotalRevenue,
+            Currency     = "SAR",
+            CreatedAt    = r.CreatedAt,
+        }).ToList();
+
+        _loading = false;
+        StateHasChanged();
+    }
+
+    private async Task Approve(AdminVendorRowDto v)
+    {
+        if (!Guid.TryParse(v.Id, out var vid)) return;
+        var result = await Engine.ExecuteAsync<object>(ClientOps.ApproveVendor(vid), new { vendorId = vid });
+        if (result.Operation.Status == "Success")
+        {
+            var idx = _rows.FindIndex(x => x.Id == v.Id);
+            if (idx >= 0) _rows[idx] = _rows[idx] with { Status = "active" };
+            StateHasChanged();
+        }
+    }
+
+    private async Task Suspend(AdminVendorRowDto v)
+    {
+        if (!Guid.TryParse(v.Id, out var vid)) return;
+        var result = await Engine.ExecuteAsync<object>(ClientOps.SuspendVendor(vid), new { vendorId = vid });
+        if (result.Operation.Status == "Success")
+        {
+            var idx = _rows.FindIndex(x => x.Id == v.Id);
+            if (idx >= 0) _rows[idx] = _rows[idx] with { Status = "suspended" };
+            StateHasChanged();
+        }
+    }
+
+    private class VendorApiRow
+    {
+        public Guid    Id           { get; set; }
+        public string? StoreName    { get; set; }
+        public string? OwnerName    { get; set; }
+        public string? Phone        { get; set; }
+        public string  Status       { get; set; } = "active";
+        public string? Category     { get; set; }
+        public int     OrderCount   { get; set; }
+        public decimal TotalRevenue { get; set; }
+        public DateTime CreatedAt   { get; set; }
+    }
+}

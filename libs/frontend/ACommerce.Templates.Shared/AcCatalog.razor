@@ -1,0 +1,148 @@
+@namespace ACommerce.Templates.Shared
+
+@*
+    AcCatalog — visual catalog of every widget variant.
+    Drop this on a page at /catalog in every app to get a Storybook-like view.
+    Single page review = full design system review.
+*@
+
+<div class="acs-page acs-page-wide">
+    <AcPageHeader Title="@Title"
+                  Subtitle="@Subtitle" />
+
+    @* ── Typography scale ─────────────────────────────────────────────── *@
+    <h2 class="acs-section-title">Typography</h2>
+    <AcCard Class="ac-mb-lg">
+        <ChildContent>
+            <h1 style="margin:0 0 8px">Heading 1 — عنوان رئيسي</h1>
+            <h2 style="margin:0 0 8px">Heading 2 — عنوان فرعي</h2>
+            <h3 style="margin:0 0 8px">Heading 3 — قسم</h3>
+            <p style="margin:0 0 4px">Body text — نص الفقرة العادي</p>
+            <p class="ac-text-muted ac-text-sm" style="margin:0">Muted small — نص ثانوي صغير</p>
+        </ChildContent>
+    </AcCard>
+
+    @* ── Brand palette ─────────────────────────────────────────────────── *@
+    <h2 class="acs-section-title">Brand colors</h2>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap: 12px;margin-bottom: 24px">
+        <div style="padding: 16px;border-radius:var(--ac-radius-md);background:var(--ac-primary);color:var(--ac-on-primary);font-weight:600;text-align:center">primary</div>
+        <div style="padding: 16px;border-radius:var(--ac-radius-md);background:var(--ac-secondary);color:var(--ac-on-primary);font-weight:600;text-align:center">secondary</div>
+        <div style="padding: 16px;border-radius:var(--ac-radius-md);background:var(--ac-success);color:var(--ac-on-primary);font-weight:600;text-align:center">success</div>
+        <div style="padding: 16px;border-radius:var(--ac-radius-md);background:var(--ac-warning);color:var(--ac-on-primary);font-weight:600;text-align:center">warning</div>
+        <div style="padding: 16px;border-radius:var(--ac-radius-md);background:var(--ac-danger);color:var(--ac-on-primary);font-weight:600;text-align:center">danger</div>
+        <div style="padding: 16px;border-radius:var(--ac-radius-md);background:var(--ac-info);color:var(--ac-on-primary);font-weight:600;text-align:center">info</div>
+    </div>
+
+    @* ── Surfaces ─────────────────────────────────────────────────────── *@
+    <h2 class="acs-section-title">Surfaces</h2>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap: 12px;margin-bottom: 24px">
+        <div style="padding: 16px;border-radius:var(--ac-radius-md);background:var(--ac-bg);border:1px solid var(--ac-border);text-align:center">bg</div>
+        <div style="padding: 16px;border-radius:var(--ac-radius-md);background:var(--ac-bg-alt);border:1px solid var(--ac-border);text-align:center">bg-alt</div>
+        <div style="padding: 16px;border-radius:var(--ac-radius-md);background:var(--ac-surface);border:1px solid var(--ac-border);text-align:center">surface</div>
+    </div>
+
+    @* ── Buttons ──────────────────────────────────────────────────────── *@
+    <h2 class="acs-section-title">Buttons</h2>
+    <AcCard Class="ac-mb-lg">
+        <ChildContent>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px">
+                <AcButton Variant="primary" Text="Primary" />
+                <AcButton Variant="secondary" Text="Secondary" />
+                <AcButton Variant="outline-primary" Text="Outline primary" />
+                <AcButton Variant="outline-danger" Text="Outline danger" />
+                <AcButton Variant="ghost" Text="Ghost" />
+                <AcButton Variant="success" Text="Success" />
+                <AcButton Variant="danger" Text="Danger" />
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:16px">
+                <AcButton Variant="primary" Size="sm" Text="Small" />
+                <AcButton Variant="primary" Text="Medium (default)" />
+                <AcButton Variant="primary" Size="lg" Text="Large" />
+                <AcButton Variant="primary" Text="Loading..." Loading="true" />
+                <AcButton Variant="primary" Text="Disabled" Disabled="true" />
+            </div>
+            <AcButton Variant="primary" Block="true" Text="Block (full width)" />
+        </ChildContent>
+    </AcCard>
+
+    @* ── Form fields ──────────────────────────────────────────────────── *@
+    <h2 class="acs-section-title">Form fields</h2>
+    <AcCard Class="ac-mb-lg">
+        <ChildContent>
+            <AcField Label="اسم" Class="ac-mb-md">
+                <AcInput Value="@_sample" ValueChanged="@(v => _sample = v ?? "")" Placeholder="أدخل الاسم" />
+            </AcField>
+            <AcField Label="اسم مطلوب" Required Class="ac-mb-md">
+                <AcInput Value="" Placeholder="حقل إلزامي" />
+            </AcField>
+            <AcField Label="بريد" Hint="نرسل تأكيد الطلب على هذا البريد" Class="ac-mb-md">
+                <AcInput Type="email" Value="" Placeholder="name@example.com" />
+            </AcField>
+            <AcField Label="حقل بخطأ" Error="القيمة غير صالحة">
+                <AcInput Value="abc" />
+            </AcField>
+        </ChildContent>
+    </AcCard>
+
+    @* ── Cards ────────────────────────────────────────────────────────── *@
+    <h2 class="acs-section-title">Cards</h2>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap: 16px;margin-bottom: 24px">
+        <AcCard>
+            <Header><strong>بطاقة بترويسة</strong></Header>
+            <ChildContent>محتوى البطاقة يأتي هنا.</ChildContent>
+        </AcCard>
+        <AcCard>
+            <ChildContent>بطاقة بسيطة بدون ترويسة.</ChildContent>
+        </AcCard>
+        <AcCard Hover="true">
+            <Header><strong>بطاقة تفاعلية (Hover)</strong></Header>
+            <ChildContent>تعوم عند التمرير.</ChildContent>
+        </AcCard>
+    </div>
+
+    @* ── States ───────────────────────────────────────────────────────── *@
+    <h2 class="acs-section-title">States (loading / empty / alerts)</h2>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap: 16px;margin-bottom: 24px">
+        <AcCard>
+            <Header><strong>Loading</strong></Header>
+            <ChildContent>
+                <AcLoadingState Message="جاري التحميل..." />
+            </ChildContent>
+        </AcCard>
+        <AcCard>
+            <Header><strong>Empty</strong></Header>
+            <ChildContent>
+                <AcEmptyState IconName="inbox" Title="لا بيانات" Message="لم يتم العثور على أي شيء" />
+            </ChildContent>
+        </AcCard>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px;margin-bottom: 24px">
+        <AcAlert Variant="info"    Message="تنبيه معلوماتي" />
+        <AcAlert Variant="success" Message="تم الحفظ بنجاح" />
+        <AcAlert Variant="warning" Message="احذر من هذا" />
+        <AcAlert Variant="danger"  Message="حدث خطأ" />
+    </div>
+
+    @* ── Spacing tokens ───────────────────────────────────────────────── *@
+    <h2 class="acs-section-title">Spacing scale</h2>
+    <AcCard Class="ac-mb-lg">
+        <ChildContent>
+            <div style="display:flex;flex-direction:column;gap: 8px">
+                @foreach (var (name, val) in new[] { ("xs", "0.25rem"), ("sm", "0.5rem"), ("md", "1rem"), ("lg", "1.5rem"), ("xl", "2rem") })
+                {
+                    <div style="display:flex;align-items:center;gap:8px">
+                        <div style="width:60px;font-weight:600">@name</div>
+                        <div style="background:var(--ac-primary);height:16px;width:var(--ac-space-@name)"></div>
+                        <div class="ac-text-muted ac-text-sm">@val</div>
+                    </div>
+                }
+            </div>
+        </ChildContent>
+    </AcCard>
+</div>
+
+@code {
+    [Parameter] public string Title { get; set; } = "Design Catalog";
+    [Parameter] public string Subtitle { get; set; } = "Every widget variant, one page.";
+    private string _sample = "سارة العميلة";
+}

@@ -7,107 +7,127 @@
 
 <PageTitle>عرض جديد - عشير</PageTitle>
 
-@if (!Store.Auth.IsAuthenticated)
-{
-    <div class="alert alert-warning">يجب تسجيل الدخول أولاً <a href="/login">دخول</a></div>
-}
-else
-{
-    <h1>إضافة عرض جديد</h1>
-    <p class="text-muted">ينشأ القيد المحاسبي → معترض الاشتراكات يفحص الحصة → الحفظ</p>
+<AcAuthGuard IsAuthenticated="Store.Auth.IsAuthenticated" IsArabic="true" LoginHref="/login">
+    <div style="max-width:800px;margin:0 auto;padding: 24px 16px">
+        <AcPageHeader Title="إضافة عرض جديد"
+                      Subtitle="أدخل بيانات العقار ليظهر في سوق عشير" />
 
-    <EditForm Model="form" OnValidSubmit="Submit" FormName="CreateListing">
-        <div class="row g-3">
-            <div class="col-md-8">
-                <label class="form-label">الفئة</label>
-                <select class="form-select" @bind="form.CategoryId">
-                    <option value="">-- اختر --</option>
-                    @foreach (var cat in categories)
-                    {
-                        <option value="@cat.Id">@cat.NameAr</option>
-                    }
-                </select>
-            </div>
-            <div class="col-md-12">
-                <label class="form-label">العنوان</label>
-                <input class="form-control" @bind="form.Title" />
-            </div>
-            <div class="col-md-12">
-                <label class="form-label">الوصف</label>
-                <textarea class="form-control" rows="4" @bind="form.Description"></textarea>
-            </div>
-            <div class="col-md-4">
-                <label class="form-label">السعر</label>
-                <input type="number" class="form-control" @bind="form.Price" />
-            </div>
-            <div class="col-md-4">
-                <label class="form-label">المدة</label>
-                <input type="number" class="form-control" @bind="form.Duration" />
-            </div>
-            <div class="col-md-4">
-                <label class="form-label">الوحدة</label>
-                <select class="form-select" @bind="form.TimeUnit">
-                    <option value="month">شهر</option>
-                    <option value="week">أسبوع</option>
-                    <option value="day">يوم</option>
-                </select>
-            </div>
-            <div class="col-md-6">
-                <label class="form-label">المدينة</label>
-                <input class="form-control" @bind="form.City" />
-            </div>
-            <div class="col-md-6">
-                <label class="form-label">الحي</label>
-                <input class="form-control" @bind="form.District" />
-            </div>
-            <div class="col-md-3">
-                <label class="form-label">عدد الغرف</label>
-                <input type="number" class="form-control" @bind="form.Rooms" />
-            </div>
-            <div class="col-md-3">
-                <label class="form-label">عدد الحمامات</label>
-                <input type="number" class="form-control" @bind="form.Bathrooms" />
-            </div>
-            <div class="col-md-3">
-                <label class="form-label">المساحة (م²)</label>
-                <input type="number" class="form-control" @bind="form.Area" />
-            </div>
-            <div class="col-md-3">
-                <label class="form-label">الطابق</label>
-                <input type="number" class="form-control" @bind="form.Floor" />
-            </div>
-            <div class="col-12">
-                <button type="submit" class="btn btn-primary" disabled="@saving">
-                    @(saving ? "جاري الحفظ..." : "نشر العرض")
-                </button>
-            </div>
-        </div>
-    </EditForm>
+        <AcCard Class="ac-mb-lg">
+            <Header><strong>بيانات العرض الأساسية</strong></Header>
+            <ChildContent>
+                <AcField Label="الفئة" Class="ac-mb-md">
+                    <select class="ac-input" @bind="form.CategoryId" @bind:after="OnCategoryChangedAsync">
+                        <option value="">-- اختر الفئة --</option>
+                        @foreach (var cat in categories)
+                        {
+                            <option value="@cat.Id">@cat.NameAr</option>
+                        }
+                    </select>
+                </AcField>
 
-    @if (!string.IsNullOrEmpty(error))
-    {
-        <div class="alert alert-danger mt-3">
-            <strong>فشل إنشاء العرض:</strong> @error
-            <br/><small>السبب غالباً: اشتراكك الحالي لا يسمح بهذه الفئة أو تجاوزت الحصة. راجع <a href="/plans">الباقات</a>.</small>
-        </div>
-    }
-    @if (!string.IsNullOrEmpty(success))
-    {
-        <div class="alert alert-success mt-3">@success</div>
-    }
-}
+                <AcField Label="العنوان" Class="ac-mb-md">
+                    <AcInput Value="@form.Title" ValueChanged="@(v => form.Title = v ?? "")"
+                             Placeholder="مثال: شقة فاخرة في حي الياسمين" />
+                </AcField>
+
+                <AcField Label="الوصف" Class="ac-mb-md">
+                    <textarea class="ac-input" style="min-height:100px;resize:vertical"
+                              @bind="form.Description"></textarea>
+                </AcField>
+
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap: 12px" class="ac-mb-md">
+                    <AcField Label="السعر">
+                        <AcInput Type="number" Value="@form.Price.ToString()"
+                                 ValueChanged="@(v => { if (decimal.TryParse(v, out var n)) form.Price = n; })" />
+                    </AcField>
+                    <AcField Label="المدة">
+                        <AcInput Type="number" Value="@form.Duration.ToString()"
+                                 ValueChanged="@(v => { if (int.TryParse(v, out var n)) form.Duration = n; })" />
+                    </AcField>
+                    <AcField Label="الوحدة">
+                        <select class="ac-input" @bind="form.TimeUnit">
+                            <option value="month">شهر</option>
+                            <option value="week">أسبوع</option>
+                            <option value="day">يوم</option>
+                            <option value="year">سنة</option>
+                        </select>
+                    </AcField>
+                </div>
+
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap: 12px">
+                    <AcField Label="المدينة">
+                        <AcInput Value="@form.City" ValueChanged="@(v => form.City = v ?? "")" />
+                    </AcField>
+                    <AcField Label="الحي">
+                        <AcInput Value="@form.District" ValueChanged="@(v => form.District = v)"
+                                 Placeholder="اختياري" />
+                    </AcField>
+                </div>
+            </ChildContent>
+        </AcCard>
+
+        @if (template != null && template.Fields.Count > 0)
+        {
+            <AcCard Class="ac-mb-lg">
+                <Header><strong>مواصفات إضافية حسب الفئة</strong></Header>
+                <ChildContent>
+                    <AcAttrEditor Template="template"
+                                  Values="attributeValues"
+                                  ValuesChanged="@(v => attributeValues = v)"
+                                  IsArabic="true" />
+                </ChildContent>
+            </AcCard>
+        }
+
+        @if (!string.IsNullOrEmpty(error))
+        {
+            <AcAlert Variant="danger" Message="@error" Class="ac-mb-md" />
+        }
+        @if (!string.IsNullOrEmpty(success))
+        {
+            <AcAlert Variant="success" Message="@success" Class="ac-mb-md" />
+        }
+
+        <AcButton Text="@(saving ? "جاري الحفظ..." : "نشر العرض")"
+                  Variant="primary" Block="true" Disabled="@saving"
+                  Loading="@saving" OnClick="Submit" />
+    </div>
+</AcAuthGuard>
 
 @code {
     private CreateForm form = new();
     private List<CategoryDto> categories = new();
+    private AttributeTemplate? template;
+    private Dictionary<string, object?> attributeValues = new();
     private bool saving;
     private string error = "";
     private string success = "";
 
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        var resp = await Reader.GetAsync<List<CategoryDto>>("/api/categories");
-        categories = resp.Data ?? new();
+        if (!firstRender) return;
+        try
+        {
+            var resp = await Reader.GetAsync<List<CategoryDto>>("/api/categories");
+            categories = resp.Data ?? new();
+        }
+        catch { }
+        StateHasChanged();
+    }
+
+    private async Task OnCategoryChangedAsync()
+    {
+        attributeValues = new();
+        template = null;
+        if (form.CategoryId == Guid.Empty) { StateHasChanged(); return; }
+
+        try
+        {
+            var resp = await Reader.GetAsync<CategoryDto>($"/api/categories/{form.CategoryId}");
+            template = DynamicAttributeHelper.ParseTemplate(resp.Data?.AttributeTemplateJson);
+        }
+        catch { }
+        StateHasChanged();
     }
 
     private async Task Submit()
@@ -129,30 +149,28 @@ else
                 timeUnit = form.TimeUnit,
                 city = form.City,
                 district = form.District,
-                propertyType = (string?)null,
-                floor = form.Floor,
-                area = form.Area,
-                rooms = form.Rooms,
-                bathrooms = form.Bathrooms,
-                furnished = (bool?)null,
-                licenseNumber = (string?)null
+                latitude = (double?)null,
+                longitude = (double?)null,
+                licenseNumber = (string?)null,
+                attributes = attributeValues
             };
 
             var resp = await Engine.ExecuteAsync<ListingDto>(
-                ClientOps.CreateListing(ownerId, form.Title),
-                payload);
+                ClientOps.CreateListing(ownerId, form.Title), payload);
 
             if (resp.Operation.Status != "Success" || resp.Data == null)
             {
-                error = resp.Operation.ErrorMessage ?? resp.Error?.Message ?? "فشل";
+                error = resp.Operation.ErrorMessage ?? resp.Error?.Message ?? "فشل إنشاء العرض";
                 return;
             }
 
-            success = $"تم إنشاء العرض #{resp.Data.Id.ToString().Substring(0, 8)}. جاري التوجيه...";
-            await Task.Delay(1000);
+            success = "تم إنشاء العرض بنجاح!";
+            StateHasChanged();
+            await Task.Delay(800);
             Nav.NavigateTo($"/listing/{resp.Data.Id}");
         }
-        finally { saving = false; }
+        catch (Exception ex) { error = ex.Message; }
+        finally { saving = false; StateHasChanged(); }
     }
 
     public class CreateForm
@@ -165,20 +183,14 @@ else
         public string TimeUnit { get; set; } = "month";
         public string City { get; set; } = "الرياض";
         public string? District { get; set; }
-        public int? Rooms { get; set; }
-        public int? Bathrooms { get; set; }
-        public double? Area { get; set; }
-        public int? Floor { get; set; }
     }
 
     public class CategoryDto
     {
         public Guid Id { get; set; }
         public string NameAr { get; set; } = "";
+        public string? AttributeTemplateJson { get; set; }
     }
 
-    public class ListingDto
-    {
-        public Guid Id { get; set; }
-    }
+    public class ListingDto { public Guid Id { get; set; } }
 }

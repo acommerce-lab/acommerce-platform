@@ -1,0 +1,174 @@
+@namespace ACommerce.Templates.Marketplace
+
+@*
+    بطاقة حجز مفرد — تعرض تفاصيل الحجز مع أزرار الإجراءات.
+
+    Callback mode: الصفحة تعالج أحداث OnConfirm / OnReject / OnCancel.
+    Operation mode: القالب يُرسل العمليات مباشرة عبر ITemplateEngine.
+
+    Flex slots:
+      CardExtras   — محتوى إضافي أسفل بيانات الحجز
+      ExtraActions — أزرار/إجراءات إضافية
+*@
+
+<div class="s-card acm-booking-card">
+    @if (Booking == null)
+    {
+        <AcLoadingState />
+        return;
+    }
+
+    <div class="acm-booking-header">
+        <div class="acm-booking-info">
+            @if (!string.IsNullOrEmpty(Booking.ListingTitle))
+            {
+                <strong class="acm-booking-listing-title">@Booking.ListingTitle</strong>
+            }
+            <div class="acm-booking-dates ac-text-muted">
+                <AcIcon Name="clock" Size="16" />
+                @Booking.StartDate.ToString("yyyy/MM/dd") — @Booking.EndDate.ToString("yyyy/MM/dd")
+            </div>
+        </div>
+        <div class="acm-booking-status">
+            <AcBadge Text="@BookingStatusLabel(Booking.Status)" Variant="@BookingStatusVariant(Booking.Status)" />
+        </div>
+    </div>
+
+    <div class="acm-booking-price">
+        <span class="acm-booking-total">@Booking.TotalPrice.ToString("N0") @Booking.Currency</span>
+    </div>
+
+    @if (IsOwnerView && (!string.IsNullOrEmpty(Booking.CustomerName) || !string.IsNullOrEmpty(Booking.CustomerPhone)))
+    {
+        <div class="acm-booking-customer ac-text-muted">
+            <AcIcon Name="user" Size="16" />
+            @if (!string.IsNullOrEmpty(Booking.CustomerName))
+            {
+                <span>@Booking.CustomerName</span>
+            }
+            @if (!string.IsNullOrEmpty(Booking.CustomerPhone))
+            {
+                <span dir="ltr">@Booking.CustomerPhone</span>
+            }
+        </div>
+    }
+
+    @if (!string.IsNullOrEmpty(Booking.Notes))
+    {
+        <p class="ac-text-muted acm-booking-notes">@(NotesLabel ?? "ملاحظات"): @Booking.Notes</p>
+    }
+
+    @CardExtras
+
+    @if (IsOwnerView)
+    {
+        <div class="acm-booking-actions">
+            @if (Booking.Status == 0)
+            {
+                <AcButton Variant="success"
+                          Text="@(ConfirmLabel ?? "قبول")"
+                          OnClick="HandleConfirm"
+                          Disabled="@Booking.Acting" />
+                <AcButton Variant="danger"
+                          Text="@(RejectLabel ?? "رفض")"
+                          OnClick="HandleReject"
+                          Disabled="@Booking.Acting" />
+            }
+            @if (Booking.Status == 1)
+            {
+                <AcButton Variant="ghost"
+                          Text="@(CancelLabel ?? "إلغاء")"
+                          OnClick="HandleCancel"
+                          Disabled="@Booking.Acting" />
+            }
+            @ExtraActions
+        </div>
+    }
+</div>
+
+@code {
+    // ── وضع التشغيل ────────────────────────────────────────────────────────
+    [Parameter] public TemplateOperationMode Mode { get; set; } = TemplateOperationMode.Callback;
+
+    [Parameter, EditorRequired] public BookingRowDto? Booking { get; set; }
+    [Parameter] public bool IsOwnerView { get; set; } = false;
+
+    // ── Callback mode ──────────────────────────────────────────────────────
+    [Parameter] public EventCallback<BookingRowDto> OnConfirm { get; set; }
+    [Parameter] public EventCallback<BookingRowDto> OnReject { get; set; }
+    [Parameter] public EventCallback<BookingRowDto> OnCancel { get; set; }
+
+    // ── Operation mode ─────────────────────────────────────────────────────
+    [Parameter] public ITemplateEngine? Engine { get; set; }
+    [Parameter] public Func<string, Operation>? BuildConfirmOp { get; set; }
+    [Parameter] public Func<string, Operation>? BuildRejectOp { get; set; }
+    [Parameter] public Func<string, Operation>? BuildCancelOp { get; set; }
+
+    // ── Labels ─────────────────────────────────────────────────────────────
+    [Parameter] public string? ConfirmLabel { get; set; }
+    [Parameter] public string? RejectLabel { get; set; }
+    [Parameter] public string? CancelLabel { get; set; }
+    [Parameter] public string? NotesLabel { get; set; }
+
+    // ── Flex slots ─────────────────────────────────────────────────────────
+    [Parameter] public RenderFragment? CardExtras { get; set; }
+    [Parameter] public RenderFragment? ExtraActions { get; set; }
+
+    private async Task HandleConfirm()
+    {
+        if (Booking == null) return;
+        if (Mode == TemplateOperationMode.Operation && Engine != null && BuildConfirmOp != null)
+        {
+            Booking.Acting = true;
+            try { await Engine.ExecuteAsync<object>(BuildConfirmOp(Booking.Id)); }
+            finally { Booking.Acting = false; }
+        }
+        else if (OnConfirm.HasDelegate) await OnConfirm.InvokeAsync(Booking);
+    }
+
+    private async Task HandleReject()
+    {
+        if (Booking == null) return;
+        if (Mode == TemplateOperationMode.Operation && Engine != null && BuildRejectOp != null)
+        {
+            Booking.Acting = true;
+            try { await Engine.ExecuteAsync<object>(BuildRejectOp(Booking.Id)); }
+            finally { Booking.Acting = false; }
+        }
+        else if (OnReject.HasDelegate) await OnReject.InvokeAsync(Booking);
+    }
+
+    private async Task HandleCancel()
+    {
+        if (Booking == null) return;
+        if (Mode == TemplateOperationMode.Operation && Engine != null && BuildCancelOp != null)
+        {
+            Booking.Acting = true;
+            try { await Engine.ExecuteAsync<object>(BuildCancelOp(Booking.Id)); }
+            finally { Booking.Acting = false; }
+        }
+        else if (OnCancel.HasDelegate) await OnCancel.InvokeAsync(Booking);
+    }
+
+    private static string BookingStatusLabel(int status) => status switch
+    {
+        0 => "معلق",
+        1 => "مؤكد",
+        2 => "ينتظر الدفع",
+        3 => "مدفوع",
+        4 => "ملغى",
+        5 => "مكتمل",
+        _ => "غير معروف"
+    };
+
+    private static string BookingStatusVariant(int status) => status switch
+    {
+        0 => "warning",
+        1 => "success",
+        2 => "info",
+        3 => "primary",
+        4 => "muted",
+        5 => "success",
+        _ => "muted"
+    };
+}

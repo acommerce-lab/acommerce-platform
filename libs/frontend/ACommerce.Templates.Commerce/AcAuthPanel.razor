@@ -3,9 +3,9 @@
 @* قالب بطاقة المصادقة - login/register/verify *@
 <div class="act-auth-panel">
     @if (!string.IsNullOrEmpty(Title)) { <div class="act-auth-title">@Title</div> }
-    @if (!string.IsNullOrEmpty(Subtitle)) { <div class="ac-text-muted ac-text-sm ac-mb-md" style="text-align:center;">@Subtitle</div> }
+    @if (!string.IsNullOrEmpty(Subtitle)) { <div class="ac-text-muted ac-text-sm ac-mb-md" style="text-align:center">@Subtitle</div> }
     @ChildContent
-    @if (Footer != null) { <div class="ac-mt-lg" style="text-align:center;">@Footer</div> }
+    @if (Footer != null) { <div class="ac-mt-lg" style="text-align:center">@Footer</div> }
 </div>
 
 @code {

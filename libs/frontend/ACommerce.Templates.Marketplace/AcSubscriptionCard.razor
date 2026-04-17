@@ -1,0 +1,118 @@
+@namespace ACommerce.Templates.Marketplace
+
+@*
+    بطاقة حالة الاشتراك المدمجة — للوحة التحكم.
+
+    تعرض:
+      - اسم الخطة + شارة الحالة
+      - أشرطة الحصص (إعلانات + مميزة)
+      - تاريخ الانتهاء
+      - رابط الإدارة
+
+    إذا كان Subscription فارغاً يُعرض رسالة + رابط للخطط.
+
+    Flex slots:
+      Extra — محتوى إضافي أسفل البطاقة
+*@
+
+<div class="s-card acm-subscription-card">
+    @if (Subscription == null)
+    {
+        <div class="acs-empty">
+            <AcIcon Name="tag" Size="32" />
+            <p class="ac-text-muted">@(NoSubscriptionMessage ?? "لا يوجد اشتراك نشط")</p>
+            @if (!string.IsNullOrEmpty(UpgradeHref))
+            {
+                <a class="btn btn-primary btn-sm" href="@UpgradeHref">اختر خطة</a>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="acm-sub-header">
+            <strong class="acm-sub-plan-name">@Subscription.PlanName</strong>
+            <AcBadge Text="@SubStatusLabel(Subscription.Status)" Variant="@SubStatusVariant(Subscription.Status)" />
+        </div>
+
+        @if (!string.IsNullOrEmpty(Subscription.PlanDescription))
+        {
+            <p class="ac-text-muted acm-sub-desc">@Subscription.PlanDescription</p>
+        }
+
+        @if (Subscription.ListingQuota > 0)
+        {
+            var listingPct = Math.Min(100, (int)Math.Round((double)Subscription.ListingUsed / Subscription.ListingQuota * 100));
+            <div class="acm-quota-row">
+                <div class="acm-quota-label">
+                    <span>الإعلانات</span>
+                    <span class="ac-text-muted">@Subscription.ListingUsed من @Subscription.ListingQuota</span>
+                </div>
+                <div class="acm-quota-bar">
+                    <div class="acm-quota-fill" style="width:@(listingPct)%"></div>
+                </div>
+            </div>
+        }
+
+        @if (Subscription.FeaturedQuota > 0)
+        {
+            var featuredPct = Math.Min(100, (int)Math.Round((double)Subscription.FeaturedUsed / Subscription.FeaturedQuota * 100));
+            <div class="acm-quota-row">
+                <div class="acm-quota-label">
+                    <span>المميزة</span>
+                    <span class="ac-text-muted">@Subscription.FeaturedUsed من @Subscription.FeaturedQuota</span>
+                </div>
+                <div class="acm-quota-bar">
+                    <div class="acm-quota-fill acm-quota-fill-featured" style="width:@(featuredPct)%"></div>
+                </div>
+            </div>
+        }
+
+        @if (Subscription.ExpiresAt.HasValue)
+        {
+            <p class="ac-text-muted acm-sub-expiry">
+                <AcIcon Name="clock" Size="16" />
+                ينتهي: @Subscription.ExpiresAt.Value.ToString("yyyy/MM/dd")
+            </p>
+        }
+
+        <div class="acm-sub-footer">
+            @if (!string.IsNullOrEmpty(ManageHref))
+            {
+                <a class="btn btn-sm btn-primary" href="@ManageHref">إدارة الاشتراك</a>
+            }
+            @if (!string.IsNullOrEmpty(UpgradeHref))
+            {
+                <a class="btn btn-sm btn-primary" href="@UpgradeHref">ترقية</a>
+            }
+        </div>
+    }
+
+    @Extra
+</div>
+
+@code {
+    [Parameter] public SubscriptionInfoDto? Subscription { get; set; }
+    [Parameter] public string? ManageHref { get; set; }
+    [Parameter] public string? UpgradeHref { get; set; }
+    [Parameter] public string? NoSubscriptionMessage { get; set; }
+
+    [Parameter] public RenderFragment? Extra { get; set; }
+
+    private static string SubStatusLabel(int status) => status switch
+    {
+        0 => "تجريبي",
+        1 => "نشط",
+        2 => "ملغى",
+        3 => "منتهي",
+        _ => "غير معروف"
+    };
+
+    private static string SubStatusVariant(int status) => status switch
+    {
+        0 => "info",
+        1 => "success",
+        2 => "muted",
+        3 => "danger",
+        _ => "muted"
+    };
+}

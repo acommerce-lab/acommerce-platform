@@ -1,0 +1,71 @@
+@page "/bookings"
+@rendermode InteractiveServer
+@using ACommerce.Templates.Merchant.Commerce.Models
+@inject AppStore Store
+@inject ApiReader Reader
+
+<PageTitle>الحجوزات - عشير الإدارة</PageTitle>
+
+<AcAuthGuard IsAuthenticated="@Store.Auth.IsAuthenticated" IsArabic="@Store.Ui.IsArabic" LoginHref="/login">
+    <AcAdminOrdersPage Title="الحجوزات"
+                       Orders="@_orders"
+                       Loading="@_loading"
+                       SearchPlaceholder="بحث بالعميل أو رقم الحجز..."
+                       EmptyTitle="لا توجد حجوزات" />
+</AcAuthGuard>
+
+@code {
+    private List<MerchantOrderRowDto> _orders = new();
+    private bool _loading = true;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        if (!Store.Auth.IsAuthenticated)
+        {
+            _loading = false;
+            StateHasChanged();
+            return;
+        }
+
+        var env = await Reader.GetAsync<List<BookingApiRow>>("/api/admin/bookings");
+        _orders = (env.Data ?? new()).Select(r => new MerchantOrderRowDto
+        {
+            Id            = r.Id.ToString(),
+            CustomerName  = r.CustomerName ?? r.CustomerPhone ?? r.Id.ToString(),
+            CustomerPhone = r.CustomerPhone,
+            Total         = r.TotalPrice,
+            Currency      = r.Currency,
+            Status        = MapStatus(r.Status),
+            CreatedAt     = r.StartDate,
+            Notes         = r.Notes,
+        }).ToList();
+
+        _loading = false;
+        StateHasChanged();
+    }
+
+    private static string MapStatus(int s) => s switch
+    {
+        0 => "pending",
+        1 => "confirmed",
+        2 => "confirmed",
+        3 => "delivered",
+        4 => "cancelled",
+        5 => "delivered",
+        _ => "pending"
+    };
+
+    private class BookingApiRow
+    {
+        public Guid    Id            { get; set; }
+        public string? CustomerName  { get; set; }
+        public string? CustomerPhone { get; set; }
+        public decimal TotalPrice    { get; set; }
+        public string  Currency      { get; set; } = "SAR";
+        public int     Status        { get; set; }
+        public DateTime StartDate    { get; set; }
+        public DateTime EndDate      { get; set; }
+        public string?  Notes        { get; set; }
+    }
+}

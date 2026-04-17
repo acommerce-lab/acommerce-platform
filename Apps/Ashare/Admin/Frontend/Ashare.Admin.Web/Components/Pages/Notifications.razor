@@ -1,0 +1,89 @@
+@page "/notifications"
+@rendermode InteractiveServer
+@inject AppStore Store
+@inject ClientOpEngine Engine
+
+<PageTitle>الإشعارات - عشير الإدارة</PageTitle>
+
+<AcAuthGuard IsAuthenticated="@Store.Auth.IsAuthenticated" IsArabic="@Store.Ui.IsArabic" LoginHref="/login">
+    <div class="acs-page">
+        <h1 class="acs-page-title">بث إشعار جماعي</h1>
+
+        <div class="s-card" style="max-width:520px">
+            <AcField Label="عنوان الإشعار">
+                <AcInput Value="@_title"
+                         Placeholder="مثال: تحديث مهم"
+                         ValueChanged="@(v => _title = v ?? "")" />
+            </AcField>
+
+            <AcField Label="نص الإشعار" Class="ac-mt-md">
+                <textarea class="form-input"
+                          rows="4"
+                          placeholder="نص الرسالة..."
+                          @bind="_body"></textarea>
+            </AcField>
+
+            @if (!string.IsNullOrEmpty(_message))
+            {
+                <AcAlert Variant="@_messageVariant" Message="@_message" />
+            }
+
+            <div class="ac-mt-md">
+                <AcButton Variant="primary"
+                          Text="@(_busy ? "جاري الإرسال..." : "إرسال الإشعار")"
+                          Disabled="@_busy"
+                          OnClick="Broadcast" />
+            </div>
+        </div>
+    </div>
+</AcAuthGuard>
+
+@code {
+    private string _title = "";
+    private string _body = "";
+    private string? _message;
+    private string _messageVariant = "info";
+    private bool _busy;
+
+    private async Task Broadcast()
+    {
+        if (string.IsNullOrWhiteSpace(_title) || string.IsNullOrWhiteSpace(_body))
+        {
+            _message = "يرجى تعبئة العنوان والنص.";
+            _messageVariant = "warning";
+            return;
+        }
+
+        _busy = true;
+        _message = null;
+        try
+        {
+            var result = await Engine.ExecuteAsync<object>(
+                ClientOps.BroadcastNotification(_title, _body),
+                new { title = _title, body = _body });
+
+            if (result.Operation.Status == "Success")
+            {
+                _message = "تم إرسال الإشعار بنجاح!";
+                _messageVariant = "success";
+                _title = "";
+                _body = "";
+            }
+            else
+            {
+                _message = result.Operation.ErrorMessage ?? result.Error?.Message ?? "فشل إرسال الإشعار.";
+                _messageVariant = "danger";
+            }
+        }
+        catch (Exception ex)
+        {
+            _message = ex.Message;
+            _messageVariant = "danger";
+        }
+        finally
+        {
+            _busy = false;
+            StateHasChanged();
+        }
+    }
+}

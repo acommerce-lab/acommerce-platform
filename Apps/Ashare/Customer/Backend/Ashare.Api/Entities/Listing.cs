@@ -3,8 +3,9 @@ using ACommerce.SharedKernel.Abstractions.Entities;
 namespace Ashare.Api.Entities;
 
 /// <summary>
-/// عرض/إعلان في عشير. يحل محل Catalog.Products في النسخة السابقة.
-/// كل الحقول صريحة - لا أصناف ديناميكية.
+/// عرض/إعلان في عشير. الحقول الخاصة بالفئات (نوع العقار، الغرف، الأمنيات، إلخ)
+/// تُخزَّن كقائمة لقطات في <see cref="DynamicAttributesJson"/> وفق قالب الفئة الذي يحدّده Category.
+/// تغيير قالب الفئة لاحقاً لا يعدّل الإعلانات القديمة (Snapshot pattern).
 /// </summary>
 public class Listing : IBaseEntity
 {
@@ -31,26 +32,6 @@ public class Listing : IBaseEntity
     public double? Longitude { get; set; }
     public string? Address { get; set; }
 
-    // === تفاصيل العقار (سكني/تجاري/إداري) ===
-    public string? PropertyType { get; set; }   // "villa", "apartment", "office"...
-    public string? UnitType { get; set; }       // "studio", "room"...
-    public int? Floor { get; set; }
-    public double? Area { get; set; }
-    public int? Rooms { get; set; }
-    public int? Bathrooms { get; set; }
-    public bool? Furnished { get; set; }
-    public string? Amenities { get; set; }      // CSV: "wifi,ac,elevator"
-
-    // === طلبات شريك السكن ===
-    public string? PersonalName { get; set; }
-    public int? Age { get; set; }
-    public string? Gender { get; set; }
-    public string? Nationality { get; set; }
-    public string? Job { get; set; }
-    public bool? Smoking { get; set; }
-    public decimal? MinPrice { get; set; }
-    public decimal? MaxPrice { get; set; }
-
     // === تفضيلات التواصل ===
     public bool IsPhoneAllowed { get; set; } = true;
     public bool IsWhatsAppAllowed { get; set; } = true;
@@ -62,6 +43,13 @@ public class Listing : IBaseEntity
     // === الصور (CSV من URLs) ===
     public string? ImagesCsv { get; set; }
 
+    // === لقطة سمات ديناميكية (List<DynamicAttribute> JSON) ===
+    /// <summary>
+    /// لقطة كاملة لقيم القالب المُختار من الفئة وقت الإنشاء/التعديل.
+    /// لا تحلّ — يُستهلك مباشرة بـ DynamicAttributeHelper.ParseAttributes.
+    /// </summary>
+    public string? DynamicAttributesJson { get; set; }
+
     // === الحالة ===
     public ListingStatus Status { get; set; } = ListingStatus.Draft;
     public DateTime? PublishedAt { get; set; }
@@ -69,14 +57,10 @@ public class Listing : IBaseEntity
     public bool IsFeatured { get; set; }
 
     // === ربط محاسبي بالاشتراك (FIFO consumption) ===
-    /// <summary>الاشتراك الذي استُهلكت منه حصة هذا العرض</summary>
     public Guid? SubscriptionId { get; set; }
-    /// <summary>لقطة من معرّف الباقة وقت الإنشاء (لئلا يتأثر بتغيير لاحق)</summary>
     public Guid? PlanIdSnapshot { get; set; }
-    /// <summary>بداية ونهاية فترة الاشتراك التي يخصها</summary>
     public DateTime? BillingPeriodStart { get; set; }
     public DateTime? BillingPeriodEnd { get; set; }
-    /// <summary>معرّف العملية المحاسبية لإنشاء العرض</summary>
     public Guid? OperationId { get; set; }
 }
 

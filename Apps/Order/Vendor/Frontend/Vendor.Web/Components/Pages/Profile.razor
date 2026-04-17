@@ -1,6 +1,6 @@
 @page "/profile"
 @inject AppStore Store
-@inject ClientOpEngine Engine
+@inject AppStateApplier Applier
 @inject NavigationManager Nav
 
 <PageTitle>@(Store.Ui.IsArabic ? "حسابي" : "Profile")</PageTitle>
@@ -32,25 +32,28 @@ else
             Title = Store.Ui.IsArabic ? "المتجر" : "Store",
             Items = new[]
             {
-                new MenuItemDto { Label = Store.Ui.IsArabic ? "الطلبات" : "Orders",       IconName = "receipt",  Href = "/orders" },
-                new MenuItemDto { Label = Store.Ui.IsArabic ? "العروض" : "Offers",         IconName = "tag",      Href = "/offers" },
-                new MenuItemDto { Label = Store.Ui.IsArabic ? "الرسائل" : "Messages",     IconName = "message",  Href = "/messages" },
-                new MenuItemDto { Label = Store.Ui.IsArabic ? "الإشعارات" : "Notifications", IconName = "bell", Href = "/notifications" },
+                new MenuItemDto { Label = Store.Ui.IsArabic ? "الطلبات" : "Orders",           IconName = "receipt",  Href = "/orders" },
+                new MenuItemDto { Label = Store.Ui.IsArabic ? "العروض" : "Offers",             IconName = "tag",      Href = "/offers" },
+                new MenuItemDto { Label = Store.Ui.IsArabic ? "الإيرادات" : "Earnings",        IconName = "dollar",   Href = "/earnings" },
+                new MenuItemDto { Label = Store.Ui.IsArabic ? "الرسائل" : "Messages",         IconName = "message",  Href = "/messages" },
+                new MenuItemDto { Label = Store.Ui.IsArabic ? "الإشعارات" : "Notifications",   IconName = "bell",     Href = "/notifications" },
             }
         },
         new MenuSectionDto
         {
-            Title = Store.Ui.IsArabic ? "التطبيق" : "App",
+            Title = Store.Ui.IsArabic ? "إعدادات المتجر" : "Store Settings",
             Items = new[]
             {
-                new MenuItemDto { Label = Store.Ui.IsArabic ? "الإعدادات" : "Settings", IconName = "settings", Href = "/settings" },
+                new MenuItemDto { Label = Store.Ui.IsArabic ? "بيانات المتجر" : "Store Info",    IconName = "home",     Href = "/store-settings" },
+                new MenuItemDto { Label = Store.Ui.IsArabic ? "أوقات العمل" : "Work Schedule",   IconName = "clock",    Href = "/schedule" },
+                new MenuItemDto { Label = Store.Ui.IsArabic ? "الإعدادات" : "App Settings",      IconName = "settings", Href = "/settings" },
             }
         }
     };
 
     private async Task SignOut()
     {
-        await Engine.ExecuteAsync<object>(ClientOps.SignOut(), new { });
+        await Applier.ApplyLocalAsync(ClientOps.SignOut());
         Nav.NavigateTo("/", forceLoad: false);
     }
 }

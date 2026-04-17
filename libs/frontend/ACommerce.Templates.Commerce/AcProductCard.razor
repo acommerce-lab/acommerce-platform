@@ -3,7 +3,7 @@
 @* بطاقة عرض/منتج قابلة لإعادة الاستخدام *@
 <AcCard Hover Class="act-product-card">
     <div class="act-product-image">
-        @if (!string.IsNullOrEmpty(ImageUrl)) { <img src="@ImageUrl" alt="@Title" style="width:100%;height:100%;object-fit:cover;" /> }
+        @if (!string.IsNullOrEmpty(ImageUrl)) { <img src="@ImageUrl" alt="@Title" style="width:100%;height:100%;object-fit:cover" /> }
         else { <span>@IconFallback</span> }
     </div>
     <div class="act-product-body">
@@ -15,6 +15,7 @@
                 @(Description.Length > 100 ? Description.Substring(0, 100) + "..." : Description)
             </div>
         }
+        @if (Chips != null) { @Chips }
         <div class="act-product-price">@Price</div>
         @if (Actions != null) { <div class="ac-row ac-mt-md">@Actions</div> }
     </div>
@@ -28,4 +29,8 @@
     [Parameter] public string? ImageUrl { get; set; }
     [Parameter] public string IconFallback { get; set; } = "📦";
     [Parameter] public RenderFragment? Actions { get; set; }
+    /// <summary>
+    /// Optional chip-row slot (e.g. AcAttrChipRow) shown between description and price.
+    /// </summary>
+    [Parameter] public RenderFragment? Chips { get; set; }
 }

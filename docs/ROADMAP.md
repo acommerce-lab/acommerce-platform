@@ -237,6 +237,52 @@ deployments.
 
 ---
 
+## Phase B — Dynamic Attributes (Ashare) + Production Data Integration
+
+### B.1 Template + Snapshot model — DONE
+
+- `DynamicAttribute` + `AttributeTemplate` + `DynamicAttributeHelper` في SharedKernel.
+- `Category.AttributeTemplateJson` + `Listing.DynamicAttributesJson` في Ashare.
+- 5 قوالب فئات في `AshareCategoryTemplates` (Residential, LookingForHousing,
+  LookingForPartner, Administrative, Commercial).
+- Widgets: `AcDynamicAttributeField`, `AcDynamicAttributesView`.
+- راجع `docs/DYNAMIC-ATTRIBUTES.md` للتفاصيل.
+
+### B.2 SQLite dev schema drift guard — DONE
+
+`SqliteSchemaGuard` يحسب بصمة SHA-256 من أسماء الجداول + الأعمدة + الأنواع،
+ويعيد بناء ملف SQLite عند الاختلاف. مُدمج في Program.cs لـ 5 تطبيقات.
+
+### B.3 Legacy migrator tool — DEPRECATED
+
+> **مُهجور**: استُبدل بـ B.4 (السيدر يجلب من API مباشرةً).
+> الكود لا يزال في `tools/_archive/AshareMigrator/` للحالات التي لا يتوفر
+> فيها API إنتاجي (مثل الترحيل من SQL Server مباشرةً).
+
+### B.4 Production API backfill via seeder — DONE
+
+`AshareSeeder.SeedListingsFromProductionAsync` يجلب العروض من
+`https://api.ashare.sa/api/listings` عند كل تشغيل:
+
+- يتعامل مع الاستجابة كمصفوفة JSON خام (لا OperationEnvelope).
+- `images` مصفوفة أصلية → CSV.
+- `attributes` كائن أصلي → لقطة DynamicAttribute مع قالب الفئة.
+- `status` نصي ("Active") → enum رقمي.
+- `vendorId` → `OwnerId` مع إنشاء مستخدمين بديلين.
+- **مبدأ "لا بتر"**: المفاتيح غير الموجودة في القالب تُحفظ كصفات إضافية.
+- عند فشل الاتصال → يعود لبيانات البذر المحلية.
+
+### B.5 Template adaptation log
+
+القوالب تتكيّف مع بيانات الإنتاج الحقيقية بدلاً من فرض شكل جديد:
+
+| تاريخ | تغيير | سبب |
+|---|---|---|
+| 2026-04-17 | `amenities` → `features` | الإنتاج يستخدم `features` |
+| 2026-04-17 | إضافة `requires_license`, `has_owner_license` | حقول يستخدمها صاحب المصلحة |
+
+---
+
 ## Phase 5 — Future
 
 ### 5.1 Real map integration
@@ -283,3 +329,12 @@ algebraic structure section. Target: workshop paper or technical report.
 - ROADMAP.md — comprehensive modification plan
 - CLAUDE.md — unified agent onboarding
 - Documentation cleanup (removed obsolete split/test/restructuring plans)
+
+### Session 4 (dynamic attributes + production data integration)
+- Phase B Dynamic Attributes: Template + Snapshot in SharedKernel
+- SqliteSchemaGuard: SHA-256 fingerprint auto-rebuild for dev DBs
+- AshareMigrator (built then deprecated — replaced by seeder approach)
+- AshareSeeder fetches real listings from api.ashare.sa at startup
+- Template adaptation: amenities→features, +requires_license, +has_owner_license
+- Principle established: "adapt to real data, never bend it"
+- DYNAMIC-ATTRIBUTES.md, SEEDING.md expansion, RUNTIME-FINDINGS.md additions

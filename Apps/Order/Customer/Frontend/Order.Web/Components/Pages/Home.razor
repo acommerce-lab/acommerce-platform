@@ -7,12 +7,19 @@
 
 <PageTitle>اوردر — عروض اليوم</PageTitle>
 
+@*
+    Single template — viewport adaptation is purely CSS:
+    .acc-offer-grid defaults to 1 column (mobile), and a desktop rule
+    at `:root[data-ac-mode="desktop"]` promotes it to 3 columns.  We
+    still pass a Columns="1" hint for downstream components that read
+    it, but CSS has the final word via !important.
+*@
 <AcCatalogHome Categories="@MappedCategories"
                SelectedCategoryId="@SelectedCategoryId"
                OnSelectCategory="SelectCategory"
                Offers="@MappedOffers"
                Loading="@Loading"
-               Columns="2"
+               Columns="1"
                DetailsHrefPrefix="/offer"
                HeroTitle="@(Store.Ui.IsArabic ? "اوردر" : "Order")"
                HeroSubtitle="@(Store.Ui.IsArabic ? "عروض اليوم من كافيهات ومطاعم المدينة" : "Today's deals from local cafes and restaurants")"
@@ -20,15 +27,14 @@
                LoadingMessage="@(Store.Ui.IsArabic ? "جاري تحميل العروض..." : "Loading offers…")"
                EmptyMessage="@(Store.Ui.IsArabic ? "لا توجد عروض" : "No offers")">
     <HeroActions>
+        @* The top-nav already handles login on desktop; hide the hero
+           sign-in button there to avoid duplication. *@
         @if (!Store.Auth.IsAuthenticated)
         {
-            <a class="btn btn-primary btn-sm" href="/login">
-                @(Store.Ui.IsArabic ? "تسجيل الدخول" : "Sign in")
-            </a>
+            <span class="ac-mode-mobile"><a href="/login"><AcButton Variant="primary" Size="sm" Text="@(Store.Ui.IsArabic ? "تسجيل الدخول" : "Sign in")" /></a></span>
         }
-        <button type="button" class="btn btn-ghost btn-sm" @onclick="ToggleLanguage">
-            @(Store.Ui.IsArabic ? "English" : "العربية")
-        </button>
+        <AcButton Variant="ghost" Size="sm" OnClick="ToggleLanguage"
+                  Text="@(Store.Ui.IsArabic ? "English" : "العربية")" />
     </HeroActions>
 </AcCatalogHome>
 

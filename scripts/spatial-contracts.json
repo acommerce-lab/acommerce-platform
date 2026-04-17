@@ -1,0 +1,172 @@
+{
+  "_comment": "Spatial contracts — positional & computed-style assertions verified at runtime via Playwright. Catches: missing CSS cascade, off-scale computed font-size, sticky elements that aren't sticky, children overflowing parents, siblings not aligned, element overlaps, WCAG AA contrast failures.",
+
+  "position_rules": [
+    {
+      "selector": ".ord-bottom-nav",
+      "rule": "anchored-viewport-bottom",
+      "description": "Bottom nav must touch viewport bottom",
+      "tolerance_px": 2
+    },
+    {
+      "selector": ".act-navbar",
+      "rule": "sticky-top",
+      "description": "Top navbar must be sticky at y=0 on scroll",
+      "tolerance_px": 2
+    },
+    {
+      "selector": ".adm-navbar",
+      "rule": "sticky-top",
+      "description": "Admin navbar sticky at top",
+      "tolerance_px": 2
+    },
+    {
+      "selector": ".act-plan-badge",
+      "rule": "attached-top-of-parent",
+      "description": "Badge must sit at top of its plan card (possibly extending above)",
+      "tolerance_px": 16
+    }
+  ],
+
+  "containment_rules": [
+    {
+      "parent": ".ac-card",
+      "children": ".ac-card-body, .ac-card-header, .ac-card-footer",
+      "rule": "child-inside-parent-bounds",
+      "description": "Card children must stay within card bounds"
+    },
+    {
+      "parent": ".acs-page, .acs-page-wide",
+      "children": "> *",
+      "rule": "child-inside-parent-bounds",
+      "description": "Page children must not overflow container horizontally",
+      "axis": "horizontal"
+    },
+    {
+      "parent": ".act-chat-list, .ord-chat-list",
+      "children": ".act-bubble, .ord-chat-bubble",
+      "rule": "child-inside-parent-bounds",
+      "description": "Chat bubbles must not escape their chat-list container"
+    },
+    {
+      "parent": ".act-bubble, .ord-chat-bubble",
+      "children": "*",
+      "rule": "child-inside-parent-bounds",
+      "description": "Text and time labels must stay inside the visible bubble fill (no spilling past the coloured pill)"
+    }
+  ],
+
+  "sibling_alignment_rules": [
+    {
+      "container": ".act-navbar",
+      "rule": "siblings-same-y-in-flex-row",
+      "description": "All navbar items must be on the same horizontal line",
+      "tolerance_px": 4
+    },
+    {
+      "container": ".adm-navbar-actions",
+      "rule": "siblings-same-y-in-flex-row",
+      "tolerance_px": 4
+    }
+  ],
+
+  "no_overlap_rules": [
+    {
+      "selectors": [".ac-card"],
+      "rule": "siblings-do-not-overlap",
+      "description": "Cards in a list must not overlap each other"
+    }
+  ],
+
+  "computed_value_rules": [
+    {
+      "selector": "body, .ac-input, .ac-btn, .ac-card, h1, h2, h3, p, label, a, span, div",
+      "rule": "font-size-on-scale",
+      "__comment": "Scale is rem-based; these px values cover 14px AND 16px root font-sizes",
+      "allowed_px": [10, 10.5, 11, 12, 12.25, 13, 14, 15, 15.75, 16, 17.5, 18, 20, 21, 22, 24, 24.5, 25, 28, 32, 35, 36, 40, 42, 48, 56, 64],
+      "tolerance_px": 0.5,
+      "description": "Every rendered text element's computed font-size must be on the scale",
+      "max_violations": 3
+    },
+    {
+      "selector": ".ac-input, .ac-textarea, .ac-select, .form-input, .form-control",
+      "rule": "has-visible-border",
+      "description": "Input must have non-zero border-width in its computed style"
+    },
+    {
+      "selector": ".ac-btn",
+      "rule": "min-touch-target",
+      "min_height_px": 32,
+      "description": "Buttons must be ≥ 32px tall for fingertip tap (relaxed from 40 to allow sm variants)"
+    }
+  ],
+
+  "contrast_rules": [
+    {
+      "selector": "body, .ac-card, .ac-input, .ac-btn, h1, h2, h3, p, a, label, span",
+      "min_ratio": 4.5,
+      "description": "WCAG AA — text vs background contrast ≥ 4.5:1",
+      "max_violations": 10
+    }
+  ],
+
+  "text_overflow_rules": [
+    {
+      "selector": ".act-bubble, .acs-bubble, .ord-chat-bubble, .ac-card, .ac-alert, .ac-btn, .acs-page > *, .ord-bottom-nav",
+      "rule": "text-content-not-overflowing",
+      "description": "Rendered text must not extend past its parent's clientWidth (scrollWidth > clientWidth indicates horizontal clipping/overflow)",
+      "max_violations": 10
+    }
+  ],
+
+  "box_model_rules": [
+    {
+      "selector": ".ac-btn, .ac-card, .ac-card-body, .ac-card-header, .ac-alert, .ac-input, .ac-textarea, .act-bubble, .s-card",
+      "rule": "box-sizing-border-box",
+      "description": "Widgets that may declare width/max-width together with padding MUST compute `box-sizing: border-box` so padding stays inside the box and the widget never exceeds its parent's width.",
+      "max_violations": 10
+    },
+    {
+      "selector": ".ac-btn, .ac-input, .ac-alert, .act-bubble, .ac-card-body, .ac-card-header, .ac-card-footer",
+      "rule": "symmetric-padding",
+      "description": "Widgets must have non-zero padding on every side (top, right, bottom, left) so their inner content never touches the border. One-sided padding indicates a broken CSS rule (e.g. `padding: 8px 0` on a pill bubble).",
+      "min_padding_px": 4,
+      "max_violations": 10
+    }
+  ],
+
+  "cluster_atomicity_rules": [
+    {
+      "container": ".s-card, .ac-stat-card",
+      "rule": "children-tightly-clustered",
+      "description": "Stat-card children (icon, value, label) must sit in a compact cluster — if the tallest child is > 40px taller than the shortest, the card likely lost its grid/flex layout.",
+      "max_intra_card_height_px": 200,
+      "max_violations": 5
+    }
+  ],
+
+  "template_compliance_rules": [
+    {
+      "selector": "body > div, body > main, .act-shell, .adm-shell, .acs-page, .ord-shell, .vnd-shell",
+      "rule": "top-level-shell-styled",
+      "description": "Every rendered page's top-level wrapper must be one of the approved shell classes AND receive non-default computed styles (background or border). Unstyled <nav>/<div> indicates missing template CSS.",
+      "approved_shell_selectors": [".act-shell", ".adm-shell", ".acs-page", ".acs-auth-page", ".ord-shell", ".vnd-shell"]
+    }
+  ],
+
+  "ui_only_ops_rules": [
+    {
+      "description": "Clicking a language or theme toggle must not fire any /api/ HTTP request — these are pure client-side state mutations",
+      "trigger_selectors": [
+        "button[aria-label*='lang' i]",
+        "button[aria-label*='language' i]",
+        "button[aria-label*='اللغة' i]",
+        ".settings-lang-btn",
+        "button:has(> span:contains('عربي'))",
+        "button:has(> span:contains('English'))"
+      ],
+      "forbidden_network_pattern": "/api/",
+      "max_violations": 3
+    }
+  ]
+}

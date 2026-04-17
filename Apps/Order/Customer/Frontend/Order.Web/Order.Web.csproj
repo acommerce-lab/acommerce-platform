@@ -22,5 +22,8 @@
     <ProjectReference Include="..\..\..\..\..\libs\frontend\ACommerce.Templates.Commerce\ACommerce.Templates.Commerce.csproj" />
     <ProjectReference Include="..\..\..\..\..\libs\frontend\ACommerce.Templates.Shared\ACommerce.Templates.Shared.csproj" />
     <ProjectReference Include="..\..\..\..\..\libs\frontend\ACommerce.Templates.Customer.Commerce\ACommerce.Templates.Customer.Commerce.csproj" />
+
+    <!-- Culture stack for timezone-aware timestamps + numeral rendering -->
+    <ProjectReference Include="..\..\..\..\..\libs\frontend\ACommerce.Culture.Blazor\ACommerce.Culture.Blazor.csproj" />
   </ItemGroup>
 </Project>

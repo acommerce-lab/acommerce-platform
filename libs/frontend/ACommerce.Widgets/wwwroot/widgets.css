@@ -8,7 +8,7 @@
    Inline SVG line icons. Stroke uses currentColor so icons inherit the
    text color of the parent element. Size defaults to 24×24 but can be
    overridden via the Size parameter or CSS width/height.
-*/
+   ========================================================================= */
 .ac-icon {
     display: inline-block;
     vertical-align: middle;
@@ -19,7 +19,6 @@
 .ac-icon-lg  { width: 32px; height: 32px; }
 .ac-icon-xl  { width: 48px; height: 48px; }
 .ac-icon-2xl { width: 64px; height: 64px; }
-   ========================================================================= */
 
 :root {
     /* ===== Brand colors (override in your app) ===== */
@@ -27,9 +26,16 @@
     --ac-primary-hover: #0b5ed7;
     --ac-on-primary:    #ffffff;
 
-    --ac-secondary:        #6c757d;
+    --ac-secondary:        #6b7280;
     --ac-secondary-hover:  #5c636a;
     --ac-on-secondary:     #ffffff;
+
+    /* Dedicated link colour — intentionally darker than --ac-primary so
+       anchor-on-surface text passes WCAG AA 4.5:1.  Apps may override by
+       setting --ac-link in their own :root.  Fallback to color-mix against
+       black (15%) if app doesn't override. */
+    --ac-link:       color-mix(in srgb, var(--ac-primary) 70%, #000 30%);
+    --ac-link-hover: color-mix(in srgb, var(--ac-primary) 55%, #000 45%);
 
     --ac-success: #198754;
     --ac-danger:  #dc3545;
@@ -38,14 +44,14 @@
 
     /* ===== Surfaces ===== */
     --ac-bg:         #ffffff;
-    --ac-bg-alt:     #f8f9fa;
+    --ac-bg-alt:     #f3f4f6;
     --ac-surface:    #ffffff;
-    --ac-border:     #dee2e6;
-    --ac-border-dark:#adb5bd;
+    --ac-border:     #e5e7eb;
+    --ac-border-dark:#94a3b8;
 
     /* ===== Text ===== */
-    --ac-text:         #212529;
-    --ac-text-muted:   #6c757d;
+    --ac-text:         #111827;
+    --ac-text-muted:   #6b7280;
     --ac-text-on-dark: #ffffff;
 
     /* ===== Typography ===== */
@@ -72,9 +78,9 @@
     --ac-radius-pill: 999px;
 
     /* ===== Shadow ===== */
-    --ac-shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+    --ac-shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
     --ac-shadow-md: 0 4px 12px rgba(0,0,0,0.08);
-    --ac-shadow-lg: 0 12px 32px rgba(0,0,0,0.12);
+    --ac-shadow-lg: 0 12px 32px rgba(0,0,0,0.16);
 
     /* ===== Transitions ===== */
     --ac-transition: 150ms ease-in-out;
@@ -100,17 +106,20 @@ h1:focus, h2:focus, h3:focus { outline: none; }
     align-items: center;
     justify-content: center;
     gap: var(--ac-space-sm);
-    padding: var(--ac-space-sm) var(--ac-space-md);
+    padding: var(--ac-space-sm) var(--ac-space-lg);
     font-family: inherit;
     font-size: var(--ac-font-size-base);
     font-weight: var(--ac-font-weight-bold);
-    line-height: 1.2;
+    line-height: 1.4;
+    min-height: 44px;
     border: 1px solid transparent;
     border-radius: var(--ac-radius-md);
     cursor: pointer;
-    transition: background var(--ac-transition), border-color var(--ac-transition), color var(--ac-transition);
+    box-sizing: border-box;
+    transition: background var(--ac-transition), border-color var(--ac-transition), color var(--ac-transition), box-shadow var(--ac-transition);
     text-decoration: none;
     user-select: none;
+    white-space: nowrap;
 }
 .ac-btn:disabled, .ac-btn[aria-disabled="true"] { opacity: 0.6; cursor: not-allowed; }
 
@@ -120,8 +129,8 @@ h1:focus, h2:focus, h3:focus { outline: none; }
 .ac-btn-secondary { background: var(--ac-secondary); color: var(--ac-on-secondary); border-color: var(--ac-secondary); }
 .ac-btn-secondary:hover:not(:disabled) { background: var(--ac-secondary-hover); border-color: var(--ac-secondary-hover); }
 
-.ac-btn-success { background: var(--ac-success); color: #fff; border-color: var(--ac-success); }
-.ac-btn-danger  { background: var(--ac-danger);  color: #fff; border-color: var(--ac-danger); }
+.ac-btn-success { background: var(--ac-success); color: #ffffff; border-color: var(--ac-success); }
+.ac-btn-danger  { background: var(--ac-danger);  color: #ffffff; border-color: var(--ac-danger); }
 
 .ac-btn-outline-primary {
     background: transparent; color: var(--ac-primary); border-color: var(--ac-primary);
@@ -145,14 +154,15 @@ h1:focus, h2:focus, h3:focus { outline: none; }
     border: 1px solid var(--ac-border);
     border-radius: var(--ac-radius-lg);
     box-shadow: var(--ac-shadow-sm);
-    overflow: hidden;
+    overflow: visible;
+    box-sizing: border-box;
     transition: box-shadow var(--ac-transition), transform var(--ac-transition);
 }
 .ac-card-hover:hover { box-shadow: var(--ac-shadow-md); transform: translateY(-2px); }
 
-.ac-card-header { padding: var(--ac-space-md) var(--ac-space-lg); border-bottom: 1px solid var(--ac-border); }
-.ac-card-body   { padding: var(--ac-space-lg); }
-.ac-card-footer { padding: var(--ac-space-md) var(--ac-space-lg); border-top: 1px solid var(--ac-border); background: var(--ac-bg-alt); }
+.ac-card-header { padding: var(--ac-space-md) var(--ac-space-lg); border-bottom: 1px solid var(--ac-border); box-sizing: border-box; }
+.ac-card-body   { padding: var(--ac-space-lg); box-sizing: border-box; }
+.ac-card-footer { padding: var(--ac-space-md) var(--ac-space-lg); border-top: 1px solid var(--ac-border); background: var(--ac-bg-alt); box-sizing: border-box; }
 
 /* =========================================================================
    Input (.ac-input)
@@ -172,6 +182,7 @@ h1:focus, h2:focus, h3:focus { outline: none; }
     background: var(--ac-surface);
     border: 1px solid var(--ac-border);
     border-radius: var(--ac-radius-md);
+    box-sizing: border-box;
     transition: border-color var(--ac-transition), box-shadow var(--ac-transition);
 }
 .ac-input:focus, .ac-select:focus, .ac-textarea:focus {
@@ -194,9 +205,9 @@ h1:focus, h2:focus, h3:focus { outline: none; }
     line-height: 1;
 }
 .ac-badge-primary { background: var(--ac-primary); color: var(--ac-on-primary); }
-.ac-badge-success { background: var(--ac-success); color: #fff; }
-.ac-badge-danger  { background: var(--ac-danger);  color: #fff; }
-.ac-badge-warning { background: var(--ac-warning); color: #000; }
+.ac-badge-success { background: var(--ac-success); color: #ffffff; }
+.ac-badge-danger  { background: var(--ac-danger);  color: #ffffff; }
+.ac-badge-warning { background: var(--ac-warning); color: #000000; }
 .ac-badge-muted   { background: var(--ac-bg-alt);  color: var(--ac-text-muted); }
 
 /* =========================================================================
@@ -207,6 +218,8 @@ h1:focus, h2:focus, h3:focus { outline: none; }
     border: 1px solid transparent;
     border-radius: var(--ac-radius-md);
     margin-bottom: var(--ac-space-md);
+    background: var(--ac-bg-alt);
+    box-sizing: border-box;
 }
 .ac-alert-info    { background: color-mix(in srgb, var(--ac-info)    12%, transparent); border-color: var(--ac-info);    color: var(--ac-text); }
 .ac-alert-success { background: color-mix(in srgb, var(--ac-success) 12%, transparent); border-color: var(--ac-success); color: var(--ac-text); }
@@ -365,7 +378,7 @@ h1:focus, h2:focus, h3:focus { outline: none; }
     align-items: center;
     justify-content: center;
     gap: var(--ac-space-sm);
-    padding: 11px 20px;
+    padding:8px 20px;
     min-height: 44px;
     font-family: inherit;
     font-size: var(--ac-font-size-base);
@@ -386,29 +399,29 @@ h1:focus, h2:focus, h3:focus { outline: none; }
 .btn-primary   { background: var(--ac-primary);   color: var(--ac-on-primary);   border-color: var(--ac-primary);   }
 .btn-primary:hover:not(:disabled) { background: var(--ac-primary-hover); border-color: var(--ac-primary-hover); }
 .btn-secondary { background: var(--ac-secondary); color: var(--ac-on-secondary); border-color: var(--ac-secondary); }
-.btn-success   { background: var(--ac-success);   color: #fff;                   border-color: var(--ac-success);   }
+.btn-success   { background: var(--ac-success);   color: #ffffff;                   border-color: var(--ac-success);   }
 .btn-success:hover:not(:disabled) { filter: brightness(0.92); }
-.btn-danger    { background: var(--ac-danger);    color: #fff;                   border-color: var(--ac-danger);    }
-.btn-warning   { background: var(--ac-warning);   color: #000;                   border-color: var(--ac-warning);   }
-.btn-info      { background: var(--ac-info);      color: #000;                   border-color: var(--ac-info);      }
+.btn-danger    { background: var(--ac-danger);    color: #ffffff;                   border-color: var(--ac-danger);    }
+.btn-warning   { background: var(--ac-warning);   color: #000000;                   border-color: var(--ac-warning);   }
+.btn-info      { background: var(--ac-info);      color: #000000;                   border-color: var(--ac-info);      }
 .btn-light     { background: var(--ac-bg-alt);    color: var(--ac-text);         border-color: var(--ac-border);    }
-.btn-dark      { background: var(--ac-text);      color: #fff;                   border-color: var(--ac-text);      }
+.btn-dark      { background: var(--ac-text);      color: #ffffff;                   border-color: var(--ac-text);      }
 .btn-link      { background: transparent;         color: var(--ac-primary);      border-color: transparent; text-decoration: underline; }
 .btn-outline-primary { background: transparent; color: var(--ac-primary); border-color: var(--ac-primary); }
 .btn-outline-primary:hover:not(:disabled) { background: var(--ac-primary); color: var(--ac-on-primary); }
 .btn-outline-secondary { background: transparent; color: var(--ac-secondary); border-color: var(--ac-secondary); }
 .btn-outline-danger  { background: transparent; color: var(--ac-danger);  border-color: var(--ac-danger);  }
-.btn-outline-danger:hover:not(:disabled) { background: var(--ac-danger); color: #fff; }
+.btn-outline-danger:hover:not(:disabled) { background: var(--ac-danger); color: #ffffff; }
 .btn-outline-success { background: transparent; color: var(--ac-success); border-color: var(--ac-success); }
-.btn-sm { padding: 8px 14px; min-height: 36px; font-size: var(--ac-font-size-sm); }
-.btn-lg { padding: 15px 24px; min-height: 54px; font-size: var(--ac-font-size-lg); }
+.btn-sm { 16px; min-height: 36px; font-size: var(--ac-font-size-sm); }
+.btn-lg { padding:16px 24px; min-height: 54px; font-size: var(--ac-font-size-lg); }
 
 /* Full-width primary CTA — used by login, checkout, cart, etc. */
 .btn-block {
     display: flex;
     width: 100%;
-    padding: 14px 20px;
-    font-size: 1.02rem;
+    padding:16px 20px;
+    font-size:1rem;
     min-height: 50px;
     border-radius: var(--ac-radius-md, 12px);
 }
@@ -459,9 +472,9 @@ h1:focus, h2:focus, h3:focus { outline: none; }
 /* ---- Forms ---- */
 .form-label {
     display: block;
-    margin-bottom: 6px;
+    margin-bottom: 8px;
     font-weight: var(--ac-font-weight-bold);
-    font-size: 0.9rem;
+    font-size:0.875rem;
     color: var(--ac-text);
 }
 .form-label + .form-input,
@@ -470,7 +483,7 @@ h1:focus, h2:focus, h3:focus { outline: none; }
 .form-control, .form-select, .form-input {
     display: block;
     width: 100%;
-    padding: 13px 16px;
+    padding:8px 16px;
     font-family: inherit;
     font-size: 1rem;
     line-height: 1.4;
@@ -514,13 +527,13 @@ textarea.form-control, textarea.form-input { min-height: 6rem; resize: vertical;
 }
 .badge.bg-primary,   .bg-primary   { background: var(--ac-primary)   !important; color: var(--ac-on-primary)   !important; }
 .badge.bg-secondary, .bg-secondary { background: var(--ac-secondary) !important; color: var(--ac-on-secondary) !important; }
-.badge.bg-success,   .bg-success   { background: var(--ac-success)   !important; color: #fff !important; }
-.badge.bg-danger,    .bg-danger    { background: var(--ac-danger)    !important; color: #fff !important; }
-.badge.bg-warning,   .bg-warning   { background: var(--ac-warning)   !important; color: #000 !important; }
-.badge.bg-info,      .bg-info      { background: var(--ac-info)      !important; color: #000 !important; }
+.badge.bg-success,   .bg-success   { background: var(--ac-success)   !important; color: #ffffff !important; }
+.badge.bg-danger,    .bg-danger    { background: var(--ac-danger)    !important; color: #ffffff !important; }
+.badge.bg-warning,   .bg-warning   { background: var(--ac-warning)   !important; color: #000000 !important; }
+.badge.bg-info,      .bg-info      { background: var(--ac-info)      !important; color: #000000 !important; }
 .bg-light { background: var(--ac-bg-alt) !important; }
 .bg-white { background: var(--ac-surface) !important; }
-.bg-dark  { background: var(--ac-text) !important; color: #fff !important; }
+.bg-dark  { background: var(--ac-text) !important; color: #ffffff !important; }
 
 /* ---- List group ---- */
 .list-group {
@@ -630,7 +643,7 @@ textarea.form-control, textarea.form-input { min-height: 6rem; resize: vertical;
 .text-warning   { color: var(--ac-warning) !important; }
 .text-info      { color: var(--ac-info) !important; }
 .text-muted     { color: var(--ac-text-muted) !important; }
-.text-white     { color: #fff !important; }
+.text-white     { color: #ffffff !important; }
 .text-dark      { color: var(--ac-text) !important; }
 .text-center { text-align: center !important; }
 .text-start  { text-align: start !important; }
@@ -710,3 +723,143 @@ textarea.form-control, textarea.form-input { min-height: 6rem; resize: vertical;
 .overflow-hidden   { overflow: hidden !important; }
 .overflow-auto     { overflow: auto !important; }
 
+
+/* =========================================================================
+   Additional utility classes — added to close the used-vs-defined gap
+   ========================================================================= */
+.ac-align-center { align-items: center !important; }
+.ac-text-strong  { font-weight: var(--ac-font-weight-bold, 600); }
+.ac-link-plain   { color: inherit; text-decoration: none; }
+.ac-link-plain:hover { color: inherit; text-decoration: none; }
+
+/* Small variants for form controls (used in compact search bars) */
+.form-control-sm,
+.form-select-sm,
+.form-input-sm {
+    font-size: var(--ac-font-size-sm);
+    padding: 8px;
+    min-height: 36px;
+}
+
+/* =========================================================================
+   Viewport switch (AcViewportSwitch widget)
+   ─────────────────────────────────────────────────────────────────────────
+   Two independent template trees paint in the same DOM; the browser hides
+   the one that doesn't match the current viewport width.  Apps override
+   --ac-viewport-breakpoint on :root if they want a different cutoff.
+   ========================================================================= */
+:root { --ac-viewport-breakpoint: 768px; }
+
+.ac-viewport-desktop { display: block; }
+.ac-viewport-mobile  { display: none; }
+
+@media (max-width: 768px) {
+    .ac-viewport-desktop { display: none !important; }
+    .ac-viewport-mobile  { display: block !important; }
+}
+
+/* Helper utilities that pages can sprinkle on individual elements inside a
+   single shared template (for cases where a full AcViewportSwitch is
+   overkill). */
+.ac-only-desktop { }
+.ac-only-mobile  { display: none; }
+@media (max-width: 768px) {
+    .ac-only-desktop { display: none !important; }
+    .ac-only-mobile  { display: initial !important; }
+}
+
+/* =========================================================================
+   Viewport-mode pattern — ONE widget, TWO CSS variants
+   ─────────────────────────────────────────────────────────────────────────
+   JS sets `<html data-ac-mode="mobile|desktop">`.  CSS selectors target
+   either mode at the root:
+
+     [data-ac-mode="desktop"] .ord-top-nav    { display: flex; }
+     [data-ac-mode="mobile"]  .ord-top-nav    { display: none; }
+     [data-ac-mode="mobile"]  .ord-bottom-nav { display: flex; }
+     [data-ac-mode="desktop"] .ord-bottom-nav { display: none; }
+
+   This means a single widget (e.g. AcCard) can have fundamentally
+   different padding, radius, typography on desktop vs. mobile WITHOUT
+   branching inside its Razor markup.  Widgets that need explicit C#
+   access inject IViewportMode.
+   ========================================================================= */
+:root[data-ac-mode="mobile"]  .ac-mode-desktop { display: none !important; }
+:root[data-ac-mode="desktop"] .ac-mode-mobile  { display: none !important; }
+
+/* =========================================================================
+   Dynamic Attributes (AcAttrChipRow / AcAttrGrid / AcAttrEditor)
+   ========================================================================= */
+.ac-attr-chiprow {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 8px;
+}
+.ac-attr-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: var(--ac-surface-2, #f3f4f6);
+    color: var(--ac-text, #111827);
+    border: 1px solid var(--ac-border, #e5e7eb);
+    padding: 3px 8px;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    line-height: 1.4;
+    white-space: nowrap;
+}
+.ac-attr-chip i { font-size: 0.85rem; opacity: 0.75; }
+.ac-attr-chip-val { font-weight: 600; }
+.ac-attr-chip-unit { opacity: 0.6; margin-inline-start: 2px; }
+
+.ac-attr-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 12px;
+    margin: 16px 0;
+}
+.ac-attr-tile {
+    background: var(--ac-card-bg, #fff);
+    border: 1px solid var(--ac-border, #e5e7eb);
+    border-radius: 10px;
+    padding: 12px;
+    text-align: center;
+    transition: transform 120ms, box-shadow 120ms;
+}
+.ac-attr-tile:hover { transform: translateY(-1px); box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+.ac-attr-tile-icon { font-size: 1.4rem; color: var(--ac-primary, #0d6efd); margin-bottom: 6px; }
+.ac-attr-tile-label { font-size: 0.75rem; color: var(--ac-text-muted, #6b7280); margin-bottom: 4px; }
+.ac-attr-tile-value { font-weight: 700; color: var(--ac-text, #111827); }
+.ac-attr-tile-unit { font-size: 0.75rem; opacity: 0.6; margin-inline-start: 3px; font-weight: 400; }
+
+.ac-attr-editor { display: flex; flex-direction: column; gap: 14px; }
+.ac-attr-field { display: flex; flex-direction: column; gap: 6px; }
+.ac-attr-field-label {
+    display: flex; align-items: center; gap: 6px;
+    font-weight: 600; font-size: 0.875rem; color: var(--ac-text, #111827);
+}
+.ac-attr-field-label i { color: var(--ac-primary, #0d6efd); }
+.ac-attr-field-unit { color: var(--ac-text-muted, #6b7280); font-weight: 400; margin-inline-start: 4px; }
+.ac-attr-required { color: var(--ac-danger, #dc2626); font-weight: 700; }
+
+.ac-attr-multi { display: flex; flex-wrap: wrap; gap: 6px; }
+.ac-attr-multi-opt {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 10px;
+    border: 1px solid var(--ac-border, #e5e7eb);
+    background: var(--ac-surface, #fafafa);
+    border-radius: 999px; cursor: pointer;
+    font-size: 0.8125rem; user-select: none;
+    transition: background 120ms, border-color 120ms;
+}
+.ac-attr-multi-opt:hover { background: var(--ac-surface-2, #f3f4f6); }
+.ac-attr-multi-opt.is-on {
+    background: color-mix(in srgb, var(--ac-primary, #0d6efd) 12%, transparent);
+    border-color: var(--ac-primary, #0d6efd);
+    color: var(--ac-primary, #0d6efd);
+}
+.ac-attr-multi-opt input[type="checkbox"] { display: none; }
+
+.ac-attr-bool { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; }
+.ac-attr-bool input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--ac-primary, #0d6efd); }

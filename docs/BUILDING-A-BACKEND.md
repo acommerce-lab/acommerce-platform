@@ -174,6 +174,61 @@ The only moving parts are the entity list and the database connection.
 
 ---
 
+## 3b. Backfilling from an existing production API (optional)
+
+If you're replacing an existing system, your seeder can pull real data from
+the production API at startup instead of relying on hardcoded seed data.
+See `Apps/Ashare.Api/Services/AshareSeeder.SeedListingsFromProductionAsync`
+for the reference implementation.
+
+**Pattern:**
+
+```csharp
+private async Task SeedFromProductionAsync(CancellationToken ct)
+{
+    var repo = _repoFactory.CreateRepository<MyEntity>();
+
+    try
+    {
+        using var http = new HttpClient
+        {
+            BaseAddress = new Uri("https://api.existing-system.com"),
+            Timeout = TimeSpan.FromSeconds(15)
+        };
+        var json = await http.GetStringAsync("/api/items", ct);
+        var doc = JsonDocument.Parse(json);
+
+        // Always check ValueKind before TryGetProperty — arrays throw
+        var items = doc.RootElement.ValueKind == JsonValueKind.Array
+            ? doc.RootElement.EnumerateArray().ToList()
+            : new();
+
+        foreach (var el in items)
+        {
+            var entity = MapToEntity(el);
+            if (await repo.GetByIdAsync(entity.Id, ct) == null)
+                await repo.AddAsync(entity, ct);
+        }
+    }
+    catch (Exception ex)
+    {
+        Log.Warning(ex, "Production fetch failed — using local seed");
+        // ... hardcoded fallback
+    }
+}
+```
+
+**Key rules:**
+- Always wrap in try-catch with local fallback — the API may be down.
+- Check by ID before inserting (idempotent across restarts).
+- Adapt to the production response shape; never force the production to
+  match your schema. See `docs/DYNAMIC-ATTRIBUTES.md` for the "no data cut"
+  principle.
+- `JsonElement.TryGetProperty` throws on arrays — always guard with
+  `ValueKind == JsonValueKind.Object` first.
+
+---
+
 ## 4. Write the envelope helpers
 
 Every controller response is an `OperationEnvelope<T>`. Copy

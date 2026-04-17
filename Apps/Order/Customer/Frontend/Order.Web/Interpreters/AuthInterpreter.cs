@@ -10,6 +10,13 @@ namespace Order.Web.Interpreters;
 /// </summary>
 public class AuthInterpreter : IOperationInterpreter<AppStore>
 {
+    // ReadFromJsonAsync returns typed objects with PascalCase properties;
+    // re-serialize with camelCase so TryGetProperty("userId") matches.
+    private static readonly JsonSerializerOptions CamelCase = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+    };
+
     public bool CanInterpret(OperationDescriptor op) =>
         op.Type is "auth.sms.request" or "auth.sms.verify" or "auth.sign_out";
 
@@ -27,7 +34,7 @@ public class AuthInterpreter : IOperationInterpreter<AppStore>
 
         if (data == null) return Task.CompletedTask;
 
-        var json = data is JsonElement je ? je : JsonSerializer.SerializeToElement(data);
+        var json = data is JsonElement je ? je : JsonSerializer.SerializeToElement(data, CamelCase);
 
         switch (op.Type)
         {

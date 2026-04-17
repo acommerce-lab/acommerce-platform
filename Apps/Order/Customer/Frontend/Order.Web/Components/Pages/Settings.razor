@@ -18,7 +18,16 @@
                 SignOutLabel="@(Store.Ui.IsArabic ? "تسجيل الخروج" : "Sign out")"
                 OnThemeChange="@(async t => { await Applier.ApplyLocalAsync(ClientOps.SetTheme(t)); })"
                 OnLanguageChange="@(async l => { await Applier.ApplyLocalAsync(ClientOps.SetLanguage(l)); })"
-                OnSignOut="@(Store.Auth.IsAuthenticated ? EventCallback.Factory.Create(this, SignOut) : default)" />
+                OnSignOut="@(Store.Auth.IsAuthenticated ? EventCallback.Factory.Create(this, SignOut) : default)">
+    <ExtraSections>
+        <div class="s-card" style="margin-top: 16px">
+            <a href="/legal" style="display:flex;align-items:center;gap: 8px;text-decoration:none;color:inherit">
+                <AcIcon Name="file" Size="20" />
+                @(Store.Ui.IsArabic ? "الشروط والأحكام" : "Terms & Conditions")
+            </a>
+        </div>
+    </ExtraSections>
+</AcSettingsPage>
 
 @code {
     private SettingsSnapshot Snapshot => new()
@@ -36,7 +45,7 @@
 
     private async Task SignOut()
     {
-        await Engine.ExecuteAsync<object>(ClientOps.SignOut(), new { });
+        await Applier.ApplyLocalAsync(ClientOps.SignOut());
         Nav.NavigateTo("/");
     }
 

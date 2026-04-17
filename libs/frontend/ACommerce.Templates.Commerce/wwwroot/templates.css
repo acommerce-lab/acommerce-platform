@@ -5,7 +5,7 @@
    كل القواعد هنا تستخدم نفس --ac-* variables من widgets.css.
    ========================================================================= */
 
-.act-shell { min-height: 100vh; display: flex; flex-direction: column; }
+.act-shell { min-height: 100vh; display: flex; flex-direction: column; background: var(--ac-bg); }
 .act-shell-main { flex: 1; padding: var(--ac-space-lg) 0; }
 
 /* Navbar */
@@ -96,6 +96,7 @@
 .act-plan-card.recommended {
     border-color: var(--ac-primary);
     border-width: 2px;
+    margin-top:16px; /* space for the badge that sits at top: -12px */
 }
 .act-plan-badge {
     position: absolute;
@@ -114,15 +115,30 @@
 .act-plan-features { list-style: none; padding: 0; margin: var(--ac-space-md) 0; }
 .act-plan-features li { padding: var(--ac-space-xs) 0; color: var(--ac-text); }
 
-/* Chat bubble */
-.act-chat-list { max-height: 500px; overflow-y: auto; padding: var(--ac-space-md); }
+/* Chat bubble — flex column on parent so each bubble sits on its own row
+   and align-self decides incoming vs outgoing.  inline-block keeps the
+   bubble only as wide as its text; overflow-wrap:anywhere + word-break
+   force long Arabic tokens to wrap inside the fill instead of spilling
+   past the coloured pill edge. */
+.act-chat-list {
+    max-height: 500px;
+    overflow-y: auto;
+    padding: var(--ac-space-md);
+    display: flex;
+    flex-direction: column;
+}
 .act-bubble {
+    display: inline-block;
     max-width: 70%;
     padding: var(--ac-space-sm) var(--ac-space-md);
     border-radius: var(--ac-radius-lg);
     margin-bottom: var(--ac-space-sm);
-    word-wrap: break-word;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+    line-height: 1.5;
+    box-sizing: border-box;
+    background: var(--ac-bg-alt); /* fallback; act-bubble-in/out override */
 }
-.act-bubble-in  { background: var(--ac-bg-alt); color: var(--ac-text); margin-inline-end: auto; }
-.act-bubble-out { background: var(--ac-primary); color: var(--ac-on-primary); margin-inline-start: auto; }
-.act-bubble-time { font-size: var(--ac-font-size-sm); opacity: 0.7; display: block; margin-top: 2px; }
+.act-bubble-in  { background: var(--ac-bg-alt); color: var(--ac-text); align-self: flex-start; }
+.act-bubble-out { background: var(--ac-primary); color: var(--ac-on-primary); align-self: flex-end; }
+.act-bubble-time { font-size: var(--ac-font-size-sm); opacity: 0.7; display: block; margin-top: 4px; }

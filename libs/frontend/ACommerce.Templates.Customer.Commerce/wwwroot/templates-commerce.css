@@ -16,45 +16,45 @@
 }
 
 .acc-hero {
-    background: var(--ac-hero-grad, linear-gradient(135deg, var(--ac-primary, #f59e0b), var(--ac-primary-dark, #b45309)));
-    color: #fff;
+    background: var(--ac-hero-grad, linear-gradient(135deg, var(--ac-primary), var(--ac-primary-dark)));
+    color: #ffffff;
     border-radius: var(--ac-radius-lg, 18px);
-    padding: 22px 18px;
+    padding:20px 18px;
     margin-bottom: 16px;
     text-align: center;
 }
 .acc-hero-title {
-    font-size: 1.8rem;
+    font-size:2rem;
     font-weight: 900;
     margin: 0 0 6px;
 }
 .acc-hero-sub {
     margin: 0;
     opacity: 0.95;
-    font-size: 0.92rem;
+    font-size:0.875rem;
 }
 .acc-hero-actions {
     display: flex;
     gap: 8px;
     justify-content: center;
     flex-wrap: wrap;
-    margin-top: 14px;
+    margin-top:16px;
 }
 
 .acc-section-title {
-    font-size: 1.05rem;
+    font-size:1.125rem;
     font-weight: 800;
-    margin: 18px 0 10px;
-    color: var(--ac-text, #1a1a1a);
+    margin:16px 0 10px;
+    color: var(--ac-text);
 }
 
 .acc-section-label {
-    font-size: 0.82rem;
+    font-size:0.875rem;
     font-weight: 700;
-    color: var(--ac-text-muted, #6b7280);
+    color: var(--ac-text-muted);
     text-transform: uppercase;
     letter-spacing: 0.04em;
-    margin-bottom: 10px;
+    margin-bottom:8px;
 }
 
 /* ── Category row ─────────────────────────────────────────────────────── */
@@ -70,35 +70,57 @@
     flex-shrink: 0;
     padding: 8px 16px;
     border-radius: 999px;
-    border: 1px solid var(--ac-border, #e5e7eb);
-    background: var(--ac-surface, #fff);
-    color: var(--ac-text, #1a1a1a);
+    border: 1px solid var(--ac-border);
+    background: var(--ac-surface);
+    color: var(--ac-text);
     font-weight: 600;
-    font-size: 0.86rem;
+    font-size:0.875rem;
     cursor: pointer;
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
     transition: all 0.15s;
 }
 .acc-cat-pill.active {
-    background: var(--ac-primary, #f59e0b);
-    color: #fff;
-    border-color: var(--ac-primary, #f59e0b);
+    background: var(--ac-primary);
+    color: #ffffff;
+    border-color: var(--ac-primary);
 }
-.acc-cat-icon { font-size: 1.1rem; }
+.acc-cat-icon { font-size:1.125rem; }
 
 /* ── Offer grid ───────────────────────────────────────────────────────── */
 .acc-offer-grid {
     display: grid;
     gap: 12px;
+    /* Default (mobile): single column. */
+    grid-template-columns: 1fr;
+}
+/* Desktop: 3-column grid via viewport width.  Uses @media so CSS alone
+   decides — no JS / Blazor round-trip required and the rule wins over
+   the inline `style="grid-template-columns: repeat(1, …)"` hint the C#
+   component writes. */
+@media (min-width: 769px) {
+    .acc-offer-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+        gap: 16px;
+    }
+}
+/* Opt-in override when the data-ac-mode attribute is also applied — lets
+   C# force a mode (e.g. desktop preview on a mobile device). */
+:root[data-ac-mode="desktop"] .acc-offer-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 16px;
+}
+:root[data-ac-mode="mobile"] .acc-offer-grid {
+    grid-template-columns: 1fr !important;
+    gap: 12px;
 }
 .acc-offer-card {
-    background: var(--ac-surface, #fff);
+    background: var(--ac-surface);
     border-radius: var(--ac-radius-md, 14px);
     overflow: hidden;
     text-decoration: none;
-    color: var(--ac-text, #1a1a1a);
+    color: var(--ac-text);
     box-shadow: var(--ac-shadow-sm, 0 1px 3px rgba(0,0,0,0.08));
     transition: transform 0.15s, box-shadow 0.15s;
     display: flex;
@@ -106,39 +128,39 @@
 }
 .acc-offer-card:hover {
     transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(0,0,0,0.1);
+    box-shadow: 0 6px 16px rgba(0,0,0,0.08);
 }
 .acc-offer-top {
     position: relative;
-    background: var(--ac-bg-alt, #fff7ed);
-    padding: 28px 14px;
+    background: var(--ac-bg-alt);
+    padding: 16px;
     text-align: center;
 }
 .acc-offer-emoji {
-    font-size: 3.2rem;
+    font-size:3rem;
     line-height: 1;
 }
 .acc-offer-discount {
     position: absolute;
     top: 8px;
     inset-inline-start: 8px;
-    background: var(--ac-danger, #ef4444);
-    color: #fff;
-    padding: 3px 8px;
+    background: var(--ac-danger);
+    color: #ffffff;
+    padding: 4px 8px;
     border-radius: 999px;
-    font-size: 0.72rem;
+    font-size:0.75rem;
     font-weight: 800;
 }
 .acc-offer-featured {
     position: absolute;
     top: 8px;
     inset-inline-end: 8px;
-    color: var(--ac-warning, #d97706);
-    font-size: 1.3rem;
-    filter: drop-shadow(0 1px 1px rgba(0,0,0,0.3));
+    color: var(--ac-warning);
+    font-size:1.25rem;
+    filter: drop-shadow(0 1px 1px rgba(0,0,0,0.30));
 }
 .acc-offer-body {
-    padding: 12px 12px 14px;
+    padding: 12px 12px 16px;
     display: flex;
     flex-direction: column;
     gap: 4px;
@@ -146,7 +168,7 @@
 }
 .acc-offer-title {
     font-weight: 700;
-    font-size: 0.94rem;
+    font-size:1rem;
     line-height: 1.3;
     min-height: 2.6em;
     display: -webkit-box;
@@ -155,8 +177,8 @@
     overflow: hidden;
 }
 .acc-offer-vendor {
-    font-size: 0.76rem;
-    color: var(--ac-text-muted, #6b7280);
+    font-size:0.75rem;
+    color: var(--ac-text-muted);
 }
 .acc-offer-price-row {
     display: flex;
@@ -166,35 +188,35 @@
 }
 .acc-offer-price {
     font-weight: 800;
-    color: var(--ac-primary, #f59e0b);
+    color: var(--ac-primary);
     font-size: 1rem;
 }
 .acc-offer-original {
     text-decoration: line-through;
-    font-size: 0.78rem;
-    color: var(--ac-text-muted, #9ca3af);
+    font-size:0.875rem;
+    color: var(--ac-text-muted);
 }
 
 /* ── Offer details page ───────────────────────────────────────────────── */
 .acc-offer-hero {
     position: relative;
-    background: var(--ac-hero-grad, linear-gradient(135deg, var(--ac-primary, #f59e0b), var(--ac-primary-dark, #b45309)));
+    background: var(--ac-hero-grad, linear-gradient(135deg, var(--ac-primary), var(--ac-primary-dark)));
     border-radius: var(--ac-radius-lg, 18px);
     padding: 48px 20px;
     text-align: center;
     margin-bottom: 16px;
 }
 .acc-offer-hero-emoji {
-    font-size: 6rem;
+    font-size:3rem;
     line-height: 1;
 }
 .acc-offer-hero-discount {
     position: absolute;
     top: 14px;
     inset-inline-start: 14px;
-    background: var(--ac-danger, #ef4444);
-    color: #fff;
-    padding: 5px 12px;
+    background: var(--ac-danger);
+    color: #ffffff;
+    padding: 4px 12px;
     border-radius: 999px;
     font-weight: 800;
 }
@@ -205,19 +227,19 @@
     width: 38px;
     height: 38px;
     border-radius: 50%;
-    background: rgba(255,255,255,0.9);
+    background: rgba(255,255,255,1);
     border: none;
-    font-size: 1.2rem;
+    font-size:1.25rem;
     display: flex;
     align-items: center;
     justify-content: center;
     text-decoration: none;
-    color: var(--ac-text, #1a1a1a);
+    color: var(--ac-text);
     cursor: pointer;
 }
 .acc-back-btn { inset-inline-start: 14px; }
-.acc-fav-btn  { inset-inline-end: 14px; color: var(--ac-danger, #dc2626); }
-.acc-fav-btn.active { background: var(--ac-danger, #dc2626); color: #fff; }
+.acc-fav-btn  { inset-inline-end: 14px; color: var(--ac-danger); }
+.acc-fav-btn.active { background: var(--ac-danger); color: #ffffff; }
 
 .acc-offer-info {
     padding: 0 4px 14px;
@@ -230,12 +252,12 @@
 .acc-vendor-badge {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    background: var(--ac-bg-alt, #f3f4f6);
-    padding: 6px 12px;
+    gap: 8px;
+    background: var(--ac-bg-alt);
+    padding: 8px 12px;
     border-radius: 999px;
-    font-size: 0.86rem;
-    margin-bottom: 10px;
+    font-size:0.875rem;
+    margin-bottom:8px;
 }
 .acc-offer-info-price-row {
     display: flex;
@@ -246,29 +268,29 @@
 .acc-offer-info-price {
     font-size: 2rem;
     font-weight: 900;
-    color: var(--ac-primary, #f59e0b);
+    color: var(--ac-primary);
 }
 .acc-offer-info-currency {
     font-weight: 700;
-    color: var(--ac-text-muted, #6b7280);
+    color: var(--ac-text-muted);
 }
 .acc-offer-info-original {
     text-decoration: line-through;
-    color: var(--ac-text-muted, #9ca3af);
+    color: var(--ac-text-muted);
 }
 .acc-offer-desc { padding: 16px; }
 .acc-offer-desc-text {
     white-space: pre-wrap;
     font-family: inherit;
     margin: 0;
-    font-size: 0.92rem;
+    font-size:0.875rem;
     line-height: 1.6;
-    color: var(--ac-text, #1a1a1a);
+    color: var(--ac-text);
 }
 .acc-vendor-card { padding: 16px; }
 .acc-vendor-row {
-    padding: 6px 0;
-    font-size: 0.9rem;
+    padding: 8px 0;
+    font-size:0.875rem;
     display: flex;
     align-items: center;
     gap: 8px;
@@ -282,26 +304,26 @@
     display: flex;
     align-items: center;
     gap: 12px;
-    padding: 14px;
-    margin-bottom: 10px;
+    padding:16px;
+    margin-bottom:8px;
 }
 .acc-cart-vendor-emoji {
     width: 44px; height: 44px;
     border-radius: 50%;
-    background: var(--ac-bg-alt, #f3f4f6);
+    background: var(--ac-bg-alt);
     display: flex; align-items: center; justify-content: center;
     font-size: 1.5rem;
 }
 .acc-cart-vendor-body { flex: 1; min-width: 0; }
 .acc-cart-vendor-name { font-weight: 700; }
-.acc-cart-vendor-sub { font-size: 0.8rem; color: var(--ac-text-muted, #6b7280); }
+.acc-cart-vendor-sub { font-size:0.875rem; color: var(--ac-text-muted); }
 
 .acc-cart-item {
     display: flex;
     align-items: center;
     gap: 12px;
-    padding: 14px;
-    margin-bottom: 10px;
+    padding:16px;
+    margin-bottom:8px;
 }
 .acc-cart-item-emoji {
     font-size: 2rem;
@@ -310,69 +332,69 @@
 }
 .acc-cart-item-body { flex: 1; }
 .acc-cart-item-title { font-weight: 700; }
-.acc-cart-item-price { color: var(--ac-text-muted, #6b7280); font-size: 0.86rem; }
+.acc-cart-item-price { color: var(--ac-text-muted); font-size:0.875rem; }
 .acc-cart-qty {
     display: flex;
     align-items: center;
-    gap: 10px;
-    background: var(--ac-bg-alt, #f3f4f6);
+    gap:8px;
+    background: var(--ac-bg-alt);
     padding: 4px;
     border-radius: 999px;
 }
 .acc-qty-btn {
     width: 30px; height: 30px;
     border: none;
-    background: var(--ac-surface, #fff);
+    background: var(--ac-surface);
     border-radius: 50%;
-    font-size: 1.1rem;
+    font-size:1.125rem;
     font-weight: 700;
     cursor: pointer;
-    color: var(--ac-primary, #f59e0b);
+    color: var(--ac-primary);
 }
 .acc-qty-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 .acc-qty-val { font-weight: 700; min-width: 16px; text-align: center; }
 
-.acc-cart-totals { padding: 14px; }
+.acc-cart-totals { padding:16px; }
 .acc-cart-total-row {
     display: flex;
     justify-content: space-between;
-    padding: 6px 0;
-    font-size: 0.92rem;
-    color: var(--ac-text-muted, #6b7280);
+    padding: 8px 0;
+    font-size:0.875rem;
+    color: var(--ac-text-muted);
 }
 .acc-cart-total-final {
-    border-top: 1px solid var(--ac-border, #e5e7eb);
+    border-top: 1px solid var(--ac-border);
     margin-top: 8px;
     padding-top: 12px;
-    font-size: 1.05rem;
-    color: var(--ac-text, #1a1a1a);
+    font-size:1.125rem;
+    color: var(--ac-text);
 }
 
 /* ── Checkout ─────────────────────────────────────────────────────────── */
 .acc-checkout-line {
     display: flex;
     justify-content: space-between;
-    padding: 6px 0;
-    font-size: 0.92rem;
+    padding: 8px 0;
+    font-size:0.875rem;
 }
 .acc-checkout-total {
     display: flex;
     justify-content: space-between;
     padding-top: 12px;
-    margin-top: 10px;
-    border-top: 1px solid var(--ac-border, #e5e7eb);
-    font-size: 1.05rem;
+    margin-top:8px;
+    border-top: 1px solid var(--ac-border);
+    font-size:1.125rem;
 }
 .acc-checkout-hint {
     margin: 8px 0 0;
-    font-size: 0.82rem;
-    color: var(--ac-text-muted, #6b7280);
+    font-size:0.875rem;
+    color: var(--ac-text-muted);
 }
 .acc-change-box {
-    margin-top: 10px;
-    background: color-mix(in srgb, var(--ac-success, #16a34a) 10%, transparent);
-    color: var(--ac-success, #16a34a);
-    padding: 12px 14px;
+    margin-top:8px;
+    background: color-mix(in srgb, var(--ac-success) 10%, transparent);
+    color: var(--ac-success);
+    padding: 16px;
     border-radius: var(--ac-radius-md, 12px);
     display: flex;
     justify-content: space-between;
@@ -380,15 +402,15 @@
     font-weight: 700;
 }
 .acc-change-box.warn {
-    background: color-mix(in srgb, var(--ac-danger, #dc2626) 10%, transparent);
-    color: var(--ac-danger, #dc2626);
+    background: color-mix(in srgb, var(--ac-danger) 10%, transparent);
+    color: var(--ac-danger);
 }
 
 /* ── Orders list ──────────────────────────────────────────────────────── */
 .acc-order-card {
     display: block;
-    padding: 14px;
-    margin-bottom: 10px;
+    padding:16px;
+    margin-bottom:8px;
     text-decoration: none;
     color: inherit;
 }
@@ -399,41 +421,41 @@
 }
 .acc-order-vendor {
     display: flex;
-    gap: 10px;
+    gap:8px;
     align-items: flex-start;
 }
 .acc-order-emoji {
-    font-size: 1.8rem;
+    font-size:2rem;
     width: 44px;
     height: 44px;
     border-radius: 50%;
-    background: var(--ac-bg-alt, #f3f4f6);
+    background: var(--ac-bg-alt);
     display: flex;
     align-items: center;
     justify-content: center;
 }
 .acc-order-name { font-weight: 700; }
-.acc-order-num  { font-size: 0.78rem; color: var(--ac-text-muted, #6b7280); }
+.acc-order-num  { font-size:0.875rem; color: var(--ac-text-muted); }
 .acc-order-status {
-    font-size: 0.74rem;
+    font-size:0.75rem;
     font-weight: 700;
-    padding: 4px 10px;
+    padding: 8px;
     border-radius: 999px;
-    background: var(--ac-bg-alt, #f3f4f6);
-    color: var(--ac-text, #1a1a1a);
+    background: var(--ac-bg-alt);
+    color: var(--ac-text);
 }
-.acc-status-pending   { background: color-mix(in srgb, var(--ac-warning, #d97706) 14%, transparent); color: var(--ac-warning, #d97706); }
-.acc-status-accepted  { background: color-mix(in srgb, var(--ac-info,    #2563eb) 14%, transparent); color: var(--ac-info,    #2563eb); }
-.acc-status-ready     { background: color-mix(in srgb, var(--ac-success, #16a34a) 14%, transparent); color: var(--ac-success, #16a34a); }
-.acc-status-delivered { background: color-mix(in srgb, var(--ac-success, #16a34a) 10%, transparent); color: var(--ac-success, #16a34a); }
-.acc-status-cancelled { background: color-mix(in srgb, var(--ac-danger,  #dc2626) 14%, transparent); color: var(--ac-danger,  #dc2626); }
+.acc-status-pending   { background: color-mix(in srgb, var(--ac-warning) 14%, transparent); color: var(--ac-warning); }
+.acc-status-accepted  { background: color-mix(in srgb, var(--ac-info) 14%, transparent); color: var(--ac-info); }
+.acc-status-ready     { background: color-mix(in srgb, var(--ac-success) 14%, transparent); color: var(--ac-success); }
+.acc-status-delivered { background: color-mix(in srgb, var(--ac-success) 10%, transparent); color: var(--ac-success); }
+.acc-status-cancelled { background: color-mix(in srgb, var(--ac-danger) 14%, transparent); color: var(--ac-danger); }
 .acc-order-meta {
     display: flex;
     align-items: center;
     gap: 12px;
-    margin-top: 10px;
-    color: var(--ac-text-muted, #6b7280);
-    font-size: 0.84rem;
+    margin-top:8px;
+    color: var(--ac-text-muted);
+    font-size:0.875rem;
     flex-wrap: wrap;
 }
 .acc-order-meta-item {
@@ -444,7 +466,7 @@
 .acc-order-total {
     margin-inline-start: auto;
     font-weight: 800;
-    color: var(--ac-primary, #f59e0b);
+    color: var(--ac-primary);
 }
 
 /* ── Order details ────────────────────────────────────────────────────── */
@@ -455,69 +477,69 @@
     margin-bottom: 16px;
 }
 .acc-order-number {
-    font-size: 1.4rem;
+    font-size:1.5rem;
     font-weight: 800;
 }
 .acc-order-item-row,
 .acc-order-info-row {
     display: flex;
     justify-content: space-between;
-    padding: 6px 0;
-    font-size: 0.9rem;
+    padding: 8px 0;
+    font-size:0.875rem;
 }
-.acc-order-info-row { justify-content: flex-start; gap: 6px; color: var(--ac-text, #1a1a1a); }
+.acc-order-info-row { justify-content: flex-start; gap: 8px; color: var(--ac-text); }
 .acc-order-total-row {
     display: flex;
     justify-content: space-between;
     padding-top: 12px;
     margin-top: 8px;
-    border-top: 1px solid var(--ac-border, #e5e7eb);
-    font-size: 1.05rem;
+    border-top: 1px solid var(--ac-border);
+    font-size:1.125rem;
 }
 .acc-order-vendor-row {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap:8px;
     margin-bottom: 8px;
 }
 .acc-order-notes {
     margin: 0;
-    font-size: 0.92rem;
-    color: var(--ac-text, #1a1a1a);
+    font-size:0.875rem;
+    color: var(--ac-text);
     line-height: 1.55;
 }
 
 /* ── Order success ────────────────────────────────────────────────────── */
 .acc-success-hero {
     text-align: center;
-    padding: 36px 20px;
+    padding:24px 20px;
 }
 .acc-success-icon {
     width: 88px;
     height: 88px;
     border-radius: 50%;
-    background: var(--ac-success, #16a34a);
-    color: #fff;
-    font-size: 3.2rem;
+    background: var(--ac-success);
+    color: #ffffff;
+    font-size:3rem;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    margin-bottom: 14px;
+    margin-bottom:16px;
 }
 .acc-success-title {
     font-size: 1.5rem;
     font-weight: 800;
     margin: 0 0 8px;
-    color: var(--ac-text, #1a1a1a);
+    color: var(--ac-text);
 }
 .acc-success-number {
-    font-size: 1.1rem;
-    color: var(--ac-primary, #f59e0b);
+    font-size:1.125rem;
+    color: var(--ac-primary);
     font-weight: 700;
 }
 .acc-success-sub {
-    margin: 6px 0 0;
-    color: var(--ac-text-muted, #6b7280);
+    margin: 8px 0 0;
+    color: var(--ac-text-muted);
 }
 
 /* ── Vendor profile ───────────────────────────────────────────────────── */
@@ -525,18 +547,18 @@
 .acc-vendor-header {
     display: flex;
     align-items: center;
-    gap: 14px;
-    padding: 18px;
-    background: var(--ac-surface, #fff);
-    border: 1px solid var(--ac-border, #e5e7eb);
+    gap:16px;
+    padding:16px;
+    background: var(--ac-surface);
+    border: 1px solid var(--ac-border);
     border-radius: var(--ac-radius-lg, 16px);
-    margin-bottom: 14px;
+    margin-bottom:16px;
 }
 .acc-vendor-header-emoji {
     width: 64px;
     height: 64px;
     border-radius: 50%;
-    background: var(--ac-bg-alt, #f3f4f6);
+    background: var(--ac-bg-alt);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -545,28 +567,28 @@
 }
 .acc-vendor-header-body { flex: 1; min-width: 0; }
 .acc-vendor-header-name {
-    font-size: 1.3rem;
+    font-size:1.25rem;
     font-weight: 800;
     margin: 0 0 4px;
-    color: var(--ac-text, #111827);
+    color: var(--ac-text);
 }
 .acc-vendor-header-rating {
     display: flex;
     align-items: center;
-    gap: 6px;
-    color: var(--ac-warning, #d97706);
-    font-size: 0.86rem;
+    gap: 8px;
+    color: var(--ac-warning);
+    font-size:0.875rem;
     font-weight: 700;
 }
 .acc-vendor-header-rating-count {
-    color: var(--ac-text-muted, #6b7280);
+    color: var(--ac-text-muted);
     font-weight: 500;
 }
 .acc-vendor-profile-desc {
     margin: 0 0 14px;
-    color: var(--ac-text-muted, #6b7280);
+    color: var(--ac-text-muted);
     line-height: 1.6;
-    font-size: 0.92rem;
+    font-size:0.875rem;
 }
 
 /* ── Search + map page ────────────────────────────────────────────────── */
@@ -574,7 +596,7 @@
 
 .acc-search-bar {
     display: flex;
-    gap: 10px;
+    gap:8px;
     align-items: stretch;
     margin-bottom: 12px;
 }
@@ -584,15 +606,15 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    background: var(--ac-surface, #fff);
-    border: 1px solid var(--ac-border, #e5e7eb);
+    background: var(--ac-surface);
+    border: 1px solid var(--ac-border);
     border-radius: var(--ac-radius-md, 12px);
-    padding-inline-start: 14px;
-    color: var(--ac-text-muted, #6b7280);
+    padding-inline-start:16px;
+    color: var(--ac-text-muted);
 }
 .acc-search-input:focus-within {
-    border-color: var(--ac-primary, #f59e0b);
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--ac-primary, #f59e0b) 22%, transparent);
+    border-color: var(--ac-primary);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--ac-primary) 22%, transparent);
 }
 .acc-search-input .form-input {
     flex: 1;
@@ -607,76 +629,76 @@
 
 /* ── Filter panel (advanced filter section) ──────────────────────────── */
 .acc-filter-panel {
-    margin-bottom: 10px;
+    margin-bottom:8px;
 }
 .acc-filter-toggle {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
     background: none;
     border: none;
     cursor: pointer;
     font-family: inherit;
-    font-size: 0.82rem;
+    font-size:0.875rem;
     font-weight: 600;
-    color: var(--ac-text-muted, #64748b);
-    padding: 6px 0;
+    color: var(--ac-text-muted);
+    padding: 8px 0;
 }
-.acc-filter-toggle:hover { color: var(--ac-text, #111827); }
+.acc-filter-toggle:hover { color: var(--ac-text); }
 .acc-filter-body {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap:8px;
     padding: 12px 0 4px;
 }
 .acc-filter-row {
     display: flex;
-    gap: 10px;
+    gap:8px;
 }
 .acc-filter-row > .acc-filter-field { flex: 1; }
 .acc-filter-field .form-label { font-size: 0.75rem; margin-bottom: 4px; }
-.acc-filter-field .form-input { padding: 8px 10px; min-height: 38px; font-size: 0.84rem; }
+.acc-filter-field .form-input { 8px; min-height: 38px; font-size:0.875rem; }
 .acc-filter-check {
     display: flex;
     align-items: center;
     gap: 8px;
-    font-size: 0.84rem;
-    color: var(--ac-text, #111827);
+    font-size:0.875rem;
+    color: var(--ac-text);
     cursor: pointer;
 }
 .acc-filter-check input[type="checkbox"] {
     width: 18px;
     height: 18px;
-    accent-color: var(--ac-primary, #f59e0b);
+    accent-color: var(--ac-primary);
 }
 
 /* Active filter chips */
 .acc-filter-chips {
     display: flex;
     flex-wrap: wrap;
-    gap: 6px;
-    margin-bottom: 10px;
+    gap: 8px;
+    margin-bottom:8px;
 }
 .acc-filter-chip {
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    padding: 4px 10px;
+    padding: 8px;
     border-radius: 999px;
-    border: 1px solid var(--ac-border, #e5e7eb);
-    background: var(--ac-surface, #fff);
-    color: var(--ac-text, #111827);
+    border: 1px solid var(--ac-border);
+    background: var(--ac-surface);
+    color: var(--ac-text);
     font-family: inherit;
-    font-size: 0.72rem;
+    font-size:0.75rem;
     font-weight: 600;
     cursor: pointer;
     transition: background 0.12s;
 }
-.acc-filter-chip:hover { background: var(--ac-bg-alt, #f3f4f6); }
+.acc-filter-chip:hover { background: var(--ac-bg-alt); }
 .acc-filter-chip-clear {
     background: transparent;
     border-color: transparent;
-    color: var(--ac-danger, #dc2626);
+    color: var(--ac-danger);
 }
 
 /* ── Mini map (self-contained, no tiles) ──────────────────────────────── */
@@ -684,20 +706,20 @@
     position: relative;
     width: 100%;
     aspect-ratio: 4 / 3;
-    background: var(--ac-bg-alt, #f3f4f6);
-    border: 1px solid var(--ac-border, #e5e7eb);
+    background: var(--ac-bg-alt);
+    border: 1px solid var(--ac-border);
     border-radius: var(--ac-radius-lg, 16px);
     overflow: hidden;
-    margin-bottom: 14px;
+    margin-bottom:16px;
 }
 .acc-mini-map-grid {
     position: absolute;
     inset: 0;
     background-image:
-        linear-gradient(var(--ac-border, #e5e7eb) 1px, transparent 1px),
-        linear-gradient(90deg, var(--ac-border, #e5e7eb) 1px, transparent 1px),
-        radial-gradient(circle at 30% 40%, color-mix(in srgb, var(--ac-info, #3b82f6) 8%, transparent) 0, transparent 140px),
-        radial-gradient(circle at 70% 65%, color-mix(in srgb, var(--ac-success, #16a34a) 8%, transparent) 0, transparent 160px);
+        linear-gradient(var(--ac-border) 1px, transparent 1px),
+        linear-gradient(90deg, var(--ac-border) 1px, transparent 1px),
+        radial-gradient(circle at 30% 40%, color-mix(in srgb, var(--ac-info) 8%, transparent) 0, transparent 140px),
+        radial-gradient(circle at 70% 65%, color-mix(in srgb, var(--ac-success) 8%, transparent) 0, transparent 160px);
     background-size: 40px 40px, 40px 40px, 100% 100%, 100% 100%;
     opacity: 0.55;
     pointer-events: none;
@@ -705,9 +727,9 @@
 .acc-map-pin {
     position: absolute;
     transform: translate(-50%, -100%);
-    background: var(--ac-surface, #fff);
-    color: var(--ac-text, #111827);
-    border: 2px solid var(--ac-primary, #f59e0b);
+    background: var(--ac-surface);
+    color: var(--ac-text);
+    border: 2px solid var(--ac-primary);
     border-radius: 999px;
     width: 36px;
     height: 36px;
@@ -728,52 +750,52 @@
     height: 0;
     border-inline-start: 6px solid transparent;
     border-inline-end: 6px solid transparent;
-    border-top: 8px solid var(--ac-primary, #f59e0b);
+    border-top: 8px solid var(--ac-primary);
     transform: translateX(-50%);
 }
 .acc-map-pin:hover { transform: translate(-50%, -100%) scale(1.06); }
 .acc-map-pin.selected {
-    background: var(--ac-primary, #f59e0b);
-    color: var(--ac-on-primary, #fff);
-    border-color: var(--ac-primary, #f59e0b);
+    background: var(--ac-primary);
+    color: var(--ac-on-primary);
+    border-color: var(--ac-primary);
     transform: translate(-50%, -100%) scale(1.15);
-    box-shadow: 0 10px 22px color-mix(in srgb, var(--ac-primary, #f59e0b) 45%, transparent);
+    box-shadow: 0 10px 22px color-mix(in srgb, var(--ac-primary) 45%, transparent);
     z-index: 2;
 }
-.acc-map-pin-emoji { font-size: 1.1rem; line-height: 1; }
+.acc-map-pin-emoji { font-size:1.125rem; line-height: 1; }
 .acc-map-pin-badge {
     position: absolute;
     top: -6px;
     inset-inline-end: -6px;
-    background: var(--ac-danger, #dc2626);
-    color: #fff;
-    font-size: 0.62rem;
+    background: var(--ac-danger);
+    color: #ffffff;
+    font-size:0.75rem;
     font-weight: 800;
-    padding: 2px 5px;
+    padding: 4px 4px;
     border-radius: 999px;
-    border: 1.5px solid var(--ac-surface, #fff);
+    border: 1.5px solid var(--ac-surface);
 }
 .acc-map-pin-popup {
     position: absolute;
     transform: translate(-50%, calc(-100% - 48px));
-    background: var(--ac-surface, #fff);
-    color: var(--ac-text, #111827);
-    border: 1px solid var(--ac-border, #e5e7eb);
+    background: var(--ac-surface);
+    color: var(--ac-text);
+    border: 1px solid var(--ac-border);
     border-radius: var(--ac-radius-md, 12px);
-    padding: 10px 14px;
+    padding: 16px;
     min-width: 180px;
     max-width: 240px;
-    box-shadow: var(--ac-shadow-lg, 0 14px 28px rgba(0,0,0,0.12));
+    box-shadow: var(--ac-shadow-lg, 0 14px 28px rgba(0,0,0,0.16));
     z-index: 3;
     pointer-events: none;
 }
-.acc-map-pin-popup-title { font-weight: 700; font-size: 0.9rem; }
-.acc-map-pin-popup-sub { font-size: 0.78rem; color: var(--ac-text-muted, #6b7280); margin-top: 2px; }
+.acc-map-pin-popup-title { font-weight: 700; font-size:0.875rem; }
+.acc-map-pin-popup-sub { font-size:0.875rem; color: var(--ac-text-muted); margin-top: 4px; }
 
 /* Bottom sheet under the map showing details of the selected pin */
 .acc-map-sheet {
-    background: var(--ac-surface, #fff);
-    border: 1px solid var(--ac-border, #e5e7eb);
+    background: var(--ac-surface);
+    border: 1px solid var(--ac-border);
     border-radius: var(--ac-radius-lg, 16px);
     padding: 16px;
     margin-bottom: 12px;
@@ -788,7 +810,7 @@
     width: 48px;
     height: 48px;
     border-radius: 50%;
-    background: var(--ac-bg-alt, #f3f4f6);
+    background: var(--ac-bg-alt);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -796,16 +818,16 @@
     flex-shrink: 0;
 }
 .acc-map-sheet-body { flex: 1; min-width: 0; }
-.acc-map-sheet-title { font-weight: 800; font-size: 1rem; color: var(--ac-text, #111827); }
-.acc-map-sheet-sub { font-size: 0.84rem; color: var(--ac-text-muted, #6b7280); margin-top: 2px; }
+.acc-map-sheet-title { font-weight: 800; font-size: 1rem; color: var(--ac-text); }
+.acc-map-sheet-sub { font-size:0.875rem; color: var(--ac-text-muted); margin-top: 4px; }
 
 /* List view */
-.acc-search-list { display: flex; flex-direction: column; gap: 10px; }
+.acc-search-list { display: flex; flex-direction: column; gap:8px; }
 .acc-search-list-row {
     display: flex;
     align-items: center;
     gap: 12px;
-    padding: 14px;
+    padding:16px;
     text-decoration: none;
     color: inherit;
     cursor: pointer;
@@ -816,21 +838,21 @@
     width: 44px;
     height: 44px;
     border-radius: 50%;
-    background: var(--ac-bg-alt, #f3f4f6);
+    background: var(--ac-bg-alt);
     display: flex;
     align-items: center;
     justify-content: center;
-    color: var(--ac-primary, #f59e0b);
+    color: var(--ac-primary);
     flex-shrink: 0;
 }
 .acc-search-list-body { flex: 1; min-width: 0; }
-.acc-search-list-title { font-weight: 700; color: var(--ac-text, #111827); }
-.acc-search-list-sub { font-size: 0.82rem; color: var(--ac-text-muted, #6b7280); margin-top: 2px; }
+.acc-search-list-title { font-weight: 700; color: var(--ac-text); }
+.acc-search-list-sub { font-size:0.875rem; color: var(--ac-text-muted); margin-top: 4px; }
 .acc-search-list-badge {
-    background: color-mix(in srgb, var(--ac-primary, #f59e0b) 12%, transparent);
-    color: var(--ac-primary, #f59e0b);
-    font-size: 0.72rem;
+    background: color-mix(in srgb, var(--ac-primary) 12%, transparent);
+    color: var(--ac-primary);
+    font-size:0.75rem;
     font-weight: 700;
-    padding: 4px 10px;
+    padding: 8px;
     border-radius: 999px;
 }

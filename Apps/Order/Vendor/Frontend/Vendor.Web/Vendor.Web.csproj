@@ -16,5 +16,7 @@
     <ProjectReference Include="..\..\..\..\..\libs\frontend\ACommerce.Widgets\ACommerce.Widgets.csproj" />
     <ProjectReference Include="..\..\..\..\..\libs\frontend\ACommerce.Templates.Shared\ACommerce.Templates.Shared.csproj" />
     <ProjectReference Include="..\..\..\..\..\libs\frontend\ACommerce.Templates.Customer.Commerce\ACommerce.Templates.Customer.Commerce.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\frontend\ACommerce.Templates.Merchant.Commerce\ACommerce.Templates.Merchant.Commerce.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\frontend\ACommerce.Culture.Blazor\ACommerce.Culture.Blazor.csproj" />
   </ItemGroup>
 </Project>

@@ -79,7 +79,7 @@ switch (dbProvider.ToLowerInvariant())
         if (string.IsNullOrWhiteSpace(dbConnection) || dbConnection.Contains("${"))
         {
             Log.Warning("Database:ConnectionString غير مُعيّن في env vars - الرجوع لـ InMemory");
-            builder.Services.AddACommerceInMemoryDatabase("AshareApiDb");
+            builder.Services.AddACommerceInMemoryDatabase("AsharePlatformDb");
         }
         else
         {
@@ -89,12 +89,18 @@ switch (dbProvider.ToLowerInvariant())
         break;
 
     case "sqlite":
-        builder.Services.AddACommerceSQLite(dbConnection ?? "Data Source=ashare2.db");
+        // See PlatformDataRoot.Resolve — walks up to the repo root so both
+        // Ashare backends hit the same physical file.
+        var ashareDbConn = !string.IsNullOrWhiteSpace(dbConnection)
+            ? dbConnection
+            : ACommerce.SharedKernel.Infrastructure.EFCores.PlatformDataRoot
+                .SqliteConnectionString(builder.Environment.ContentRootPath, "ashare-platform.db");
+        builder.Services.AddACommerceSQLite(ashareDbConn);
         break;
 
     default:
         Log.Information("Using InMemory database");
-        builder.Services.AddACommerceInMemoryDatabase("AshareApiDb");
+        builder.Services.AddACommerceInMemoryDatabase("AsharePlatformDb");
         break;
 }
 
@@ -438,10 +444,24 @@ app.MapGet("/health", (IServiceProvider sp) => Results.Ok(new
     firebaseEnabled = sp.GetServices<INotificationChannel>().Any(c => c.ChannelName == "firebase")
 }));
 
-// === تشغيل البذر ===
+// === DB schema + seeding ===
 try
 {
     using var scope = app.Services.CreateScope();
+    var db = scope.ServiceProvider
+        .GetRequiredService<ACommerce.SharedKernel.Infrastructure.EFCores.Context.ApplicationDbContext>();
+    // SQLite dev mode: detect schema drift (entity changed without migration)
+    // and reset the file so EnsureCreatedAsync can recreate everything fresh.
+    if (ACommerce.SharedKernel.Infrastructure.EFCores.SqliteSchemaGuard.ResetIfDrifted(db))
+        Log.Warning("Ashare.Api: SQLite schema drift detected — DB file rebuilt");
+    // EnsureCreatedAsync creates all-or-nothing; when another platform
+    // backend created tables first it throws.  Treat that as benign so
+    // we still run the seeder below.
+    try { await db.Database.EnsureCreatedAsync(); }
+    catch (Exception schemaEx) { Log.Information(schemaEx, "Schema already created by another service — continuing"); }
+    ACommerce.SharedKernel.Infrastructure.EFCores.SqliteSchemaGuard.StampFingerprint(db);
+    Log.Information("Ashare.Api database schema ready");
+
     var seeder = scope.ServiceProvider.GetRequiredService<AshareSeeder>();
     await seeder.SeedAsync();
 }

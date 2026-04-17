@@ -34,7 +34,7 @@
     @* ── Search + mode toggle ─────────────────────────────────────────── *@
     <div class="acc-search-bar">
         <div class="acc-search-input">
-            <AcIcon Name="search" Size="18" />
+            <AcIcon Name="search" Size="20" />
             <input type="text"
                    class="form-input"
                    placeholder="@(SearchPlaceholder ?? "ابحث...")"
@@ -113,7 +113,7 @@
                         @onclick="@(() => HandleSelect(pin))">
                     @if (!string.IsNullOrEmpty(pin.IconName))
                     {
-                        <AcIcon Name="@pin.IconName" Size="18" />
+                        <AcIcon Name="@pin.IconName" Size="20" />
                     }
                     else if (!string.IsNullOrEmpty(pin.Emoji))
                     {
@@ -121,7 +121,7 @@
                     }
                     else
                     {
-                        <AcIcon Name="map-pin" Size="18" />
+                        <AcIcon Name="map-pin" Size="20" />
                     }
                     @if (!string.IsNullOrEmpty(pin.Badge))
                     {
@@ -179,7 +179,7 @@
                         <div class="acc-search-list-icon">
                             @if (!string.IsNullOrEmpty(pin.IconName))
                             {
-                                <AcIcon Name="@pin.IconName" Size="22" />
+                                <AcIcon Name="@pin.IconName" Size="20" />
                             }
                             else if (!string.IsNullOrEmpty(pin.Emoji))
                             {
@@ -187,7 +187,7 @@
                             }
                             else
                             {
-                                <AcIcon Name="map-pin" Size="22" />
+                                <AcIcon Name="map-pin" Size="20" />
                             }
                         </div>
                         <div class="acc-search-list-body">

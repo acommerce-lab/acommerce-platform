@@ -1,5 +1,6 @@
 using ACommerce.Client.Http;
 using ACommerce.Client.Http.Extensions;
+using ACommerce.Culture.Blazor;
 using ACommerce.Client.Operations;
 using ACommerce.Client.Operations.Interceptors;
 using ACommerce.Client.StateBridge;
@@ -9,12 +10,21 @@ using ACommerce.OperationEngine.Interceptors.Extensions;
 using Order.Web.Components;
 using Order.Web.Interpreters;
 using Order.Web.Operations;
+using Order.Web.Services;
 using Order.Web.Store;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Enable static web assets in ALL environments (default-enables only in Dev).
+// Without this, _content/<RclLib>/* returns 404 at runtime.
+builder.WebHost.UseStaticWebAssets();
+
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
+
+// Culture stack — per-circuit browser-derived TZ + numeral system, used to
+// render timestamps (chat, orders) in the viewing user's local time.
+builder.Services.AddBlazorCultureStack();
 
 // ─── AppStore (حالة التطبيق — Scoped per circuit) ────────────────────
 builder.Services.AddScoped<AppStore>();
@@ -77,6 +87,9 @@ builder.Services.AddScoped<OperationInterpreterRegistry<AppStore>>(sp =>
 
 builder.Services.AddScoped<AppStateApplier>();
 builder.Services.AddScoped<IStateApplier>(sp => sp.GetRequiredService<AppStateApplier>());
+
+// ─── Auth persistence (ProtectedLocalStorage) ───────────────────────
+builder.Services.AddScoped<AuthStateService>();
 
 // ─── Build ───────────────────────────────────────────────────────────
 var app = builder.Build();

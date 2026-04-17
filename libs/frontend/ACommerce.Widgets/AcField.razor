@@ -1,7 +1,7 @@
 @namespace ACommerce.Widgets
 
 <div class="ac-field @(Class ?? "")">
-    @if (!string.IsNullOrEmpty(Label)) { <label class="ac-label">@Label</label> }
+    @if (!string.IsNullOrEmpty(Label)) { <label class="ac-label">@Label@(Required ? " *" : "")</label> }
     @ChildContent
     @if (!string.IsNullOrEmpty(Error)) { <div class="ac-field-error">@Error</div> }
     else if (!string.IsNullOrEmpty(Hint)) { <div class="ac-text-muted ac-text-sm ac-mt-sm">@Hint</div> }
@@ -11,6 +11,7 @@
     [Parameter] public string? Label { get; set; }
     [Parameter] public string? Hint { get; set; }
     [Parameter] public string? Error { get; set; }
+    [Parameter] public bool Required { get; set; }
     [Parameter] public RenderFragment? ChildContent { get; set; }
     [Parameter] public string? Class { get; set; }
 }

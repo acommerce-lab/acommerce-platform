@@ -1,0 +1,215 @@
+@page "/schedule"
+@inject AppStore Store
+@inject VendorApiClient VendorApi
+@inject ApiReader Reader
+
+<PageTitle>@(Store.Ui.IsArabic ? "جدول العمل" : "Schedule")</PageTitle>
+
+<AcAuthGuard IsAuthenticated="@Store.Auth.IsAuthenticated" IsArabic="@Store.Ui.IsArabic" LoginHref="/login">
+    <div class="acs-page">
+        <AcPageHeader Title="@(Store.Ui.IsArabic ? "جدول العمل" : "Work Schedule")"
+                      Subtitle="@(Store.Ui.IsArabic ? "أوقات عمل المتجر" : "Store working hours")" />
+
+        @if (_loading)
+        {
+            <AcLoadingState Message="@(Store.Ui.IsArabic ? "جاري التحميل..." : "Loading…")" />
+        }
+        else if (_vendorId == null)
+        {
+            <AcEmptyState IconName="alert-circle"
+                          Title="@(Store.Ui.IsArabic ? "لم يتم العثور على متجر" : "No store found")" />
+        }
+        else
+        {
+            @if (!string.IsNullOrEmpty(_successMessage))
+            {
+                <AcAlert Variant="success" Message="@_successMessage" Class="ac-mb-md" />
+            }
+            @if (!string.IsNullOrEmpty(_errorMessage))
+            {
+                <AcAlert Variant="danger" Message="@_errorMessage" Class="ac-mb-md" />
+            }
+
+            @foreach (var day in _days)
+            {
+                <AcCard Class="ac-mb-sm">
+                    <ChildContent>
+                        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap: 8px">
+                            <div style="font-weight:600;min-width:80px">
+                                @(Store.Ui.IsArabic ? day.LabelAr : day.LabelEn)
+                            </div>
+                            <div style="display:flex;align-items:center;gap: 8px;flex-wrap:wrap">
+                                <label style="display:flex;align-items:center;gap: 4px;font-size:0.875rem">
+                                    <input type="checkbox" checked="@(!day.IsOff)"
+                                           @onchange="@(e => day.IsOff = !(bool)(e.Value ?? true))" />
+                                    @(Store.Ui.IsArabic ? "مفتوح" : "Open")
+                                </label>
+                                @if (!day.IsOff)
+                                {
+                                    <input type="time" class="ac-input" value="@day.OpenTime"
+                                           @onchange="@(e => day.OpenTime = e.Value?.ToString() ?? day.OpenTime)"
+                                           style="font-size:0.875rem;width:auto;min-height:36px;padding: 4px 8px" />
+                                    <span>-</span>
+                                    <input type="time" class="ac-input" value="@day.CloseTime"
+                                           @onchange="@(e => day.CloseTime = e.Value?.ToString() ?? day.CloseTime)"
+                                           style="font-size:0.875rem;width:auto;min-height:36px;padding: 4px 8px" />
+                                }
+                                else
+                                {
+                                    <span class="ac-text-muted" style="font-size:0.875rem">
+                                        @(Store.Ui.IsArabic ? "مغلق" : "Closed")
+                                    </span>
+                                }
+                            </div>
+                        </div>
+                    </ChildContent>
+                </AcCard>
+            }
+
+            <div style="margin-top: 16px">
+                <AcButton Variant="primary" Block="true"
+                          Text="@(_saving ? (Store.Ui.IsArabic ? "جاري الحفظ..." : "Saving...") : (Store.Ui.IsArabic ? "حفظ الجدول" : "Save Schedule"))"
+                          Disabled="@_saving" Loading="@_saving"
+                          OnClick="HandleSave" />
+            </div>
+        }
+    </div>
+</AcAuthGuard>
+
+@code {
+    private Guid? _vendorId;
+    private bool _loading = true;
+    private bool _saving;
+    private string? _successMessage;
+    private string? _errorMessage;
+    private List<DaySlot> _days = new();
+
+    private static readonly (string Ar, string En, DayOfWeek Dow)[] DayDefs = new[]
+    {
+        ("الأحد",    "Sunday",    DayOfWeek.Sunday),
+        ("الاثنين",  "Monday",    DayOfWeek.Monday),
+        ("الثلاثاء", "Tuesday",   DayOfWeek.Tuesday),
+        ("الأربعاء", "Wednesday", DayOfWeek.Wednesday),
+        ("الخميس",   "Thursday",  DayOfWeek.Thursday),
+        ("الجمعة",   "Friday",    DayOfWeek.Friday),
+        ("السبت",    "Saturday",  DayOfWeek.Saturday),
+    };
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        if (!Store.Auth.IsAuthenticated) { _loading = false; StateHasChanged(); return; }
+
+        try
+        {
+            var vEnv = await Reader.GetAsync<List<VendorRow>>("/api/vendors");
+            var myVendor = vEnv.Data?.FirstOrDefault(v => v.OwnerId == Store.Auth.UserId);
+            if (myVendor != null)
+            {
+                _vendorId = myVendor.Id;
+
+                var env = await VendorApi.GetAsync<List<ScheduleRow>>(
+                    $"/api/vendor-settings/{_vendorId}/schedule");
+
+                if (env.Data != null && env.Data.Count > 0)
+                {
+                    _days = DayDefs.Select(d =>
+                    {
+                        var row = env.Data.FirstOrDefault(r => r.DayOfWeek == (int)d.Dow);
+                        return new DaySlot
+                        {
+                            LabelAr = d.Ar, LabelEn = d.En, Dow = d.Dow,
+                            OpenTime = row?.OpenTime ?? "09:00",
+                            CloseTime = row?.CloseTime ?? "22:00",
+                            IsOff = row?.IsOff ?? (d.Dow == DayOfWeek.Friday),
+                        };
+                    }).ToList();
+                }
+                else
+                {
+                    _days = BuildDefault();
+                }
+            }
+            else
+            {
+                _days = BuildDefault();
+            }
+        }
+        catch { _days = BuildDefault(); }
+
+        _loading = false;
+        StateHasChanged();
+    }
+
+    private List<DaySlot> BuildDefault() =>
+        DayDefs.Select(d => new DaySlot
+        {
+            LabelAr = d.Ar, LabelEn = d.En, Dow = d.Dow,
+            OpenTime = "09:00", CloseTime = "22:00",
+            IsOff = d.Dow == DayOfWeek.Friday,
+        }).ToList();
+
+    private async Task HandleSave()
+    {
+        _successMessage = null;
+        _errorMessage = null;
+        if (!_vendorId.HasValue) return;
+        _saving = true;
+
+        try
+        {
+            bool allOk = true;
+            foreach (var day in _days)
+            {
+                var payload = new
+                {
+                    DayOfWeek = (int)day.Dow,
+                    OpenTime = day.OpenTime,
+                    CloseTime = day.CloseTime,
+                    IsOff = day.IsOff,
+                };
+                var result = await VendorApi.PutAsync<object>(
+                    $"/api/vendor-settings/{_vendorId}/schedule", payload);
+                if (result.Error != null) allOk = false;
+            }
+
+            if (allOk)
+                _successMessage = Store.Ui.IsArabic ? "تم حفظ الجدول بنجاح" : "Schedule saved successfully";
+            else
+                _errorMessage = Store.Ui.IsArabic ? "حدث خطأ في حفظ بعض الأيام" : "Error saving some days";
+        }
+        catch
+        {
+            _errorMessage = Store.Ui.IsArabic ? "حدث خطأ أثناء الحفظ" : "An error occurred while saving";
+        }
+        finally
+        {
+            _saving = false;
+            StateHasChanged();
+        }
+    }
+
+    public class VendorRow
+    {
+        public Guid Id { get; set; }
+        public Guid OwnerId { get; set; }
+    }
+
+    public class ScheduleRow
+    {
+        public int DayOfWeek { get; set; }
+        public string? OpenTime { get; set; }
+        public string? CloseTime { get; set; }
+        public bool IsOff { get; set; }
+    }
+
+    public class DaySlot
+    {
+        public string LabelAr { get; set; } = "";
+        public string LabelEn { get; set; } = "";
+        public DayOfWeek Dow { get; set; }
+        public string OpenTime { get; set; } = "09:00";
+        public string CloseTime { get; set; } = "22:00";
+        public bool IsOff { get; set; }
+    }
+}

@@ -1,0 +1,167 @@
+@page "/categories"
+@rendermode InteractiveServer
+@inject AppStore Store
+@inject ApiReader Reader
+@inject ClientOpEngine Engine
+
+<PageTitle>@Store.Ui.Tr("التصنيفات - إدارة الطلبات", "Categories - Order Admin")</PageTitle>
+
+<AcAuthGuard IsAuthenticated="@Store.Auth.IsAuthenticated" IsArabic="@Store.Ui.IsArabic" LoginHref="/login">
+    @if (_loading)
+    {
+        <AcLoadingState Message="@Store.Ui.Tr("جاري تحميل التصنيفات...", "Loading categories...")" />
+    }
+    else
+    {
+        <div class="acs-page">
+            <h1 class="acs-page-title">@Store.Ui.Tr("التصنيفات", "Categories")</h1>
+
+            <div class="s-card" style="max-width:520px;margin-bottom: 16px">
+                <h3 style="margin-bottom: 8px">@Store.Ui.Tr("إضافة تصنيف", "Add Category")</h3>
+                <AcField Label="@Store.Ui.Tr("الاسم بالعربية", "Name (Arabic)")">
+                    <AcInput Value="@_newNameAr"
+                             Placeholder="@Store.Ui.Tr("مثال: مشروبات", "e.g. Beverages")"
+                             ValueChanged="@(v => _newNameAr = v ?? "")" />
+                </AcField>
+                <AcField Label="@Store.Ui.Tr("الاسم بالإنجليزية", "Name (English)")" Class="ac-mt-md">
+                    <AcInput Value="@_newNameEn"
+                             Placeholder="e.g. Beverages"
+                             ValueChanged="@(v => _newNameEn = v ?? "")" />
+                </AcField>
+                @if (!string.IsNullOrEmpty(_createMessage))
+                {
+                    <AcAlert Variant="@_createVariant" Message="@_createMessage" />
+                }
+                <div class="ac-mt-md">
+                    <AcButton Variant="primary"
+                              Text="@(_creating ? Store.Ui.Tr("جاري الإنشاء...", "Creating...") : Store.Ui.Tr("إضافة", "Add"))"
+                              Disabled="@_creating"
+                              OnClick="CreateCategory" />
+                </div>
+            </div>
+
+            @if (_categories.Count == 0)
+            {
+                <AcEmptyState IconName="tag" Title="@Store.Ui.Tr("لا توجد تصنيفات", "No categories found")" />
+            }
+            else
+            {
+                @foreach (var c in _categories)
+                {
+                    <div class="s-card acm-admin-row">
+                        <div class="acm-admin-info">
+                            <strong>@(Store.Ui.IsArabic ? c.NameAr : c.NameEn)</strong>
+                            @if (!string.IsNullOrEmpty(c.Description))
+                            {
+                                <span class="ac-text-muted">@c.Description</span>
+                            }
+                            <span class="ac-text-muted">@c.OfferCount @Store.Ui.Tr("عرض", "offers")</span>
+                        </div>
+                        <div class="acm-admin-actions">
+                            <AcBadge Text="@(c.IsActive ? Store.Ui.Tr("نشط", "Active") : Store.Ui.Tr("معطّل", "Disabled"))"
+                                     Variant="@(c.IsActive ? "success" : "muted")" />
+                            <AcButton Variant="danger" Size="sm"
+                                      Text="@Store.Ui.Tr("حذف", "Delete")"
+                                      OnClick="@(() => DeleteCategory(c))" />
+                        </div>
+                    </div>
+                }
+            }
+        </div>
+    }
+</AcAuthGuard>
+
+@code {
+    private List<CategoryApiRow> _categories = new();
+    private bool _loading = true;
+
+    private string _newNameAr = "";
+    private string _newNameEn = "";
+    private string? _createMessage;
+    private string _createVariant = "info";
+    private bool _creating;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        if (!Store.Auth.IsAuthenticated)
+        {
+            _loading = false;
+            StateHasChanged();
+            return;
+        }
+
+        var env = await Reader.GetAsync<List<CategoryApiRow>>("/api/admin/categories");
+        _categories = env.Data ?? new();
+        _loading = false;
+        StateHasChanged();
+    }
+
+    private async Task CreateCategory()
+    {
+        if (string.IsNullOrWhiteSpace(_newNameAr) || string.IsNullOrWhiteSpace(_newNameEn))
+        {
+            _createMessage = Store.Ui.Tr("يرجى تعبئة الاسم بالعربية والإنجليزية.", "Please fill in both Arabic and English names.");
+            _createVariant = "warning";
+            return;
+        }
+
+        _creating = true;
+        _createMessage = null;
+        try
+        {
+            var result = await Engine.ExecuteAsync<object>(
+                ClientOps.CreateCategory(_newNameAr, _newNameEn),
+                new { nameAr = _newNameAr, nameEn = _newNameEn });
+
+            if (result.Operation.Status == "Success")
+            {
+                _createMessage = Store.Ui.Tr("تم إنشاء التصنيف بنجاح!", "Category created successfully!");
+                _createVariant = "success";
+                _newNameAr = "";
+                _newNameEn = "";
+                // Reload categories
+                var env = await Reader.GetAsync<List<CategoryApiRow>>("/api/admin/categories");
+                _categories = env.Data ?? new();
+            }
+            else
+            {
+                _createMessage = result.Operation.ErrorMessage ?? result.Error?.Message
+                    ?? Store.Ui.Tr("فشل إنشاء التصنيف.", "Failed to create category.");
+                _createVariant = "danger";
+            }
+        }
+        catch (Exception ex)
+        {
+            _createMessage = ex.Message;
+            _createVariant = "danger";
+        }
+        finally
+        {
+            _creating = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task DeleteCategory(CategoryApiRow c)
+    {
+        var result = await Engine.ExecuteAsync<object>(
+            ClientOps.DeleteCategory(c.Id),
+            new { categoryId = c.Id });
+        if (result.Operation.Status == "Success")
+        {
+            _categories.RemoveAll(x => x.Id == c.Id);
+            StateHasChanged();
+        }
+    }
+
+    private class CategoryApiRow
+    {
+        public Guid    Id          { get; set; }
+        public string  NameAr      { get; set; } = "";
+        public string  NameEn      { get; set; } = "";
+        public string? Description { get; set; }
+        public bool    IsActive    { get; set; } = true;
+        public int     OfferCount  { get; set; }
+    }
+}
