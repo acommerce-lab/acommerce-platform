@@ -29,57 +29,37 @@
 
 ---
 
-## Phase 0 — Core model enhancements
+## Phase 0 — Core model enhancements — DONE
 
-Modifications to the OperationEngine and supporting libraries to formalize
-concepts discussed in the model definition.
+تحسينات OperationEngine لإضفاء الصفة الرسمية على مفاهيم النموذج.
 
-### 0.1 ProviderContract concept in OperationBuilder
+### 0.1 ProviderContract concept — DONE
 
-Add `.Requires<T>()` to the builder and `ctx.Provider<T>()` to the context.
-This makes the dependency declaration explicit in the entry definition
-rather than hidden inside the execute body.
+- `.Requires<T>()` على `OperationBuilder` و`AccountingBuilder`.
+- `ctx.Provider<T>()` اختصار واضح الاسم في `OperationContext`.
+- `RequiredContracts` في `Operation` + تحقّق `OpEngine` قبل Execute
+  يُفشل العملية إذا لم يُسجَّل المزوّد في DI.
 
-**Files to modify:**
-- `libs/backend/core/ACommerce.OperationEngine/Core/OperationBuilder.cs`
-  — add `Requires<T>()` method that records the contract type
-- `libs/backend/core/ACommerce.OperationEngine/Core/Operation.cs`
-  — add `RequiredContracts` list
-- `libs/backend/core/ACommerce.OperationEngine/Core/OperationContext.cs`
-  — add `Provider<T>()` convenience method (resolves from Services)
-- `libs/backend/core/ACommerce.OperationEngine/Core/OperationEngine.cs`
-  — validate that all required contracts are registered before Execute
-- `libs/backend/core/ACommerce.OperationEngine/Patterns/AccountingPattern.cs`
-  — expose `Requires<T>()` on AccountingBuilder
+الملفات: `Core/OperationBuilder.cs`, `Core/Operation.cs`,
+`Core/OperationContext.cs`, `Core/OperationEngine.cs`,
+`Patterns/AccountingPattern.cs`.
 
-**Does NOT change**: existing code continues to work. `Requires<T>()` is
-optional but recommended for new libraries.
+### 0.2 Entry journaling interceptor — DONE
 
-### 0.2 Entry journaling interceptor
+- `JournalInterceptor` (Post) يحفظ كل عملية غير مختومة (`sealed=true`
+  يُستثنى) في جدول `journal_entries`.
+- الحقول: النوع، الحالة، النجاح، Timestamp، `PartiesJson`, `TagsJson`,
+  ParentOperationId.
+- مُنشأ ككتبة مستقلة `ACommerce.OperationEngine.Journal`.
 
-A built-in Post interceptor that persists the entry itself (type, parties,
-tags, result, timestamp) to a journal table. This enables:
-- Audit trail without custom interceptors per app
-- Account queries (all parties where identity = X)
-- Replay and debugging
+Opt-in عبر `services.AddOperationJournal()`.
 
-**Files to create:**
-- `libs/backend/core/ACommerce.OperationEngine.Interceptors/JournalInterceptor.cs`
-- `libs/backend/core/ACommerce.SharedKernel.Abstractions/Entities/JournalEntry.cs`
+### 0.3 Account query API — DONE
 
-**Registration**: opt-in via `services.AddOperationJournal()`.
-
-### 0.3 Account query API
-
-Given the journal from 0.2, add a query layer:
 - `IAccountQuery.GetPartiesAsync(identity, dateRange?, tags?)`
 - `IAccountQuery.GetBalanceAsync(identity, valueAggregator?)`
-
-This makes "accounts" (half-entries) a first-class queryable concept.
-
-**Files to create:**
-- `libs/backend/core/ACommerce.OperationEngine/Accounts/IAccountQuery.cs`
-- `libs/backend/core/ACommerce.OperationEngine/Accounts/JournalAccountQuery.cs`
+- `JournalAccountQuery` فوق `IBaseAsyncRepository<JournalEntry>`.
+- مسجَّل تلقائياً ضمن `AddOperationJournal()`.
 
 ---
 
