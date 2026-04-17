@@ -97,20 +97,19 @@ public class AshareSeeder
 
         // 3) Fetch all listing pages
         var apiListings = new List<JsonElement>();
+        const int pageSize = 100;
         var page = 1;
         while (true)
         {
-            var json = await http.GetStringAsync($"/api/listings?page={page}&pageSize=100", ct);
+            var json = await http.GetStringAsync($"/api/listings?page={page}&pageSize={pageSize}", ct);
             var doc = JsonDocument.Parse(json);
-
-            // Handle OperationEnvelope<PagedResult<T>>: data.items
-            // or plain array, or data as array
             var items = ExtractItems(doc.RootElement);
             if (items.Count == 0) break;
             apiListings.AddRange(items);
 
+            // Plain array response has no hasNextPage — use count heuristic
             var hasNext = TryGetBool(doc.RootElement, "data", "hasNextPage");
-            if (!hasNext) break;
+            if (!hasNext && items.Count < pageSize) break;
             page++;
         }
 
@@ -171,23 +170,25 @@ public class AshareSeeder
 
     private static List<JsonElement> ExtractItems(JsonElement root)
     {
-        // Try: { data: { items: [...] } }  (OperationEnvelope<PagedResult>)
-        if (root.TryGetProperty("data", out var data))
-        {
-            if (data.ValueKind == JsonValueKind.Object && data.TryGetProperty("items", out var items)
-                && items.ValueKind == JsonValueKind.Array)
-                return items.EnumerateArray().ToList();
-
-            // Try: { data: [...] }  (OperationEnvelope<List>)
-            if (data.ValueKind == JsonValueKind.Array)
-                return data.EnumerateArray().ToList();
-        }
-
-        // Try: plain array
+        // Plain array response: [{...}, {...}]
         if (root.ValueKind == JsonValueKind.Array)
             return root.EnumerateArray().ToList();
 
-        // Try: { items: [...] }
+        if (root.ValueKind != JsonValueKind.Object)
+            return new();
+
+        // OperationEnvelope<PagedResult>: { data: { items: [...] } }
+        if (root.TryGetProperty("data", out var data))
+        {
+            if (data.ValueKind == JsonValueKind.Array)
+                return data.EnumerateArray().ToList();
+
+            if (data.ValueKind == JsonValueKind.Object && data.TryGetProperty("items", out var items)
+                && items.ValueKind == JsonValueKind.Array)
+                return items.EnumerateArray().ToList();
+        }
+
+        // { items: [...] }
         if (root.TryGetProperty("items", out var topItems) && topItems.ValueKind == JsonValueKind.Array)
             return topItems.EnumerateArray().ToList();
 
