@@ -101,13 +101,17 @@ public class AshareSeeder
         var page = 1;
         while (true)
         {
-            var json = await http.GetStringAsync($"/api/listings?page={page}&pageSize={pageSize}", ct);
+            var url = $"/api/listings?page={page}&pageSize={pageSize}";
+            var json = await http.GetStringAsync(url, ct);
+            if (page == 1)
+                Log.Information("GET {Url} → {Len} bytes. Preview: {Preview}",
+                    url, json.Length, json.Length > 500 ? json[..500] : json);
+
             var doc = JsonDocument.Parse(json);
             var items = ExtractItems(doc.RootElement);
             if (items.Count == 0) break;
             apiListings.AddRange(items);
 
-            // Plain array response has no hasNextPage — use count heuristic
             var hasNext = TryGetBool(doc.RootElement, "data", "hasNextPage");
             if (!hasNext && items.Count < pageSize) break;
             page++;
