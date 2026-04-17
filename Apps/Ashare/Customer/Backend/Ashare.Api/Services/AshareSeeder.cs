@@ -41,13 +41,13 @@ public class AshareSeeder
 
     public async Task SeedAsync(CancellationToken ct = default)
     {
-        Log.Information(">>> AshareSeeder.SeedAsync starting");
+        Log.Debug("AshareSeeder.SeedAsync starting");
         await SeedCategoriesAsync(ct);
         await SeedUsersAsync(ct);
         await SeedListingsFromProductionAsync(ct);
         await SeedPlansAsync(ct);
         await SeedDefaultSubscriptionsAsync(ct);
-        Log.Information(">>> AshareSeeder.SeedAsync finished");
+        Log.Debug("AshareSeeder.SeedAsync finished");
     }
 
     // ─── Listings: production API first, fallback to local seed ───
@@ -56,14 +56,14 @@ public class AshareSeeder
     {
         var repo = _repoFactory.CreateRepository<Listing>();
         var existingCount = await repo.CountAsync(cancellationToken: ct);
-        Log.Information(">>> SeedListings: existing listings = {Count}", existingCount);
+        Log.Debug("SeedListings: existing listings = {Count}", existingCount);
 
         // Always try production API — even if seed data exists, replace with real data
-        Log.Information(">>> SeedListings: calling FetchFromProductionAsync...");
+        Log.Debug("SeedListings: calling FetchFromProductionAsync");
         try
         {
             var (listings, owners) = await FetchFromProductionAsync(ct);
-            Log.Information(">>> SeedListings: fetched {L} listings + {O} owners", listings.Count, owners.Count);
+            Log.Debug("SeedListings: fetched {L} listings + {O} owners", listings.Count, owners.Count);
             if (listings.Count > 0)
             {
                 var userRepo = _repoFactory.CreateRepository<User>();
@@ -79,18 +79,18 @@ public class AshareSeeder
                         await repo.AddAsync(listing, ct);
                 }
 
-                Log.Information(">>> SeedListings: saved production listings (new={New}, total={Total})",
+                Log.Information("Seeded production listings (new={New}, total={Total})",
                     listings.Count, existingCount + listings.Count);
                 return;
             }
         }
         catch (Exception ex)
         {
-            Log.Error(ex, ">>> SeedListings: production fetch FAILED — falling back to local");
+            Log.Warning(ex, "Production API fetch failed — using local seed data");
         }
 
         if (existingCount > 0) return;
-        Log.Information(">>> SeedListings: using local seed data");
+        Log.Debug("SeedListings: using local seed data");
         var now = DateTime.UtcNow;
         await repo.AddRangeAsync(AshareListingsSeed.All(now, UserIds.OwnerAhmed), ct);
     }
@@ -127,8 +127,7 @@ public class AshareSeeder
             var url = $"/api/listings?page={page}&pageSize={pageSize}";
             var json = await http.GetStringAsync(url, ct);
             if (page == 1)
-                Log.Information("GET {Url} → {Len} bytes. Preview: {Preview}",
-                    url, json.Length, json.Length > 500 ? json[..500] : json);
+                Log.Debug("GET {Url} → {Len} bytes", url, json.Length);
 
             var doc = JsonDocument.Parse(json);
             var items = ExtractItems(doc.RootElement);

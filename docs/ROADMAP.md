@@ -237,7 +237,7 @@ deployments.
 
 ---
 
-## Phase B — Dynamic Attributes (Ashare) + Legacy Migration
+## Phase B — Dynamic Attributes (Ashare) + Production Data Integration
 
 ### B.1 Template + Snapshot model — DONE
 
@@ -246,31 +246,40 @@ deployments.
 - 5 قوالب فئات في `AshareCategoryTemplates` (Residential, LookingForHousing,
   LookingForPartner, Administrative, Commercial).
 - Widgets: `AcDynamicAttributeField`, `AcDynamicAttributesView`.
+- راجع `docs/DYNAMIC-ATTRIBUTES.md` للتفاصيل.
 
 ### B.2 SQLite dev schema drift guard — DONE
 
 `SqliteSchemaGuard` يحسب بصمة SHA-256 من أسماء الجداول + الأعمدة + الأنواع،
 ويعيد بناء ملف SQLite عند الاختلاف. مُدمج في Program.cs لـ 5 تطبيقات.
 
-### B.3 Legacy migrator tool — DONE
+### B.3 Legacy migrator tool — DEPRECATED
 
-`tools/AshareMigrator/` console app يقرأ من SQL Server الإنتاجي القديم ويكتب
-إلى SQLite محلي بالصيغة الجديدة:
+> **مُهجور**: استُبدل بـ B.4 (السيدر يجلب من API مباشرةً).
+> الكود لا يزال في `tools/_archive/AshareMigrator/` للحالات التي لا يتوفر
+> فيها API إنتاجي (مثل الترحيل من SQL Server مباشرةً).
 
-- Legacy/Target DbContexts مفصولان (cross-DB).
-- Mappers: Category, User (+ Profile), Listing, Booking, Plan, Subscription.
-- **مبدأ "لا حذف بيانات"**: أي مفتاح صفات قديم غير موجود في قالب الفئة الجديدة
-  يُحفظ حرفياً في اللقطة كـ `DynamicAttribute` إضافي بنوع مُستنتَج.
-- idempotent: يتخطى الصفوف الموجودة بنفس Id.
-- يدعم `--truncate` لإعادة التنفيذ من الصفر.
-- سلسلة الاتصال مع كلمة المرور تُطبع مُخفّاة.
+### B.4 Production API backfill via seeder — DONE
 
-### B.4 Parity run + visual comparison — NEXT
+`AshareSeeder.SeedListingsFromProductionAsync` يجلب العروض من
+`https://api.ashare.sa/api/listings` عند كل تشغيل:
 
-- تشغيل الترحيل على بيانات إنتاج عشير الحقيقية.
-- توجيه `Ashare.Api` المحلي إلى ملف SQLite الناتج.
-- مقارنة سلوك القراءة/العرض (قوائم، تفاصيل، فلاتر) مع النسخة القديمة.
-- توثيق أي فجوات في جدول.
+- يتعامل مع الاستجابة كمصفوفة JSON خام (لا OperationEnvelope).
+- `images` مصفوفة أصلية → CSV.
+- `attributes` كائن أصلي → لقطة DynamicAttribute مع قالب الفئة.
+- `status` نصي ("Active") → enum رقمي.
+- `vendorId` → `OwnerId` مع إنشاء مستخدمين بديلين.
+- **مبدأ "لا بتر"**: المفاتيح غير الموجودة في القالب تُحفظ كصفات إضافية.
+- عند فشل الاتصال → يعود لبيانات البذر المحلية.
+
+### B.5 Template adaptation log
+
+القوالب تتكيّف مع بيانات الإنتاج الحقيقية بدلاً من فرض شكل جديد:
+
+| تاريخ | تغيير | سبب |
+|---|---|---|
+| 2026-04-17 | `amenities` → `features` | الإنتاج يستخدم `features` |
+| 2026-04-17 | إضافة `requires_license`, `has_owner_license` | حقول يستخدمها صاحب المصلحة |
 
 ---
 
@@ -320,3 +329,12 @@ algebraic structure section. Target: workshop paper or technical report.
 - ROADMAP.md — comprehensive modification plan
 - CLAUDE.md — unified agent onboarding
 - Documentation cleanup (removed obsolete split/test/restructuring plans)
+
+### Session 4 (dynamic attributes + production data integration)
+- Phase B Dynamic Attributes: Template + Snapshot in SharedKernel
+- SqliteSchemaGuard: SHA-256 fingerprint auto-rebuild for dev DBs
+- AshareMigrator (built then deprecated — replaced by seeder approach)
+- AshareSeeder fetches real listings from api.ashare.sa at startup
+- Template adaptation: amenities→features, +requires_license, +has_owner_license
+- Principle established: "adapt to real data, never bend it"
+- DYNAMIC-ATTRIBUTES.md, SEEDING.md expansion, RUNTIME-FINDINGS.md additions

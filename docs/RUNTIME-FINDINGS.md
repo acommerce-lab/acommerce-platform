@@ -145,3 +145,43 @@ alone caught:
 
 Static verification and runtime verification are **complements**, not
 substitutes. Removing either one re-opens the class of bugs it catches.
+
+---
+
+## Session 4 — Production Data Integration Findings
+
+### Finding #4.1 — `JsonElement.TryGetProperty` throws on arrays
+
+**Symptom**: `InvalidOperationException: requires element of type 'Object',
+but target element has type 'Array'` — appeared 3 separate times during
+production API integration.
+
+**Root cause**: `TryGetProperty` does NOT return false on non-Object elements.
+It throws. The name `Try...` suggests safe behavior but it isn't.
+
+**Fix**: Always guard with `ValueKind == JsonValueKind.Object` before calling
+`TryGetProperty`. This applies to every helper that navigates JSON trees.
+
+### Finding #4.2 — PowerShell `.ps1` encoding on Arabic Windows
+
+**Symptom**: PowerShell parser errors with garbled Arabic text in comments/strings.
+
+**Root cause**: PowerShell reads `.ps1` files using the system code page
+(Windows-1256 on Arabic Windows), not UTF-8. UTF-8 encoded Arabic becomes
+garbage that breaks string terminators.
+
+**Fix**: Use ASCII-only text in `.ps1` files, or save with UTF-8 BOM.
+
+### Finding #4.3 — `EnsureCreatedAsync` is all-or-nothing on existing databases
+
+**Symptom**: Migrated SQLite file with 7 tables → Ashare.Api needs 14 →
+`EnsureCreatedAsync` sees existing tables → creates nothing → queries for
+missing tables crash.
+
+**Root cause**: `EnsureCreated` checks if the database file exists (not if
+individual tables exist). If the database exists, it returns false and
+creates nothing new, even if the model has more tables than the file.
+
+**Lesson**: When combining pre-populated data with a new schema, either
+ensure the file has ALL expected tables, or use `GenerateCreateScript()`
++ execute each `CREATE TABLE` individually (swallowing "already exists").
