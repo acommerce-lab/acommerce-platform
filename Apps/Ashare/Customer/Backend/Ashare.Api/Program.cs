@@ -477,6 +477,34 @@ try
     // we still run the seeder below.
     try { await db.Database.EnsureCreatedAsync(); }
     catch (Exception schemaEx) { Log.Information(schemaEx, "Schema already created by another service — continuing"); }
+
+    // عند استخدام ملف مُرحَّل من الإنتاج: القاعدة موجودة لكن بعض الجداول ناقصة
+    // (Payment, Notification, Conversation... لا توجد في الإنتاج القديم).
+    // نُنشئ الجداول الناقصة فقط، دون لمس الموجودة أو بياناتها.
+    if (skipGuard && Microsoft.EntityFrameworkCore.SqliteDatabaseFacadeExtensions.IsSqlite(db.Database))
+    {
+        try
+        {
+            var script = Microsoft.EntityFrameworkCore.RelationalDatabaseFacadeExtensions.GenerateCreateScript(db.Database);
+            var statements = script.Split(';', StringSplitOptions.RemoveEmptyEntries)
+                .Select(s => s.Trim())
+                .Where(s => s.Length > 0 && s.StartsWith("CREATE", StringComparison.OrdinalIgnoreCase));
+            var createdCount = 0;
+            foreach (var stmt in statements)
+            {
+                try
+                {
+                    await Microsoft.EntityFrameworkCore.RelationalDatabaseFacadeExtensions
+                        .ExecuteSqlRawAsync(db.Database, stmt);
+                    createdCount++;
+                }
+                catch (Microsoft.Data.Sqlite.SqliteException ex) when (ex.Message.Contains("already exists")) { /* ok */ }
+            }
+            Log.Information("Created {Count} missing tables/indexes on migrated DB", createdCount);
+        }
+        catch (Exception ex) { Log.Warning(ex, "Failed to create missing tables"); }
+    }
+
     if (!skipGuard)
         ACommerce.SharedKernel.Infrastructure.EFCores.SqliteSchemaGuard.StampFingerprint(db);
     Log.Information("Ashare.Api database schema ready");
