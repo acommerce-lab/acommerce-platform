@@ -45,11 +45,14 @@ public static class Program
             return 1;
         }
 
-        Console.WriteLine($"📡 المصدر : (SQL Server) {MaskConn(srcConn)}");
+        // أزل إعدادات الـ Pool من سلسلة مصدر — أداة ترحيل تعمل باتصال واحد فقط
+        var srcConnClean = StripPoolSettings(srcConn);
+
+        Console.WriteLine($"📡 المصدر : (SQL Server) {MaskConn(srcConnClean)}");
         Console.WriteLine($"💾 الهدف  : (SQLite)     {dstConn}");
 
         var srcOptions = new DbContextOptionsBuilder<LegacyDbContext>()
-            .UseSqlServer(srcConn)
+            .UseSqlServer(srcConnClean, o => o.CommandTimeout(120))
             .Options;
 
         EnsureDirectoryForSqlite(dstConn);
@@ -60,6 +63,20 @@ public static class Program
 
         await using var src = new LegacyDbContext(srcOptions);
         await using var dst = new TargetDbContext(dstOptions);
+
+        Console.Write("🔌 اختبار الاتصال بـ SQL Server... ");
+        try
+        {
+            await src.Database.OpenConnectionAsync();
+            await src.Database.CloseConnectionAsync();
+            Console.WriteLine("نجح.");
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"\n✖ تعذّر الاتصال بـ SQL Server:\n  {ex.Message}");
+            Console.Error.WriteLine("  تحقق من عنوان الخادم، بيانات الاعتماد، وإمكانية الوصول الشبكي.");
+            return 3;
+        }
 
         Console.WriteLine("🔧 التأكد من إنشاء قاعدة البيانات الهدف...");
         await dst.Database.EnsureCreatedAsync();
@@ -272,7 +289,6 @@ public static class Program
 
     private static string MaskConn(string conn)
     {
-        // يخفي أي Password=...; أو Pwd=...; في سلسلة الاتصال قبل الطباعة
         var parts = conn.Split(';', StringSplitOptions.RemoveEmptyEntries);
         var masked = parts.Select(p =>
         {
@@ -285,6 +301,25 @@ public static class Program
             return p;
         });
         return string.Join(";", masked);
+    }
+
+    // أزل Min/Max Pool Size و Connect Timeout القصير من السلسلة.
+    // الأداة لا تحتاج pool — اتصال واحد يكفي، والـ timeout يُحدَّد عبر CommandTimeout.
+    private static readonly HashSet<string> PoolKeys = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "Min Pool Size", "Max Pool Size", "Pooling", "Connection Lifetime",
+        "Connection Reset", "Load Balance Timeout", "Connect Timeout",
+    };
+
+    private static string StripPoolSettings(string conn)
+    {
+        var parts = conn.Split(';', StringSplitOptions.RemoveEmptyEntries);
+        var kept = parts.Where(p =>
+        {
+            var kv = p.Split('=', 2);
+            return kv.Length != 2 || !PoolKeys.Contains(kv[0].Trim());
+        });
+        return string.Join(";", kept);
     }
 
     private static void EnsureDirectoryForSqlite(string connString)
