@@ -224,6 +224,7 @@ public class AshareSeeder
 
     private static bool TryGetBool(JsonElement root, string prop1, string prop2)
     {
+        if (root.ValueKind != JsonValueKind.Object) return false;
         if (root.TryGetProperty(prop1, out var p1) && p1.TryGetProperty(prop2, out var p2)
             && p2.ValueKind is JsonValueKind.True or JsonValueKind.False)
             return p2.GetBoolean();
