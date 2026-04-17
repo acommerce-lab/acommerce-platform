@@ -156,19 +156,20 @@ public static class Program
     {
         Console.Write("👤 المستخدمون + الملفات الشخصية... ");
 
-        // لا يوجد جدول Users في المصدر — نبني المستخدمين من Profile.UserId
+        // لا يوجد جدول Users في المصدر — نبني المستخدمين من Profile
+        // Profile.UserId نص (nvarchar) → نحوّله إلى Guid
         var profiles = await src.Profiles.AsNoTracking().ToListAsync();
         var vendors = await src.Vendors.AsNoTracking().ToListAsync();
         var vendorProfileIds = vendors.Select(v => v.ProfileId).ToHashSet();
 
-        // userId → userId (identity map — نحتاجه لاحقاً للحجوزات)
-        var userMap = profiles.ToDictionary(p => p.UserId, p => p.UserId);
-
         var existingUserIds = await dst.Users.Select(u => u.Id).ToHashSetAsync();
         var newUsers = new List<NewUser>();
+        var userMap = new Dictionary<Guid, Guid>();
         foreach (var p in profiles)
         {
-            if (existingUserIds.Contains(p.UserId)) continue;
+            var userId = UserMapper.ParseUserId(p);
+            userMap[userId] = userId;
+            if (existingUserIds.Contains(userId)) continue;
             var isOwner = vendorProfileIds.Contains(p.Id);
             newUsers.Add(UserMapper.MapFromProfile(p, isOwner));
         }
@@ -190,7 +191,7 @@ public static class Program
         foreach (var v in vendors)
         {
             var profile = profiles.FirstOrDefault(p => p.Id == v.ProfileId);
-            if (profile != null) vendorToUser[v.Id] = profile.UserId;
+            if (profile != null) vendorToUser[v.Id] = UserMapper.ParseUserId(profile);
         }
 
         Console.WriteLine($"{profiles.Count} ملف شخصي، {newUsers.Count} مستخدم مضاف، {newProfiles.Count} ملف مضاف.");

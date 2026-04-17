@@ -7,48 +7,55 @@ public static class UserMapper
 {
     /// <summary>
     /// يبني NewUser من LegacyProfile (لا يوجد جدول Users في المصدر).
-    /// PhoneNumber يُعبَّأ بـ UserId.ToString() كقيمة placeholder.
+    /// Profile.UserId نص — يُحوَّل إلى Guid؛ إذا فشل يُستخدم Profile.Id.
     /// </summary>
-    public static NewUser MapFromProfile(LegacyProfile src, bool isOwner) => new()
+    public static NewUser MapFromProfile(LegacyProfile src, bool isOwner)
     {
-        Id = src.UserId,
-        CreatedAt = DateTime.SpecifyKind(src.CreatedAt, DateTimeKind.Utc),
-        UpdatedAt = src.UpdatedAt,
-        IsDeleted = false,
-        PhoneNumber = src.UserId.ToString(),
-        Email = null,
-        FullName = BuildFullName(src),
-        NationalId = null,
-        NafathVerified = false,
-        IsActive = true,
-        Role = isOwner ? "owner" : "customer",
-    };
+        var userId = ParseUserId(src);
+        return new NewUser
+        {
+            Id = userId,
+            CreatedAt = DateTime.SpecifyKind(src.CreatedAt, DateTimeKind.Utc),
+            UpdatedAt = src.UpdatedAt,
+            IsDeleted = false,
+            PhoneNumber = src.PhoneNumber ?? userId.ToString(),
+            Email = string.IsNullOrWhiteSpace(src.Email) ? null : src.Email,
+            FullName = src.FullName,
+            NationalId = null,
+            NafathVerified = false,
+            IsActive = src.IsActive,
+            Role = isOwner ? "owner" : "customer",
+        };
+    }
 
     public static NewProfile? MapProfile(LegacyProfile? src)
     {
         if (src == null) return null;
+        var userId = ParseUserId(src);
+        var (first, last) = SplitName(src.FullName);
         return new NewProfile
         {
             Id = src.Id,
             CreatedAt = DateTime.SpecifyKind(src.CreatedAt, DateTimeKind.Utc),
             UpdatedAt = src.UpdatedAt,
             IsDeleted = false,
-            UserId = src.UserId,
-            FirstName = src.FirstName,
-            LastName = src.LastName,
-            AvatarUrl = src.AvatarUrl,
-            Bio = src.Bio,
+            UserId = userId,
+            FirstName = first,
+            LastName = last,
+            AvatarUrl = src.Avatar,
             City = src.City,
             Country = src.Country,
-            PreferredLanguage = src.PreferredLanguage ?? "ar",
+            PreferredLanguage = "ar",
         };
     }
 
-    private static string? BuildFullName(LegacyProfile profile)
+    public static Guid ParseUserId(LegacyProfile p)
+        => Guid.TryParse(p.UserId, out var uid) ? uid : p.Id;
+
+    private static (string?, string?) SplitName(string? fullName)
     {
-        var first = profile.FirstName?.Trim() ?? "";
-        var last = profile.LastName?.Trim() ?? "";
-        var full = $"{first} {last}".Trim();
-        return string.IsNullOrWhiteSpace(full) ? null : full;
+        if (string.IsNullOrWhiteSpace(fullName)) return (null, null);
+        var parts = fullName.Trim().Split(' ', 2);
+        return parts.Length == 1 ? (parts[0], null) : (parts[0], parts[1]);
     }
 }
