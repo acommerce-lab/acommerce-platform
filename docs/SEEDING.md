@@ -116,3 +116,75 @@ OLD token from a PREVIOUS DB. Symptoms: "logged in" but no data loads.
 
 **Fix**: Always sign out BEFORE deleting the database, OR clear browser
 localStorage for `localhost:5801` before testing again.
+
+---
+
+## Production API Backfill (Ashare)
+
+### The Approach
+
+Instead of migrating from a database, the Ashare seeder fetches real listings
+from the production API (`api.ashare.sa`) at every startup. This means:
+
+- `SqliteSchemaGuard` deletes and recreates the DB normally on schema drift.
+- The seeder seeds local categories + users first, then calls the production API.
+- Production listings are added alongside local seed data (deduplicated by ID).
+- If the API is unreachable, the seeder falls back to hardcoded local data.
+
+### Why Not a Migrator Tool?
+
+We built `tools/AshareMigrator/` (a console app that reads SQL Server and
+writes to SQLite) but abandoned it because:
+
+1. Required manual file copying between the migrator output and Ashare.Api.
+2. `EnsureCreatedAsync` is all-or-nothing — doesn't create missing tables.
+3. `SqliteSchemaGuard` deletes the file on schema drift, losing migrated data.
+4. The seeder approach is zero-config: just run Ashare.Api and it pulls data.
+
+### Handling Production Data Shape
+
+The production API returns a **plain JSON array** (no OperationEnvelope wrapper):
+
+```json
+[
+  {
+    "id": "...",
+    "vendorId": "...",       // maps to OwnerId
+    "images": ["url1", ...], // native array, not JSON string
+    "attributes": { ... },   // native object, not JSON string
+    "status": "Active",      // string, not int
+    ...
+  }
+]
+```
+
+The seeder's `MapListing` handles all format differences:
+
+- `images` array → `ImagesCsv` (comma-separated)
+- `attributes` object → `DynamicAttributesJson` (snapshot via template)
+- `status` string → `ListingStatus` enum
+- Entity-level fields (`is_phone_allowed`, `license_number`, `duration`) are
+  extracted from inside the `attributes` object where the production stores them.
+
+### The "No Data Cut" Rule
+
+Any attribute key from the production `attributes` object that doesn't match
+a template field is preserved as a raw `DynamicAttribute` with an inferred type.
+The new system adapts to the stakeholder's data shape, never the reverse.
+
+### `JsonElement.TryGetProperty` Safety
+
+`TryGetProperty` **throws** `InvalidOperationException` on array elements
+instead of returning false. Always check `ValueKind != JsonValueKind.Object`
+before calling it. This caught us three separate times during development.
+
+### Ashare Demo Credentials
+
+| Role | Phone | UserId |
+|------|-------|--------|
+| Owner (Ahmed) | +966500000001 | `00000000-0000-0000-0001-000000000001` |
+| Customer (Sara) | +966500000002 | `00000000-0000-0000-0001-000000000002` |
+| Admin | +966500000003 | `00000000-0000-0000-0001-000000000003` |
+
+Production owners are created as placeholder `User` entities with
+`Role = "owner"` and their production `vendorId` as the user ID.

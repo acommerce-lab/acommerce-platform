@@ -1,4 +1,13 @@
-# AshareMigrator
+# AshareMigrator — DEPRECATED
+
+> **مُهجور**: استُبدل بنهج أبسط — السيدر في `Ashare.Api` يجلب العروض مباشرةً
+> من API الإنتاجي (`api.ashare.sa`) عند بدء التشغيل. راجع `docs/SEEDING.md`
+> قسم "Production API Backfill".
+>
+> هذه الأداة لا تزال صالحة للاستخدام إذا كنت بحاجة إلى ترحيل من SQL Server
+> مباشرةً بدون API إنتاجي متاح.
+
+---
 
 أداة ترحيل بيانات عشير من قاعدة SQL Server الإنتاجية القديمة إلى قاعدة SQLite محلية بالصيغة الجديدة (Dynamic Attributes + OAM).
 

@@ -63,6 +63,17 @@ Brand overrides go in the app's `wwwroot/app.css` on `:root`.
 Load auth-dependent data in `OnAfterRenderAsync(firstRender: true)` after
 `await Auth.EnsureRestoredAsync()`. Not in `OnInitializedAsync`.
 
+### Law 6 — Adapt to real data, never bend it
+
+When integrating with an existing production system, the NEW platform adapts
+to the shape of production data — not the other way around. If the
+stakeholder's listings use `features` instead of `amenities`, rename the
+template. If the production API returns a plain array instead of
+OperationEnvelope, handle both. Any attribute key not in the template is
+preserved as a raw `DynamicAttribute` entry. We serve the stakeholder's
+existing data exactly as they expect it; the platform is a tool, not an
+authority over business data.
+
 ## Constraint vocabulary — when to use what
 
 | Tool | When | Example |
