@@ -1,36 +1,26 @@
 @namespace ACommerce.Templates.Marketplace
 
 @*
-    AcMarketplaceHomePage — صفحة رئيسية لتطبيق سوق (مستوحاة من تصميم عشير).
+    AcMarketplaceHomePage — صفحة رئيسيّة لتطبيق سوق.
+    بنية مطابقة لـ Ashare/Apps/Ashare.Shared/Components/Pages/Home.razor:
+      ├─ AcHeroBanner (logo + title + subtitle + AcSearchBox)
+      ├─ Categories (AcHScroll of AcCategoryTile)
+      ├─ AcCtaCard (لديك غرفة للمشاركة؟)
+      ├─ Featured spaces (AcHScroll of AcSpaceCard)
+      ├─ New spaces (grid of AcSpaceCard)
+      └─ Quick actions (2x AcActionCard)
 
-    Operation-aware:
-      - Engine : ITemplateEngine يُصدر عمليات (entries) للخادم.
-      - Store  : ITemplateStore لقراءة اللغة/السمة.
-      - Data   : MarketplaceHomeDto يُقرأ من ApiReader قبل الرسم.
-
-    العمليات التي يُصدرها:
-      - catalog.search       (عند الإرسال من AcSearchBox)
-      - category.select      (عند نقر AcCategoryTile)
-      - listing.favorite     (عند قلب القلب في AcSpaceCard)
-      - listing.view         (عند فتح بطاقة)
-      - listing.view_all     (عند نقر "عرض الكل")
-
-    تصميم بلا كود-خلف: كل تفاعل يُحوَّل إلى Entry ويُرسَل عبر Engine.
+    Operation-aware: كل إجراء يُصدِر Entry عبر ITemplateEngine.
 *@
 
 <div class="acs-page acm-home">
 
-    <header class="acm-home-hero">
-        <h1 class="acm-home-title">@Title</h1>
-        @if (!string.IsNullOrEmpty(Subtitle))
-        {
-            <p class="acm-home-subtitle">@Subtitle</p>
-        }
+    <AcHeroBanner Title="@Title" Subtitle="@Subtitle" LogoContent="@LogoContent">
         <AcSearchBox Placeholder="@SearchPlaceholder"
                      Value="@_query"
                      ValueChanged="v => _query = v"
                      OnSubmit="SubmitSearch" />
-    </header>
+    </AcHeroBanner>
 
     @if (Data is null)
     {
@@ -51,6 +41,15 @@
             </AcHScroll>
         }
 
+        @if (!string.IsNullOrEmpty(CtaTitle))
+        {
+            <AcCtaCard Title="@CtaTitle"
+                       Subtitle="@CtaSubtitle"
+                       IconName="@CtaIcon"
+                       Variant="secondary"
+                       OnClick="OnCtaClicked" />
+        }
+
         @if (Data.Featured.Count > 0)
         {
             <AcSectionHeader Title="@FeaturedTitle"
@@ -63,8 +62,10 @@
                         <AcSpaceCard Title="@l.Title"
                                      ImageUrl="@l.ThumbnailUrl"
                                      Location="@LocationText(l)"
+                                     Capacity="@l.Capacity"
+                                     Rating="@l.Rating"
                                      PriceLabel="@PriceText(l)"
-                                     Ribbon="@(l.IsFeatured ? "مميّز" : null)"
+                                     Ribbon="مميّز"
                                      IsFavorite="@IsFavorite(l.Id)"
                                      OnOpen="() => OpenListing(l)"
                                      OnToggleFavorite="on => ToggleFavorite(l, on)" />
@@ -84,12 +85,28 @@
                     <AcSpaceCard Title="@l.Title"
                                  ImageUrl="@l.ThumbnailUrl"
                                  Location="@LocationText(l)"
+                                 Capacity="@l.Capacity"
+                                 Rating="@l.Rating"
                                  PriceLabel="@PriceText(l)"
+                                 Ribbon="جديد"
                                  IsFavorite="@IsFavorite(l.Id)"
                                  OnOpen="() => OpenListing(l)"
                                  OnToggleFavorite="on => ToggleFavorite(l, on)" />
                 }
             </div>
+        }
+
+        @if (QuickActions is not null && QuickActions.Count > 0)
+        {
+            <section class="acm-home-actions">
+                @foreach (var a in QuickActions)
+                {
+                    <AcActionCard Label="@a.Label"
+                                  IconName="@a.Icon"
+                                  Variant="@a.Variant"
+                                  OnClick="@(() => OnQuickAction.InvokeAsync(a))" />
+                }
+            </section>
         }
 
         @if (Data.Categories.Count == 0 && Data.Featured.Count == 0 && Data.New.Count == 0)
@@ -105,13 +122,21 @@
     [Parameter] public ITemplateStore? Store { get; set; }
 
     [Parameter] public string Title { get; set; } = "ابحث عن سكنك المشترك";
-    [Parameter] public string? Subtitle { get; set; }
-    [Parameter] public string SearchPlaceholder { get; set; } = "ابحث في المدن والأحياء…";
+    [Parameter] public string Subtitle { get; set; } = "تطبيق السكن المشترك الأول في السعودية";
+    [Parameter] public RenderFragment? LogoContent { get; set; }
+    [Parameter] public string SearchPlaceholder { get; set; } = "ابحث عن سكن مشترك…";
+
     [Parameter] public string CategoriesTitle { get; set; } = "الفئات";
-    [Parameter] public string FeaturedTitle { get; set; } = "إعلانات مميّزة";
-    [Parameter] public string NewTitle { get; set; } = "جديد";
+    [Parameter] public string FeaturedTitle { get; set; } = "سكن مميّز";
+    [Parameter] public string NewTitle { get; set; } = "أُضيف حديثاً";
     [Parameter] public string ViewAllLabel { get; set; } = "عرض الكل";
     [Parameter] public string EmptyMessage { get; set; } = "لا توجد إعلانات حالياً";
+
+    [Parameter] public string? CtaTitle { get; set; } = "لديك غرفة أو شقة للمشاركة؟";
+    [Parameter] public string? CtaSubtitle { get; set; } = "أضف سكنك الآن وابدأ بالكسب من مشاركته مع الآخرين";
+    [Parameter] public string? CtaIcon { get; set; } = "house-add";
+
+    [Parameter] public IReadOnlyList<QuickActionDto>? QuickActions { get; set; }
     [Parameter] public ISet<string>? FavoriteIds { get; set; }
 
     [Parameter] public EventCallback<string?> OnSearch { get; set; }
@@ -119,6 +144,8 @@
     [Parameter] public EventCallback<ListingRowDto> OnListingOpen { get; set; }
     [Parameter] public EventCallback<(ListingRowDto Listing, bool On)> OnFavoriteToggled { get; set; }
     [Parameter] public EventCallback<string> OnViewAll { get; set; }
+    [Parameter] public EventCallback OnCtaClick { get; set; }
+    [Parameter] public EventCallback<QuickActionDto> OnQuickAction { get; set; }
 
     private string? _query;
 
@@ -195,4 +222,5 @@
     }
 
     private Task ViewAll(string section) => OnViewAll.InvokeAsync(section);
+    private Task OnCtaClicked() => OnCtaClick.InvokeAsync();
 }

@@ -91,9 +91,14 @@
       "min-values": { "padding": 6, "min-height": 32, "border-width": 1 }
     },
     ".ac-tile": {
-      "description": "Square category tile — icon + label. Needs visible bounds + padding so tapped area matches WCAG 2.5.5.",
-      "required": ["background", "border", "border-radius", "padding", "min-height"],
-      "min-values": { "padding": 8, "min-height": 72, "border-width": 1 }
+      "description": "Category tile wrapper — vertical stack of icon circle + label. The wrapper itself is transparent; the circle (.ac-tile-icon) carries the background. Only min-height matters for the tap target.",
+      "required": ["padding", "min-height"],
+      "min-values": { "padding": 4, "min-height": 72 }
+    },
+    ".ac-tile-icon": {
+      "description": "Category tile icon circle — pill-shaped filled with a tinted brand colour.",
+      "required": ["background", "border-radius", "min-height"],
+      "min-values": { "border-radius": 20, "min-height": 40 }
     },
     ".ac-space": {
       "description": "Listing / space preview card. Must visually contain image + body with border and radius.",
@@ -104,6 +109,21 @@
       "description": "Space card body — padding so text doesn't touch image edge.",
       "required": ["padding"],
       "min-values": { "padding": 8 }
+    },
+    ".ac-hero": {
+      "description": "Hero banner — must have a solid brand background + rounded corners + internal padding so the title reads against a visible surface.",
+      "required": ["background", "padding", "border-radius"],
+      "min-values": { "padding": 16, "border-radius": 8 }
+    },
+    ".ac-cta": {
+      "description": "CTA card — icon + title + subtitle; needs bold background, internal padding, rounded corners, and fingertip-sized min-height.",
+      "required": ["background", "padding", "border-radius", "min-height"],
+      "min-values": { "padding": 12, "border-radius": 8, "min-height": 56 }
+    },
+    ".ac-action": {
+      "description": "Quick-action tile — large tappable card; needs background, padding, rounded corners, and min-height.",
+      "required": ["background", "padding", "border-radius", "min-height"],
+      "min-values": { "padding": 12, "border-radius": 8, "min-height": 72 }
     }
   }
 }

@@ -3,8 +3,11 @@
 :root {
     --ac-primary:       #1E40AF;   /* Royal Blue */
     --ac-primary-hover: #1E3A8A;
-    --ac-secondary:     #F4844C;   /* Warm Orange */
-    --ac-secondary-hover:#E06D34;
+    /* Ashare mobile uses #F4844C but that fails WCAG AA (2.54:1 with
+       white text). Use a darker orange that still reads warm and passes
+       the 4.5:1 threshold on white.  */
+    --ac-secondary:     #B15215;   /* Deep Warm Orange — passes WCAG AA on #fff (≥4.5:1) */
+    --ac-secondary-hover:#994616;
     --ac-radius-sm: 8px;
     --ac-radius-md: 12px;
     --ac-radius-lg: 16px;
@@ -19,17 +22,51 @@ html, body {
     color: var(--ac-text);
 }
 
+/* Mobile-first: main is a single phone-sized column on narrow screens.
+   On desktop it widens to a centered card with a soft background. */
 main {
-    max-width: 960px;
+    max-width: 480px;
     margin: 0 auto;
-    padding: 16px;
+    padding: 12px;
+    min-height: 100vh;
 }
 
-/* Home-slice layout: no navbar/bottom-nav yet, so the page container
-   itself carries the shell look (surface + border). Layer 6's J-template
-   rule expects any approved shell to have a visible background. */
+@media (min-width: 768px) {
+    body { background: var(--ac-bg-alt); }
+    main {
+        max-width: 960px;
+        padding: 24px;
+    }
+}
+
+/* The .acs-page is approved as a shell by Layer 6, so it must have a
+   visible surface + border. On mobile it fills the viewport; on desktop
+   it becomes a card. */
 .acs-page {
     background: var(--ac-surface);
     border: 1px solid var(--ac-border);
     border-radius: var(--ac-radius-lg);
+}
+
+/* Brand mark rendered inside the hero LogoContent slot. Uses currentColor
+   against the hero background so it stays white. */
+.acm-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: #ffffff;
+}
+.acm-brand-mark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.18);
+}
+.acm-brand-text {
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
 }

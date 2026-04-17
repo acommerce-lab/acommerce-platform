@@ -1,10 +1,13 @@
 @namespace ACommerce.Widgets
 
 @*
-    AcCategoryTile — a square tile with an icon + short label.
+    AcCategoryTile — أيقونة دائريّة بخلفيّة مُظلَّلة + تسمية أسفلها.
 
-    Used in a horizontal scroller on a marketplace home (categories row).
-    Selected state is visual-only; the parent template decides routing.
+    بنية مطابقة لـ ashare-category-item في عشير القديم:
+      <button>
+        <span .ac-tile-icon />   ← دائرة بلون ‍currentColor بشفافيّة 12%
+        <span .ac-tile-label />
+      </button>
 
     CSS_CLASSES: ac-tile, ac-tile-icon, ac-tile-label, ac-tile-selected
 *@

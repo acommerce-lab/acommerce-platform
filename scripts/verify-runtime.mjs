@@ -421,6 +421,10 @@ async function verifyTextOverflow(page) {
             if (count >= max) break;
             const info = await el.evaluate(n => {
                 if (!n.offsetParent) return null;
+                // Intentional scroll containers (overflow-x: auto/scroll) legitimately
+                // have scrollWidth > clientWidth; they're carousels, rails, lists.
+                const s = getComputedStyle(n);
+                if (s.overflowX === 'auto' || s.overflowX === 'scroll') return null;
                 const overflowX = n.scrollWidth - n.clientWidth;
                 const overflowY = n.scrollHeight - n.clientHeight;
                 const text = (n.textContent || '').trim().slice(0, 40);
@@ -546,7 +550,8 @@ async function verifyUrl(browser, url) {
     currentUrlReport = { url, status: 'loaded', violations: [] };
     REPORT.urls.push(currentUrlReport);
 
-    const page = await browser.newPage({ viewport: { width: 1366, height: 900 } });
+    const [vw, vh] = (process.env.VIEWPORT || '1366x900').split('x').map(n => parseInt(n, 10) || 0);
+    const page = await browser.newPage({ viewport: { width: vw || 1366, height: vh || 900 } });
     try {
         await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 15000 });
         await page.waitForTimeout(800);

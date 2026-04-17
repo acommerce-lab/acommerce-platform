@@ -23,6 +23,12 @@ public sealed record ListingRowDto
     public string? ThumbnailUrl { get; init; }
     public string? OwnerName { get; init; }
     public string? OwnerAvatarUrl { get; init; }
+
+    /// <summary>عدد الأشخاص المستوعَب (للسكن المشترك) — يظهر بجانب أيقونة people.</summary>
+    public int? Capacity { get; init; }
+    /// <summary>متوسّط التقييم (0–5) — يظهر بجانب أيقونة star-fill.</summary>
+    public decimal? Rating { get; init; }
+
     public Dictionary<string, object?>? Extra { get; init; }
 }
 
@@ -129,3 +135,9 @@ public sealed record MarketplaceHomeDto
     public IReadOnlyList<ListingRowDto> Featured { get; init; } = Array.Empty<ListingRowDto>();
     public IReadOnlyList<ListingRowDto> New { get; init; } = Array.Empty<ListingRowDto>();
 }
+
+/// <summary>
+/// بطاقة إجراء سريعة في أسفل الصفحة الرئيسية (مثل: "ابحث عن شريك سكن").
+/// الـ Variant: "primary" | "secondary" | "surface".
+/// </summary>
+public sealed record QuickActionDto(string Id, string Label, string Icon, string Variant = "primary");

@@ -10,10 +10,26 @@
                        Engine="Engine"
                        Store="Store"
                        FavoriteIds="Store.FavoriteListingIds"
-                       OnFavoriteToggled="OnFavoriteToggled" />
+                       QuickActions="_quickActions"
+                       OnFavoriteToggled="OnFavoriteToggled">
+    <LogoContent>
+        <div class="acm-brand">
+            <span class="acm-brand-mark" aria-hidden="true">
+                <AcIcon Name="home" Size="24" />
+            </span>
+            <span class="acm-brand-text">عشير</span>
+        </div>
+    </LogoContent>
+</AcMarketplaceHomePage>
 
 @code {
     private MarketplaceHomeDto? _data;
+
+    private static readonly IReadOnlyList<QuickActionDto> _quickActions =
+    [
+        new("find-roommate", "ابحث عن شريك سكن", "search-heart", "primary"),
+        new("my-requests",   "طلباتي",            "house-heart",  "secondary")
+    ];
 
     protected override void OnInitialized()
     {
@@ -51,7 +67,9 @@
         District = l.District,
         Status = l.Status,
         IsFeatured = l.IsFeatured,
-        ThumbnailUrl = l.ThumbnailUrl
+        ThumbnailUrl = l.ThumbnailUrl,
+        Capacity = l.Capacity == 0 ? null : l.Capacity,
+        Rating = l.Rating == 0 ? null : l.Rating
     };
 
     private void OnFavoriteToggled((ListingRowDto Listing, bool On) e)
@@ -76,5 +94,5 @@
         string Id, string Title, string? Description, decimal Price, string Currency,
         string? TimeUnit, string? City, string? District, string? CategoryName,
         int Status, bool IsFeatured, int ViewCount, string? ThumbnailUrl,
-        string? OwnerName, string? OwnerAvatarUrl);
+        string? OwnerName, string? OwnerAvatarUrl, int Capacity, decimal Rating);
 }

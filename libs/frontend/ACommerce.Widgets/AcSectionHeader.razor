@@ -7,7 +7,7 @@
                  ac-section-action
 *@
 
-<header class="ac-section-header @(Class ?? "")">
+<div class="ac-section-header @(Class ?? "")">
     <div>
         <h2 class="ac-section-title">@Title</h2>
         @if (!string.IsNullOrEmpty(Subtitle))
@@ -22,7 +22,7 @@
             <AcIcon Name="chevron-left" Size="16" />
         </button>
     }
-</header>
+</div>
 
 @code {
     [Parameter, EditorRequired] public string Title { get; set; } = "";
