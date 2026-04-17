@@ -57,12 +57,8 @@ public class AshareSeeder
         var repo = _repoFactory.CreateRepository<Listing>();
         var existingCount = await repo.CountAsync(cancellationToken: ct);
         Log.Information(">>> SeedListings: existing listings = {Count}", existingCount);
-        if (existingCount > 0)
-        {
-            Log.Information(">>> SeedListings: skipping (already populated)");
-            return;
-        }
 
+        // Always try production API — even if seed data exists, replace with real data
         Log.Information(">>> SeedListings: calling FetchFromProductionAsync...");
         try
         {
@@ -71,9 +67,20 @@ public class AshareSeeder
             if (listings.Count > 0)
             {
                 var userRepo = _repoFactory.CreateRepository<User>();
-                await userRepo.AddRangeAsync(owners, ct);
-                await repo.AddRangeAsync(listings, ct);
-                Log.Information(">>> SeedListings: saved {Count} production listings", listings.Count);
+                foreach (var owner in owners)
+                {
+                    if (await userRepo.GetByIdAsync(owner.Id, ct) == null)
+                        await userRepo.AddAsync(owner, ct);
+                }
+
+                foreach (var listing in listings)
+                {
+                    if (await repo.GetByIdAsync(listing.Id, ct) == null)
+                        await repo.AddAsync(listing, ct);
+                }
+
+                Log.Information(">>> SeedListings: saved production listings (new={New}, total={Total})",
+                    listings.Count, existingCount + listings.Count);
                 return;
             }
         }
@@ -82,7 +89,8 @@ public class AshareSeeder
             Log.Error(ex, ">>> SeedListings: production fetch FAILED — falling back to local");
         }
 
-        Log.Information(">>> SeedListings: using local seed data (24 listings)");
+        if (existingCount > 0) return;
+        Log.Information(">>> SeedListings: using local seed data");
         var now = DateTime.UtcNow;
         await repo.AddRangeAsync(AshareListingsSeed.All(now, UserIds.OwnerAhmed), ct);
     }
