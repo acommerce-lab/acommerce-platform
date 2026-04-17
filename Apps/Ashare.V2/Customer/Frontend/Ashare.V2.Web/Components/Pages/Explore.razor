@@ -1,0 +1,121 @@
+@page "/explore"
+@inject AppStore Store
+@inject ApiReader Api
+@inject ITemplateEngine Engine
+@implements IDisposable
+
+<PageTitle>استكشف - عشير</PageTitle>
+
+<AcListingExplorePage Title="استكشف"
+                      Data="_listings"
+                      Categories="_categories"
+                      SelectedCategoryId="@_categoryId"
+                      Sort="@_sort"
+                      View="@_view"
+                      Filters="_filters"
+                      FavoriteIds="Store.FavoriteListingIds"
+                      Engine="Engine"
+                      Store="Store"
+                      OnCategorySelected="OnCategorySelected"
+                      OnSortChanged="OnSortChanged"
+                      OnViewChanged="OnViewChanged"
+                      OnFavoriteToggled="OnFavoriteToggled"
+                      OnFiltersApplied="OnFiltersApplied" />
+
+@code {
+    private IReadOnlyList<ListingRowDto>? _listings;
+    private IReadOnlyList<CategoryTileDto> _categories = Array.Empty<CategoryTileDto>();
+    private string? _categoryId;
+    private string _sort = "newest";
+    private string _view = "list";
+    private AcListingExplorePage.ExploreFilters _filters = new(null, null, 0, 0);
+
+    protected override void OnInitialized()
+    {
+        Store.OnChanged += OnChange;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await LoadCategoriesAsync();
+            await LoadListingsAsync();
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task LoadCategoriesAsync()
+    {
+        var env = await Api.GetAsync<HomeResponse>("/home/view");
+        if (env.Data is not null)
+        {
+            _categories = env.Data.Categories.Select(c =>
+                new CategoryTileDto { Id = c.Id, Label = c.Label, Icon = c.Icon }).ToList();
+        }
+    }
+
+    private async Task LoadListingsAsync()
+    {
+        var qs = BuildQueryString();
+        var env = await Api.GetAsync<List<ListingDto>>($"/home/explore{qs}");
+        _listings = env.Data?.Select(ToRow).ToList() ?? new List<ListingRowDto>();
+    }
+
+    private string BuildQueryString()
+    {
+        var parts = new List<string>();
+        if (!string.IsNullOrEmpty(_categoryId)) parts.Add($"category={_categoryId}");
+        if (_filters.MinPrice.HasValue) parts.Add($"priceMin={_filters.MinPrice}");
+        if (_filters.MaxPrice.HasValue) parts.Add($"priceMax={_filters.MaxPrice}");
+        if (_filters.Capacity > 0)      parts.Add($"capacity={_filters.Capacity}");
+        if (_filters.MinRating > 0)     parts.Add($"minRating={_filters.MinRating}");
+        parts.Add($"sort={_sort}");
+        return "?" + string.Join("&", parts);
+    }
+
+    private async Task OnCategorySelected(string? id)   { _categoryId = id; await LoadListingsAsync(); StateHasChanged(); }
+    private async Task OnSortChanged    (string? sort)  { _sort = sort ?? "newest"; await LoadListingsAsync(); StateHasChanged(); }
+    private void      OnViewChanged     (string? view)  { _view = view ?? "list"; StateHasChanged(); }
+    private async Task OnFiltersApplied (AcListingExplorePage.ExploreFilters f) { _filters = f; await LoadListingsAsync(); StateHasChanged(); }
+
+    private void OnFavoriteToggled((ListingRowDto Listing, bool On) e)
+    {
+        if (e.On) Store.FavoriteListingIds.Add(e.Listing.Id);
+        else      Store.FavoriteListingIds.Remove(e.Listing.Id);
+        Store.NotifyChanged();
+    }
+
+    private static ListingRowDto ToRow(ListingDto l) => new()
+    {
+        Id = l.Id,
+        Title = l.Title,
+        Description = l.Description,
+        Price = l.Price,
+        Currency = l.Currency,
+        TimeUnit = l.TimeUnit,
+        City = l.City,
+        District = l.District,
+        Status = l.Status,
+        IsFeatured = l.IsFeatured,
+        ThumbnailUrl = l.ThumbnailUrl,
+        Capacity = l.Capacity == 0 ? null : l.Capacity,
+        Rating = l.Rating == 0 ? null : l.Rating
+    };
+
+    private void OnChange() => InvokeAsync(StateHasChanged);
+    public void Dispose() => Store.OnChanged -= OnChange;
+
+    private sealed record HomeResponse(
+        List<CategoryDto> Categories,
+        List<ListingDto> Featured,
+        List<ListingDto> New);
+
+    private sealed record CategoryDto(string Id, string Label, string Icon);
+
+    private sealed record ListingDto(
+        string Id, string Title, string? Description, decimal Price, string Currency,
+        string? TimeUnit, string? City, string? District, string? CategoryName,
+        int Status, bool IsFeatured, int ViewCount, string? ThumbnailUrl,
+        string? OwnerName, string? OwnerAvatarUrl, int Capacity, decimal Rating);
+}

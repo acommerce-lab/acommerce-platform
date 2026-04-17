@@ -124,6 +124,31 @@
       "description": "Quick-action tile — large tappable card; needs background, padding, rounded corners, and min-height.",
       "required": ["background", "padding", "border-radius", "min-height"],
       "min-values": { "padding": 12, "border-radius": 8, "min-height": 72 }
+    },
+    ".ac-chip": {
+      "description": "Filter chip — pill-shaped button with toggleable active state. Needs visible bounds + tap target.",
+      "required": ["background", "border", "border-radius", "padding", "min-height"],
+      "min-values": { "padding": 6, "border-radius": 12, "min-height": 32, "border-width": 1 }
+    },
+    ".ac-sort-select": {
+      "description": "Sort dropdown — native select styled to match inputs.",
+      "required": ["background", "border", "padding", "min-height"],
+      "min-values": { "padding": 6, "min-height": 32, "border-width": 1 }
+    },
+    ".ac-viewtoggle-btn": {
+      "description": "View-toggle button — icon inside a bordered group; parent .ac-viewtoggle carries the visible frame, so individual buttons are transparent until active.",
+      "required": ["min-height"],
+      "min-values": { "min-height": 32 }
+    },
+    ".ac-sheet": {
+      "description": "Bottom sheet — slides from viewport bottom; must have surface + rounded top corners + shadow.",
+      "required": ["background", "border-radius"],
+      "min-values": { "border-radius": 12 }
+    },
+    ".ac-modal": {
+      "description": "Modal dialog — centred surface with header/body/footer; needs visible frame.",
+      "required": ["background", "border", "border-radius"],
+      "min-values": { "border-radius": 12, "border-width": 1 }
     }
   }
 }

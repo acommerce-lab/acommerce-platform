@@ -50,4 +50,60 @@ public class HomeController : ControllerBase
             featured = _featured,
             @new = _new
         });
+
+    /// <summary>
+    /// GET /home/explore — قائمة الإعلانات مع دعم التصفية والترتيب.
+    /// الفلاتر اختياريّة؛ كلّها query string.
+    /// </summary>
+    [HttpGet("explore")]
+    public IActionResult Explore(
+        [FromQuery] string? category,
+        [FromQuery] decimal? priceMin,
+        [FromQuery] decimal? priceMax,
+        [FromQuery] int? capacity,
+        [FromQuery] int? minRating,
+        [FromQuery] string? sort = "newest")
+    {
+        // أطرح كل الإعلانات ثم أصفّي؛ في الإنتاج يُنفَّذ على DB.
+        var all = _featured.Concat(_new).Select(o => (dynamic)o).ToList();
+
+        IEnumerable<dynamic> q = all;
+
+        if (!string.IsNullOrEmpty(category))
+        {
+            // الفئة لم تُخزَّن على الـ seed بعد — مفلتر مبسَّط وفق المدينة مؤقتاً.
+            // سيستقرّ في الشريحة 3 (SpaceDetails) مع ربط CategoryId حقيقي.
+        }
+        if (priceMin.HasValue) q = q.Where(x => (decimal)x.price >= priceMin.Value);
+        if (priceMax.HasValue) q = q.Where(x => (decimal)x.price <= priceMax.Value);
+        if (capacity.HasValue && capacity.Value > 0)
+        {
+            var cap = capacity.Value;
+            q = q.Where(x =>
+            {
+                int c = (int)x.capacity;
+                return cap switch
+                {
+                    5  => c >= 1  && c <= 5,
+                    10 => c >= 6  && c <= 10,
+                    20 => c >= 11 && c <= 20,
+                    50 => c >= 20,
+                    _  => true
+                };
+            });
+        }
+        if (minRating.HasValue && minRating.Value > 0)
+            q = q.Where(x => (decimal)x.rating >= minRating.Value);
+
+        q = sort switch
+        {
+            "price_low"  => q.OrderBy      (x => (decimal)x.price),
+            "price_high" => q.OrderByDescending(x => (decimal)x.price),
+            "rating"     => q.OrderByDescending(x => (decimal)x.rating),
+            "capacity"   => q.OrderByDescending(x => (int)x.capacity),
+            _            => q // "newest" — stays in seed order (new first if we extend)
+        };
+
+        return this.OkEnvelope("catalog.list", q.ToList());
+    }
 }

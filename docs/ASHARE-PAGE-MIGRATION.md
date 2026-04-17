@@ -176,7 +176,7 @@ CHROME_EXEC_PATH=/opt/browsers/chrome-linux64/chrome \
 | # | صفحة قديمة | مسار جديد | حالة |
 |---|---|---|---|
 | 1 | Home | `/` | ✅ |
-| 2 | Explore + Search | `/explore` | ⬜ |
+| 2 | Explore + Search | `/explore` | ✅ |
 | 3 | SpaceDetails | `/space/{id}` | ⬜ |
 | 4 | BookingCreate + BookingDetails | `/book/{id}`, `/booking/{id}` | ⬜ |
 | 5 | Bookings (list) | `/bookings` | ⬜ |

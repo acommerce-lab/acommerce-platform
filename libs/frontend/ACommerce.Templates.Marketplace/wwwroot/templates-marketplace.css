@@ -203,3 +203,98 @@
     .acm-home-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
     .acm-home-rail-item { width: 180px; }
 }
+
+/* ── Marketplace Explore (Ashare-inspired) ───────────────────────────── */
+.acm-explore { display: flex; flex-direction: column; gap: 12px; }
+.acm-explore-title {
+    font-size: 18px;
+    font-weight: 700;
+    margin: 0;
+    color: var(--ac-text);
+}
+
+.acm-explore-filterbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.acm-explore-chips { flex: 1; min-width: 0; }
+.acm-explore-filterbtn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border: 1px solid var(--ac-border);
+    background: var(--ac-surface);
+    color: var(--ac-primary);
+    border-radius: var(--ac-radius-md);
+    cursor: pointer;
+    flex-shrink: 0;
+    font-family: inherit;
+}
+.acm-explore-filterbtn:hover { background: var(--ac-bg-alt); }
+
+.acm-explore-sortbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 4px 0;
+}
+.acm-explore-count {
+    font-size: 13px;
+    color: var(--ac-text-muted);
+    font-weight: 500;
+}
+.acm-explore-sortbar-right {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.acm-explore-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 12px;
+}
+
+.acm-explore-map {
+    min-height: 300px;
+    padding: 24px;
+    background: var(--ac-bg-alt);
+    border: 1px solid var(--ac-border);
+    border-radius: var(--ac-radius-lg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.acm-explore-preview { padding: 8px 0 16px; }
+
+.acm-explore-filtersec { margin-bottom: 16px; }
+.acm-explore-filtersec-title {
+    font-size: 14px;
+    font-weight: 700;
+    margin: 0 0 8px;
+    color: var(--ac-text);
+}
+.acm-explore-pricerange {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.acm-explore-pricerange > .ac-input,
+.acm-explore-pricerange > input.ac-input { flex: 1; }
+.acm-explore-capacity,
+.acm-explore-rating {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+/* ── Responsive tweaks ───────────────────────────────────────────────── */
+@media (max-width: 600px) {
+    .acm-explore-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+    .acm-explore-sortbar { flex-wrap: wrap; }
+}

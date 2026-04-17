@@ -1,6 +1,26 @@
+@namespace Ashare.V2.Web.Components.Layout
 @inherits LayoutComponentBase
 
-@* Home-slice layout — بلا navbar علوية وبلا bottom-nav، الصفحة نفسها تتصدّر. *@
+@*
+    MainLayout لـ Ashare.V2 — بلا navbar علوي (الـ HeroBanner في الصفحة نفسها
+    يستبدل شريط العلامة)، لكن مع bottom-nav من 5 تبويبات مطابقة لتصميم عشير.
+
+    التبويبات تستخدم routes ستُربط تباعاً في الشرائح القادمة:
+      الرئيسية / استكشف / المفضلة / حجوزاتي / حسابي
+*@
+
 <main>
     @Body
+    <AcBottomNav Items="_tabs" ExtraClass="acm-v2-bottomnav" />
 </main>
+
+@code {
+    private static readonly IReadOnlyList<BottomNavItemDto> _tabs = new[]
+    {
+        new BottomNavItemDto { Href = "/",           Label = "الرئيسية", IconName = "home",         Exact = true },
+        new BottomNavItemDto { Href = "/explore",    Label = "استكشف",   IconName = "search" },
+        new BottomNavItemDto { Href = "/favorites",  Label = "المفضلة",  IconName = "heart" },
+        new BottomNavItemDto { Href = "/bookings",   Label = "حجوزاتي",  IconName = "receipt" },
+        new BottomNavItemDto { Href = "/me",         Label = "حسابي",    IconName = "user" }
+    };
+}
