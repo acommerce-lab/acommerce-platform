@@ -243,12 +243,17 @@ try
     using var scope = app.Services.CreateScope();
     var db = scope.ServiceProvider
         .GetRequiredService<ACommerce.SharedKernel.Infrastructure.EFCores.Context.ApplicationDbContext>();
+    // SQLite dev mode: detect schema drift (entity changed without migration)
+    // and reset the file so EnsureCreatedAsync can recreate everything fresh.
+    if (ACommerce.SharedKernel.Infrastructure.EFCores.SqliteSchemaGuard.ResetIfDrifted(db))
+        Log.Warning("Order.Api: SQLite schema drift detected — DB file rebuilt");
     // EnsureCreatedAsync creates all-or-nothing; when another platform
     // backend got there first it throws "table X already exists".  That's
     // benign — swallow it and carry on to seeding, which only inserts
     // missing rows.
     try { await db.Database.EnsureCreatedAsync(); Log.Information("Database schema ready"); }
     catch (Exception schemaEx) { Log.Information(schemaEx, "Schema already created by another service — continuing"); }
+    ACommerce.SharedKernel.Infrastructure.EFCores.SqliteSchemaGuard.StampFingerprint(db);
 
     var seeder = scope.ServiceProvider.GetRequiredService<OrderSeeder>();
     await seeder.SeedAsync();

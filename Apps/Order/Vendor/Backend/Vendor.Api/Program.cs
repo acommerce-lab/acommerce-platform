@@ -307,11 +307,16 @@ try
     using var scope = app.Services.CreateScope();
     var db = scope.ServiceProvider
         .GetRequiredService<ACommerce.SharedKernel.Infrastructure.EFCores.Context.ApplicationDbContext>();
+    // SQLite dev mode: detect schema drift (entity changed without migration)
+    // and reset the file so EnsureCreatedAsync can recreate everything fresh.
+    if (ACommerce.SharedKernel.Infrastructure.EFCores.SqliteSchemaGuard.ResetIfDrifted(db))
+        Log.Warning("Vendor.Api: SQLite schema drift detected — DB file rebuilt");
     // EnsureCreatedAsync creates all-or-nothing; when another platform
     // backend created tables first it throws.  Treat that as benign so
     // we still run the seeder below.
     try { await db.Database.EnsureCreatedAsync(); }
     catch (Exception schemaEx) { Log.Information(schemaEx, "Schema already created by another service — continuing"); }
+    ACommerce.SharedKernel.Infrastructure.EFCores.SqliteSchemaGuard.StampFingerprint(db);
     Log.Information("Vendor.Api database ready");
 
     var seeder = scope.ServiceProvider.GetRequiredService<VendorSeeder>();
