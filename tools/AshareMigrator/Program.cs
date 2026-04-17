@@ -109,6 +109,14 @@ public static class Program
             Console.WriteLine("\n✅ اكتمل الترحيل بنجاح.");
             return 0;
         }
+        catch (Exception ex) when (ex.Message.Contains("Invalid object name", StringComparison.OrdinalIgnoreCase))
+        {
+            Console.Error.WriteLine($"\n✖ جدول غير موجود في قاعدة المصدر: {ex.Message}");
+            Console.Error.WriteLine("\nالجداول المتاحة في قاعدة المصدر الفعلية:\n");
+            await DiscoverTablesAsync(src);
+            Console.Error.WriteLine("\nحدّث LegacyDbContext.OnModelCreating لتطابق الأسماء الصحيحة ثم أعد التشغيل.");
+            return 2;
+        }
         catch (Exception ex)
         {
             Console.Error.WriteLine($"\n✖ فشل الترحيل: {ex.Message}");
