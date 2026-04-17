@@ -1,30 +1,12 @@
 namespace AshareMigrator.Legacy;
 
-public class LegacyUser
-{
-    public Guid Id { get; set; }
-    public DateTime CreatedAt { get; set; }
-    public DateTime? UpdatedAt { get; set; }
-    public bool IsDeleted { get; set; }
-    public string UserId { get; set; } = "";
-    public string Username { get; set; } = "";
-    public string Email { get; set; } = "";
-    public string? PhoneNumber { get; set; }
-    public string PasswordHash { get; set; } = "";
-    public bool EmailVerified { get; set; }
-    public bool PhoneNumberVerified { get; set; }
-    public bool TwoFactorEnabled { get; set; }
-    public bool IsActive { get; set; }
-    public bool IsLocked { get; set; }
-    public DateTimeOffset? LastLoginAt { get; set; }
-}
+// لا يوجد جدول Users في قاعدة المصدر — هوية المستخدم مبنية من Profile.UserId
 
 public class LegacyVendor
 {
     public Guid Id { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }
-    public bool IsDeleted { get; set; }
     public Guid ProfileId { get; set; }
     public string StoreName { get; set; } = "";
     public string StoreSlug { get; set; } = "";
@@ -41,7 +23,6 @@ public class LegacyCategory
     public Guid Id { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }
-    public bool IsDeleted { get; set; }
     public string Name { get; set; } = "";
     public string Slug { get; set; } = "";
     public string? Description { get; set; }
@@ -57,19 +38,14 @@ public class LegacyListing
     public Guid Id { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }
-    public bool IsDeleted { get; set; }
     public Guid VendorId { get; set; }
     public Guid? CategoryId { get; set; }
     public string Title { get; set; } = "";
     public string? Description { get; set; }
     public decimal Price { get; set; }
-    public decimal? CompareAtPrice { get; set; }
-    public int QuantityAvailable { get; set; }
     public bool IsActive { get; set; }
     public bool IsFeatured { get; set; }
-    public bool IsNew { get; set; }
     public int ViewCount { get; set; }
-    public decimal? Rating { get; set; }
     public string? ImagesJson { get; set; }
     public string? FeaturedImage { get; set; }
     public double? Latitude { get; set; }
@@ -86,7 +62,6 @@ public class LegacyBooking
     public Guid Id { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }
-    public bool IsDeleted { get; set; }
     public Guid SpaceId { get; set; }
     public string CustomerId { get; set; } = "";
     public Guid HostId { get; set; }
@@ -107,7 +82,6 @@ public class LegacySubscriptionPlan
     public Guid Id { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }
-    public bool IsDeleted { get; set; }
     public string Name { get; set; } = "";
     public string? NameEn { get; set; }
     public string Slug { get; set; } = "";
@@ -137,7 +111,6 @@ public class LegacySubscription
     public Guid Id { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }
-    public bool IsDeleted { get; set; }
     public Guid VendorId { get; set; }
     public Guid PlanId { get; set; }
     public int Status { get; set; }
@@ -157,7 +130,6 @@ public class LegacyProfile
     public Guid Id { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }
-    public bool IsDeleted { get; set; }
     public Guid UserId { get; set; }
     public string? FirstName { get; set; }
     public string? LastName { get; set; }

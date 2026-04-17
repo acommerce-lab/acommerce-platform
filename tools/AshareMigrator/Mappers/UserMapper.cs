@@ -6,27 +6,23 @@ namespace AshareMigrator.Mappers;
 public static class UserMapper
 {
     /// <summary>
-    /// تحوّل LegacyUser + LegacyProfile (اختياري) + LegacyVendor (اختياري) إلى NewUser.
-    /// الدور (role) يُحدَّد: vendor موجود → "owner"، غير ذلك → "customer".
+    /// يبني NewUser من LegacyProfile (لا يوجد جدول Users في المصدر).
+    /// PhoneNumber يُعبَّأ بـ UserId.ToString() كقيمة placeholder.
     /// </summary>
-    public static NewUser Map(LegacyUser src, LegacyProfile? profile, bool hasVendor)
+    public static NewUser MapFromProfile(LegacyProfile src, bool isOwner) => new()
     {
-        var fullName = BuildFullName(profile, src.Username);
-        return new NewUser
-        {
-            Id = src.Id,
-            CreatedAt = DateTime.SpecifyKind(src.CreatedAt, DateTimeKind.Utc),
-            UpdatedAt = src.UpdatedAt,
-            IsDeleted = false,
-            PhoneNumber = src.PhoneNumber ?? src.UserId,
-            Email = string.IsNullOrWhiteSpace(src.Email) ? null : src.Email,
-            FullName = fullName,
-            NationalId = null,
-            NafathVerified = false,
-            IsActive = src.IsActive && !src.IsLocked,
-            Role = hasVendor ? "owner" : "customer",
-        };
-    }
+        Id = src.UserId,
+        CreatedAt = DateTime.SpecifyKind(src.CreatedAt, DateTimeKind.Utc),
+        UpdatedAt = src.UpdatedAt,
+        IsDeleted = false,
+        PhoneNumber = src.UserId.ToString(),
+        Email = null,
+        FullName = BuildFullName(src),
+        NationalId = null,
+        NafathVerified = false,
+        IsActive = true,
+        Role = isOwner ? "owner" : "customer",
+    };
 
     public static NewProfile? MapProfile(LegacyProfile? src)
     {
@@ -48,12 +44,11 @@ public static class UserMapper
         };
     }
 
-    private static string BuildFullName(LegacyProfile? profile, string fallback)
+    private static string? BuildFullName(LegacyProfile profile)
     {
-        if (profile == null) return fallback;
         var first = profile.FirstName?.Trim() ?? "";
         var last = profile.LastName?.Trim() ?? "";
         var full = $"{first} {last}".Trim();
-        return string.IsNullOrWhiteSpace(full) ? fallback : full;
+        return string.IsNullOrWhiteSpace(full) ? null : full;
     }
 }

@@ -130,7 +130,7 @@ public static class Program
     private static async Task MigrateCategoriesAsync(LegacyDbContext src, TargetDbContext dst)
     {
         Console.Write("📁 الفئات... ");
-        var legacy = await src.ProductCategories.AsNoTracking().ToListAsync();
+        var legacy = await src.Categories.AsNoTracking().ToListAsync();
         var existing = await dst.Categories.Select(c => c.Id).ToHashSetAsync();
         var toAdd = legacy
             .Where(c => !existing.Contains(c.Id))
@@ -146,25 +146,21 @@ public static class Program
     {
         Console.Write("👤 المستخدمون + الملفات الشخصية... ");
 
-        var users = await src.Users.AsNoTracking().ToListAsync();
+        // لا يوجد جدول Users في المصدر — نبني المستخدمين من Profile.UserId
         var profiles = await src.Profiles.AsNoTracking().ToListAsync();
         var vendors = await src.Vendors.AsNoTracking().ToListAsync();
+        var vendorProfileIds = vendors.Select(v => v.ProfileId).ToHashSet();
 
-        var profileByUser = profiles.ToDictionary(p => p.UserId);
-        var profileToVendor = vendors.ToDictionary(v => v.ProfileId, v => v.Id);
-        var userHasVendor = users.ToDictionary(
-            u => u.Id,
-            u => profileByUser.TryGetValue(u.Id, out var p) && profileToVendor.ContainsKey(p.Id));
+        // userId → userId (identity map — نحتاجه لاحقاً للحجوزات)
+        var userMap = profiles.ToDictionary(p => p.UserId, p => p.UserId);
 
         var existingUserIds = await dst.Users.Select(u => u.Id).ToHashSetAsync();
         var newUsers = new List<NewUser>();
-        var userMap = users.ToDictionary(u => u.Id, u => u.Id);
-
-        foreach (var u in users)
+        foreach (var p in profiles)
         {
-            if (existingUserIds.Contains(u.Id)) continue;
-            profileByUser.TryGetValue(u.Id, out var profile);
-            newUsers.Add(UserMapper.Map(u, profile, userHasVendor[u.Id]));
+            if (existingUserIds.Contains(p.UserId)) continue;
+            var isOwner = vendorProfileIds.Contains(p.Id);
+            newUsers.Add(UserMapper.MapFromProfile(p, isOwner));
         }
         if (newUsers.Count > 0) await dst.Users.AddRangeAsync(newUsers);
 
@@ -179,7 +175,7 @@ public static class Program
 
         await dst.SaveChangesAsync();
 
-        // vendorId → userId للعروض والاشتراكات (كلاهما مرتبط بالبائع في المصدر)
+        // vendorId → userId للعروض والاشتراكات
         var vendorToUser = new Dictionary<Guid, Guid>();
         foreach (var v in vendors)
         {
@@ -187,7 +183,7 @@ public static class Program
             if (profile != null) vendorToUser[v.Id] = profile.UserId;
         }
 
-        Console.WriteLine($"{users.Count} مستخدم، {newUsers.Count} مضاف، {newProfiles.Count} ملف شخصي مضاف.");
+        Console.WriteLine($"{profiles.Count} ملف شخصي، {newUsers.Count} مستخدم مضاف، {newProfiles.Count} ملف مضاف.");
         return (userMap, vendorToUser);
     }
 
@@ -198,7 +194,7 @@ public static class Program
     {
         Console.Write("📜 العروض... ");
 
-        var listings = await src.ProductListings.AsNoTracking().ToListAsync();
+        var listings = await src.Listings.AsNoTracking().ToListAsync();
         var categories = await dst.Categories.AsNoTracking().ToListAsync();
         var templateByCategory = categories.ToDictionary(
             c => c.Id,
