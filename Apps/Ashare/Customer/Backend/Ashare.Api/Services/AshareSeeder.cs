@@ -106,11 +106,16 @@ public class AshareSeeder
         // 1) Fetch remote categories → build remoteId → slug map
         var remoteCatMap = await FetchRemoteCategoryMapAsync(http, ct);
 
-        // 2) Build local slug → (categoryId, template) map
+        // 2) Build local maps: slug → (categoryId, template) AND id → (categoryId, template)
+        // Production uses same category IDs as local (10000000-0000-0000-0001-...), so
+        // direct ID lookup is the happy path; slug mapping is the fallback.
         var catRepo = _repoFactory.CreateRepository<Category>();
         var localCats = await catRepo.ListAllAsync(ct);
         var slugToLocal = localCats.ToDictionary(
             c => c.Slug,
+            c => (c.Id, Template: DynamicAttributeHelper.ParseTemplate(c.AttributeTemplateJson)));
+        var idToLocal = localCats.ToDictionary(
+            c => c.Id,
             c => (c.Id, Template: DynamicAttributeHelper.ParseTemplate(c.AttributeTemplateJson)));
 
         // 3) Fetch all listing pages
@@ -142,7 +147,7 @@ public class AshareSeeder
 
         foreach (var el in apiListings)
         {
-            var listing = MapListing(el, remoteCatMap, slugToLocal, defaultCatId);
+            var listing = MapListing(el, remoteCatMap, slugToLocal, idToLocal, defaultCatId);
             listings.Add(listing);
             ownerIds.Add(listing.OwnerId);
         }
@@ -231,16 +236,23 @@ public class AshareSeeder
         JsonElement el,
         Dictionary<Guid, string> remoteCatMap,
         Dictionary<string, (Guid Id, AttributeTemplate? Template)> slugToLocal,
+        Dictionary<Guid, (Guid Id, AttributeTemplate? Template)> idToLocal,
         Guid defaultCatId)
     {
         var id = GetGuid(el, "id") ?? Guid.NewGuid();
         var ownerId = GetGuid(el, "ownerId") ?? GetGuid(el, "vendorId") ?? Guid.Empty;
         var remoteCatId = GetGuid(el, "categoryId");
 
-        // Map remote categoryId → slug → local categoryId + template
+        // Map category: first try direct ID (production uses same IDs),
+        // then fall back to slug mapping.
         var localCatId = defaultCatId;
         AttributeTemplate? template = null;
-        if (remoteCatId.HasValue && remoteCatMap.TryGetValue(remoteCatId.Value, out var slug))
+        if (remoteCatId.HasValue && idToLocal.TryGetValue(remoteCatId.Value, out var direct))
+        {
+            localCatId = direct.Id;
+            template = direct.Template;
+        }
+        else if (remoteCatId.HasValue && remoteCatMap.TryGetValue(remoteCatId.Value, out var slug))
         {
             var normalized = slug.Replace('_', '-').ToLowerInvariant();
             if (slugToLocal.TryGetValue(normalized, out var local))
@@ -250,26 +262,27 @@ public class AshareSeeder
             }
         }
 
-        // Images: imagesJson (array) → CSV, or imagesCsv directly
-        var imagesCsv = GetString(el, "imagesCsv");
-        if (string.IsNullOrEmpty(imagesCsv))
-        {
-            var imagesJson = GetString(el, "imagesJson");
-            imagesCsv = ParseImagesJsonToCsv(imagesJson);
-        }
-        if (string.IsNullOrEmpty(imagesCsv))
-            imagesCsv = GetString(el, "featuredImage");
+        // Images: prefer native array `images: [...]`, then imagesCsv, then featuredImage
+        var imagesCsv = ExtractImagesCsv(el);
 
-        // Dynamic attributes: dynamicAttributesJson directly, or convert from attributesJson
-        var dynJson = GetString(el, "dynamicAttributesJson");
-        if (string.IsNullOrEmpty(dynJson))
-        {
-            var rawAttrs = GetString(el, "attributesJson");
-            dynJson = ConvertAttributesToSnapshot(rawAttrs, template);
-        }
+        // Attributes: prefer native object `attributes: {...}`, then attributesJson string
+        var (attrsDict, dynJson) = ExtractAttributes(el, template);
+
+        // Entity-level fields that may live inside attributes object in production
+        var isPhoneAllowed = GetBoolFlex(el, "isPhoneAllowed")
+            ?? GetBoolFlex(attrsDict, "is_phone_allowed") ?? true;
+        var isWhatsApp = GetBoolFlex(el, "isWhatsAppAllowed") ?? GetBoolFlex(el, "isWhatsappAllowed")
+            ?? GetBoolFlex(attrsDict, "is_whatsapp_allowed") ?? true;
+        var isMessaging = GetBoolFlex(el, "isMessagingAllowed")
+            ?? GetBoolFlex(attrsDict, "is_messaging_allowed") ?? true;
+        var licenseNumber = GetString(el, "licenseNumber")
+            ?? GetStringFlex(attrsDict, "license_number");
+        var duration = GetInt(el, "duration") ?? GetIntFlex(attrsDict, "duration") ?? 1;
+        var timeUnit = GetString(el, "timeUnit") ?? GetStringFlex(attrsDict, "time_unit") ?? "month";
 
         var isActive = GetBool(el, "isActive") ?? true;
-        var status = GetInt(el, "status") ?? (isActive ? 1 : 0);
+        // Status can be a string in production ("Active", "Draft", ...) or int
+        var status = ParseStatus(el, isActive);
 
         return new Listing
         {
@@ -278,20 +291,20 @@ public class AshareSeeder
             UpdatedAt = GetDateTime(el, "updatedAt"),
             OwnerId = ownerId,
             CategoryId = localCatId,
-            Title = GetString(el, "title") ?? "",
-            Description = GetString(el, "description") ?? "",
+            Title = GetString(el, "title") ?? GetStringFlex(attrsDict, "title") ?? "",
+            Description = GetString(el, "description") ?? GetStringFlex(attrsDict, "description") ?? "",
             Price = GetDecimal(el, "price") ?? 0,
-            Duration = GetInt(el, "duration") ?? 1,
-            TimeUnit = GetString(el, "timeUnit") ?? "month",
+            Duration = duration,
+            TimeUnit = timeUnit,
             Currency = GetString(el, "currency") ?? "SAR",
-            City = GetString(el, "city") ?? "",
+            City = GetString(el, "city") ?? GetStringFlex(attrsDict, "city") ?? "",
             Latitude = GetDouble(el, "latitude"),
             Longitude = GetDouble(el, "longitude"),
             Address = GetString(el, "address"),
-            IsPhoneAllowed = GetBool(el, "isPhoneAllowed") ?? true,
-            IsWhatsAppAllowed = GetBool(el, "isWhatsAppAllowed") ?? GetBool(el, "isWhatsappAllowed") ?? true,
-            IsMessagingAllowed = GetBool(el, "isMessagingAllowed") ?? true,
-            LicenseNumber = GetString(el, "licenseNumber"),
+            IsPhoneAllowed = isPhoneAllowed,
+            IsWhatsAppAllowed = isWhatsApp,
+            IsMessagingAllowed = isMessaging,
+            LicenseNumber = licenseNumber,
             ImagesCsv = imagesCsv,
             DynamicAttributesJson = dynJson,
             Status = (ListingStatus)status,
@@ -299,58 +312,6 @@ public class AshareSeeder
             ViewCount = GetInt(el, "viewCount") ?? 0,
             IsFeatured = GetBool(el, "isFeatured") ?? false,
         };
-    }
-
-    private static string? ConvertAttributesToSnapshot(string? rawJson, AttributeTemplate? template)
-    {
-        if (string.IsNullOrWhiteSpace(rawJson)) return null;
-
-        Dictionary<string, object?> attrs;
-        try
-        {
-            var doc = JsonDocument.Parse(rawJson);
-            attrs = new();
-            foreach (var p in doc.RootElement.EnumerateObject())
-                attrs[p.Name] = ConvertJsonValue(p.Value);
-        }
-        catch { return null; }
-
-        if (template == null)
-        {
-            var snapshot = attrs
-                .Where(kv => kv.Value != null)
-                .Select((kv, i) => new DynamicAttribute
-                {
-                    Key = kv.Key, Label = kv.Key, LabelAr = kv.Key,
-                    Type = "text", Value = kv.Value,
-                    DisplayValue = kv.Value?.ToString(), DisplayValueAr = kv.Value?.ToString(),
-                    SortOrder = i, ShowInCard = false,
-                }).ToList();
-            return DynamicAttributeHelper.SerializeAttributes(snapshot);
-        }
-
-        var templateKeys = template.Fields.Select(f => f.Key).ToHashSet();
-        var templateValues = new Dictionary<string, object?>();
-        var extraAttrs = new List<DynamicAttribute>();
-        var sortCounter = 1000;
-
-        foreach (var (key, value) in attrs)
-        {
-            if (templateKeys.Contains(key))
-                templateValues[key] = value;
-            else if (value != null)
-                extraAttrs.Add(new DynamicAttribute
-                {
-                    Key = key, Label = key, LabelAr = key,
-                    Type = "text", Value = value,
-                    DisplayValue = value.ToString(), DisplayValueAr = value.ToString(),
-                    SortOrder = sortCounter++, ShowInCard = false,
-                });
-        }
-
-        var result = DynamicAttributeHelper.BuildSnapshot(template, templateValues).ToList();
-        result.AddRange(extraAttrs);
-        return DynamicAttributeHelper.SerializeAttributes(result);
     }
 
     private static object? ConvertJsonValue(JsonElement el) => el.ValueKind switch
@@ -375,6 +336,173 @@ public class AshareSeeder
     }
 
     // ─── JsonElement field extractors ───
+
+    // ─── Extractors that handle production API shape ───
+
+    private static string? ExtractImagesCsv(JsonElement el)
+    {
+        // Preferred: native array `images: [url1, url2, ...]`
+        if (el.TryGetProperty("images", out var arr) && arr.ValueKind == JsonValueKind.Array)
+        {
+            var urls = arr.EnumerateArray()
+                .Where(x => x.ValueKind == JsonValueKind.String)
+                .Select(x => x.GetString())
+                .Where(s => !string.IsNullOrWhiteSpace(s));
+            var csv = string.Join(",", urls);
+            if (!string.IsNullOrEmpty(csv)) return csv;
+        }
+        // Back-compat: imagesCsv, then imagesJson (string), then featuredImage
+        var direct = GetString(el, "imagesCsv");
+        if (!string.IsNullOrEmpty(direct)) return direct;
+        var jsonStr = GetString(el, "imagesJson");
+        var fromJson = ParseImagesJsonToCsv(jsonStr);
+        if (!string.IsNullOrEmpty(fromJson)) return fromJson;
+        return GetString(el, "featuredImage");
+    }
+
+    private static (Dictionary<string, object?> Attrs, string? DynJson) ExtractAttributes(
+        JsonElement el, AttributeTemplate? template)
+    {
+        // Preferred: native object `attributes: {...}`
+        Dictionary<string, object?>? attrs = null;
+        if (el.TryGetProperty("attributes", out var obj) && obj.ValueKind == JsonValueKind.Object)
+        {
+            attrs = new();
+            foreach (var prop in obj.EnumerateObject())
+                attrs[prop.Name] = ConvertJsonValue(prop.Value);
+        }
+        else
+        {
+            // Back-compat: attributesJson (string) or dynamicAttributesJson passthrough
+            var dynPass = GetString(el, "dynamicAttributesJson");
+            if (!string.IsNullOrWhiteSpace(dynPass)) return (new(), dynPass);
+
+            var rawAttrs = GetString(el, "attributesJson");
+            if (!string.IsNullOrWhiteSpace(rawAttrs))
+            {
+                try
+                {
+                    var doc = JsonDocument.Parse(rawAttrs);
+                    if (doc.RootElement.ValueKind == JsonValueKind.Object)
+                    {
+                        attrs = new();
+                        foreach (var p in doc.RootElement.EnumerateObject())
+                            attrs[p.Name] = ConvertJsonValue(p.Value);
+                    }
+                }
+                catch { }
+            }
+        }
+
+        if (attrs == null) return (new(), null);
+        var dyn = BuildSnapshotJson(attrs, template);
+        return (attrs, dyn);
+    }
+
+    private static string? BuildSnapshotJson(Dictionary<string, object?> attrs, AttributeTemplate? template)
+    {
+        if (template == null)
+        {
+            var snapshot = attrs
+                .Where(kv => kv.Value != null)
+                .Select((kv, i) => new DynamicAttribute
+                {
+                    Key = kv.Key, Label = kv.Key, LabelAr = kv.Key,
+                    Type = InferType(kv.Value!), Value = kv.Value,
+                    DisplayValue = kv.Value?.ToString(), DisplayValueAr = kv.Value?.ToString(),
+                    SortOrder = i, ShowInCard = false,
+                }).ToList();
+            return DynamicAttributeHelper.SerializeAttributes(snapshot);
+        }
+
+        var templateKeys = template.Fields.Select(f => f.Key).ToHashSet();
+        var templateValues = new Dictionary<string, object?>();
+        var extraAttrs = new List<DynamicAttribute>();
+        var sortCounter = 1000;
+
+        foreach (var (key, value) in attrs)
+        {
+            if (templateKeys.Contains(key))
+                templateValues[key] = value;
+            else if (value != null)
+                extraAttrs.Add(new DynamicAttribute
+                {
+                    Key = key, Label = key, LabelAr = key,
+                    Type = InferType(value), Value = value,
+                    DisplayValue = value.ToString(), DisplayValueAr = value.ToString(),
+                    SortOrder = sortCounter++, ShowInCard = false,
+                });
+        }
+
+        var result = DynamicAttributeHelper.BuildSnapshot(template, templateValues).ToList();
+        result.AddRange(extraAttrs);
+        return DynamicAttributeHelper.SerializeAttributes(result);
+    }
+
+    private static string InferType(object v) => v switch
+    {
+        bool => "bool",
+        int or long => "number",
+        double or float or decimal => "decimal",
+        System.Collections.IEnumerable and not string => "multi",
+        _ => "text"
+    };
+
+    private static int ParseStatus(JsonElement el, bool isActive)
+    {
+        if (el.TryGetProperty("status", out var p))
+        {
+            if (p.ValueKind == JsonValueKind.Number && p.TryGetInt32(out var n)) return n;
+            if (p.ValueKind == JsonValueKind.String)
+            {
+                return p.GetString()?.ToLowerInvariant() switch
+                {
+                    "active" or "published" => 1,
+                    "draft" => 0,
+                    "reserved" => 2,
+                    "closed" or "inactive" or "archived" or "outofstock" => 3,
+                    "rejected" => 4,
+                    _ => isActive ? 1 : 0
+                };
+            }
+        }
+        return isActive ? 1 : 0;
+    }
+
+    // ─── Flexible dict lookups — values may be bool, string, number ───
+
+    private static string? GetStringFlex(Dictionary<string, object?> d, string key)
+        => d.TryGetValue(key, out var v) && v != null ? v.ToString() : null;
+
+    private static int? GetIntFlex(Dictionary<string, object?> d, string key)
+    {
+        if (!d.TryGetValue(key, out var v) || v == null) return null;
+        return v switch
+        {
+            int i => i,
+            long l => (int)l,
+            double dd => (int)dd,
+            _ => int.TryParse(v.ToString(), out var r) ? r : (int?)null
+        };
+    }
+
+    private static bool? GetBoolFlex(Dictionary<string, object?> d, string key)
+    {
+        if (!d.TryGetValue(key, out var v) || v == null) return null;
+        if (v is bool b) return b;
+        return bool.TryParse(v.ToString(), out var r) ? r : (bool?)null;
+    }
+
+    private static bool? GetBoolFlex(JsonElement el, string name)
+    {
+        if (!el.TryGetProperty(name, out var p)) return null;
+        if (p.ValueKind is JsonValueKind.True or JsonValueKind.False) return p.GetBoolean();
+        if (p.ValueKind == JsonValueKind.String)
+            return bool.TryParse(p.GetString(), out var r) ? r : (bool?)null;
+        return null;
+    }
+
+    // ─── Original JsonElement extractors ───
 
     private static string? GetString(JsonElement el, string name)
     {

@@ -241,10 +241,14 @@ internal static class AshareCategoryTemplates
                 showInCard: true, sort: 8, icon: "bounding-box", min: 0, max: 100000, unit: "م²"),
             F("floor", "Floor", "الطابق", "select",
                 opts: Floors(), sort: 9, icon: "layers"),
-            F("amenities", "Amenities", "المرافق", "multi",
+            F("features", "Features", "المرافق", "multi",
                 opts: ResidentialAmenities(), sort: 10, icon: "stars"),
             F("gender", "Gender preference", "تفضيل الجنس", "select",
                 opts: Genders(), sort: 11, icon: "people"),
+            F("requires_license", "Requires license", "يتطلب ترخيص", "bool",
+                sort: 12, icon: "shield-check"),
+            F("has_owner_license", "Owner has license", "المالك لديه ترخيص", "bool",
+                sort: 13, icon: "file-earmark-check"),
         }
     };
 
@@ -266,7 +270,7 @@ internal static class AshareCategoryTemplates
                 sort: 6, icon: "cash-coin", min: 0, unit: "ر.س"),
             F("max_price", "Max budget", "الحد الأقصى للميزانية", "decimal",
                 showInCard: true, sort: 7, icon: "cash-stack", min: 0, unit: "ر.س"),
-            F("amenities", "Required amenities", "المرافق المطلوبة", "multi",
+            F("features", "Required features", "المرافق المطلوبة", "multi",
                 opts: ResidentialAmenities(), sort: 8, icon: "stars"),
         }
     };

@@ -207,7 +207,7 @@ internal static class AshareListingsSeed
             ["bathrooms"] = bathrooms,
             ["area"] = area,
             ["floor"] = floor,
-            ["amenities"] = amenities ?? new(),
+            ["features"] = amenities ?? new(),
             ["gender"] = gender,
         };
 
