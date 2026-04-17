@@ -16,13 +16,15 @@ public class TargetDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder m)
     {
-        m.Entity<NewUser>().ToTable("Users");
-        m.Entity<NewCategory>().ToTable("Categories");
-        m.Entity<NewListing>().ToTable("Listings");
-        m.Entity<NewBooking>().ToTable("Bookings");
-        m.Entity<NewPlan>().ToTable("Plans");
-        m.Entity<NewSubscription>().ToTable("Subscriptions");
-        m.Entity<NewProfile>().ToTable("Profiles");
+        // Ashare.Api uses modelBuilder.Entity(type) without ToTable — EF Core
+        // defaults to the class name (singular). Must match exactly.
+        m.Entity<NewUser>().ToTable("User");
+        m.Entity<NewCategory>().ToTable("Category");
+        m.Entity<NewListing>().ToTable("Listing");
+        m.Entity<NewBooking>().ToTable("Booking");
+        m.Entity<NewPlan>().ToTable("Plan");
+        m.Entity<NewSubscription>().ToTable("Subscription");
+        m.Entity<NewProfile>().ToTable("Profile");
 
         m.Entity<NewUser>().HasQueryFilter(e => !e.IsDeleted);
         m.Entity<NewCategory>().HasQueryFilter(e => !e.IsDeleted);

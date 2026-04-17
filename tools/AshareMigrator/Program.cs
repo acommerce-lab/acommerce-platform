@@ -360,13 +360,13 @@ public static class Program
 
     private static async Task TruncateAsync(TargetDbContext dst)
     {
-        await dst.Database.ExecuteSqlRawAsync("DELETE FROM Subscriptions;");
-        await dst.Database.ExecuteSqlRawAsync("DELETE FROM Plans;");
-        await dst.Database.ExecuteSqlRawAsync("DELETE FROM Bookings;");
-        await dst.Database.ExecuteSqlRawAsync("DELETE FROM Listings;");
-        await dst.Database.ExecuteSqlRawAsync("DELETE FROM Profiles;");
-        await dst.Database.ExecuteSqlRawAsync("DELETE FROM Users;");
-        await dst.Database.ExecuteSqlRawAsync("DELETE FROM Categories;");
+        await dst.Database.ExecuteSqlRawAsync("DELETE FROM Subscription;");
+        await dst.Database.ExecuteSqlRawAsync("DELETE FROM Plan;");
+        await dst.Database.ExecuteSqlRawAsync("DELETE FROM Booking;");
+        await dst.Database.ExecuteSqlRawAsync("DELETE FROM Listing;");
+        await dst.Database.ExecuteSqlRawAsync("DELETE FROM Profile;");
+        await dst.Database.ExecuteSqlRawAsync("DELETE FROM [User];");
+        await dst.Database.ExecuteSqlRawAsync("DELETE FROM Category;");
     }
 
     private static string MaskConn(string conn)
