@@ -237,6 +237,43 @@ deployments.
 
 ---
 
+## Phase B — Dynamic Attributes (Ashare) + Legacy Migration
+
+### B.1 Template + Snapshot model — DONE
+
+- `DynamicAttribute` + `AttributeTemplate` + `DynamicAttributeHelper` في SharedKernel.
+- `Category.AttributeTemplateJson` + `Listing.DynamicAttributesJson` في Ashare.
+- 5 قوالب فئات في `AshareCategoryTemplates` (Residential, LookingForHousing,
+  LookingForPartner, Administrative, Commercial).
+- Widgets: `AcDynamicAttributeField`, `AcDynamicAttributesView`.
+
+### B.2 SQLite dev schema drift guard — DONE
+
+`SqliteSchemaGuard` يحسب بصمة SHA-256 من أسماء الجداول + الأعمدة + الأنواع،
+ويعيد بناء ملف SQLite عند الاختلاف. مُدمج في Program.cs لـ 5 تطبيقات.
+
+### B.3 Legacy migrator tool — DONE
+
+`tools/AshareMigrator/` console app يقرأ من SQL Server الإنتاجي القديم ويكتب
+إلى SQLite محلي بالصيغة الجديدة:
+
+- Legacy/Target DbContexts مفصولان (cross-DB).
+- Mappers: Category, User (+ Profile), Listing, Booking, Plan, Subscription.
+- **مبدأ "لا حذف بيانات"**: أي مفتاح صفات قديم غير موجود في قالب الفئة الجديدة
+  يُحفظ حرفياً في اللقطة كـ `DynamicAttribute` إضافي بنوع مُستنتَج.
+- idempotent: يتخطى الصفوف الموجودة بنفس Id.
+- يدعم `--truncate` لإعادة التنفيذ من الصفر.
+- سلسلة الاتصال مع كلمة المرور تُطبع مُخفّاة.
+
+### B.4 Parity run + visual comparison — NEXT
+
+- تشغيل الترحيل على بيانات إنتاج عشير الحقيقية.
+- توجيه `Ashare.Api` المحلي إلى ملف SQLite الناتج.
+- مقارنة سلوك القراءة/العرض (قوائم، تفاصيل، فلاتر) مع النسخة القديمة.
+- توثيق أي فجوات في جدول.
+
+---
+
 ## Phase 5 — Future
 
 ### 5.1 Real map integration
