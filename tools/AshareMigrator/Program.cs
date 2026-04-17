@@ -188,13 +188,24 @@ public static class Program
 
         // vendorId → userId للعروض والاشتراكات
         var vendorToUser = new Dictionary<Guid, Guid>();
+        var vendorNoProfile = 0;
         foreach (var v in vendors)
         {
             var profile = profiles.FirstOrDefault(p => p.Id == v.ProfileId);
             if (profile != null) vendorToUser[v.Id] = UserMapper.ParseUserId(profile);
+            else vendorNoProfile++;
         }
 
         Console.WriteLine($"{profiles.Count} ملف شخصي، {newUsers.Count} مستخدم مضاف، {newProfiles.Count} ملف مضاف.");
+        Console.WriteLine($"  ↳ بائعون محمّلون: {vendors.Count}، مُعيَّنون لمستخدم: {vendorToUser.Count}، بلا ملف: {vendorNoProfile}");
+        if (vendors.Count > 0 && vendorToUser.Count == 0)
+        {
+            Console.ForegroundColor = ConsoleColor.Yellow;
+            Console.WriteLine("  ⚠ كل البائعين بلا ملفات — سيُتخطى جميع العروض والاشتراكات.");
+            Console.WriteLine($"  مثال ProfileId من أول بائع : {vendors[0].ProfileId}");
+            Console.WriteLine($"  مثال Id من أول ملف شخصي   : {profiles[0].Id}");
+            Console.ResetColor();
+        }
         return (userMap, vendorToUser);
     }
 
@@ -220,10 +231,20 @@ public static class Program
         {
             if (existing.Contains(l.Id)) continue;
 
+            // محاولة 1: VendorId يشير إلى Vendor.Id
+            // محاولة 2: VendorId يشير مباشرةً إلى Profile.Id أو UserId (بعض الأنظمة القديمة)
             if (!vendorToUserMap.TryGetValue(l.VendorId, out var ownerUserId))
             {
-                skipped++;
-                continue; // بائع بلا ربط بمستخدم — نتخطى ولا نُسقط
+                // fallback: VendorId ← Profile.Id مباشرةً (إذا لم يوجد جدول Vendor كوسيط)
+                if (vendorToUserMap.ContainsValue(l.VendorId))
+                    ownerUserId = l.VendorId;
+                else
+                {
+                    skipped++;
+                    if (skipped <= 3)
+                        Console.Write($"\n    ⚠ VendorId {l.VendorId} غير موجود في خريطة البائعين");
+                    continue;
+                }
             }
 
             var catId = l.CategoryId ?? defaultCategoryId;
