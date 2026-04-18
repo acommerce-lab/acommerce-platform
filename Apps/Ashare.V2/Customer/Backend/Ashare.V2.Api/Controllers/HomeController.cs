@@ -1,3 +1,6 @@
+using ACommerce.OperationEngine.Core;
+using ACommerce.OperationEngine.Patterns;
+using ACommerce.OperationEngine.Wire;
 using ACommerce.OperationEngine.Wire.Http;
 using Ashare.V2.Api.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -6,12 +9,17 @@ namespace Ashare.V2.Api.Controllers;
 
 /// <summary>
 /// مُعرِّف الصفحة الرئيسية + قوائم الإعلانات + البحث.
-/// كل استجابة = OperationEnvelope.
+/// GET → OkEnvelope مباشر (قراءة). POST → Entry.Create عبر OpEngine.
 /// </summary>
 [ApiController]
 [Route("home")]
 public class HomeController : ControllerBase
 {
+    private readonly OpEngine _engine;
+    public HomeController(OpEngine engine) => _engine = engine;
+
+    private string Caller => $"User:{AshareV2Seed.CurrentUserId}";
+
     private static IEnumerable<object> CategoriesDto() =>
         AshareV2Seed.Categories.Select(c => new { id = c.Id, label = c.Label, icon = c.Icon });
 
@@ -161,23 +169,50 @@ public class HomeController : ControllerBase
                 createdAt = n.CreatedAt
             }).ToList());
 
-    /// <summary>تعليم إشعار واحد كمقروء (yields IsRead=true).</summary>
+    /// <summary>تعليم إشعار واحد كمقروء.</summary>
     [HttpPost("notifications/{id}/read")]
-    public IActionResult MarkNotifRead(string id)
+    public async Task<IActionResult> MarkNotifRead(string id, CancellationToken ct)
     {
         var ix = AshareV2Seed.Notifications.FindIndex(n => n.Id == id);
         if (ix < 0) return this.NotFoundEnvelope("notification_not_found");
-        AshareV2Seed.Notifications[ix] = AshareV2Seed.Notifications[ix] with { IsRead = true };
-        return this.OkEnvelope("notification.read", new { id, isRead = true });
+
+        var op = Entry.Create("notification.read")
+            .Describe($"User marks notification {id} as read")
+            .From(Caller, 1, ("role","reader"))
+            .To($"Notification:{id}", 1, ("role","read"))
+            .Tag("notification_id", id)
+            .Execute(ctx =>
+            {
+                AshareV2Seed.Notifications[ix] = AshareV2Seed.Notifications[ix] with { IsRead = true };
+                return Task.CompletedTask;
+            })
+            .Build();
+
+        var env = await _engine.ExecuteEnvelopeAsync(op, new { id, isRead = true }, ct);
+        return env.Operation.Status == "Success" ? Ok(env)
+            : this.BadRequestEnvelope(env.Operation.FailedAnalyzer ?? "notif_failed", env.Operation.ErrorMessage);
     }
 
-    /// <summary>تعليم الكلّ كمقروء.</summary>
+    /// <summary>تعليم الكلّ كمقروء (عمليّة واحدة لكل القائمة).</summary>
     [HttpPost("notifications/read-all")]
-    public IActionResult MarkAllNotifsRead()
+    public async Task<IActionResult> MarkAllNotifsRead(CancellationToken ct)
     {
-        for (int i = 0; i < AshareV2Seed.Notifications.Count; i++)
-            AshareV2Seed.Notifications[i] = AshareV2Seed.Notifications[i] with { IsRead = true };
-        return this.OkEnvelope("notification.read.all", new { count = AshareV2Seed.Notifications.Count });
+        var op = Entry.Create("notification.read.all")
+            .Describe("User marks all notifications as read")
+            .From(Caller, 1, ("role","reader"))
+            .To($"User:{AshareV2Seed.CurrentUserId}:notifications", 1, ("role","inbox"))
+            .Execute(ctx =>
+            {
+                for (int i = 0; i < AshareV2Seed.Notifications.Count; i++)
+                    AshareV2Seed.Notifications[i] = AshareV2Seed.Notifications[i] with { IsRead = true };
+                return Task.CompletedTask;
+            })
+            .Build();
+
+        var env = await _engine.ExecuteEnvelopeAsync(op,
+            new { count = AshareV2Seed.Notifications.Count }, ct);
+        return env.Operation.Status == "Success" ? Ok(env)
+            : this.BadRequestEnvelope(env.Operation.FailedAnalyzer ?? "notif_all_failed", env.Operation.ErrorMessage);
     }
 
     private static string UnitLabel(string u) => u switch

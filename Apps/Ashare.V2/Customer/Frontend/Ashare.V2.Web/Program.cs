@@ -18,7 +18,9 @@ builder.Services.AddRazorComponents()
 builder.Services.AddScoped<AppStore>();
 builder.Services.AddScoped<ITemplateStore>(sp => sp.GetRequiredService<AppStore>());
 builder.Services.AddScoped<L>();
-builder.Services.AddScoped<TimezoneService>();
+
+// ── ProviderContract للتوقيت (عقد خارجيّ — يقرأ المتصفّح عبر JS).
+builder.Services.AddScoped<ITimezoneProvider, JsTimezoneProvider>();
 
 // ─── OpEngine للعمليات المحلّية ────────────────────────────────────────
 builder.Services.AddScoped<OpEngine>(sp =>

@@ -1,3 +1,6 @@
+using ACommerce.OperationEngine.Core;
+using ACommerce.OperationEngine.Patterns;
+using ACommerce.OperationEngine.Wire;
 using ACommerce.OperationEngine.Wire.Http;
 using Ashare.V2.Api.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -7,13 +10,23 @@ namespace Ashare.V2.Api.Controllers;
 /// <summary>
 /// Endpoints إضافيّة لـ Ashare.V2: cities, plans, legal, version, profile,
 /// subscription, complaints thread.
+///
+/// المنهجيّة: كلّ GET يعيد OkEnvelope (قراءة لا تغيّر الحالة).
+/// كلّ POST/PUT/DELETE يُبنى كـ <c>Entry.Create(...)</c> ويمرّ عبر OpEngine:
+///   - OwnershipInterceptor يفحص tag "owner_policy"
+///   - ListingQuotaInterceptor يفحص tag "quota_listing"
 /// </summary>
 [ApiController]
 public class CatalogController : ControllerBase
 {
+    private readonly OpEngine _engine;
+    public CatalogController(OpEngine engine) => _engine = engine;
+
     // Complaints replies live here in-memory so POST creates are visible immediately.
     private static readonly List<AshareV2Seed.ComplaintSeed> _complaintsMutable =
         AshareV2Seed.Complaints.ToList();
+
+    private string Caller => $"User:{AshareV2Seed.CurrentUserId}";
 
     [HttpGet("/cities")]
     public IActionResult Cities() =>
@@ -83,25 +96,44 @@ public class CatalogController : ControllerBase
     }
 
     public sealed record CreateBookingRequest(string ListingId, DateTime StartDate, int Nights, int Guests);
-    /// <summary>إنشاء حجز — يمنع حجز إعلان مملوك للمستخدم الحاليّ.</summary>
+    /// <summary>
+    /// إنشاء حجز. السياسات:
+    ///   - owner_policy = must_not_own → لا تحجز إعلانك
+    ///   - status == 1 فحص محلّيّ (not an ownership concern)
+    /// </summary>
     [HttpPost("/bookings")]
-    public IActionResult CreateBooking([FromBody] CreateBookingRequest req)
+    public async Task<IActionResult> CreateBooking([FromBody] CreateBookingRequest req, CancellationToken ct)
     {
         var listing = AshareV2Seed.Listings.FirstOrDefault(l => l.Id == req.ListingId);
         if (listing is null) return this.NotFoundEnvelope("listing_not_found");
-        if (listing.OwnerId == AshareV2Seed.CurrentUserId)
-            return this.ForbiddenEnvelope("self_booking", "لا يمكنك حجز إعلان من إنشائك");
         if (listing.Status != 1)
             return this.BadRequestEnvelope("listing_inactive", "الإعلان غير نشط حاليّاً");
 
         var total = listing.Price * req.Nights;
-        return this.OkEnvelope("booking.create", new {
-            id = $"B-{Random.Shared.Next(10_000, 99_999)}",
-            listingId = req.ListingId,
-            listingTitle = listing.Title,
+        var bookingId = $"B-{Random.Shared.Next(10_000, 99_999)}";
+        var payload = new {
+            id = bookingId,
+            listingId = req.ListingId, listingTitle = listing.Title,
             total, startDate = req.StartDate, nights = req.Nights, guests = req.Guests,
             status = "pending"
-        });
+        };
+
+        var op = Entry.Create("booking.create")
+            .Describe($"User books '{listing.Title}' × {req.Nights} nights")
+            .From(Caller, 1, ("role","booker"))
+            .To($"Listing:{req.ListingId}", 1, ("role","booked"))
+            .Tag("listing_id", req.ListingId)
+            .Tag("booking_id", bookingId)
+            .Tag("owner_policy", "must_not_own")
+            .Tag("resource_owner", listing.OwnerId)
+            .Execute(ctx => Task.CompletedTask)   // in-memory: مجرّد الإعلان يكفي للعرض
+            .Build();
+
+        var env = await _engine.ExecuteEnvelopeAsync(op, payload, ct);
+        if (env.Operation.Status != "Success")
+            return this.ForbiddenEnvelope(env.Operation.FailedAnalyzer ?? "booking_failed",
+                env.Operation.ErrorMessage);
+        return Ok(env);
     }
 
     // ── Chats ──────────────────────────────────────────────────────────
@@ -133,7 +165,7 @@ public class CatalogController : ControllerBase
     public sealed record SendMessageRequest(string Text, string? Attachment);
     /// <summary>إرسال رسالة إلى محادثة موجودة (السيرفر يختم SentAt = UTC).</summary>
     [HttpPost("/conversations/{id}/messages")]
-    public IActionResult SendMessage(string id, [FromBody] SendMessageRequest req)
+    public async Task<IActionResult> SendMessage(string id, [FromBody] SendMessageRequest req, CancellationToken ct)
     {
         var ix = AshareV2Seed.Conversations.FindIndex(c => c.Id == id);
         if (ix < 0) return this.NotFoundEnvelope("conversation_not_found");
@@ -143,44 +175,71 @@ public class CatalogController : ControllerBase
             From: "me",
             Text: req.Text ?? string.Empty,
             SentAt: DateTime.UtcNow);
-        conv.Messages.Add(msg);
-        AshareV2Seed.Conversations[ix] = conv with { LastAt = msg.SentAt, UnreadCount = 0 };
-        return this.OkEnvelope("conversation.send", new {
-            id = msg.Id, from = msg.From, text = msg.Text, sentAt = msg.SentAt
-        });
+
+        var op = Entry.Create("message.send")
+            .Describe($"User sends message to conversation {id}")
+            .From(Caller, 1, ("role","sender"))
+            .To($"Conversation:{id}", 1, ("role","appended"))
+            .Tag("conversation_id", id)
+            .Execute(ctx =>
+            {
+                conv.Messages.Add(msg);
+                AshareV2Seed.Conversations[ix] = conv with { LastAt = msg.SentAt, UnreadCount = 0 };
+                return Task.CompletedTask;
+            })
+            .Build();
+
+        var env = await _engine.ExecuteEnvelopeAsync(op,
+            new { id = msg.Id, from = msg.From, text = msg.Text, sentAt = msg.SentAt }, ct);
+        return env.Operation.Status == "Success"
+            ? Ok(env)
+            : this.BadRequestEnvelope(env.Operation.FailedAnalyzer ?? "send_failed", env.Operation.ErrorMessage);
     }
 
     public sealed record StartConversationRequest(string ListingId, string Text);
-    /// <summary>فتح محادثة مع مالك إعلان (يمنع محادثة النفس).</summary>
+    /// <summary>
+    /// فتح محادثة مع مالك إعلان.
+    /// السياسة: OwnershipInterceptor يفرض must_not_own (لا تراسل إعلانك).
+    /// </summary>
     [HttpPost("/conversations/start")]
-    public IActionResult StartConversation([FromBody] StartConversationRequest req)
+    public async Task<IActionResult> StartConversation([FromBody] StartConversationRequest req, CancellationToken ct)
     {
         var listing = AshareV2Seed.Listings.FirstOrDefault(l => l.Id == req.ListingId);
         if (listing is null) return this.NotFoundEnvelope("listing_not_found");
-        if (listing.OwnerId == AshareV2Seed.CurrentUserId)
-            return this.ForbiddenEnvelope("self_message",
-                "لا يمكن مراسلة إعلان من إنشائك");
 
-        // إن كانت المحادثة موجودة مع نفس المالك، استخدمها.
+        // إن كانت المحادثة موجودة مع نفس المالك، أعدها (بدون تنفيذ operation).
         var existing = AshareV2Seed.Conversations.FirstOrDefault(c =>
             c.PartnerId == listing.OwnerId && c.ListingId == listing.Id);
-        if (existing is not null)
-        {
-            return this.OkEnvelope("conversation.start", new {
-                id = existing.Id, created = false
-            });
-        }
+        string newId = existing?.Id ?? $"C-{AshareV2Seed.Conversations.Count + 1}";
 
-        var id = $"C-{AshareV2Seed.Conversations.Count + 1}";
-        var conv = new AshareV2Seed.ConversationSeed(
-            id, "مالك " + listing.Title, listing.Title, DateTime.UtcNow, 0,
-            partnerId: listing.OwnerId, listingId: listing.Id,
-            messages: new List<AshareV2Seed.MessageSeed>
+        var op = Entry.Create("conversation.start")
+            .Describe($"User opens chat on listing {listing.Id}")
+            .From(Caller, 1, ("role","initiator"))
+            .To($"Listing:{listing.Id}", 1, ("role","subject"))
+            .Tag("listing_id", listing.Id)
+            .Tag("owner_policy", "must_not_own")
+            .Tag("resource_owner", listing.OwnerId)
+            .Execute(ctx =>
             {
-                new("m-1", "me", req.Text, DateTime.UtcNow)
-            });
-        AshareV2Seed.Conversations.Add(conv);
-        return this.OkEnvelope("conversation.start", new { id, created = true });
+                if (existing is not null) return Task.CompletedTask;
+                var conv = new AshareV2Seed.ConversationSeed(
+                    newId, "مالك " + listing.Title, listing.Title, DateTime.UtcNow, 0,
+                    partnerId: listing.OwnerId, listingId: listing.Id,
+                    messages: new List<AshareV2Seed.MessageSeed>
+                    {
+                        new("m-1", "me", req.Text, DateTime.UtcNow)
+                    });
+                AshareV2Seed.Conversations.Add(conv);
+                return Task.CompletedTask;
+            })
+            .Build();
+
+        var env = await _engine.ExecuteEnvelopeAsync(op,
+            new { id = newId, created = existing is null }, ct);
+        if (env.Operation.Status != "Success")
+            return this.ForbiddenEnvelope(env.Operation.FailedAnalyzer ?? "conversation_failed",
+                env.Operation.ErrorMessage);
+        return Ok(env);
     }
 
     // ── Complaints (list + details + replies + create) ─────────────────
@@ -211,7 +270,7 @@ public class CatalogController : ControllerBase
 
     public sealed record CreateComplaintRequest(string Subject, string Body, string? Priority, string? RelatedEntity);
     [HttpPost("/complaints")]
-    public IActionResult CreateComplaint([FromBody] CreateComplaintRequest req)
+    public async Task<IActionResult> CreateComplaint([FromBody] CreateComplaintRequest req, CancellationToken ct)
     {
         var id = $"X-{_complaintsMutable.Count + 1:D3}";
         var c = new AshareV2Seed.ComplaintSeed(
@@ -220,25 +279,49 @@ public class CatalogController : ControllerBase
             new List<AshareV2Seed.ComplaintReplySeed> {
                 new("R1", "user", req.Body, DateTime.UtcNow)
             });
-        _complaintsMutable.Insert(0, c);
-        return this.OkEnvelope("complaint.file", new {
-            id = c.Id, subject = c.Subject, status = c.Status, createdAt = c.CreatedAt
-        });
+
+        var op = Entry.Create("complaint.file")
+            .Describe($"User files complaint: {req.Subject}")
+            .From(Caller, 1, ("role","complainant"))
+            .To($"Complaint:{id}", 1, ("role","filed"))
+            .Tag("complaint_id", id)
+            .Execute(ctx => { _complaintsMutable.Insert(0, c); return Task.CompletedTask; })
+            .Build();
+
+        var env = await _engine.ExecuteEnvelopeAsync(op,
+            new { id = c.Id, subject = c.Subject, status = c.Status, createdAt = c.CreatedAt }, ct);
+        return env.Operation.Status == "Success"
+            ? Ok(env)
+            : this.BadRequestEnvelope(env.Operation.FailedAnalyzer ?? "complaint_failed", env.Operation.ErrorMessage);
     }
 
     public sealed record ReplyRequest(string Message);
     [HttpPost("/complaints/{id}/replies")]
-    public IActionResult AddReply(string id, [FromBody] ReplyRequest req)
+    public async Task<IActionResult> AddReply(string id, [FromBody] ReplyRequest req, CancellationToken ct)
     {
         var ix = _complaintsMutable.FindIndex(x => x.Id == id);
         if (ix < 0) return this.NotFoundEnvelope("complaint_not_found");
-        var c = _complaintsMutable[ix];
-        var newReplies = c.Replies.Append(new AshareV2Seed.ComplaintReplySeed(
-            $"R{c.Replies.Count + 1}", "user", req.Message, DateTime.UtcNow)).ToList();
-        _complaintsMutable[ix] = c with { Replies = newReplies };
-        return this.OkEnvelope("complaint.reply", new {
-            id = c.Id, repliesCount = newReplies.Count
-        });
+
+        var op = Entry.Create("complaint.reply")
+            .Describe($"User replies on complaint {id}")
+            .From(Caller, 1, ("role","replier"))
+            .To($"Complaint:{id}", 1, ("role","replied"))
+            .Tag("complaint_id", id)
+            .Execute(ctx =>
+            {
+                var c = _complaintsMutable[ix];
+                var newReplies = c.Replies.Append(new AshareV2Seed.ComplaintReplySeed(
+                    $"R{c.Replies.Count + 1}", "user", req.Message, DateTime.UtcNow)).ToList();
+                _complaintsMutable[ix] = c with { Replies = newReplies };
+                return Task.CompletedTask;
+            })
+            .Build();
+
+        var env = await _engine.ExecuteEnvelopeAsync(op,
+            new { id, repliesCount = _complaintsMutable[ix].Replies.Count + 1 }, ct);
+        return env.Operation.Status == "Success"
+            ? Ok(env)
+            : this.BadRequestEnvelope(env.Operation.FailedAnalyzer ?? "reply_failed", env.Operation.ErrorMessage);
     }
 
     [HttpGet("/my-listings")]
@@ -253,24 +336,42 @@ public class CatalogController : ControllerBase
                     viewsCount = l.ViewsCount, bookingsCount = l.BookingsCount
                 }));
 
-    /// <summary>تبديل حالة إعلان نشط/موقوف (ownership-enforced).</summary>
+    /// <summary>
+    /// تبديل حالة إعلان نشط/موقوف.
+    /// السياسة: OwnershipInterceptor يفرض must_own عبر tag "owner_policy".
+    /// </summary>
     [HttpPost("/my-listings/{id}/toggle")]
-    public IActionResult ToggleListing(string id)
+    public async Task<IActionResult> ToggleListing(string id, CancellationToken ct)
     {
         var ix = AshareV2Seed.Listings.FindIndex(l => l.Id == id);
         if (ix < 0) return this.NotFoundEnvelope("listing_not_found");
         var l = AshareV2Seed.Listings[ix];
-        if (l.OwnerId != AshareV2Seed.CurrentUserId)
-            return this.ForbiddenEnvelope("not_owner", "لا يمكن تعديل إعلان غير مملوك لك");
-        // نسخ الـ record مع تبديل الحالة
         var newStatus = l.Status == 1 ? 2 : 1;
-        AshareV2Seed.Listings[ix] = new AshareV2Seed.ListingSeed(
-            l.Id, l.Title, l.Description, l.Price, l.TimeUnit, l.City, l.District,
-            l.Lat, l.Lng, l.Amenities,
-            ownerId: l.OwnerId, featured: l.IsFeatured, capacity: l.Capacity,
-            rating: l.Rating, categoryId: l.CategoryId,
-            status: newStatus, viewsCount: l.ViewsCount, bookingsCount: l.BookingsCount);
-        return this.OkEnvelope("listing.toggle", new { id, status = newStatus });
+
+        var op = Entry.Create("listing.toggle")
+            .Describe($"Owner toggles listing {id} to status {newStatus}")
+            .From(Caller, 1, ("role","owner"))
+            .To($"Listing:{id}", 1, ("role","target"))
+            .Tag("listing_id", id)
+            .Tag("owner_policy", "must_own")
+            .Tag("resource_owner", l.OwnerId)
+            .Execute(ctx =>
+            {
+                AshareV2Seed.Listings[ix] = new AshareV2Seed.ListingSeed(
+                    l.Id, l.Title, l.Description, l.Price, l.TimeUnit, l.City, l.District,
+                    l.Lat, l.Lng, l.Amenities,
+                    ownerId: l.OwnerId, featured: l.IsFeatured, capacity: l.Capacity,
+                    rating: l.Rating, categoryId: l.CategoryId,
+                    status: newStatus, viewsCount: l.ViewsCount, bookingsCount: l.BookingsCount);
+                return Task.CompletedTask;
+            })
+            .Build();
+
+        var env = await _engine.ExecuteEnvelopeAsync(op, new { id, status = newStatus }, ct);
+        if (env.Operation.Status != "Success")
+            return this.ForbiddenEnvelope(env.Operation.FailedAnalyzer ?? "listing_toggle_failed",
+                env.Operation.ErrorMessage);
+        return Ok(env);
     }
 
     // ── Profile (GET + PUT) ────────────────────────────────────────────
@@ -288,20 +389,33 @@ public class CatalogController : ControllerBase
 
     public sealed record ProfileUpdateRequest(string FullName, string Email, string Phone, string City);
     [HttpPut("/me/profile")]
-    public IActionResult UpdateProfile([FromBody] ProfileUpdateRequest req)
+    public async Task<IActionResult> UpdateProfile([FromBody] ProfileUpdateRequest req, CancellationToken ct)
     {
-        var old = AshareV2Seed.Profile;
-        AshareV2Seed.Profile = old with {
-            FullName = req.FullName,
-            Email = req.Email,
-            EmailVerified = req.Email == old.Email && old.EmailVerified,
-            Phone = req.Phone,
-            PhoneVerified = req.Phone == old.Phone && old.PhoneVerified,
-            City = req.City
-        };
-        return this.OkEnvelope("profile.update", new {
-            id = AshareV2Seed.Profile.Id, fullName = AshareV2Seed.Profile.FullName
-        });
+        var op = Entry.Create("profile.update")
+            .Describe("User updates own profile")
+            .From(Caller, 1, ("role","user"))
+            .To($"Profile:{AshareV2Seed.Profile.Id}", 1, ("role","updated"))
+            .Tag("profile_id", AshareV2Seed.Profile.Id)
+            .Execute(ctx =>
+            {
+                var old = AshareV2Seed.Profile;
+                AshareV2Seed.Profile = old with {
+                    FullName = req.FullName,
+                    Email = req.Email,
+                    EmailVerified = req.Email == old.Email && old.EmailVerified,
+                    Phone = req.Phone,
+                    PhoneVerified = req.Phone == old.Phone && old.PhoneVerified,
+                    City = req.City
+                };
+                return Task.CompletedTask;
+            })
+            .Build();
+
+        var env = await _engine.ExecuteEnvelopeAsync(op,
+            new { id = AshareV2Seed.Profile.Id, fullName = req.FullName }, ct);
+        return env.Operation.Status == "Success"
+            ? Ok(env)
+            : this.BadRequestEnvelope(env.Operation.FailedAnalyzer ?? "profile_failed", env.Operation.ErrorMessage);
     }
 
     // ── MySubscription ─────────────────────────────────────────────────

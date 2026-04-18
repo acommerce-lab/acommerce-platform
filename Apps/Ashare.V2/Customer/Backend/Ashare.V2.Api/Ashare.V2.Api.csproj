@@ -10,8 +10,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- OperationEngine + Wire (envelope format) -->
+    <!-- OperationEngine + Wire (envelope format) + Interceptors (cross-cutting) -->
     <ProjectReference Include="..\..\..\..\..\libs\backend\core\ACommerce.OperationEngine\ACommerce.OperationEngine.csproj" />
     <ProjectReference Include="..\..\..\..\..\libs\backend\core\ACommerce.OperationEngine.Wire\ACommerce.OperationEngine.Wire.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\backend\core\ACommerce.OperationEngine.Interceptors\ACommerce.OperationEngine.Interceptors.csproj" />
   </ItemGroup>
 </Project>
