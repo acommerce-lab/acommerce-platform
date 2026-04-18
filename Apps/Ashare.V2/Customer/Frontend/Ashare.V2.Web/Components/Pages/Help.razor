@@ -1,30 +1,6 @@
 @page "/help"
-@inject AppStore Store
-@inject ApiReader Api
-@inject ITemplateEngine Engine
+@inject NavigationManager Nav
 
-<PageTitle>الشكاوى - عشير</PageTitle>
+<PageTitle>المساعدة - عشير</PageTitle>
 
-<AcComplaintsPage Items="_items"
-                  Engine="Engine"
-                  Store="Store"
-                  OnFiled="OnFiled" />
-
-@code {
-    private List<AcComplaintsPage.ComplaintDto> _items = new();
-
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (firstRender)
-        {
-            var env = await Api.GetAsync<List<PayloadDto>>("/complaints");
-            _items = env.Data?.Select(p => new AcComplaintsPage.ComplaintDto(
-                p.Id, p.Subject, p.Body, p.CreatedAt, p.Status)).ToList() ?? new();
-            await InvokeAsync(StateHasChanged);
-        }
-    }
-
-    private void OnFiled(AcComplaintsPage.ComplaintDto c) { _items.Insert(0, c); StateHasChanged(); }
-
-    private sealed record PayloadDto(string Id, string Subject, string Body, DateTime CreatedAt, string Status);
-}
+@{ Nav.NavigateTo("/complaints", true); }

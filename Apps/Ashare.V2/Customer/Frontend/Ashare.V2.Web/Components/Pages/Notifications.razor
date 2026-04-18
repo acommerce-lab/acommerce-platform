@@ -5,55 +5,99 @@
 
 <PageTitle>الإشعارات - عشير</PageTitle>
 
-<AcNotificationsPage Title="الإشعارات"
-                     Notifications="@_items"
-                     Loading="@_loading"
-                     OnMarkRead="OnMarkRead"
-                     OnMarkAllRead="OnMarkAllRead" />
+<div class="acs-page acs-notifications-page">
+    <AcSectionHeader Title="الإشعارات" ActionLabel="قراءة الكلّ" OnAction="@MarkAllRead" />
+
+    <div class="acs-filter-chips">
+        <AcFilterChip Label="الكلّ" Active="@(_filter == "")" OnClick="@(() => SetFilter(""))" />
+        <AcFilterChip Label="حجوزات" Active="@(_filter == "booking")" OnClick="@(() => SetFilter("booking"))" />
+        <AcFilterChip Label="رسائل" Active="@(_filter == "message")" OnClick="@(() => SetFilter("message"))" />
+        <AcFilterChip Label="إعلانات" Active="@(_filter == "listing")" OnClick="@(() => SetFilter("listing"))" />
+        <AcFilterChip Label="نظام" Active="@(_filter == "system")" OnClick="@(() => SetFilter("system"))" />
+    </div>
+
+    @if (_loading) { <AcLoadingState /> }
+    else
+    {
+        var filtered = _items.Where(n => string.IsNullOrEmpty(_filter) || n.Type == _filter).ToList();
+
+        @if (filtered.Count == 0) { <AcEmptyState IconName="bell" Message="لا توجد إشعارات" /> }
+        else
+        {
+            @foreach (var group in filtered.GroupBy(n => GroupLabel(n.CreatedAt)))
+            {
+                <h3 style="margin-top:16px; font-size:14px; color:var(--ac-text-muted);">@group.Key</h3>
+                <div style="display:flex; flex-direction:column; gap:8px;">
+                    @foreach (var n in group)
+                    {
+                        var nid = n.Id;
+                        <AcCard Hover="true">
+                            <ChildContent>
+                                <button type="button" class="acm-complaint-btn" @onclick="@(() => OnClick(nid))">
+                                    <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
+                                        <strong>@n.Title</strong>
+                                        @if (!n.IsRead) { <AcBadge Variant="primary" Text="جديد" /> }
+                                    </div>
+                                    <div class="acm-complaint-body">@n.Body</div>
+                                    <small>@n.CreatedAt.ToString("yyyy-MM-dd HH:mm") — @TypeLabel(n.Type)</small>
+                                </button>
+                            </ChildContent>
+                        </AcCard>
+                    }
+                </div>
+            }
+        }
+    }
+</div>
 
 @code {
-    private List<NotificationRowDto> _items = new();
+    private List<Dto> _items = new();
     private bool _loading = true;
+    private string _filter = "";
 
     protected override void OnInitialized() => Store.OnChanged += OnChange;
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+    protected override async Task OnAfterRenderAsync(bool first)
     {
-        if (firstRender)
-        {
-            var env = await Api.GetAsync<List<Payload>>("/home/notifications");
-            _items = env.Data?.Select(p => new NotificationRowDto
-            {
-                Id = p.Id,
-                Title = p.Title,
-                Body = p.Body,
-                Type = p.Type,
-                IsRead = p.IsRead,
-                CreatedAt = p.CreatedAt
-            }).ToList() ?? new();
-            _loading = false;
-            await InvokeAsync(StateHasChanged);
-        }
+        if (!first) return;
+        var env = await Api.GetAsync<List<Dto>>("/home/notifications");
+        _items = env.Data ?? new();
+        _loading = false;
+        await InvokeAsync(StateHasChanged);
     }
 
-    private void OnMarkRead(NotificationRowDto n)
+    private void SetFilter(string f) { _filter = f; StateHasChanged(); }
+
+    private void OnClick(string id)
     {
-        var ix = _items.FindIndex(x => x.Id == n.Id);
-        if (ix >= 0 && !_items[ix].IsRead)
-        {
-            _items[ix] = _items[ix] with { IsRead = true };
-            StateHasChanged();
-        }
+        var ix = _items.FindIndex(x => x.Id == id);
+        if (ix >= 0) _items[ix] = _items[ix] with { IsRead = true };
     }
 
-    private void OnMarkAllRead()
+    private void MarkAllRead()
     {
         _items = _items.Select(n => n with { IsRead = true }).ToList();
-        StateHasChanged();
     }
+
+    private static string GroupLabel(DateTime dt)
+    {
+        var days = (DateTime.UtcNow - dt).TotalDays;
+        if (days < 1) return "اليوم";
+        if (days < 2) return "أمس";
+        if (days < 7) return "هذا الأسبوع";
+        return "أقدم";
+    }
+
+    private static string TypeLabel(string? t) => t switch
+    {
+        "booking" => "حجز", "message" => "رسالة",
+        "listing" => "إعلان", "promo" => "عرض",
+        "review" => "تقييم", "system" => "نظام",
+        _ => t ?? ""
+    };
 
     private void OnChange() => InvokeAsync(StateHasChanged);
     public void Dispose() => Store.OnChanged -= OnChange;
 
-    private sealed record Payload(string Id, string Title, string? Body, string? Type, bool IsRead, DateTime CreatedAt);
+    private sealed record Dto(string Id, string Title, string? Body, string? Type, bool IsRead, DateTime CreatedAt);
 }

@@ -4,40 +4,74 @@
 
 <PageTitle>الرسائل - عشير</PageTitle>
 
-<div class="acs-page">
+<div class="acs-page acs-chats-page">
     <h1 class="acm-wizard-title">الرسائل</h1>
+
+    <AcSearchBox Value="@_search" ValueChanged="@(v => _search = v ?? string.Empty)"
+                 Placeholder="ابحث في المحادثات…" />
+
     @if (_loading) { <AcLoadingState /> }
-    else if (_items.Count == 0) { <AcEmptyState IconName="message" Message="لا توجد محادثات" /> }
     else
     {
-        <div style="display:flex; flex-direction:column; gap:8px;">
-            @foreach (var c in _items)
-            {
-                var cid = c.Id;
-                <AcCard Hover="true">
-                    <ChildContent>
-                        <button type="button" class="acm-complaint-btn" @onclick="@(() => Open(cid))">
-                            <strong>@c.PartnerName</strong>
-                            <div class="acm-complaint-body">@c.LastMessage</div>
-                            <small>@c.Subject — @c.LastAt.ToString("HH:mm")</small>
-                        </button>
-                    </ChildContent>
-                </AcCard>
-            }
-        </div>
+        var list = _items.Where(c =>
+            string.IsNullOrWhiteSpace(_search) ||
+            c.PartnerName.Contains(_search, StringComparison.OrdinalIgnoreCase) ||
+            (c.Subject?.Contains(_search, StringComparison.OrdinalIgnoreCase) ?? false) ||
+            (c.LastMessage?.Contains(_search, StringComparison.OrdinalIgnoreCase) ?? false)).ToList();
+
+        @if (list.Count == 0) { <AcEmptyState IconName="message" Message="لا توجد محادثات" /> }
+        else
+        {
+            <div style="display:flex; flex-direction:column; gap:8px; margin-top:12px;">
+                @foreach (var c in list)
+                {
+                    var cid = c.Id;
+                    <AcCard Hover="true">
+                        <ChildContent>
+                            <button type="button" class="acm-complaint-btn" @onclick="@(() => Open(cid))">
+                                <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
+                                    <strong>@c.PartnerName</strong>
+                                    <div style="display:flex; gap:6px; align-items:center;">
+                                        <small>@Ago(c.LastAt)</small>
+                                        @if (c.UnreadCount > 0) { <AcBadge Variant="primary" Text="@c.UnreadCount.ToString()" /> }
+                                    </div>
+                                </div>
+                                <div class="acm-complaint-body">@c.LastMessage</div>
+                                <small>@c.Subject</small>
+                            </button>
+                        </ChildContent>
+                    </AcCard>
+                }
+            </div>
+        }
     }
 </div>
 
 @code {
     private List<ConvDto> _items = new();
     private bool _loading = true;
+    private string _search = "";
 
     protected override async Task OnAfterRenderAsync(bool first)
     {
-        if (first) { var env = await Api.GetAsync<List<ConvDto>>("/conversations"); _items = env.Data ?? new(); _loading = false; await InvokeAsync(StateHasChanged); }
+        if (!first) return;
+        var env = await Api.GetAsync<List<ConvDto>>("/conversations");
+        _items = env.Data ?? new();
+        _loading = false;
+        await InvokeAsync(StateHasChanged);
     }
 
     private void Open(string id) => Nav.NavigateTo($"/chat/{id}");
 
-    private sealed record ConvDto(string Id, string PartnerName, string Subject, DateTime LastAt, string LastMessage);
+    private static string Ago(DateTime dt)
+    {
+        var t = DateTime.UtcNow - dt;
+        if (t.TotalMinutes < 1) return "الآن";
+        if (t.TotalMinutes < 60) return $"{(int)t.TotalMinutes} د";
+        if (t.TotalHours < 24) return $"{(int)t.TotalHours} س";
+        if (t.TotalDays < 7) return $"{(int)t.TotalDays} ي";
+        return dt.ToString("yyyy-MM-dd");
+    }
+
+    private sealed record ConvDto(string Id, string PartnerName, string Subject, DateTime LastAt, int UnreadCount, string LastMessage);
 }

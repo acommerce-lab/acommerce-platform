@@ -1,8 +1,7 @@
 namespace Ashare.V2.Api.Services;
 
 /// <summary>
-/// بذور Ashare.V2 — توسَّعت لتغطية كل صفحات عشير القديم.
-/// مقتبسة من V1 seeds (AshareListingsSeed.cs) مع اختصار للحقول.
+/// بذور Ashare.V2 — تغطية كاملة لصفحات عشير القديم.
 /// </summary>
 internal static class AshareV2Seed
 {
@@ -19,6 +18,28 @@ internal static class AshareV2Seed
     [
         "الرياض", "جدة", "مكة", "المدينة", "الدمام", "الخبر", "القصيم", "أبها"
     ];
+
+    public static readonly IReadOnlyList<string> Amenities =
+    [
+        "ac", "wifi", "kitchen", "parking", "laundry", "elevator",
+        "private_bath", "balcony", "furnished", "security", "gym", "pool"
+    ];
+
+    public static readonly Dictionary<string, string> AmenityLabels = new()
+    {
+        ["ac"] = "تكييف",
+        ["wifi"] = "واي-فاي",
+        ["kitchen"] = "مطبخ",
+        ["parking"] = "موقف سيّارة",
+        ["laundry"] = "غسيل",
+        ["elevator"] = "مصعد",
+        ["private_bath"] = "حمّام خاص",
+        ["balcony"] = "شرفة",
+        ["furnished"] = "مفروش",
+        ["security"] = "حراسة",
+        ["gym"] = "صالة رياضيّة",
+        ["pool"] = "مسبح"
+    };
 
     public static readonly IReadOnlyList<ListingSeed> Listings = BuildListings();
 
@@ -43,27 +64,78 @@ internal static class AshareV2Seed
 
     public static readonly IReadOnlyList<ConversationSeed> Conversations =
     [
-        new("C-1", "أحمد - مالك النرجس", "شقة مفروشة في حي النرجس", Hours(-1),
+        new("C-1", "أحمد - مالك النرجس", "شقة مفروشة في حي النرجس", Hours(-1), 1,
             [new("م1", "partner",  "أهلاً، هل العرض متاح؟",           Hours(-3)),
              new("م2", "me",       "نعم، ما التواريخ المناسبة؟",       Hours(-2)),
              new("م3", "partner",  "1 مايو — لمدة 30 ليلة",             Hours(-1))]),
-        new("C-2", "خدمة العملاء",     "استفسار عن الحجز #B-2",    Hours(-10),
+        new("C-2", "خدمة العملاء",     "استفسار عن الحجز #B-2",    Hours(-10), 0,
             [new("م1", "me",       "الحجز مؤكَّد لكنّي لم أستلم المفتاح", Hours(-12)),
              new("م2", "partner",  "نعتذر، سيتواصل المالك خلال ساعة",  Hours(-10))])
     ];
 
     public static readonly IReadOnlyList<ComplaintSeed> Complaints =
     [
-        new("X-1", "تأخر في الدخول للسكن",   "المالك تأخّر 6 ساعات عن الموعد المتّفق",  Days(-3),  "open"),
-        new("X-2", "الخدمة لم تطابق الوصف", "لا يوجد تكييف رغم ذكره في الإعلان",       Days(-10), "resolved")
+        new("X-1", "تأخر في الدخول للسكن",
+            "المالك تأخّر 6 ساعات عن الموعد المتّفق في حيّ النرجس يوم 18/4.",
+            Days(-3), "open", "عادي", "الحجز #B-1",
+            [new("R1", "user",  "طلبتُ من المالك الالتزام بالموعد",     Days(-3)),
+             new("R2", "staff", "شكراً للإبلاغ — سنتواصل مع المالك اليوم", Days(-3).AddHours(2)),
+             new("R3", "staff", "تم تنبيه المالك، نعتذر عن التأخّر",   Days(-2))]),
+        new("X-2", "الخدمة لم تطابق الوصف",
+            "لا يوجد تكييف رغم ذكره في الإعلان L-205 — مساحة شاركتُها.",
+            Days(-10), "resolved", "عالي", "إعلان L-205",
+            [new("R1", "user",  "الإعلان ذكر تكييفاً لم أجده",        Days(-10)),
+             new("R2", "staff", "تمّ التحقق، سيُعاد المبلغ خلال 3 أيام", Days(-9)),
+             new("R3", "user",  "شكراً، استلمتُ الاسترداد",             Days(-6))])
     ];
 
     public static readonly IReadOnlyList<PlanSeed> Plans =
     [
-        new("basic",      "الأساسيّة",  "إعلان واحد / شهر",              0m,   "month", 1,  0,  false),
-        new("pro",        "المحترف",   "5 إعلانات + تمييز إعلان واحد", 99m,  "month", 5,  1,  true),
-        new("enterprise", "المؤسسات",  "إعلانات غير محدودة + 5 ممّيز",  399m, "month", 99, 5,  false)
+        new("basic",      "الأساسيّة",  "إعلان واحد / شهر مجاناً",
+            0m,   "month", 1,  0, 5,  false,
+            ["إعلان واحد فعّال", "5 صور لكلّ إعلان", "دعم عبر البريد"]),
+        new("pro",        "المحترف",   "5 إعلانات + تمييز إعلان واحد",
+            99m,  "month", 5,  1, 10, true,
+            ["5 إعلانات فعّالة", "10 صور لكلّ إعلان", "تمييز إعلان واحد", "إحصاءات تفصيليّة", "دعم ذو أولويّة"]),
+        new("enterprise", "المؤسسات",  "إعلانات غير محدودة + 5 مميّزة",
+            399m, "month", 99, 5, 20, false,
+            ["إعلانات غير محدودة", "20 صورة لكلّ إعلان", "تمييز 5 إعلانات", "API للتكامل", "مدير حساب مخصّص"])
     ];
+
+    /// <summary>الاشتراك النشط للمستخدم الحاليّ (بذرة).</summary>
+    public static readonly SubscriptionSeed ActiveSubscription = new(
+        Id: "S-1",
+        PlanId: "pro",
+        PlanName: "المحترف",
+        Status: "active",
+        StartDate: Days(-18),
+        EndDate:   Days(12),
+        ListingsUsed: 3,
+        ListingsLimit: 5,
+        FeaturedUsed: 1,
+        FeaturedLimit: 1,
+        ImagesPerListing: 10,
+        ApiCallsUsed: 240,
+        ApiCallsLimit: 1000);
+
+    public static readonly IReadOnlyList<InvoiceSeed> Invoices =
+    [
+        new("INV-1001", "pro", 99m, Days(-18), "paid"),
+        new("INV-0951", "pro", 99m, Days(-49), "paid"),
+        new("INV-0900", "basic", 0m, Days(-80), "paid")
+    ];
+
+    /// <summary>بروفايل المستخدم (بذرة — يدعم GET/PUT بشكل in-memory).</summary>
+    public static UserProfileSeed Profile = new(
+        Id: "U-1",
+        FullName: "عبدالله القحطاني",
+        Email: "user@example.com",
+        EmailVerified: true,
+        Phone: "0555123456",
+        PhoneVerified: true,
+        City: "الرياض",
+        AvatarUrl: null,
+        MemberSince: Days(-420));
 
     public static readonly IReadOnlyList<string> PopularSearches =
     [
@@ -163,10 +235,20 @@ internal static class AshareV2Seed
 
     public sealed record NotificationSeed(string Id, string Type, string Title, string Body, DateTime CreatedAt, bool IsRead);
     public sealed record BookingSeed(string Id, string ListingId, string ListingTitle, decimal Total, DateTime StartDate, int Nights, int Guests, string Status);
-    public sealed record ConversationSeed(string Id, string PartnerName, string Subject, DateTime LastAt, IReadOnlyList<MessageSeed> Messages);
+    public sealed record ConversationSeed(string Id, string PartnerName, string Subject, DateTime LastAt, int UnreadCount, IReadOnlyList<MessageSeed> Messages);
     public sealed record MessageSeed(string Id, string From, string Text, DateTime SentAt);
-    public sealed record ComplaintSeed(string Id, string Subject, string Body, DateTime CreatedAt, string Status);
-    public sealed record PlanSeed(string Id, string Name, string Description, decimal Price, string Unit, int ListingQuota, int FeaturedQuota, bool Popular);
+    public sealed record ComplaintReplySeed(string Id, string From, string Message, DateTime CreatedAt);
+    public sealed record ComplaintSeed(string Id, string Subject, string Body, DateTime CreatedAt,
+        string Status, string Priority, string RelatedEntity, IReadOnlyList<ComplaintReplySeed> Replies);
+    public sealed record PlanSeed(string Id, string Name, string Description, decimal Price, string Unit,
+        int ListingQuota, int FeaturedQuota, int ImagesPerListing, bool Popular, IReadOnlyList<string> Features);
+    public sealed record SubscriptionSeed(string Id, string PlanId, string PlanName, string Status,
+        DateTime StartDate, DateTime EndDate,
+        int ListingsUsed, int ListingsLimit, int FeaturedUsed, int FeaturedLimit,
+        int ImagesPerListing, int ApiCallsUsed, int ApiCallsLimit);
+    public sealed record InvoiceSeed(string Id, string PlanId, decimal Amount, DateTime Date, string Status);
+    public sealed record UserProfileSeed(string Id, string FullName, string Email, bool EmailVerified,
+        string Phone, bool PhoneVerified, string City, string? AvatarUrl, DateTime MemberSince);
     public sealed record QuickFilterSeed(string Id, string Label, string Icon);
     public sealed record LegalSeed(string Key, string Title, string Body);
     public sealed record VersionInfo(string Current, string Latest, bool IsBlocked, string? StoreUrl, string? SupportEmail);

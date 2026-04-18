@@ -133,7 +133,21 @@ public class L
         ["complaint.new"] = "شكوى جديدة",
         ["complaint.subject"] = "الموضوع",
         ["complaint.body"] = "التفاصيل",
-        ["complaint.send"] = "إرسال"
+        ["complaint.send"] = "إرسال",
+
+        ["subscription.title"] = "اشتراكي",
+        ["subscription.days_remaining"] = "يوم متبقّي",
+        ["subscription.renew"] = "تجديد",
+        ["subscription.change"] = "تغيير الخطّة",
+        ["subscription.cancel"] = "إلغاء الاشتراك",
+        ["subscription.usage"] = "استهلاك الكوتا",
+        ["subscription.features"] = "مزايا الخطّة",
+        ["subscription.invoices"] = "الفواتير",
+
+        ["profile.edit"] = "تعديل الملفّ الشخصيّ",
+        ["profile.avatar"] = "الصورة الشخصيّة",
+        ["profile.verified"] = "موثَّق",
+        ["profile.verify"] = "تحقّق"
     };
 
     // ── القاموس الإنجليزيّ ───────────────────────────────────────────────
@@ -242,6 +256,20 @@ public class L
         ["complaint.new"] = "New complaint",
         ["complaint.subject"] = "Subject",
         ["complaint.body"] = "Details",
-        ["complaint.send"] = "Send"
+        ["complaint.send"] = "Send",
+
+        ["subscription.title"] = "My Subscription",
+        ["subscription.days_remaining"] = "days remaining",
+        ["subscription.renew"] = "Renew",
+        ["subscription.change"] = "Change plan",
+        ["subscription.cancel"] = "Cancel subscription",
+        ["subscription.usage"] = "Usage",
+        ["subscription.features"] = "Plan features",
+        ["subscription.invoices"] = "Invoices",
+
+        ["profile.edit"] = "Edit profile",
+        ["profile.avatar"] = "Avatar",
+        ["profile.verified"] = "Verified",
+        ["profile.verify"] = "Verify"
     };
 }

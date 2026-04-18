@@ -1,84 +1,153 @@
 @page "/space/{Id}"
 @inject AppStore Store
 @inject ApiReader Api
-@inject ITemplateEngine Engine
 @inject NavigationManager Nav
 @implements IDisposable
 
 <PageTitle>تفاصيل - عشير</PageTitle>
 
-<AcListingDetailsPage Data="_data"
-                      Engine="Engine"
-                      Store="Store"
-                      IsFavorite="@(_data is not null && Store.FavoriteListingIds.Contains(_data.Id))"
-                      OnBack="GoBack"
-                      OnFavoriteToggled="OnFavoriteToggled"
-                      OnBookingStart="OnBookingStart" />
+<div class="acs-page acs-space-details">
+    @if (_loading) { <AcLoadingState /> }
+    else if (_data is null) { <AcEmptyState IconName="info" Message="الإعلان غير موجود" /> }
+    else
+    {
+        <div class="acs-gallery-wrap">
+            @if (_data.Images is not null && _data.Images.Count > 0)
+            {
+                <AcGallery Images="@(_data.Images.ToList())" />
+            }
+            else
+            {
+                <div class="acs-gallery-ph"><AcIcon Name="image" Size="48" /></div>
+            }
+            <button type="button" class="acs-fav-btn @(IsFav ? "active" : "")" @onclick="ToggleFavorite">
+                <AcIcon Name="heart" Filled="@IsFav" Size="20" />
+            </button>
+        </div>
+
+        <h1 class="acm-wizard-title">@_data.Title</h1>
+        <div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:8px;">
+            @if (!string.IsNullOrEmpty(_data.LocationText))
+            {
+                <span><AcIcon Name="map-pin" Size="14" /> @_data.LocationText</span>
+            }
+            @if (_data.Capacity > 0)
+            {
+                <span><AcIcon Name="user" Size="14" /> @_data.Capacity أشخاص</span>
+            }
+            @if (_data.Rating > 0)
+            {
+                <span><AcIcon Name="star" Size="14" /> @_data.Rating.ToString("0.0")</span>
+            }
+        </div>
+
+        <div class="acm-checkout-line">
+            <strong style="font-size:20px;">@_data.PriceDisplay</strong>
+            @if (!string.IsNullOrEmpty(_data.PriceUnit)) { <span>/ @_data.PriceUnit</span> }
+        </div>
+
+        @if (!string.IsNullOrEmpty(_data.Description))
+        {
+            <AcCard>
+                <ChildContent>
+                    <h3 style="margin-top:0;">الوصف</h3>
+                    <p>@_data.Description</p>
+                </ChildContent>
+            </AcCard>
+        }
+
+        @if (_data.Amenities is not null && _data.Amenities.Count > 0)
+        {
+            <AcCard>
+                <ChildContent>
+                    <h3 style="margin-top:0;">المرافق</h3>
+                    <div class="acs-amenity-chips">
+                        @foreach (var a in _data.Amenities)
+                        {
+                            <span class="acs-amenity-chip"><AcIcon Name="check" Size="14" /> @a.Label</span>
+                        }
+                    </div>
+                </ChildContent>
+            </AcCard>
+        }
+
+        <AcCard>
+            <ChildContent>
+                <h3 style="margin-top:0;">الموقع</h3>
+                <AcMapSim Pins="@MapPins" />
+            </ChildContent>
+        </AcCard>
+
+        @if (_data.Owner is not null)
+        {
+            <AcCard>
+                <ChildContent>
+                    <h3 style="margin-top:0;">المالك</h3>
+                    <div class="acm-details-owner">
+                        <span class="acm-details-owner-avatar"><AcIcon Name="user" Size="20" /></span>
+                        <div class="acm-details-owner-info">
+                            <strong>@_data.Owner.Name</strong>
+                            @if (!string.IsNullOrEmpty(_data.Owner.MemberSince))
+                            {
+                                <span>عضو منذ @_data.Owner.MemberSince</span>
+                            }
+                        </div>
+                        <AcButton Variant="outline-primary" Text="مراسلة" OnClick="@MessageOwner" />
+                    </div>
+                </ChildContent>
+            </AcCard>
+        }
+
+        <AcStickyActionBar>
+            <AcButton Variant="ghost" Text="رجوع" OnClick="@GoBack" />
+            <AcButton Variant="primary" Class="ac-btn-block" Text="احجز الآن" OnClick="@Book" />
+        </AcStickyActionBar>
+    }
+</div>
 
 @code {
     [Parameter] public string Id { get; set; } = "";
 
-    private AcListingDetailsPage.ListingDetailsDto? _data;
+    private DetailsPayload? _data;
+    private bool _loading = true;
+    private bool IsFav => _data is not null && Store.FavoriteListingIds.Contains(_data.Id);
+
+    private IReadOnlyList<AcMapSim.MapPin> MapPins =>
+        _data is null ? Array.Empty<AcMapSim.MapPin>()
+                      : new[] { new AcMapSim.MapPin("loc", _data.Title, _data.Lat ?? 24.7136, _data.Lng ?? 46.6753) };
 
     protected override void OnInitialized() => Store.OnChanged += OnChange;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (firstRender)
-        {
-            var env = await Api.GetAsync<DetailsPayload>($"/home/space/{Id}");
-            if (env.Data is not null)
-            {
-                _data = new AcListingDetailsPage.ListingDetailsDto(
-                    env.Data.Id,
-                    env.Data.Title,
-                    env.Data.Description,
-                    (IReadOnlyList<string>?)env.Data.Images ?? Array.Empty<string>(),
-                    env.Data.LocationText,
-                    env.Data.Capacity == 0 ? null : env.Data.Capacity,
-                    env.Data.Rating == 0 ? null : env.Data.Rating,
-                    env.Data.PriceDisplay,
-                    env.Data.PriceUnit,
-                    env.Data.Amenities?
-                        .Select(a => new AcListingDetailsPage.AmenityDto(a.Key, a.Label)).ToList(),
-                    env.Data.Owner is null ? null :
-                        new AcListingDetailsPage.ListingOwnerDto(env.Data.Owner.Name, env.Data.Owner.MemberSince));
-                await InvokeAsync(StateHasChanged);
-            }
-        }
+        if (!firstRender) return;
+        var env = await Api.GetAsync<DetailsPayload>($"/home/space/{Id}");
+        _data = env.Data;
+        _loading = false;
+        await InvokeAsync(StateHasChanged);
     }
 
     private void GoBack() => Nav.NavigateTo("/explore");
+    private void Book() => Nav.NavigateTo($"/book/{Id}");
+    private void MessageOwner() => Nav.NavigateTo("/chats");
 
-    private void OnFavoriteToggled(bool on)
+    private void ToggleFavorite()
     {
         if (_data is null) return;
-        if (on) Store.FavoriteListingIds.Add(_data.Id);
-        else    Store.FavoriteListingIds.Remove(_data.Id);
+        if (!Store.FavoriteListingIds.Add(_data.Id)) Store.FavoriteListingIds.Remove(_data.Id);
         Store.NotifyChanged();
-    }
-
-    private void OnBookingStart()
-    {
-        // booking wizard قادم في شريحة لاحقة — الآن ننقل للمفضلة كإيماءة سريعة.
-        // لا تغيير دائم في الحالة، Layer 6 سيمرّ.
     }
 
     private void OnChange() => InvokeAsync(StateHasChanged);
     public void Dispose() => Store.OnChanged -= OnChange;
 
     private sealed record DetailsPayload(
-        string Id,
-        string Title,
-        string? Description,
-        List<string>? Images,
-        string? LocationText,
-        int Capacity,
-        decimal Rating,
-        string PriceDisplay,
-        string? PriceUnit,
-        List<AmenityDto>? Amenities,
-        OwnerDto? Owner);
+        string Id, string Title, string? Description,
+        List<string>? Images, string? LocationText,
+        int Capacity, decimal Rating,
+        string PriceDisplay, string? PriceUnit,
+        List<AmenityDto>? Amenities, OwnerDto? Owner,
+        double? Lat = null, double? Lng = null);
 
     private sealed record AmenityDto(string Key, string Label);
     private sealed record OwnerDto(string Name, string? MemberSince);

@@ -105,11 +105,45 @@
 
 ---
 
-## ما أُنجِز فعلاً في هذه الدفعة (الإصلاحات الأوّلية)
+## ما أُنجِز (دفعتان)
 
-1. ✅ **Nafath مُستَعاد** في Login: دائرة رقم عشوائيّ + عدّاد 120 ثانية + حالات (loading/success/failed/expired/cancel).
-2. ✅ **التبديل الحيّ للوضع الداكن والاتجاه**: JS interop في `ui-prefs.js` يُستدعى من `MainLayout.OnAfterRenderAsync` عند كلّ تغيير.
-3. ✅ **زرّ إلغاء الحجز مشروط**: يظهر فقط لـ `pending`/`confirmed`.
-4. ✅ **تقرير الفجوات** (هذا الملف).
+### الدفعة 1 (إصلاحات أوّلية):
+1. ✅ **Nafath مُستَعاد** في Login: دائرة رقم عشوائيّ + عدّاد 120 ثانية + حالات.
+2. ✅ **التبديل الحيّ للوضع الداكن والاتجاه** عبر JS interop.
+3. ✅ **زرّ إلغاء الحجز مشروط** (pending/confirmed فقط).
 
-المتبقّي: 15 صفحة دفعة ب + ج.
+### الدفعة 2 (Tier A + B + C دفعةً واحدة):
+
+**Tier A — صفحات جديدة (4):**
+1. ✅ **`/profile/edit` ProfileEdit** — avatar upload (InputFile + حدّ 2MB + معاينة)، تعديل الاسم/الهاتف/البريد/المدينة، تحقّق جوّال+بريد (محاكاة)، حفظ عبر PUT `/me/profile`.
+2. ✅ **`/my-subscription` MySubscription** — خطّة نشطة + عدّاد أيّام + 4 بطاقات كوتا (listings/featured/images/api) مع progress bars، قائمة مزايا، قائمة فواتير، أزرار تجديد/تغيير/إلغاء، تحذير عند ≤7 أيّام.
+3. ✅ **`/complaints` Complaints** — قائمة كاملة + نموذج شكوى جديدة inline (subject/body/priority/related entity)، فلاتر حالة.
+4. ✅ **`/complaints/{id}` ComplaintDetail** — thread view: bubbles للمستخدم+الموظّف مع badge "موظّف دعم"، reply input (مُعطَّل للمحلولة/المغلقة)، POST `/complaints/{id}/replies`.
+
+**Tier B — إعادة بناء inline بخطوات حقيقيّة (3):**
+5. ✅ **`/book/{id}` NewBooking** — 4 خطوات: date (date picker + nights ±) → guests (guests counter + notes) → review (subtotal + service fee 5% + VAT 15% + terms checkbox) → payment (AcPaymentForm).
+6. ✅ **`/create-listing` CreateListing** — 4 خطوات مع step indicator: category (grid tiles) → details (title/description/price/unit/capacity + amenity chips من `/amenities`) → images (InputFile multi + grid preview + main-image badge + reorder/delete + حدّ ImagesPerListing من الخطّة) → location (city/district + map sim).
+7. ✅ **`/subscribe` Subscribe** — دورة فوترة (شهر/ربع ‑5%/سنة ‑20%) + promo code (ASHARE10/WELCOME20) + VAT 15% + ملخّص مفصّل + form.
+
+**Tier C — تحسينات + ميزات مفقودة (11):**
+8. ✅ **`/me` Me** — stats grid (bookings/listings/favorites/complaints) + 6 action cards + زرّ تعديل → ProfileEdit + رابط MySubscription.
+9. ✅ **`/plans` Plans** — بطاقات خطط مُحسَّنة + ميزات بـ checks + جدول مقارنة (listings/featured/images/support).
+10. ✅ **`/payment/callback` PaymentCallback** — بطاقة تأكيد معاملة (txnId + amount + date) + أزرار منفصلة للحجز vs الخطّة.
+11. ✅ **`/legal` + `/legal/{key}` Legal** — accordion متعدّد المستندات (privacy/terms/refund) مع fetch من `/legal`.
+12. ✅ **`/notifications` Notifications** — tabs فلاتر (الكل/حجوزات/رسائل/إعلانات/نظام) + تجميع بالتاريخ (اليوم/أمس/هذا الأسبوع/أقدم) + mark-read عند النقر + قراءة الكلّ.
+13. ✅ **`/chats` Chats** — search box + unread badges + last-message preview + "منذ x" relative time.
+14. ✅ **`/chat/{id}` ChatRoom** — attachment button (InputFile + preview chip) + typing indicator animation + محاكاة ردّ الشريك بعد 1.8s.
+15. ✅ **`/my-listings` MyListings** — فلاتر حالة + per-card: views/bookings stats + أزرار (عرض/تعديل/إيقاف/ترقية لمميّز).
+16. ✅ **`/bookings` Bookings** — فلاتر حالة (الكل/pending/confirmed/completed/cancelled).
+17. ✅ **`/space/{id}` SpaceDetails** — gallery + favorite button + meta (location/capacity/rating) + amenities chips + map + owner card + sticky action bar (رجوع + احجز الآن).
+18. ✅ **`/search` Search** — recent searches (مع حذف فردي) + popular + quick filters + grid فئات.
+
+**Backend:**
+- ✅ توسَّع `AshareV2Seed`: amenities + replies للشكاوى + subscription + invoices + profile + features للخطط.
+- ✅ توسَّع `CatalogController`: `/amenities`, `/legal`, `/me/profile` (GET+PUT), `/me/subscription`, `/me/invoices`, `/complaints/{id}` + replies POST, `/complaints` create POST, unreadCount في conversations.
+
+**i18n + CSS:**
+- ✅ مفاتيح subscription/profile في `L.cs` بالعربيّة والإنجليزيّة.
+- ✅ CSS جديد في `app.css`: step-indicator، progress-bar، category-pick، amenity-chips، images-grid، plans-compare table، chat composer/attach/typing، staff bubble، legal accordion، gallery placeholder، fav-btn، recent-chip.
+
+**البناء**: ✅ API + Web يبنيان بلا أخطاء.

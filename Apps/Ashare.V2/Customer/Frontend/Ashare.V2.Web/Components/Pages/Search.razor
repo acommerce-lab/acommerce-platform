@@ -1,76 +1,111 @@
 @page "/search"
 @inject AppStore Store
 @inject ApiReader Api
-@inject ITemplateEngine Engine
 @inject NavigationManager Nav
 @implements IDisposable
 
 <PageTitle>بحث - عشير</PageTitle>
 
-<AcSearchSuggestionsPage Engine="Engine"
-                         Store="Store"
-                         RecentSearches="@Store.RecentSearches"
-                         PopularSearches="@_popular"
-                         QuickFilters="_quickFilters"
-                         ActiveQuickFilters="@Store.ActiveQuickFilterIds"
-                         OnSubmit="OnSubmit"
-                         OnPickRecent="OnPickRecent"
-                         OnRemoveRecent="OnRemoveRecent"
-                         OnClearRecent="OnClearRecent"
-                         OnToggleQuickFilter="OnToggleQuickFilter" />
+<div class="acs-page acs-search-page">
+    <AcSearchBox Value="@_query" ValueChanged="@(v => _query = v ?? string.Empty)"
+                 Placeholder="ابحث عن سكن مشترك…" OnSubmit="Submit" />
+
+    @if (Store.RecentSearches.Count > 0)
+    {
+        <AcSectionHeader Title="بحث حديث" ActionLabel="مسح" OnAction="@ClearRecent" />
+        <div class="acs-filter-chips">
+            @foreach (var r in Store.RecentSearches)
+            {
+                var rq = r;
+                <span class="acs-recent-chip">
+                    <button type="button" @onclick="@(() => PickRecent(rq))">@rq</button>
+                    <button type="button" class="rm" @onclick="@(() => Remove(rq))" title="حذف">×</button>
+                </span>
+            }
+        </div>
+    }
+
+    @if (_popular.Count > 0)
+    {
+        <AcSectionHeader Title="الأكثر بحثاً" />
+        <div class="acs-filter-chips">
+            @foreach (var p in _popular)
+            {
+                var pq = p;
+                <AcFilterChip Label="@pq" OnClick="@(() => PickRecent(pq))" />
+            }
+        </div>
+    }
+
+    @if (_quickFilters.Count > 0)
+    {
+        <AcSectionHeader Title="فلاتر سريعة" />
+        <div class="acs-filter-chips">
+            @foreach (var qf in _quickFilters)
+            {
+                var f = qf;
+                <AcFilterChip Label="@f.Label"
+                              Active="@Store.ActiveQuickFilterIds.Contains(f.Id)"
+                              OnClick="@(() => ToggleFilter(f.Id))" />
+            }
+        </div>
+    }
+
+    @if (_categories.Count > 0)
+    {
+        <AcSectionHeader Title="تصفّح بالفئات" />
+        <div class="acm-home-grid">
+            @foreach (var c in _categories)
+            {
+                var cat = c;
+                <AcCategoryTile Label="@cat.Label" IconName="@cat.Icon"
+                                OnClick="@(() => Nav.NavigateTo($"/explore?category={cat.Id}"))" />
+            }
+        </div>
+    }
+</div>
 
 @code {
-    private IReadOnlyList<string>? _popular;
-    private IReadOnlyList<AcSearchSuggestionsPage.QuickFilter>? _quickFilters;
+    private string _query = "";
+    private List<string> _popular = new();
+    private List<QuickFilterDto> _quickFilters = new();
+    private List<CategoryDto> _categories = new();
 
-    protected override void OnInitialized()
-    {
-        Store.OnChanged += OnChange;
-    }
+    protected override void OnInitialized() => Store.OnChanged += OnChange;
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+    protected override async Task OnAfterRenderAsync(bool first)
     {
-        if (firstRender)
+        if (!first) return;
+        var s = await Api.GetAsync<SuggestionsDto>("/home/search/suggestions");
+        if (s.Data is not null)
         {
-            var env = await Api.GetAsync<SuggestionsDto>("/home/search/suggestions");
-            if (env.Data is not null)
-            {
-                _popular = env.Data.Popular;
-                _quickFilters = env.Data.QuickFilters
-                    .Select(q => new AcSearchSuggestionsPage.QuickFilter(q.Id, q.Label, q.Icon))
-                    .ToList();
-                await InvokeAsync(StateHasChanged);
-            }
+            _popular = s.Data.Popular ?? new();
+            _quickFilters = s.Data.QuickFilters ?? new();
         }
+        var h = await Api.GetAsync<HomeResponse>("/home/view");
+        _categories = h.Data?.Categories ?? new();
+        await InvokeAsync(StateHasChanged);
     }
 
-    private void OnSubmit(string? query)
+    private void Submit()
     {
-        if (string.IsNullOrWhiteSpace(query)) return;
-        Store.AddRecentSearch(query);
-        Nav.NavigateTo($"/explore");
+        if (string.IsNullOrWhiteSpace(_query)) return;
+        Store.AddRecentSearch(_query);
+        Nav.NavigateTo($"/explore?q={Uri.EscapeDataString(_query)}");
     }
 
-    private void OnPickRecent(string q)
+    private void PickRecent(string q)
     {
         Store.AddRecentSearch(q);
-        Nav.NavigateTo($"/explore");
+        Nav.NavigateTo($"/explore?q={Uri.EscapeDataString(q)}");
     }
 
-    private void OnRemoveRecent(string q)
-    {
-        Store.RemoveRecentSearch(q);
-    }
+    private void Remove(string q) => Store.RemoveRecentSearch(q);
+    private void ClearRecent() => Store.ClearRecentSearches();
 
-    private void OnClearRecent()
+    private void ToggleFilter(string id)
     {
-        Store.ClearRecentSearches();
-    }
-
-    private void OnToggleQuickFilter(AcSearchSuggestionsPage.QuickFilter f)
-    {
-        if (!Store.ActiveQuickFilterIds.Add(f.Id))
-            Store.ActiveQuickFilterIds.Remove(f.Id);
+        if (!Store.ActiveQuickFilterIds.Add(id)) Store.ActiveQuickFilterIds.Remove(id);
         Store.NotifyChanged();
     }
 
@@ -79,4 +114,6 @@
 
     private sealed record SuggestionsDto(List<string> Popular, List<QuickFilterDto> QuickFilters);
     private sealed record QuickFilterDto(string Id, string Label, string Icon);
+    private sealed record HomeResponse(List<CategoryDto> Categories, object Featured, object New);
+    private sealed record CategoryDto(string Id, string Label, string Icon);
 }
