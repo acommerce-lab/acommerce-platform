@@ -5,26 +5,26 @@ using Ashare.V2.Web.Interceptors;
 namespace Ashare.V2.Web.Store;
 
 /// <summary>
-/// قارئ GET ل Ashare.V2 API. يفكّ OperationEnvelope.
-/// بعد فكّ الـ envelope نمرّره على <see cref="TimezoneLocalizer"/>: إن حمل
-/// الوسم <c>localize_times</c> من الخادم، أو طلب المنادي <c>localizeTimes=true</c>،
-/// تُحوَّل كلّ حقول DateTime إلى توقيت المتصفّح قبل وصولها للصفحة.
+/// قارئ GET ل Ashare.V2 API. يفكّ OperationEnvelope ثم يمرّر النتيجة على
+/// <see cref="CultureInterceptor"/>: إن حمل الـ envelope وسم ثقافة
+/// (localize_times / localize_money / translate_content) أو طُلب صراحةً
+/// <c>localize=true</c>، تُحوَّل الحمولة إلى ثقافة المستخدم قبل أن تصل الصفحة.
 /// </summary>
 public class ApiReader
 {
     private readonly HttpClient _http;
-    private readonly TimezoneLocalizer _localizer;
+    private readonly CultureInterceptor _culture;
     private readonly JsonSerializerOptions _json = new(JsonSerializerDefaults.Web);
 
-    public ApiReader(HttpClient http, TimezoneLocalizer localizer)
+    public ApiReader(HttpClient http, CultureInterceptor culture)
     {
         _http = http;
-        _localizer = localizer;
+        _culture = culture;
     }
 
     public async Task<OperationEnvelope<T>> GetAsync<T>(
         string path,
-        bool localizeTimes = false,
+        bool localize = false,
         CancellationToken ct = default)
     {
         try
@@ -33,7 +33,7 @@ public class ApiReader
             var body = await resp.Content.ReadAsStringAsync(ct);
             var env = JsonSerializer.Deserialize<OperationEnvelope<T>>(body, _json)
                      ?? OperationEnvelopeFactory.Error<T>("parse_error", "empty envelope");
-            await _localizer.LocalizeAsync(env, forced: localizeTimes);
+            await _culture.LocalizeAsync(env, forced: localize);
             return env;
         }
         catch (Exception ex)

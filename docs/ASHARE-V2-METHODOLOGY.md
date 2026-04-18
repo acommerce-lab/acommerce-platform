@@ -200,33 +200,119 @@ return this.OkEnvelope(env);
 - أصحّ: عقد (Provider) يقرأ offset المتصفّح عبر JS.
 - لكن منطق التحويل مبعثر في كلّ صفحة عرض.
 
-**V2 المرحلة الثانية (الحالية) — معترض قبل العرض**:
-```csharp
-// TimezoneLocalizer — يمشي بانعكاس على شجرة Data، يحوّل DateTime → Local.
-public async Task LocalizeAsync<T>(OperationEnvelope<T> env, bool forced = false) { ... }
-```
+**V2 المرحلة الثانية — معترض زمن منفرد (TimezoneLocalizer، مُلغى)**:
+- حلّ موضعيّ لمشكلة التوقيت فقط، لكنّه لا يعالج العملة ولا اللغة.
+
+**V2 المرحلة الثالثة (الحاليّة) — معترض ثقافة موحَّد**:
+ارتقى الحلّ من "localizer زمن" إلى `CultureInterceptor` يطبّق
+`UserCulture(Language, TimeZone, Currency)` كوحدة واحدة. راجع القسم 9.
 ```csharp
 // ApiReader — نقطة الدخول الوحيدة لكلّ GET.
-var env = await Api.GetAsync<Payload>($"/conversations/{Id}", localizeTimes: true);
+var env = await Api.GetAsync<Payload>($"/conversations/{Id}", localize: true);
 ```
 ```razor
-@* الصفحة لا تعرف التوقيت أبداً — حقل DateTime بالفعل محلّي. *@
+@* الصفحة لا تعرف التوقيت أبداً — حقل DateTime بالفعل وفق Culture.TimeZone. *@
 <small>@m.SentAt.ToString("HH:mm")</small>
 ```
 
-**الفرق الجوهريّ**: في V1 كلّ صفحة مسؤولة عن التحويل. في V2 (الحاليّ):
-- `ITimezoneProvider` عقد خارجيّ (offset من المتصفّح).
-- `TimezoneLocalizer` معترض يمرّر على envelope عند حدّ البيانات (`ApiReader`).
-- الصفحة تعرض كحقل DateTime عاديّ. إضافة حقل جديد يُلتقط تلقائيّاً دون تعديل.
+**الفرق الجوهريّ**: في V1 كلّ صفحة مسؤولة عن التحويل. في V2:
+- `UserCulture` مصدر حقيقة واحد لـ (Language + TimeZone + Currency).
+- `CultureInterceptor` يمشي على envelope عند حدّ البيانات (`ApiReader`) ويحوّل الأوقات/العملات/الترجمات.
+- الصفحة تعرض كحقل عاديّ. إضافة حقل جديد يُلتقط تلقائيّاً دون تعديل.
 - `Tz.FormatRelative` يبقى مفيداً للصياغة النسبيّة ("الآن"، "10د") فقط،
   وهي idempotent (تعمل بغضّ النظر عن Kind).
 
-**التفعيل**: إمّا بوسم من الخادم `envelope.Operation.Tags["localize_times"]="true"`،
-أو بعلم صريح `GetAsync(..., localizeTimes: true)` من نقطة الاستدعاء.
+**التفعيل**: إمّا بوسم من الخادم
+(`localize_times` / `localize_money` / `translate_content`) أو بعلم صريح
+`GetAsync(..., localize: true)` من نقطة الاستدعاء.
 
 ---
 
-## 9. المراجع السريعة
+## 9. نمط الثقافة — UserCulture + CultureInterceptor
+
+**المبدأ**: اللغة والتوقيت والعملة ليست ثلاث خدمات متفرّقة بل وجهٌ واحد
+لـ "ثقافة المستخدم". تتغيَّر معاً، وتُطبَّق معاً، ذهاباً وإياباً.
+
+**المصدر الوحيد للحقيقة**:
+```csharp
+// Store/UserCulture.cs
+public sealed record UserCulture(string Language, string TimeZone, string Currency)
+{
+    public static UserCulture Default => new("ar", "Asia/Riyadh", "SAR");
+}
+// AppStore.Ui.Culture تحمل القيمة الحاليّة؛ Language/IsArabic/IsRtl تُشتقّ منها.
+```
+
+**تغيير الثقافة = عمليّة واحدة**:
+```csharp
+// Operations/V2Ops.cs
+public static Operation SetCulture(string? language = null, string? timezone = null, string? currency = null)
+{ /* Entry.Create("ui.set_culture").Tag(...partial...).Build() */ }
+
+public static Operation SetLanguage(string lang) => SetCulture(language: lang);
+public static Operation SetTimeZone(string tz)   => SetCulture(timezone: tz);
+public static Operation SetCurrency(string cur)  => SetCulture(currency: cur);
+```
+- نوع عمليّة واحد (`ui.set_culture`) مع وسوم جزئيّة.
+- `UiInterpreter` يدمج تدريجيّاً باستخدام `with`: لا يُعدَّل إلاّ الحقل الموسوم.
+
+**الإياب — داخل الحدّ في `ApiReader`**:
+```csharp
+// Interceptors/CultureInterceptor.cs
+public Task LocalizeAsync<T>(OperationEnvelope<T> envelope, bool forced = false)
+{
+    if (!AppliesTo(envelope, forced)) return Task.CompletedTask;
+    var culture = _store.Ui.Culture;
+    var tz = TimeZoneInfo.FindSystemTimeZoneById(culture.TimeZone);
+    Walk(envelope.Data, culture, tz);   // reflection على DateTime/عملة/نصّ.
+    return Task.CompletedTask;
+}
+```
+- يطبّق الثلاث خدمات (`localize_times` / `localize_money` / `translate_content`) في ممشى انعكاس واحد.
+- idempotent: بعد تحويل `DateTime` يُوسم `Kind = Local` كيلا يُكرَّر.
+
+**الذهاب — عبر `DelegatingHandler`**:
+```csharp
+// Interceptors/CultureHeadersHandler.cs
+protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage req, CancellationToken ct)
+{
+    var c = _store.Ui.Culture;
+    req.Headers.AcceptLanguage.Clear();
+    req.Headers.AcceptLanguage.Add(new StringWithQualityHeaderValue(c.Language));
+    req.Headers.Remove("X-User-Timezone"); req.Headers.Add("X-User-Timezone", c.TimeZone);
+    req.Headers.Remove("X-User-Currency"); req.Headers.Add("X-User-Currency", c.Currency);
+    return base.SendAsync(req, ct);
+}
+```
+- يُركَّب عبر `AddHttpMessageHandler<CultureHeadersHandler>()` على `HttpClient`.
+- كلّ طلب صادر يحمل سياق الثقافة؛ لا يحتاج كلّ استدعاء لتذكّره.
+
+**الخدمة الخلفيّة — `CurrentCultureMiddleware`**:
+```csharp
+// Api/Middleware/CurrentCultureMiddleware.cs
+ctx.Items["culture.language"] = ReadAcceptLanguage(req);    // "ar" من "ar,en;q=0.8"
+ctx.Items["culture.timezone"] = req.Headers["X-User-Timezone"].FirstOrDefault();
+ctx.Items["culture.currency"] = req.Headers["X-User-Currency"].FirstOrDefault();
+```
+- يسبقه `UseCurrentUser`؛ كلا الوسيطين يحقنان `HttpContext.Items`.
+- أيّ Controller يقرأ `ctx.Items["culture.timezone"]` ليصحّح تواريخ واردة من العميل،
+  أو ليترجم/يحوّل العملة قبل التخزين إن لزم.
+
+**الفائدة التصميميّة**:
+- سطر استدعاء واحد من الصفحة (`localize: true`) يُلخّص ثلاث ترجمات ممكنة.
+- تغيير أيّ جزء من الثقافة = نفس العمليّة، نفس interceptor، نفس الرؤوس.
+- لا صفحة تعرف `TimeZoneInfo` أو `CultureInfo` أو سعر صرف.
+
+**نقاط محوريّة في الشفرة**:
+- `Store/UserCulture.cs`, `Store/AppStore.cs` (Ui.Culture + SetCulture).
+- `Interceptors/CultureInterceptor.cs` (الإياب).
+- `Interceptors/CultureHeadersHandler.cs` (الذهاب).
+- `Interpreters/UiInterpreter.cs` (`ui.set_culture`).
+- `Api/Middleware/CurrentCultureMiddleware.cs` (الخادم).
+
+---
+
+## 10. المراجع السريعة
 
 - **المنهجية**: `docs/MODEL.md`, `docs/ARCHITECTURE.md`, `docs/LIBRARY-ANATOMY.md`.
 - **أمثلة واجهة**: `Apps/Order/Customer/Frontend/Order.Web/ClientOps.cs` +
@@ -240,3 +326,5 @@ var env = await Api.GetAsync<Payload>($"/conversations/{Id}", localizeTimes: tru
   - `Store/ITranslationProvider.cs` — عقد الترجمات.
   - `Api/Interceptors/*.cs` — معترضات الخادم.
   - `Api/Middleware/CurrentUserMiddleware.cs` — مصدر هويّة المستخدم.
+  - `Api/Middleware/CurrentCultureMiddleware.cs` — مصدر ثقافة المستخدم.
+  - `Store/UserCulture.cs` + `Interceptors/CultureInterceptor.cs` + `Interceptors/CultureHeadersHandler.cs` — ثقافة موحَّدة (لغة/توقيت/عملة).

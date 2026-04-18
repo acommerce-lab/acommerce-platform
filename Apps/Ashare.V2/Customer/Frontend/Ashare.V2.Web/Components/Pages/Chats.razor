@@ -56,10 +56,10 @@
     protected override async Task OnAfterRenderAsync(bool first)
     {
         if (!first) return;
-        // TimezoneLocalizer يحوّل LastAt إلى توقيت محلّي داخل ApiReader،
+        // CultureInterceptor يحوّل LastAt إلى Culture.TimeZone داخل ApiReader،
         // ثمّ Tz.FormatRelative يعالج الصياغة النسبيّة فقط.
         await Tz.InitAsync();
-        var env = await Api.GetAsync<List<ConvDto>>("/conversations", localizeTimes: true);
+        var env = await Api.GetAsync<List<ConvDto>>("/conversations", localize: true);
         _items = env.Data ?? new();
         _loading = false;
         await InvokeAsync(StateHasChanged);

@@ -24,12 +24,16 @@ builder.Services.AddScoped<ITemplateStore>(sp => sp.GetRequiredService<AppStore>
 builder.Services.AddSingleton<ITranslationProvider, EmbeddedTranslationProvider>();
 builder.Services.AddScoped<L>();
 
-// ── ProviderContract للتوقيت (عقد خارجيّ — يقرأ المتصفّح عبر JS).
+// ── ProviderContract للتوقيت (مُبقى للصياغة النسبيّة — Tz.FormatRelative).
+//    التحويل الأساسيّ انتقل إلى CultureInterceptor الذي يستعمل Culture.TimeZone.
 builder.Services.AddScoped<ITimezoneProvider, JsTimezoneProvider>();
 
-// ── Frontend interceptor: يُفعَّل على Envelopes المُوسَّمة بـ localize_times،
-//    أو حين يطلب ApiReader التحويل صراحةً. يمشي بانعكاس على DateTime حقول Data.
-builder.Services.AddScoped<TimezoneLocalizer>();
+// ── معترض الثقافة (إياب): يطبّق Culture على حمولات OperationEnvelope
+//    (DateTime بحسب Culture.TimeZone، وعملات/ترجمات hooks).
+builder.Services.AddScoped<CultureInterceptor>();
+
+// ── معترض الثقافة (ذهاب): DelegatingHandler يختم كلّ طلب برؤوس Culture.
+builder.Services.AddTransient<CultureHeadersHandler>();
 
 // ─── OpEngine للعمليات المحلّية ────────────────────────────────────────
 builder.Services.AddScoped<OpEngine>(sp =>
@@ -43,7 +47,10 @@ builder.Services.AddHttpClient("ashare-v2", c =>
 {
     c.BaseAddress = new Uri(apiBase);
     c.Timeout = TimeSpan.FromSeconds(30);
-});
+})
+// CultureHeadersHandler يضيف Accept-Language / X-User-Timezone / X-User-Currency
+// على كلّ طلب صادر — الخدمة الخلفيّة تفهم سياق ثقافة المستخدم.
+.AddHttpMessageHandler<CultureHeadersHandler>();
 
 var routeRegistry = new HttpRouteRegistry();
 V2Routes.Register(routeRegistry);
@@ -65,7 +72,7 @@ builder.Services.AddScoped<ApiReader>(sp =>
     var f = sp.GetRequiredService<IHttpClientFactory>();
     return new ApiReader(
         f.CreateClient("ashare-v2"),
-        sp.GetRequiredService<TimezoneLocalizer>());
+        sp.GetRequiredService<CultureInterceptor>());
 });
 
 builder.Services.AddScoped<ClientOpEngine>(sp =>

@@ -31,24 +31,30 @@ public class AppStore : ITemplateStore
     public void ClearRecentSearches()         { RecentSearches.Clear();  NotifyChanged(); }
 
     // ── Preferences ───────────────────────────────────────────────────
-    public void SetLanguage(string lang) { Ui.Language = lang; NotifyChanged(); }
-    public void SetTheme(string theme)   { Ui.Theme = theme;   NotifyChanged(); }
-    public void SetCity(string city)     { Ui.City = city;     NotifyChanged(); }
+    // Culture (lang + tz + currency) تتحرّك كوحدة.
+    public void SetCulture(UserCulture c) { Ui.Culture = c; NotifyChanged(); }
+    public void SetTheme(string theme)    { Ui.Theme = theme; NotifyChanged(); }
+    public void SetCity(string city)      { Ui.City = city;   NotifyChanged(); }
 
     // ── ITemplateStore ─────────────────────────────────────────────────
     bool ITemplateStore.IsAuthenticated => Auth.IsAuthenticated;
     Guid? ITemplateStore.UserId => Auth.UserId;
     string? ITemplateStore.AccessToken => Auth.AccessToken;
     string ITemplateStore.Theme => Ui.Theme;
-    string ITemplateStore.Language => Ui.Language;
+    string ITemplateStore.Language => Ui.Culture.Language;
 }
 
 public class UiState
 {
-    public string Language { get; set; } = "ar";
+    /// <summary>ثقافة المستخدم — لغة + منطقة زمنيّة + عملة.</summary>
+    public UserCulture Culture { get; set; } = UserCulture.Default;
+
     public string Theme { get; set; } = "light";
     public string City { get; set; } = "الرياض";
-    public bool IsArabic => Language == "ar";
+
+    // اختصارات مريحة تُشتق من Culture.
+    public string Language => Culture.Language;
+    public bool IsArabic => Culture.Language == "ar";
     public bool IsRtl => IsArabic;
     public bool IsDark => Theme == "dark";
 }

@@ -34,6 +34,7 @@ var app = builder.Build();
 
 app.UseCors();
 app.UseCurrentUser();       // يحقن user_id في HttpContext.Items
+app.UseCurrentCulture();    // يقرأ Accept-Language / X-User-Timezone / X-User-Currency
 app.MapControllers();
 
 app.Run();

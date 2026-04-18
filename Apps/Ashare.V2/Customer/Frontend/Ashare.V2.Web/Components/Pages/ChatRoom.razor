@@ -79,9 +79,9 @@
 
     private async Task Reload()
     {
-        // localizeTimes=true يمرّ الـ envelope على TimezoneLocalizer — حقول DateTime
-        // تصبح بتوقيت المتصفّح قبل أن تصل لـ Razor.
-        var env = await Api.GetAsync<Payload>($"/conversations/{Id}", localizeTimes: true);
+        // localize=true يمرّ الـ envelope على CultureInterceptor — DateTime يُحوَّل
+        // بحسب Culture.TimeZone قبل أن تصل لـ Razor (+ hooks عملات/ترجمة).
+        var env = await Api.GetAsync<Payload>($"/conversations/{Id}", localize: true);
         _conv = env.Data;
         await InvokeAsync(StateHasChanged);
     }

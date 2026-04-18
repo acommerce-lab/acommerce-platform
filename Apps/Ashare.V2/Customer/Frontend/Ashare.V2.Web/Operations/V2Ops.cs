@@ -154,12 +154,22 @@ public static class V2Ops
             .Tag("theme", theme)
             .Build();
 
-    public static Operation SetLanguage(string lang) =>
-        Entry.Create("ui.set_language")
+    // ── Culture: language + timezone + currency — وحدة تتغيّر معاً.
+    //    المفسّر يدمج الوسوم الموجودة مع الثقافة الحاليّة فلا حاجة لإعادة إرسال الثلاثة.
+    public static Operation SetCulture(string? language = null, string? timezone = null, string? currency = null)
+    {
+        var e = Entry.Create("ui.set_culture")
             .From("User:self", 1, ("role", "user"))
-            .To("UI:preferences", 1, ("role", "preferences"))
-            .Tag("language", lang)
-            .Build();
+            .To("UI:culture", 1, ("role", "culture"));
+        if (!string.IsNullOrEmpty(language)) e = e.Tag("language", language);
+        if (!string.IsNullOrEmpty(timezone)) e = e.Tag("timezone", timezone);
+        if (!string.IsNullOrEmpty(currency)) e = e.Tag("currency", currency);
+        return e.Build();
+    }
+
+    public static Operation SetLanguage(string lang) => SetCulture(language: lang);
+    public static Operation SetTimeZone(string tz)   => SetCulture(timezone: tz);
+    public static Operation SetCurrency(string cur)  => SetCulture(currency: cur);
 
     public static Operation SetCity(string city) =>
         Entry.Create("ui.set_city")
