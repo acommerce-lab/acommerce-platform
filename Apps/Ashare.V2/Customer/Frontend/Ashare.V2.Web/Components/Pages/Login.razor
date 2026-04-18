@@ -1,0 +1,93 @@
+@page "/login"
+@inject AppStore Store
+@inject NavigationManager Nav
+@inject L L
+
+<PageTitle>@(L["auth.login.title"]) - @(L["app.name"])</PageTitle>
+
+<div class="acs-page acs-auth-page">
+    <h1 class="acm-wizard-title">@(L["auth.login.title"])</h1>
+    <AcCard>
+        <ChildContent>
+            @if (_step == "choose")
+            {
+                <AcButton Variant="primary" Size="lg" Class="ac-btn-block" Text="@L[nafathKey]"
+                          OnClick="@GoNafath" />
+                <div style="height:8px;"></div>
+                <AcButton Variant="outline-primary" Size="lg" Class="ac-btn-block" Text="SMS"
+                          OnClick="@GoSms" />
+                <div style="height:8px;"></div>
+                <AcButton Variant="ghost" Class="ac-btn-block" Text="@L[guestKey]"
+                          OnClick="@ContinueGuest" />
+            }
+            else if (_step == "nafath")
+            {
+                <AcField Label="@L[idKey]" Required="true">
+                    <AcInput Type="text" Value="@_id" ValueChanged="@(v => _id = v ?? string.Empty)"
+                             Placeholder="10 أرقام" />
+                </AcField>
+                <AcButton Variant="primary" Size="lg" Class="ac-btn-block" Text="@L[otpBtnKey]"
+                          OnClick="@GoVerify" Disabled="@(_id.Length != 10)" />
+                <AcButton Variant="ghost" Text="رجوع" OnClick="@GoChoose" />
+            }
+            else if (_step == "sms")
+            {
+                <AcField Label="@L[phoneKey]" Required="true">
+                    <AcInput Type="tel" Value="@_phone" ValueChanged="@(v => _phone = v ?? string.Empty)"
+                             Placeholder="05XXXXXXXX" />
+                </AcField>
+                <AcButton Variant="primary" Size="lg" Class="ac-btn-block" Text="@L[otpBtnKey]"
+                          OnClick="@GoVerify" Disabled="@(_phone.Length < 9)" />
+                <AcButton Variant="ghost" Text="رجوع" OnClick="@GoChoose" />
+            }
+            else
+            {
+                <AcField Label="@L[otpKey]" Required="true">
+                    <AcInput Type="text" Value="@_otp" ValueChanged="@(v => _otp = v ?? string.Empty)"
+                             Placeholder="4 أرقام" />
+                </AcField>
+                <AcButton Variant="primary" Size="lg" Class="ac-btn-block" Text="@L[verifyKey]"
+                          OnClick="@VerifyInternal" Disabled="@(_otp.Length < 4)" />
+            }
+        </ChildContent>
+    </AcCard>
+</div>
+
+@code {
+    private const string nafathKey = "auth.nafath.continue";
+    private const string guestKey  = "auth.guest.continue";
+    private const string idKey     = "auth.national_id";
+    private const string phoneKey  = "auth.phone";
+    private const string otpKey    = "auth.otp";
+    private const string otpBtnKey = "auth.send_otp";
+    private const string verifyKey = "auth.verify";
+
+    private string _step = "choose";
+    private string _id = "";
+    private string _phone = "";
+    private string _otp = "";
+
+    private void GoNafath()  => _step = "nafath";
+    private void GoSms()     => _step = "sms";
+    private void GoVerify()  => _step = "verify";
+    private void GoChoose()  => _step = "choose";
+
+    private void ContinueGuest()
+    {
+        Store.Auth.UserId = Guid.NewGuid();
+        Store.Auth.AccessToken = "guest-token";
+        Store.Auth.FullName = "زائر";
+        Store.NotifyChanged();
+        Nav.NavigateTo("/");
+    }
+
+    private void VerifyInternal()
+    {
+        Store.Auth.UserId = Guid.NewGuid();
+        Store.Auth.AccessToken = "demo-token";
+        Store.Auth.FullName = !string.IsNullOrEmpty(_id) ? $"User #{_id[..4]}" : _phone;
+        Store.Auth.Phone = _phone;
+        Store.NotifyChanged();
+        Nav.NavigateTo("/");
+    }
+}

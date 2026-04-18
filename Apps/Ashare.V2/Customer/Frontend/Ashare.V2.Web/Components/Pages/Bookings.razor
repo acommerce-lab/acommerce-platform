@@ -1,0 +1,65 @@
+@page "/bookings"
+@inject ApiReader Api
+@inject NavigationManager Nav
+@inject L L
+
+<PageTitle>@(L["nav.bookings"]) - @(L["app.name"])</PageTitle>
+
+<div class="acs-page">
+    <h1 class="acm-wizard-title">@(L["nav.bookings"])</h1>
+    @if (_loading) { <AcLoadingState /> }
+    else if (_items.Count == 0) { <AcEmptyState IconName="receipt" Message="لا توجد حجوزات" /> }
+    else
+    {
+        <div class="acm-home-grid">
+            @foreach (var b in _items)
+            {
+                var bid = b.Id;
+                <AcCard Hover="true">
+                    <ChildContent>
+                        <button type="button" class="acm-complaint-btn" @onclick="@(() => Open(bid))">
+                            <strong>@b.ListingTitle</strong>
+                            <div class="acm-complaint-body">من @b.StartDate.ToString("yyyy-MM-dd") — @b.Nights ليلة — @b.Guests أشخاص</div>
+                            <div>
+                                <AcBadge Variant="@BadgeVariant(b.Status)" Text="@StatusLabel(b.Status)" />
+                                <strong style="margin-inline-start:8px;">@b.Total SAR</strong>
+                            </div>
+                        </button>
+                    </ChildContent>
+                </AcCard>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private List<BookingDto> _items = new();
+    private bool _loading = true;
+
+    protected override async Task OnAfterRenderAsync(bool first)
+    {
+        if (first) { var env = await Api.GetAsync<List<BookingDto>>("/bookings"); _items = env.Data ?? new(); _loading = false; await InvokeAsync(StateHasChanged); }
+    }
+
+    private void Open(string id) => Nav.NavigateTo($"/booking/{id}");
+
+    private static string StatusLabel(string s) => s switch
+    {
+        "pending"   => "قيد المراجعة",
+        "confirmed" => "مؤكَّد",
+        "completed" => "منتهٍ",
+        "cancelled" => "ملغى",
+        _           => s
+    };
+
+    private static string BadgeVariant(string s) => s switch
+    {
+        "confirmed" => "success",
+        "pending"   => "warning",
+        "cancelled" => "danger",
+        _           => "secondary"
+    };
+
+    private sealed record BookingDto(string Id, string ListingId, string ListingTitle,
+        decimal Total, DateTime StartDate, int Nights, int Guests, string Status);
+}

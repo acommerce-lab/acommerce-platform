@@ -1,0 +1,90 @@
+@namespace ACommerce.Templates.Marketplace
+
+@*
+    AcComplaintsPage — قائمة الشكاوى + زرّ إنشاء.
+    يُصدِر complaint.file عند نموذج الإضافة؛ يستدعي OnComplaintClick لفتح التفاصيل.
+*@
+
+<div class="acs-page acm-complaints">
+    <AcSectionHeader Title="@Title" ActionLabel="@NewLabel" OnAction="ToggleForm" />
+
+    @if (_formOpen)
+    {
+        <AcCard>
+            <ChildContent>
+                <AcField Label="@SubjectLabel" Required="true">
+                    <AcInput Type="text" Value="@_subject" ValueChanged="@(v => _subject = v ?? string.Empty)" />
+                </AcField>
+                <AcField Label="@BodyLabel" Required="true">
+                    <AcInput Type="text" Value="@_body" ValueChanged="@(v => _body = v ?? string.Empty)" />
+                </AcField>
+                <div style="display:flex; gap:8px;">
+                    <AcButton Variant="ghost" Text="إغلاق" OnClick="@(() => _formOpen = false)" />
+                    <AcButton Variant="primary" Text="@SendLabel" OnClick="SubmitInternal" />
+                </div>
+            </ChildContent>
+        </AcCard>
+    }
+
+    @if (Items is null || Items.Count == 0)
+    {
+        <AcEmptyState IconName="inbox" Message="@EmptyMessage" />
+    }
+    else
+    {
+        <div class="acm-complaints-list">
+            @foreach (var c in Items)
+            {
+                <AcCard Hover="true" Class="acm-complaint-card">
+                    <ChildContent>
+                        <button class="acm-complaint-btn" type="button" @onclick="() => OnSelect.InvokeAsync(c)">
+                            <strong>@c.Subject</strong>
+                            <div class="acm-complaint-body">@c.Body</div>
+                            <small>@c.CreatedAt.ToString("yyyy-MM-dd")</small>
+                        </button>
+                    </ChildContent>
+                </AcCard>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public IReadOnlyList<ComplaintDto>? Items { get; set; }
+    [Parameter] public ITemplateEngine? Engine { get; set; }
+    [Parameter] public ITemplateStore? Store { get; set; }
+    [Parameter] public EventCallback<ComplaintDto> OnSelect { get; set; }
+    [Parameter] public EventCallback<ComplaintDto> OnFiled { get; set; }
+
+    [Parameter] public string Title { get; set; } = "الشكاوى";
+    [Parameter] public string NewLabel { get; set; } = "شكوى جديدة";
+    [Parameter] public string SubjectLabel { get; set; } = "الموضوع";
+    [Parameter] public string BodyLabel { get; set; } = "التفاصيل";
+    [Parameter] public string SendLabel { get; set; } = "إرسال";
+    [Parameter] public string EmptyMessage { get; set; } = "لا توجد شكاوى";
+
+    private bool _formOpen;
+    private string _subject = "";
+    private string _body = "";
+
+    private void ToggleForm() => _formOpen = !_formOpen;
+
+    private async Task SubmitInternal()
+    {
+        if (string.IsNullOrWhiteSpace(_subject) || string.IsNullOrWhiteSpace(_body)) return;
+        if (Engine is not null)
+        {
+            var op = Entry.Create("complaint.file")
+                .From($"User:{Store?.UserId?.ToString() ?? "anon"}", 1, ("role", "complainer"))
+                .To("Vendor:platform", 1, ("role", "target"))
+                .Tag("subject", _subject)
+                .Build();
+            try { await Engine.ExecuteAsync<object>(op, new { _subject, _body }); } catch {}
+        }
+        var dto = new ComplaintDto(Guid.NewGuid().ToString(), _subject, _body, DateTime.UtcNow, "open");
+        await OnFiled.InvokeAsync(dto);
+        _subject = ""; _body = ""; _formOpen = false;
+    }
+
+    public sealed record ComplaintDto(string Id, string Subject, string Body, DateTime CreatedAt, string Status);
+}

@@ -3,15 +3,25 @@
 @inject ApiReader Api
 @inject ITemplateEngine Engine
 @inject NavigationManager Nav
+@inject L L
 @implements IDisposable
 
-<PageTitle>عشير</PageTitle>
+<PageTitle>@(L["app.name"])</PageTitle>
 
 <AcMarketplaceHomePage Data="_data"
                        Engine="Engine"
                        Store="Store"
                        FavoriteIds="Store.FavoriteListingIds"
                        QuickActions="_quickActions"
+                       Title="@(L["home.title"])"
+                       Subtitle="@(L["home.subtitle"])"
+                       SearchPlaceholder="@(L["home.search.placeholder"])"
+                       CategoriesTitle="@(L["home.categories.title"])"
+                       FeaturedTitle="@(L["home.featured.title"])"
+                       NewTitle="@(L["home.new.title"])"
+                       ViewAllLabel="@(L["home.view_all"])"
+                       CtaTitle="@(L["home.cta.title"])"
+                       CtaSubtitle="@(L["home.cta.subtitle"])"
                        OnSearch="OnSearch"
                        OnCategorySelected="OnCategorySelected"
                        OnListingOpen="OnListingOpen"
@@ -24,13 +34,17 @@
             <span class="acm-brand-mark" aria-hidden="true">
                 <AcIcon Name="home" Size="24" />
             </span>
-            <span class="acm-brand-text">عشير</span>
+            <span class="acm-brand-text">@(L["app.name"])</span>
+            <div class="acm-brand-city">
+                <AcCityPicker Cities="_cities" Value="@Store.Ui.City" ValueChanged="OnCityChanged" />
+            </div>
         </div>
     </LogoContent>
 </AcMarketplaceHomePage>
 
 @code {
     private MarketplaceHomeDto? _data;
+    private IReadOnlyList<string> _cities = Array.Empty<string>();
 
     private static readonly IReadOnlyList<QuickActionDto> _quickActions =
     [
@@ -44,6 +58,9 @@
     {
         if (firstRender)
         {
+            var citiesEnv = await Api.GetAsync<List<string>>("/cities");
+            _cities = citiesEnv.Data ?? new();
+
             var env = await Api.GetAsync<HomeResponse>("/home/view");
             if (env.Data is not null)
             {
@@ -59,28 +76,25 @@
         }
     }
 
-    // — الانتقال عند نقر مربّع البحث في الـ hero —
-    // OnSearch يُطلَق إمّا عند تقديم نصّ أو نقر زرّ الإرسال.
-    // نسلك السلوك القديم: فتح صفحة اقتراحات البحث /search.
     private void OnSearch(string? _) => Nav.NavigateTo("/search");
-
-    // — الانتقال عند نقر فئة —
     private void OnCategorySelected(CategoryTileDto c)
         => Nav.NavigateTo($"/explore?category={Uri.EscapeDataString(c.Id)}");
-
     private void OnListingOpen(ListingRowDto l)
         => Nav.NavigateTo($"/space/{Uri.EscapeDataString(l.Id)}");
-
-    private void OnCtaClick() => Nav.NavigateTo("/me");
-
+    private void OnCtaClick() => Nav.NavigateTo("/create-listing");
     private void OnQuickAction(QuickActionDto a) => Nav.NavigateTo(a.Id switch
     {
         "find-roommate" => "/explore?category=shared",
         "my-requests"   => "/bookings",
         _               => "/"
     });
-
     private void OnViewAll(string section) => Nav.NavigateTo("/explore");
+
+    private void OnCityChanged(string city)
+    {
+        Store.SetCity(city);
+        // لا ذهاب للخادم — مجرّد تغيير محلّي
+    }
 
     private void OnFavoriteToggled((ListingRowDto Listing, bool On) e)
     {

@@ -1,0 +1,42 @@
+@page "/my-listings"
+@inject ApiReader Api
+@inject NavigationManager Nav
+
+<PageTitle>إعلاناتي - عشير</PageTitle>
+
+<div class="acs-page">
+    <AcSectionHeader Title="إعلاناتي" ActionLabel="إضافة جديد" OnAction="@GoCreate" />
+    @if (_loading) { <AcLoadingState /> }
+    else if (_items.Count == 0) { <AcEmptyState IconName="building" Message="لا توجد إعلانات بعد" /> }
+    else
+    {
+        <div class="acm-home-grid">
+            @foreach (var l in _items)
+            {
+                var lid = l.Id;
+                <AcSpaceCard Title="@l.Title"
+                             Location="@($"{l.City} — {l.District}")"
+                             PriceLabel="@($"{l.Price:0} {l.Currency} / {l.TimeUnit}")"
+                             Ribbon="@(l.IsFeatured ? "مميّز" : null)"
+                             ShowFavorite="false"
+                             OnOpen="@(() => Open(lid))" />
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private List<ListingDto> _items = new();
+    private bool _loading = true;
+
+    protected override async Task OnAfterRenderAsync(bool first)
+    {
+        if (first) { var env = await Api.GetAsync<List<ListingDto>>("/my-listings"); _items = env.Data ?? new(); _loading = false; await InvokeAsync(StateHasChanged); }
+    }
+
+    private void GoCreate() => Nav.NavigateTo("/create-listing");
+    private void Open(string id) => Nav.NavigateTo($"/space/{id}");
+
+    private sealed record ListingDto(string Id, string Title, decimal Price, string Currency,
+        string TimeUnit, string City, string District, bool IsFeatured, int Status);
+}

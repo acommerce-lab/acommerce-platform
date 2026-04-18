@@ -1,41 +1,75 @@
 @namespace Ashare.V2.Web.Components.Layout
 @inherits LayoutComponentBase
+@inject AppStore Store
+@inject ApiReader Api
+@inject L L
+@implements IDisposable
 
-@*
-    Responsive shell:
-      - ≤767px  → BottomNav مرئي (class acm-v2-mobile-nav)،
-                  TopNav مخفي (عبر CSS على .ac-topnav → display:none)
-      - ≥768px  → TopNav مرئي فوق المحتوى، BottomNav مخفي
-*@
+<AcVersionGate IsLoading="@(!_checked)"
+               IsBlocked="@_versionBlocked"
+               RequiredTitle="@(L["version.required"])"
+               RequiredBody="@(L["version.required_body"])"
+               DownloadLabel="@(L["version.download"])"
+               CurrentLabel="@(L["version.current"])"
+               LatestLabel="@(L["version.latest"])"
+               CurrentVersion="@_current"
+               LatestVersion="@_latest"
+               SupportEmail="@_support">
+    <ChildContent>
+        <div class="acm-v2-topnav-wrap">
+            <AcTopNav Items="_topItems">
+                <BrandContent>
+                    <div class="acm-brand">
+                        <span class="acm-brand-mark" aria-hidden="true">
+                            <AcIcon Name="home" Size="20" />
+                        </span>
+                        <span class="acm-brand-text">@(L["app.name"])</span>
+                    </div>
+                </BrandContent>
+                <RightActions>
+                    <AcThemeToggle IsDark="@Store.Ui.IsDark"
+                                   IsDarkChanged="@(v => Store.SetTheme(v ? "dark" : "light"))" />
+                    <AcLanguageToggle IsArabic="@Store.Ui.IsArabic"
+                                      IsArabicChanged="@(v => Store.SetLanguage(v ? "ar" : "en"))" />
+                </RightActions>
+            </AcTopNav>
+        </div>
 
-<div class="acm-v2-topnav-wrap">
-    <AcTopNav Items="_topItems">
-        <BrandContent>
-            <div class="acm-brand">
-                <span class="acm-brand-mark" aria-hidden="true">
-                    <AcIcon Name="home" Size="20" />
-                </span>
-                <span class="acm-brand-text">عشير</span>
+        <main class="@(Store.Ui.IsDark ? "ac-dark-wrap" : "")">
+            @Body
+            <div class="acm-v2-bottom-nav-wrap">
+                <AcBottomNav Items="_bottomItems" ExtraClass="acm-v2-bottomnav" />
             </div>
-        </BrandContent>
-    </AcTopNav>
-</div>
+        </main>
 
-<main>
-    @Body
-    <div class="acm-v2-bottom-nav-wrap">
-        <AcBottomNav Items="_bottomItems" ExtraClass="acm-v2-bottomnav" />
-    </div>
-</main>
+        <script>
+          (function(){
+            var theme='@Store.Ui.Theme';
+            var lang='@Store.Ui.Language';
+            var dir='@(Store.Ui.IsRtl ? "rtl" : "ltr")';
+            document.documentElement.setAttribute('lang', lang);
+            document.documentElement.setAttribute('dir', dir);
+            if(theme==='dark') document.body.classList.add('ac-dark');
+            else document.body.classList.remove('ac-dark');
+          })();
+        </script>
+    </ChildContent>
+</AcVersionGate>
 
 @code {
+    private bool _checked;
+    private bool _versionBlocked;
+    private string _current = "1.0.0";
+    private string _latest = "1.0.0";
+    private string? _support;
+
     private static readonly IReadOnlyList<BottomNavItemDto> _bottomItems = new[]
     {
-        new BottomNavItemDto { Href = "/",           Label = "الرئيسية", IconName = "home",    Exact = true },
-        new BottomNavItemDto { Href = "/explore",    Label = "استكشف",   IconName = "search" },
-        new BottomNavItemDto { Href = "/favorites",  Label = "المفضلة",  IconName = "heart" },
-        new BottomNavItemDto { Href = "/bookings",   Label = "حجوزاتي",  IconName = "receipt" },
-        new BottomNavItemDto { Href = "/me",         Label = "حسابي",    IconName = "user" }
+        new BottomNavItemDto { Href = "/",          Label = "الرئيسية", IconName = "home",    Exact = true },
+        new BottomNavItemDto { Href = "/explore",   Label = "استكشف",   IconName = "search" },
+        new BottomNavItemDto { Href = "/favorites", Label = "المفضلة",  IconName = "heart" },
+        new BottomNavItemDto { Href = "/bookings",  Label = "حجوزاتي",  IconName = "receipt" },
+        new BottomNavItemDto { Href = "/me",        Label = "حسابي",    IconName = "user" }
     };
 
     private static readonly IReadOnlyList<AcTopNav.TopNavItem> _topItems = new[]
@@ -47,4 +81,28 @@
         new AcTopNav.TopNavItem("/notifications","الإشعارات", "bell"),
         new AcTopNav.TopNavItem("/me",          "حسابي",      "user")
     };
+
+    protected override void OnInitialized() => Store.OnChanged += OnChange;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var env = await Api.GetAsync<VersionDto>("/version/check");
+            if (env.Data is not null)
+            {
+                _current = env.Data.Current;
+                _latest = env.Data.Latest;
+                _versionBlocked = env.Data.IsBlocked;
+                _support = env.Data.SupportEmail;
+            }
+            _checked = true;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private void OnChange() => InvokeAsync(StateHasChanged);
+    public void Dispose() => Store.OnChanged -= OnChange;
+
+    private sealed record VersionDto(string Current, string Latest, bool IsBlocked, string? StoreUrl, string? SupportEmail);
 }

@@ -36,7 +36,7 @@
                 {
                     <AcCategoryTile Label="@c.Label"
                                     Icon="@c.Icon"
-                                    OnClick="() => SelectCategory(c)" />
+                                    OnClick="@(() => SelectCategory(c))" />
                 }
             </AcHScroll>
         }

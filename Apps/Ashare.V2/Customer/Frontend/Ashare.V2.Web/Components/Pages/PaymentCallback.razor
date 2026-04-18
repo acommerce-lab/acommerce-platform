@@ -1,0 +1,27 @@
+@page "/payment/callback"
+@inject NavigationManager Nav
+
+<PageTitle>نتيجة الدفع - عشير</PageTitle>
+
+<div class="acs-page" style="text-align:center; padding:32px 16px;">
+    @if (Status == "success")
+    {
+        <AcIcon Name="check-circle" Filled="true" Size="48" />
+        <h1 class="acm-wizard-title">تمّ الدفع بنجاح</h1>
+        <p>سيتمّ توجيهك إلى حجوزاتك خلال لحظات.</p>
+        <AcButton Variant="primary" Text="عودة للحجوزات" OnClick="@GoBookings" />
+    }
+    else
+    {
+        <AcIcon Name="x-circle" Filled="true" Size="48" />
+        <h1 class="acm-wizard-title">فشل الدفع</h1>
+        <p>حاول مرّة أخرى أو استخدم بطاقة مختلفة.</p>
+        <AcButton Variant="primary" Text="المحاولة مجدّداً" OnClick="@GoPlans" />
+    }
+</div>
+
+@code {
+    [SupplyParameterFromQuery] public string? Status { get; set; }
+    private void GoBookings() => Nav.NavigateTo("/bookings");
+    private void GoPlans()    => Nav.NavigateTo("/plans");
+}

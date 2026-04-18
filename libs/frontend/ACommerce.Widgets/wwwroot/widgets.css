@@ -1670,3 +1670,128 @@ textarea.form-control, textarea.form-input { min-height: 6rem; resize: vertical;
     font-family: inherit;
 }
 .ac-searchitem-remove:hover { background: var(--ac-bg-alt, #f3f4f6); color: var(--ac-danger, #dc3545); }
+
+/* ── Dark mode ───────────────────────────────────────────────────────── */
+body.ac-dark {
+    --ac-bg:         #0f172a;
+    --ac-bg-alt:     #1e293b;
+    --ac-surface:    #1e293b;
+    --ac-border:     #334155;
+    --ac-border-dark:#475569;
+    --ac-text:       #f1f5f9;
+    --ac-text-muted: #94a3b8;
+}
+body.ac-dark .ac-gallery-arrow { background: rgba(30, 41, 59, 0.9); color: var(--ac-text); }
+body.ac-dark .acm-details-circle-btn { background: rgba(30, 41, 59, 0.92); color: var(--ac-text); }
+
+/* ── AcCityPicker ───────────────────────────────────────────────────── */
+.ac-citypicker { position: relative; display: inline-block; }
+.ac-citypicker-trigger {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 12px;
+    min-height: 36px;
+    background: var(--ac-surface, #ffffff);
+    border: 1px solid var(--ac-border, #e5e7eb);
+    border-radius: var(--ac-radius-md, 8px);
+    color: var(--ac-text, #111827);
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+}
+.ac-citypicker-trigger:hover { border-color: var(--ac-primary, #0d6efd); }
+.ac-citypicker-menu {
+    position: absolute;
+    top: calc(100% + 4px);
+    inset-inline-start: 0;
+    min-width: 160px;
+    padding: 4px;
+    background: var(--ac-surface, #ffffff);
+    border: 1px solid var(--ac-border, #e5e7eb);
+    border-radius: var(--ac-radius-md, 8px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    max-height: 280px;
+    overflow-y: auto;
+}
+.ac-citypicker-option {
+    padding: 8px 12px;
+    min-height: 36px;
+    border: 0;
+    background: transparent;
+    color: var(--ac-text, #111827);
+    text-align: start;
+    cursor: pointer;
+    border-radius: var(--ac-radius-sm, 4px);
+    font-size: 13px;
+    font-family: inherit;
+}
+.ac-citypicker-option:hover { background: var(--ac-bg-alt, #f3f4f6); }
+.ac-citypicker-option-active { background: color-mix(in srgb, var(--ac-primary, #0d6efd) 15%, transparent); color: var(--ac-primary, #0d6efd); font-weight: 600; }
+
+/* ── AcVersionGate ──────────────────────────────────────────────────── */
+.ac-vergate {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    background: var(--ac-bg, #ffffff);
+}
+.ac-vergate-card {
+    max-width: 420px;
+    width: 100%;
+    padding: 32px 24px;
+    background: var(--ac-surface, #ffffff);
+    border: 1px solid var(--ac-border, #e5e7eb);
+    border-radius: var(--ac-radius-lg, 16px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    text-align: center;
+}
+.ac-vergate-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 80px;
+    height: 80px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--ac-primary, #0d6efd) 12%, transparent);
+    color: var(--ac-primary, #0d6efd);
+}
+.ac-vergate-title { font-size: 20px; font-weight: 700; margin: 0; color: var(--ac-text, #111827); }
+.ac-vergate-body { font-size: 14px; color: var(--ac-text-muted, #6b7280); margin: 0; }
+.ac-vergate-versions {
+    display: flex;
+    gap: 16px;
+    width: 100%;
+    justify-content: center;
+}
+.ac-vergate-version {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 12px 16px;
+    background: var(--ac-bg-alt, #f3f4f6);
+    border-radius: var(--ac-radius-md, 8px);
+    font-size: 12px;
+    color: var(--ac-text-muted, #6b7280);
+}
+.ac-vergate-version strong { color: var(--ac-text, #111827); font-size: 14px; }
+.ac-vergate-actions { width: 100%; }
+
+/* ── AcPaymentForm ──────────────────────────────────────────────────── */
+.ac-payform { display: flex; flex-direction: column; gap: 12px; }
+.ac-payform-row { display: flex; flex-direction: column; }
+.ac-payform-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.ac-payform .ac-btn { margin-top: 8px; }
+
+/* ── AcThemeToggle / AcLanguageToggle — sized to match nav height ───── */
+.ac-theme-toggle, .ac-lang-toggle { min-height: 36px; min-width: 36px; padding: 6px 12px; }

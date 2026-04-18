@@ -14,9 +14,10 @@ builder.WebHost.UseStaticWebAssets();
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
-// ─── AppStore (ITemplateStore) ────────────────────────────────────────
+// ─── AppStore (ITemplateStore) + L (translations) ────────────────────
 builder.Services.AddScoped<AppStore>();
 builder.Services.AddScoped<ITemplateStore>(sp => sp.GetRequiredService<AppStore>());
+builder.Services.AddScoped<L>();
 
 // ─── OpEngine للعمليات المحلّية ────────────────────────────────────────
 builder.Services.AddScoped<OpEngine>(sp =>

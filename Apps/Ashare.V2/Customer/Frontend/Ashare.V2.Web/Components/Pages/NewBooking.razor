@@ -1,0 +1,40 @@
+@page "/book/{Id}"
+@inject AppStore Store
+@inject ApiReader Api
+@inject ITemplateEngine Engine
+@inject NavigationManager Nav
+
+<PageTitle>حجز - عشير</PageTitle>
+
+<AcBookingWizardPage Listing="_listing"
+                     Engine="Engine"
+                     Store="Store"
+                     OnConfirmed="OnConfirmed" />
+
+@code {
+    [Parameter] public string Id { get; set; } = "";
+    private AcBookingWizardPage.BookingListingDto? _listing;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var env = await Api.GetAsync<Payload>($"/home/space/{Id}");
+            if (env.Data is not null)
+            {
+                _listing = new AcBookingWizardPage.BookingListingDto(
+                    env.Data.Id, env.Data.Title, ExtractPrice(env.Data.PriceDisplay), "SAR");
+                await InvokeAsync(StateHasChanged);
+            }
+        }
+    }
+
+    private void OnConfirmed(AcBookingWizardPage.BookingResultDto r)
+        => Nav.NavigateTo($"/subscribe?type=booking&id={Id}&amount={r.Total}");
+
+    private static decimal ExtractPrice(string display)
+        => decimal.TryParse(new string(display.TakeWhile(c => char.IsDigit(c) || c == '.').ToArray()),
+            out var d) ? d : 0m;
+
+    private sealed record Payload(string Id, string Title, string PriceDisplay);
+}

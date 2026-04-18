@@ -88,3 +88,18 @@ main {
 /* Top-nav brand uses colored variant */
 .ac-topnav .acm-brand { color: var(--ac-primary); }
 .ac-topnav .acm-brand-mark { background: color-mix(in srgb, var(--ac-primary) 12%, transparent); color: var(--ac-primary); }
+
+/* ── City picker inside hero brand ──────────────────────────────────── */
+.acm-brand-city { margin-inline-start: auto; }
+.acm-brand-city .ac-citypicker-trigger {
+    background: var(--ac-primary-hover);
+    border-color: rgba(255, 255, 255, 0.4);
+    color: #ffffff;
+}
+.acm-brand-city .ac-citypicker-option { color: var(--ac-text); }
+
+/* ── Make the hero .acm-brand span full row so city picker is visible ── */
+.acm-brand { width: 100%; }
+
+/* ac-dark-wrap: marker class on main — actual dark colours come from body.ac-dark */
+.ac-dark-wrap { display: block; }

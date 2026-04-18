@@ -622,3 +622,30 @@
 .acs-search-clear:hover { background: var(--ac-bg-alt); }
 .acs-search-recent { display: flex; flex-direction: column; gap: 4px; }
 .acs-search-tags { display: flex; flex-wrap: wrap; gap: 8px; }
+
+/* ── Legal document body ─────────────────────────────────────────────── */
+.acs-legal-body {
+    margin: 0;
+    padding: 12px;
+    font-family: var(--ac-font-family);
+    font-size: 13px;
+    line-height: 1.7;
+    white-space: pre-wrap;
+    color: var(--ac-text);
+    background: var(--ac-bg-alt);
+    border-radius: var(--ac-radius-md);
+    overflow-x: auto;
+}
+
+/* ── Chat messages container ─────────────────────────────────────────── */
+.acs-chat-messages {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 8px;
+    background: var(--ac-bg-alt);
+    border-radius: var(--ac-radius-md);
+    min-height: 200px;
+    max-height: 60vh;
+    overflow-y: auto;
+}

@@ -353,3 +353,29 @@
 /* ── Map page ────────────────────────────────────────────────────────── */
 .acm-mappage { position: relative; display: flex; flex-direction: column; gap: 8px; }
 .acm-mappage-preview { padding: 8px 0 16px; }
+
+/* ── Wizard / Create ─────────────────────────────────────────────────── */
+.acm-wizard { display: flex; flex-direction: column; gap: 12px; }
+.acm-wizard-title { font-size: 18px; font-weight: 700; margin: 0; color: var(--ac-text); }
+
+.acm-create { display: flex; flex-direction: column; gap: 12px; }
+.acm-create-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+
+/* ── Complaints ──────────────────────────────────────────────────────── */
+.acm-complaints { display: flex; flex-direction: column; gap: 12px; }
+.acm-complaints-list { display: flex; flex-direction: column; gap: 8px; }
+.acm-complaint-card { padding: 0; }
+.acm-complaint-btn {
+    width: 100%; display: flex; flex-direction: column; gap: 4px;
+    padding: 12px; border: 0; background: transparent; text-align: start;
+    cursor: pointer; font-family: inherit; color: var(--ac-text);
+}
+.acm-complaint-body { color: var(--ac-text-muted); font-size: 13px; }
+
+/* ── Payment Checkout ────────────────────────────────────────────────── */
+.acm-checkout { display: flex; flex-direction: column; gap: 12px; }
+.acm-checkout-grid { display: grid; grid-template-columns: 1fr; gap: 12px; }
+@media (min-width: 768px) {
+    .acm-checkout-grid { grid-template-columns: 1fr 1fr; align-items: start; }
+}
+.acm-checkout-line { display: flex; justify-content: space-between; padding: 6px 0; color: var(--ac-text); }

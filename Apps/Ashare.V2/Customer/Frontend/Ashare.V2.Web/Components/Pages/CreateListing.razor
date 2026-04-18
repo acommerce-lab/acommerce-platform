@@ -1,0 +1,42 @@
+@page "/create-listing"
+@inject AppStore Store
+@inject ApiReader Api
+@inject ITemplateEngine Engine
+@inject NavigationManager Nav
+
+<PageTitle>إضافة إعلان - عشير</PageTitle>
+
+<AcCreateListingPage Data="_data"
+                     Categories="_categories"
+                     Engine="Engine"
+                     Store="Store"
+                     OnSubmit="OnSubmit" />
+
+@code {
+    private AcCreateListingPage.CreateListingDto _data = new();
+    private IReadOnlyList<CategoryTileDto> _categories = Array.Empty<CategoryTileDto>();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _data.City = Store.Ui.City;
+            var env = await Api.GetAsync<HomeResponse>("/home/view");
+            if (env.Data is not null)
+            {
+                _categories = env.Data.Categories.Select(c =>
+                    new CategoryTileDto { Id = c.Id, Label = c.Label, Icon = c.Icon }).ToList();
+                await InvokeAsync(StateHasChanged);
+            }
+        }
+    }
+
+    private void OnSubmit(AcCreateListingPage.CreateListingDto d)
+    {
+        Store.Draft.Clear();
+        Nav.NavigateTo("/my-listings");
+    }
+
+    private sealed record HomeResponse(List<CategoryDto> Categories, object Featured, object New);
+    private sealed record CategoryDto(string Id, string Label, string Icon);
+}

@@ -1,0 +1,44 @@
+@page "/plans"
+@inject ApiReader Api
+@inject NavigationManager Nav
+
+<PageTitle>الخطط - عشير</PageTitle>
+
+<div class="acs-page">
+    <h1 class="acm-wizard-title">خطط الاشتراك</h1>
+    @if (_loading) { <AcLoadingState /> }
+    else
+    {
+        <div class="acm-home-grid">
+            @foreach (var p in _plans)
+            {
+                var plan = p;
+                <AcCard Hover="true">
+                    <ChildContent>
+                        <h3 style="margin-top:0;">@plan.Name @if (plan.Popular) { <AcBadge Variant="secondary" Text="الأشهر" /> }</h3>
+                        <p>@plan.Description</p>
+                        <div class="acm-checkout-line"><strong>@plan.Price @(plan.Price == 0 ? "مجّاني" : "SAR")</strong>@if (plan.Price > 0) { <span>/ @plan.Unit</span> }</div>
+                        <div class="acm-checkout-line"><span>حدّ الإعلانات:</span><strong>@plan.ListingQuota</strong></div>
+                        <div class="acm-checkout-line"><span>تمييز:</span><strong>@plan.FeaturedQuota</strong></div>
+                        <AcButton Variant="primary" Class="ac-btn-block" Text="اشتراك" OnClick="@(() => Subscribe(plan))" />
+                    </ChildContent>
+                </AcCard>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private List<PlanDto> _plans = new();
+    private bool _loading = true;
+
+    protected override async Task OnAfterRenderAsync(bool first)
+    {
+        if (first) { var env = await Api.GetAsync<List<PlanDto>>("/plans"); _plans = env.Data ?? new(); _loading = false; await InvokeAsync(StateHasChanged); }
+    }
+
+    private void Subscribe(PlanDto p) => Nav.NavigateTo($"/subscribe?type=plan&id={p.Id}&amount={p.Price}");
+
+    private sealed record PlanDto(string Id, string Name, string Description,
+        decimal Price, string Unit, int ListingQuota, int FeaturedQuota, bool Popular);
+}

@@ -1,0 +1,62 @@
+@page "/chat/{Id}"
+@inject ApiReader Api
+@inject NavigationManager Nav
+
+<PageTitle>محادثة - عشير</PageTitle>
+
+<div class="acs-page acs-chat-page">
+    @if (_conv is null)
+    {
+        <AcLoadingState />
+    }
+    else
+    {
+        <h1 class="acm-wizard-title">@_conv.PartnerName</h1>
+        <p style="color: var(--ac-text-muted); font-size: 13px;">@_conv.Subject</p>
+        <div class="acs-chat-messages">
+            @foreach (var m in _conv.Messages)
+            {
+                var mine = m.From == "me";
+                <div class="acs-bubble @(mine ? "acs-bubble-mine" : "acs-bubble-other")">
+                    @m.Text
+                    <small style="display:block; opacity:.6;">@m.SentAt.ToString("HH:mm")</small>
+                </div>
+            }
+            @if (!string.IsNullOrEmpty(_typed))
+            {
+                <div class="acs-bubble acs-bubble-mine">@_typed <small style="opacity:.6;">— قيد الإرسال</small></div>
+            }
+        </div>
+        <div style="display:flex; gap:8px; margin-top:8px;">
+            <AcInput Value="@_draft" ValueChanged="@(v => _draft = v ?? string.Empty)" Placeholder="اكتب رسالة…" />
+            <AcButton Variant="primary" Text="إرسال" OnClick="Send" />
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public string Id { get; set; } = "";
+    private Payload? _conv;
+    private string _draft = "";
+    private string? _typed;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var env = await Api.GetAsync<Payload>($"/conversations/{Id}");
+            _conv = env.Data;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private void Send()
+    {
+        if (string.IsNullOrWhiteSpace(_draft)) return;
+        _typed = _draft;
+        _draft = "";
+    }
+
+    private sealed record Payload(string Id, string PartnerName, string Subject, List<MessageDto> Messages);
+    private sealed record MessageDto(string Id, string From, string Text, DateTime SentAt);
+}

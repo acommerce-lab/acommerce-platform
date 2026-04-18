@@ -1,0 +1,43 @@
+@page "/subscribe"
+@inject AppStore Store
+@inject ITemplateEngine Engine
+@inject NavigationManager Nav
+
+<PageTitle>الدفع - عشير</PageTitle>
+
+<AcPaymentCheckoutPage Title="الدفع"
+                      SummaryTitle="ملخّص الطلب"
+                      PaymentTitle="بيانات الدفع"
+                      ItemText="@_itemText"
+                      AmountText="@(_amount.ToString("0.00"))"
+                      Amount="@_amount"
+                      RelatedEntityKind="@_kind"
+                      RelatedEntityId="@_id"
+                      Engine="Engine"
+                      Store="Store"
+                      OnPaymentComplete="OnPaymentComplete" />
+
+@code {
+    [SupplyParameterFromQuery] public string? Type { get; set; }
+    [SupplyParameterFromQuery] public string? Id { get; set; }
+    [SupplyParameterFromQuery] public decimal Amount { get; set; }
+
+    private string _itemText = "";
+    private string _kind = "Vendor";
+    private string _id = "platform";
+    private decimal _amount;
+
+    protected override void OnParametersSet()
+    {
+        _kind = Type == "plan" ? "Plan" : "Booking";
+        _id = Id ?? "platform";
+        _itemText = Type == "plan" ? $"اشتراك خطّة {_id}" : $"حجز {_id}";
+        _amount = Amount > 0 ? Amount : 99m;
+    }
+
+    private void OnPaymentComplete(bool success)
+    {
+        if (success) Nav.NavigateTo("/payment/callback?status=success");
+        // on failure the form shows inline alert; user can retry
+    }
+}

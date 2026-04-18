@@ -1,0 +1,43 @@
+@page "/chats"
+@inject ApiReader Api
+@inject NavigationManager Nav
+
+<PageTitle>الرسائل - عشير</PageTitle>
+
+<div class="acs-page">
+    <h1 class="acm-wizard-title">الرسائل</h1>
+    @if (_loading) { <AcLoadingState /> }
+    else if (_items.Count == 0) { <AcEmptyState IconName="message" Message="لا توجد محادثات" /> }
+    else
+    {
+        <div style="display:flex; flex-direction:column; gap:8px;">
+            @foreach (var c in _items)
+            {
+                var cid = c.Id;
+                <AcCard Hover="true">
+                    <ChildContent>
+                        <button type="button" class="acm-complaint-btn" @onclick="@(() => Open(cid))">
+                            <strong>@c.PartnerName</strong>
+                            <div class="acm-complaint-body">@c.LastMessage</div>
+                            <small>@c.Subject — @c.LastAt.ToString("HH:mm")</small>
+                        </button>
+                    </ChildContent>
+                </AcCard>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private List<ConvDto> _items = new();
+    private bool _loading = true;
+
+    protected override async Task OnAfterRenderAsync(bool first)
+    {
+        if (first) { var env = await Api.GetAsync<List<ConvDto>>("/conversations"); _items = env.Data ?? new(); _loading = false; await InvokeAsync(StateHasChanged); }
+    }
+
+    private void Open(string id) => Nav.NavigateTo($"/chat/{id}");
+
+    private sealed record ConvDto(string Id, string PartnerName, string Subject, DateTime LastAt, string LastMessage);
+}

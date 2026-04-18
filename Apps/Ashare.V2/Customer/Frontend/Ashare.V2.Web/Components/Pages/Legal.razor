@@ -1,0 +1,44 @@
+@page "/legal/{Key}"
+@inject ApiReader Api
+@inject NavigationManager Nav
+
+<PageTitle>@(_doc?.Title ?? "المستندات القانونيّة") - عشير</PageTitle>
+
+<div class="acs-page">
+    @if (_loading)
+    {
+        <AcLoadingState />
+    }
+    else if (_doc is null)
+    {
+        <AcEmptyState IconName="info" Message="المستند غير موجود" />
+    }
+    else
+    {
+        <h1 class="acm-wizard-title">@_doc.Title</h1>
+        <AcCard>
+            <ChildContent>
+                <pre class="acs-legal-body">@_doc.Body</pre>
+            </ChildContent>
+        </AcCard>
+    }
+</div>
+
+@code {
+    [Parameter] public string Key { get; set; } = "";
+    private Payload? _doc;
+    private bool _loading = true;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var env = await Api.GetAsync<Payload>($"/legal/{Key}");
+            _doc = env.Data;
+            _loading = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private sealed record Payload(string Key, string Title, string Body);
+}

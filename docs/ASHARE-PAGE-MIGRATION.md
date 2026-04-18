@@ -180,21 +180,22 @@ CHROME_EXEC_PATH=/opt/browsers/chrome-linux64/chrome \
 | 2b | Map view داخل Explore | `/explore?view=map` (client state) | ✅ (محاكاة CSS + دبابيس) |
 | 2c | Search suggestions page | `/search` | ✅ |
 | 3 | SpaceDetails | `/space/{id}` | ✅ |
-| 4 | BookingCreate + BookingDetails | `/book/{id}`, `/booking/{id}` | ⬜ |
-| 5 | Bookings (list) | `/bookings` | ⬜ |
-| 6 | Favorites | `/favorites` | ⬜ |
+| 4 | BookingCreate + BookingDetails | `/book/{id}`, `/booking/{id}` | ✅ |
+| 5 | Bookings (list) | `/bookings` | ✅ |
+| 6 | Favorites | `/favorites` | ✅ |
 | 7 | Notifications | `/notifications` | ✅ |
-| 8 | Profile + ProfileEdit | `/me` | ⬜ |
-| 9 | Settings / Language | `/settings` | ⬜ |
-| 10 | Login (Nafath) | `/login` | ⬜ |
-| 11 | Register | `/register` | ⬜ |
-| 12 | Chats + ChatRoom | `/chats`, `/chat/{id}` | ⬜ |
-| 13 | Complaints + ComplaintDetails | `/help`, `/help/{id}` | ⬜ |
-| 14 | LegalPageView | `/legal/{key}` | ⬜ |
-| 15 | CreateListing | `/create-listing` | ⬜ |
-| 16 | MySpaces / OwnerBookings | `/host/*` | ⬜ |
-| 17 | SubscriptionPlans / Checkout / Dashboard | `/plans`, `/subscription` | ⬜ |
-| 18 | Version gate (AppStartup) | app-level guard | ⬜ |
+| 8 | Profile + ProfileEdit | `/me` | ✅ |
+| 9 | Settings / Language | `/settings` | ✅ |
+| 10 | Login (Nafath + SMS) | `/login` | ✅ |
+| 11 | Register | (مدمج في `/login`) | ✅ |
+| 12 | Chats + ChatRoom | `/chats`, `/chat/{id}` | ✅ |
+| 13 | Complaints + ComplaintDetails | `/help` | ✅ |
+| 14 | LegalPageView | `/legal/{key}` | ✅ |
+| 15 | CreateListing | `/create-listing` | ✅ |
+| 16 | MySpaces | `/my-listings` | ✅ |
+| 17 | SubscriptionPlans / Checkout / Callback | `/plans`, `/subscribe`, `/payment/callback` | ✅ |
+| 18 | Version gate (AppStartup) | `AcVersionGate` يلفّ `MainLayout` | ✅ |
+| 19 | i18n + dark mode + city picker | AppStore + L + AcThemeToggle + AcLanguageToggle + AcCityPicker | ✅ |
 
 ## مرجع: خريطة عمليات عشير
 
