@@ -1,6 +1,8 @@
 @page "/notifications"
 @inject AppStore Store
 @inject ApiReader Api
+@inject TimezoneService Tz
+@inject IHttpClientFactory Http
 @implements IDisposable
 
 <PageTitle>الإشعارات - عشير</PageTitle>
@@ -39,7 +41,7 @@
                                         @if (!n.IsRead) { <AcBadge Variant="primary" Text="جديد" /> }
                                     </div>
                                     <div class="acm-complaint-body">@n.Body</div>
-                                    <small>@n.CreatedAt.ToString("yyyy-MM-dd HH:mm") — @TypeLabel(n.Type)</small>
+                                    <small>@Tz.FormatRelative(n.CreatedAt) — @TypeLabel(n.Type)</small>
                                 </button>
                             </ChildContent>
                         </AcCard>
@@ -60,6 +62,7 @@
     protected override async Task OnAfterRenderAsync(bool first)
     {
         if (!first) return;
+        await Tz.InitAsync();
         var env = await Api.GetAsync<List<Dto>>("/home/notifications");
         _items = env.Data ?? new();
         _loading = false;
@@ -68,15 +71,21 @@
 
     private void SetFilter(string f) { _filter = f; StateHasChanged(); }
 
-    private void OnClick(string id)
+    private async Task OnClick(string id)
     {
         var ix = _items.FindIndex(x => x.Id == id);
-        if (ix >= 0) _items[ix] = _items[ix] with { IsRead = true };
+        if (ix < 0 || _items[ix].IsRead) return;
+        // تفاؤليّاً: حدّث محلّياً ثم أرسل للخادم
+        _items[ix] = _items[ix] with { IsRead = true };
+        var client = Http.CreateClient("api");
+        await client.PostAsync($"/home/notifications/{id}/read", null);
     }
 
-    private void MarkAllRead()
+    private async Task MarkAllRead()
     {
         _items = _items.Select(n => n with { IsRead = true }).ToList();
+        var client = Http.CreateClient("api");
+        await client.PostAsync("/home/notifications/read-all", null);
     }
 
     private static string GroupLabel(DateTime dt)

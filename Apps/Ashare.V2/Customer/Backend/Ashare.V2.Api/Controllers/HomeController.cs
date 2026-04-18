@@ -28,40 +28,55 @@ public class HomeController : ControllerBase
         lat = l.Lat,
         lng = l.Lng,
         categoryName = AshareV2Seed.Categories.FirstOrDefault(c => c.Id == l.CategoryId)?.Label,
-        status = 1,
+        status = l.Status,
         isFeatured = l.IsFeatured,
-        viewCount = 0,
+        viewCount = l.ViewsCount,
         thumbnailUrl = (string?)null,
-        ownerName = (string?)null,
+        ownerId = l.OwnerId,
+        ownerName = l.OwnerId == AshareV2Seed.CurrentUserId ? AshareV2Seed.Profile.FullName : "مالك آخر",
         ownerAvatarUrl = (string?)null,
         capacity = l.Capacity,
         rating = l.Rating
     };
 
     [HttpGet("view")]
-    public IActionResult View()
+    public IActionResult View([FromQuery] string? city = null)
     {
-        var featured = AshareV2Seed.Listings.Where(l => l.IsFeatured).Select(ToRow).ToList();
-        var @new     = AshareV2Seed.Listings.Where(l => !l.IsFeatured).Take(6).Select(ToRow).ToList();
+        // فلترة النشِطة فقط + اختياريّاً حسب المدينة
+        IEnumerable<AshareV2Seed.ListingSeed> q = AshareV2Seed.Listings.Where(l => l.Status == 1);
+        if (!string.IsNullOrWhiteSpace(city))
+            q = q.Where(l => string.Equals(l.City, city, StringComparison.Ordinal));
+
+        var featured = q.Where(l => l.IsFeatured).Select(ToRow).ToList();
+        var @new     = q.Where(l => !l.IsFeatured).Take(6).Select(ToRow).ToList();
         return this.OkEnvelope("home.view", new
         {
             categories = CategoriesDto(),
             featured,
-            @new
+            @new,
+            city
         });
     }
 
     [HttpGet("explore")]
     public IActionResult Explore(
         [FromQuery] string? category,
+        [FromQuery] string? city,
         [FromQuery] decimal? priceMin,
         [FromQuery] decimal? priceMax,
         [FromQuery] int? capacity,
         [FromQuery] int? minRating,
+        [FromQuery] string? q0 = null,
         [FromQuery] string? sort = "newest")
     {
-        IEnumerable<AshareV2Seed.ListingSeed> q = AshareV2Seed.Listings;
+        IEnumerable<AshareV2Seed.ListingSeed> q = AshareV2Seed.Listings.Where(l => l.Status == 1);
 
+        if (!string.IsNullOrWhiteSpace(city))     q = q.Where(l => l.City == city);
+        if (!string.IsNullOrWhiteSpace(q0))
+        {
+            var n = q0.Trim();
+            q = q.Where(l => l.Title.Contains(n) || l.Description.Contains(n) || l.District.Contains(n));
+        }
         if (!string.IsNullOrEmpty(category)) q = q.Where(l => l.CategoryId == category);
         if (priceMin.HasValue)  q = q.Where(l => l.Price >= priceMin.Value);
         if (priceMax.HasValue)  q = q.Where(l => l.Price <= priceMax.Value);
@@ -102,6 +117,9 @@ public class HomeController : ControllerBase
         var l = AshareV2Seed.Listings.FirstOrDefault(x => x.Id == id);
         if (l is null) return this.NotFoundEnvelope("listing_not_found", $"Listing '{id}' not found");
 
+        var ownerName = l.OwnerId == AshareV2Seed.CurrentUserId
+            ? AshareV2Seed.Profile.FullName
+            : "مالك آخر";
         var dto = new
         {
             id = l.Id,
@@ -114,7 +132,10 @@ public class HomeController : ControllerBase
             priceDisplay = $"{l.Price:0} SAR",
             priceUnit = UnitLabel(l.TimeUnit),
             amenities = l.Amenities.Select(a => new { key = a, label = AmenityLabel(a) }).ToList(),
-            owner = new { name = "مالك عشير", memberSince = "2024" }
+            ownerId = l.OwnerId,  // يسمح للواجهة بمقارنة الملكية
+            owner = new { name = ownerName, memberSince = "2024" },
+            lat = l.Lat,
+            lng = l.Lng
         };
         return this.OkEnvelope("listing.details", dto);
     }
@@ -139,6 +160,25 @@ public class HomeController : ControllerBase
                 isRead = n.IsRead,
                 createdAt = n.CreatedAt
             }).ToList());
+
+    /// <summary>تعليم إشعار واحد كمقروء (yields IsRead=true).</summary>
+    [HttpPost("notifications/{id}/read")]
+    public IActionResult MarkNotifRead(string id)
+    {
+        var ix = AshareV2Seed.Notifications.FindIndex(n => n.Id == id);
+        if (ix < 0) return this.NotFoundEnvelope("notification_not_found");
+        AshareV2Seed.Notifications[ix] = AshareV2Seed.Notifications[ix] with { IsRead = true };
+        return this.OkEnvelope("notification.read", new { id, isRead = true });
+    }
+
+    /// <summary>تعليم الكلّ كمقروء.</summary>
+    [HttpPost("notifications/read-all")]
+    public IActionResult MarkAllNotifsRead()
+    {
+        for (int i = 0; i < AshareV2Seed.Notifications.Count; i++)
+            AshareV2Seed.Notifications[i] = AshareV2Seed.Notifications[i] with { IsRead = true };
+        return this.OkEnvelope("notification.read.all", new { count = AshareV2Seed.Notifications.Count });
+    }
 
     private static string UnitLabel(string u) => u switch
     {

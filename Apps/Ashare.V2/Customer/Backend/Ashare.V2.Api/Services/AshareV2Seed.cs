@@ -5,6 +5,11 @@ namespace Ashare.V2.Api.Services;
 /// </summary>
 internal static class AshareV2Seed
 {
+    /// <summary>معرّف المستخدم الحاليّ (محاكاة — يطابق Profile.Id).</summary>
+    public const string CurrentUserId = "U-1";
+    private const string OtherOwner1  = "U-42";
+    private const string OtherOwner2  = "U-77";
+
     public static readonly IReadOnlyList<CategorySeed> Categories =
     [
         new("apartment", "شقة",     "building"),
@@ -41,9 +46,11 @@ internal static class AshareV2Seed
         ["pool"] = "مسبح"
     };
 
-    public static readonly IReadOnlyList<ListingSeed> Listings = BuildListings();
+    /// <summary>قابلة للتغيير في الذاكرة (toggle status, إضافة إعلان) لأنّها المصدر الوحيد.</summary>
+    public static readonly List<ListingSeed> Listings = BuildListings().ToList();
 
-    public static readonly IReadOnlyList<NotificationSeed> Notifications =
+    /// <summary>الإشعارات — قابلة للتغيير (mark-as-read).</summary>
+    public static readonly List<NotificationSeed> Notifications =
     [
         new("N-1", "booking", "طلب الحجز قيد المراجعة", "مالك العرض سيتواصل خلال 24 ساعة", Hours(-2),   false),
         new("N-2", "booking", "تمّ تأكيد حجزك",          "شقّة حيّ النرجس — من 1 مايو 2026",   Hours(-10),  false),
@@ -62,15 +69,20 @@ internal static class AshareV2Seed
         new("B-4", "L-204", "استديو في شمال الرياض",    2100m, Days(-35),1, 1, "cancelled")
     ];
 
-    public static readonly IReadOnlyList<ConversationSeed> Conversations =
+    /// <summary>المحادثات — قابلة للتغيير لإرسال الرسائل.</summary>
+    public static readonly List<ConversationSeed> Conversations =
     [
+        // C-1: مع مالك L-102 (ليس المستخدم الحالي) — استعلام عن شقة في جدة
         new("C-1", "أحمد - مالك النرجس", "شقة مفروشة في حي النرجس", Hours(-1), 1,
-            [new("م1", "partner",  "أهلاً، هل العرض متاح؟",           Hours(-3)),
-             new("م2", "me",       "نعم، ما التواريخ المناسبة؟",       Hours(-2)),
-             new("م3", "partner",  "1 مايو — لمدة 30 ليلة",             Hours(-1))]),
+            partnerId: OtherOwner1, listingId: "L-102",
+            messages: [new("م1", "partner", "أهلاً، هل العرض متاح؟",           Hours(-3)),
+                       new("م2", "me",      "نعم، ما التواريخ المناسبة؟",      Hours(-2)),
+                       new("م3", "partner", "1 مايو — لمدة 30 ليلة",            Hours(-1))]),
+        // C-2: مع خدمة العملاء — لا ListingId
         new("C-2", "خدمة العملاء",     "استفسار عن الحجز #B-2",    Hours(-10), 0,
-            [new("م1", "me",       "الحجز مؤكَّد لكنّي لم أستلم المفتاح", Hours(-12)),
-             new("م2", "partner",  "نعتذر، سيتواصل المالك خلال ساعة",  Hours(-10))])
+            partnerId: "staff",  listingId: null,
+            messages: [new("م1", "me",      "الحجز مؤكَّد لكنّي لم أستلم المفتاح", Hours(-12)),
+                       new("م2", "partner", "نعتذر، سيتواصل المالك خلال ساعة",   Hours(-10))])
     ];
 
     public static readonly IReadOnlyList<ComplaintSeed> Complaints =
@@ -178,41 +190,65 @@ internal static class AshareV2Seed
     // ------------------------------------------------------------------
     private static IReadOnlyList<ListingSeed> BuildListings()
     {
+        // الإعلانات المملوكة من المستخدم الحاليّ (U-1): L-101, L-103, L-206 — 3 إعلانات
+        // تطابق ActiveSubscription.ListingsUsed = 3.
         var list = new List<ListingSeed>
         {
             new("L-101","شقة مفروشة في حي النرجس","شقة غرفتين وصالة، حي النرجس.",
                 2500m, "month", "الرياض", "النرجس", 24.872, 46.638, ["ac","kitchen","wifi"],
-                featured: true,  capacity: 3, rating: 4.5m, categoryId: "apartment"),
+                ownerId: CurrentUserId,
+                featured: true,  capacity: 3, rating: 4.5m, categoryId: "apartment",
+                viewsCount: 142, bookingsCount: 8),
             new("L-102","غرفة في شقة طلاب","غرفة مفردة قرب جامعة الملك عبدالعزيز.",
                  900m, "month", "جدة", "السلامة", 21.590, 39.168, ["wifi","ac"],
-                featured: true,  capacity: 4, rating: 4.2m, categoryId: "room"),
+                ownerId: OtherOwner1,
+                featured: true,  capacity: 4, rating: 4.2m, categoryId: "room",
+                viewsCount: 85, bookingsCount: 3),
             new("L-103","استديو قرب جامعة الملك سعود","استديو مفروش بحمام خاص.",
                 1800m, "month", "الرياض", "الدرعية", 24.751, 46.605, ["ac","kitchen","parking"],
-                featured: true,  capacity: 2, rating: 4.8m, categoryId: "studio"),
+                ownerId: CurrentUserId,
+                featured: true,  capacity: 2, rating: 4.8m, categoryId: "studio",
+                viewsCount: 213, bookingsCount: 12),
             new("L-201","سكن عائلي في المزاحمية","شقة ثلاث غرف، مناسبة للعائلات.",
                 3200m, "month", "الرياض", "المزاحمية", 24.480, 46.267, ["ac","parking","laundry"],
-                featured: false, capacity: 5, rating: 4.0m, categoryId: "apartment"),
+                ownerId: OtherOwner1,
+                featured: false, capacity: 5, rating: 4.0m, categoryId: "apartment",
+                viewsCount: 47, bookingsCount: 1),
             new("L-202","شقة يومي قرب الحرم","شقة يوميّة قرب الحرم.",
                  350m, "day", "مكة", "العزيزية", 21.395, 39.867, ["ac","kitchen","wifi","parking"],
-                featured: false, capacity: 6, rating: 4.7m, categoryId: "apartment"),
+                ownerId: OtherOwner2,
+                featured: false, capacity: 6, rating: 4.7m, categoryId: "apartment",
+                viewsCount: 195, bookingsCount: 15),
             new("L-203","غرفة في فيلا مشتركة","غرفة مؤثّثة في فيلا.",
                 1200m, "month", "الدمام", "الشاطئ", 26.441, 50.108, ["ac","parking"],
-                featured: false, capacity: 4, rating: 4.3m, categoryId: "villa"),
+                ownerId: OtherOwner2,
+                featured: false, capacity: 4, rating: 4.3m, categoryId: "villa",
+                viewsCount: 63, bookingsCount: 2),
             new("L-204","استديو في شمال الرياض","استديو صغير مفروش.",
                 2100m, "month", "الرياض", "الصحافة", 24.797, 46.629, ["ac","wifi"],
-                featured: false, capacity: 2, rating: 4.1m, categoryId: "studio"),
+                ownerId: OtherOwner1,
+                featured: false, capacity: 2, rating: 4.1m, categoryId: "studio",
+                viewsCount: 112, bookingsCount: 5),
             new("L-205","غرفة وصالة حيّ العارض","للمشاركة — غرفة وصالة.",
                37000m, "year", "الرياض", "العارض", 24.872, 46.638, ["ac","kitchen"],
-                featured: false, capacity: 2, rating: 4.0m, categoryId: "shared"),
+                ownerId: OtherOwner2,
+                featured: false, capacity: 2, rating: 4.0m, categoryId: "shared",
+                status: 2, // مجمّد — لنستعرض فلتر "موقوفة"
+                viewsCount: 28, bookingsCount: 0),
             new("L-206","غرفة فاخرة في حيّ غرناطة","غرفة كبيرة بحمام خاص.",
                 1800m, "month", "الرياض", "غرناطة", 24.793, 46.766, ["ac","kitchen","parking","wifi"],
-                featured: true,  capacity: 1, rating: 4.9m, categoryId: "room"),
+                ownerId: CurrentUserId,
+                featured: true,  capacity: 1, rating: 4.9m, categoryId: "room",
+                viewsCount: 301, bookingsCount: 18),
             new("L-207","استديو مفروش في الملقا","استديو يومي مفروش.",
                  550m, "day", "الرياض", "الملقا", 24.795, 46.628, ["wifi","ac","kitchen","parking"],
-                featured: false, capacity: 2, rating: 4.6m, categoryId: "studio")
+                ownerId: OtherOwner1,
+                featured: false, capacity: 2, rating: 4.6m, categoryId: "studio",
+                viewsCount: 178, bookingsCount: 14)
         };
         return list;
     }
+
 
     private static DateTime Hours(double h) => DateTime.UtcNow.AddHours(h);
     private static DateTime Days(double d) => DateTime.UtcNow.AddDays(d);
@@ -224,18 +260,31 @@ internal static class AshareV2Seed
         decimal Price, string TimeUnit, string City, string District,
         double Lat, double Lng,
         IReadOnlyList<string> Amenities,
+        string ownerId = OtherOwner1,
         bool featured = false, int capacity = 0, decimal rating = 0m,
-        string categoryId = "apartment")
+        string categoryId = "apartment",
+        int status = 1, int viewsCount = 0, int bookingsCount = 0)
     {
         public bool IsFeatured => featured;
         public int Capacity => capacity;
         public decimal Rating => rating;
         public string CategoryId => categoryId;
+        public string OwnerId => ownerId;
+        public int Status => status;           // 1 = active, 2 = inactive
+        public int ViewsCount => viewsCount;
+        public int BookingsCount => bookingsCount;
     }
 
     public sealed record NotificationSeed(string Id, string Type, string Title, string Body, DateTime CreatedAt, bool IsRead);
     public sealed record BookingSeed(string Id, string ListingId, string ListingTitle, decimal Total, DateTime StartDate, int Nights, int Guests, string Status);
-    public sealed record ConversationSeed(string Id, string PartnerName, string Subject, DateTime LastAt, int UnreadCount, IReadOnlyList<MessageSeed> Messages);
+    public sealed record ConversationSeed(
+        string Id, string PartnerName, string Subject, DateTime LastAt, int UnreadCount,
+        string partnerId, string? listingId, List<MessageSeed> messages)
+    {
+        public string PartnerId => partnerId;
+        public string? ListingId => listingId;
+        public List<MessageSeed> Messages => messages;
+    }
     public sealed record MessageSeed(string Id, string From, string Text, DateTime SentAt);
     public sealed record ComplaintReplySeed(string Id, string From, string Message, DateTime CreatedAt);
     public sealed record ComplaintSeed(string Id, string Subject, string Body, DateTime CreatedAt,

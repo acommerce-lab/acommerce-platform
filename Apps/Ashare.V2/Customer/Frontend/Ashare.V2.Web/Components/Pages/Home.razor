@@ -60,23 +60,36 @@
         {
             var citiesEnv = await Api.GetAsync<List<string>>("/cities");
             _cities = citiesEnv.Data ?? new();
-
-            var env = await Api.GetAsync<HomeResponse>("/home/view");
-            if (env.Data is not null)
-            {
-                _data = new MarketplaceHomeDto
-                {
-                    Categories = env.Data.Categories.Select(c =>
-                        new CategoryTileDto { Id = c.Id, Label = c.Label, Icon = c.Icon }).ToList(),
-                    Featured = env.Data.Featured.Select(ToRow).ToList(),
-                    New = env.Data.New.Select(ToRow).ToList()
-                };
-                await InvokeAsync(StateHasChanged);
-            }
+            await LoadHome();
         }
     }
 
-    private void OnSearch(string? _) => Nav.NavigateTo("/search");
+    private async Task LoadHome()
+    {
+        // تمرير المدينة المختارة لفلترة العروض.
+        var path = string.IsNullOrEmpty(Store.Ui.City)
+            ? "/home/view"
+            : $"/home/view?city={Uri.EscapeDataString(Store.Ui.City)}";
+        var env = await Api.GetAsync<HomeResponse>(path);
+        if (env.Data is not null)
+        {
+            _data = new MarketplaceHomeDto
+            {
+                Categories = env.Data.Categories.Select(c =>
+                    new CategoryTileDto { Id = c.Id, Label = c.Label, Icon = c.Icon }).ToList(),
+                Featured = env.Data.Featured.Select(ToRow).ToList(),
+                New = env.Data.New.Select(ToRow).ToList()
+            };
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    // البحث من الصفحة الرئيسيّة: فارغ → اقتراحات، غير فارغ → نتائج Explore.
+    private void OnSearch(string? q)
+    {
+        if (string.IsNullOrWhiteSpace(q)) { Nav.NavigateTo("/search"); return; }
+        Nav.NavigateTo($"/explore?q={Uri.EscapeDataString(q)}");
+    }
     private void OnCategorySelected(CategoryTileDto c)
         => Nav.NavigateTo($"/explore?category={Uri.EscapeDataString(c.Id)}");
     private void OnListingOpen(ListingRowDto l)
@@ -90,10 +103,10 @@
     });
     private void OnViewAll(string section) => Nav.NavigateTo("/explore");
 
-    private void OnCityChanged(string city)
+    private async void OnCityChanged(string city)
     {
         Store.SetCity(city);
-        // لا ذهاب للخادم — مجرّد تغيير محلّي
+        await LoadHome();            // أعد تحميل العروض بعد تغيير المدينة
     }
 
     private void OnFavoriteToggled((ListingRowDto Listing, bool On) e)

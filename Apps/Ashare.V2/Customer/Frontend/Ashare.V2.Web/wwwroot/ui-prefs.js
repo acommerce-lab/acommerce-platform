@@ -11,3 +11,14 @@ window.ashareUi = window.ashareUi || {
     else body.classList.remove('ac-dark');
   }
 };
+
+// Browser timezone bridge — consumed by TimezoneService (C#).
+// getTimezoneOffset() returns minutes where local = UTC - offset,
+// so a browser at +03:00 returns -180.
+window.ashareTz = window.ashareTz || {
+  offset: function () { return new Date().getTimezoneOffset(); },
+  name:   function () {
+    try { return Intl.DateTimeFormat().resolvedOptions().timeZone || null; }
+    catch { return null; }
+  }
+};

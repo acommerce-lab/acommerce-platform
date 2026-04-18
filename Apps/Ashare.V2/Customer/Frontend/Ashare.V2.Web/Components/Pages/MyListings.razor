@@ -1,6 +1,7 @@
 @page "/my-listings"
 @inject ApiReader Api
 @inject NavigationManager Nav
+@inject IHttpClientFactory Http
 
 <PageTitle>إعلاناتي - عشير</PageTitle>
 
@@ -77,11 +78,18 @@
     private void Open(string id) => Nav.NavigateTo($"/space/{id}");
     private void Edit(string id) => Nav.NavigateTo($"/create-listing?edit={id}");
 
-    private void Toggle(string id)
+    private async Task Toggle(string id)
     {
+        var client = Http.CreateClient("api");
+        var resp = await client.PostAsync($"/my-listings/{id}/toggle", null);
+        if (!resp.IsSuccessStatusCode) return;
+        var env  = await resp.Content.ReadFromJsonAsync<ToggleEnv>();
+        if (env?.Data is null) return;
         var ix = _items.FindIndex(x => x.Id == id);
-        if (ix >= 0) _items[ix] = _items[ix] with { Status = _items[ix].Status == 1 ? 2 : 1 };
+        if (ix >= 0) _items[ix] = _items[ix] with { Status = env.Data.Status };
     }
+    private sealed record ToggleEnv(ToggleData? Data);
+    private sealed record ToggleData(string Id, int Status);
 
     private void Feature(string id) => Nav.NavigateTo($"/subscribe?type=plan&id=pro&amount=99");
 

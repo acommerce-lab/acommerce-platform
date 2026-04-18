@@ -82,13 +82,36 @@ public class CatalogController : ControllerBase
         });
     }
 
+    public sealed record CreateBookingRequest(string ListingId, DateTime StartDate, int Nights, int Guests);
+    /// <summary>إنشاء حجز — يمنع حجز إعلان مملوك للمستخدم الحاليّ.</summary>
+    [HttpPost("/bookings")]
+    public IActionResult CreateBooking([FromBody] CreateBookingRequest req)
+    {
+        var listing = AshareV2Seed.Listings.FirstOrDefault(l => l.Id == req.ListingId);
+        if (listing is null) return this.NotFoundEnvelope("listing_not_found");
+        if (listing.OwnerId == AshareV2Seed.CurrentUserId)
+            return this.ForbiddenEnvelope("self_booking", "لا يمكنك حجز إعلان من إنشائك");
+        if (listing.Status != 1)
+            return this.BadRequestEnvelope("listing_inactive", "الإعلان غير نشط حاليّاً");
+
+        var total = listing.Price * req.Nights;
+        return this.OkEnvelope("booking.create", new {
+            id = $"B-{Random.Shared.Next(10_000, 99_999)}",
+            listingId = req.ListingId,
+            listingTitle = listing.Title,
+            total, startDate = req.StartDate, nights = req.Nights, guests = req.Guests,
+            status = "pending"
+        });
+    }
+
     // ── Chats ──────────────────────────────────────────────────────────
     [HttpGet("/conversations")]
     public IActionResult Conversations() =>
         this.OkEnvelope("conversation.list",
             AshareV2Seed.Conversations.Select(c => new {
-                id = c.Id, partnerName = c.PartnerName, subject = c.Subject,
-                lastAt = c.LastAt, unreadCount = c.UnreadCount,
+                id = c.Id, partnerName = c.PartnerName,
+                partnerId = c.PartnerId, listingId = c.ListingId,
+                subject = c.Subject, lastAt = c.LastAt, unreadCount = c.UnreadCount,
                 lastMessage = c.Messages.LastOrDefault()?.Text ?? ""
             }));
 
@@ -98,11 +121,66 @@ public class CatalogController : ControllerBase
         var c = AshareV2Seed.Conversations.FirstOrDefault(x => x.Id == id);
         if (c is null) return this.NotFoundEnvelope("conversation_not_found");
         return this.OkEnvelope("conversation.details", new {
-            id = c.Id, partnerName = c.PartnerName, subject = c.Subject,
+            id = c.Id, partnerName = c.PartnerName,
+            partnerId = c.PartnerId, listingId = c.ListingId,
+            subject = c.Subject,
             messages = c.Messages.Select(m => new {
                 id = m.Id, from = m.From, text = m.Text, sentAt = m.SentAt
             })
         });
+    }
+
+    public sealed record SendMessageRequest(string Text, string? Attachment);
+    /// <summary>إرسال رسالة إلى محادثة موجودة (السيرفر يختم SentAt = UTC).</summary>
+    [HttpPost("/conversations/{id}/messages")]
+    public IActionResult SendMessage(string id, [FromBody] SendMessageRequest req)
+    {
+        var ix = AshareV2Seed.Conversations.FindIndex(c => c.Id == id);
+        if (ix < 0) return this.NotFoundEnvelope("conversation_not_found");
+        var conv = AshareV2Seed.Conversations[ix];
+        var msg  = new AshareV2Seed.MessageSeed(
+            Id:   $"m-{conv.Messages.Count + 1}",
+            From: "me",
+            Text: req.Text ?? string.Empty,
+            SentAt: DateTime.UtcNow);
+        conv.Messages.Add(msg);
+        AshareV2Seed.Conversations[ix] = conv with { LastAt = msg.SentAt, UnreadCount = 0 };
+        return this.OkEnvelope("conversation.send", new {
+            id = msg.Id, from = msg.From, text = msg.Text, sentAt = msg.SentAt
+        });
+    }
+
+    public sealed record StartConversationRequest(string ListingId, string Text);
+    /// <summary>فتح محادثة مع مالك إعلان (يمنع محادثة النفس).</summary>
+    [HttpPost("/conversations/start")]
+    public IActionResult StartConversation([FromBody] StartConversationRequest req)
+    {
+        var listing = AshareV2Seed.Listings.FirstOrDefault(l => l.Id == req.ListingId);
+        if (listing is null) return this.NotFoundEnvelope("listing_not_found");
+        if (listing.OwnerId == AshareV2Seed.CurrentUserId)
+            return this.ForbiddenEnvelope("self_message",
+                "لا يمكن مراسلة إعلان من إنشائك");
+
+        // إن كانت المحادثة موجودة مع نفس المالك، استخدمها.
+        var existing = AshareV2Seed.Conversations.FirstOrDefault(c =>
+            c.PartnerId == listing.OwnerId && c.ListingId == listing.Id);
+        if (existing is not null)
+        {
+            return this.OkEnvelope("conversation.start", new {
+                id = existing.Id, created = false
+            });
+        }
+
+        var id = $"C-{AshareV2Seed.Conversations.Count + 1}";
+        var conv = new AshareV2Seed.ConversationSeed(
+            id, "مالك " + listing.Title, listing.Title, DateTime.UtcNow, 0,
+            partnerId: listing.OwnerId, listingId: listing.Id,
+            messages: new List<AshareV2Seed.MessageSeed>
+            {
+                new("m-1", "me", req.Text, DateTime.UtcNow)
+            });
+        AshareV2Seed.Conversations.Add(conv);
+        return this.OkEnvelope("conversation.start", new { id, created = true });
     }
 
     // ── Complaints (list + details + replies + create) ─────────────────
@@ -166,13 +244,34 @@ public class CatalogController : ControllerBase
     [HttpGet("/my-listings")]
     public IActionResult MyListings() =>
         this.OkEnvelope("listing.my",
-            AshareV2Seed.Listings.Take(3).Select(l => new {
-                id = l.Id, title = l.Title, price = l.Price, currency = "SAR",
-                timeUnit = l.TimeUnit, city = l.City, district = l.District,
-                isFeatured = l.IsFeatured, status = 1,
-                viewsCount = Random.Shared.Next(20, 300),
-                bookingsCount = Random.Shared.Next(0, 12)
-            }));
+            AshareV2Seed.Listings
+                .Where(l => l.OwnerId == AshareV2Seed.CurrentUserId)
+                .Select(l => new {
+                    id = l.Id, title = l.Title, price = l.Price, currency = "SAR",
+                    timeUnit = l.TimeUnit, city = l.City, district = l.District,
+                    isFeatured = l.IsFeatured, status = l.Status,
+                    viewsCount = l.ViewsCount, bookingsCount = l.BookingsCount
+                }));
+
+    /// <summary>تبديل حالة إعلان نشط/موقوف (ownership-enforced).</summary>
+    [HttpPost("/my-listings/{id}/toggle")]
+    public IActionResult ToggleListing(string id)
+    {
+        var ix = AshareV2Seed.Listings.FindIndex(l => l.Id == id);
+        if (ix < 0) return this.NotFoundEnvelope("listing_not_found");
+        var l = AshareV2Seed.Listings[ix];
+        if (l.OwnerId != AshareV2Seed.CurrentUserId)
+            return this.ForbiddenEnvelope("not_owner", "لا يمكن تعديل إعلان غير مملوك لك");
+        // نسخ الـ record مع تبديل الحالة
+        var newStatus = l.Status == 1 ? 2 : 1;
+        AshareV2Seed.Listings[ix] = new AshareV2Seed.ListingSeed(
+            l.Id, l.Title, l.Description, l.Price, l.TimeUnit, l.City, l.District,
+            l.Lat, l.Lng, l.Amenities,
+            ownerId: l.OwnerId, featured: l.IsFeatured, capacity: l.Capacity,
+            rating: l.Rating, categoryId: l.CategoryId,
+            status: newStatus, viewsCount: l.ViewsCount, bookingsCount: l.BookingsCount);
+        return this.OkEnvelope("listing.toggle", new { id, status = newStatus });
+    }
 
     // ── Profile (GET + PUT) ────────────────────────────────────────────
     [HttpGet("/me/profile")]
@@ -211,12 +310,18 @@ public class CatalogController : ControllerBase
     {
         var s = AshareV2Seed.ActiveSubscription;
         var plan = AshareV2Seed.Plans.FirstOrDefault(p => p.Id == s.PlanId);
+
+        // الأرقام الفعليّة تُحسَب من الإعلانات المملوكة لا من بذرة ثابتة.
+        var mine = AshareV2Seed.Listings.Where(l => l.OwnerId == AshareV2Seed.CurrentUserId).ToList();
+        var listingsUsed  = mine.Count(l => l.Status == 1);
+        var featuredUsed  = mine.Count(l => l.Status == 1 && l.IsFeatured);
+
         return this.OkEnvelope("subscription.get", new {
             id = s.Id, planId = s.PlanId, planName = s.PlanName, status = s.Status,
             startDate = s.StartDate, endDate = s.EndDate,
             daysRemaining = (int)Math.Max(0, (s.EndDate - DateTime.UtcNow).TotalDays),
-            listingsUsed = s.ListingsUsed, listingsLimit = s.ListingsLimit,
-            featuredUsed = s.FeaturedUsed, featuredLimit = s.FeaturedLimit,
+            listingsUsed, listingsLimit = s.ListingsLimit,
+            featuredUsed, featuredLimit = s.FeaturedLimit,
             imagesPerListing = s.ImagesPerListing,
             apiCallsUsed = s.ApiCallsUsed, apiCallsLimit = s.ApiCallsLimit,
             features = plan?.Features ?? Array.Empty<string>()

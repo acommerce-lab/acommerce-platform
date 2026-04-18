@@ -18,6 +18,7 @@ builder.Services.AddRazorComponents()
 builder.Services.AddScoped<AppStore>();
 builder.Services.AddScoped<ITemplateStore>(sp => sp.GetRequiredService<AppStore>());
 builder.Services.AddScoped<L>();
+builder.Services.AddScoped<TimezoneService>();
 
 // ─── OpEngine للعمليات المحلّية ────────────────────────────────────────
 builder.Services.AddScoped<OpEngine>(sp =>
@@ -26,6 +27,12 @@ builder.Services.AddScoped<OpEngine>(sp =>
 // ─── HTTP → Ashare.V2.Api ─────────────────────────────────────────────
 var apiBase = builder.Configuration["AshareV2Api:BaseUrl"] ?? "http://localhost:5600";
 builder.Services.AddHttpClient("ashare-v2", c =>
+{
+    c.BaseAddress = new Uri(apiBase);
+    c.Timeout = TimeSpan.FromSeconds(30);
+});
+// alias — الصفحات تستعمل "api" بالاسم المختصر للـ PostAsJson/Put
+builder.Services.AddHttpClient("api", c =>
 {
     c.BaseAddress = new Uri(apiBase);
     c.Timeout = TimeSpan.FromSeconds(30);

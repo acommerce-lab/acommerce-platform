@@ -1,6 +1,8 @@
 @page "/chat/{Id}"
 @inject ApiReader Api
 @inject NavigationManager Nav
+@inject TimezoneService Tz
+@inject IHttpClientFactory Http
 
 <PageTitle>محادثة - عشير</PageTitle>
 
@@ -17,7 +19,7 @@
         </div>
 
         <div class="acs-chat-messages">
-            @foreach (var m in _conv.Messages.Concat(_sent))
+            @foreach (var m in _conv.Messages)
             {
                 var mine = m.From == "me";
                 <div class="acs-bubble @(mine ? "acs-bubble-mine" : "acs-bubble-other")">
@@ -32,7 +34,7 @@
                     {
                         <div>@m.Text</div>
                     }
-                    <small style="display:block; opacity:.6;">@m.SentAt.ToString("HH:mm")</small>
+                    <small style="display:block; opacity:.6;">@Tz.FormatTime(m.SentAt)</small>
                 </div>
             }
             @if (_partnerTyping)
@@ -52,10 +54,10 @@
             {
                 <span class="acs-chat-attach-preview">@_pendingAttach <button @onclick="@(() => _pendingAttach = null)">×</button></span>
             }
-            <AcInput Value="@_draft" ValueChanged="@(v => { _draft = v ?? string.Empty; SimulateTyping(); })"
+            <AcInput Value="@_draft" ValueChanged="@(v => _draft = v ?? string.Empty)"
                      Placeholder="اكتب رسالة…" />
             <AcButton Variant="primary" Text="إرسال" OnClick="@Send"
-                      Disabled="@(string.IsNullOrWhiteSpace(_draft) && string.IsNullOrEmpty(_pendingAttach))" />
+                      Disabled="@(_sending || (string.IsNullOrWhiteSpace(_draft) && string.IsNullOrEmpty(_pendingAttach)))" />
         </div>
     }
 </div>
@@ -66,11 +68,17 @@
     private string _draft = "";
     private string? _pendingAttach;
     private bool _partnerTyping;
-    private List<MessageDto> _sent = new();
+    private bool _sending;
 
     protected override async Task OnAfterRenderAsync(bool first)
     {
         if (!first) return;
+        await Tz.InitAsync();
+        await Reload();
+    }
+
+    private async Task Reload()
+    {
         var env = await Api.GetAsync<Payload>($"/conversations/{Id}");
         _conv = env.Data;
         await InvokeAsync(StateHasChanged);
@@ -83,20 +91,27 @@
         await InvokeAsync(StateHasChanged);
     }
 
-    private void Send()
+    private async Task Send()
     {
         if (string.IsNullOrWhiteSpace(_draft) && string.IsNullOrEmpty(_pendingAttach)) return;
-        _sent.Add(new MessageDto(
-            Id: $"local-{_sent.Count}",
-            From: "me",
-            Text: _draft,
-            SentAt: DateTime.UtcNow,
-            Attachment: _pendingAttach));
-        _draft = "";
-        _pendingAttach = null;
-
-        // محاكاة رد بعد ثانيتين
-        _ = SimulatePartnerReply();
+        if (_conv is null) return;
+        _sending = true;
+        try
+        {
+            var client = Http.CreateClient("api");
+            var resp = await client.PostAsJsonAsync($"/conversations/{Id}/messages", new {
+                Text = _draft,
+                Attachment = _pendingAttach
+            });
+            if (resp.IsSuccessStatusCode)
+            {
+                _draft = "";
+                _pendingAttach = null;
+                await Reload();
+                _ = SimulatePartnerReply();   // اختياريّ: محاكاة ردّ تلقائيّ
+            }
+        }
+        finally { _sending = false; await InvokeAsync(StateHasChanged); }
     }
 
     private async Task SimulatePartnerReply()
@@ -105,16 +120,13 @@
         await InvokeAsync(StateHasChanged);
         await Task.Delay(1800);
         _partnerTyping = false;
-        _sent.Add(new MessageDto(
-            Id: $"p-{_sent.Count}", From: "partner",
-            Text: "شكراً — سأعود إليك قريباً.",
-            SentAt: DateTime.UtcNow, Attachment: null));
         await InvokeAsync(StateHasChanged);
     }
 
-    private void SimulateTyping() { /* مكان لحدث typing عبر SignalR لاحقاً */ }
     private void GoBack() => Nav.NavigateTo("/chats");
 
-    private sealed record Payload(string Id, string PartnerName, string Subject, List<MessageDto> Messages);
-    private sealed record MessageDto(string Id, string From, string Text, DateTime SentAt, string? Attachment = null);
+    private sealed record Payload(string Id, string PartnerName, string Subject,
+        string? PartnerId, string? ListingId, List<MessageDto> Messages);
+    private sealed record MessageDto(string Id, string From, string Text, DateTime SentAt,
+        string? Attachment = null);
 }

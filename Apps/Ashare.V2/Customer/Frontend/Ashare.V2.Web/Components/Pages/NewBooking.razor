@@ -8,7 +8,15 @@
 <PageTitle>حجز - عشير</PageTitle>
 
 <div class="acs-page acs-booking-wizard">
-    @if (_listing is null) { <AcLoadingState /> }
+    @if (_loading) { <AcLoadingState /> }
+    else if (_listing is null) { <AcEmptyState IconName="info" Message="الإعلان غير موجود" /> }
+    else if (_listing.OwnerId == "U-1")
+    {
+        <AcEmptyState IconName="alert-circle"
+                      Message="لا يمكن حجز إعلان من إنشائك" />
+        <AcButton Variant="ghost" Class="ac-btn-block" Text="العودة إلى الإعلان"
+                  OnClick="@(() => Nav.NavigateTo($"/space/{Id}"))" />
+    }
     else
     {
         <h1 class="acm-wizard-title">حجز: @_listing.Title</h1>
@@ -122,6 +130,7 @@
     [Parameter] public string Id { get; set; } = "";
 
     private Listing? _listing;
+    private bool _loading = true;
     private int _step = 1;
     private DateTime _startDate = DateTime.Today.AddDays(1);
     private int _nights = 1;
@@ -142,9 +151,10 @@
         var env = await Api.GetAsync<Payload>($"/home/space/{Id}");
         if (env.Data is not null)
         {
-            _listing = new Listing(env.Data.Id, env.Data.Title, ExtractPrice(env.Data.PriceDisplay));
-            await InvokeAsync(StateHasChanged);
+            _listing = new Listing(env.Data.Id, env.Data.Title, ExtractPrice(env.Data.PriceDisplay), env.Data.OwnerId);
         }
+        _loading = false;
+        await InvokeAsync(StateHasChanged);
     }
 
     private void OnPay(AcPaymentForm.PaymentFormValues dto)
@@ -166,6 +176,6 @@
         => decimal.TryParse(new string(display.TakeWhile(c => char.IsDigit(c) || c == '.').ToArray()),
             out var d) ? d : 0m;
 
-    private sealed record Payload(string Id, string Title, string PriceDisplay);
-    private sealed record Listing(string Id, string Title, decimal PricePerNight);
+    private sealed record Payload(string Id, string Title, string PriceDisplay, string? OwnerId);
+    private sealed record Listing(string Id, string Title, decimal PricePerNight, string? OwnerId);
 }

@@ -2,6 +2,7 @@
 @inject AppStore Store
 @inject ApiReader Api
 @inject NavigationManager Nav
+@inject IHttpClientFactory Http
 @implements IDisposable
 
 <PageTitle>تفاصيل - عشير</PageTitle>
@@ -38,6 +39,10 @@
             @if (_data.Rating > 0)
             {
                 <span><AcIcon Name="star" Size="14" /> @_data.Rating.ToString("0.0")</span>
+            }
+            @if (IsMine)
+            {
+                <AcBadge Variant="secondary" Text="إعلانك" />
             }
         </div>
 
@@ -78,7 +83,7 @@
             </ChildContent>
         </AcCard>
 
-        @if (_data.Owner is not null)
+        @if (_data.Owner is not null && !IsMine)
         {
             <AcCard>
                 <ChildContent>
@@ -92,7 +97,7 @@
                                 <span>عضو منذ @_data.Owner.MemberSince</span>
                             }
                         </div>
-                        <AcButton Variant="outline-primary" Text="مراسلة" OnClick="@MessageOwner" />
+                        <AcButton Variant="outline-primary" Text="مراسلة" OnClick="@MessageOwner" Disabled="@_startingChat" />
                     </div>
                 </ChildContent>
             </AcCard>
@@ -100,7 +105,14 @@
 
         <AcStickyActionBar>
             <AcButton Variant="ghost" Text="رجوع" OnClick="@GoBack" />
-            <AcButton Variant="primary" Class="ac-btn-block" Text="احجز الآن" OnClick="@Book" />
+            @if (IsMine)
+            {
+                <AcButton Variant="outline-primary" Class="ac-btn-block" Text="تعديل الإعلان" OnClick="@EditListing" />
+            }
+            else
+            {
+                <AcButton Variant="primary" Class="ac-btn-block" Text="احجز الآن" OnClick="@Book" />
+            }
         </AcStickyActionBar>
     }
 </div>
@@ -110,7 +122,12 @@
 
     private DetailsPayload? _data;
     private bool _loading = true;
+    private bool _startingChat;
     private bool IsFav => _data is not null && Store.FavoriteListingIds.Contains(_data.Id);
+
+    // المقارنة: هل العرض من إنشاء المستخدم الحاليّ؟
+    // في غياب تكامل AuthN كامل، نعتمد على "U-1" (CurrentUserId في الخادم).
+    private bool IsMine => _data is not null && _data.OwnerId == "U-1";
 
     private IReadOnlyList<AcMapSim.MapPin> MapPins =>
         _data is null ? Array.Empty<AcMapSim.MapPin>()
@@ -129,7 +146,32 @@
 
     private void GoBack() => Nav.NavigateTo("/explore");
     private void Book() => Nav.NavigateTo($"/book/{Id}");
-    private void MessageOwner() => Nav.NavigateTo("/chats");
+    private void EditListing() => Nav.NavigateTo($"/create-listing?edit={Id}");
+
+    private async Task MessageOwner()
+    {
+        if (_data is null || IsMine) return;
+        _startingChat = true;
+        try
+        {
+            var client = Http.CreateClient("api");
+            var resp = await client.PostAsJsonAsync("/conversations/start", new {
+                ListingId = _data.Id,
+                Text = $"مرحباً، أنا مهتمّ بـ \"{_data.Title}\"."
+            });
+            if (resp.IsSuccessStatusCode)
+            {
+                var env = await resp.Content.ReadFromJsonAsync<StartChatEnv>();
+                if (env?.Data is not null)
+                {
+                    Nav.NavigateTo($"/chat/{env.Data.Id}");
+                    return;
+                }
+            }
+            Nav.NavigateTo("/chats");   // fallback
+        }
+        finally { _startingChat = false; }
+    }
 
     private void ToggleFavorite()
     {
@@ -147,8 +189,11 @@
         int Capacity, decimal Rating,
         string PriceDisplay, string? PriceUnit,
         List<AmenityDto>? Amenities, OwnerDto? Owner,
+        string? OwnerId = null,
         double? Lat = null, double? Lng = null);
 
     private sealed record AmenityDto(string Key, string Label);
     private sealed record OwnerDto(string Name, string? MemberSince);
+    private sealed record StartChatEnv(StartChatData? Data);
+    private sealed record StartChatData(string Id, bool Created);
 }
