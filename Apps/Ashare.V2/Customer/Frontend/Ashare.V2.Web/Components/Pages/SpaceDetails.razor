@@ -2,6 +2,7 @@
 @using ACommerce.Client.Operations
 @using Ashare.V2.Web.Operations
 @inject AppStore Store
+@inject AppStateApplier Applier
 @inject ApiReader Api
 @inject NavigationManager Nav
 @inject ClientOpEngine Engine
@@ -165,12 +166,9 @@
         finally { _startingChat = false; }
     }
 
-    private void ToggleFavorite()
-    {
-        if (_data is null) return;
-        if (!Store.FavoriteListingIds.Add(_data.Id)) Store.FavoriteListingIds.Remove(_data.Id);
-        Store.NotifyChanged();
-    }
+    private Task ToggleFavorite()
+        => _data is null ? Task.CompletedTask
+                         : Applier.ApplyLocalAsync(V2Ops.ToggleFavorite(_data.Id));
 
     private void OnChange() => InvokeAsync(StateHasChanged);
     public void Dispose() => Store.OnChanged -= OnChange;

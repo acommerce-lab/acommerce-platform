@@ -1,5 +1,7 @@
 @page "/"
+@using Ashare.V2.Web.Operations
 @inject AppStore Store
+@inject AppStateApplier Applier
 @inject ApiReader Api
 @inject ITemplateEngine Engine
 @inject NavigationManager Nav
@@ -103,17 +105,17 @@
     });
     private void OnViewAll(string section) => Nav.NavigateTo("/explore");
 
-    private async void OnCityChanged(string city)
+    private async Task OnCityChanged(string city)
     {
-        Store.SetCity(city);
+        // UI-only operation: interpreter محلّي يُحدّث Store.Ui.City — لا HTTP.
+        await Applier.ApplyLocalAsync(V2Ops.SetCity(city));
         await LoadHome();            // أعد تحميل العروض بعد تغيير المدينة
     }
 
-    private void OnFavoriteToggled((ListingRowDto Listing, bool On) e)
+    private async Task OnFavoriteToggled((ListingRowDto Listing, bool On) e)
     {
-        if (e.On) Store.FavoriteListingIds.Add(e.Listing.Id);
-        else      Store.FavoriteListingIds.Remove(e.Listing.Id);
-        Store.NotifyChanged();
+        // UI-only: UiInterpreter يتولّى toggle المجموعة محلّياً.
+        await Applier.ApplyLocalAsync(V2Ops.ToggleFavorite(e.Listing.Id));
     }
 
     private static ListingRowDto ToRow(ListingDto l) => new()

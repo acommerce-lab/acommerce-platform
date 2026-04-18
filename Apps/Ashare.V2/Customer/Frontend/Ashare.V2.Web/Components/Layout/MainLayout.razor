@@ -1,6 +1,8 @@
 @namespace Ashare.V2.Web.Components.Layout
+@using Ashare.V2.Web.Operations
 @inherits LayoutComponentBase
 @inject AppStore Store
+@inject AppStateApplier Applier
 @inject ApiReader Api
 @inject L L
 @inject IJSRuntime JS
@@ -29,9 +31,9 @@
                 </BrandContent>
                 <RightActions>
                     <AcThemeToggle IsDark="@Store.Ui.IsDark"
-                                   IsDarkChanged="@(v => Store.SetTheme(v ? "dark" : "light"))" />
+                                   IsDarkChanged="@(async v => await Applier.ApplyLocalAsync(V2Ops.SetTheme(v ? "dark" : "light")))" />
                     <AcLanguageToggle IsArabic="@Store.Ui.IsArabic"
-                                      IsArabicChanged="@(v => Store.SetLanguage(v ? "ar" : "en"))" />
+                                      IsArabicChanged="@(async v => await Applier.ApplyLocalAsync(V2Ops.SetLanguage(v ? "ar" : "en")))" />
                 </RightActions>
             </AcTopNav>
         </div>
