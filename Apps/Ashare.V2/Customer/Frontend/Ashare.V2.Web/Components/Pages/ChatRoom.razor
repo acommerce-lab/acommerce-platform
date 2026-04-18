@@ -3,7 +3,6 @@
 @using Ashare.V2.Web.Operations
 @inject ApiReader Api
 @inject NavigationManager Nav
-@inject ITimezoneProvider Tz
 @inject ClientOpEngine Engine
 
 <PageTitle>محادثة - عشير</PageTitle>
@@ -36,7 +35,7 @@
                     {
                         <div>@m.Text</div>
                     }
-                    <small style="display:block; opacity:.6;">@Tz.FormatTime(m.SentAt)</small>
+                    <small style="display:block; opacity:.6;">@m.SentAt.ToString("HH:mm")</small>
                 </div>
             }
             @if (_partnerTyping)
@@ -75,13 +74,14 @@
     protected override async Task OnAfterRenderAsync(bool first)
     {
         if (!first) return;
-        await Tz.InitAsync();
         await Reload();
     }
 
     private async Task Reload()
     {
-        var env = await Api.GetAsync<Payload>($"/conversations/{Id}");
+        // localizeTimes=true يمرّ الـ envelope على TimezoneLocalizer — حقول DateTime
+        // تصبح بتوقيت المتصفّح قبل أن تصل لـ Razor.
+        var env = await Api.GetAsync<Payload>($"/conversations/{Id}", localizeTimes: true);
         _conv = env.Data;
         await InvokeAsync(StateHasChanged);
     }

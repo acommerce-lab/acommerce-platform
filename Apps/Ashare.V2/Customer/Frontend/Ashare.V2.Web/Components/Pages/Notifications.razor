@@ -64,8 +64,9 @@
     protected override async Task OnAfterRenderAsync(bool first)
     {
         if (!first) return;
+        // TimezoneLocalizer يحوّل CreatedAt داخل ApiReader؛ Tz هنا للنسبيّ فقط.
         await Tz.InitAsync();
-        var env = await Api.GetAsync<List<Dto>>("/home/notifications");
+        var env = await Api.GetAsync<List<Dto>>("/home/notifications", localizeTimes: true);
         _items = env.Data ?? new();
         _loading = false;
         await InvokeAsync(StateHasChanged);
@@ -87,9 +88,11 @@
         await Engine.ExecuteAsync<object>(V2Ops.ReadAllNotifications());
     }
 
-    private static string GroupLabel(DateTime dt)
+    private string GroupLabel(DateTime localDt)
     {
-        var days = (DateTime.UtcNow - dt).TotalDays;
+        // بعد TimezoneLocalizer: DateTime محلّي. نقارن ضدّ now محلّي أيضاً.
+        var nowLocal = Tz.ToLocal(DateTime.UtcNow);
+        var days = (nowLocal - localDt).TotalDays;
         if (days < 1) return "اليوم";
         if (days < 2) return "أمس";
         if (days < 7) return "هذا الأسبوع";

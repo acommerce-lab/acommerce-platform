@@ -183,7 +183,50 @@ return this.OkEnvelope(env);
 
 ---
 
-## 8. المراجع السريعة
+## 8. دراسة حالة: عرض زمن الرسائل (V1 vs V2)
+
+**V1** (`libs/frontend/ACommerce.Templates.Shared/AcChatPage.razor:46`):
+```razor
+<small>@m.CreatedAt.ToLocalTime().ToString("HH:mm")</small>
+```
+- `.ToLocalTime()` على Blazor Server يقرأ توقيت **الخادم** لا المتصفّح → الزمن خاطئ لكلّ مستخدم خارج منطقة الخادم.
+- منطق العرض مبعثر في كلّ صفحة تعرض وقتاً.
+
+**V2 المرحلة الأولى** (ChatRoom.razor):
+```razor
+@inject ITimezoneProvider Tz
+<small>@Tz.FormatTime(m.SentAt)</small>
+```
+- أصحّ: عقد (Provider) يقرأ offset المتصفّح عبر JS.
+- لكن منطق التحويل مبعثر في كلّ صفحة عرض.
+
+**V2 المرحلة الثانية (الحالية) — معترض قبل العرض**:
+```csharp
+// TimezoneLocalizer — يمشي بانعكاس على شجرة Data، يحوّل DateTime → Local.
+public async Task LocalizeAsync<T>(OperationEnvelope<T> env, bool forced = false) { ... }
+```
+```csharp
+// ApiReader — نقطة الدخول الوحيدة لكلّ GET.
+var env = await Api.GetAsync<Payload>($"/conversations/{Id}", localizeTimes: true);
+```
+```razor
+@* الصفحة لا تعرف التوقيت أبداً — حقل DateTime بالفعل محلّي. *@
+<small>@m.SentAt.ToString("HH:mm")</small>
+```
+
+**الفرق الجوهريّ**: في V1 كلّ صفحة مسؤولة عن التحويل. في V2 (الحاليّ):
+- `ITimezoneProvider` عقد خارجيّ (offset من المتصفّح).
+- `TimezoneLocalizer` معترض يمرّر على envelope عند حدّ البيانات (`ApiReader`).
+- الصفحة تعرض كحقل DateTime عاديّ. إضافة حقل جديد يُلتقط تلقائيّاً دون تعديل.
+- `Tz.FormatRelative` يبقى مفيداً للصياغة النسبيّة ("الآن"، "10د") فقط،
+  وهي idempotent (تعمل بغضّ النظر عن Kind).
+
+**التفعيل**: إمّا بوسم من الخادم `envelope.Operation.Tags["localize_times"]="true"`،
+أو بعلم صريح `GetAsync(..., localizeTimes: true)` من نقطة الاستدعاء.
+
+---
+
+## 9. المراجع السريعة
 
 - **المنهجية**: `docs/MODEL.md`, `docs/ARCHITECTURE.md`, `docs/LIBRARY-ANATOMY.md`.
 - **أمثلة واجهة**: `Apps/Order/Customer/Frontend/Order.Web/ClientOps.cs` +

@@ -4,6 +4,7 @@ using ACommerce.Client.Operations.Interceptors;
 using ACommerce.Client.StateBridge;
 using ACommerce.OperationEngine.Core;
 using Ashare.V2.Web.Components;
+using Ashare.V2.Web.Interceptors;
 using Ashare.V2.Web.Interpreters;
 using Ashare.V2.Web.Operations;
 using Ashare.V2.Web.Store;
@@ -25,6 +26,10 @@ builder.Services.AddScoped<L>();
 
 // ── ProviderContract للتوقيت (عقد خارجيّ — يقرأ المتصفّح عبر JS).
 builder.Services.AddScoped<ITimezoneProvider, JsTimezoneProvider>();
+
+// ── Frontend interceptor: يُفعَّل على Envelopes المُوسَّمة بـ localize_times،
+//    أو حين يطلب ApiReader التحويل صراحةً. يمشي بانعكاس على DateTime حقول Data.
+builder.Services.AddScoped<TimezoneLocalizer>();
 
 // ─── OpEngine للعمليات المحلّية ────────────────────────────────────────
 builder.Services.AddScoped<OpEngine>(sp =>
@@ -58,7 +63,9 @@ builder.Services.AddScoped<IOperationDispatcher>(sp => sp.GetRequiredService<Htt
 builder.Services.AddScoped<ApiReader>(sp =>
 {
     var f = sp.GetRequiredService<IHttpClientFactory>();
-    return new ApiReader(f.CreateClient("ashare-v2"));
+    return new ApiReader(
+        f.CreateClient("ashare-v2"),
+        sp.GetRequiredService<TimezoneLocalizer>());
 });
 
 builder.Services.AddScoped<ClientOpEngine>(sp =>

@@ -56,20 +56,22 @@ public sealed class JsTimezoneProvider : ITimezoneProvider
         }
     }
 
-    public DateTime ToLocal(DateTime utc)
+    public DateTime ToLocal(DateTime dt)
     {
-        if (!_offsetMinutes.HasValue) return utc;
-        return utc.AddMinutes(-_offsetMinutes.Value);
+        // idempotent: لو سبق للـ interceptor أن حوّلها (Kind=Local) نُرجعها كما هي.
+        if (dt.Kind == DateTimeKind.Local) return dt;
+        if (!_offsetMinutes.HasValue) return dt;
+        return DateTime.SpecifyKind(dt.AddMinutes(-_offsetMinutes.Value), DateTimeKind.Local);
     }
 
-    public string FormatTime(DateTime utc) => ToLocal(utc).ToString("HH:mm");
+    public string FormatTime(DateTime dt) => ToLocal(dt).ToString("HH:mm");
 
-    public string FormatRelative(DateTime utc)
+    public string FormatRelative(DateTime dt)
     {
-        var local = ToLocal(utc);
+        var local = ToLocal(dt);
         var now = _offsetMinutes.HasValue
-            ? DateTime.UtcNow.AddMinutes(-_offsetMinutes.Value)
-            : DateTime.UtcNow;
+            ? DateTime.SpecifyKind(DateTime.UtcNow.AddMinutes(-_offsetMinutes.Value), DateTimeKind.Local)
+            : DateTime.Now;
         var diff = now - local;
         if (diff.TotalSeconds < 45) return "الآن";
         if (diff.TotalMinutes < 60) return $"{(int)diff.TotalMinutes}د";
