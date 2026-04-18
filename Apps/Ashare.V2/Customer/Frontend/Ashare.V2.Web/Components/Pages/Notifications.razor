@@ -1,0 +1,59 @@
+@page "/notifications"
+@inject AppStore Store
+@inject ApiReader Api
+@implements IDisposable
+
+<PageTitle>الإشعارات - عشير</PageTitle>
+
+<AcNotificationsPage Title="الإشعارات"
+                     Notifications="@_items"
+                     Loading="@_loading"
+                     OnMarkRead="OnMarkRead"
+                     OnMarkAllRead="OnMarkAllRead" />
+
+@code {
+    private List<NotificationRowDto> _items = new();
+    private bool _loading = true;
+
+    protected override void OnInitialized() => Store.OnChanged += OnChange;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var env = await Api.GetAsync<List<Payload>>("/home/notifications");
+            _items = env.Data?.Select(p => new NotificationRowDto
+            {
+                Id = p.Id,
+                Title = p.Title,
+                Body = p.Body,
+                Type = p.Type,
+                IsRead = p.IsRead,
+                CreatedAt = p.CreatedAt
+            }).ToList() ?? new();
+            _loading = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private void OnMarkRead(NotificationRowDto n)
+    {
+        var ix = _items.FindIndex(x => x.Id == n.Id);
+        if (ix >= 0 && !_items[ix].IsRead)
+        {
+            _items[ix] = _items[ix] with { IsRead = true };
+            StateHasChanged();
+        }
+    }
+
+    private void OnMarkAllRead()
+    {
+        _items = _items.Select(n => n with { IsRead = true }).ToList();
+        StateHasChanged();
+    }
+
+    private void OnChange() => InvokeAsync(StateHasChanged);
+    public void Dispose() => Store.OnChanged -= OnChange;
+
+    private sealed record Payload(string Id, string Title, string? Body, string? Type, bool IsRead, DateTime CreatedAt);
+}

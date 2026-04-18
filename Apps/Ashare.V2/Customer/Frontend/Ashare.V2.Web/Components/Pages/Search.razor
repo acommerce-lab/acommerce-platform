@@ -1,0 +1,82 @@
+@page "/search"
+@inject AppStore Store
+@inject ApiReader Api
+@inject ITemplateEngine Engine
+@inject NavigationManager Nav
+@implements IDisposable
+
+<PageTitle>بحث - عشير</PageTitle>
+
+<AcSearchSuggestionsPage Engine="Engine"
+                         Store="Store"
+                         RecentSearches="@Store.RecentSearches"
+                         PopularSearches="@_popular"
+                         QuickFilters="_quickFilters"
+                         ActiveQuickFilters="@Store.ActiveQuickFilterIds"
+                         OnSubmit="OnSubmit"
+                         OnPickRecent="OnPickRecent"
+                         OnRemoveRecent="OnRemoveRecent"
+                         OnClearRecent="OnClearRecent"
+                         OnToggleQuickFilter="OnToggleQuickFilter" />
+
+@code {
+    private IReadOnlyList<string>? _popular;
+    private IReadOnlyList<AcSearchSuggestionsPage.QuickFilter>? _quickFilters;
+
+    protected override void OnInitialized()
+    {
+        Store.OnChanged += OnChange;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var env = await Api.GetAsync<SuggestionsDto>("/home/search/suggestions");
+            if (env.Data is not null)
+            {
+                _popular = env.Data.Popular;
+                _quickFilters = env.Data.QuickFilters
+                    .Select(q => new AcSearchSuggestionsPage.QuickFilter(q.Id, q.Label, q.Icon))
+                    .ToList();
+                await InvokeAsync(StateHasChanged);
+            }
+        }
+    }
+
+    private void OnSubmit(string? query)
+    {
+        if (string.IsNullOrWhiteSpace(query)) return;
+        Store.AddRecentSearch(query);
+        Nav.NavigateTo($"/explore");
+    }
+
+    private void OnPickRecent(string q)
+    {
+        Store.AddRecentSearch(q);
+        Nav.NavigateTo($"/explore");
+    }
+
+    private void OnRemoveRecent(string q)
+    {
+        Store.RemoveRecentSearch(q);
+    }
+
+    private void OnClearRecent()
+    {
+        Store.ClearRecentSearches();
+    }
+
+    private void OnToggleQuickFilter(AcSearchSuggestionsPage.QuickFilter f)
+    {
+        if (!Store.ActiveQuickFilterIds.Add(f.Id))
+            Store.ActiveQuickFilterIds.Remove(f.Id);
+        Store.NotifyChanged();
+    }
+
+    private void OnChange() => InvokeAsync(StateHasChanged);
+    public void Dispose() => Store.OnChanged -= OnChange;
+
+    private sealed record SuggestionsDto(List<string> Popular, List<QuickFilterDto> QuickFilters);
+    private sealed record QuickFilterDto(string Id, string Label, string Icon);
+}

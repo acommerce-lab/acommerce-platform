@@ -176,12 +176,14 @@ CHROME_EXEC_PATH=/opt/browsers/chrome-linux64/chrome \
 | # | صفحة قديمة | مسار جديد | حالة |
 |---|---|---|---|
 | 1 | Home | `/` | ✅ |
-| 2 | Explore + Search | `/explore` | ✅ |
-| 3 | SpaceDetails | `/space/{id}` | ⬜ |
+| 2 | Explore (قائمة) | `/explore` | ✅ |
+| 2b | Map view داخل Explore | `/explore?view=map` (client state) | ✅ (محاكاة CSS + دبابيس) |
+| 2c | Search suggestions page | `/search` | ✅ |
+| 3 | SpaceDetails | `/space/{id}` | ✅ |
 | 4 | BookingCreate + BookingDetails | `/book/{id}`, `/booking/{id}` | ⬜ |
 | 5 | Bookings (list) | `/bookings` | ⬜ |
 | 6 | Favorites | `/favorites` | ⬜ |
-| 7 | Notifications | `/notifications` | ⬜ |
+| 7 | Notifications | `/notifications` | ✅ |
 | 8 | Profile + ProfileEdit | `/me` | ⬜ |
 | 9 | Settings / Language | `/settings` | ⬜ |
 | 10 | Login (Nafath) | `/login` | ⬜ |

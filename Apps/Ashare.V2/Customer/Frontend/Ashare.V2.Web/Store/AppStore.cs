@@ -3,16 +3,33 @@ using ACommerce.Client.Operations;
 namespace Ashare.V2.Web.Store;
 
 /// <summary>
-/// حالة Ashare.V2 — شريحة Home فقط. Slim عمداً: لا Auth، لا Cart.
-/// سنُوسّعها مع كل شريحة أفقية تالية.
+/// حالة Ashare.V2 — سليم عمداً (Slim). تتوسّع مع كل شريحة.
 /// </summary>
 public class AppStore : ITemplateStore
 {
     public UiState Ui { get; } = new();
     public HashSet<string> FavoriteListingIds { get; } = new();
 
+    // استعلامات البحث الأخيرة (آخر 10 فريدة — الأحدث أولاً)
+    public List<string> RecentSearches { get; } = new();
+
+    // فلاتر سريعة نشطة (near_me / low_price / top_rated)
+    public HashSet<string> ActiveQuickFilterIds { get; } = new();
+
     public event Action? OnChanged;
     public void NotifyChanged() => OnChanged?.Invoke();
+
+    public void AddRecentSearch(string q)
+    {
+        q = q.Trim();
+        if (string.IsNullOrEmpty(q)) return;
+        RecentSearches.Remove(q);
+        RecentSearches.Insert(0, q);
+        if (RecentSearches.Count > 10) RecentSearches.RemoveAt(RecentSearches.Count - 1);
+        NotifyChanged();
+    }
+    public void RemoveRecentSearch(string q) { RecentSearches.Remove(q); NotifyChanged(); }
+    public void ClearRecentSearches()         { RecentSearches.Clear();  NotifyChanged(); }
 
     // ── ITemplateStore ─────────────────────────────────────────────────────
     bool ITemplateStore.IsAuthenticated => false;

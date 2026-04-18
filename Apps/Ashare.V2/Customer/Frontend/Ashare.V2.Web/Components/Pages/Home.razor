@@ -2,6 +2,7 @@
 @inject AppStore Store
 @inject ApiReader Api
 @inject ITemplateEngine Engine
+@inject NavigationManager Nav
 @implements IDisposable
 
 <PageTitle>عشير</PageTitle>
@@ -11,7 +12,13 @@
                        Store="Store"
                        FavoriteIds="Store.FavoriteListingIds"
                        QuickActions="_quickActions"
-                       OnFavoriteToggled="OnFavoriteToggled">
+                       OnSearch="OnSearch"
+                       OnCategorySelected="OnCategorySelected"
+                       OnListingOpen="OnListingOpen"
+                       OnFavoriteToggled="OnFavoriteToggled"
+                       OnCtaClick="OnCtaClick"
+                       OnQuickAction="OnQuickAction"
+                       OnViewAll="OnViewAll">
     <LogoContent>
         <div class="acm-brand">
             <span class="acm-brand-mark" aria-hidden="true">
@@ -31,10 +38,7 @@
         new("my-requests",   "طلباتي",            "house-heart",  "secondary")
     ];
 
-    protected override void OnInitialized()
-    {
-        Store.OnChanged += OnChange;
-    }
+    protected override void OnInitialized() => Store.OnChanged += OnChange;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -55,41 +59,51 @@
         }
     }
 
+    // — الانتقال عند نقر مربّع البحث في الـ hero —
+    // OnSearch يُطلَق إمّا عند تقديم نصّ أو نقر زرّ الإرسال.
+    // نسلك السلوك القديم: فتح صفحة اقتراحات البحث /search.
+    private void OnSearch(string? _) => Nav.NavigateTo("/search");
+
+    // — الانتقال عند نقر فئة —
+    private void OnCategorySelected(CategoryTileDto c)
+        => Nav.NavigateTo($"/explore?category={Uri.EscapeDataString(c.Id)}");
+
+    private void OnListingOpen(ListingRowDto l)
+        => Nav.NavigateTo($"/space/{Uri.EscapeDataString(l.Id)}");
+
+    private void OnCtaClick() => Nav.NavigateTo("/me");
+
+    private void OnQuickAction(QuickActionDto a) => Nav.NavigateTo(a.Id switch
+    {
+        "find-roommate" => "/explore?category=shared",
+        "my-requests"   => "/bookings",
+        _               => "/"
+    });
+
+    private void OnViewAll(string section) => Nav.NavigateTo("/explore");
+
+    private void OnFavoriteToggled((ListingRowDto Listing, bool On) e)
+    {
+        if (e.On) Store.FavoriteListingIds.Add(e.Listing.Id);
+        else      Store.FavoriteListingIds.Remove(e.Listing.Id);
+        Store.NotifyChanged();
+    }
+
     private static ListingRowDto ToRow(ListingDto l) => new()
     {
-        Id = l.Id,
-        Title = l.Title,
-        Description = l.Description,
-        Price = l.Price,
-        Currency = l.Currency,
-        TimeUnit = l.TimeUnit,
-        City = l.City,
-        District = l.District,
-        Status = l.Status,
-        IsFeatured = l.IsFeatured,
+        Id = l.Id, Title = l.Title, Description = l.Description,
+        Price = l.Price, Currency = l.Currency, TimeUnit = l.TimeUnit,
+        City = l.City, District = l.District, Status = l.Status, IsFeatured = l.IsFeatured,
         ThumbnailUrl = l.ThumbnailUrl,
         Capacity = l.Capacity == 0 ? null : l.Capacity,
         Rating = l.Rating == 0 ? null : l.Rating
     };
 
-    private void OnFavoriteToggled((ListingRowDto Listing, bool On) e)
-    {
-        if (e.On) Store.FavoriteListingIds.Add(e.Listing.Id);
-        else Store.FavoriteListingIds.Remove(e.Listing.Id);
-        Store.NotifyChanged();
-    }
-
     private void OnChange() => InvokeAsync(StateHasChanged);
     public void Dispose() => Store.OnChanged -= OnChange;
 
-    // DTOs لاستقبال استجابة /home/view
-    private sealed record HomeResponse(
-        List<CategoryDto> Categories,
-        List<ListingDto> Featured,
-        List<ListingDto> New);
-
+    private sealed record HomeResponse(List<CategoryDto> Categories, List<ListingDto> Featured, List<ListingDto> New);
     private sealed record CategoryDto(string Id, string Label, string Icon);
-
     private sealed record ListingDto(
         string Id, string Title, string? Description, decimal Price, string Currency,
         string? TimeUnit, string? City, string? District, string? CategoryName,

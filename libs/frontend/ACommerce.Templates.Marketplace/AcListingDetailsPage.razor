@@ -1,0 +1,231 @@
+@namespace ACommerce.Templates.Marketplace
+
+@*
+    AcListingDetailsPage — صفحة تفاصيل إعلان.
+    بنية مطابقة لـ Ashare/SpaceDetails.razor:
+      ├─ AcGallery + overlay (فضلّة، مشاركة، عودة)
+      ├─ عنوان + موقع + meta (الأشخاص + التقييم)
+      ├─ بطاقة المالك
+      ├─ وصف
+      ├─ قائمة المرافق (amenities) بأيقونات
+      └─ AcStickyActionBar (السعر + زرّ "احجز الآن")
+
+    Operation-aware:
+      - listing.view            (يُطلق تلقائياً عند Parameter Data set)
+      - listing.favorite        state=on|off
+      - listing.share           channel=native
+      - booking.start           listingId
+*@
+
+@if (Data is null)
+{
+    <div class="acs-page acm-details">
+        <AcLoadingState />
+    </div>
+}
+else
+{
+    <div class="acs-page acm-details">
+        <AcGallery Images="@Data.Images" Alt="@Data.Title">
+            <OverlayContent>
+                <div class="acm-details-gallery-actions">
+                    <button type="button" class="acm-details-circle-btn" @onclick="OnBackInternal" aria-label="@BackLabel">
+                        <AcIcon Name="arrow-right" Size="18" />
+                    </button>
+                    <div class="acm-details-gallery-actions-end">
+                        <button type="button" class="acm-details-circle-btn" @onclick="ShareInternal" aria-label="@ShareLabel">
+                            <AcIcon Name="send" Size="16" />
+                        </button>
+                        <button type="button" class="acm-details-circle-btn"
+                                @onclick="() => ToggleFavorite()"
+                                aria-label="@(IsFavorite ? UnfavLabel : FavLabel)">
+                            <AcIcon Name="heart" Filled="@IsFavorite" Size="18" />
+                        </button>
+                    </div>
+                </div>
+            </OverlayContent>
+        </AcGallery>
+
+        <h1 class="acm-details-title">@Data.Title</h1>
+        @if (!string.IsNullOrEmpty(Data.LocationText))
+        {
+            <div class="acm-details-location">
+                <AcIcon Name="map-pin" Size="14" />
+                <span>@Data.LocationText</span>
+            </div>
+        }
+        <div class="acm-details-meta">
+            @if (Data.Capacity is int c && c > 0)
+            {
+                <span><AcIcon Name="people" Size="14" /> @c</span>
+            }
+            @if (Data.Rating is decimal r && r > 0)
+            {
+                <span><AcIcon Name="star" Filled="true" Size="14" /> @r.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture)</span>
+            }
+        </div>
+
+        @if (Data.Owner is { } owner)
+        {
+            <section class="acm-details-section">
+                <h2 class="acm-details-section-title">@OwnerTitle</h2>
+                <div class="acm-details-owner">
+                    <span class="acm-details-owner-avatar" aria-hidden="true">
+                        <AcIcon Name="user" Size="24" />
+                    </span>
+                    <div class="acm-details-owner-info">
+                        <h3>@owner.Name</h3>
+                        @if (!string.IsNullOrEmpty(owner.MemberSince))
+                        {
+                            <span>@MemberSinceLabel @owner.MemberSince</span>
+                        }
+                    </div>
+                </div>
+            </section>
+        }
+
+        @if (!string.IsNullOrEmpty(Data.Description))
+        {
+            <section class="acm-details-section">
+                <h2 class="acm-details-section-title">@DescriptionTitle</h2>
+                <p class="acm-details-description">@Data.Description</p>
+            </section>
+        }
+
+        @if (Data.Amenities is { Count: > 0 })
+        {
+            <section class="acm-details-section">
+                <h2 class="acm-details-section-title">@AmenitiesTitle</h2>
+                <div class="acm-details-amenities">
+                    @foreach (var a in Data.Amenities)
+                    {
+                        <div class="acm-details-amenity">
+                            <AcIcon Name="@AmenityIcon(a.Key)" Size="18" />
+                            <span>@a.Label</span>
+                        </div>
+                    }
+                </div>
+            </section>
+        }
+
+        <AcStickyActionBar>
+            <Leading>
+                <span class="acm-details-price">@Data.PriceDisplay</span>
+                @if (!string.IsNullOrEmpty(Data.PriceUnit))
+                {
+                    <span class="acm-details-priceunit">@Data.PriceUnit</span>
+                }
+            </Leading>
+            <ChildContent>
+                <AcButton Variant="primary" Size="lg" Text="@BookLabel" OnClick="StartBookingInternal" />
+            </ChildContent>
+        </AcStickyActionBar>
+    </div>
+}
+
+@code {
+    [Parameter] public ListingDetailsDto? Data { get; set; }
+    [Parameter] public ITemplateEngine? Engine { get; set; }
+    [Parameter] public ITemplateStore? Store { get; set; }
+    [Parameter] public bool IsFavorite { get; set; }
+
+    [Parameter] public string BackLabel { get; set; } = "رجوع";
+    [Parameter] public string ShareLabel { get; set; } = "مشاركة";
+    [Parameter] public string FavLabel { get; set; } = "أضف إلى المفضلة";
+    [Parameter] public string UnfavLabel { get; set; } = "إزالة من المفضلة";
+    [Parameter] public string OwnerTitle { get; set; } = "المالك";
+    [Parameter] public string MemberSinceLabel { get; set; } = "عضو منذ";
+    [Parameter] public string DescriptionTitle { get; set; } = "الوصف";
+    [Parameter] public string AmenitiesTitle { get; set; } = "المرافق";
+    [Parameter] public string BookLabel { get; set; } = "احجز الآن";
+
+    [Parameter] public EventCallback OnBack { get; set; }
+    [Parameter] public EventCallback OnShare { get; set; }
+    [Parameter] public EventCallback<bool> OnFavoriteToggled { get; set; }
+    [Parameter] public EventCallback OnBookingStart { get; set; }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (Data is not null && Engine is not null && !_viewed)
+        {
+            _viewed = true;
+            var op = Entry.Create("listing.view")
+                .From($"User:{Store?.UserId?.ToString() ?? "anon"}", 1, ("role", "viewer"))
+                .To($"Listing:{Data.Id}", 1, ("role", "target"))
+                .Build();
+            await Engine.ExecuteAsync<object>(op, new { ListingId = Data.Id });
+        }
+    }
+
+    private bool _viewed;
+
+    private Task OnBackInternal() => OnBack.InvokeAsync();
+
+    private async Task ShareInternal()
+    {
+        if (Data is null || Engine is null) return;
+        var op = Entry.Create("listing.share")
+            .From($"User:{Store?.UserId?.ToString() ?? "anon"}", 1, ("role", "sharer"))
+            .To($"Listing:{Data.Id}", 1, ("role", "target"))
+            .Tag("channel", "native")
+            .Build();
+        await Engine.ExecuteAsync<object>(op, new { ListingId = Data.Id });
+        await OnShare.InvokeAsync();
+    }
+
+    private async Task ToggleFavorite()
+    {
+        if (Data is null) return;
+        var on = !IsFavorite;
+        if (Engine is not null && Store?.UserId is not null)
+        {
+            var op = Entry.Create("listing.favorite")
+                .From($"User:{Store.UserId}", 1, ("role", "user"))
+                .To($"Listing:{Data.Id}", 1, ("role", "target"))
+                .Tag("state", on ? "on" : "off")
+                .Build();
+            await Engine.ExecuteAsync<object>(op, new { ListingId = Data.Id, On = on });
+        }
+        await OnFavoriteToggled.InvokeAsync(on);
+    }
+
+    private async Task StartBookingInternal()
+    {
+        if (Data is null) return;
+        if (Engine is not null)
+        {
+            var op = Entry.Create("booking.start")
+                .From($"User:{Store?.UserId?.ToString() ?? "anon"}", 1, ("role", "booker"))
+                .To($"Listing:{Data.Id}", 1, ("role", "target"))
+                .Build();
+            await Engine.ExecuteAsync<object>(op, new { ListingId = Data.Id });
+        }
+        await OnBookingStart.InvokeAsync();
+    }
+
+    private static string AmenityIcon(string key) => key switch
+    {
+        "wifi"     => "info",
+        "ac"       => "sun",
+        "kitchen"  => "home",
+        "parking"  => "car",
+        "laundry"  => "home",
+        _          => "check-circle"
+    };
+
+    public sealed record ListingDetailsDto(
+        string Id,
+        string Title,
+        string? Description,
+        IReadOnlyList<string> Images,
+        string? LocationText,
+        int? Capacity,
+        decimal? Rating,
+        string PriceDisplay,
+        string? PriceUnit,
+        IReadOnlyList<AmenityDto>? Amenities,
+        ListingOwnerDto? Owner);
+
+    public sealed record AmenityDto(string Key, string Label);
+    public sealed record ListingOwnerDto(string Name, string? MemberSince);
+}

@@ -1,0 +1,128 @@
+@namespace ACommerce.Templates.Shared
+
+@*
+    AcSearchSuggestionsPage — صفحة البحث المُنبثقة عند النقر على مربّع البحث.
+
+    مطابقة لـ Ashare/Search.razor في عشير القديم:
+      ├─ AcSearchBox
+      ├─ Quick filters (قريب مني / الأقل سعراً / الأعلى تقييماً)
+      ├─ الاستعلامات الأخيرة (مع "مسح الكل")
+      └─ عمليات بحث شائعة (Tags/chips)
+
+    Operation-aware: يُصدِر ‍catalog.search عند الإرسال، وكذلك
+    إعلاميّات search.recent.clear و search.recent.remove.
+
+    CSS_CLASSES: acs-search, acs-search-section, acs-search-section-head,
+                 acs-search-clear, acs-search-recent, acs-search-tags,
+                 acs-search-quick
+*@
+
+<div class="acs-page acs-search">
+    <AcSearchBox Placeholder="@SearchPlaceholder"
+                 Value="@_query"
+                 ValueChanged="v => _query = v"
+                 OnSubmit="SubmitSearch" />
+
+    @if (QuickFilters is not null && QuickFilters.Count > 0)
+    {
+        <div class="acs-search-quick">
+            @foreach (var f in QuickFilters)
+            {
+                <AcFilterChip Label="@f.Label"
+                              Icon="@f.Icon"
+                              Active="@(ActiveQuickFilters.Contains(f.Id))"
+                              OnClick="() => ToggleQuickFilter(f)" />
+            }
+        </div>
+    }
+
+    @if (RecentSearches is not null && RecentSearches.Count > 0)
+    {
+        <section class="acs-search-section">
+            <header class="acs-search-section-head">
+                <h2 class="acs-search-section-title">@RecentTitle</h2>
+                <button type="button" class="acs-search-clear" @onclick="ClearRecentInternal">@ClearAllLabel</button>
+            </header>
+            <div class="acs-search-recent">
+                @foreach (var q in RecentSearches)
+                {
+                    <AcSearchListItem Label="@q"
+                                      Icon="clock"
+                                      Removable="true"
+                                      OnClick="() => PickRecent(q)"
+                                      OnRemove="() => RemoveRecentInternal(q)" />
+                }
+            </div>
+        </section>
+    }
+
+    @if (PopularSearches is not null && PopularSearches.Count > 0)
+    {
+        <section class="acs-search-section">
+            <h2 class="acs-search-section-title">@PopularTitle</h2>
+            <div class="acs-search-tags">
+                @foreach (var t in PopularSearches)
+                {
+                    <AcFilterChip Label="@t" OnClick="() => PickRecent(t)" />
+                }
+            </div>
+        </section>
+    }
+
+    @if ((RecentSearches is null || RecentSearches.Count == 0) &&
+         (PopularSearches is null || PopularSearches.Count == 0) &&
+         string.IsNullOrEmpty(_query))
+    {
+        <AcEmptyState IconName="search" Message="@EmptyMessage" />
+    }
+</div>
+
+@code {
+    [Parameter] public ITemplateEngine? Engine { get; set; }
+    [Parameter] public ITemplateStore? Store { get; set; }
+
+    [Parameter] public IReadOnlyList<string>? RecentSearches { get; set; }
+    [Parameter] public IReadOnlyList<string>? PopularSearches { get; set; }
+    [Parameter] public IReadOnlyList<QuickFilter>? QuickFilters { get; set; }
+    [Parameter] public ISet<string> ActiveQuickFilters { get; set; } = new HashSet<string>();
+
+    [Parameter] public string SearchPlaceholder { get; set; } = "ابحث عن سكن مشترك…";
+    [Parameter] public string RecentTitle { get; set; } = "عمليات البحث الأخيرة";
+    [Parameter] public string PopularTitle { get; set; } = "عمليات بحث شائعة";
+    [Parameter] public string ClearAllLabel { get; set; } = "مسح الكل";
+    [Parameter] public string EmptyMessage { get; set; } = "اكتب ما تبحث عنه للبدء";
+
+    [Parameter] public EventCallback<string?> OnSubmit { get; set; }
+    [Parameter] public EventCallback OnClearRecent { get; set; }
+    [Parameter] public EventCallback<string> OnRemoveRecent { get; set; }
+    [Parameter] public EventCallback<string> OnPickRecent { get; set; }
+    [Parameter] public EventCallback<QuickFilter> OnToggleQuickFilter { get; set; }
+
+    private string? _query;
+
+    private async Task SubmitSearch()
+    {
+        if (Engine is not null && !string.IsNullOrWhiteSpace(_query))
+        {
+            var op = Entry.Create("catalog.search")
+                .From($"User:{Store?.UserId?.ToString() ?? "anon"}", 1, ("role", "searcher"))
+                .To("Catalog:listings", 1, ("role", "target"))
+                .Tag("q", _query)
+                .Build();
+            await Engine.ExecuteAsync<object>(op, new { Query = _query });
+        }
+        await OnSubmit.InvokeAsync(_query);
+    }
+
+    private Task PickRecent(string q)
+    {
+        _query = q;
+        return OnPickRecent.InvokeAsync(q);
+    }
+
+    private Task RemoveRecentInternal(string q) => OnRemoveRecent.InvokeAsync(q);
+    private Task ClearRecentInternal() => OnClearRecent.InvokeAsync();
+    private Task ToggleQuickFilter(QuickFilter f) => OnToggleQuickFilter.InvokeAsync(f);
+
+    public record QuickFilter(string Id, string Label, string Icon);
+}

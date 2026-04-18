@@ -2,25 +2,49 @@
 @inherits LayoutComponentBase
 
 @*
-    MainLayout لـ Ashare.V2 — بلا navbar علوي (الـ HeroBanner في الصفحة نفسها
-    يستبدل شريط العلامة)، لكن مع bottom-nav من 5 تبويبات مطابقة لتصميم عشير.
-
-    التبويبات تستخدم routes ستُربط تباعاً في الشرائح القادمة:
-      الرئيسية / استكشف / المفضلة / حجوزاتي / حسابي
+    Responsive shell:
+      - ≤767px  → BottomNav مرئي (class acm-v2-mobile-nav)،
+                  TopNav مخفي (عبر CSS على .ac-topnav → display:none)
+      - ≥768px  → TopNav مرئي فوق المحتوى، BottomNav مخفي
 *@
+
+<div class="acm-v2-topnav-wrap">
+    <AcTopNav Items="_topItems">
+        <BrandContent>
+            <div class="acm-brand">
+                <span class="acm-brand-mark" aria-hidden="true">
+                    <AcIcon Name="home" Size="20" />
+                </span>
+                <span class="acm-brand-text">عشير</span>
+            </div>
+        </BrandContent>
+    </AcTopNav>
+</div>
 
 <main>
     @Body
-    <AcBottomNav Items="_tabs" ExtraClass="acm-v2-bottomnav" />
+    <div class="acm-v2-bottom-nav-wrap">
+        <AcBottomNav Items="_bottomItems" ExtraClass="acm-v2-bottomnav" />
+    </div>
 </main>
 
 @code {
-    private static readonly IReadOnlyList<BottomNavItemDto> _tabs = new[]
+    private static readonly IReadOnlyList<BottomNavItemDto> _bottomItems = new[]
     {
-        new BottomNavItemDto { Href = "/",           Label = "الرئيسية", IconName = "home",         Exact = true },
+        new BottomNavItemDto { Href = "/",           Label = "الرئيسية", IconName = "home",    Exact = true },
         new BottomNavItemDto { Href = "/explore",    Label = "استكشف",   IconName = "search" },
         new BottomNavItemDto { Href = "/favorites",  Label = "المفضلة",  IconName = "heart" },
         new BottomNavItemDto { Href = "/bookings",   Label = "حجوزاتي",  IconName = "receipt" },
         new BottomNavItemDto { Href = "/me",         Label = "حسابي",    IconName = "user" }
+    };
+
+    private static readonly IReadOnlyList<AcTopNav.TopNavItem> _topItems = new[]
+    {
+        new AcTopNav.TopNavItem("/",            "الرئيسية",   "home",    null, true),
+        new AcTopNav.TopNavItem("/explore",     "استكشف",     "search"),
+        new AcTopNav.TopNavItem("/favorites",   "المفضلة",    "heart"),
+        new AcTopNav.TopNavItem("/bookings",    "حجوزاتي",    "receipt"),
+        new AcTopNav.TopNavItem("/notifications","الإشعارات", "bell"),
+        new AcTopNav.TopNavItem("/me",          "حسابي",      "user")
     };
 }

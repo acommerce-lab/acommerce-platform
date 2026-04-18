@@ -47,6 +47,7 @@ public class AshareSeeder
         await SeedListingsFromProductionAsync(ct);
         await SeedPlansAsync(ct);
         await SeedDefaultSubscriptionsAsync(ct);
+        await AshareNotificationsSeed.SeedAsync(_repoFactory, ct);
         Log.Debug("AshareSeeder.SeedAsync finished");
     }
 

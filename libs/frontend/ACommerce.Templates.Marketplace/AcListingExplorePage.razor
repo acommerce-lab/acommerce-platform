@@ -56,26 +56,7 @@
     }
     else if (View == "map")
     {
-        <div class="acm-explore-map">
-            <AcEmptyState IconName="map" Message="@MapComingSoonMessage" />
-        </div>
-
-        <AcBottomSheet Open="@(_sheetListing is not null)" OpenChanged="sheetClose">
-            @if (_sheetListing is not null)
-            {
-                <div class="acm-explore-preview">
-                    <AcSpaceCard Title="@_sheetListing.Title"
-                                 ImageUrl="@_sheetListing.ThumbnailUrl"
-                                 Location="@LocationText(_sheetListing)"
-                                 Capacity="@_sheetListing.Capacity"
-                                 Rating="@_sheetListing.Rating"
-                                 PriceLabel="@PriceText(_sheetListing)"
-                                 Ribbon="@(_sheetListing.IsFeatured ? "مميّز" : null)"
-                                 ShowFavorite="false"
-                                 OnOpen="() => OpenListing(_sheetListing)" />
-                </div>
-            }
-        </AcBottomSheet>
+        <AcListingMapPage Listings="@MapListings" OnListingOpen="OpenListing" />
     }
     else if (Data.Count == 0)
     {
@@ -196,6 +177,9 @@
     [Parameter] public ISet<string>? FavoriteIds { get; set; }
     [Parameter] public ExploreFilters? Filters { get; set; }
 
+    /// <summary>قائمة الإعلانات مع إحداثيّات للعرض على الخريطة (View="map" فقط).</summary>
+    [Parameter] public IReadOnlyList<AcListingMapPage.MapListingDto> MapListings { get; set; } = Array.Empty<AcListingMapPage.MapListingDto>();
+
     [Parameter] public EventCallback<string?> OnCategorySelected { get; set; }
     [Parameter] public EventCallback<string?> OnSortChanged { get; set; }
     [Parameter] public EventCallback<string?> OnViewChanged { get; set; }
@@ -215,8 +199,6 @@
     private decimal? _pendingMaxPrice;
     private int _pendingCapacity;
     private int _pendingMinRating;
-
-    private ListingRowDto? _sheetListing;
 
     protected override void OnParametersSet()
     {
@@ -351,11 +333,6 @@
             await Engine.ExecuteAsync<object>(op, f);
         }
         await OnFiltersApplied.InvokeAsync(f);
-    }
-
-    private void sheetClose(bool open)
-    {
-        if (!open) _sheetListing = null;
     }
 
     public record CapacityOption(int Value, string Label);

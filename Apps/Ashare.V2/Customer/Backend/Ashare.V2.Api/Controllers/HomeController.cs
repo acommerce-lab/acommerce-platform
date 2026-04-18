@@ -1,60 +1,56 @@
 using ACommerce.OperationEngine.Wire.Http;
+using Ashare.V2.Api.Services;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Ashare.V2.Api.Controllers;
 
 /// <summary>
-/// مُعرِّف الصفحة الرئيسية — يُرجع فئات + إعلانات مميّزة + إعلانات جديدة
-/// في مغلف واحد (OperationEnvelope).
-///
-/// القانون 2: كل استجابة = OperationEnvelope. هذا endpoint قراءة فقط
-/// (لا قيد محاسبي) لأن القراءة لا تغيّر الحالة.
+/// مُعرِّف الصفحة الرئيسية + قوائم الإعلانات + البحث.
+/// كل استجابة = OperationEnvelope.
 /// </summary>
 [ApiController]
 [Route("home")]
 public class HomeController : ControllerBase
 {
-    // Seed data — في الجلسة التالية نستبدلها بـ IRepository<Listing> + Entry.
-    private static readonly List<object> _categories =
-    [
-        new { id = "apartment", label = "شقة", icon = "building" },
-        new { id = "room",      label = "غرفة", icon = "home" },
-        new { id = "studio",    label = "استديو", icon = "package" },
-        new { id = "villa",     label = "فيلا", icon = "store" },
-        new { id = "shared",    label = "مشترك", icon = "user" }
-    ];
+    private static IEnumerable<object> CategoriesDto() =>
+        AshareV2Seed.Categories.Select(c => new { id = c.Id, label = c.Label, icon = c.Icon });
 
-    private static object Listing(string id, string title, decimal price, string unit, string city, string district, bool featured, int capacity, decimal rating) =>
-        new { id, title, description = (string?)null, price, currency = "SAR", timeUnit = unit, city, district, categoryName = (string?)null, status = 1, isFeatured = featured, viewCount = 0, thumbnailUrl = (string?)null, ownerName = (string?)null, ownerAvatarUrl = (string?)null, capacity, rating };
-
-    private static readonly List<object> _featured =
-    [
-        Listing("L-101", "شقة مفروشة في حي النرجس",       2500m, "month", "الرياض", "النرجس",   true, 3, 4.5m),
-        Listing("L-102", "غرفة في شقة طلاب",               900m, "month", "جدة",    "السلامة",  true, 4, 4.2m),
-        Listing("L-103", "استديو قرب جامعة الملك سعود",   1800m, "month", "الرياض", "الدرعية",  true, 2, 4.8m)
-    ];
-
-    private static readonly List<object> _new =
-    [
-        Listing("L-201", "سكن عائلي في المزاحمية",        3200m, "month", "الرياض", "المزاحمية", false, 5, 4.0m),
-        Listing("L-202", "شقة يومي قرب الحرم",             350m, "day",   "مكة",    "العزيزية",  false, 6, 4.7m),
-        Listing("L-203", "غرفة في فيلا مشتركة",           1200m, "month", "الدمام", "الشاطئ",    false, 4, 4.3m),
-        Listing("L-204", "استديو في شمال الرياض",         2100m, "month", "الرياض", "الصحافة",   false, 2, 4.1m)
-    ];
+    private static object ToRow(AshareV2Seed.ListingSeed l) => new
+    {
+        id = l.Id,
+        title = l.Title,
+        description = l.Description,
+        price = l.Price,
+        currency = "SAR",
+        timeUnit = l.TimeUnit,
+        city = l.City,
+        district = l.District,
+        lat = l.Lat,
+        lng = l.Lng,
+        categoryName = AshareV2Seed.Categories.FirstOrDefault(c => c.Id == l.CategoryId)?.Label,
+        status = 1,
+        isFeatured = l.IsFeatured,
+        viewCount = 0,
+        thumbnailUrl = (string?)null,
+        ownerName = (string?)null,
+        ownerAvatarUrl = (string?)null,
+        capacity = l.Capacity,
+        rating = l.Rating
+    };
 
     [HttpGet("view")]
-    public IActionResult View() =>
-        this.OkEnvelope("home.view", new
+    public IActionResult View()
+    {
+        var featured = AshareV2Seed.Listings.Where(l => l.IsFeatured).Select(ToRow).ToList();
+        var @new     = AshareV2Seed.Listings.Where(l => !l.IsFeatured).Take(6).Select(ToRow).ToList();
+        return this.OkEnvelope("home.view", new
         {
-            categories = _categories,
-            featured = _featured,
-            @new = _new
+            categories = CategoriesDto(),
+            featured,
+            @new
         });
+    }
 
-    /// <summary>
-    /// GET /home/explore — قائمة الإعلانات مع دعم التصفية والترتيب.
-    /// الفلاتر اختياريّة؛ كلّها query string.
-    /// </summary>
     [HttpGet("explore")]
     public IActionResult Explore(
         [FromQuery] string? category,
@@ -64,46 +60,103 @@ public class HomeController : ControllerBase
         [FromQuery] int? minRating,
         [FromQuery] string? sort = "newest")
     {
-        // أطرح كل الإعلانات ثم أصفّي؛ في الإنتاج يُنفَّذ على DB.
-        var all = _featured.Concat(_new).Select(o => (dynamic)o).ToList();
+        IEnumerable<AshareV2Seed.ListingSeed> q = AshareV2Seed.Listings;
 
-        IEnumerable<dynamic> q = all;
-
-        if (!string.IsNullOrEmpty(category))
-        {
-            // الفئة لم تُخزَّن على الـ seed بعد — مفلتر مبسَّط وفق المدينة مؤقتاً.
-            // سيستقرّ في الشريحة 3 (SpaceDetails) مع ربط CategoryId حقيقي.
-        }
-        if (priceMin.HasValue) q = q.Where(x => (decimal)x.price >= priceMin.Value);
-        if (priceMax.HasValue) q = q.Where(x => (decimal)x.price <= priceMax.Value);
+        if (!string.IsNullOrEmpty(category)) q = q.Where(l => l.CategoryId == category);
+        if (priceMin.HasValue)  q = q.Where(l => l.Price >= priceMin.Value);
+        if (priceMax.HasValue)  q = q.Where(l => l.Price <= priceMax.Value);
         if (capacity.HasValue && capacity.Value > 0)
         {
             var cap = capacity.Value;
-            q = q.Where(x =>
+            q = q.Where(l =>
             {
-                int c = (int)x.capacity;
+                var c = l.Capacity;
                 return cap switch
                 {
-                    5  => c >= 1  && c <= 5,
-                    10 => c >= 6  && c <= 10,
-                    20 => c >= 11 && c <= 20,
+                    5  => c is >= 1  and <= 5,
+                    10 => c is >= 6  and <= 10,
+                    20 => c is >= 11 and <= 20,
                     50 => c >= 20,
                     _  => true
                 };
             });
         }
         if (minRating.HasValue && minRating.Value > 0)
-            q = q.Where(x => (decimal)x.rating >= minRating.Value);
+            q = q.Where(l => l.Rating >= minRating.Value);
 
         q = sort switch
         {
-            "price_low"  => q.OrderBy      (x => (decimal)x.price),
-            "price_high" => q.OrderByDescending(x => (decimal)x.price),
-            "rating"     => q.OrderByDescending(x => (decimal)x.rating),
-            "capacity"   => q.OrderByDescending(x => (int)x.capacity),
-            _            => q // "newest" — stays in seed order (new first if we extend)
+            "price_low"  => q.OrderBy(l => l.Price),
+            "price_high" => q.OrderByDescending(l => l.Price),
+            "rating"     => q.OrderByDescending(l => l.Rating),
+            "capacity"   => q.OrderByDescending(l => l.Capacity),
+            _            => q
         };
 
-        return this.OkEnvelope("catalog.list", q.ToList());
+        return this.OkEnvelope("catalog.list", q.Select(ToRow).ToList());
     }
+
+    [HttpGet("space/{id}")]
+    public IActionResult SpaceDetails(string id)
+    {
+        var l = AshareV2Seed.Listings.FirstOrDefault(x => x.Id == id);
+        if (l is null) return this.NotFoundEnvelope("listing_not_found", $"Listing '{id}' not found");
+
+        var dto = new
+        {
+            id = l.Id,
+            title = l.Title,
+            description = l.Description,
+            images = Array.Empty<string>(),  // لا صور حقيقيّة في الـ seed
+            locationText = $"{l.City} — {l.District}",
+            capacity = l.Capacity,
+            rating = l.Rating,
+            priceDisplay = $"{l.Price:0} SAR",
+            priceUnit = UnitLabel(l.TimeUnit),
+            amenities = l.Amenities.Select(a => new { key = a, label = AmenityLabel(a) }).ToList(),
+            owner = new { name = "مالك عشير", memberSince = "2024" }
+        };
+        return this.OkEnvelope("listing.details", dto);
+    }
+
+    [HttpGet("search/suggestions")]
+    public IActionResult SearchSuggestions() =>
+        this.OkEnvelope("search.suggestions", new
+        {
+            popular = AshareV2Seed.PopularSearches,
+            quickFilters = AshareV2Seed.QuickFilters.Select(q => new { id = q.Id, label = q.Label, icon = q.Icon })
+        });
+
+    [HttpGet("notifications")]
+    public IActionResult Notifications() =>
+        this.OkEnvelope("notification.list",
+            AshareV2Seed.Notifications.Select(n => new
+            {
+                id = n.Id,
+                title = n.Title,
+                body = n.Body,
+                type = n.Type,
+                isRead = n.IsRead,
+                createdAt = n.CreatedAt
+            }).ToList());
+
+    private static string UnitLabel(string u) => u switch
+    {
+        "day"   => "/ يوم",
+        "night" => "/ ليلة",
+        "week"  => "/ أسبوع",
+        "month" => "/ شهر",
+        "year"  => "/ سنة",
+        _       => ""
+    };
+
+    private static string AmenityLabel(string key) => key switch
+    {
+        "wifi"    => "واي فاي",
+        "ac"      => "تكييف",
+        "kitchen" => "مطبخ",
+        "parking" => "موقف سيّارات",
+        "laundry" => "غسّالة",
+        _         => key
+    };
 }

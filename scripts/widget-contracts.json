@@ -149,6 +149,36 @@
       "description": "Modal dialog — centred surface with header/body/footer; needs visible frame.",
       "required": ["background", "border", "border-radius"],
       "min-values": { "border-radius": 12, "border-width": 1 }
+    },
+    ".ac-topnav": {
+      "description": "Desktop top navigation — bordered strip above the page; must have surface + border + padding + min-height.",
+      "required": ["background", "border", "border-radius", "padding", "min-height"],
+      "min-values": { "padding": 8, "min-height": 48, "border-radius": 8, "border-width": 1 }
+    },
+    ".ac-gallery-main": {
+      "description": "Gallery main image container — must have background, border, rounded corners.",
+      "required": ["background", "border", "border-radius"],
+      "min-values": { "border-width": 1, "border-radius": 8 }
+    },
+    ".ac-stickybar": {
+      "description": "Sticky action bar — visible surface + top border so it doesn't float invisibly.",
+      "required": ["background", "padding", "min-height"],
+      "min-values": { "padding": 8, "min-height": 48 }
+    },
+    ".ac-map-sim": {
+      "description": "Simulated map — bordered surface the size of the content area.",
+      "required": ["background", "border", "border-radius", "min-height"],
+      "min-values": { "border-width": 1, "border-radius": 8, "min-height": 200 }
+    },
+    ".ac-map-sim-pin": {
+      "description": "Map pin — tappable marker on the map.",
+      "required": ["background", "border", "border-radius", "padding", "min-height"],
+      "min-values": { "padding": 2, "min-height": 24, "border-radius": 4, "border-width": 1 }
+    },
+    ".ac-searchitem": {
+      "description": "Search suggestion row — padded tappable row.",
+      "required": ["background", "padding", "min-height"],
+      "min-values": { "padding": 6, "min-height": 36 }
     }
   }
 }

@@ -1,0 +1,85 @@
+@page "/space/{Id}"
+@inject AppStore Store
+@inject ApiReader Api
+@inject ITemplateEngine Engine
+@inject NavigationManager Nav
+@implements IDisposable
+
+<PageTitle>تفاصيل - عشير</PageTitle>
+
+<AcListingDetailsPage Data="_data"
+                      Engine="Engine"
+                      Store="Store"
+                      IsFavorite="@(_data is not null && Store.FavoriteListingIds.Contains(_data.Id))"
+                      OnBack="GoBack"
+                      OnFavoriteToggled="OnFavoriteToggled"
+                      OnBookingStart="OnBookingStart" />
+
+@code {
+    [Parameter] public string Id { get; set; } = "";
+
+    private AcListingDetailsPage.ListingDetailsDto? _data;
+
+    protected override void OnInitialized() => Store.OnChanged += OnChange;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var env = await Api.GetAsync<DetailsPayload>($"/home/space/{Id}");
+            if (env.Data is not null)
+            {
+                _data = new AcListingDetailsPage.ListingDetailsDto(
+                    env.Data.Id,
+                    env.Data.Title,
+                    env.Data.Description,
+                    (IReadOnlyList<string>?)env.Data.Images ?? Array.Empty<string>(),
+                    env.Data.LocationText,
+                    env.Data.Capacity == 0 ? null : env.Data.Capacity,
+                    env.Data.Rating == 0 ? null : env.Data.Rating,
+                    env.Data.PriceDisplay,
+                    env.Data.PriceUnit,
+                    env.Data.Amenities?
+                        .Select(a => new AcListingDetailsPage.AmenityDto(a.Key, a.Label)).ToList(),
+                    env.Data.Owner is null ? null :
+                        new AcListingDetailsPage.ListingOwnerDto(env.Data.Owner.Name, env.Data.Owner.MemberSince));
+                await InvokeAsync(StateHasChanged);
+            }
+        }
+    }
+
+    private void GoBack() => Nav.NavigateTo("/explore");
+
+    private void OnFavoriteToggled(bool on)
+    {
+        if (_data is null) return;
+        if (on) Store.FavoriteListingIds.Add(_data.Id);
+        else    Store.FavoriteListingIds.Remove(_data.Id);
+        Store.NotifyChanged();
+    }
+
+    private void OnBookingStart()
+    {
+        // booking wizard قادم في شريحة لاحقة — الآن ننقل للمفضلة كإيماءة سريعة.
+        // لا تغيير دائم في الحالة، Layer 6 سيمرّ.
+    }
+
+    private void OnChange() => InvokeAsync(StateHasChanged);
+    public void Dispose() => Store.OnChanged -= OnChange;
+
+    private sealed record DetailsPayload(
+        string Id,
+        string Title,
+        string? Description,
+        List<string>? Images,
+        string? LocationText,
+        int Capacity,
+        decimal Rating,
+        string PriceDisplay,
+        string? PriceUnit,
+        List<AmenityDto>? Amenities,
+        OwnerDto? Owner);
+
+    private sealed record AmenityDto(string Key, string Label);
+    private sealed record OwnerDto(string Name, string? MemberSince);
+}

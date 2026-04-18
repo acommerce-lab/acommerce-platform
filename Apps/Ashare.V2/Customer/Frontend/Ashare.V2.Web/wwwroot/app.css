@@ -6,7 +6,7 @@
     /* Ashare mobile uses #F4844C but that fails WCAG AA (2.54:1 with
        white text). Use a darker orange that still reads warm and passes
        the 4.5:1 threshold on white.  */
-    --ac-secondary:     #B15215;   /* Deep Warm Orange — passes WCAG AA on #fff (≥4.5:1) */
+    --ac-secondary:     #B15215;   /* Deep Warm Orange — WCAG AA on #fff */
     --ac-secondary-hover:#994616;
     --ac-radius-sm: 8px;
     --ac-radius-md: 12px;
@@ -22,8 +22,9 @@ html, body {
     color: var(--ac-text);
 }
 
-/* Mobile-first: main is a single phone-sized column on narrow screens.
-   On desktop it widens to a centered card with a soft background. */
+/* ── Mobile layout (default) ────────────────────────────────────────── */
+.acm-v2-topnav-wrap { display: none; }  /* TopNav مخفي على الموبايل */
+
 main {
     max-width: 480px;
     margin: 0 auto;
@@ -31,25 +32,38 @@ main {
     min-height: 100vh;
 }
 
-@media (min-width: 768px) {
-    body { background: var(--ac-bg-alt); }
-    main {
-        max-width: 960px;
-        padding: 24px;
-    }
-}
+.acm-v2-bottom-nav-wrap { display: block; }
 
-/* The .acs-page is approved as a shell by Layer 6, so it must have a
-   visible surface + border. On mobile it fills the viewport; on desktop
-   it becomes a card. */
+/* Layer 6 expects the shell (.acs-page) to have a visible surface. */
 .acs-page {
     background: var(--ac-surface);
     border: 1px solid var(--ac-border);
     border-radius: var(--ac-radius-lg);
 }
 
-/* Brand mark rendered inside the hero LogoContent slot. Uses currentColor
-   against the hero background so it stays white. */
+/* ── Desktop layout (≥768px) ──────────────────────────────────────── */
+@media (min-width: 768px) {
+    body { background: var(--ac-bg-alt); }
+
+    .acm-v2-topnav-wrap {
+        display: block;
+        max-width: 1200px;
+        margin: 16px auto 0;
+        padding: 0 16px;
+    }
+    .acm-v2-topnav-wrap .ac-topnav { display: flex; }
+
+    main {
+        max-width: 1200px;
+        padding: 16px 16px 32px;
+    }
+    .acm-v2-bottom-nav-wrap { display: none; }
+
+    /* الشاشات الكبيرة لا تحتاج شريط إجراء ثابتاً — يطفو طبيعياً داخل الـ page */
+    .ac-stickybar { position: static; box-shadow: none; border-top: 0; margin-top: 16px; }
+}
+
+/* Brand mark rendered inside the hero LogoContent slot. */
 .acm-brand {
     display: inline-flex;
     align-items: center;
@@ -70,3 +84,7 @@ main {
     font-weight: 700;
     letter-spacing: 0.02em;
 }
+
+/* Top-nav brand uses colored variant */
+.ac-topnav .acm-brand { color: var(--ac-primary); }
+.ac-topnav .acm-brand-mark { background: color-mix(in srgb, var(--ac-primary) 12%, transparent); color: var(--ac-primary); }
