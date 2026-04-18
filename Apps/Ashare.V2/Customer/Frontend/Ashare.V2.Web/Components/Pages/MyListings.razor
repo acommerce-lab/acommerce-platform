@@ -1,7 +1,9 @@
 @page "/my-listings"
+@using ACommerce.Client.Operations
+@using Ashare.V2.Web.Operations
 @inject ApiReader Api
 @inject NavigationManager Nav
-@inject IHttpClientFactory Http
+@inject ClientOpEngine Engine
 
 <PageTitle>إعلاناتي - عشير</PageTitle>
 
@@ -80,15 +82,11 @@
 
     private async Task Toggle(string id)
     {
-        var client = Http.CreateClient("api");
-        var resp = await client.PostAsync($"/my-listings/{id}/toggle", null);
-        if (!resp.IsSuccessStatusCode) return;
-        var env  = await resp.Content.ReadFromJsonAsync<ToggleEnv>();
+        var env = await Engine.ExecuteAsync<ToggleData>(V2Ops.ToggleListing(id));
         if (env?.Data is null) return;
         var ix = _items.FindIndex(x => x.Id == id);
         if (ix >= 0) _items[ix] = _items[ix] with { Status = env.Data.Status };
     }
-    private sealed record ToggleEnv(ToggleData? Data);
     private sealed record ToggleData(string Id, int Status);
 
     private void Feature(string id) => Nav.NavigateTo($"/subscribe?type=plan&id=pro&amount=99");

@@ -1,31 +1,40 @@
 namespace Ashare.V2.Web.Store;
 
 /// <summary>
-/// محلِّل ترجمة بسيط: يختار السلسلة المناسبة حسب AppStore.Ui.Language.
-/// مُبنى على AppStore، ولا يستدعي الخادم — يعمل فور التبديل.
-///
-/// الاستخدام في Razor:
+/// Razor façade — delegates to <see cref="ITranslationProvider"/>.
+/// إبقاء نفس صيغة الاستخدام (<c>L["home.title"]</c>) للصفحات:
 ///   @inject L L
 ///   <h1>@(L["home.title"])</h1>
 /// </summary>
 public class L
 {
     private readonly AppStore _store;
+    private readonly ITranslationProvider _provider;
 
-    public L(AppStore store) => _store = store;
-
-    /// <summary>مفتاح النصّ. يعود نفسه إذا لم يوجد.</summary>
-    public string this[string key]
+    public L(AppStore store, ITranslationProvider provider)
     {
-        get
-        {
-            if (_store.Ui.Language == "en" && En.TryGetValue(key, out var en)) return en;
-            return Ar.TryGetValue(key, out var v) ? v : key;
-        }
+        _store = store;
+        _provider = provider;
     }
+
+    public string this[string key] => _provider.Translate(key, _store.Ui.Language);
 
     public bool IsRtl => _store.Ui.IsRtl;
     public string Lang => _store.Ui.Language;
+}
+
+/// <summary>
+/// Implementation المضمّنة: قاموسين ثابتين. استبدلها لاحقاً بـ
+/// <c>ApiTranslationProvider</c> أو <c>ResxTranslationProvider</c> بتغيير
+/// تسجيل DI فقط.
+/// </summary>
+public sealed class EmbeddedTranslationProvider : ITranslationProvider
+{
+    public string Translate(string key, string language)
+    {
+        if (language == "en" && En.TryGetValue(key, out var en)) return en;
+        return Ar.TryGetValue(key, out var ar) ? ar : key;
+    }
 
     // ── القاموس العربيّ (الافتراضي) ──────────────────────────────────────
     private static readonly Dictionary<string, string> Ar = new()

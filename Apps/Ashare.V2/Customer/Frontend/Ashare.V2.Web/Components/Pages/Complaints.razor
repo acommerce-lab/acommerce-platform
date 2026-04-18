@@ -1,7 +1,9 @@
 @page "/complaints"
 @inject ApiReader Api
 @inject NavigationManager Nav
-@inject IHttpClientFactory Http
+@using ACommerce.Client.Operations
+@using Ashare.V2.Web.Operations
+@inject ClientOpEngine Engine
 
 <PageTitle>الشكاوى - عشير</PageTitle>
 
@@ -101,16 +103,20 @@
         _saving = true;
         try
         {
-            var client = Http.CreateClient("api");
-            var resp = await client.PostAsJsonAsync("/complaints",
-                new { Subject = _subject, Body = _body, Priority = _priority, RelatedEntity = _related });
-            if (resp.IsSuccessStatusCode)
+            var env = await Engine.ExecuteAsync<object>(
+                V2Ops.FileComplaint(_subject, _body, _priority, _related),
+                payload: new { Subject = _subject, Body = _body, Priority = _priority, RelatedEntity = _related });
+            if (env?.Operation.Status == "Success")
             {
                 _alert = "تمّ إرسال الشكوى"; _alertVariant = "success";
                 _subject = ""; _body = ""; _related = ""; _showNew = false;
                 await Reload();
             }
-            else { _alert = "فشل الإرسال"; _alertVariant = "danger"; }
+            else
+            {
+                _alert = env?.Error?.Message ?? "فشل الإرسال";
+                _alertVariant = "danger";
+            }
         }
         finally { _saving = false; }
     }

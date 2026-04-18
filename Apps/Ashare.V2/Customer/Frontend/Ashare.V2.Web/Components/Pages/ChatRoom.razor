@@ -1,8 +1,10 @@
 @page "/chat/{Id}"
+@using ACommerce.Client.Operations
+@using Ashare.V2.Web.Operations
 @inject ApiReader Api
 @inject NavigationManager Nav
 @inject ITimezoneProvider Tz
-@inject IHttpClientFactory Http
+@inject ClientOpEngine Engine
 
 <PageTitle>محادثة - عشير</PageTitle>
 
@@ -98,17 +100,15 @@
         _sending = true;
         try
         {
-            var client = Http.CreateClient("api");
-            var resp = await client.PostAsJsonAsync($"/conversations/{Id}/messages", new {
-                Text = _draft,
-                Attachment = _pendingAttach
-            });
-            if (resp.IsSuccessStatusCode)
+            var env = await Engine.ExecuteAsync<object>(
+                V2Ops.SendMessage(Id, _draft, _pendingAttach),
+                payload: new { Text = _draft, Attachment = _pendingAttach });
+            if (env?.Operation.Status == "Success")
             {
                 _draft = "";
                 _pendingAttach = null;
                 await Reload();
-                _ = SimulatePartnerReply();   // اختياريّ: محاكاة ردّ تلقائيّ
+                _ = SimulatePartnerReply();
             }
         }
         finally { _sending = false; await InvokeAsync(StateHasChanged); }

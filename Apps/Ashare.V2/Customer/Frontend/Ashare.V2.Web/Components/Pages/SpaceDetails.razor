@@ -1,8 +1,10 @@
 @page "/space/{Id}"
+@using ACommerce.Client.Operations
+@using Ashare.V2.Web.Operations
 @inject AppStore Store
 @inject ApiReader Api
 @inject NavigationManager Nav
-@inject IHttpClientFactory Http
+@inject ClientOpEngine Engine
 @implements IDisposable
 
 <PageTitle>تفاصيل - عشير</PageTitle>
@@ -154,21 +156,11 @@
         _startingChat = true;
         try
         {
-            var client = Http.CreateClient("api");
-            var resp = await client.PostAsJsonAsync("/conversations/start", new {
-                ListingId = _data.Id,
-                Text = $"مرحباً، أنا مهتمّ بـ \"{_data.Title}\"."
-            });
-            if (resp.IsSuccessStatusCode)
-            {
-                var env = await resp.Content.ReadFromJsonAsync<StartChatEnv>();
-                if (env?.Data is not null)
-                {
-                    Nav.NavigateTo($"/chat/{env.Data.Id}");
-                    return;
-                }
-            }
-            Nav.NavigateTo("/chats");   // fallback
+            var env = await Engine.ExecuteAsync<StartChatData>(
+                V2Ops.StartConversation(_data.Id, $"مرحباً، أنا مهتمّ بـ \"{_data.Title}\"."),
+                payload: new { ListingId = _data.Id, Text = $"مرحباً، أنا مهتمّ بـ \"{_data.Title}\"." });
+            if (env?.Data is not null) Nav.NavigateTo($"/chat/{env.Data.Id}");
+            else                       Nav.NavigateTo("/chats");
         }
         finally { _startingChat = false; }
     }
@@ -194,6 +186,5 @@
 
     private sealed record AmenityDto(string Key, string Label);
     private sealed record OwnerDto(string Name, string? MemberSince);
-    private sealed record StartChatEnv(StartChatData? Data);
     private sealed record StartChatData(string Id, bool Created);
 }

@@ -4,6 +4,7 @@ using ACommerce.Client.Operations.Interceptors;
 using ACommerce.Client.StateBridge;
 using ACommerce.OperationEngine.Core;
 using Ashare.V2.Web.Components;
+using Ashare.V2.Web.Interpreters;
 using Ashare.V2.Web.Operations;
 using Ashare.V2.Web.Store;
 
@@ -17,6 +18,9 @@ builder.Services.AddRazorComponents()
 // ─── AppStore (ITemplateStore) + L (translations) ────────────────────
 builder.Services.AddScoped<AppStore>();
 builder.Services.AddScoped<ITemplateStore>(sp => sp.GetRequiredService<AppStore>());
+// ── Translation — ProviderContract (عقد) + Implementation مضمَّنة.
+//      يسمح باستبداله لاحقاً بـ ApiTranslationProvider أو ResxTranslationProvider.
+builder.Services.AddSingleton<ITranslationProvider, EmbeddedTranslationProvider>();
 builder.Services.AddScoped<L>();
 
 // ── ProviderContract للتوقيت (عقد خارجيّ — يقرأ المتصفّح عبر JS).
@@ -26,15 +30,11 @@ builder.Services.AddScoped<ITimezoneProvider, JsTimezoneProvider>();
 builder.Services.AddScoped<OpEngine>(sp =>
     new OpEngine(sp, sp.GetRequiredService<ILogger<OpEngine>>()));
 
-// ─── HTTP → Ashare.V2.Api ─────────────────────────────────────────────
+// ─── HTTP → Ashare.V2.Api (client-side dispatcher) ──────────────────
+// ملاحظة: هذه هي الطبقة الوحيدة التي تلمس HttpClient. كلّ الصفحات تبني
+// Operation ثم Engine.DispatchAsync، و HttpDispatcher يحوّلها إلى طلب.
 var apiBase = builder.Configuration["AshareV2Api:BaseUrl"] ?? "http://localhost:5600";
 builder.Services.AddHttpClient("ashare-v2", c =>
-{
-    c.BaseAddress = new Uri(apiBase);
-    c.Timeout = TimeSpan.FromSeconds(30);
-});
-// alias — الصفحات تستعمل "api" بالاسم المختصر للـ PostAsJson/Put
-builder.Services.AddHttpClient("api", c =>
 {
     c.BaseAddress = new Uri(apiBase);
     c.Timeout = TimeSpan.FromSeconds(30);
@@ -68,10 +68,16 @@ builder.Services.AddScoped<ClientOpEngine>(sp =>
         sp.GetRequiredService<IStateApplier>()));
 builder.Services.AddScoped<ITemplateEngine>(sp => sp.GetRequiredService<ClientOpEngine>());
 
-// ─── State bridge (فارغ حالياً — لا مُفسّرات في شريحة Home) ───────────
+// ─── State bridge: interpreters مُسجَّلة ─────────────────────────────
+// كلّ interpreter يتفاعل مع نوع عمليّة معيّن ويُحدّث AppStore تفاؤليّاً.
 builder.Services.AddScoped<OperationInterpreterRegistry<AppStore>>(sp =>
-    new OperationInterpreterRegistry<AppStore>(
-        sp.GetRequiredService<ILogger<OperationInterpreterRegistry<AppStore>>>()));
+{
+    var registry = new OperationInterpreterRegistry<AppStore>(
+        sp.GetRequiredService<ILogger<OperationInterpreterRegistry<AppStore>>>());
+    registry.Add(new UiInterpreter());
+    registry.Add(new AuthInterpreter());
+    return registry;
+});
 
 builder.Services.AddScoped<AppStateApplier>();
 builder.Services.AddScoped<IStateApplier>(sp => sp.GetRequiredService<AppStateApplier>());

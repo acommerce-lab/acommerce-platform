@@ -1,8 +1,10 @@
 @page "/notifications"
+@using ACommerce.Client.Operations
+@using Ashare.V2.Web.Operations
 @inject AppStore Store
 @inject ApiReader Api
 @inject ITimezoneProvider Tz
-@inject IHttpClientFactory Http
+@inject ClientOpEngine Engine
 @implements IDisposable
 
 <PageTitle>الإشعارات - عشير</PageTitle>
@@ -75,17 +77,14 @@
     {
         var ix = _items.FindIndex(x => x.Id == id);
         if (ix < 0 || _items[ix].IsRead) return;
-        // تفاؤليّاً: حدّث محلّياً ثم أرسل للخادم
-        _items[ix] = _items[ix] with { IsRead = true };
-        var client = Http.CreateClient("api");
-        await client.PostAsync($"/home/notifications/{id}/read", null);
+        _items[ix] = _items[ix] with { IsRead = true };   // optimistic
+        await Engine.ExecuteAsync<object>(V2Ops.ReadNotification(id));
     }
 
     private async Task MarkAllRead()
     {
         _items = _items.Select(n => n with { IsRead = true }).ToList();
-        var client = Http.CreateClient("api");
-        await client.PostAsync("/home/notifications/read-all", null);
+        await Engine.ExecuteAsync<object>(V2Ops.ReadAllNotifications());
     }
 
     private static string GroupLabel(DateTime dt)

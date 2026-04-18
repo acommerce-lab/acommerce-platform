@@ -1,7 +1,9 @@
 @page "/complaints/{Id}"
 @inject ApiReader Api
 @inject NavigationManager Nav
-@inject IHttpClientFactory Http
+@using ACommerce.Client.Operations
+@using Ashare.V2.Web.Operations
+@inject ClientOpEngine Engine
 
 <PageTitle>تفاصيل الشكوى - عشير</PageTitle>
 
@@ -88,9 +90,10 @@
         _sending = true;
         try
         {
-            var client = Http.CreateClient("api");
-            var resp = await client.PostAsJsonAsync($"/complaints/{Id}/replies", new { Message = _draft });
-            if (resp.IsSuccessStatusCode)
+            var env = await Engine.ExecuteAsync<object>(
+                V2Ops.ReplyComplaint(Id, _draft),
+                payload: new { Message = _draft });
+            if (env?.Operation.Status == "Success")
             {
                 _draft = "";
                 await Reload();

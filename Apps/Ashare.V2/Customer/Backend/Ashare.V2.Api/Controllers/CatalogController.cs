@@ -1,3 +1,4 @@
+using ACommerce.OperationEngine.Analyzers;
 using ACommerce.OperationEngine.Core;
 using ACommerce.OperationEngine.Patterns;
 using ACommerce.OperationEngine.Wire;
@@ -26,7 +27,8 @@ public class CatalogController : ControllerBase
     private static readonly List<AshareV2Seed.ComplaintSeed> _complaintsMutable =
         AshareV2Seed.Complaints.ToList();
 
-    private string Caller => $"User:{AshareV2Seed.CurrentUserId}";
+    private string CurrentUserId => HttpContext.Items["user_id"] as string ?? AshareV2Seed.CurrentUserId;
+    private string Caller => $"User:{CurrentUserId}";
 
     [HttpGet("/cities")]
     public IActionResult Cities() =>
@@ -126,6 +128,8 @@ public class CatalogController : ControllerBase
             .Tag("booking_id", bookingId)
             .Tag("owner_policy", "must_not_own")
             .Tag("resource_owner", listing.OwnerId)
+            .Analyze(new RangeAnalyzer("nights", () => req.Nights, 1, 365))
+            .Analyze(new RangeAnalyzer("guests", () => req.Guests, 1, 20))
             .Execute(ctx => Task.CompletedTask)   // in-memory: مجرّد الإعلان يكفي للعرض
             .Build();
 
@@ -181,6 +185,7 @@ public class CatalogController : ControllerBase
             .From(Caller, 1, ("role","sender"))
             .To($"Conversation:{id}", 1, ("role","appended"))
             .Tag("conversation_id", id)
+            .Analyze(new MaxLengthAnalyzer("text", () => req.Text, 4000))
             .Execute(ctx =>
             {
                 conv.Messages.Add(msg);
@@ -285,6 +290,10 @@ public class CatalogController : ControllerBase
             .From(Caller, 1, ("role","complainant"))
             .To($"Complaint:{id}", 1, ("role","filed"))
             .Tag("complaint_id", id)
+            .Analyze(new RequiredFieldAnalyzer("subject", () => req.Subject))
+            .Analyze(new RequiredFieldAnalyzer("body",    () => req.Body))
+            .Analyze(new MaxLengthAnalyzer("subject",     () => req.Subject, 200))
+            .Analyze(new MaxLengthAnalyzer("body",        () => req.Body, 2000))
             .Execute(ctx => { _complaintsMutable.Insert(0, c); return Task.CompletedTask; })
             .Build();
 
@@ -307,6 +316,8 @@ public class CatalogController : ControllerBase
             .From(Caller, 1, ("role","replier"))
             .To($"Complaint:{id}", 1, ("role","replied"))
             .Tag("complaint_id", id)
+            .Analyze(new RequiredFieldAnalyzer("message", () => req.Message))
+            .Analyze(new MaxLengthAnalyzer("message",     () => req.Message, 2000))
             .Execute(ctx =>
             {
                 var c = _complaintsMutable[ix];
@@ -328,7 +339,7 @@ public class CatalogController : ControllerBase
     public IActionResult MyListings() =>
         this.OkEnvelope("listing.my",
             AshareV2Seed.Listings
-                .Where(l => l.OwnerId == AshareV2Seed.CurrentUserId)
+                .Where(l => l.OwnerId == CurrentUserId)
                 .Select(l => new {
                     id = l.Id, title = l.Title, price = l.Price, currency = "SAR",
                     timeUnit = l.TimeUnit, city = l.City, district = l.District,
@@ -396,6 +407,9 @@ public class CatalogController : ControllerBase
             .From(Caller, 1, ("role","user"))
             .To($"Profile:{AshareV2Seed.Profile.Id}", 1, ("role","updated"))
             .Tag("profile_id", AshareV2Seed.Profile.Id)
+            .Analyze(new RequiredFieldAnalyzer("fullName", () => req.FullName))
+            .Analyze(new RequiredFieldAnalyzer("phone",    () => req.Phone))
+            .Analyze(new MaxLengthAnalyzer("fullName",     () => req.FullName, 100))
             .Execute(ctx =>
             {
                 var old = AshareV2Seed.Profile;
@@ -426,7 +440,7 @@ public class CatalogController : ControllerBase
         var plan = AshareV2Seed.Plans.FirstOrDefault(p => p.Id == s.PlanId);
 
         // الأرقام الفعليّة تُحسَب من الإعلانات المملوكة لا من بذرة ثابتة.
-        var mine = AshareV2Seed.Listings.Where(l => l.OwnerId == AshareV2Seed.CurrentUserId).ToList();
+        var mine = AshareV2Seed.Listings.Where(l => l.OwnerId == CurrentUserId).ToList();
         var listingsUsed  = mine.Count(l => l.Status == 1);
         var featuredUsed  = mine.Count(l => l.Status == 1 && l.IsFeatured);
 

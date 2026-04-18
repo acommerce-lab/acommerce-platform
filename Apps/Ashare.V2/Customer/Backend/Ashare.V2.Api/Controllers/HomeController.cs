@@ -18,7 +18,8 @@ public class HomeController : ControllerBase
     private readonly OpEngine _engine;
     public HomeController(OpEngine engine) => _engine = engine;
 
-    private string Caller => $"User:{AshareV2Seed.CurrentUserId}";
+    private string CurrentUserId => HttpContext.Items["user_id"] as string ?? AshareV2Seed.CurrentUserId;
+    private string Caller => $"User:{CurrentUserId}";
 
     private static IEnumerable<object> CategoriesDto() =>
         AshareV2Seed.Categories.Select(c => new { id = c.Id, label = c.Label, icon = c.Icon });
