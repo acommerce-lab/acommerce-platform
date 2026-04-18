@@ -137,7 +137,7 @@ main {
     justify-content: center;
 }
 .acs-nafath-number {
-    font-size: 48px;
+    font-size: 3rem;
     font-weight: 700;
     color: var(--ac-primary);
     line-height: 1;
@@ -428,3 +428,25 @@ main {
     padding: 4px;
 }
 .acs-recent-chip button.rm { color: var(--ac-text-muted); font-size: 14px; }
+
+/* ── Page-level wrapper selectors ──────────────────────────────────────
+   Each page carries a specific wrapper class in addition to .acs-page
+   so that future page-scoped overrides have a hook. */
+.acs-booking-wizard    { /* NewBooking: 4-step booking flow */ }
+.acs-bookings-page     { /* Bookings list */ }
+.acs-chats-page        { /* Chats inbox */ }
+.acs-complaint-thread  { /* ComplaintDetail */ }
+.acs-complaints-page   { /* Complaints list + new form */ }
+.acs-create-listing    { /* CreateListing wizard */ }
+.acs-legal-page        { /* Legal docs accordion */ }
+.acs-my-listings       { /* MyListings management grid */ }
+.acs-my-subscription   { /* MySubscription quotas + invoices */ }
+.acs-notifications-page{ /* Notifications grouped + filtered */ }
+.acs-payment-callback  { /* PaymentCallback result */ }
+.acs-plans-grid        { /* Inner grid in Plans page */ }
+.acs-plans-page        { /* Plans listing with compare table */ }
+.acs-profile-edit-page { /* ProfileEdit form */ }
+.acs-search-page       { /* Search with recent/popular */ }
+.acs-space-details     { /* SpaceDetails full gallery view */ }
+.acs-subscribe-page    { /* Subscribe checkout with promo */ }
+.acs-help-page         { /* Help redirect stub */ }
