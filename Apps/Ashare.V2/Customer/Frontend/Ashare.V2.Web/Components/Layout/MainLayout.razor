@@ -3,6 +3,7 @@
 @inject AppStore Store
 @inject ApiReader Api
 @inject L L
+@inject IJSRuntime JS
 @implements IDisposable
 
 <AcVersionGate IsLoading="@(!_checked)"
@@ -42,17 +43,6 @@
             </div>
         </main>
 
-        <script>
-          (function(){
-            var theme='@Store.Ui.Theme';
-            var lang='@Store.Ui.Language';
-            var dir='@(Store.Ui.IsRtl ? "rtl" : "ltr")';
-            document.documentElement.setAttribute('lang', lang);
-            document.documentElement.setAttribute('dir', dir);
-            if(theme==='dark') document.body.classList.add('ac-dark');
-            else document.body.classList.remove('ac-dark');
-          })();
-        </script>
     </ChildContent>
 </AcVersionGate>
 
@@ -82,6 +72,9 @@
         new AcTopNav.TopNavItem("/me",          "حسابي",      "user")
     };
 
+    private string? _appliedTheme;
+    private string? _appliedLang;
+
     protected override void OnInitialized() => Store.OnChanged += OnChange;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -98,6 +91,15 @@
             }
             _checked = true;
             await InvokeAsync(StateHasChanged);
+        }
+
+        if (_appliedTheme != Store.Ui.Theme || _appliedLang != Store.Ui.Language)
+        {
+            _appliedTheme = Store.Ui.Theme;
+            _appliedLang = Store.Ui.Language;
+            var dir = Store.Ui.IsRtl ? "rtl" : "ltr";
+            try { await JS.InvokeVoidAsync("ashareUi.apply", Store.Ui.Theme, Store.Ui.Language, dir); }
+            catch (InvalidOperationException) { /* pre-render: no JS yet */ }
         }
     }
 

@@ -11,7 +11,7 @@
         <h1 class="acm-wizard-title">حجز: @_b.ListingTitle</h1>
         <AcCard>
             <ChildContent>
-                <div class="acm-checkout-line"><span>الحالة:</span><AcBadge Variant="success" Text="@_b.Status" /></div>
+                <div class="acm-checkout-line"><span>الحالة:</span><AcBadge Variant="@BadgeVariant(_b.Status)" Text="@StatusLabel(_b.Status)" /></div>
                 <div class="acm-checkout-line"><span>التاريخ:</span><strong>@_b.StartDate.ToString("yyyy-MM-dd")</strong></div>
                 <div class="acm-checkout-line"><span>عدد الليالي:</span><strong>@_b.Nights</strong></div>
                 <div class="acm-checkout-line"><span>عدد الأشخاص:</span><strong>@_b.Guests</strong></div>
@@ -20,7 +20,10 @@
         </AcCard>
         <div style="display:flex; gap:8px; margin-top:12px;">
             <AcButton Variant="ghost" Text="رجوع" OnClick="@GoBack" />
-            <AcButton Variant="danger" Text="إلغاء الحجز" OnClick="@CancelBooking" />
+            @if (CanCancel(_b.Status))
+            {
+                <AcButton Variant="danger" Text="إلغاء الحجز" OnClick="@CancelBooking" />
+            }
         </div>
         @if (_cancelled)
         {
@@ -41,6 +44,26 @@
 
     private void GoBack() => Nav.NavigateTo("/bookings");
     private void CancelBooking() => _cancelled = true;
+
+    private static bool CanCancel(string status) => status is "pending" or "confirmed";
+
+    private static string StatusLabel(string s) => s switch
+    {
+        "pending"   => "قيد المراجعة",
+        "confirmed" => "مؤكَّد",
+        "completed" => "منتهٍ",
+        "cancelled" => "ملغى",
+        _           => s
+    };
+
+    private static string BadgeVariant(string s) => s switch
+    {
+        "confirmed" => "success",
+        "pending"   => "warning",
+        "cancelled" => "danger",
+        "completed" => "secondary",
+        _           => "secondary"
+    };
 
     private sealed record Payload(string Id, string ListingId, string ListingTitle,
         decimal Total, DateTime StartDate, int Nights, int Guests, string Status);

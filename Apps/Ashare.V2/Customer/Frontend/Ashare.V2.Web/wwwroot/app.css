@@ -103,3 +103,62 @@ main {
 
 /* ac-dark-wrap: marker class on main — actual dark colours come from body.ac-dark */
 .ac-dark-wrap { display: block; }
+
+/* ── Nafath login block ─────────────────────────────────────────────── */
+.acs-nafath-head {
+    text-align: center;
+    padding: 16px 0 4px;
+    color: var(--ac-primary);
+}
+.acs-nafath-head .acm-wizard-title { margin-top: 4px; color: var(--ac-primary); }
+
+.acs-login-divider {
+    text-align: center;
+    margin: 12px 0;
+    color: var(--ac-muted);
+    font-size: 13px;
+}
+
+.acs-nafath-wait { text-align: center; }
+.acs-nafath-instruction {
+    color: var(--ac-muted);
+    font-size: 14px;
+    margin-bottom: 16px;
+}
+.acs-nafath-circle {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    background: color-mix(in srgb, var(--ac-primary) 12%, transparent);
+    border: 2px solid var(--ac-primary);
+    margin: 16px auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.acs-nafath-number {
+    font-size: 48px;
+    font-weight: 700;
+    color: var(--ac-primary);
+    line-height: 1;
+}
+.acs-nafath-timer {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 12px;
+    border-radius: var(--ac-radius-sm);
+    background: var(--ac-bg-alt);
+    color: var(--ac-text);
+    margin: 8px 0 12px;
+}
+.acs-nafath-state {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 12px;
+    border-radius: var(--ac-radius-sm);
+    margin: 8px 0;
+}
+.acs-nafath-state--ok { background: color-mix(in srgb, var(--ac-success) 14%, transparent); color: var(--ac-success); }
+.acs-nafath-state--err { background: color-mix(in srgb, var(--ac-danger) 14%, transparent); color: var(--ac-danger); }
