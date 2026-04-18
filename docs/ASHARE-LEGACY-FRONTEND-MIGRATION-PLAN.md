@@ -510,3 +510,233 @@ scripts/verify-runtime.sh          # Layer 6 — Playwright + spatial-contracts.
 ## 4. سجلّ التغييرات
 
 - **2026-04-18** — النسخة الأولى من الخطّة: 12 مرحلة + مصفوفة قبول + فهرس استشهادات.
+- **2026-04-18 (تعديل)** — إضافة 5 ملاحق تفصيليّة (أ–هـ) لاستعادة التفاصيل المُقتضبة في النسخة الأولى.
+
+---
+
+## ملحق أ — جدول تفصيليّ للصفحات الـ25
+
+مستخلَص من `docs/ASHARE-LEGACY-FRONTEND-INVENTORY.md § 2.1`. العمود "Injected" يسرد الخدمات/العملاء المحقونين في `@inject` بالصفحة القديمة — كلّ هؤلاء يُعاد تفسيرهم كعمليّات OAM (ما لم يُذكر خلاف ذلك).
+
+| # | الصفحة | المسار | Lines | Injected في القديم | المرحلة |
+|---:|---|---|---:|---|---:|
+| 1 | `Home.razor` | `/` | 234 | `AshareApiService`, `IAppNavigationService` | 3 |
+| 2 | `Search.razor` | `/search` | 349 | `AshareApiService` | 3 |
+| 3 | `Explore.razor` | `/explore` | 467 | `AshareApiService`, `CategoriesClient` | 3 |
+| 4 | `SpaceDetails.razor` | `/space/{SpaceId:guid}` | 1,455 | `AshareApiService`, `ChatsClient`, `ProfilesClient`, `TokenManager`, `IJSRuntime` | 4 |
+| 5 | `Login.razor` | `/login` | 667 | `NafathClient`, `AuthClient`, `RealtimeClient`, `TokenManager`, `GuestModeService`, `AppLifecycleService`, `ThemeService`, `ILocalizationService L` | 2 |
+| 6 | `Auth/Register.razor` | `/register` | 16 | — (stub؛ يُحذَف) | 2 |
+| 7 | `Language.razor` | `/language` | 165 | `LocalizationService` | 2 |
+| 8 | `LegalPageView.razor` | `/legal/{Key}` | 220 | `LegalPagesClient` | 2 |
+| 9 | `Favorites.razor` | `/favorites` | 122 | `AshareApiService` | 8 |
+| 10 | `Profile.razor` | `/profile` | 483 | `ProfilesClient`, `TokenManager`, `AuthClient` | 8 |
+| 11 | `Auth/ProfileEdit.razor` | `/profile/edit` | 382 | `ProfilesClient`, `FilesClient` | 8 |
+| 12 | `Notifications.razor` | `/notifications` | 170 | `NotificationsClient` | 7 |
+| 13 | `Chat/Chats.razor` | `/chats` | 227 | `ChatsClient` | 7 |
+| 14 | `Chat/ChatRoom.razor` | `/chat/{ChatId:guid}` | 455 | `ChatsClient`, `RealtimeClient` | 7 |
+| 15 | `Bookings.razor` | `/bookings` | 413 | `BookingsClient`, `AshareApiService` | 5 |
+| 16 | `BookingCreate.razor` | `/book/{SpaceId:guid}` | 965 | `BookingsClient`, `PaymentsClient`, `ProductListingsClient`, `ProfilesClient`, `ITimezoneService` | 5 |
+| 17 | `BookingDetails.razor` | `/booking/{BookingId:guid}` | 988 | `BookingsClient`, `PaymentsClient`, `ChatsClient`, `IPaymentService` | 5 |
+| 18 | `CreateListing.razor` | `/create-listing`, `/host/add` | 585 | `ProductListingsClient`, `FilesClient`, `CategoryAttributesClient`, `PendingListingService` | 6 |
+| 19 | `Host/MySpaces.razor` | `/host/spaces` | 599 | `ProductListingsClient`, `ProfilesClient` | 6 |
+| 20 | `Host/SubscriptionPlans.razor` | `/host/plans` | 296 | `SubscriptionClient`, `AshareSubscriptionPlans` | 6 |
+| 21 | `Host/SubscriptionCheckout.razor` | `/host/subscribe/{PlanSlug}` | 828 | `SubscriptionClient`, `PaymentsClient`, `IPaymentService`, `RealtimeClient` | 6 |
+| 22 | `Host/SubscriptionDashboard.razor` | `/host/subscription[/dashboard]` | 352 | `SubscriptionClient` | 6 |
+| 23 | `Host/PaymentCallback.razor` | `/host/payment/callback` | 326 | `RealtimeClient`, `IAppNavigationService` | 6 |
+| 24 | `Complaints.razor` | `/complaints` | 759 | `ComplaintsClient` | 9 |
+| 25 | `ComplaintDetails.razor` | `/complaints/{Id:guid}` | 726 | `ComplaintsClient`, `FilesClient` | 9 |
+| | **الإجماليّ** | | **~12,249** | | |
+
+**ملاحظة تحويليّة**: كلّ استخدام لـ `AshareApiService` يُستبدَل بعمليّة `Entry.Create(...)` محدّدة (القانون 4 في ASHARE-PAGE-MIGRATION.md:18). لم يَعُد هناك خدمة غلاف واحدة.
+
+---
+
+## ملحق ب — مطابقة فئات وأيقونات قديمة إلى widgets
+
+القاعدة (ASHARE-PAGE-MIGRATION.md:11-14): لا `<button>/<input>/.btn/.card` خام ولا `<i class="bi bi-*">` — كلّ مرئيّ عبر `Ac*`.
+
+### ب-1. ودجات الإدخال والأفعال
+
+| القديم | الجديد |
+|---|---|
+| `<button class="btn btn-primary">` | `<AcButton Variant="primary">` |
+| `<button class="btn btn-outline-primary">` | `<AcButton Variant="outline">` |
+| `<button class="btn btn-danger">` | `<AcButton Variant="danger">` |
+| `<button class="btn btn-link">` | `<AcButton Variant="text">` |
+| `<input class="form-control">` | `<AcTextField>` |
+| `<textarea class="form-control">` | `<AcTextArea>` |
+| `<select class="form-select">` | `<AcSelect>` |
+| `<input type="checkbox">` | `<AcCheckbox>` |
+| `<input type="radio">` | `<AcRadio>` |
+| `<input type="file">` | `<AcFilePicker>` + عمليّة `files.upload` |
+
+### ب-2. ودجات الحاوية والعرض
+
+| القديم | الجديد |
+|---|---|
+| `<div class="card">` / `ashare-card` | `<AcCard>` |
+| `<div class="card-body">` | `<AcCardBody>` |
+| `<div class="modal">` | `<AcDialog>` |
+| `<nav class="navbar">` (علويّ) | `<AcAppBar>` |
+| `<nav class="bottom-nav">` | `<AcBottomNav>` + `<AcBottomNavItem>` |
+| `<div class="alert alert-*">` | `<AcAlert Severity="...">` |
+| `<span class="badge">` / `ashare-badge` | `<AcBadge>` |
+| `<ul class="list-group">` | `<AcList>` + `<AcListItem>` |
+| `<img class="avatar">` / `ashare-avatar` | `<AcAvatar>` |
+| `<div class="spinner-border">` | `<AcSpinner>` |
+| `<div class="skeleton">` | `<AcSkeleton>` |
+| `<div class="toast">` | `<AcToast>` (عبر `IToastService`) |
+| `ashare-chip` | `<AcChip>` |
+| `ashare-tabs` / `nav nav-tabs` | `<AcTabs>` + `<AcTab>` |
+
+### ب-3. الأيقونات (Bootstrap Icons → AcIcon)
+
+| القديم | الجديد |
+|---|---|
+| `<i class="bi bi-heart">` / `bi-heart-fill` | `<AcIcon Name="heart" Filled="true/false">` |
+| `<i class="bi bi-chat">` | `<AcIcon Name="chat">` |
+| `<i class="bi bi-bell">` | `<AcIcon Name="bell">` |
+| `<i class="bi bi-geo-alt">` | `<AcIcon Name="map-pin">` |
+| `<i class="bi bi-calendar">` | `<AcIcon Name="calendar">` |
+| `<i class="bi bi-star-fill">` | `<AcIcon Name="star" Filled="true">` |
+| `<i class="bi bi-person-circle">` | `<AcIcon Name="user-circle">` |
+| `<i class="bi bi-three-dots">` | `<AcIcon Name="more-horizontal">` |
+| `<i class="bi bi-arrow-left">` | `<AcIcon Name="arrow-left">` (يُعكَس تلقائيّاً في RTL) |
+| `<i class="bi bi-filter">` | `<AcIcon Name="filter">` |
+| `<i class="bi bi-search">` | `<AcIcon Name="search">` |
+| `<i class="bi bi-upload">` | `<AcIcon Name="upload">` |
+| `<i class="bi bi-trash">` | `<AcIcon Name="trash">` |
+| `<i class="bi bi-check-circle">` | `<AcIcon Name="check-circle">` |
+| `<i class="bi bi-x-circle">` | `<AcIcon Name="x-circle">` |
+| `<i class="bi bi-exclamation-triangle">` | `<AcIcon Name="alert-triangle">` |
+
+### ب-4. ألوان الصفحة (hex خام → tokens)
+
+| القديم (في `.razor`) | الجديد |
+|---|---|
+| `style="color:#345454"` | `style="color:var(--ac-primary)"` أو `class="text-primary"` |
+| `style="background:#FEE8D6"` | `var(--ac-bg)` |
+| `style="color:#F4844C"` | `var(--ac-secondary)` |
+| `style="color:#10B981"` | `var(--ac-success)` |
+| `style="color:#EF4444"` | `var(--ac-error)` |
+| `style="color:#F59E0B"` | `var(--ac-warning)` |
+| `style="color:#FFFFFF"` | `var(--ac-surface)` |
+
+**القاعدة**: كلّ قيمة hex خام في `.razor` = violation في `verify-design-quality.sh` (DESIGN-CRITERIA.md:14).
+
+---
+
+## ملحق ج — خدمات Shell القديمة وما يحلّ محلّها
+
+### ج-1. خدمات Ashare.Web (5 خدمات)
+
+من `/tmp/ACommerce.Libraries/Apps/Ashare.Web/Services/`:
+
+| القديمة | الجديد في V2 | ملاحظة |
+|---|---|---|
+| `BrowserStorageService : IStorageService` | **تُبقى كما هي** | localStorage عبر JS — لا تغيير منهجيّ |
+| `ScopedTokenProvider : ITokenProvider` | **تُبقى كما هي** + يربطها `ClientOpEngine` | Scoped لأنّ Blazor Server scoped per-circuit |
+| `WebNavigationService : IAppNavigationService` | **تُبقى كما هي** | يعتمد `NavigationManager` |
+| `WebPaymentService : IPaymentService` | عمليّة `payments.redirect(url)` — Provider يحلّ الـ URL في `top-level` | `IPaymentService` يصبح Provider contract |
+| `WebAppVersionService : IAppVersionService` | عمليّة `app.version.check` تردّ envelope من `VersionsClient` الخلفيّ | Provider contract |
+
+### ج-2. خدمات Ashare.App (MAUI — تُؤجَّل للمرحلة 11)
+
+من `/tmp/ACommerce.Libraries/Apps/Ashare.App/` (`MauiProgram.cs:81-140`):
+
+| القديمة | Provider contract مقابل | ملاحظة |
+|---|---|---|
+| `MauiStorageService` | `IStorageService` | حفظ في `Preferences`/`SecureStorage` |
+| `StorageBackedTokenStorage` | `ITokenStorage` | يُبقى كما هو |
+| `TokenManager` (Singleton) | `ITokenProvider` | Singleton على MAUI، Scoped على Web |
+| `TrackingConsentService` + `TrackingConsentInterceptor` | `ITrackingConsentService` + HTTP interceptor | يُرسل هيدر موافقة التتبّع |
+| `MauiDeviceInfoProvider` | `IDeviceInfoProvider` | لتقارير الأخطاء |
+| `MauiMediaPickerService` | `IMediaPickerService` | كاميرا + معرض |
+| `SkiaImageCompressionService` | `IImageCompressionService` | ضغط الصور قبل الرفع |
+| `PushNotificationService` (FCM) | `IPushNotificationService` | Firebase Cloud Messaging |
+| `AttributionCaptureService` | `IAttributionCaptureService` | deep-link tracking |
+| `DeviceTimezoneService` | `ITimezoneService` | ثقافة البروفايل — CULTURE.md:42-62 |
+| `MauiPaymentService` | `IPaymentService` | WebView داخل التطبيق |
+| `AppVersionService` | `IAppVersionService` | مقارنة النسخة |
+| `AppLifecycleService` | `IAppLifecycleService` | foreground/background |
+| `AppNavigationService` | `IAppNavigationService` | shell Navigation |
+
+كلّ ما في هذا الجدول = Provider contracts (LIBRARY-ANATOMY.md:69-127): المكتبة الرئيسيّة تُعرّف الواجهات، والـ shell (MAUI/Web) يحقن التنفيذ.
+
+### ج-3. لوحة الإدارة — 13 صفحة
+
+من `/tmp/ACommerce.Libraries/Apps/Ashare.Admin/Pages/`:
+
+| الصفحة | المسار المقترَح | العمليّات الأساسيّة |
+|---|---|---|
+| `Dashboard` | `/admin` | `admin.dashboard.stats` |
+| `Login` | `/admin/login` | `auth.admin.login` (Entry خاصّة بكلمة السرّ) |
+| `AdminUsers` / `Users` (مُوحَّدان) | `/admin/users` | `admin.users.list`, `admin.users.search` |
+| `UserDetails` | `/admin/users/{id}` | `admin.users.get`, `admin.users.update` |
+| `Roles` | `/admin/roles` | `admin.roles.list`, `admin.roles.assign` |
+| `Listings` | `/admin/listings` | `admin.listings.list`, `admin.listings.moderate` |
+| `Orders` | `/admin/orders` | `admin.orders.list`, `admin.orders.update.status` |
+| `Subscriptions` | `/admin/subscriptions` | `admin.subscriptions.list`, `admin.subscriptions.cancel` |
+| `Marketing` | `/admin/marketing` | `admin.marketing.stats`, `admin.marketing.attribution.list` |
+| `Notifications` | `/admin/notifications` | `admin.notifications.broadcast`, `admin.notifications.targeted` |
+| `Reports` | `/admin/reports` | `admin.reports.{name}` (حسب التقرير) |
+| `Settings` | `/admin/settings` | `admin.settings.get`, `admin.settings.update` |
+| `Versions` | `/admin/versions` | `admin.versions.list`, `admin.versions.publish` |
+
+**الخدمات الخمس المرافقة للـ Admin القديم** (`AdminApiService`, `AdminAuthStateProvider`, `AdminTokenProvider`, `AuthService`, `MarketingAnalyticsService`) تُحَلّ إلى:
+- `AdminAuthStateProvider` → `CustomAuthenticationStateProvider` موحَّد مع claims.
+- `AdminApiService` → يختفي (كلّ استدعاء = عمليّة).
+- `MarketingAnalyticsService` → Provider contract `IMarketingAnalyticsProvider` يُستدعى من interceptor `MarketingEventInterceptor` على Tags `marketing.*`.
+
+---
+
+## ملحق د — wizard `CreateListing` (تفصيل الخطوات الخمس)
+
+الصفحة الأصل `CreateListing.razor` (585 سطراً) تستوعب معالِج إعلان متعدّد الخطوات. في V2 تُنقَل إلى `Pages/Host/CreateListing.razor` مع Draft محلّيّ في `IStorageService` (ASHARE-V2-METHODOLOGY.md:112-129 — local-only).
+
+| خطوة | المدخل | العمليّة | ناتج الحفظ |
+|---:|---|---|---|
+| 1 | **اختيار الفئة** (سكني / طلب سكن / طلب شريك / إداريّ / تجاريّ) — من جرد `AshareSeedDataService` | `listing.draft.setCategory` (محلّيّة) | `Draft.CategoryId` محفوظ |
+| 2 | **الموقع الجغرافيّ** — اختيار المدينة والحيّ + إحداثيّات | `listing.draft.setLocation` (محلّيّة) + استدعاء `locations.search` (HTTP) لاقتراحات | `Draft.Location { City, District, Lat, Lng }` |
+| 3 | **السمات الديناميكيّة** — form يُبنى من `AttributeTemplate` الخاصّ بالفئة (DYNAMIC-ATTRIBUTES.md:13-20) | `listing.draft.setAttributes` (محلّيّة) | `Draft.DynamicAttributesJson` (snapshot) |
+| 4 | **الصور والوصف** — رفع صور متعدّدة + عنوان + وصف | `files.upload` لكلّ صورة → `listing.draft.setMedia` | `Draft.ImageUrls[]` + `Draft.Title` + `Draft.Description` |
+| 5 | **المراجعة والنشر** — عرض كلّ ما سبق + زرّ نشر | `listing.create` (HTTP — Tag `client_dispatch=true`) — Entry من `Host` إلى `Listing` مع كلّ الحقول | يُنشَأ `Listing` على الخادم + يُمسَح الـ Draft المحلّيّ |
+
+**سلوك التعافي**: إن أُغلق التطبيق بين الخطوات، الـ Draft المحلّيّ يُستعاد عند فتح `/create-listing` مجدّداً (يُعرَض للمستخدم خيار "استئناف" أو "بدء جديد").
+
+**سمات غير معروفة**: إن أضاف المستخدم حقلاً حرّاً أو قدم الـ API لاحقاً حقولاً جديدة، تُحفَظ كـ `DynamicAttribute` خام بنوع مستنتَج (DYNAMIC-ATTRIBUTES.md:47-54) — لا تُحذف (القانون 6 في CLAUDE.md:76-85).
+
+**معالجات محلّية (Analyzers) على `listing.create`**:
+- `RequiredFieldAnalyzer("title", () => draft.Title)`.
+- `RequiredFieldAnalyzer("price", () => draft.Price)`.
+- `RequiredFieldAnalyzer("categoryId", () => draft.CategoryId)`.
+- `PredicateAnalyzer("images_min_1", ctx => draft.ImageUrls.Count >= 1)`.
+- `PredicateAnalyzer("location_set", ctx => draft.Location is not null)`.
+
+---
+
+## ملحق هـ — مراجع متقاطعة مع مستندات المستودع
+
+**مستندات الواجهة في `/home/user/acommerce-platform/docs/` ذات الصلة**:
+
+| المستند | ما يستخدَم منه في هذه الخطّة |
+|---|---|
+| `ASHARE-V2-METHODOLOGY.md` | نمط `ClientOpEngine` + `HttpDispatcher` + `OperationInterpreterRegistry` (المرحلة 0) + UserCulture الموحَّد (المرحلة 2) + HTTP vs local (المراحل 3, 4, 6) |
+| `ASHARE-PAGE-MIGRATION.md` | القواعد الخمس غير القابلة للتفاوض (كلّ المراحل) + خطّ التحقّق السّداسيّ (مصفوفة القبول) + mobile-first 390×844 (spatial-contracts) |
+| `ASHARE-PAGES-INVENTORY.md` | مرجع مقارن لحالة صفحات V1 داخل المستودع الحاليّ — يُستخدَم لتحديد نمط تطبيقيّ لا كمصدر |
+| `ASHARE-V2-GAP-REPORT.md` | يُشير إلى الفجوات بين V1 الحاليّة وV2 — يُقرأ قبل بدء أيّ مرحلة لتجنّب تكرار مشاكل سابقة |
+| `BUILDING-A-FRONTEND.md` | الوصفة القانونيّة لتسجيل الخدمات + cascade + brand overrides + auth-dependent pages |
+| `STYLING-METHODOLOGY.md` | القوانين الخمسة — مرجع مرحلة 1 ومرحلة 10 (Admin) |
+| `DESIGN-CRITERIA.md` | سلالم الخط والتباعد + سقف اللوحة اللونيّة |
+| `VERIFICATION-LAYERS.md` | الـ 6 طبقات وربطها بالـ verify-scripts |
+| `CULTURE.md` | AddBlazorCultureStack + BrowserCultureProbe + NumeralToLatinSaveInterceptor (المرحلة 0, 2, 5) |
+| `DYNAMIC-ATTRIBUTES.md` | Template + Snapshot (المراحل 4 و6) + سمات غير معروفة |
+| `ROADMAP.md` | يُراجَع بعد كلّ مرحلة لوسم التقدّم |
+| `LIBRARY-ANATOMY.md` | Provider contracts للـ shells (ملحق ج-2) + Interceptors (Quota/Audit/Marketing) |
+
+**مرجع تطبيقيّ (لا مصدر)**: `Apps/Ashare.V2/*` في المستودع الحاليّ — يُقرأ عند الحاجة لمعرفة «كيف طُبّقت المنهجيّة سابقاً» في صفحة مشابهة، لكنّ الكود يُكتَب من جديد من الجرد القديم + المنهجيّة، لا نقلاً.
+
+**مُخرجات الخطّة المتوقّعة لكلّ مرحلة** (Definition of Done موحَّد):
+1. Merge request يضمّ: الكود + تحديث `ROADMAP.md` + نتائج السكربتات الستّة ملتصقة بوصف الـ PR.
+2. لقطتا شاشة (Desktop + Mobile 390×844) لكلّ صفحة تضاف، لا لقطات لصفحات لم تتغيّر.
+3. قسم في وصف الـ PR بعنوان «Methodology Compliance» يربط التغيير بالقانون/القاعدة/المستند.
