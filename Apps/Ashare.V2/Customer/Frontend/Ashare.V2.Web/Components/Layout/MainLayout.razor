@@ -6,6 +6,7 @@
 @inject ApiReader Api
 @inject L L
 @inject IJSRuntime JS
+@inject NavigationManager Nav
 @implements IDisposable
 
 <AcVersionGate IsLoading="@(!_checked)"
@@ -19,14 +20,28 @@
                LatestVersion="@_latest"
                SupportEmail="@_support">
     <ChildContent>
+        @* Mobile navbar — fixed top, visible only on small screens *@
+        <nav class="acm-mobile-nav">
+            <div class="acm-mobile-nav-inner">
+                <div class="acm-mobile-nav-brand">
+                    <img src="/images/ashare-logo.png" alt="عشير" class="acm-mobile-nav-logo" height="36" />
+                </div>
+                <div class="acm-mobile-nav-actions">
+                    <button class="acm-mobile-nav-btn" @onclick="@(() => Nav.NavigateTo("/search"))" aria-label="بحث">
+                        <AcIcon Name="search" Size="20" />
+                    </button>
+                    <button class="acm-mobile-nav-btn" @onclick="@(() => Nav.NavigateTo("/notifications"))" aria-label="إشعارات">
+                        <AcIcon Name="bell" Size="20" />
+                    </button>
+                </div>
+            </div>
+        </nav>
+
         <div class="acm-v2-topnav-wrap">
             <AcTopNav Items="_topItems">
                 <BrandContent>
                     <div class="acm-brand">
-                        <span class="acm-brand-mark" aria-hidden="true">
-                            <AcIcon Name="home" Size="20" />
-                        </span>
-                        <span class="acm-brand-text">@(L["app.name"])</span>
+                        <img src="/images/ashare-logo.png" alt="عشير" height="32" style="border-radius:4px;" />
                     </div>
                 </BrandContent>
                 <RightActions>
@@ -59,19 +74,21 @@
     {
         new BottomNavItemDto { Href = "/",          Label = "الرئيسية", IconName = "home",    Exact = true },
         new BottomNavItemDto { Href = "/explore",   Label = "استكشف",   IconName = "search" },
-        new BottomNavItemDto { Href = "/favorites", Label = "المفضلة",  IconName = "heart" },
         new BottomNavItemDto { Href = "/bookings",  Label = "حجوزاتي",  IconName = "receipt" },
+        new BottomNavItemDto { Href = "/chats",     Label = "الرسائل",  IconName = "message" },
+        new BottomNavItemDto { Href = "/favorites", Label = "المفضلة",  IconName = "heart" },
         new BottomNavItemDto { Href = "/me",        Label = "حسابي",    IconName = "user" }
     };
 
     private static readonly IReadOnlyList<AcTopNav.TopNavItem> _topItems = new[]
     {
-        new AcTopNav.TopNavItem("/",            "الرئيسية",   "home",    null, true),
-        new AcTopNav.TopNavItem("/explore",     "استكشف",     "search"),
-        new AcTopNav.TopNavItem("/favorites",   "المفضلة",    "heart"),
-        new AcTopNav.TopNavItem("/bookings",    "حجوزاتي",    "receipt"),
+        new AcTopNav.TopNavItem("/",             "الرئيسية",  "home",    null, true),
+        new AcTopNav.TopNavItem("/explore",      "استكشف",    "search"),
+        new AcTopNav.TopNavItem("/bookings",     "حجوزاتي",   "receipt"),
+        new AcTopNav.TopNavItem("/chats",        "الرسائل",   "message"),
+        new AcTopNav.TopNavItem("/favorites",    "المفضلة",   "heart"),
         new AcTopNav.TopNavItem("/notifications","الإشعارات", "bell"),
-        new AcTopNav.TopNavItem("/me",          "حسابي",      "user")
+        new AcTopNav.TopNavItem("/me",           "حسابي",     "user")
     };
 
     private string? _appliedTheme;
