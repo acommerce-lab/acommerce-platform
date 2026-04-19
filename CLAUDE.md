@@ -113,6 +113,59 @@ authority over business data.
 | **Sealed** (`.Sealed()`) | Block ALL interceptors | Sensitive internal operations |
 | **ExcludeInterceptor** | Block ONE interceptor by name | Skip audit on health checks |
 
+## Tool-call discipline — preventing "انتهاء زمن الاتصال"
+
+Historical analysis of all sessions in this project identified three failure
+patterns that caused session crashes or "connection timeout" errors. Rules to
+avoid repeating them:
+
+### Rule T1 — Always Read before Edit
+
+**Every single Edit failure** across all sessions was `"File has not been read
+yet"`, regardless of file size. Edit with old_string of 300 chars fails just
+as surely as one with 5000 chars if the file was not Read first.
+
+```
+WRONG:  Edit file X   ← no prior Read → is_error: true
+RIGHT:  Read file X → Edit file X  ← always works
+```
+
+When editing multiple files in one turn: Read ALL of them first in parallel,
+THEN issue the Edits.
+
+### Rule T2 — Never run server processes via Bash
+
+`dotnet run`, `dotnet watch`, and anything that binds a port is killed
+immediately by the sandbox with **exit code 144** (seccomp SIGSYS). It never
+starts; it never times out. Use only:
+
+```bash
+dotnet build  # verify compilation
+dotnet test   # run tests
+curl          # call an already-running API
+```
+
+If a server needs to be running, it must be started outside this session.
+
+### Rule T3 — Keep individual response turns small
+
+The "انتهاء زمن الاتصال" error is a client-side streaming timeout triggered
+when a single assistant turn generates too much content (many large tool calls
++ long explanatory text combined). Largest observed successful Write/Edit:
+sz=13,746 chars — the tool itself has no size limit. The limit is the **total
+volume of one turn**.
+
+To stay safe:
+- Do not batch more than ~5 large file writes into a single assistant turn.
+- For tasks touching 10+ files, break the work across multiple turns.
+- After each batch: build → verify → commit → then continue.
+
+### Rule T4 — Prefer Edit over Write for existing files
+
+`Edit` sends only the changed slice; `Write` sends the full file content.
+For files already in the repo, always use `Edit`. Use `Write` only for brand-new
+files or when a complete rewrite is genuinely simpler than a patch.
+
 ## Boundaries
 
 **Do freely**: read any file; add entities/controllers/services/pages/tests/docs;
