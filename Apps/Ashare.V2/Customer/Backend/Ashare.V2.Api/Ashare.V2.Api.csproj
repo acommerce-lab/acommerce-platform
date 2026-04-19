@@ -14,5 +14,12 @@
     <ProjectReference Include="..\..\..\..\..\libs\backend\core\ACommerce.OperationEngine\ACommerce.OperationEngine.csproj" />
     <ProjectReference Include="..\..\..\..\..\libs\backend\core\ACommerce.OperationEngine.Wire\ACommerce.OperationEngine.Wire.csproj" />
     <ProjectReference Include="..\..\..\..\..\libs\backend\core\ACommerce.OperationEngine.Interceptors\ACommerce.OperationEngine.Interceptors.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\backend\core\ACommerce.SharedKernel.Abstractions\ACommerce.SharedKernel.Abstractions.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Serilog.AspNetCore" Version="8.0.3" />
+    <PackageReference Include="Serilog.Sinks.Console" Version="6.0.0" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="7.0.0" />
   </ItemGroup>
 </Project>
