@@ -41,4 +41,26 @@ public class ApiReader
             return OperationEnvelopeFactory.Error<T>("network_error", ex.Message);
         }
     }
+
+    public async Task<OperationEnvelope<T>> PostAsync<T>(
+        string path,
+        object? body = null,
+        CancellationToken ct = default)
+    {
+        try
+        {
+            var content = body is null
+                ? null
+                : new StringContent(JsonSerializer.Serialize(body, _json),
+                                    System.Text.Encoding.UTF8, "application/json");
+            var resp = await _http.PostAsync(path, content, ct);
+            var raw = await resp.Content.ReadAsStringAsync(ct);
+            return JsonSerializer.Deserialize<OperationEnvelope<T>>(raw, _json)
+                   ?? OperationEnvelopeFactory.Error<T>("parse_error", "empty envelope");
+        }
+        catch (Exception ex)
+        {
+            return OperationEnvelopeFactory.Error<T>("network_error", ex.Message);
+        }
+    }
 }

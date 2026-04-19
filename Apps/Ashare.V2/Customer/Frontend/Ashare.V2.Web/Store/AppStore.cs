@@ -57,6 +57,9 @@ public class UiState
     public bool IsArabic => Culture.Language == "ar";
     public bool IsRtl => IsArabic;
     public bool IsDark => Theme == "dark";
+
+    /// <summary>true عند صفحات تسجيل الدخول — يُخفي navbar + bottom nav.</summary>
+    public bool HideChrome { get; set; }
 }
 
 public class AuthState

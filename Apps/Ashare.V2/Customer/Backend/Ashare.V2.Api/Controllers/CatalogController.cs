@@ -373,7 +373,8 @@ public class CatalogController : ControllerBase
                     l.Lat, l.Lng, l.Amenities,
                     ownerId: l.OwnerId, featured: l.IsFeatured, capacity: l.Capacity,
                     rating: l.Rating, categoryId: l.CategoryId,
-                    status: newStatus, viewsCount: l.ViewsCount, bookingsCount: l.BookingsCount);
+                    status: newStatus, viewsCount: l.ViewsCount, bookingsCount: l.BookingsCount,
+                    images: l.Images);
                 return Task.CompletedTask;
             })
             .Build();
@@ -612,7 +613,8 @@ public class CatalogController : ControllerBase
                     categoryId:  req.CategoryId ?? l.CategoryId,
                     status:      l.Status,
                     viewsCount:  l.ViewsCount,
-                    bookingsCount: l.BookingsCount);
+                    bookingsCount: l.BookingsCount,
+                    images: l.Images);
                 return Task.CompletedTask;
             })
             .Build();

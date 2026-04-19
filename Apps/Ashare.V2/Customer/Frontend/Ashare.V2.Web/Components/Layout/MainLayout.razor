@@ -9,6 +9,7 @@
 @inject NavigationManager Nav
 @implements IDisposable
 
+<div class="@(Store.Ui.HideChrome ? "acm-chrome-hidden" : "")">
 <AcVersionGate IsLoading="@(!_checked)"
                IsBlocked="@_versionBlocked"
                RequiredTitle="@(L["version.required"])"
@@ -61,8 +62,10 @@
             </div>
         </main>
 
+        <CookieConsentBanner />
     </ChildContent>
 </AcVersionGate>
+</div>
 
 @code {
     private bool _checked;
@@ -95,7 +98,24 @@
     private string? _appliedTheme;
     private string? _appliedLang;
 
-    protected override void OnInitialized() => Store.OnChanged += OnChange;
+    protected override void OnInitialized()
+    {
+        Store.OnChanged += OnChange;
+        Nav.LocationChanged += OnLocationChanged;
+        UpdateChrome(Nav.Uri);
+    }
+
+    private void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
+    {
+        UpdateChrome(e.Location);
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void UpdateChrome(string uri)
+    {
+        var path = new Uri(uri).AbsolutePath;
+        Store.Ui.HideChrome = path.StartsWith("/login", StringComparison.OrdinalIgnoreCase);
+    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -124,7 +144,12 @@
     }
 
     private void OnChange() => InvokeAsync(StateHasChanged);
-    public void Dispose() => Store.OnChanged -= OnChange;
+
+    public void Dispose()
+    {
+        Store.OnChanged -= OnChange;
+        Nav.LocationChanged -= OnLocationChanged;
+    }
 
     private sealed record VersionDto(string Current, string Latest, bool IsBlocked, string? StoreUrl, string? SupportEmail);
 }

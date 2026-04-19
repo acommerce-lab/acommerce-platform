@@ -62,6 +62,7 @@ builder.Services.AddOperationInterceptors(r =>
 {
     r.Register(new OwnershipInterceptor());
     r.Register(new ListingQuotaInterceptor());
+    r.Register(new PersistenceInterceptor());
 });
 builder.Services.AddSingleton<ACommerce.OperationEngine.Interceptors.IOperationInterceptor>(
     sp => sp.GetRequiredService<OperationLogInterceptor>());
@@ -79,6 +80,9 @@ app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v2/swagger.json", "Ashare V2 A
 
 app.MapControllers();
 app.MapHealthChecks("/healthz");
+
+// ─── استعادة البيانات المحفوظة (إن وُجد snapshot) ──────────────────────────
+await Ashare.V2.Api.Services.JsonSnapshotStore.RestoreAsync();
 
 app.Run();
 

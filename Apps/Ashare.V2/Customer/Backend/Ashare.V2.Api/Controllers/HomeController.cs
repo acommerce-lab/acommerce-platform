@@ -40,7 +40,7 @@ public class HomeController : ControllerBase
         status = l.Status,
         isFeatured = l.IsFeatured,
         viewCount = l.ViewsCount,
-        thumbnailUrl = (string?)null,
+        thumbnailUrl = l.Images.FirstOrDefault(),
         ownerId = l.OwnerId,
         ownerName = l.OwnerId == AshareV2Seed.CurrentUserId ? AshareV2Seed.Profile.FullName : "مالك آخر",
         ownerAvatarUrl = (string?)null,
@@ -134,7 +134,7 @@ public class HomeController : ControllerBase
             id = l.Id,
             title = l.Title,
             description = l.Description,
-            images = Array.Empty<string>(),  // لا صور حقيقيّة في الـ seed
+            images = l.Images.ToList(),
             locationText = $"{l.City} — {l.District}",
             capacity = l.Capacity,
             rating = l.Rating,
