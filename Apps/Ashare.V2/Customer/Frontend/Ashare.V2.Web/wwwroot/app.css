@@ -70,8 +70,14 @@ h3 { font-size: 16px; font-weight: 700; margin: 0 0 8px; }
     height: 100%;
     padding: 0 16px;
 }
-.acm-mobile-nav-brand { display: flex; align-items: center; }
-.acm-mobile-nav-logo  { border-radius: 4px; }
+.acm-mobile-nav-brand { display: flex; align-items: center; gap: 8px; }
+.acm-mobile-nav-logo  { border-radius: 4px; flex-shrink: 0; }
+.acm-mobile-nav-brand-name {
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: var(--ac-primary);
+    line-height: 1;
+}
 .acm-mobile-nav-actions { display: flex; gap: 4px; }
 .acm-mobile-nav-btn {
     appearance: none;
