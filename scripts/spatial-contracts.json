@@ -67,6 +67,12 @@
       "container": ".adm-navbar-actions",
       "rule": "siblings-same-y-in-flex-row",
       "tolerance_px": 4
+    },
+    {
+      "container": ".acm-mobile-nav-inner",
+      "rule": "siblings-same-y-in-flex-row",
+      "description": "Ashare V2 mobile navbar: brand logo and action buttons must share the same horizontal baseline",
+      "tolerance_px": 6
     }
   ],
 

@@ -568,6 +568,90 @@ async function verifyIconButtons(page) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════
+// X. Brand palette enforcement — interactive elements must not use
+//    off-brand background colors. Catches un-reset OS default button
+//    backgrounds (gray, ButtonFace) that appear without brand CSS.
+//
+//    Approved backgrounds: transparent, brand teal (#345454), brand
+//    orange (#F4844C), brand peach (#FEE8D6), white, ac-surface tokens.
+//    Gray (e.g. rgb(N,N,N) with near-equal channels) = OS default = violation.
+// ═══════════════════════════════════════════════════════════════════════
+async function verifyBrandBackgrounds(page) {
+    const violations = await page.evaluate(() => {
+        const results = [];
+        const candidates = document.querySelectorAll('button, .ac-btn, .ac-card, nav, header');
+        for (const el of candidates) {
+            const s = getComputedStyle(el);
+            const bg = s.backgroundColor;
+            if (!bg || bg === 'rgba(0, 0, 0, 0)' || bg === 'transparent') continue;
+            // Parse rgb(r,g,b) or rgba(r,g,b,a)
+            const m = bg.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+            if (!m) continue;
+            const [r, g, b] = [+m[1], +m[2], +m[3]];
+            // Convert to hex for brand check
+            const hex = '#' + [r, g, b].map(v => v.toString(16).padStart(2, '0')).join('').toUpperCase();
+            // Allowed brand colors (exact and near-match ±10)
+            const brandColors = [
+                [0x34, 0x54, 0x54],   // #345454 teal
+                [0x26, 0x3F, 0x3F],   // #263F3F dark teal
+                [0x3E, 0x5A, 0x56],   // #3E5A56 SVG teal
+                [0xF4, 0x84, 0x4C],   // #F4844C orange
+                [0xFE, 0xE8, 0xD6],   // #FEE8D6 peach
+                [0xFF, 0xFF, 0xFF],   // white
+                [0xF8, 0xF7, 0xF5],   // off-white surface
+                [0x1C, 0x19, 0x17],   // near-black
+                [0xE5, 0xE2, 0xDF],   // border color
+            ];
+            const near = brandColors.some(([br, bg2, bb]) =>
+                Math.abs(r - br) <= 15 && Math.abs(g - bg2) <= 15 && Math.abs(b - bb) <= 15
+            );
+            if (near) continue;
+            // Flag achromatic grays that signal un-reset OS defaults
+            const maxDiff = Math.max(Math.abs(r - g), Math.abs(g - b), Math.abs(r - b));
+            if (maxDiff <= 20 && r >= 150 && r <= 230) {
+                results.push({ el: el.tagName + (el.className ? '.' + el.className.trim().split(/\s+/)[0] : ''), hex });
+            }
+        }
+        return results;
+    });
+    for (const v of violations) {
+        recordViolation('X-brand-bg', `${v.el} has off-brand achromatic background ${v.hex} (likely un-reset OS default)`, v.el);
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// Y. Spacing scale enforcement — padding/margin on key structural
+//    elements must be on the 4-point grid (multiple of 4px).
+//    Catches one-off magic numbers that break visual rhythm.
+// ═══════════════════════════════════════════════════════════════════════
+async function verifySpacingScale(page) {
+    const violations = await page.evaluate(() => {
+        const results = [];
+        const targets = document.querySelectorAll('.ac-btn, .ac-card-body, .ac-card-header, nav, .acm-mobile-nav-inner, .ac-topnav');
+        for (const el of targets) {
+            const s = getComputedStyle(el);
+            const props = ['paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft'];
+            for (const prop of props) {
+                const val = parseFloat(s[prop]);
+                if (!val || val === 0) continue;
+                // Must be a multiple of 4 (tolerance ±0.5 for sub-pixel)
+                const mod = val % 4;
+                if (mod > 0.5 && mod < 3.5) {
+                    results.push({ el: el.tagName + (el.className ? '.' + el.className.trim().split(/\s+/)[0] : ''), prop, val });
+                }
+            }
+        }
+        return results;
+    });
+    const max = 5;
+    let count = 0;
+    for (const v of violations) {
+        if (count++ >= max) break;
+        recordViolation('Y-spacing-scale', `${v.el} ${v.prop}: ${v.val}px is not on the 4-point grid`, v.el);
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════
 // K. UI-only operations must not fire /api/ requests when toggled
 // ═══════════════════════════════════════════════════════════════════════
 async function verifyUiOnlyOps(page, url) {
@@ -626,6 +710,8 @@ async function verifyUrl(browser, url) {
         await verifyTemplateCompliance(page);
         await verifyBoxModel(page);
         await verifyIconButtons(page);
+        await verifyBrandBackgrounds(page);
+        await verifySpacingScale(page);
         await verifyUiOnlyOps(page, url);
     } catch (e) {
         currentUrlReport.error = String(e).slice(0, 200);
