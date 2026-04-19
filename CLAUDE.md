@@ -17,6 +17,23 @@ To run Layer 6 runtime verification (Playwright), also download the
 Chrome-for-Testing zip as documented in the same file — the default
 Playwright CDN is blocked in sandboxed sessions.
 
+### عشير القديم — Old Ashare reference app
+
+**"عشير القديم"** always means the old Ashare app from the external
+repository below. It does **NOT** mean Ashare V1 (`Apps/Ashare.Api` /
+`Apps/Ashare.Web`) inside this repository — those are a different,
+earlier implementation on this same platform.
+
+If any task references "عشير القديم" (old Ashare) or asks you to compare
+with or match the old Ashare UI/backend, clone it into `/tmp` first:
+
+```bash
+git clone https://github.com/acommerce-lab/ACommerce.Libraries /tmp/ACommerce.Libraries
+```
+
+See **`docs/DOTNET-SETUP.md`** → section "عشير القديم" for the full
+loading procedure (includes the dotnet install prerequisite).
+
 ## Read order
 
 1. **`docs/MODEL.md`** — the Operation-Accounting Model (OAM). This is the
