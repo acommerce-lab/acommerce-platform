@@ -1,13 +1,14 @@
-/* Ashare V2 — الهوية البصرية مطابقة للتطبيق الأصلي.
-   خط Cairo + نظام ألوان عشير (أزرق ملكي + برتقالي). */
-@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700&display=swap');
+/* Ashare V2 — الهوية البصرية مطابقة لدليل هوية عشير 2025.
+   اللون الرئيسي: زيتوني عميق #345454 — البرتقالي الناعم #F4844C.
+   خط Cairo (بديل ويب لـ Brando Arabic) + Rubik للنص الإنجليزي. */
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700&family=Rubik:wght@300;400;500;600;700&display=swap');
 
 :root {
-    /* ── Brand: Ashare Royal Blue identity ──────────────────────────── */
-    --ac-primary:       #1E40AF;   /* Royal Blue — CTAs + accents */
-    --ac-primary-dark:  #1E3A8A;   /* Darker blue for hover/active */
-    --ac-primary-light: #3B82F6;   /* Lighter blue for subtle accents */
-    --ac-primary-hover: #1E3A8A;   /* Alias for primary-dark */
+    /* ── Brand: Ashare Deep Olive Green + Soft Orange (دليل الهوية 2025) */
+    --ac-primary:       #345454;   /* Deep Olive Green — اللون الرئيسي */
+    --ac-primary-dark:  #243b3b;   /* Darker olive for hover/active */
+    --ac-primary-light: #4a7070;   /* Lighter olive for subtle accents */
+    --ac-primary-hover: #243b3b;   /* Alias for primary-dark */
     --ac-secondary:     #F4844C;   /* Soft Orange — highlights فقط */
     --ac-secondary-hover:#E06D34;
 
@@ -709,42 +710,42 @@ main {
 
 /* نمط الشعار */
 .ashare-pattern-logo {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60' viewBox='0 0 60 60'%3E%3Cpath d='M15 25 L25 15 L35 25 M25 25 L25 18' stroke='%231E40AF' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3Cpath d='M25 25 L35 15 L45 25' stroke='%23F4844C' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3Ccircle cx='25' cy='20' r='3' fill='%231E40AF'/%3E%3Ccircle cx='35' cy='20' r='3' fill='%23F4844C'/%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60' viewBox='0 0 60 60'%3E%3Cpath d='M15 25 L25 15 L35 25 M25 25 L25 18' stroke='%23345454' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3Cpath d='M25 25 L35 15 L45 25' stroke='%23F4844C' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3Ccircle cx='25' cy='20' r='3' fill='%23345454'/%3E%3Ccircle cx='35' cy='20' r='3' fill='%23F4844C'/%3E%3C/svg%3E");
     background-repeat: repeat;
     background-size: 60px 60px;
 }
 
 /* نمط السدو — زخارف البادية (شمال المملكة) */
 .ashare-pattern-sadu {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 40 40'%3E%3Cpath d='M0 20h40M20 0v40M10 10l20 20M30 10L10 30' stroke='%231E40AF' stroke-width='1.5' stroke-linecap='square'/%3E%3Crect x='15' y='15' width='10' height='10' fill='%23F4844C' opacity='0.3'/%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 40 40'%3E%3Cpath d='M0 20h40M20 0v40M10 10l20 20M30 10L10 30' stroke='%23345454' stroke-width='1.5' stroke-linecap='square'/%3E%3Crect x='15' y='15' width='10' height='10' fill='%23F4844C' opacity='0.3'/%3E%3C/svg%3E");
     background-repeat: repeat;
     background-size: 40px 40px;
 }
 
 /* نمط القط العسيري — زخارف جنوب المملكة */
 .ashare-pattern-asiri {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='50' height='50' viewBox='0 0 50 50'%3E%3Crect x='10' y='10' width='30' height='30' fill='none' stroke='%231E40AF' stroke-width='2'/%3E%3Cpath d='M10 25h30M25 10v30' stroke='%23F4844C' stroke-width='2'/%3E%3Ccircle cx='25' cy='25' r='8' fill='none' stroke='%231E40AF' stroke-width='1.5'/%3E%3Cpath d='M17 17l16 16M33 17L17 33' stroke='%23F4844C' stroke-width='1' opacity='0.5'/%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='50' height='50' viewBox='0 0 50 50'%3E%3Crect x='10' y='10' width='30' height='30' fill='none' stroke='%23345454' stroke-width='2'/%3E%3Cpath d='M10 25h30M25 10v30' stroke='%23F4844C' stroke-width='2'/%3E%3Ccircle cx='25' cy='25' r='8' fill='none' stroke='%23345454' stroke-width='1.5'/%3E%3Cpath d='M17 17l16 16M33 17L17 33' stroke='%23F4844C' stroke-width='1' opacity='0.5'/%3E%3C/svg%3E");
     background-repeat: repeat;
     background-size: 50px 50px;
 }
 
 /* نمط الأبواب النجديّة — وسط المملكة */
 .ashare-pattern-najdi {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60' viewBox='0 0 60 60'%3E%3Crect x='10' y='10' width='40' height='40' fill='none' stroke='%231E40AF' stroke-width='2'/%3E%3Cpath d='M30 10v40M10 30h40' stroke='%23F4844C' stroke-width='2'/%3E%3Ccircle cx='30' cy='30' r='8' fill='none' stroke='%231E40AF' stroke-width='1.5'/%3E%3Crect x='15' y='15' width='30' height='30' fill='none' stroke='%23F4844C' stroke-width='1' opacity='0.4'/%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60' viewBox='0 0 60 60'%3E%3Crect x='10' y='10' width='40' height='40' fill='none' stroke='%23345454' stroke-width='2'/%3E%3Cpath d='M30 10v40M10 30h40' stroke='%23F4844C' stroke-width='2'/%3E%3Ccircle cx='30' cy='30' r='8' fill='none' stroke='%23345454' stroke-width='1.5'/%3E%3Crect x='15' y='15' width='30' height='30' fill='none' stroke='%23F4844C' stroke-width='1' opacity='0.4'/%3E%3C/svg%3E");
     background-repeat: repeat;
     background-size: 60px 60px;
 }
 
 /* نمط الروشن — الحجاز */
 .ashare-pattern-roshan {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='30' height='30' viewBox='0 0 30 30'%3E%3Cpath d='M0 15h30M15 0v30M7.5 7.5l15 15M22.5 7.5l-15 15' stroke='%231E40AF' stroke-width='0.5'/%3E%3Ccircle cx='15' cy='15' r='5' fill='none' stroke='%23F4844C' stroke-width='1'/%3E%3Ccircle cx='15' cy='15' r='2' fill='%231E40AF'/%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='30' height='30' viewBox='0 0 30 30'%3E%3Cpath d='M0 15h30M15 0v30M7.5 7.5l15 15M22.5 7.5l-15 15' stroke='%23345454' stroke-width='0.5'/%3E%3Ccircle cx='15' cy='15' r='5' fill='none' stroke='%23F4844C' stroke-width='1'/%3E%3Ccircle cx='15' cy='15' r='2' fill='%23345454'/%3E%3C/svg%3E");
     background-repeat: repeat;
     background-size: 30px 30px;
 }
 
 /* نمط الجصّ الأحسائي — المنطقة الشرقيّة */
 .ashare-pattern-gypsum {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 40 40'%3E%3Cellipse cx='20' cy='20' rx='15' ry='10' fill='none' stroke='%231E40AF' stroke-width='1'/%3E%3Cellipse cx='20' cy='20' rx='10' ry='15' fill='none' stroke='%231E40AF' stroke-width='1'/%3E%3Ccircle cx='20' cy='20' r='5' fill='%23F4844C' opacity='0.2'/%3E%3Cpath d='M5 20h30M20 5v30' stroke='%231E40AF' stroke-width='0.5' stroke-dasharray='2,2'/%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 40 40'%3E%3Cellipse cx='20' cy='20' rx='15' ry='10' fill='none' stroke='%23345454' stroke-width='1'/%3E%3Cellipse cx='20' cy='20' rx='10' ry='15' fill='none' stroke='%23345454' stroke-width='1'/%3E%3Ccircle cx='20' cy='20' r='5' fill='%23F4844C' opacity='0.2'/%3E%3Cpath d='M5 20h30M20 5v30' stroke='%23345454' stroke-width='0.5' stroke-dasharray='2,2'/%3E%3C/svg%3E");
     background-repeat: repeat;
     background-size: 40px 40px;
 }
