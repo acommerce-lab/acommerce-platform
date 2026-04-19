@@ -1,0 +1,340 @@
+@namespace ACommerce.Templates.Marketplace
+
+@*
+    AcListingExplorePage — صفحة استكشاف الإعلانات.
+    بنية مطابقة لـ Ashare/Apps/Ashare.Shared/Components/Pages/Explore.razor:
+      ├─ Filter bar (chip "الكل" + شرائح فئات + زرّ sliders)
+      ├─ Sort bar (عدد النتائج + قائمة ترتيب + view toggle)
+      ├─ List view (شبكة بطاقات)
+      ├─ Map view (placeholder الآن — يُربَط Leaflet في مرحلة لاحقة)
+      │   └─ AcBottomSheet للمعاينة عند اختيار بطاقة
+      └─ AcModal لفلاتر السعر + السعة + التقييم
+
+    Operation-aware: كل تفاعل يُصدِر Entry.
+*@
+
+<div class="acs-page acm-explore">
+
+    @if (!string.IsNullOrEmpty(Title))
+    {
+        <h1 class="acm-explore-title">@Title</h1>
+    }
+
+    <div class="acm-explore-filterbar">
+        <AcHScroll Class="acm-explore-chips">
+            <AcFilterChip Label="@AllLabel"
+                          Active="@(string.IsNullOrEmpty(SelectedCategoryId))"
+                          OnClick="@(() => SelectCategory(null))" />
+            @foreach (var c in Categories)
+            {
+                <AcFilterChip Label="@c.Label"
+                              Icon="@c.Icon"
+                              Active="@(SelectedCategoryId == c.Id)"
+                              OnClick="@(() => SelectCategory(c.Id))" />
+            }
+        </AcHScroll>
+        <button type="button" class="acm-explore-filterbtn" @onclick="OpenFiltersInternal" aria-label="@FiltersLabel">
+            <AcIcon Name="sliders" Size="18" />
+        </button>
+    </div>
+
+    <div class="acm-explore-sortbar">
+        <span class="acm-explore-count">@ResultsText</span>
+        <div class="acm-explore-sortbar-right">
+            <AcSortMenu Options="SortOptions"
+                        Value="@Sort"
+                        ValueChanged="HandleSortChanged" />
+            <AcViewToggle Options="@_viewOptions"
+                          Value="@View"
+                          ValueChanged="HandleViewChanged" />
+        </div>
+    </div>
+
+    @if (Data is null)
+    {
+        <AcLoadingState />
+    }
+    else if (View == "map")
+    {
+        <AcListingMapPage Listings="@MapListings" OnListingOpen="OpenListing" />
+    }
+    else if (Data.Count == 0)
+    {
+        <AcEmptyState IconName="building" Message="@EmptyMessage" />
+    }
+    else
+    {
+        <div class="acm-explore-grid">
+            @foreach (var l in Data)
+            {
+                <AcSpaceCard Title="@l.Title"
+                             ImageUrl="@l.ThumbnailUrl"
+                             Location="@LocationText(l)"
+                             Capacity="@l.Capacity"
+                             Rating="@l.Rating"
+                             PriceLabel="@PriceText(l)"
+                             Ribbon="@(l.IsFeatured ? "مميّز" : null)"
+                             IsFavorite="@IsFavorite(l.Id)"
+                             OnOpen="() => OpenListing(l)"
+                             OnToggleFavorite="on => ToggleFavorite(l, on)" />
+            }
+        </div>
+    }
+</div>
+
+<AcModal Open="@_filtersOpen" OpenChanged="OnFiltersOpenChanged"
+         Title="@FiltersLabel">
+    <ChildContent>
+        <div class="acm-explore-filtersec">
+            <h4 class="acm-explore-filtersec-title">@PriceRangeLabel</h4>
+            <div class="acm-explore-pricerange">
+                <AcInput Type="number" Placeholder="@MinLabel"
+                         Value="@(_pendingMinPrice?.ToString())"
+                         ValueChanged="v => _pendingMinPrice = ParseDecimal(v)" />
+                <span>—</span>
+                <AcInput Type="number" Placeholder="@MaxLabel"
+                         Value="@(_pendingMaxPrice?.ToString())"
+                         ValueChanged="v => _pendingMaxPrice = ParseDecimal(v)" />
+            </div>
+        </div>
+
+        <div class="acm-explore-filtersec">
+            <h4 class="acm-explore-filtersec-title">@CapacityLabel</h4>
+            <div class="acm-explore-capacity">
+                @foreach (var opt in CapacityOptions)
+                {
+                    <AcFilterChip Label="@opt.Label"
+                                  Active="@(_pendingCapacity == opt.Value)"
+                                  OnClick="@(() => _pendingCapacity = opt.Value)" />
+                }
+            </div>
+        </div>
+
+        <div class="acm-explore-filtersec">
+            <h4 class="acm-explore-filtersec-title">@RatingLabel</h4>
+            <div class="acm-explore-rating">
+                @for (int r = 1; r <= 5; r++)
+                {
+                    var rating = r;
+                    <AcFilterChip Label="@rating.ToString()"
+                                  IconTrailing="@(starFrag())"
+                                  Active="@(_pendingMinRating == rating)"
+                                  OnClick="@(() => _pendingMinRating = rating)" />
+                }
+            </div>
+        </div>
+    </ChildContent>
+
+    <Footer>
+        <AcButton Variant="ghost" Text="@ResetLabel" OnClick="ResetFilters" />
+        <AcButton Variant="primary" Text="@ApplyLabel" OnClick="ApplyFilters" />
+    </Footer>
+</AcModal>
+
+@code {
+    [Parameter] public IReadOnlyList<ListingRowDto>? Data { get; set; }
+    [Parameter] public ITemplateEngine? Engine { get; set; }
+    [Parameter] public ITemplateStore? Store { get; set; }
+
+    [Parameter] public string? Title { get; set; }
+    [Parameter] public IReadOnlyList<CategoryTileDto> Categories { get; set; } = Array.Empty<CategoryTileDto>();
+    [Parameter] public string? SelectedCategoryId { get; set; }
+    [Parameter] public string? Sort { get; set; } = "newest";
+    [Parameter] public string? View { get; set; } = "list";
+
+    [Parameter] public string AllLabel { get; set; } = "الكل";
+    [Parameter] public string FiltersLabel { get; set; } = "تصفية النتائج";
+    [Parameter] public string MapComingSoonMessage { get; set; } = "عرض الخريطة قيد الإعداد";
+    [Parameter] public string EmptyMessage { get; set; } = "لا توجد نتائج — جرّب تغيير التصفية";
+
+    [Parameter] public string PriceRangeLabel { get; set; } = "نطاق السعر";
+    [Parameter] public string MinLabel { get; set; } = "من";
+    [Parameter] public string MaxLabel { get; set; } = "إلى";
+    [Parameter] public string CapacityLabel { get; set; } = "السعة";
+    [Parameter] public string RatingLabel { get; set; } = "الحد الأدنى للتقييم";
+    [Parameter] public string ResetLabel { get; set; } = "إعادة تعيين";
+    [Parameter] public string ApplyLabel { get; set; } = "تطبيق";
+
+    [Parameter] public IReadOnlyDictionary<string, string> SortOptions { get; set; } =
+        new Dictionary<string, string>
+        {
+            ["newest"]     = "الأحدث",
+            ["price_low"]  = "السعر: الأقل",
+            ["price_high"] = "السعر: الأعلى",
+            ["rating"]     = "التقييم",
+            ["capacity"]   = "السعة"
+        };
+
+    [Parameter] public IReadOnlyList<CapacityOption> CapacityOptions { get; set; } =
+    [
+        new(0,  "الكل"),
+        new(5,  "1–5"),
+        new(10, "6–10"),
+        new(20, "11–20"),
+        new(50, "20+")
+    ];
+
+    [Parameter] public ISet<string>? FavoriteIds { get; set; }
+    [Parameter] public ExploreFilters? Filters { get; set; }
+
+    /// <summary>قائمة الإعلانات مع إحداثيّات للعرض على الخريطة (View="map" فقط).</summary>
+    [Parameter] public IReadOnlyList<AcListingMapPage.MapListingDto> MapListings { get; set; } = Array.Empty<AcListingMapPage.MapListingDto>();
+
+    [Parameter] public EventCallback<string?> OnCategorySelected { get; set; }
+    [Parameter] public EventCallback<string?> OnSortChanged { get; set; }
+    [Parameter] public EventCallback<string?> OnViewChanged { get; set; }
+    [Parameter] public EventCallback<ListingRowDto> OnListingOpen { get; set; }
+    [Parameter] public EventCallback<(ListingRowDto Listing, bool On)> OnFavoriteToggled { get; set; }
+    [Parameter] public EventCallback<ExploreFilters> OnFiltersApplied { get; set; }
+
+    private readonly IReadOnlyList<AcViewToggle.ViewOption> _viewOptions =
+    [
+        new("list", "list", "قائمة"),
+        new("grid", "grid", "شبكة"),
+        new("map",  "map",  "خريطة")
+    ];
+
+    private bool _filtersOpen;
+    private decimal? _pendingMinPrice;
+    private decimal? _pendingMaxPrice;
+    private int _pendingCapacity;
+    private int _pendingMinRating;
+
+    protected override void OnParametersSet()
+    {
+        if (Filters is not null)
+        {
+            _pendingMinPrice  = Filters.MinPrice;
+            _pendingMaxPrice  = Filters.MaxPrice;
+            _pendingCapacity  = Filters.Capacity;
+            _pendingMinRating = Filters.MinRating;
+        }
+    }
+
+    private string ResultsText =>
+        Data is null ? "…" : $"{Data.Count} نتيجة";
+
+    private bool IsFavorite(string id) => FavoriteIds?.Contains(id) ?? false;
+
+    private static string? LocationText(ListingRowDto l) =>
+        string.Join(" — ", new[] { l.City, l.District }.Where(s => !string.IsNullOrWhiteSpace(s)));
+
+    private static string PriceText(ListingRowDto l)
+    {
+        var unit = l.TimeUnit switch
+        {
+            "day" or "يوم" => "/ يوم",
+            "night" or "ليلة" => "/ ليلة",
+            "week" or "أسبوع" => "/ أسبوع",
+            "month" or "شهر" => "/ شهر",
+            _ => ""
+        };
+        return $"{l.Price:0} {l.Currency} {unit}".Trim();
+    }
+
+    private static decimal? ParseDecimal(string? s) =>
+        decimal.TryParse(s, out var d) ? d : null;
+
+    private RenderFragment starFrag() => builder =>
+    {
+        builder.OpenComponent(0, typeof(AcIcon));
+        builder.AddAttribute(1, "Name", "star");
+        builder.AddAttribute(2, "Filled", true);
+        builder.AddAttribute(3, "Size", 12);
+        builder.CloseComponent();
+    };
+
+    private async Task SelectCategory(string? id)
+    {
+        if (Engine is not null)
+        {
+            var op = Entry.Create("catalog.filter")
+                .From($"User:{Store?.UserId?.ToString() ?? "anon"}", 1, ("role", "filterer"))
+                .To("Catalog:listings", 1, ("role", "target"))
+                .Tag("category", id ?? "all")
+                .Build();
+            await Engine.ExecuteAsync<object>(op, new { CategoryId = id });
+        }
+        await OnCategorySelected.InvokeAsync(id);
+    }
+
+    private async Task HandleSortChanged(string? value)
+    {
+        if (Engine is not null)
+        {
+            var op = Entry.Create("catalog.filter")
+                .From($"User:{Store?.UserId?.ToString() ?? "anon"}", 1, ("role", "filterer"))
+                .To("Catalog:listings", 1, ("role", "target"))
+                .Tag("sort", value ?? "")
+                .Build();
+            await Engine.ExecuteAsync<object>(op, new { Sort = value });
+        }
+        await OnSortChanged.InvokeAsync(value);
+    }
+
+    private async Task HandleViewChanged(string? value)
+    {
+        await OnViewChanged.InvokeAsync(value);
+    }
+
+    private async Task OpenListing(ListingRowDto l)
+    {
+        if (Engine is not null)
+        {
+            var op = Entry.Create("listing.view")
+                .From($"User:{Store?.UserId?.ToString() ?? "anon"}", 1, ("role", "viewer"))
+                .To($"Listing:{l.Id}", 1, ("role", "target"))
+                .Build();
+            await Engine.ExecuteAsync<object>(op, new { ListingId = l.Id });
+        }
+        await OnListingOpen.InvokeAsync(l);
+    }
+
+    private async Task ToggleFavorite(ListingRowDto l, bool on)
+    {
+        if (Engine is not null && Store?.UserId is not null)
+        {
+            var op = Entry.Create("listing.favorite")
+                .From($"User:{Store.UserId}", 1, ("role", "user"))
+                .To($"Listing:{l.Id}", 1, ("role", "target"))
+                .Tag("state", on ? "on" : "off")
+                .Build();
+            await Engine.ExecuteAsync<object>(op, new { ListingId = l.Id, On = on });
+        }
+        await OnFavoriteToggled.InvokeAsync((l, on));
+    }
+
+    private void OpenFiltersInternal() => _filtersOpen = true;
+    private void OnFiltersOpenChanged(bool open) => _filtersOpen = open;
+
+    private void ResetFilters()
+    {
+        _pendingMinPrice = null;
+        _pendingMaxPrice = null;
+        _pendingCapacity = 0;
+        _pendingMinRating = 0;
+    }
+
+    private async Task ApplyFilters()
+    {
+        _filtersOpen = false;
+        var f = new ExploreFilters(_pendingMinPrice, _pendingMaxPrice, _pendingCapacity, _pendingMinRating);
+
+        if (Engine is not null)
+        {
+            var op = Entry.Create("catalog.filter")
+                .From($"User:{Store?.UserId?.ToString() ?? "anon"}", 1, ("role", "filterer"))
+                .To("Catalog:listings", 1, ("role", "target"))
+                .Tag("price_min", f.MinPrice?.ToString() ?? "")
+                .Tag("price_max", f.MaxPrice?.ToString() ?? "")
+                .Tag("capacity",  f.Capacity.ToString())
+                .Tag("rating",    f.MinRating.ToString())
+                .Build();
+            await Engine.ExecuteAsync<object>(op, f);
+        }
+        await OnFiltersApplied.InvokeAsync(f);
+    }
+
+    public record CapacityOption(int Value, string Label);
+    public record ExploreFilters(decimal? MinPrice, decimal? MaxPrice, int Capacity, int MinRating);
+}

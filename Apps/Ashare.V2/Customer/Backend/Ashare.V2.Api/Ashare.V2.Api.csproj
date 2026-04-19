@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RollForward>LatestMajor</RollForward>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>Ashare.V2.Api</RootNamespace>
+    <AssemblyName>Ashare.V2.Api</AssemblyName>
+    <UserSecretsId>ashare-v2-api</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- OperationEngine + Wire (envelope format) + Interceptors (cross-cutting) -->
+    <ProjectReference Include="..\..\..\..\..\libs\backend\core\ACommerce.OperationEngine\ACommerce.OperationEngine.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\backend\core\ACommerce.OperationEngine.Wire\ACommerce.OperationEngine.Wire.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\backend\core\ACommerce.OperationEngine.Interceptors\ACommerce.OperationEngine.Interceptors.csproj" />
+  </ItemGroup>
+</Project>

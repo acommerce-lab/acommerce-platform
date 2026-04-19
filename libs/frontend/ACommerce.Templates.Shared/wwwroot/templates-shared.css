@@ -594,3 +594,58 @@
     margin: 16px 0 10px;
     color: var(--ac-text);
 }
+
+/* ── AcSearchSuggestionsPage ─────────────────────────────────────────── */
+.acs-search { display: flex; flex-direction: column; gap: 16px; }
+.acs-search-quick { display: flex; flex-wrap: wrap; gap: 8px; }
+.acs-search-section { display: flex; flex-direction: column; gap: 8px; }
+.acs-search-section-head {
+    display: flex; align-items: center; justify-content: space-between;
+}
+.acs-search-section-title {
+    font-size: 14px;
+    font-weight: 700;
+    margin: 0;
+    color: var(--ac-text);
+}
+.acs-search-clear {
+    border: 0;
+    background: transparent;
+    color: var(--ac-primary);
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: var(--ac-radius-sm);
+}
+.acs-search-clear:hover { background: var(--ac-bg-alt); }
+.acs-search-recent { display: flex; flex-direction: column; gap: 4px; }
+.acs-search-tags { display: flex; flex-wrap: wrap; gap: 8px; }
+
+/* ── Legal document body ─────────────────────────────────────────────── */
+.acs-legal-body {
+    margin: 0;
+    padding: 12px;
+    font-family: var(--ac-font-family);
+    font-size: 13px;
+    line-height: 1.7;
+    white-space: pre-wrap;
+    color: var(--ac-text);
+    background: var(--ac-bg-alt);
+    border-radius: var(--ac-radius-md);
+    overflow-x: auto;
+}
+
+/* ── Chat messages container ─────────────────────────────────────────── */
+.acs-chat-messages {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 8px;
+    background: var(--ac-bg-alt);
+    border-radius: var(--ac-radius-md);
+    min-height: 200px;
+    max-height: 60vh;
+    overflow-y: auto;
+}

@@ -1,0 +1,155 @@
+@page "/login"
+@inject AppStore Store
+@inject NavigationManager Nav
+@inject L L
+@implements IDisposable
+
+@* Nafath-only + Guest — مطابق للتطبيق القديم Ashare.Shared/Components/Pages/Auth/Login.razor.
+   UX: المستخدم يُدخل رقم الهويّة (10 أرقام) → نعرض رقماً عشوائيّاً في دائرة
+   + عدّاد تنازليّ 120 ثانية + تعليمات "افتح تطبيق نفاذ واختر هذا الرقم".
+   المحاكاة: النجاح بعد ~6 ثوانٍ. *@
+
+<PageTitle>@(L["auth.login.title"]) - @(L["app.name"])</PageTitle>
+
+<div class="acs-page acs-auth-page">
+    <div class="acs-nafath-head">
+        <AcIcon Name="shield" Size="48" />
+        <h1 class="acm-wizard-title">نفاذ</h1>
+    </div>
+
+    <AcCard>
+        <ChildContent>
+            @if (_stage == "id")
+            {
+                <AcField Label="@(L["auth.national_id"])" Required="true">
+                    <AcInput Type="text" Value="@_nationalId"
+                             ValueChanged="@(v => _nationalId = (v ?? string.Empty).Trim())"
+                             Placeholder="10 أرقام" />
+                </AcField>
+                <AcButton Variant="primary" Size="lg" Class="ac-btn-block"
+                          Text="@(L["auth.nafath.continue"])"
+                          OnClick="@StartNafath"
+                          Disabled="@(_nationalId.Length != 10)" />
+                <div class="acs-login-divider"><span>@(L["auth.or"])</span></div>
+                <AcButton Variant="outline-primary" Size="lg" Class="ac-btn-block"
+                          Text="@(L["auth.guest.continue"])" OnClick="@ContinueGuest" />
+            }
+            else
+            {
+                <div class="acs-nafath-wait">
+                    <p class="acs-nafath-instruction">@(L["auth.nafath.select_number"])</p>
+
+                    <div class="acs-nafath-circle">
+                        <span class="acs-nafath-number">@_randomNumber</span>
+                    </div>
+
+                    @if (_completed)
+                    {
+                        <div class="acs-nafath-state acs-nafath-state--ok">
+                            <AcIcon Name="check-circle" Size="20" />
+                            <span>@(L["auth.nafath.success"])</span>
+                        </div>
+                    }
+                    else if (_failed)
+                    {
+                        <div class="acs-nafath-state acs-nafath-state--err">
+                            <AcIcon Name="x-circle" Size="20" />
+                            <span>@(L["auth.nafath.failed"])</span>
+                        </div>
+                        <AcButton Variant="ghost" Class="ac-btn-block"
+                                  Text="@(L["auth.nafath.retry"])" OnClick="@ResetNafath" />
+                    }
+                    else if (_expired)
+                    {
+                        <div class="acs-nafath-state acs-nafath-state--err">
+                            <AcIcon Name="clock" Size="20" />
+                            <span>@(L["auth.nafath.expired"])</span>
+                        </div>
+                        <AcButton Variant="ghost" Class="ac-btn-block"
+                                  Text="@(L["auth.nafath.retry"])" OnClick="@ResetNafath" />
+                    }
+                    else
+                    {
+                        <div class="acs-nafath-timer">
+                            <AcIcon Name="clock" Size="16" />
+                            <span>@_countdown @(L["auth.nafath.seconds"])</span>
+                        </div>
+                        <AcButton Variant="ghost" Class="ac-btn-block"
+                                  Text="@(L["auth.nafath.cancel"])" OnClick="@ResetNafath" />
+                    }
+                </div>
+            }
+        </ChildContent>
+    </AcCard>
+</div>
+
+@code {
+    private string _stage = "id";
+    private string _nationalId = "";
+    private string _randomNumber = "00";
+    private int _countdown = 120;
+    private bool _completed;
+    private bool _failed;
+    private bool _expired;
+    private System.Threading.Timer? _timer;
+    private int _tick;
+
+    private void StartNafath()
+    {
+        _stage = "wait";
+        _randomNumber = Random.Shared.Next(10, 100).ToString();
+        _countdown = 120;
+        _completed = false; _failed = false; _expired = false;
+        _tick = 0;
+        _timer = new System.Threading.Timer(OnTick, null, 1000, 1000);
+    }
+
+    private void OnTick(object? _)
+    {
+        _tick++;
+        _countdown = Math.Max(0, _countdown - 1);
+
+        // محاكاة: بعد ~6 ثوانٍ → نجاح
+        if (_tick == 6)
+        {
+            _completed = true;
+            StopTimer();
+            InvokeAsync(() => { FinishLogin(); StateHasChanged(); });
+            return;
+        }
+        if (_countdown == 0)
+        {
+            _expired = true;
+            StopTimer();
+        }
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void FinishLogin()
+    {
+        Store.Auth.UserId = Guid.NewGuid();
+        Store.Auth.AccessToken = "nafath-demo-token";
+        Store.Auth.FullName = $"User #{_nationalId[..4]}";
+        Store.NotifyChanged();
+        Nav.NavigateTo("/");
+    }
+
+    private void ResetNafath()
+    {
+        StopTimer();
+        _stage = "id";
+        _completed = false; _failed = false; _expired = false;
+    }
+
+    private void ContinueGuest()
+    {
+        Store.Auth.UserId = Guid.NewGuid();
+        Store.Auth.AccessToken = "guest-token";
+        Store.Auth.FullName = "زائر";
+        Store.NotifyChanged();
+        Nav.NavigateTo("/");
+    }
+
+    private void StopTimer() { _timer?.Dispose(); _timer = null; }
+    public void Dispose() => StopTimer();
+}

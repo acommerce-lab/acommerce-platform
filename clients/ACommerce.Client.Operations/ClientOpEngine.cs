@@ -76,8 +76,47 @@ public class ClientOpEngine : ITemplateEngine
                 }
             }
 
-            // 2) إرسال للخادم
-            var envelope = await _dispatcher.DispatchAsync<T>(localOp, payload, ct);
+            // 2) إرسال للخادم. إن لم يكن ثمّة route مسجّل لعملية UI-only
+            // (مثلاً category.select للتنقّل المحلّي)، نرجع لتطبيق محلّي
+            // بدلاً من رمي استثناء — هذا يحفظ قواعد التجربة ولا يكسر الضغط.
+            OperationEnvelope<T> envelope;
+            try
+            {
+                envelope = await _dispatcher.DispatchAsync<T>(localOp, payload, ct);
+            }
+            catch (InvalidOperationException ex) when (ex.Message.Contains("No HTTP route registered"))
+            {
+                _logger.LogDebug("[ClientOpEngine] {Type} has no HTTP route — applying locally only",
+                    localOp.Type);
+
+                envelope = new OperationEnvelope<T>
+                {
+                    Operation = OperationEnvelopeFactory.ToDescriptor(localOp,
+                        new OperationResult
+                        {
+                            OperationId = localOp.Id,
+                            OperationType = localOp.Type,
+                            Success = true
+                        })
+                };
+
+                if (_stateApplier != null)
+                {
+                    await _stateApplier.ApplyAsync(new OperationEnvelope<object>
+                    {
+                        Operation = envelope.Operation,
+                        Data = null
+                    }, ct);
+                }
+
+                OnOperationCompleted?.Invoke(localOp, new OperationEnvelope<object>
+                {
+                    Operation = envelope.Operation,
+                    Data = null
+                });
+
+                return envelope;
+            }
 
             // 3) دمج رد الخادم في القيد المحلي
             OperationMerger.Merge(localOp, envelope.Operation);

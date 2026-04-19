@@ -1,0 +1,141 @@
+@page "/"
+@using Ashare.V2.Web.Operations
+@inject AppStore Store
+@inject AppStateApplier Applier
+@inject ApiReader Api
+@inject ITemplateEngine Engine
+@inject NavigationManager Nav
+@inject L L
+@implements IDisposable
+
+<PageTitle>@(L["app.name"])</PageTitle>
+
+<AcMarketplaceHomePage Data="_data"
+                       Engine="Engine"
+                       Store="Store"
+                       FavoriteIds="Store.FavoriteListingIds"
+                       QuickActions="_quickActions"
+                       Title="@(L["home.title"])"
+                       Subtitle="@(L["home.subtitle"])"
+                       SearchPlaceholder="@(L["home.search.placeholder"])"
+                       CategoriesTitle="@(L["home.categories.title"])"
+                       FeaturedTitle="@(L["home.featured.title"])"
+                       NewTitle="@(L["home.new.title"])"
+                       ViewAllLabel="@(L["home.view_all"])"
+                       CtaTitle="@(L["home.cta.title"])"
+                       CtaSubtitle="@(L["home.cta.subtitle"])"
+                       OnSearch="OnSearch"
+                       OnCategorySelected="OnCategorySelected"
+                       OnListingOpen="OnListingOpen"
+                       OnFavoriteToggled="OnFavoriteToggled"
+                       OnCtaClick="OnCtaClick"
+                       OnQuickAction="OnQuickAction"
+                       OnViewAll="OnViewAll">
+    <LogoContent>
+        <div class="acm-brand">
+            <span class="acm-brand-mark" aria-hidden="true">
+                <AcIcon Name="home" Size="24" />
+            </span>
+            <span class="acm-brand-text">@(L["app.name"])</span>
+            <div class="acm-brand-city">
+                <AcCityPicker Cities="_cities" Value="@Store.Ui.City" ValueChanged="OnCityChanged" />
+            </div>
+        </div>
+    </LogoContent>
+</AcMarketplaceHomePage>
+
+@code {
+    private MarketplaceHomeDto? _data;
+    private IReadOnlyList<string> _cities = Array.Empty<string>();
+
+    private static readonly IReadOnlyList<QuickActionDto> _quickActions =
+    [
+        new("find-roommate", "ابحث عن شريك سكن", "search-heart", "primary"),
+        new("my-requests",   "طلباتي",            "house-heart",  "secondary")
+    ];
+
+    protected override void OnInitialized() => Store.OnChanged += OnChange;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var citiesEnv = await Api.GetAsync<List<string>>("/cities");
+            _cities = citiesEnv.Data ?? new();
+            await LoadHome();
+        }
+    }
+
+    private async Task LoadHome()
+    {
+        // تمرير المدينة المختارة لفلترة العروض.
+        var path = string.IsNullOrEmpty(Store.Ui.City)
+            ? "/home/view"
+            : $"/home/view?city={Uri.EscapeDataString(Store.Ui.City)}";
+        var env = await Api.GetAsync<HomeResponse>(path);
+        if (env.Data is not null)
+        {
+            _data = new MarketplaceHomeDto
+            {
+                Categories = env.Data.Categories.Select(c =>
+                    new CategoryTileDto { Id = c.Id, Label = c.Label, Icon = c.Icon }).ToList(),
+                Featured = env.Data.Featured.Select(ToRow).ToList(),
+                New = env.Data.New.Select(ToRow).ToList()
+            };
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    // البحث من الصفحة الرئيسيّة: فارغ → اقتراحات، غير فارغ → نتائج Explore.
+    private void OnSearch(string? q)
+    {
+        if (string.IsNullOrWhiteSpace(q)) { Nav.NavigateTo("/search"); return; }
+        Nav.NavigateTo($"/explore?q={Uri.EscapeDataString(q)}");
+    }
+    private void OnCategorySelected(CategoryTileDto c)
+        => Nav.NavigateTo($"/explore?category={Uri.EscapeDataString(c.Id)}");
+    private void OnListingOpen(ListingRowDto l)
+        => Nav.NavigateTo($"/space/{Uri.EscapeDataString(l.Id)}");
+    private void OnCtaClick() => Nav.NavigateTo("/create-listing");
+    private void OnQuickAction(QuickActionDto a) => Nav.NavigateTo(a.Id switch
+    {
+        "find-roommate" => "/explore?category=shared",
+        "my-requests"   => "/bookings",
+        _               => "/"
+    });
+    private void OnViewAll(string section) => Nav.NavigateTo("/explore");
+
+    private async Task OnCityChanged(string city)
+    {
+        // UI-only operation: interpreter محلّي يُحدّث Store.Ui.City — لا HTTP.
+        await Applier.ApplyLocalAsync(V2Ops.SetCity(city));
+        await LoadHome();            // أعد تحميل العروض بعد تغيير المدينة
+    }
+
+    private async Task OnFavoriteToggled((ListingRowDto Listing, bool On) e)
+    {
+        // UI-only: UiInterpreter يتولّى toggle المجموعة محلّياً.
+        await Applier.ApplyLocalAsync(V2Ops.ToggleFavorite(e.Listing.Id));
+    }
+
+    private static ListingRowDto ToRow(ListingDto l) => new()
+    {
+        Id = l.Id, Title = l.Title, Description = l.Description,
+        Price = l.Price, Currency = l.Currency, TimeUnit = l.TimeUnit,
+        City = l.City, District = l.District, Status = l.Status, IsFeatured = l.IsFeatured,
+        ThumbnailUrl = l.ThumbnailUrl,
+        Capacity = l.Capacity == 0 ? null : l.Capacity,
+        Rating = l.Rating == 0 ? null : l.Rating
+    };
+
+    private void OnChange() => InvokeAsync(StateHasChanged);
+    public void Dispose() => Store.OnChanged -= OnChange;
+
+    private sealed record HomeResponse(List<CategoryDto> Categories, List<ListingDto> Featured, List<ListingDto> New);
+    private sealed record CategoryDto(string Id, string Label, string Icon);
+    private sealed record ListingDto(
+        string Id, string Title, string? Description, decimal Price, string Currency,
+        string? TimeUnit, string? City, string? District, string? CategoryName,
+        int Status, bool IsFeatured, int ViewCount, string? ThumbnailUrl,
+        string? OwnerName, string? OwnerAvatarUrl, int Capacity, decimal Rating);
+}

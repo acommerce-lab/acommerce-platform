@@ -1,0 +1,112 @@
+@namespace Ashare.V2.Web.Components.Layout
+@using Ashare.V2.Web.Operations
+@inherits LayoutComponentBase
+@inject AppStore Store
+@inject AppStateApplier Applier
+@inject ApiReader Api
+@inject L L
+@inject IJSRuntime JS
+@implements IDisposable
+
+<AcVersionGate IsLoading="@(!_checked)"
+               IsBlocked="@_versionBlocked"
+               RequiredTitle="@(L["version.required"])"
+               RequiredBody="@(L["version.required_body"])"
+               DownloadLabel="@(L["version.download"])"
+               CurrentLabel="@(L["version.current"])"
+               LatestLabel="@(L["version.latest"])"
+               CurrentVersion="@_current"
+               LatestVersion="@_latest"
+               SupportEmail="@_support">
+    <ChildContent>
+        <div class="acm-v2-topnav-wrap">
+            <AcTopNav Items="_topItems">
+                <BrandContent>
+                    <div class="acm-brand">
+                        <span class="acm-brand-mark" aria-hidden="true">
+                            <AcIcon Name="home" Size="20" />
+                        </span>
+                        <span class="acm-brand-text">@(L["app.name"])</span>
+                    </div>
+                </BrandContent>
+                <RightActions>
+                    <AcThemeToggle IsDark="@Store.Ui.IsDark"
+                                   IsDarkChanged="@(async v => await Applier.ApplyLocalAsync(V2Ops.SetTheme(v ? "dark" : "light")))" />
+                    <AcLanguageToggle IsArabic="@Store.Ui.IsArabic"
+                                      IsArabicChanged="@(async v => await Applier.ApplyLocalAsync(V2Ops.SetLanguage(v ? "ar" : "en")))" />
+                </RightActions>
+            </AcTopNav>
+        </div>
+
+        <main class="@(Store.Ui.IsDark ? "ac-dark-wrap" : "")">
+            @Body
+            <div class="acm-v2-bottom-nav-wrap">
+                <AcBottomNav Items="_bottomItems" ExtraClass="acm-v2-bottomnav" />
+            </div>
+        </main>
+
+    </ChildContent>
+</AcVersionGate>
+
+@code {
+    private bool _checked;
+    private bool _versionBlocked;
+    private string _current = "1.0.0";
+    private string _latest = "1.0.0";
+    private string? _support;
+
+    private static readonly IReadOnlyList<BottomNavItemDto> _bottomItems = new[]
+    {
+        new BottomNavItemDto { Href = "/",          Label = "الرئيسية", IconName = "home",    Exact = true },
+        new BottomNavItemDto { Href = "/explore",   Label = "استكشف",   IconName = "search" },
+        new BottomNavItemDto { Href = "/favorites", Label = "المفضلة",  IconName = "heart" },
+        new BottomNavItemDto { Href = "/bookings",  Label = "حجوزاتي",  IconName = "receipt" },
+        new BottomNavItemDto { Href = "/me",        Label = "حسابي",    IconName = "user" }
+    };
+
+    private static readonly IReadOnlyList<AcTopNav.TopNavItem> _topItems = new[]
+    {
+        new AcTopNav.TopNavItem("/",            "الرئيسية",   "home",    null, true),
+        new AcTopNav.TopNavItem("/explore",     "استكشف",     "search"),
+        new AcTopNav.TopNavItem("/favorites",   "المفضلة",    "heart"),
+        new AcTopNav.TopNavItem("/bookings",    "حجوزاتي",    "receipt"),
+        new AcTopNav.TopNavItem("/notifications","الإشعارات", "bell"),
+        new AcTopNav.TopNavItem("/me",          "حسابي",      "user")
+    };
+
+    private string? _appliedTheme;
+    private string? _appliedLang;
+
+    protected override void OnInitialized() => Store.OnChanged += OnChange;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var env = await Api.GetAsync<VersionDto>("/version/check");
+            if (env.Data is not null)
+            {
+                _current = env.Data.Current;
+                _latest = env.Data.Latest;
+                _versionBlocked = env.Data.IsBlocked;
+                _support = env.Data.SupportEmail;
+            }
+            _checked = true;
+            await InvokeAsync(StateHasChanged);
+        }
+
+        if (_appliedTheme != Store.Ui.Theme || _appliedLang != Store.Ui.Language)
+        {
+            _appliedTheme = Store.Ui.Theme;
+            _appliedLang = Store.Ui.Language;
+            var dir = Store.Ui.IsRtl ? "rtl" : "ltr";
+            try { await JS.InvokeVoidAsync("ashareUi.apply", Store.Ui.Theme, Store.Ui.Language, dir); }
+            catch (InvalidOperationException) { /* pre-render: no JS yet */ }
+        }
+    }
+
+    private void OnChange() => InvokeAsync(StateHasChanged);
+    public void Dispose() => Store.OnChanged -= OnChange;
+
+    private sealed record VersionDto(string Current, string Latest, bool IsBlocked, string? StoreUrl, string? SupportEmail);
+}

@@ -166,7 +166,7 @@ fi
 # 7. CONTAINER HIERARCHY (every page wraps in approved container)
 # ═══════════════════════════════════════════════════════════════
 section "7. Container hierarchy (page root uses approved layout)"
-APPROVED_ROOTS='(acs-page|acs-auth-page|acs-chat-page|acs-profile-page|acs-settings-page|adm-shell|<AcAuthGuard|<AcLoginPage|<AcCatalog|<AcSettingsPage|<AcProfilePage|<AcMessagesListPage|<AcChatPage|<AcNotificationsPage|<AcListingsPage|<AcVendorDashboard|<AcOwnerDashboard|<AcCatalogHome|<AcAdminMetricsPage|<AcAdminUsersPage|<AcAdminVendorsPage|<AcAdminOrdersPage|<AcPageHeader|<AcEmptyState|<AcLoadingState|<AcMapSearchPage|<AcCartPage|<AcOrderSuccessPage|<AcOfferDetailsPage|<AcCheckoutPage|<AcOrderListPage|<AcVendorOfferForm|<AcVendorSettings|<AcVendorSchedule)'
+APPROVED_ROOTS='(acs-page|acs-auth-page|acs-chat-page|acs-profile-page|acs-settings-page|adm-shell|<AcAuthGuard|<AcLoginPage|<AcCatalog|<AcSettingsPage|<AcProfilePage|<AcMessagesListPage|<AcChatPage|<AcNotificationsPage|<AcListingsPage|<AcVendorDashboard|<AcOwnerDashboard|<AcCatalogHome|<AcAdminMetricsPage|<AcAdminUsersPage|<AcAdminVendorsPage|<AcAdminOrdersPage|<AcPageHeader|<AcEmptyState|<AcLoadingState|<AcMapSearchPage|<AcCartPage|<AcOrderSuccessPage|<AcOfferDetailsPage|<AcCheckoutPage|<AcOrderListPage|<AcVendorOfferForm|<AcVendorSettings|<AcVendorSchedule|<AcMarketplaceHomePage|<AcListingExplorePage|<AcListingDetailsPage|<AcListingMapPage|<AcSearchSuggestionsPage|<AcNotificationsPage)'
 BAD_PAGES=0
 while IFS= read -r f; do
     base=$(basename "$f")

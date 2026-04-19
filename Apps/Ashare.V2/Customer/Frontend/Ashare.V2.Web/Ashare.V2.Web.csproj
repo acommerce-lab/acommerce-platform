@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RollForward>LatestMajor</RollForward>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>Ashare.V2.Web</RootNamespace>
+    <AssemblyName>Ashare.V2.Web</AssemblyName>
+    <UserSecretsId>ashare-v2-web</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- OperationEngine core + Wire -->
+    <ProjectReference Include="..\..\..\..\..\libs\backend\core\ACommerce.OperationEngine\ACommerce.OperationEngine.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\backend\core\ACommerce.OperationEngine.Wire\ACommerce.OperationEngine.Wire.csproj" />
+
+    <!-- Client libraries -->
+    <ProjectReference Include="..\..\..\..\..\clients\ACommerce.Client.Operations\ACommerce.Client.Operations.csproj" />
+    <ProjectReference Include="..\..\..\..\..\clients\ACommerce.Client.Http\ACommerce.Client.Http.csproj" />
+    <ProjectReference Include="..\..\..\..\..\clients\ACommerce.Client.StateBridge\ACommerce.Client.StateBridge.csproj" />
+
+    <!-- Widgets + Marketplace templates only (Home slice) -->
+    <ProjectReference Include="..\..\..\..\..\libs\frontend\ACommerce.Widgets\ACommerce.Widgets.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\frontend\ACommerce.Templates.Shared\ACommerce.Templates.Shared.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\frontend\ACommerce.Templates.Marketplace\ACommerce.Templates.Marketplace.csproj" />
+  </ItemGroup>
+</Project>

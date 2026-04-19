@@ -1,0 +1,81 @@
+@namespace ACommerce.Templates.Marketplace
+
+@*
+    AcListingMapPage — عرض الخريطة للإعلانات.
+    يُستخدَم AcMapSim للمحاكاة حتى يُربَط Leaflet لاحقاً (شريحة 5).
+    النقر على دبّوس يفتح AcBottomSheet مع معاينة بـ AcSpaceCard.
+
+    CSS_CLASSES: acm-mappage, acm-mappage-preview
+*@
+
+<div class="acm-mappage @(Class ?? "")">
+    <AcMapSim Pins="@_pins"
+              SelectedId="@_selectedId"
+              OnPinClick="OnPinClicked" />
+
+    <AcBottomSheet Open="@(_selected is not null)" OpenChanged="SheetClose">
+        @if (_selected is not null)
+        {
+            <div class="acm-mappage-preview">
+                <AcSpaceCard Title="@_selected.Title"
+                             ImageUrl="@_selected.ThumbnailUrl"
+                             Location="@LocationText(_selected)"
+                             Capacity="@_selected.Capacity"
+                             Rating="@_selected.Rating"
+                             PriceLabel="@PriceText(_selected)"
+                             Ribbon="@(_selected.IsFeatured ? "مميّز" : null)"
+                             ShowFavorite="false"
+                             OnOpen="() => OnListingOpen.InvokeAsync(_selected)" />
+            </div>
+        }
+    </AcBottomSheet>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<MapListingDto> Listings { get; set; } = Array.Empty<MapListingDto>();
+    [Parameter] public EventCallback<ListingRowDto> OnListingOpen { get; set; }
+    [Parameter] public string? Class { get; set; }
+
+    private IReadOnlyList<AcMapSim.MapPin> _pins = Array.Empty<AcMapSim.MapPin>();
+    private string? _selectedId;
+    private ListingRowDto? _selected;
+
+    protected override void OnParametersSet()
+    {
+        _pins = Listings.Select(l =>
+            new AcMapSim.MapPin(l.Row.Id, l.Row.Title, l.Lat, l.Lng, ShortPrice(l.Row))).ToList();
+    }
+
+    private void OnPinClicked(string id)
+    {
+        _selectedId = id;
+        _selected = Listings.FirstOrDefault(l => l.Row.Id == id)?.Row;
+    }
+
+    private void SheetClose(bool open)
+    {
+        if (!open) { _selectedId = null; _selected = null; }
+    }
+
+    private static string? LocationText(ListingRowDto l) =>
+        string.Join(" — ", new[] { l.City, l.District }.Where(s => !string.IsNullOrWhiteSpace(s)));
+
+    private static string ShortPrice(ListingRowDto l) =>
+        $"{l.Price:0} {l.Currency}";
+
+    private static string PriceText(ListingRowDto l)
+    {
+        var unit = l.TimeUnit switch
+        {
+            "day" or "يوم" => "/ يوم",
+            "night" or "ليلة" => "/ ليلة",
+            "week" or "أسبوع" => "/ أسبوع",
+            "month" or "شهر" => "/ شهر",
+            "year" or "سنة" => "/ سنة",
+            _ => ""
+        };
+        return $"{l.Price:0} {l.Currency} {unit}".Trim();
+    }
+
+    public record MapListingDto(ListingRowDto Row, double Lat, double Lng);
+}
