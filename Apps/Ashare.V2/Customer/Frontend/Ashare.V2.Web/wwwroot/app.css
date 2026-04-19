@@ -65,35 +65,40 @@ h3 { font-size: 16px; font-weight: 700; margin: 0 0 8px; }
 }
 .acm-mobile-nav-inner {
     display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
     align-items: center;
     justify-content: space-between;
     height: 100%;
     padding: 0 16px;
 }
-.acm-mobile-nav-brand { display: flex; align-items: center; gap: 8px; }
-.acm-mobile-nav-logo  { border-radius: 4px; flex-shrink: 0; }
+.acm-mobile-nav-brand {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 8px;
+}
+.acm-mobile-nav-logo  { border-radius: 4px; flex-shrink: 0; display: block; }
 .acm-mobile-nav-brand-name {
     font-size: 1.125rem;
     font-weight: 700;
     color: var(--ac-primary);
     line-height: 1;
+    white-space: nowrap;
 }
-.acm-mobile-nav-actions { display: flex; gap: 4px; }
+.acm-mobile-nav-actions { display: flex; flex-direction: row; flex-wrap: nowrap; gap: 4px; }
 .acm-mobile-nav-btn {
-    appearance: none;
-    -webkit-appearance: none;
-    width: 40px;
-    height: 40px;
+    all: unset;
+    box-sizing: border-box;
+    width: 36px;
+    height: 36px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    background: transparent;
-    border: none;
     border-radius: 50%;
     color: var(--ac-text);
     cursor: pointer;
-    padding: 0;
-    outline: none;
 }
 .acm-mobile-nav-btn:hover  { background: var(--ac-bg-alt); }
 .acm-mobile-nav-btn:active { background: var(--ac-border); }
