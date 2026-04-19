@@ -323,6 +323,23 @@ algebraic structure section. Target: workshop paper or technical report.
 
 ---
 
+### Session 6 — Ashare V2 Migration: Pair A (Bootstrap)
+- Branch: `claude/migrate-pair-v2-BKhe8`
+- **Backend (Ashare.V2.Api)**:
+  - تسجيل 19 كيان في `EntityDiscoveryRegistry`
+  - إضافة Serilog + Swagger (v2 doc) + Health checks (`/healthz` + `/health` envelope)
+  - `GlobalExceptionMiddleware` → `OperationEnvelope<object>` عند الاستثناءات
+  - سكربتات فحص خلفيّة: `verify-backend-envelope.sh`, `verify-backend-mutations.sh`, `verify-backend-entries.sh`
+  - اختبارات تكاملية: `tests/Ashare.V2.Api.Tests/HealthTests.cs` (3 اختبارات)
+- **Frontend (Ashare.V2.Web)**:
+  - تحديث ألوان العلامة التجارية في `app.css`: تيل داكن (#345454) + خلفية دافئة (#FEE8D6)
+  - إصلاح تحذيرات البناء (CS8602 في ProfileEdit + RZ10012 في AcVersionGate)
+  - صورة الشعار الأوّلية في `wwwroot/images/ashare-logo.png`
+- **Build**: 0 warnings, 0 errors — frontend + backend + tests
+- **Verify scripts**: envelope ✓, mutations ✓, entries ✓, page-structure ✓, css ✓, widget-contracts ✓, design-tokens ✓
+
+---
+
 ## Session history
 
 ### Session 1 (foundation)

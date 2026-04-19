@@ -12,7 +12,9 @@
 
 @if (IsLoading)
 {
-    <AcLoadingState />
+    <div class="acs-loading" role="status" aria-label="Loading">
+        <AcSpinner Large="true" />
+    </div>
 }
 else if (IsBlocked)
 {

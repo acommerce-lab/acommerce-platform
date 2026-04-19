@@ -3,15 +3,17 @@
 @import url('https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500;600;700&display=swap');
 
 :root {
-    /* ── Brand: hold the identity but use sparingly ────────────────── */
-    --ac-primary:       #1E40AF;   /* Royal Blue — CTAs + accents فقط */
-    --ac-primary-hover: #1E3A8A;
+    /* ── Brand: Ashare teal identity ────────────────────────────────── */
+    --ac-primary:       #345454;   /* Deep Teal — CTAs + accents */
+    --ac-primary-dark:  #263F3F;   /* Darker teal for hover/active */
+    --ac-primary-light: #4A6B6B;   /* Lighter teal for subtle accents */
+    --ac-primary-hover: #263F3F;   /* Alias for primary-dark */
     --ac-secondary:     #F4844C;   /* Soft Orange — highlights فقط */
     --ac-secondary-hover:#E06D34;
 
-    /* ── Neutral warm palette (from ashare-visual-identity-2025) ──── */
-    --ac-bg:            #FFFFFF;   /* صفحة بيضاء نقيّة */
-    --ac-bg-alt:        #FAF8F6;   /* أوف-وايت للقوائم والـalt surfaces */
+    /* ── Warm palette (Ashare brand — peach/coral background) ──────── */
+    --ac-bg:            #FEE8D6;   /* دافئ — لون خلفية عشير */
+    --ac-bg-alt:        #F9D9C0;   /* أغمق قليلاً للـalt surfaces */
     --ac-surface:       #FFFFFF;   /* بطاقات بيضاء */
     --ac-border:        #E7E5E4;   /* حدّ ناعم بدل الأزرق */
     --ac-border-strong: #1C1917;   /* حدّ أسود للـaccents */
