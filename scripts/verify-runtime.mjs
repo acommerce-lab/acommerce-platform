@@ -515,6 +515,59 @@ async function verifyTemplateCompliance(page) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════
+// W. Icon-only buttons must not expose default OS/browser button styling.
+//    A <button> that contains only an SVG (icon button) must have:
+//      – borderTopWidth == 0   (no visible border)
+//      – backgroundColor == transparent  (no baked-in background)
+//      – appearance == "none" or "auto"  (no OS 3-D bevel)
+//    This catches the "Windows-98 button" problem where the developer
+//    set CSS classes but forgot -webkit-appearance: none / border reset.
+// ═══════════════════════════════════════════════════════════════════════
+async function verifyIconButtons(page) {
+    const violations = await page.evaluate(() => {
+        const results = [];
+        const buttons = document.querySelectorAll('button');
+        for (const btn of buttons) {
+            // Skip framework-styled buttons — they have intentional borders/backgrounds
+            // ac-btn / btn = widget library buttons (ghost, outline, etc.)
+            if (btn.classList.contains('ac-btn') || btn.classList.contains('btn')) continue;
+            // Skip form controls that deliberately look like inputs
+            if (btn.classList.contains('ac-citypicker-trigger') ||
+                btn.classList.contains('ac-sort-select') ||
+                btn.classList.contains('ac-viewtoggle-btn')) continue;
+
+            // Only check bare icon buttons: contain at least one SVG and no visible text
+            if (!btn.querySelector('svg')) continue;
+            const visibleText = (btn.textContent || '').replace(/\s/g, '');
+            if (visibleText.length > 0) continue;
+
+            const s = getComputedStyle(btn);
+            const borderW = parseFloat(s.borderTopWidth) || 0;
+            const bg = s.backgroundColor;
+            const isTransparentBg = bg === 'rgba(0, 0, 0, 0)' || bg === 'transparent';
+            const app = s.appearance || s.webkitAppearance || '';
+            const hasNativeBevel = app === 'button' || app === 'auto';
+
+            if (borderW > 0) {
+                results.push({ issue: `border-top-width: ${borderW}px (visible border)`, cls: btn.className });
+            }
+            if (!isTransparentBg) {
+                // Allow brand colours — only flag gray/white which signal un-reset defaults
+                const isGrayish = /rgb\((\d+), \1, \1\)|rgb\(2[0-4]\d|rgb\(25[0-5]/.test(bg);
+                if (isGrayish) results.push({ issue: `background: ${bg} (default browser bg)`, cls: btn.className });
+            }
+            if (hasNativeBevel && borderW > 0) {
+                results.push({ issue: `appearance: ${app} with visible border — OS bevel`, cls: btn.className });
+            }
+        }
+        return results;
+    });
+    for (const v of violations) {
+        recordViolation('W-interactive', `Icon button .${v.cls}: ${v.issue}`, 'button svg');
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════
 // K. UI-only operations must not fire /api/ requests when toggled
 // ═══════════════════════════════════════════════════════════════════════
 async function verifyUiOnlyOps(page, url) {
@@ -572,6 +625,7 @@ async function verifyUrl(browser, url) {
         await verifyClusterAtomicity(page);
         await verifyTemplateCompliance(page);
         await verifyBoxModel(page);
+        await verifyIconButtons(page);
         await verifyUiOnlyOps(page, url);
     } catch (e) {
         currentUrlReport.error = String(e).slice(0, 200);

@@ -74,6 +74,8 @@ h3 { font-size: 16px; font-weight: 700; margin: 0 0 8px; }
 .acm-mobile-nav-logo  { border-radius: 4px; }
 .acm-mobile-nav-actions { display: flex; gap: 4px; }
 .acm-mobile-nav-btn {
+    appearance: none;
+    -webkit-appearance: none;
     width: 40px;
     height: 40px;
     display: inline-flex;
@@ -83,10 +85,12 @@ h3 { font-size: 16px; font-weight: 700; margin: 0 0 8px; }
     border: none;
     border-radius: 50%;
     color: var(--ac-text);
-    font-size: 20px;
     cursor: pointer;
+    padding: 0;
+    outline: none;
 }
-.acm-mobile-nav-btn:active { background: var(--ac-bg-alt); }
+.acm-mobile-nav-btn:hover  { background: var(--ac-bg-alt); }
+.acm-mobile-nav-btn:active { background: var(--ac-border); }
 
 /* ── Mobile layout (default) ────────────────────────────────────────── */
 .acm-v2-topnav-wrap { display: none; }  /* TopNav مخفي على الموبايل */
