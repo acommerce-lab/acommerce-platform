@@ -61,12 +61,24 @@ internal static class AshareV2Seed
         new("N-7", "system",  "تحديث سياسة الخصوصيّة",   "اطّلع على النصّ الجديد قبل 1 مايو",   Hours(-120), true)
     ];
 
-    public static readonly IReadOnlyList<BookingSeed> Bookings =
+    public static readonly List<BookingSeed> Bookings =
     [
-        new("B-1", "L-101", "شقة مفروشة في حي النرجس", 2500m, Days(7),  1, 2, "pending"),
-        new("B-2", "L-103", "استديو قرب جامعة الملك سعود", 1800m, Days(-3), 3, 1, "confirmed"),
-        new("B-3", "L-202", "شقة يومي قرب الحرم",       350m,  Days(-20),2, 3, "completed"),
-        new("B-4", "L-204", "استديو في شمال الرياض",    2100m, Days(-35),1, 1, "cancelled")
+        new("B-1", "L-101", "شقة مفروشة في حي النرجس",        2500m, Days(7),   1, 2, "pending",   CurrentUserId),
+        new("B-2", "L-103", "استديو قرب جامعة الملك سعود",    1800m, Days(-3),  3, 1, "confirmed", CurrentUserId),
+        new("B-3", "L-202", "شقة يومي قرب الحرم",             350m,  Days(-20), 2, 3, "completed", CurrentUserId),
+        new("B-4", "L-204", "استديو في شمال الرياض",          2100m, Days(-35), 1, 1, "cancelled", CurrentUserId),
+        new("B-5", "L-206", "غرفة فاخرة في حيّ غرناطة",       1800m, Days(-60), 1, 1, "completed", CurrentUserId)
+    ];
+
+    /// <summary>معرّفات الإعلانات المفضّلة — قابلة للتغيير (toggle).</summary>
+    public static readonly HashSet<string> FavoriteIds = ["L-102", "L-207"];
+
+    /// <summary>التقييمات — قابلة للإضافة بعد إتمام حجز.</summary>
+    public static readonly List<ReviewSeed> Reviews =
+    [
+        new("RV-1", "L-202", "B-3", CurrentUserId, "عبدالله القحطاني", 5, "مكان رائع وقريب من الحرم، سأعود حتماً", Days(-18)),
+        new("RV-2", "L-202", null, OtherOwner1,    "أحمد الغامدي",     4, "نظيف ومريح، بعض التفاصيل تحتاج تحسين",    Days(-25)),
+        new("RV-3", "L-103", null, OtherOwner2,    "محمد العنزي",      5, "موقع ممتاز وصاحب المكان متعاون",           Days(-40))
     ];
 
     /// <summary>المحادثات — قابلة للتغيير لإرسال الرسائل.</summary>
@@ -276,7 +288,8 @@ internal static class AshareV2Seed
     }
 
     public sealed record NotificationSeed(string Id, string Type, string Title, string Body, DateTime CreatedAt, bool IsRead);
-    public sealed record BookingSeed(string Id, string ListingId, string ListingTitle, decimal Total, DateTime StartDate, int Nights, int Guests, string Status);
+    public sealed record BookingSeed(string Id, string ListingId, string ListingTitle, decimal Total, DateTime StartDate, int Nights, int Guests, string Status, string UserId = CurrentUserId);
+    public sealed record ReviewSeed(string Id, string ListingId, string? BookingId, string UserId, string AuthorName, int Rating, string Comment, DateTime CreatedAt);
     public sealed record ConversationSeed(
         string Id, string PartnerName, string Subject, DateTime LastAt, int UnreadCount,
         string partnerId, string? listingId, List<MessageSeed> messages)
