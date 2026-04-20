@@ -1,0 +1,77 @@
+@page "/favorites"
+@inject AppStore Store
+@inject ApiReader Api
+
+<PageTitle>المفضلة - اوردر</PageTitle>
+
+@if (!Store.Auth.IsAuthenticated)
+{
+    <AcEmptyState IconName="heart"
+                  Title="@(Store.Ui.IsArabic ? "سجّل دخولك للحفظ" : "Sign in to save")"
+                  ActionLabel="@(Store.Ui.IsArabic ? "تسجيل الدخول" : "Sign in")"
+                  ActionHref="/login" />
+}
+else
+{
+    <AcFavoritesPage Items="@Mapped"
+                     Loading="@Loading"
+                     Title="@(Store.Ui.IsArabic ? "المفضلة" : "Favorites")"
+                     LoadingMessage="@(Store.Ui.IsArabic ? "جاري التحميل..." : "Loading…")"
+                     EmptyTitle="@(Store.Ui.IsArabic ? "لا توجد عروض محفوظة" : "No favorites yet")"
+                     EmptyMessage="@(Store.Ui.IsArabic ? "اضغط على القلب في صفحة العرض لحفظه" : "Tap the heart on any offer to save it")"
+                     BrowseLabel="@(Store.Ui.IsArabic ? "تصفّح العروض" : "Browse offers")"
+                     BrowseHref="/" />
+}
+
+@code {
+    private List<FavApi> Items = new();
+    private bool Loading = true;
+
+    private IReadOnlyList<OfferDto> Mapped =>
+        Items.Select(o => new OfferDto
+        {
+            Id = o.Id.ToString(),
+            Title = o.Title,
+            Price = o.Price,
+            OriginalPrice = o.OriginalPrice,
+            Currency = o.Currency,
+            Emoji = o.Emoji,
+            DiscountPercent = o.DiscountPercent,
+            Vendor = o.Vendor is null ? null : new VendorMiniDto
+            {
+                Id = o.Vendor.Id.ToString(),
+                Name = o.Vendor.Name,
+                LogoEmoji = o.Vendor.LogoEmoji
+            }
+        }).ToList();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        if (Store.Auth.IsAuthenticated)
+        {
+            var env = await Api.GetAsync<List<FavApi>>($"/api/favorites/by-user/{Store.Auth.UserId}");
+            Items = env.Data ?? new();
+        }
+        Loading = false;
+        StateHasChanged();
+    }
+
+    public class FavApi
+    {
+        public Guid Id { get; set; }
+        public string Title { get; set; } = "";
+        public decimal Price { get; set; }
+        public decimal? OriginalPrice { get; set; }
+        public string Currency { get; set; } = "SAR";
+        public string Emoji { get; set; } = "🍽️";
+        public int DiscountPercent { get; set; }
+        public VendorApi? Vendor { get; set; }
+    }
+    public class VendorApi
+    {
+        public Guid Id { get; set; }
+        public string Name { get; set; } = "";
+        public string LogoEmoji { get; set; } = "🏪";
+    }
+}

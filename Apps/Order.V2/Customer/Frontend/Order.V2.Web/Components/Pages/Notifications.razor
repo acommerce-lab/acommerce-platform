@@ -1,0 +1,66 @@
+@page "/notifications"
+@inject AppStore Store
+@inject ClientOpEngine Engine
+@inject ApiReader Api
+
+<PageTitle>الإشعارات - اوردر</PageTitle>
+
+@if (!Store.Auth.IsAuthenticated)
+{
+    <AcEmptyState IconName="bell"
+                  Title="@(Store.Ui.IsArabic ? "سجّل دخولك للإشعارات" : "Sign in for notifications")"
+                  ActionLabel="@(Store.Ui.IsArabic ? "تسجيل الدخول" : "Sign in")"
+                  ActionHref="/login" />
+}
+else
+{
+    <AcNotificationsPage Mode="TemplateOperationMode.Operation"
+                         Engine="Engine"
+                         BuildMarkReadOp="@(id => ClientOps.MarkNotificationRead(Guid.Parse(id)))"
+                         BuildMarkAllReadOp="@(() => ClientOps.MarkAllNotificationsRead(Store.Auth.UserId))"
+                         Notifications="@Mapped"
+                         Loading="@Loading"
+                         Title="@(Store.Ui.IsArabic ? "الإشعارات" : "Notifications")"
+                         LoadingMessage="@(Store.Ui.IsArabic ? "جاري التحميل..." : "Loading…")"
+                         EmptyTitle="@(Store.Ui.IsArabic ? "لا إشعارات" : "All caught up")"
+                         EmptyMessage="@(Store.Ui.IsArabic ? "سيظهر هنا كل جديد" : "New activity will appear here")"
+                         MarkAllReadLabel="@(Store.Ui.IsArabic ? "تعليم الكل مقروءاً" : "Mark all read")" />
+}
+
+@code {
+    private List<NotiApi> Items = new();
+    private bool Loading = true;
+
+    private IReadOnlyList<NotificationRowDto> Mapped =>
+        Items.Select(n => new NotificationRowDto
+        {
+            Id = n.Id.ToString(),
+            Title = n.Title,
+            Body = n.Body,
+            Type = n.Type,
+            IsRead = n.IsRead,
+            CreatedAt = n.CreatedAt
+        }).ToList();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        if (Store.Auth.IsAuthenticated)
+        {
+            var env = await Api.GetAsync<List<NotiApi>>($"/api/notifications/user/{Store.Auth.UserId}");
+            Items = env.Data ?? new();
+        }
+        Loading = false;
+        StateHasChanged();
+    }
+
+    public class NotiApi
+    {
+        public Guid Id { get; set; }
+        public string Title { get; set; } = "";
+        public string Body { get; set; } = "";
+        public string Type { get; set; } = "general";
+        public bool IsRead { get; set; }
+        public DateTime CreatedAt { get; set; }
+    }
+}
