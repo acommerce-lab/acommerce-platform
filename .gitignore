@@ -22,3 +22,9 @@ scripts/node_modules/
 runtime-report.json
 runtime-auth-report.json
 scripts/package-lock.json
+
+# Ashare V2 env files (contain secrets)
+.env.Development
+.env.Production
+.env.local
+*.env.local
