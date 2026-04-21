@@ -70,7 +70,7 @@
     }
 
     private void SetFilter(int s) { _filter = s; StateHasChanged(); }
-    private void GoCreate() => Nav.NavigateTo("/my-listings/create");
+    private void GoCreate() => Nav.NavigateTo("/create-listing");
     private void Open(string id) => Nav.NavigateTo($"/listings/{id}");
 
     private async Task Toggle(string id)

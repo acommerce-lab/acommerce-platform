@@ -18,8 +18,8 @@ public static class EjarSeed
 
     private static readonly Dictionary<string, UserSeed> _users = new()
     {
-        ["U-1"] = new("U-1", "سارة محمد العمري",   "+966500000001", "الرياض"),
-        ["U-2"] = new("U-2", "خالد عبدالله السالم", "+966500000002", "جدة")
+        ["U-1"] = new("U-1", "سارة محمد العمري",   "+966500000001", true,  "sara@example.com",  true,  "الرياض", new DateTime(2024, 3, 12)),
+        ["U-2"] = new("U-2", "خالد عبدالله السالم", "+966500000002", true,  "khaled@example.com", false, "جدة",    new DateTime(2025, 1, 22))
     };
 
     public static string GetOrCreateUserId(string phone)
@@ -29,8 +29,19 @@ public static class EjarSeed
             if (_phoneToUser.TryGetValue(phone, out var uid)) return uid;
             var newId = $"U-{_phoneToUser.Count + 1}";
             _phoneToUser[phone] = newId;
-            _users[newId] = new(newId, "", phone, "الرياض");
+            _users[newId] = new(newId, "", phone, true, "", false, "الرياض", DateTime.UtcNow);
             return newId;
+        }
+    }
+
+    public static void UpdateUser(string userId, string fullName, string email, string phone, string city)
+    {
+        lock (_phoneToUser)
+        {
+            if (!_users.TryGetValue(userId, out var u)) return;
+            _users[userId] = u with {
+                FullName = fullName, Email = email, Phone = phone, City = city
+            };
         }
     }
     public static UserSeed? GetUser(string userId) =>
@@ -275,7 +286,11 @@ public static class EjarSeed
     // ═══════════════════════════════════════════════════════════════════════
     // Records
     // ═══════════════════════════════════════════════════════════════════════
-    public record UserSeed(string Id, string FullName, string Phone, string City);
+    public record UserSeed(
+        string Id, string FullName,
+        string Phone, bool PhoneVerified,
+        string Email, bool EmailVerified,
+        string City, DateTime MemberSince);
 
     public record CategorySeed(
         string Id, string Label, string Emoji,

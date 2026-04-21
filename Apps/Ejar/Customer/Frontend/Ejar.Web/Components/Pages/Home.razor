@@ -1,4 +1,5 @@
 @page "/"
+@using Ejar.Web.Operations
 @inject AppStore Store
 @inject AppStateApplier Applier
 @inject ApiReader Api
@@ -49,39 +50,39 @@
 
     private static readonly IReadOnlyList<QuickActionDto> _quickActions =
     [
-        new("find-place",    "ابحث عن سكن",   "search-heart", "primary"),
-        new("my-listings",   "إعلاناتي",       "building",     "secondary")
+        new("find-place",  "ابحث عن سكن", "search-heart", "primary"),
+        new("my-listings", "إعلاناتي",     "building",     "secondary")
     ];
 
     protected override void OnInitialized() => Store.OnChanged += OnChange;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (!firstRender) return;
-        var citiesEnv = await Api.GetAsync<List<string>>("/cities");
-        _cities = citiesEnv.Data ?? new();
-        await LoadHome();
+        if (firstRender)
+        {
+            var citiesEnv = await Api.GetAsync<List<string>>("/cities");
+            _cities = citiesEnv.Data ?? new();
+            await LoadHome();
+        }
     }
 
     private async Task LoadHome()
     {
-        var city = Store.Ui.City;
-        var q = string.IsNullOrEmpty(city) ? "" : $"?city={Uri.EscapeDataString(city)}";
-
-        var catEnv = await Api.GetAsync<List<CategoryDto>>("/categories");
-        var listEnv = await Api.GetAsync<ListingsResponse>($"/listings{q}&pageSize=20");
-
-        var categories = catEnv.Data ?? new();
-        var listings   = listEnv.Data?.Items ?? new();
-
-        _data = new MarketplaceHomeDto
+        var path = string.IsNullOrEmpty(Store.Ui.City)
+            ? "/home/view"
+            : $"/home/view?city={Uri.EscapeDataString(Store.Ui.City)}";
+        var env = await Api.GetAsync<HomeResponse>(path);
+        if (env.Data is not null)
         {
-            Categories = categories.Select(c =>
-                new CategoryTileDto { Id = c.Id, Label = c.Label, Icon = c.Emoji }).ToList(),
-            Featured = listings.Where(l => l.IsVerified).Take(6).Select(ToRow).ToList(),
-            New = listings.Skip(0).Take(10).Select(ToRow).ToList()
-        };
-        await InvokeAsync(StateHasChanged);
+            _data = new MarketplaceHomeDto
+            {
+                Categories = env.Data.Categories.Select(c =>
+                    new CategoryTileDto { Id = c.Id, Label = c.Label, Icon = c.Icon }).ToList(),
+                Featured = env.Data.Featured.Select(ToRow).ToList(),
+                New = env.Data.New.Select(ToRow).ToList()
+            };
+            await InvokeAsync(StateHasChanged);
+        }
     }
 
     private void OnSearch(string? q)
@@ -91,18 +92,18 @@
     }
 
     private void OnCategorySelected(CategoryTileDto c)
-        => Nav.NavigateTo($"/search?propertyType={Uri.EscapeDataString(c.Id)}");
+        => Nav.NavigateTo($"/search?category={Uri.EscapeDataString(c.Id)}");
 
     private void OnListingOpen(ListingRowDto l)
         => Nav.NavigateTo($"/listings/{Uri.EscapeDataString(l.Id)}");
 
-    private void OnCtaClick() => Nav.NavigateTo("/my-listings/create");
+    private void OnCtaClick() => Nav.NavigateTo("/create-listing");
 
     private void OnQuickAction(QuickActionDto a) => Nav.NavigateTo(a.Id switch
     {
-        "find-place"   => "/search",
-        "my-listings"  => "/my-listings",
-        _              => "/"
+        "find-place"  => "/search",
+        "my-listings" => "/my-listings",
+        _             => "/"
     });
 
     private void OnViewAll(string section) => Nav.NavigateTo("/search");
@@ -116,11 +117,11 @@
     private async Task OnFavoriteToggled((ListingRowDto Listing, bool On) e)
         => await Applier.ApplyLocalAsync(EjarOps.ToggleFavorite(e.Listing.Id));
 
-    private static ListingRowDto ToRow(ListingSeedDto l) => new()
+    private static ListingRowDto ToRow(ListingDto l) => new()
     {
         Id = l.Id, Title = l.Title,
         Price = l.Price, Currency = "SAR", TimeUnit = l.TimeUnitLabel,
-        City = l.City, District = l.District, Status = 1,
+        City = l.City, District = l.District, Status = 1, IsFeatured = l.IsVerified,
         ThumbnailUrl = l.FirstImage,
         Capacity = l.BedroomCount == 0 ? null : l.BedroomCount
     };
@@ -128,11 +129,11 @@
     private void OnChange() => InvokeAsync(StateHasChanged);
     public void Dispose() => Store.OnChanged -= OnChange;
 
-    private sealed record CategoryDto(string Id, string Label, string Emoji, string Kind, List<string> TimeUnits);
-    private sealed record ListingsResponse(int Total, int Page, int PageSize, List<ListingSeedDto> Items);
-    private sealed record ListingSeedDto(
+    private sealed record HomeResponse(List<CategoryDto> Categories, List<ListingDto> Featured, List<ListingDto> New);
+    private sealed record CategoryDto(string Id, string Label, string Icon);
+    private sealed record ListingDto(
         string Id, string Title, decimal Price, string TimeUnit, string TimeUnitLabel,
         string PropertyType, string PropertyTypeLabel, string City, string District,
         double Lat, double Lng, int BedroomCount, double AreaSqm, bool IsVerified,
-        int ViewsCount, bool IsFavorite, List<string> Amenities, string? FirstImage);
+        int ViewsCount, bool IsFavorite, List<string>? Amenities, string? FirstImage);
 }

@@ -37,11 +37,14 @@ public class CatalogController : ControllerBase
         var u = EjarSeed.GetUser(CurrentUserId);
         if (u is null) return this.NotFoundEnvelope("user_not_found");
         return this.OkEnvelope("profile.get", new {
-            id = u.Id, fullName = u.FullName, phone = u.Phone, city = u.City
+            id = u.Id, fullName = u.FullName,
+            phone = u.Phone, phoneVerified = u.PhoneVerified,
+            email = u.Email, emailVerified = u.EmailVerified,
+            city = u.City, memberSince = u.MemberSince
         });
     }
 
-    public sealed record ProfileUpdateRequest(string FullName, string Phone, string City);
+    public sealed record ProfileUpdateRequest(string FullName, string Email, string Phone, string City);
 
     [HttpPut("/me/profile")]
     public async Task<IActionResult> UpdateProfile([FromBody] ProfileUpdateRequest req, CancellationToken ct)
@@ -54,7 +57,11 @@ public class CatalogController : ControllerBase
             .Tag("user_id", userId)
             .Analyze(new RequiredFieldAnalyzer("fullName", () => req.FullName))
             .Analyze(new MaxLengthAnalyzer("fullName", () => req.FullName, 100))
-            .Execute(_ => Task.CompletedTask)
+            .Execute(_ =>
+            {
+                EjarSeed.UpdateUser(userId, req.FullName, req.Email ?? "", req.Phone ?? "", req.City ?? "");
+                return Task.CompletedTask;
+            })
             .Build();
 
         var data = new { id = userId, fullName = req.FullName };

@@ -128,6 +128,58 @@ public class HomeController : ControllerBase
         });
     }
 
+    // ── GET /home/explore ────────────────────────────────────────────────
+    [HttpGet("/home/explore")]
+    public IActionResult Explore(
+        [FromQuery] string? category,
+        [FromQuery] string? city,
+        [FromQuery] decimal? priceMin,
+        [FromQuery] decimal? priceMax,
+        [FromQuery] int? capacity,
+        [FromQuery] int? minRating,
+        [FromQuery] string? q = null,
+        [FromQuery] string? sort = "newest")
+    {
+        IEnumerable<EjarSeed.ListingSeed> qs = EjarSeed.Listings.Where(l => l.Status == 1);
+
+        if (!string.IsNullOrWhiteSpace(city))
+            qs = qs.Where(l => l.City == city);
+        if (!string.IsNullOrWhiteSpace(q))
+        {
+            var n = q.Trim();
+            qs = qs.Where(l => l.Title.Contains(n) || (l.Description ?? "").Contains(n) || l.District.Contains(n));
+        }
+        if (!string.IsNullOrEmpty(category)) qs = qs.Where(l => l.PropertyType == category);
+        if (priceMin.HasValue) qs = qs.Where(l => l.Price >= priceMin.Value);
+        if (priceMax.HasValue) qs = qs.Where(l => l.Price <= priceMax.Value);
+        if (capacity.HasValue && capacity.Value > 0)
+        {
+            var cap = capacity.Value;
+            qs = qs.Where(l =>
+            {
+                var c = l.BedroomCount;
+                return cap switch
+                {
+                    1 => c <= 1,
+                    2 => c == 2,
+                    3 => c == 3,
+                    4 => c >= 4,
+                    _ => true
+                };
+            });
+        }
+
+        qs = sort switch
+        {
+            "price_low"  => qs.OrderBy(l => l.Price),
+            "price_high" => qs.OrderByDescending(l => l.Price),
+            "rating"     => qs.OrderByDescending(l => l.IsVerified),
+            _            => qs
+        };
+
+        return this.OkEnvelope("catalog.list", qs.Select(MapSummary).ToList());
+    }
+
     // ── GET /home/search/suggestions ─────────────────────────────────────
     [HttpGet("/home/search/suggestions")]
     public IActionResult SearchSuggestions() =>

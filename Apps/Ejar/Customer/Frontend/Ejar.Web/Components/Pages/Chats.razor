@@ -64,7 +64,7 @@
         await InvokeAsync(StateHasChanged);
     }
 
-    private void Open(string id) => Nav.NavigateTo($"/chats/{id}");
+    private void Open(string id) => Nav.NavigateTo($"/chat/{id}");
 
     private sealed record ConvDto(string Id, string PartnerName, string Subject,
                                   DateTime LastAt, int UnreadCount, string? LastMessage);

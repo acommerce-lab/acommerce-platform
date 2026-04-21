@@ -138,7 +138,7 @@
     private bool IsMine => _listing is not null && Store.Auth.IsAuthenticated
                            && _listing.OwnerId == Store.Auth.UserId?.ToString();
 
-    private void EditListing() => Nav.NavigateTo($"/my-listings/create?edit={_listing?.Id}");
+    private void EditListing() => Nav.NavigateTo($"/create-listing?edit={_listing?.Id}");
 
     private IReadOnlyList<AcMapSim.MapPin> MapPins =>
         _listing is null ? Array.Empty<AcMapSim.MapPin>()
@@ -172,7 +172,7 @@
             var env = await Engine.ExecuteAsync<StartChatData>(
                 EjarOps.StartConversation(_listing.Id, text),
                 payload: new { ListingId = _listing.Id, Text = text });
-            if (env?.Data is not null) Nav.NavigateTo($"/chats/{env.Data.Id}");
+            if (env?.Data is not null) Nav.NavigateTo($"/chat/{env.Data.Id}");
             else                       Nav.NavigateTo("/chats");
         }
         finally { _startingChat = false; }

@@ -62,7 +62,7 @@
             {
                 var cat = c;
                 <AcCategoryTile Label="@cat.Label" IconName="@cat.Icon"
-                                OnClick="@(() => Nav.NavigateTo($"/?category={cat.Id}"))" />
+                                OnClick="@(() => Nav.NavigateTo($"/explore?category={cat.Id}"))" />
             }
         </div>
     }
@@ -94,13 +94,13 @@
     {
         if (string.IsNullOrWhiteSpace(_query)) return;
         await Applier.ApplyLocalAsync(EjarOps.AddRecentSearch(_query));
-        Nav.NavigateTo($"/?q={Uri.EscapeDataString(_query)}");
+        Nav.NavigateTo($"/explore?q={Uri.EscapeDataString(_query)}");
     }
 
     private async Task PickRecent(string q)
     {
         await Applier.ApplyLocalAsync(EjarOps.AddRecentSearch(q));
-        Nav.NavigateTo($"/?q={Uri.EscapeDataString(q)}");
+        Nav.NavigateTo($"/explore?q={Uri.EscapeDataString(q)}");
     }
 
     private void Remove(string q) => Store.RemoveRecentSearch(q);
