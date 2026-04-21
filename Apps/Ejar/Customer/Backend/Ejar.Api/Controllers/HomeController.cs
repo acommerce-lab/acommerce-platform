@@ -79,6 +79,7 @@ public class HomeController : ControllerBase
         if (ix >= 0)
             EjarSeed.Listings[ix] = l with { ViewsCount = l.ViewsCount + 1 };
 
+        var owner = EjarSeed.GetUser(l.OwnerId);
         return this.OkEnvelope("listing.details", new
         {
             id = l.Id, title = l.Title, description = l.Description,
@@ -92,6 +93,10 @@ public class HomeController : ControllerBase
                 label = EjarSeed.AmenityLabels.GetValueOrDefault(a, a)
             }),
             ownerId = l.OwnerId,
+            owner = new {
+                name        = owner?.FullName ?? "المؤجر",
+                memberSince = "2024"
+            },
             bedroomCount = l.BedroomCount, bathroomCount = l.BathroomCount,
             areaSqm = l.AreaSqm, isVerified = l.IsVerified,
             viewsCount = l.ViewsCount, status = l.Status,

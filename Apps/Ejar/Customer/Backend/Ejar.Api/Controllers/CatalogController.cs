@@ -333,7 +333,7 @@ public class CatalogController : ControllerBase
     public IActionResult Notifications() =>
         this.OkEnvelope("notification.list",
             EjarSeed.Notifications.Select(n => new {
-                id = n.Id, title = n.Title, body = n.Body,
+                id = n.Id, title = n.Title, body = n.Body, type = n.Type,
                 createdAt = n.CreatedAt, isRead = n.IsRead, relatedId = n.RelatedId
             }));
 

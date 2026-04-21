@@ -199,11 +199,11 @@ public static class EjarSeed
     // ── الإشعارات ─────────────────────────────────────────────────────────
     public static readonly List<NotificationSeed> Notifications = new()
     {
-        new("N-1", "رسالة جديدة",         "لديك رسالة من خالد حول فيلا الملقا",   DateTime.UtcNow.AddHours(-2),  false, "C-1"),
-        new("N-2", "إعلانك بات نشطاً",    "تم نشر إعلان الفيلا بنجاح",            DateTime.UtcNow.AddDays(-1),   true,  null),
-        new("N-3", "تجديد الاشتراك",      "اشتراكك ينتهي خلال 7 أيام",            DateTime.UtcNow.AddDays(-2),   true,  null),
-        new("N-4", "مشاهدات جديدة",       "إعلانك حصل على 15 مشاهدة اليوم",       DateTime.UtcNow.AddDays(-3),   true,  null),
-        new("N-5", "ترحيب بإيجار",        "مرحباً بك في منصة إيجار — ابدأ بنشر إعلانك الأول", DateTime.UtcNow.AddDays(-7), true, null),
+        new("N-1", "رسالة جديدة",         "لديك رسالة من خالد حول فيلا الملقا",   DateTime.UtcNow.AddHours(-2),  false, "C-1", "message"),
+        new("N-2", "إعلانك بات نشطاً",    "تم نشر إعلان الفيلا بنجاح",            DateTime.UtcNow.AddDays(-1),   true,  null,  "listing"),
+        new("N-3", "تجديد الاشتراك",      "اشتراكك ينتهي خلال 7 أيام",            DateTime.UtcNow.AddDays(-2),   true,  null,  "system"),
+        new("N-4", "مشاهدات جديدة",       "إعلانك حصل على 15 مشاهدة اليوم",       DateTime.UtcNow.AddDays(-3),   true,  null,  "listing"),
+        new("N-5", "ترحيب بإيجار",        "مرحباً بك في منصة إيجار — ابدأ بنشر إعلانك الأول", DateTime.UtcNow.AddDays(-7), true, null,  "system"),
     };
 
     // ── الشكاوى ───────────────────────────────────────────────────────────
@@ -301,7 +301,7 @@ public static class EjarSeed
 
     public record NotificationSeed(
         string Id, string Title, string Body,
-        DateTime CreatedAt, bool IsRead, string? RelatedId);
+        DateTime CreatedAt, bool IsRead, string? RelatedId, string Type = "system");
 
     public record ComplaintSeed(
         string Id, string Subject, string Body,

@@ -83,9 +83,38 @@
             </ChildContent>
         </AcCard>
 
+        @if (_listing.Owner is not null && !IsMine)
+        {
+            <AcCard>
+                <ChildContent>
+                    <h3 style="margin-top:0;">المؤجّر</h3>
+                    <div class="acm-details-owner">
+                        <span class="acm-details-owner-avatar"><AcIcon Name="user" Size="20" /></span>
+                        <div class="acm-details-owner-info">
+                            <strong>@_listing.Owner.Name</strong>
+                            @if (!string.IsNullOrEmpty(_listing.Owner.MemberSince))
+                            {
+                                <span>عضو منذ @_listing.Owner.MemberSince</span>
+                            }
+                        </div>
+                        @if (Store.Auth.IsAuthenticated)
+                        {
+                            <AcButton Variant="outline-primary" Text="مراسلة"
+                                      OnClick="@StartChat" Disabled="@_startingChat" />
+                        }
+                    </div>
+                </ChildContent>
+            </AcCard>
+        }
+
         <AcStickyActionBar>
             <AcButton Variant="ghost" Text="رجوع" OnClick="@GoBack" />
-            @if (Store.Auth.IsAuthenticated)
+            @if (IsMine)
+            {
+                <AcButton Variant="outline-primary" Class="ac-btn-block" Text="تعديل الإعلان"
+                          OnClick="@EditListing" />
+            }
+            else if (Store.Auth.IsAuthenticated)
             {
                 <AcButton Variant="primary" Class="ac-btn-block" Text="@(L["listing.contact"])"
                           OnClick="@StartChat" Disabled="@_startingChat" />
@@ -106,6 +135,10 @@
     private bool _loading = true;
     private bool _startingChat;
     private bool _isFav => _listing is not null && Store.FavoriteListingIds.Contains(_listing.Id);
+    private bool IsMine => _listing is not null && Store.Auth.IsAuthenticated
+                           && _listing.OwnerId == Store.Auth.UserId?.ToString();
+
+    private void EditListing() => Nav.NavigateTo($"/my-listings/create?edit={_listing?.Id}");
 
     private IReadOnlyList<AcMapSim.MapPin> MapPins =>
         _listing is null ? Array.Empty<AcMapSim.MapPin>()
@@ -151,11 +184,13 @@
     public void Dispose() => Store.OnChanged -= OnChange;
 
     private sealed record AmenityDto(string Key, string Label);
+    private sealed record OwnerDto(string Name, string? MemberSince);
     private sealed record ListingDetailDto(
         string Id, string Title, string Description, decimal Price,
         string TimeUnit, string TimeUnitLabel, string PropertyType, string PropertyTypeLabel,
         string City, string District, double Lat, double Lng,
-        List<AmenityDto> Amenities, string OwnerId, int BedroomCount, int BathroomCount,
+        List<AmenityDto> Amenities, string OwnerId, OwnerDto? Owner,
+        int BedroomCount, int BathroomCount,
         double AreaSqm, bool IsVerified, int ViewsCount, int Status, bool IsFavorite,
         List<string>? Images);
     private sealed record StartChatData(string Id, bool Created);

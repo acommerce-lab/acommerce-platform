@@ -1,6 +1,7 @@
 @page "/chats"
 @inject ApiReader Api
 @inject NavigationManager Nav
+@inject ITimezoneProvider Tz
 @inject L L
 
 <PageTitle>@(L["chat.title"]) — @(L["app.name"])</PageTitle>
@@ -16,8 +17,8 @@
     {
         var list = _items.Where(c =>
             string.IsNullOrWhiteSpace(_search) ||
-            c.OtherUserName.Contains(_search, StringComparison.OrdinalIgnoreCase) ||
-            (c.ListingTitle?.Contains(_search, StringComparison.OrdinalIgnoreCase) ?? false) ||
+            c.PartnerName.Contains(_search, StringComparison.OrdinalIgnoreCase) ||
+            (c.Subject?.Contains(_search, StringComparison.OrdinalIgnoreCase) ?? false) ||
             (c.LastMessage?.Contains(_search, StringComparison.OrdinalIgnoreCase) ?? false)).ToList();
 
         @if (list.Count == 0) { <AcEmptyState IconName="message" Message="لا توجد محادثات" /> }
@@ -31,14 +32,14 @@
                         <ChildContent>
                             <button type="button" class="acm-complaint-btn" @onclick="@(() => Open(cid))">
                                 <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
-                                    <strong>@c.OtherUserName</strong>
-                                    @if (c.UnreadCount > 0)
-                                    {
-                                        <AcBadge Variant="primary" Text="@c.UnreadCount.ToString()" />
-                                    }
+                                    <strong>@c.PartnerName</strong>
+                                    <div style="display:flex; gap:6px; align-items:center;">
+                                        <small>@Tz.FormatRelative(c.LastAt)</small>
+                                        @if (c.UnreadCount > 0) { <AcBadge Variant="primary" Text="@c.UnreadCount.ToString()" /> }
+                                    </div>
                                 </div>
                                 <div class="acm-complaint-body">@c.LastMessage</div>
-                                <small>@c.ListingTitle</small>
+                                <small>@c.Subject</small>
                             </button>
                         </ChildContent>
                     </AcCard>
@@ -56,7 +57,8 @@
     protected override async Task OnAfterRenderAsync(bool first)
     {
         if (!first) return;
-        var env  = await Api.GetAsync<List<ConvDto>>("/conversations");
+        await Tz.InitAsync();
+        var env  = await Api.GetAsync<List<ConvDto>>("/conversations", localize: true);
         _items   = env.Data ?? new();
         _loading = false;
         await InvokeAsync(StateHasChanged);
@@ -64,6 +66,6 @@
 
     private void Open(string id) => Nav.NavigateTo($"/chats/{id}");
 
-    private sealed record ConvDto(string Id, string ListingId, string ListingTitle,
-        string OtherUserId, string OtherUserName, string? LastMessage, int UnreadCount);
+    private sealed record ConvDto(string Id, string PartnerName, string Subject,
+                                  DateTime LastAt, int UnreadCount, string? LastMessage);
 }
