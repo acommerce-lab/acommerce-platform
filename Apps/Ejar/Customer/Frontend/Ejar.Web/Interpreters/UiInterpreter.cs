@@ -7,7 +7,8 @@ namespace Ejar.Web.Interpreters;
 public sealed class UiInterpreter : IOperationInterpreter<AppStore>
 {
     public bool CanInterpret(OperationDescriptor op) =>
-        op.Type is "ui.set_theme" or "ui.set_culture" or "ui.set_city" or "ui.recent_search.add";
+        op.Type is "ui.set_theme" or "ui.set_culture" or "ui.set_city"
+                or "ui.recent_search.add" or "favorite.toggle";
 
     public Task InterpretAsync(OperationDescriptor op, object? _, AppStore store, CancellationToken ct)
     {
@@ -33,6 +34,15 @@ public sealed class UiInterpreter : IOperationInterpreter<AppStore>
 
             case "ui.recent_search.add":
                 if (op.Tags.TryGetValue("query", out var q)) store.AddRecentSearch(q);
+                break;
+
+            case "favorite.toggle":
+                if (op.Tags.TryGetValue("listing_id", out var id))
+                {
+                    if (!store.FavoriteListingIds.Add(id))
+                        store.FavoriteListingIds.Remove(id);
+                    store.NotifyChanged();
+                }
                 break;
         }
         return Task.CompletedTask;

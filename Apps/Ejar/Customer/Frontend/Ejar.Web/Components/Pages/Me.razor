@@ -3,99 +3,78 @@
 @inject ApiReader Api
 @inject NavigationManager Nav
 @inject L L
-@implements IDisposable
 
-<PageTitle>@(L["nav.profile"]) — @(L["app.name"])</PageTitle>
+<PageTitle>@(L["nav.profile"]) - @(L["app.name"])</PageTitle>
 
-<div class="ejar-page">
-    @if (!Store.Auth.IsAuthenticated)
-    {
-        <div class="ejar-empty mt-5">
-            <div class="ejar-empty-icon">👤</div>
-            <p>@(L["auth.phone.hint"])</p>
-            <button class="ac-btn ac-btn-primary" @onclick="@(() => Nav.NavigateTo("/login"))">@(L["auth.login.title"])</button>
-        </div>
-    }
-    else
-    {
-        @* Profile card *@
-        <div style="background:linear-gradient(135deg,var(--ac-primary) 0%,var(--ac-primary-dark) 100%);padding:32px 20px 24px;text-align:center;color:#fff;">
-            <div style="width:72px;height:72px;border-radius:50%;background:rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;margin:0 auto 12px;font-size:2rem;">👤</div>
-            <h2 style="margin:0 0 4px;font-size:1.1rem;">@(Store.Auth.FullName ?? "مستخدم")</h2>
-            <p style="margin:0;opacity:0.85;font-size:0.87rem;">@Store.Auth.Phone</p>
-        </div>
+<div class="acs-page acs-profile-page">
+    <h1 class="acm-wizard-title">@(L["nav.profile"])</h1>
 
-        <div class="ejar-content mt-3">
-            @* Profile stats *@
-            @if (_profile is not null)
-            {
-                <div class="row g-2 mb-3">
-                    <div class="col-4">
-                        <div class="text-center p-3" style="background:var(--ac-surface);border-radius:12px;border:1px solid var(--ac-border);">
-                            <div style="font-size:1.3rem;font-weight:700;color:var(--ac-primary);">@(_profile.ActiveListingsCount)</div>
-                            <div style="font-size:0.75rem;color:var(--ac-text-muted);">إعلان نشط</div>
-                        </div>
-                    </div>
-                    <div class="col-4">
-                        <div class="text-center p-3" style="background:var(--ac-surface);border-radius:12px;border:1px solid var(--ac-border);">
-                            <div style="font-size:1.3rem;font-weight:700;color:var(--ac-primary);">@(_profile.TotalViews)</div>
-                            <div style="font-size:0.75rem;color:var(--ac-text-muted);">مشاهدة</div>
-                        </div>
-                    </div>
-                    <div class="col-4">
-                        <div class="text-center p-3" style="background:var(--ac-surface);border-radius:12px;border:1px solid var(--ac-border);">
-                            <div style="font-size:1.3rem;font-weight:700;color:var(--ac-primary);">@(_profile.UnreadNotifications)</div>
-                            <div style="font-size:0.75rem;color:var(--ac-text-muted);">إشعار</div>
-                        </div>
-                    </div>
+    <AcCard>
+        <ChildContent>
+            <div class="acm-details-owner">
+                <span class="acm-details-owner-avatar"><AcIcon Name="user" Size="24" /></span>
+                <div class="acm-details-owner-info" style="flex:1;">
+                    <h3 style="margin:0;">@(_profile?.FullName ?? Store.Auth.FullName ?? "زائر")</h3>
+                    <span>@(_profile?.Phone ?? Store.Auth.Phone ?? "")</span>
+                    @if (_profile is not null)
+                    {
+                        <small style="display:block; color:var(--ac-text-muted);">
+                            @_profile.City
+                        </small>
+                    }
                 </div>
-            }
+                <AcButton Variant="outline-primary" Text="تعديل" OnClick="@GoEdit" />
+            </div>
+        </ChildContent>
+    </AcCard>
 
-            @* Menu items *@
-            @foreach (var item in _menuItems)
-            {
-                <div @onclick="@(() => Nav.NavigateTo(item.Href))"
-                     style="display:flex;align-items:center;gap:12px;padding:14px 0;border-bottom:1px solid var(--ac-border);cursor:pointer;">
-                    <span style="font-size:1.2rem;width:28px;text-align:center;">@item.Icon</span>
-                    <span style="flex:1;font-size:0.93rem;font-weight:500;">@item.Label</span>
-                    <AcIcon Name="chevron-left" Size="16" />
-                </div>
-            }
+    <div class="acm-home-grid" style="margin-top:12px;">
+        <AcCard><ChildContent>
+            <strong>@Store.FavoriteListingIds.Count</strong>
+            <div style="color:var(--ac-text-muted);">مفضّلتي</div>
+        </ChildContent></AcCard>
+        <AcCard><ChildContent>
+            <strong>@(_profile?.ActiveListingsCount ?? 0)</strong>
+            <div style="color:var(--ac-text-muted);">إعلاناتي</div>
+        </ChildContent></AcCard>
+        <AcCard><ChildContent>
+            <strong>@(_profile?.TotalViews ?? 0)</strong>
+            <div style="color:var(--ac-text-muted);">مشاهدة</div>
+        </ChildContent></AcCard>
+    </div>
 
-            @* Sign out *@
-            <button class="ac-btn ac-btn-outline-danger w-100 mt-4" @onclick="SignOut">
-                🚪 @(L["settings.sign_out"])
-            </button>
-        </div>
-    }
+    <div class="acm-home-actions" style="margin-top:12px;">
+        <AcActionCard Label="إعلاناتي"                   IconName="building"     Variant="surface" OnClick="@GoMyListings" />
+        <AcActionCard Label="@(L["nav.favorites"])"       IconName="heart"        Variant="surface" OnClick="@GoFavorites" />
+        <AcActionCard Label="اشتراكي والباقات"            IconName="package"      Variant="surface" OnClick="@GoPlans" />
+        <AcActionCard Label="@(L["complaint.title"])"     IconName="alert-circle" Variant="surface" OnClick="@GoComplaints" />
+        <AcActionCard Label="الرسائل"                    IconName="message"      Variant="surface" OnClick="@GoChats" />
+        <AcActionCard Label="@(L["settings.title"])"     IconName="settings"     Variant="surface" OnClick="@GoSettings" />
+    </div>
+
+    <div style="margin-top:12px; display:flex; gap:8px;">
+        <AcButton Variant="ghost" Text="@(L["settings.sign_out"])" OnClick="@SignOut" />
+    </div>
 </div>
 
 @code {
     private ProfileDto? _profile;
 
-    private readonly (string Icon, string Label, string Href)[] _menuItems = new[]
+    protected override async Task OnAfterRenderAsync(bool first)
     {
-        ("✏️", "تعديل الملفّ الشخصيّ", "/me/edit"),
-        ("📋", "إعلاناتي",              "/my-listings"),
-        ("❤️", "المفضلة",              "/favorites"),
-        ("💬", "الرسائل",              "/chats"),
-        ("🔔", "الإشعارات",             "/notifications"),
-        ("📦", "اشتراكي والباقات",     "/plans"),
-        ("🚨", "الشكاوى",              "/complaints"),
-        ("⚙️", "الإعدادات",             "/settings"),
-        ("📖", "الشروط والسياسات",     "/legal"),
-        ("❓", "المساعدة",             "/help"),
-    };
-
-    protected override void OnInitialized() => Store.OnChanged += OnChange;
-
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (!firstRender || !Store.Auth.IsAuthenticated) return;
+        if (!first) return;
         var env = await Api.GetAsync<ProfileDto>("/me/profile");
         _profile = env.Data;
         await InvokeAsync(StateHasChanged);
     }
+
+    private void GoEdit()       => Nav.NavigateTo("/me/edit");
+    private void GoMyListings() => Nav.NavigateTo("/my-listings");
+    private void GoFavorites()  => Nav.NavigateTo("/favorites");
+    private void GoPlans()      => Nav.NavigateTo("/plans");
+    private void GoComplaints() => Nav.NavigateTo("/complaints");
+    private void GoChats()      => Nav.NavigateTo("/chats");
+    private void GoSettings()   => Nav.NavigateTo("/settings");
 
     private void SignOut()
     {
@@ -104,11 +83,8 @@
         Store.Auth.FullName = null;
         Store.Auth.Phone = null;
         Store.NotifyChanged();
-        Nav.NavigateTo("/");
+        Nav.NavigateTo("/login");
     }
-
-    private void OnChange() => InvokeAsync(StateHasChanged);
-    public void Dispose() => Store.OnChanged -= OnChange;
 
     private sealed record ProfileDto(
         string UserId, string FullName, string Phone, string? Email, string? City,
