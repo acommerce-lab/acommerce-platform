@@ -1,8 +1,11 @@
 @page "/listings/{Id}"
+@using ACommerce.Client.Operations
+@using Ejar.Web.Operations
 @inject AppStore Store
 @inject AppStateApplier Applier
 @inject ApiReader Api
 @inject NavigationManager Nav
+@inject ClientOpEngine Engine
 @inject L L
 @implements IDisposable
 
@@ -132,10 +135,12 @@
         _startingChat = true;
         try
         {
-            var env = await Api.PostAsync<ConvStartDto>("/conversations/start",
-                new { listingId = _listing.Id, text = "مرحباً، أريد الاستفسار عن هذا الإعلان" });
-            if (env.Data is not null) Nav.NavigateTo($"/chats/{env.Data.Id}");
-            else Nav.NavigateTo("/chats");
+            var text = $"مرحباً، أنا مهتمّ بـ \"{_listing.Title}\".";
+            var env = await Engine.ExecuteAsync<StartChatData>(
+                EjarOps.StartConversation(_listing.Id, text),
+                payload: new { ListingId = _listing.Id, Text = text });
+            if (env?.Data is not null) Nav.NavigateTo($"/chats/{env.Data.Id}");
+            else                       Nav.NavigateTo("/chats");
         }
         finally { _startingChat = false; }
     }
@@ -153,5 +158,5 @@
         List<AmenityDto> Amenities, string OwnerId, int BedroomCount, int BathroomCount,
         double AreaSqm, bool IsVerified, int ViewsCount, int Status, bool IsFavorite,
         List<string>? Images);
-    private sealed record ConvStartDto(string Id);
+    private sealed record StartChatData(string Id, bool Created);
 }

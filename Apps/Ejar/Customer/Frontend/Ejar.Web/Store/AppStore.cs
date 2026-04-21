@@ -8,6 +8,7 @@ public class AppStore : ITemplateStore
     public AuthState Auth { get; } = new();
     public HashSet<string> FavoriteListingIds { get; } = new();
     public List<string> RecentSearches { get; } = new();
+    public HashSet<string> ActiveQuickFilterIds { get; } = new();
     public DraftListing Draft { get; } = new();
 
     public event Action? OnChanged;

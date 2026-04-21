@@ -1,4 +1,5 @@
 @page "/search"
+@using Ejar.Web.Operations
 @inject AppStore Store
 @inject AppStateApplier Applier
 @inject ApiReader Api
@@ -9,151 +10,113 @@
 <PageTitle>@(L["common.search"]) — @(L["app.name"])</PageTitle>
 
 <div class="acs-page acs-search-page">
-    <AcSearchBox Value="@_q" ValueChanged="@(v => _q = v ?? string.Empty)"
-                 Placeholder="@(L["home.search.placeholder"])" OnSubmit="RunSearch" />
+    <AcSearchBox Value="@_query" ValueChanged="@(v => _query = v ?? string.Empty)"
+                 Placeholder="ابحث عن إعلان…" OnSubmit="Submit" />
 
-    <AcCard>
-        <ChildContent>
-            <AcField Label="@(L["filter.city"])">
-                <select class="ac-input" @bind="_city">
-                    <option value="">@(L["filter.city"])</option>
-                    @foreach (var c in _cities) { <option value="@c">@c</option> }
-                </select>
-            </AcField>
-            <AcField Label="@(L["filter.type"])">
-                <select class="ac-input" @bind="_propertyType">
-                    <option value="">@(L["filter.type"])</option>
-                    @foreach (var cat in _categories) { <option value="@cat.Id">@cat.Label</option> }
-                </select>
-            </AcField>
-            <AcField Label="@(L["filter.time_unit"])">
-                <select class="ac-input" @bind="_timeUnit">
-                    <option value="">@(L["filter.time_unit"])</option>
-                    <option value="monthly">شهري</option>
-                    <option value="yearly">سنوي</option>
-                    <option value="daily">يومي</option>
-                    <option value="hourly">بالساعة</option>
-                </select>
-            </AcField>
-            <AcField Label="@(L["filter.sort"])">
-                <select class="ac-input" @bind="_sort">
-                    <option value="">@(L["filter.sort"])</option>
-                    <option value="price_asc">@(L["filter.sort.price_asc"])</option>
-                    <option value="price_desc">@(L["filter.sort.price_desc"])</option>
-                    <option value="views">@(L["filter.sort.views"])</option>
-                </select>
-            </AcField>
-            <div style="display:flex; gap:8px; margin-top:8px;">
-                <AcButton Variant="primary" Class="ac-btn-block" Text="@(L["common.apply"])" OnClick="@RunSearch" />
-                <AcButton Variant="ghost" Text="@(L["common.reset"])" OnClick="@Reset" />
-            </div>
-        </ChildContent>
-    </AcCard>
-
-    @if (_loading) { <AcLoadingState /> }
-    else if (_listings.Count == 0) { <AcEmptyState IconName="search" Message="@(L["listing.no_results"])" /> }
-    else
+    @if (Store.RecentSearches.Count > 0)
     {
-        <p style="font-size:0.83rem; color:var(--ac-text-muted); margin:8px 0;">@_total نتيجة</p>
-        <div class="acm-home-grid">
-            @foreach (var l in _listings)
+        <AcSectionHeader Title="بحث حديث" ActionLabel="مسح" OnAction="@ClearRecent" />
+        <div class="acs-filter-chips">
+            @foreach (var r in Store.RecentSearches)
             {
-                var lid = l.Id;
-                <AcSpaceCard Title="@l.Title"
-                             ImageUrl="@l.FirstImage"
-                             Location="@($"{l.District} — {l.City}")"
-                             PriceLabel="@($"{l.Price:0} SAR / {l.TimeUnitLabel}")"
-                             IsFavorite="@Store.FavoriteListingIds.Contains(l.Id)"
-                             OnOpen="@(() => Nav.NavigateTo($"/listings/{lid}"))"
-                             OnToggleFavorite="@(async on => await Applier.ApplyLocalAsync(EjarOps.ToggleFavorite(lid)))" />
+                var rq = r;
+                <span class="acs-recent-chip">
+                    <button type="button" @onclick="@(() => PickRecent(rq))">@rq</button>
+                    <button type="button" class="rm" @onclick="@(() => Remove(rq))" title="حذف">×</button>
+                </span>
             }
         </div>
+    }
 
-        @if (_total > _pageSize)
-        {
-            <div style="display:flex; justify-content:center; gap:8px; margin-top:16px;">
-                <AcButton Variant="ghost" Text="@(L["common.prev"])" OnClick="@PrevPage" Disabled="@(_page <= 1)" />
-                <span style="padding:6px 12px; font-size:0.85rem; color:var(--ac-text-muted);">@_page</span>
-                <AcButton Variant="ghost" Text="@(L["common.next"])" OnClick="@NextPage" Disabled="@(_page * _pageSize >= _total)" />
-            </div>
-        }
+    @if (_popular.Count > 0)
+    {
+        <AcSectionHeader Title="الأكثر بحثاً" />
+        <div class="acs-filter-chips">
+            @foreach (var p in _popular)
+            {
+                var pq = p;
+                <AcFilterChip Label="@pq" OnClick="@(() => PickRecent(pq))" />
+            }
+        </div>
+    }
+
+    @if (_quickFilters.Count > 0)
+    {
+        <AcSectionHeader Title="فلاتر سريعة" />
+        <div class="acs-filter-chips">
+            @foreach (var qf in _quickFilters)
+            {
+                var f = qf;
+                <AcFilterChip Label="@f.Label"
+                              Active="@Store.ActiveQuickFilterIds.Contains(f.Id)"
+                              OnClick="@(() => ToggleFilter(f.Id))" />
+            }
+        </div>
+    }
+
+    @if (_categories.Count > 0)
+    {
+        <AcSectionHeader Title="تصفّح بالفئات" />
+        <div class="acm-home-grid">
+            @foreach (var c in _categories)
+            {
+                var cat = c;
+                <AcCategoryTile Label="@cat.Label" IconName="@cat.Icon"
+                                OnClick="@(() => Nav.NavigateTo($"/?category={cat.Id}"))" />
+            }
+        </div>
     }
 </div>
 
 @code {
-    [SupplyParameterFromQuery] public string? q { get; set; }
-    [SupplyParameterFromQuery] public string? propertyType { get; set; }
-    [SupplyParameterFromQuery] public string? city { get; set; }
-
-    private string _q = "";
-    private string _city = "";
-    private string _propertyType = "";
-    private string _timeUnit = "";
-    private string _sort = "";
-    private int _page = 1;
-    private int _pageSize = 20;
-    private int _total;
-    private bool _loading;
-    private List<ListingDto> _listings = new();
-    private List<string> _cities = new();
+    private string _query = "";
+    private List<string> _popular = new();
+    private List<QuickFilterDto> _quickFilters = new();
     private List<CategoryDto> _categories = new();
 
-    protected override void OnInitialized()
-    {
-        _q = q ?? "";
-        _propertyType = propertyType ?? "";
-        _city = city ?? Store.Ui.City;
-        Store.OnChanged += OnChange;
-    }
+    protected override void OnInitialized() => Store.OnChanged += OnChange;
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+    protected override async Task OnAfterRenderAsync(bool first)
     {
-        if (!firstRender) return;
-        var cEnv   = await Api.GetAsync<List<string>>("/cities");
-        var catEnv = await Api.GetAsync<List<CategoryDto>>("/categories");
-        _cities    = cEnv.Data ?? new();
-        _categories = catEnv.Data ?? new();
-        await RunSearch();
-    }
-
-    private async Task RunSearch()
-    {
-        _loading = true;
-        await InvokeAsync(StateHasChanged);
-        var env = await Api.GetAsync<ListingsResponse>(BuildUrl());
-        _total    = env.Data?.Total ?? 0;
-        _listings = env.Data?.Items ?? new();
-        _loading  = false;
+        if (!first) return;
+        var s = await Api.GetAsync<SuggestionsDto>("/home/search/suggestions");
+        if (s.Data is not null)
+        {
+            _popular      = s.Data.Popular ?? new();
+            _quickFilters = s.Data.QuickFilters ?? new();
+        }
+        var h = await Api.GetAsync<HomeResponse>("/home/view");
+        _categories = h.Data?.Categories ?? new();
         await InvokeAsync(StateHasChanged);
     }
 
-    private string BuildUrl()
+    private async Task Submit()
     {
-        var p = new List<string> { $"page={_page}", $"pageSize={_pageSize}" };
-        if (!string.IsNullOrEmpty(_q))            p.Add($"q={Uri.EscapeDataString(_q)}");
-        if (!string.IsNullOrEmpty(_city))         p.Add($"city={Uri.EscapeDataString(_city)}");
-        if (!string.IsNullOrEmpty(_propertyType)) p.Add($"propertyType={Uri.EscapeDataString(_propertyType)}");
-        if (!string.IsNullOrEmpty(_timeUnit))     p.Add($"timeUnit={Uri.EscapeDataString(_timeUnit)}");
-        if (!string.IsNullOrEmpty(_sort))         p.Add($"sort={Uri.EscapeDataString(_sort)}");
-        return "/listings?" + string.Join("&", p);
+        if (string.IsNullOrWhiteSpace(_query)) return;
+        await Applier.ApplyLocalAsync(EjarOps.AddRecentSearch(_query));
+        Nav.NavigateTo($"/?q={Uri.EscapeDataString(_query)}");
     }
 
-    private async Task Reset()
+    private async Task PickRecent(string q)
     {
-        _q = ""; _city = ""; _propertyType = ""; _timeUnit = ""; _sort = ""; _page = 1;
-        await RunSearch();
+        await Applier.ApplyLocalAsync(EjarOps.AddRecentSearch(q));
+        Nav.NavigateTo($"/?q={Uri.EscapeDataString(q)}");
     }
 
-    private async Task PrevPage() { if (_page > 1) { _page--; await RunSearch(); } }
-    private async Task NextPage() { _page++; await RunSearch(); }
+    private void Remove(string q) => Store.RemoveRecentSearch(q);
+    private void ClearRecent() => Store.ClearRecentSearches();
+
+    private void ToggleFilter(string id)
+    {
+        if (!Store.ActiveQuickFilterIds.Add(id)) Store.ActiveQuickFilterIds.Remove(id);
+        Store.NotifyChanged();
+    }
 
     private void OnChange() => InvokeAsync(StateHasChanged);
     public void Dispose() => Store.OnChanged -= OnChange;
 
-    private sealed record CategoryDto(string Id, string Label, string Emoji, string Kind, List<string> TimeUnits);
-    private sealed record ListingsResponse(int Total, int Page, int PageSize, List<ListingDto> Items);
-    private sealed record ListingDto(
-        string Id, string Title, decimal Price, string TimeUnit, string TimeUnitLabel,
-        string PropertyType, string City, string District, bool IsVerified,
-        int ViewsCount, bool IsFavorite, List<string> Amenities, string? FirstImage);
+    private sealed record SuggestionsDto(List<string> Popular, List<QuickFilterDto> QuickFilters);
+    private sealed record QuickFilterDto(string Id, string Label, string Icon);
+    private sealed record HomeResponse(List<CategoryDto> Categories, object Featured, object New);
+    private sealed record CategoryDto(string Id, string Label, string Icon);
 }

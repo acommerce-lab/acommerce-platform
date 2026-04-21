@@ -253,6 +253,25 @@ public static class EjarSeed
     // ── الإصدار ───────────────────────────────────────────────────────────
     public static readonly VersionSeed Version = new("1.0.0", "1.0.0", false, null, "support@ejar.sa");
 
+    // ── اقتراحات البحث ───────────────────────────────────────────────────
+    public static readonly IReadOnlyList<string> PopularSearches = new[]
+    {
+        "شقة مفروشة الرياض",
+        "فيلا للإيجار جدة",
+        "استديو مكة باليوم",
+        "محل تجاري الدمام",
+        "أرض سكنية الخبر",
+        "شقة قريبة من النرجس",
+        "مكتب إداري الملك فهد"
+    };
+
+    public static readonly IReadOnlyList<QuickFilterSeed> QuickFilters = new[]
+    {
+        new QuickFilterSeed("near_me",   "قريب مني",       "map-pin"),
+        new QuickFilterSeed("low_price", "الأقل سعراً",    "tag"),
+        new QuickFilterSeed("verified",  "موثّقة",         "check-circle")
+    };
+
     // ═══════════════════════════════════════════════════════════════════════
     // Records
     // ═══════════════════════════════════════════════════════════════════════
@@ -306,6 +325,8 @@ public static class EjarSeed
         string Id, string PlanId, decimal Amount, DateTime Date, string Status);
 
     public record LegalSeed(string Key, string Title, string Body);
+
+    public record QuickFilterSeed(string Id, string Label, string Icon);
 
     public record VersionSeed(
         string Current, string Latest, bool IsBlocked,

@@ -100,6 +100,40 @@ public class HomeController : ControllerBase
         });
     }
 
+    // ── GET /home/view ───────────────────────────────────────────────────
+    [HttpGet("/home/view")]
+    public IActionResult HomeView([FromQuery] string? city = null)
+    {
+        IEnumerable<EjarSeed.ListingSeed> q = EjarSeed.Listings.Where(l => l.Status == 1);
+        if (!string.IsNullOrWhiteSpace(city))
+            q = q.Where(l => string.Equals(l.City, city, StringComparison.Ordinal));
+
+        var items = q.ToList();
+        var featured = items.Where(l => l.IsVerified).Select(MapSummary).ToList();
+        var @new     = items.Where(l => !l.IsVerified).Take(6).Select(MapSummary).ToList();
+
+        return this.OkEnvelope("home.view", new
+        {
+            categories = EjarSeed.Categories.Select(c => new {
+                id = c.Id, label = c.Label, icon = MapEmojiToIcon(c.Emoji)
+            }),
+            featured,
+            @new,
+            city
+        });
+    }
+
+    // ── GET /home/search/suggestions ─────────────────────────────────────
+    [HttpGet("/home/search/suggestions")]
+    public IActionResult SearchSuggestions() =>
+        this.OkEnvelope("search.suggestions", new
+        {
+            popular = EjarSeed.PopularSearches,
+            quickFilters = EjarSeed.QuickFilters.Select(q => new {
+                id = q.Id, label = q.Label, icon = q.Icon
+            })
+        });
+
     // ── GET /categories ──────────────────────────────────────────────────
     [HttpGet("/categories")]
     public IActionResult Categories() =>
@@ -173,6 +207,17 @@ public class HomeController : ControllerBase
 
     private static string CategoryLabel(string t) =>
         EjarSeed.Categories.FirstOrDefault(c => c.Id == t)?.Label ?? t;
+
+    private static string MapEmojiToIcon(string emoji) => emoji switch
+    {
+        "🏠" => "home",
+        "🏢" => "building",
+        "🏬" => "shopping-bag",
+        "🏗️" => "map",
+        "🏪" => "store",
+        "🏨" => "hotel",
+        _    => "tag"
+    };
 
     private static double HaversineKm(double lat1, double lng1, double lat2, double lng2)
     {
