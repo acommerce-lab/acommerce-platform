@@ -1,68 +1,257 @@
 /* ─── Ejar Brand — Royal Blue Theme ─────────────────────────────────────── */
 :root {
+    /* Primary palette */
     --ac-primary:           #1D4ED8;   /* Royal blue */
     --ac-primary-hover:     #1E40AF;
     --ac-primary-light:     #DBEAFE;
     --ac-primary-dark:      #1E3A8A;
     --ac-secondary:         #0EA5E9;
     --ac-accent:            #F59E0B;
+
+    /* Surfaces */
+    --ac-bg:                #FFFFFF;
+    --ac-bg-alt:            #F1F5F9;
     --ac-surface:           #FFFFFF;
     --ac-surface-alt:       #F1F5F9;
     --ac-border:            #E2E8F0;
+
+    /* Text */
     --ac-text:              #1E293B;
     --ac-text-muted:        #64748B;
+    --ac-muted:             #64748B;
+
+    /* Status */
     --ac-success:           #10B981;
     --ac-error:             #EF4444;
+    --ac-danger:            #EF4444;
     --ac-warning:           #F59E0B;
 
-    font-family: 'Cairo', 'Segoe UI', system-ui, sans-serif;
+    /* Radii */
+    --ac-radius-sm:         8px;
+    --ac-radius-md:         12px;
+    --ac-radius-lg:         16px;
+    --ac-radius-xl:         24px;
+
+    /* Layout heights */
+    --acm-mobile-nav-h:     56px;
+    --acm-bottom-nav-h:     60px;
+
+    /* Font */
+    --ac-font-family:       'Cairo', 'Segoe UI', system-ui, sans-serif;
+    font-family: var(--ac-font-family);
 }
 
-/* ─── Dark Mode ──────────────────────────────────────────────────────────── */
-.ac-dark-wrap,
-.ac-dark-wrap :root {
-    --ac-primary:           #3B82F6;   /* softer blue in dark */
+/* ─── Dark Mode (body.ac-dark set by ui-prefs.js) ───────────────────────── */
+body.ac-dark {
+    --ac-primary:           #3B82F6;
     --ac-primary-hover:     #60A5FA;
     --ac-primary-light:     #1E3A8A;
     --ac-primary-dark:      #1D4ED8;
     --ac-secondary:         #38BDF8;
-    --ac-surface:           #0F172A;   /* deep navy background */
+    --ac-bg:                #0F172A;
+    --ac-bg-alt:            #1E293B;
+    --ac-surface:           #0F172A;
     --ac-surface-alt:       #1E293B;
     --ac-border:            #334155;
     --ac-text:              #F1F5F9;
     --ac-text-muted:        #94A3B8;
+    --ac-muted:             #94A3B8;
 }
 
 /* ─── Body defaults ──────────────────────────────────────────────────────── */
-body {
-    background-color: var(--ac-surface-alt);
-    color: var(--ac-text);
+html, body {
+    font-family: var(--ac-font-family);
+    font-size: 14px;
+    line-height: 1.5;
     margin: 0;
-    padding: 0;
-}
-
-.ac-dark-wrap {
-    background-color: var(--ac-surface);
+    background: var(--ac-bg);
     color: var(--ac-text);
-    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 }
 
-/* ─── Brand text (fallback when no logo) ─────────────────────────────────── */
-.acm-brand-text {
-    font-family: 'Cairo', sans-serif;
-    font-weight: 700;
-    color: var(--ac-primary);
-    letter-spacing: -0.5px;
-}
+h1 { font-size: 20px; font-weight: 700; margin: 0 0 8px; }
+h2 { font-size: 18px; font-weight: 700; margin: 0 0 8px; }
+h3 { font-size: 16px; font-weight: 700; margin: 0 0 8px; }
+.acm-wizard-title { font-size: 18px; font-weight: 700; margin: 8px 0 12px; }
 
-/* ─── Mobile nav custom brand ─────────────────────────────────────────────── */
+/* ─── Mobile navbar ──────────────────────────────────────────────────────── */
+.acm-mobile-nav {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: var(--acm-mobile-nav-h);
+    background: var(--ac-surface);
+    border-bottom: 1px solid var(--ac-border);
+    z-index: 1000;
+}
+.acm-mobile-nav-inner {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    height: 100%;
+    padding: 0 16px;
+}
+.acm-mobile-nav-brand {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
 .acm-mobile-nav-brand span {
     font-size: 1.25rem;
     font-weight: 700;
     color: var(--ac-primary);
 }
+.acm-mobile-nav-actions { display: flex; flex-direction: row; gap: 4px; }
+.acm-mobile-nav-btn {
+    all: unset;
+    box-sizing: border-box;
+    width: 36px;
+    height: 36px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    color: var(--ac-text);
+    cursor: pointer;
+}
+.acm-mobile-nav-btn:hover  { background: var(--ac-bg-alt); }
+.acm-mobile-nav-btn:active { background: var(--ac-border); }
 
-/* ─── Listing card enhancements ──────────────────────────────────────────── */
+/* ─── Mobile layout (default) ────────────────────────────────────────────── */
+.acm-v2-topnav-wrap { display: none; }
+
+main {
+    max-width: 480px;
+    margin: 0 auto;
+    padding: calc(var(--acm-mobile-nav-h) + 12px) 12px calc(var(--acm-bottom-nav-h) + 12px);
+    min-height: 100vh;
+}
+
+.acm-v2-bottom-nav-wrap { display: block; }
+
+/* ─── Desktop layout (≥768px) ────────────────────────────────────────────── */
+@media (min-width: 768px) {
+    body { background: var(--ac-bg-alt); }
+
+    .acm-mobile-nav { display: none; }
+
+    .acm-v2-topnav-wrap {
+        display: block;
+        max-width: 1200px;
+        margin: 16px auto 0;
+        padding: 0 16px;
+    }
+    .acm-v2-topnav-wrap .ac-topnav { display: flex; }
+
+    main {
+        max-width: 1200px;
+        padding: 16px 16px 32px;
+    }
+    .acm-v2-bottom-nav-wrap { display: none; }
+
+    .ac-stickybar { position: static; box-shadow: none; border-top: 0; margin-top: 16px; }
+}
+
+/* ─── Chrome hidden (login/auth pages) ──────────────────────────────────── */
+.acm-chrome-hidden .acm-mobile-nav        { display: none !important; }
+.acm-chrome-hidden .acm-v2-topnav-wrap    { display: none !important; }
+.acm-chrome-hidden .acm-v2-bottom-nav-wrap { display: none !important; }
+.acm-chrome-hidden main {
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    max-width: 100%;
+}
+
+/* ─── ac-dark-wrap marker on <main> ─────────────────────────────────────── */
+.ac-dark-wrap { display: block; }
+
+/* ─── Brand text ─────────────────────────────────────────────────────────── */
+.acm-brand-text {
+    font-family: var(--ac-font-family);
+    font-weight: 700;
+    color: var(--ac-primary);
+    letter-spacing: -0.5px;
+}
+.acm-brand { display: inline-flex; align-items: center; gap: 8px; }
+.acm-brand-city { margin-inline-start: auto; }
+
+/* ─── Auth / login page ──────────────────────────────────────────────────── */
+.acs-page {
+    background: var(--ac-bg);
+    border: 0;
+    border-radius: 0;
+    padding: 4px 0 24px;
+}
+.acs-auth-page { max-width: 100%; padding: 0; }
+@media (min-width: 768px) {
+    .acs-auth-page { max-width: 420px; margin: 24px auto; }
+}
+.acs-nafath-head {
+    text-align: center;
+    padding: 16px 0 4px;
+    color: var(--ac-primary);
+}
+.acs-nafath-head .acm-wizard-title { margin-top: 4px; color: var(--ac-primary); }
+.acs-nafath-instruction {
+    color: var(--ac-muted);
+    font-size: 14px;
+    margin-bottom: 16px;
+    text-align: center;
+}
+.acs-nafath-state {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 12px;
+    border-radius: var(--ac-radius-sm);
+    margin: 8px 0;
+    width: 100%;
+    box-sizing: border-box;
+}
+.acs-nafath-state--ok  { background: rgba(16, 185, 129, 0.12); color: var(--ac-success); }
+.acs-nafath-state--err { background: rgba(239, 68, 68, 0.12);  color: var(--ac-danger); }
+
+/* ─── Cards ──────────────────────────────────────────────────────────────── */
+.ac-card {
+    background: var(--ac-surface);
+    border: 1px solid var(--ac-border);
+    border-radius: var(--ac-radius-md);
+    padding: 14px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+}
+.ac-card + .ac-card { margin-top: 12px; }
+
+/* ─── Cookie Consent Banner ──────────────────────────────────────────────── */
+.acm-consent-bar {
+    position: fixed;
+    bottom: calc(var(--acm-bottom-nav-h) + 8px);
+    left: 8px;
+    right: 8px;
+    background: var(--ac-surface);
+    border: 1px solid var(--ac-border);
+    border-radius: var(--ac-radius-md);
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    box-shadow: 0 4px 16px rgba(0,0,0,.12);
+    z-index: 1100;
+    flex-wrap: wrap;
+}
+.acm-consent-text {
+    flex: 1;
+    font-size: 13px;
+    color: var(--ac-text);
+    margin: 0;
+    min-width: 160px;
+}
+.acm-consent-link { color: var(--ac-primary); text-decoration: underline; }
+.acm-consent-actions { display: flex; gap: 8px; flex-shrink: 0; }
+
+/* ─── Listing card ───────────────────────────────────────────────────────── */
 .ejar-listing-card {
     border-radius: 12px;
     overflow: hidden;
@@ -133,17 +322,8 @@ body {
     padding: 32px 20px 48px;
     text-align: center;
 }
-.ejar-hero h1 {
-    font-size: 1.5rem;
-    font-weight: 700;
-    margin: 0 0 8px;
-    color: #fff;
-}
-.ejar-hero p {
-    font-size: 0.9rem;
-    opacity: 0.85;
-    margin: 0 0 20px;
-}
+.ejar-hero h1 { font-size: 1.5rem; font-weight: 700; margin: 0 0 8px; color: #fff; }
+.ejar-hero p  { font-size: 0.9rem; opacity: 0.85; margin: 0 0 20px; }
 .ejar-search-box {
     display: flex;
     background: #fff;
@@ -158,7 +338,7 @@ body {
     border: none;
     padding: 14px 16px;
     font-size: 0.95rem;
-    font-family: 'Cairo', sans-serif;
+    font-family: var(--ac-font-family);
     color: var(--ac-text);
     outline: none;
 }
@@ -167,7 +347,7 @@ body {
     color: #fff;
     border: none;
     padding: 0 20px;
-    font-family: 'Cairo', sans-serif;
+    font-family: var(--ac-font-family);
     font-size: 0.9rem;
     font-weight: 600;
     cursor: pointer;
@@ -219,58 +399,14 @@ body {
     border: 1.5px solid var(--ac-primary);
     border-radius: 99px;
     padding: 6px 16px;
-    font-family: 'Cairo', sans-serif;
+    font-family: var(--ac-font-family);
     font-size: 0.84rem;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.15s;
     text-decoration: none;
 }
-.ejar-map-btn:hover {
-    background: var(--ac-primary);
-    color: #fff;
-}
-
-/* ─── Auth page ──────────────────────────────────────────────────────────── */
-.ejar-auth-wrap {
-    min-height: 100vh;
-    background: linear-gradient(160deg, var(--ac-primary) 0%, var(--ac-primary-dark) 100%);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 24px;
-}
-.ejar-auth-card {
-    background: #fff;
-    border-radius: 20px;
-    padding: 32px 28px;
-    width: 100%;
-    max-width: 380px;
-    box-shadow: 0 20px 60px rgba(0,0,0,0.2);
-}
-.ejar-auth-card h2 {
-    font-size: 1.4rem;
-    font-weight: 700;
-    color: var(--ac-primary);
-    text-align: center;
-    margin: 0 0 4px;
-}
-.ejar-auth-card p {
-    font-size: 0.87rem;
-    color: var(--ac-text-muted);
-    text-align: center;
-    margin: 0 0 24px;
-}
-.ejar-otp-hint {
-    background: var(--ac-primary-light);
-    color: var(--ac-primary-dark);
-    border-radius: 8px;
-    padding: 10px 14px;
-    font-size: 0.83rem;
-    font-weight: 600;
-    text-align: center;
-    margin-top: 12px;
-}
+.ejar-map-btn:hover { background: var(--ac-primary); color: #fff; }
 
 /* ─── Section headers ────────────────────────────────────────────────────── */
 .ejar-section-header {
@@ -356,15 +492,8 @@ body {
     border-color: var(--ac-primary);
     box-shadow: 0 4px 20px rgba(29, 78, 216, 0.15);
 }
-.ejar-plan-price {
-    font-size: 1.8rem;
-    font-weight: 700;
-    color: var(--ac-primary);
-}
-.ejar-plan-period {
-    font-size: 0.8rem;
-    color: var(--ac-text-muted);
-}
+.ejar-plan-price  { font-size: 1.8rem; font-weight: 700; color: var(--ac-primary); }
+.ejar-plan-period { font-size: 0.8rem; color: var(--ac-text-muted); }
 .ejar-plan-popular-badge {
     background: var(--ac-primary);
     color: #fff;

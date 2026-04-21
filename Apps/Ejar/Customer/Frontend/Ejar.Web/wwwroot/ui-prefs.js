@@ -1,8 +1,10 @@
 window.ejarUi = {
     apply: function (theme, lang, dir) {
-        document.documentElement.setAttribute('data-theme', theme);
-        document.documentElement.setAttribute('lang', lang);
-        document.documentElement.setAttribute('dir', dir);
+        var html = document.documentElement;
+        html.setAttribute('lang', lang);
+        html.setAttribute('dir', dir);
+        if (theme === 'dark') document.body.classList.add('ac-dark');
+        else document.body.classList.remove('ac-dark');
     }
 };
 
