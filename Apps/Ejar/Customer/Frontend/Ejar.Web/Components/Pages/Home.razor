@@ -1,0 +1,118 @@
+@page "/"
+@inject AppStore Store
+@inject AppStateApplier Applier
+@inject ApiReader Api
+@inject ITemplateEngine Engine
+@inject NavigationManager Nav
+@inject L L
+@implements IDisposable
+
+<PageTitle>@(L["app.name"])</PageTitle>
+
+<AcMarketplaceHomePage Data="_data"
+                       Engine="Engine"
+                       Store="Store"
+                       FavoriteIds="Store.FavoriteListingIds"
+                       Title="@(L["home.title"])"
+                       Subtitle="@(L["home.subtitle"])"
+                       SearchPlaceholder="@(L["home.search.placeholder"])"
+                       CategoriesTitle="@(L["home.categories.title"])"
+                       FeaturedTitle="@(L["home.featured.title"])"
+                       NewTitle="@(L["home.new.title"])"
+                       ViewAllLabel="@(L["home.view_all"])"
+                       CtaTitle="@(L["home.cta.title"])"
+                       CtaSubtitle="@(L["home.cta.subtitle"])"
+                       OnSearch="OnSearch"
+                       OnCategorySelected="OnCategorySelected"
+                       OnListingOpen="OnListingOpen"
+                       OnFavoriteToggled="OnFavoriteToggled"
+                       OnCtaClick="OnCtaClick"
+                       OnViewAll="@(_ => Nav.NavigateTo("/search"))">
+    <LogoContent>
+        <div class="acm-brand">
+            <span class="acm-brand-text" style="font-size:1.35rem;font-weight:700;color:var(--ac-primary);">إيجار</span>
+            <div class="acm-brand-city">
+                <AcCityPicker Cities="_cities" Value="@Store.Ui.City" ValueChanged="OnCityChanged" />
+            </div>
+        </div>
+    </LogoContent>
+</AcMarketplaceHomePage>
+
+@code {
+    private MarketplaceHomeDto? _data;
+    private IReadOnlyList<string> _cities = Array.Empty<string>();
+
+    protected override void OnInitialized() => Store.OnChanged += OnChange;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        var citiesEnv = await Api.GetAsync<List<string>>("/cities");
+        _cities = citiesEnv.Data ?? new();
+        await LoadHome();
+    }
+
+    private async Task LoadHome()
+    {
+        var city = Store.Ui.City;
+        var q = string.IsNullOrEmpty(city) ? "" : $"?city={Uri.EscapeDataString(city)}";
+
+        var catEnv = await Api.GetAsync<List<CategoryDto>>("/categories");
+        var listEnv = await Api.GetAsync<ListingsResponse>($"/listings{q}&pageSize=20");
+
+        var categories = catEnv.Data ?? new();
+        var listings   = listEnv.Data?.Items ?? new();
+
+        _data = new MarketplaceHomeDto
+        {
+            Categories = categories.Select(c =>
+                new CategoryTileDto { Id = c.Id, Label = c.Label, Icon = c.Emoji }).ToList(),
+            Featured = listings.Where(l => l.IsVerified).Take(6).Select(ToRow).ToList(),
+            New = listings.Skip(0).Take(10).Select(ToRow).ToList()
+        };
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void OnSearch(string? q)
+    {
+        if (string.IsNullOrWhiteSpace(q)) { Nav.NavigateTo("/search"); return; }
+        Nav.NavigateTo($"/search?q={Uri.EscapeDataString(q)}");
+    }
+
+    private void OnCategorySelected(CategoryTileDto c)
+        => Nav.NavigateTo($"/search?propertyType={Uri.EscapeDataString(c.Id)}");
+
+    private void OnListingOpen(ListingRowDto l)
+        => Nav.NavigateTo($"/listings/{Uri.EscapeDataString(l.Id)}");
+
+    private void OnCtaClick() => Nav.NavigateTo("/my-listings/create");
+
+    private async Task OnCityChanged(string city)
+    {
+        await Applier.ApplyLocalAsync(EjarOps.SetCity(city));
+        await LoadHome();
+    }
+
+    private async Task OnFavoriteToggled((ListingRowDto Listing, bool On) e)
+        => await Applier.ApplyLocalAsync(EjarOps.ToggleFavorite(e.Listing.Id));
+
+    private static ListingRowDto ToRow(ListingSeedDto l) => new()
+    {
+        Id = l.Id, Title = l.Title,
+        Price = l.Price, Currency = "SAR", TimeUnit = l.TimeUnitLabel,
+        City = l.City, District = l.District, Status = 1,
+        ThumbnailUrl = l.FirstImage,
+        Capacity = l.BedroomCount == 0 ? null : l.BedroomCount
+    };
+
+    private void OnChange() => InvokeAsync(StateHasChanged);
+    public void Dispose() => Store.OnChanged -= OnChange;
+
+    private sealed record CategoryDto(string Id, string Label, string Emoji, string Kind, List<string> TimeUnits);
+    private sealed record ListingsResponse(int Total, int Page, int PageSize, List<ListingSeedDto> Items);
+    private sealed record ListingSeedDto(
+        string Id, string Title, decimal Price, string TimeUnit, string TimeUnitLabel,
+        string PropertyType, string PropertyTypeLabel, string City, string District,
+        double Lat, double Lng, int BedroomCount, double AreaSqm, bool IsVerified,
+        int ViewsCount, bool IsFavorite, List<string> Amenities, string? FirstImage);
+}

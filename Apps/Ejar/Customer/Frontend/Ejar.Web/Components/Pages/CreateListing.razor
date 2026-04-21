@@ -1,0 +1,133 @@
+@page "/my-listings/create"
+@inject AppStore Store
+@inject ApiReader Api
+@inject NavigationManager Nav
+@inject L L
+@implements IDisposable
+
+<PageTitle>@(L["listing.create.title"]) — @(L["app.name"])</PageTitle>
+
+<div class="ejar-page">
+    <div style="padding:12px 16px;border-bottom:1px solid var(--ac-border);display:flex;align-items:center;gap:10px;">
+        <button class="ac-btn ac-btn-xs ac-btn-outline-secondary" @onclick="@(() => Nav.NavigateTo("/my-listings"))">→</button>
+        <h1 style="font-size:1rem;font-weight:700;margin:0;">@(L["listing.create.title"])</h1>
+    </div>
+
+    @if (!Store.Auth.IsAuthenticated)
+    {
+        Nav.NavigateTo("/login");
+        return;
+    }
+
+    <div class="ejar-content mt-3">
+        <div class="mb-3">
+            <label class="ac-label">@(L["listing.create.field.title"])</label>
+            <input type="text" class="ac-input w-100" @bind="_title" disabled="@_busy" />
+        </div>
+        <div class="mb-3">
+            <label class="ac-label">@(L["listing.create.field.description"])</label>
+            <textarea class="ac-input w-100" rows="4" @bind="_description" disabled="@_busy"></textarea>
+        </div>
+        <div class="row g-2 mb-3">
+            <div class="col-6">
+                <label class="ac-label">@(L["listing.create.field.price"])</label>
+                <input type="number" class="ac-input w-100" @bind="_price" disabled="@_busy" />
+            </div>
+            <div class="col-6">
+                <label class="ac-label">@(L["listing.create.field.timeUnit"])</label>
+                <select class="ac-input w-100" @bind="_timeUnit">
+                    <option value="monthly">شهري</option>
+                    <option value="yearly">سنوي</option>
+                    <option value="daily">يومي</option>
+                    <option value="hourly">بالساعة</option>
+                </select>
+            </div>
+        </div>
+        <div class="row g-2 mb-3">
+            <div class="col-6">
+                <label class="ac-label">@(L["listing.create.field.city"])</label>
+                <input type="text" class="ac-input w-100" @bind="_city" disabled="@_busy" />
+            </div>
+            <div class="col-6">
+                <label class="ac-label">@(L["listing.create.field.district"])</label>
+                <input type="text" class="ac-input w-100" @bind="_district" disabled="@_busy" />
+            </div>
+        </div>
+        <div class="mb-3">
+            <label class="ac-label">@(L["listing.create.field.category"])</label>
+            <select class="ac-input w-100" @bind="_categoryId">
+                @foreach (var c in _categories) { <option value="@c.Id">@c.Label</option> }
+            </select>
+        </div>
+        <div class="row g-2 mb-3">
+            <div class="col-6">
+                <label class="ac-label">@(L["listing.create.field.bedrooms"])</label>
+                <input type="number" class="ac-input w-100" @bind="_bedrooms" disabled="@_busy" />
+            </div>
+            <div class="col-6">
+                <label class="ac-label">@(L["listing.create.field.area"])</label>
+                <input type="number" class="ac-input w-100" @bind="_area" disabled="@_busy" />
+            </div>
+        </div>
+
+        @if (_error is not null)   { <div class="ac-alert ac-alert-danger mt-2">@_error</div> }
+        @if (_success is not null) { <div class="ac-alert ac-alert-success mt-2">@_success</div> }
+
+        <button class="ac-btn ac-btn-primary w-100 mt-3" disabled="@_busy" @onclick="Submit">
+            @if (_busy) { <span class="acm-spinner-sm"></span> }
+            إضافة الإعلان
+        </button>
+    </div>
+</div>
+
+@code {
+    private string _title = "";
+    private string _description = "";
+    private decimal _price = 0;
+    private string _timeUnit = "monthly";
+    private string _city = "";
+    private string _district = "";
+    private string _categoryId = "apartment";
+    private int _bedrooms = 0;
+    private double _area = 0;
+    private List<CategoryDto> _categories = new();
+    private bool _busy;
+    private string? _error;
+    private string? _success;
+
+    protected override void OnInitialized() => Store.OnChanged += OnChange;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        var env = await Api.GetAsync<List<CategoryDto>>("/categories");
+        _categories = env.Data ?? new();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task Submit()
+    {
+        _error = null; _busy = true;
+        var env = await Api.PostAsync<object>("/my-listings", new
+        {
+            title        = _title,
+            description  = _description,
+            price        = _price,
+            timeUnit     = _timeUnit,
+            propertyType = _categoryId,
+            city         = _city,
+            district     = _district,
+            bedroomCount = _bedrooms,
+            areaSqm      = _area
+        });
+        _busy = false;
+        if (env.Operation.Status == "Success") { _success = "تمّ إضافة الإعلان"; Nav.NavigateTo("/my-listings"); }
+        else { _error = env.Operation.ErrorMessage ?? "فشل الإضافة"; }
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void OnChange() => InvokeAsync(StateHasChanged);
+    public void Dispose() => Store.OnChanged -= OnChange;
+
+    private sealed record CategoryDto(string Id, string Label, string Emoji, string Kind, List<string> TimeUnits);
+}

@@ -1,0 +1,88 @@
+@page "/favorites"
+@inject AppStore Store
+@inject AppStateApplier Applier
+@inject ApiReader Api
+@inject NavigationManager Nav
+@inject L L
+@implements IDisposable
+
+<PageTitle>@(L["favorites.title"]) — @(L["app.name"])</PageTitle>
+
+<div class="ejar-page">
+    <div style="padding:16px;border-bottom:1px solid var(--ac-border);">
+        <h1 style="font-size:1rem;font-weight:700;margin:0;">@(L["favorites.title"])</h1>
+    </div>
+
+    @if (!Store.Auth.IsAuthenticated)
+    {
+        <div class="ejar-empty mt-5">
+            <div class="ejar-empty-icon">❤️</div>
+            <button class="ac-btn ac-btn-primary" @onclick="@(() => Nav.NavigateTo("/login"))">@(L["auth.login.title"])</button>
+        </div>
+    }
+    else if (_loading)
+    {
+        <div class="ejar-empty"><div class="acm-spinner"></div></div>
+    }
+    else if (_listings.Count == 0)
+    {
+        <div class="ejar-empty">
+            <div class="ejar-empty-icon">❤️</div>
+            <div class="ejar-empty-text">@(L["favorites.empty"])</div>
+            <button class="ac-btn ac-btn-outline-primary mt-2" @onclick="@(() => Nav.NavigateTo("/search"))">استعرض الإعلانات</button>
+        </div>
+    }
+    else
+    {
+        <div class="ejar-content mt-3 row g-3">
+            @foreach (var l in _listings)
+            {
+                <div class="col-12 col-md-6">
+                    <div class="ejar-listing-card p-0" @onclick="@(() => Nav.NavigateTo($"/listings/{l.Id}"))">
+                        @if (l.FirstImage is not null)
+                        {
+                            <img src="@l.FirstImage" alt="@l.Title" style="width:100%;height:160px;object-fit:cover;" />
+                        }
+                        else
+                        {
+                            <div style="height:120px;background:var(--ac-primary-light);display:flex;align-items:center;justify-content:center;font-size:2.5rem;">🏠</div>
+                        }
+                        <div class="p-3">
+                            <p style="font-weight:600;font-size:0.93rem;margin:0 0 4px;">@l.Title</p>
+                            <p style="font-size:0.8rem;color:var(--ac-text-muted);margin:0 0 6px;">📍 @l.City</p>
+                            <div class="d-flex align-items-center justify-content-between">
+                                <div><span class="ejar-price">@l.Price.ToString("N0")</span> <span class="ejar-time-unit">ر / @l.TimeUnitLabel</span></div>
+                                <button class="ac-btn ac-btn-xs ac-btn-danger"
+                                        @onclick:stopPropagation="true"
+                                        @onclick="@(async () => { await Applier.ApplyLocalAsync(EjarOps.ToggleFavorite(l.Id)); _listings.Remove(l); })">✕</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private List<FavDto> _listings = new();
+    private bool _loading = true;
+
+    protected override void OnInitialized() => Store.OnChanged += OnChange;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || !Store.Auth.IsAuthenticated) return;
+        var env = await Api.GetAsync<List<FavDto>>("/favorites");
+        _listings = env.Data ?? new();
+        foreach (var l in _listings) Store.FavoriteListingIds.Add(l.Id);
+        _loading = false;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void OnChange() => InvokeAsync(StateHasChanged);
+    public void Dispose() => Store.OnChanged -= OnChange;
+
+    private sealed record FavDto(string Id, string Title, decimal Price, string TimeUnit, string TimeUnitLabel,
+        string City, string District, bool IsVerified, string? FirstImage);
+}

@@ -1,0 +1,109 @@
+@page "/plans"
+@inject AppStore Store
+@inject ApiReader Api
+@inject NavigationManager Nav
+@inject L L
+@implements IDisposable
+
+<PageTitle>@(L["plans.title"]) — @(L["app.name"])</PageTitle>
+
+<div class="ejar-page">
+    <div style="background:linear-gradient(135deg,var(--ac-primary) 0%,var(--ac-primary-dark) 100%);padding:28px 20px;text-align:center;color:#fff;">
+        <h1 style="font-size:1.2rem;font-weight:700;margin:0 0 6px;color:#fff;">@(L["plans.title"])</h1>
+        @if (_sub is not null)
+        {
+            <p style="margin:0;opacity:0.9;font-size:0.87rem;">@(L["plans.current"]): <strong>@_sub.PlanName</strong> — @_sub.DaysRemaining @(L["subscription.days_remaining"])</p>
+        }
+    </div>
+
+    @if (!Store.Auth.IsAuthenticated)
+    {
+        <div class="ejar-empty mt-5">
+            <button class="ac-btn ac-btn-primary" @onclick="@(() => Nav.NavigateTo("/login"))">@(L["auth.login.title"])</button>
+        </div>
+    }
+    else if (_loading)
+    {
+        <div class="ejar-empty"><div class="acm-spinner"></div></div>
+    }
+    else
+    {
+        <div class="ejar-content mt-4">
+            <div class="row g-3">
+                @foreach (var p in _plans)
+                {
+                    var isCurrent = _sub?.PlanId == p.Id;
+                    <div class="col-12">
+                        <div class="ejar-plan-card @(p.Id == "pro" ? "popular" : "")">
+                            @if (p.Id == "pro") { <div class="ejar-plan-popular-badge">الأكثر شيوعاً</div> }
+                            <h2 style="font-size:1rem;font-weight:700;margin:0 0 4px;">@p.Name</h2>
+                            <div class="ejar-plan-price">
+                                @if (p.PriceMonthly == 0) { <span>مجاناً</span> }
+                                else { <span>@p.PriceMonthly</span><span class="ejar-plan-period"> @(L["common.sar"]) / شهر</span> }
+                            </div>
+                            <p style="font-size:0.85rem;color:var(--ac-text-muted);margin:8px 0;">
+                                حتى @p.MaxListings @(L["plans.listings_limit"])
+                            </p>
+                            <ul style="font-size:0.83rem;text-align:right;padding-right:16px;color:var(--ac-text-muted);margin-bottom:16px;">
+                                @foreach (var f in p.Features) { <li>@f</li> }
+                            </ul>
+                            @if (isCurrent)
+                            {
+                                <button class="ac-btn ac-btn-outline-primary w-100" disabled>@(L["plans.current"])</button>
+                            }
+                            else
+                            {
+                                <button class="ac-btn ac-btn-primary w-100">@(L["plans.subscribe"])</button>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+
+            @* Invoices *@
+            @if (_invoices.Count > 0)
+            {
+                <h2 style="font-size:0.95rem;font-weight:700;margin:24px 0 10px;">@(L["subscription.invoices"])</h2>
+                @foreach (var inv in _invoices)
+                {
+                    <div style="padding:12px 0;border-bottom:1px solid var(--ac-border);display:flex;justify-content:space-between;align-items:center;">
+                        <div>
+                            <div style="font-size:0.9rem;font-weight:500;">@inv.PlanName</div>
+                            <div style="font-size:0.78rem;color:var(--ac-text-muted);">@inv.CreatedAt.ToString("yyyy-MM-dd")</div>
+                        </div>
+                        <span style="font-weight:600;color:var(--ac-primary);">@inv.Amount @(L["common.sar"])</span>
+                    </div>
+                }
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private List<PlanDto> _plans = new();
+    private SubDto? _sub;
+    private List<InvoiceDto> _invoices = new();
+    private bool _loading = true;
+
+    protected override void OnInitialized() => Store.OnChanged += OnChange;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || !Store.Auth.IsAuthenticated) return;
+        var plansEnv  = await Api.GetAsync<List<PlanDto>>("/plans");
+        var subEnv    = await Api.GetAsync<SubDto>("/me/subscription");
+        var invEnv    = await Api.GetAsync<List<InvoiceDto>>("/me/invoices");
+        _plans    = plansEnv.Data ?? new();
+        _sub      = subEnv.Data;
+        _invoices = invEnv.Data ?? new();
+        _loading = false;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void OnChange() => InvokeAsync(StateHasChanged);
+    public void Dispose() => Store.OnChanged -= OnChange;
+
+    private sealed record PlanDto(string Id, string Name, decimal PriceMonthly, int MaxListings, List<string> Features);
+    private sealed record SubDto(string PlanId, string PlanName, int DaysRemaining, int ListingsUsed, int ListingsLimit);
+    private sealed record InvoiceDto(string Id, string PlanName, decimal Amount, string Status, DateTime CreatedAt);
+}

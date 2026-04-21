@@ -1,0 +1,42 @@
+@page "/help"
+@inject L L
+
+<PageTitle>@(L["help.title"]) — @(L["app.name"])</PageTitle>
+
+<div class="ejar-page ejar-content mt-3">
+    <h1 style="font-size:1rem;font-weight:700;margin-bottom:20px;">@(L["help.title"])</h1>
+
+    @foreach (var faq in _faqs)
+    {
+        <div style="margin-bottom:14px;border:1px solid var(--ac-border);border-radius:10px;overflow:hidden;">
+            <div @onclick="@(() => Toggle(faq.Q))"
+                 style="padding:14px 16px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;background:var(--ac-surface);">
+                <span style="font-size:0.92rem;font-weight:600;">@faq.Q</span>
+                <AcIcon Name="chevron-down" Size="16" />
+            </div>
+            @if (_expanded.Contains(faq.Q))
+            {
+                <div style="padding:12px 16px;background:var(--ac-surface-alt);font-size:0.87rem;color:var(--ac-text-muted);line-height:1.6;border-top:1px solid var(--ac-border);">@faq.A</div>
+            }
+        </div>
+    }
+
+    <div style="text-align:center;margin-top:32px;padding:20px;background:var(--ac-primary-light);border-radius:12px;">
+        <p style="margin:0 0 8px;font-weight:600;color:var(--ac-primary-dark);">لا تجد إجابتك؟</p>
+        <a href="mailto:support@ejar.sa" class="ac-btn ac-btn-primary">تواصل مع الدعم</a>
+    </div>
+</div>
+
+@code {
+    private readonly HashSet<string> _expanded = new();
+    private void Toggle(string q) { if (!_expanded.Add(q)) _expanded.Remove(q); }
+
+    private readonly (string Q, string A)[] _faqs =
+    [
+        ("كيف أضيف إعلاناً؟", "اذهب إلى «حسابي» ثم «إعلاناتي» ثم اضغط «+ أضف إعلاناً»، وأدخل بيانات العقار."),
+        ("ما الفرق بين الباقات؟", "الباقة المجانية تتيح إعلانَين، والمحترف 10 إعلانات، والمميزة 50 إعلاناً مع ظهور أعلى في النتائج."),
+        ("كيف أتواصل مع المُعلن؟", "افتح صفحة الإعلان واضغط «تواصل مع المُعلن» — يُفتح لك نافذة محادثة مباشرة."),
+        ("هل التطبيق مجاني؟", "نعم، تصفّح الإعلانات مجاني. الإعلان المجاني يتيح إعلانَين بدون تكلفة."),
+        ("كيف أُوقف أو أحذف إعلاناً؟", "اذهب إلى «إعلاناتي» وستجد أزرار «إيقاف» و«حذف» بجانب كل إعلان."),
+    ];
+}

@@ -1,0 +1,98 @@
+@page "/complaints/{Id}"
+@inject AppStore Store
+@inject ApiReader Api
+@inject NavigationManager Nav
+@inject L L
+@implements IDisposable
+
+<PageTitle>@(L["complaint.title"]) — @(L["app.name"])</PageTitle>
+
+<div class="ejar-page">
+    <div style="padding:12px 16px;border-bottom:1px solid var(--ac-border);display:flex;align-items:center;gap:10px;">
+        <button class="ac-btn ac-btn-xs ac-btn-outline-secondary" @onclick="@(() => Nav.NavigateTo("/complaints"))">→</button>
+        <h1 style="font-size:1rem;font-weight:700;margin:0;">تفاصيل الشكوى</h1>
+    </div>
+
+    @if (_loading)
+    {
+        <div class="ejar-empty"><div class="acm-spinner"></div></div>
+    }
+    else if (_complaint is null)
+    {
+        <div class="ejar-empty"><div class="ejar-empty-text">الشكوى غير موجودة</div></div>
+    }
+    else
+    {
+        <div class="ejar-content mt-3">
+            <div style="background:var(--ac-surface-alt);border-radius:12px;padding:16px;margin-bottom:16px;">
+                <h2 style="font-size:0.95rem;font-weight:700;margin:0 0 6px;">@_complaint.Subject</h2>
+                <p style="font-size:0.87rem;color:var(--ac-text-muted);margin:0 0 10px;">@_complaint.Body</p>
+                <span style="font-size:0.75rem;padding:2px 10px;border-radius:99px;background:var(--ac-primary-light);color:var(--ac-primary-dark);">@_complaint.Status</span>
+            </div>
+
+            @foreach (var r in _complaint.Replies)
+            {
+                <div style="margin-bottom:12px;padding:12px 14px;border-radius:10px;background:var(--ac-surface);border:1px solid var(--ac-border);">
+                    <div style="font-size:0.78rem;font-weight:600;color:var(--ac-primary);margin-bottom:4px;">@r.SenderName</div>
+                    <p style="font-size:0.87rem;margin:0;">@r.Message</p>
+                </div>
+            }
+
+            @* Reply form *@
+            @if (_complaint.Status != "closed")
+            {
+                <div class="mt-3">
+                    <div class="mb-2">
+                        <label class="ac-label">@(L["complaint.reply"])</label>
+                        <input type="text" class="ac-input w-100" @bind="_reply" disabled="@_busy" />
+                    </div>
+                    @if (_error is not null) { <div class="ac-alert ac-alert-danger mt-1">@_error</div> }
+                    <button class="ac-btn ac-btn-primary mt-2" disabled="@(string.IsNullOrWhiteSpace(_reply) || _busy)" @onclick="SendReply">
+                        @(L["complaint.send"])
+                    </button>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public string Id { get; set; } = "";
+
+    private ComplaintDetailDto? _complaint;
+    private bool _loading = true;
+    private bool _busy;
+    private string _reply = "";
+    private string? _error;
+
+    protected override void OnInitialized() => Store.OnChanged += OnChange;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        var env = await Api.GetAsync<ComplaintDetailDto>($"/complaints/{Id}");
+        _complaint = env.Data;
+        _loading = false;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task SendReply()
+    {
+        _error = null; _busy = true;
+        var env = await Api.PostAsync<ReplyDto>($"/complaints/{Id}/replies", new { message = _reply });
+        _busy = false;
+        if (env.Operation.Status == "Success" && env.Data is not null && _complaint is not null)
+        {
+            _complaint = _complaint with { Replies = _complaint.Replies.Append(env.Data).ToList() };
+            _reply = "";
+        }
+        else { _error = env.Operation.ErrorMessage ?? "فشل الإرسال"; }
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void OnChange() => InvokeAsync(StateHasChanged);
+    public void Dispose() => Store.OnChanged -= OnChange;
+
+    private sealed record ReplyDto(string Id, string ComplaintId, string SenderId, string SenderName, string Message, DateTime SentAt);
+    private sealed record ComplaintDetailDto(string Id, string Subject, string Body, string Status, DateTime CreatedAt, List<ReplyDto> Replies);
+}

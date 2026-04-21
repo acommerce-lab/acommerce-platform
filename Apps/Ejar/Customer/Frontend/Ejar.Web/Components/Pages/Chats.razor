@@ -1,0 +1,74 @@
+@page "/chats"
+@inject AppStore Store
+@inject ApiReader Api
+@inject NavigationManager Nav
+@inject L L
+@implements IDisposable
+
+<PageTitle>@(L["chat.title"]) — @(L["app.name"])</PageTitle>
+
+<div class="ejar-page">
+    <div style="padding:16px;border-bottom:1px solid var(--ac-border);">
+        <h1 style="font-size:1rem;font-weight:700;margin:0;">@(L["chat.title"])</h1>
+    </div>
+
+    @if (!Store.Auth.IsAuthenticated)
+    {
+        <div class="ejar-empty mt-5">
+            <div class="ejar-empty-icon">💬</div>
+            <button class="ac-btn ac-btn-primary" @onclick="@(() => Nav.NavigateTo("/login"))">@(L["auth.login.title"])</button>
+        </div>
+    }
+    else if (_loading)
+    {
+        <div class="ejar-empty"><div class="acm-spinner"></div></div>
+    }
+    else if (_convs.Count == 0)
+    {
+        <div class="ejar-empty">
+            <div class="ejar-empty-icon">💬</div>
+            <div class="ejar-empty-text">لا توجد محادثات بعد</div>
+            <button class="ac-btn ac-btn-outline-primary mt-2" @onclick="@(() => Nav.NavigateTo("/search"))">استعرض الإعلانات</button>
+        </div>
+    }
+    else
+    {
+        @foreach (var c in _convs)
+        {
+            <div @onclick="@(() => Nav.NavigateTo($"/chats/{c.Id}"))"
+                 style="padding:14px 16px;border-bottom:1px solid var(--ac-border);cursor:pointer;display:flex;gap:12px;align-items:center;">
+                <div style="width:48px;height:48px;border-radius:50%;background:var(--ac-primary-light);display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0;">🏠</div>
+                <div style="flex:1;overflow:hidden;">
+                    <div style="font-weight:600;font-size:0.93rem;">@c.ListingTitle</div>
+                    <div style="font-size:0.8rem;color:var(--ac-text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">@c.LastMessage</div>
+                </div>
+                @if (c.UnreadCount > 0)
+                {
+                    <span style="background:var(--ac-primary);color:#fff;border-radius:99px;padding:2px 8px;font-size:0.75rem;font-weight:700;">@c.UnreadCount</span>
+                }
+            </div>
+        }
+    }
+</div>
+
+@code {
+    private List<ConvDto> _convs = new();
+    private bool _loading = true;
+
+    protected override void OnInitialized() => Store.OnChanged += OnChange;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || !Store.Auth.IsAuthenticated) return;
+        var env = await Api.GetAsync<List<ConvDto>>("/conversations");
+        _convs = env.Data ?? new();
+        _loading = false;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void OnChange() => InvokeAsync(StateHasChanged);
+    public void Dispose() => Store.OnChanged -= OnChange;
+
+    private sealed record ConvDto(string Id, string ListingId, string ListingTitle, string OtherUserId,
+        string OtherUserName, string? LastMessage, int UnreadCount);
+}

@@ -1,0 +1,172 @@
+@page "/listings/{Id}"
+@inject AppStore Store
+@inject AppStateApplier Applier
+@inject ApiReader Api
+@inject NavigationManager Nav
+@inject L L
+@implements IDisposable
+
+<PageTitle>@(_listing?.Title ?? L["app.name"])</PageTitle>
+
+@if (_loading)
+{
+    <div class="ejar-empty"><div class="acm-spinner"></div></div>
+}
+else if (_listing is null)
+{
+    <div class="ejar-empty">
+        <div class="ejar-empty-icon">🏠</div>
+        <div class="ejar-empty-text">الإعلان غير موجود</div>
+        <button class="ac-btn ac-btn-primary mt-3" @onclick="@(() => Nav.NavigateTo("/search"))">استعرض الإعلانات</button>
+    </div>
+}
+else
+{
+    <div class="ejar-page">
+        @* Image gallery *@
+        @if (_listing.Images?.Count > 0)
+        {
+            <div style="position:relative;overflow:hidden;max-height:280px;">
+                <img src="@_listing.Images[0]" alt="@_listing.Title" style="width:100%;height:280px;object-fit:cover;" />
+                @if (_listing.Images.Count > 1)
+                {
+                    <span style="position:absolute;bottom:12px;left:12px;background:rgba(0,0,0,0.6);color:#fff;padding:4px 10px;border-radius:99px;font-size:0.8rem;">
+                        +@(_listing.Images.Count - 1) صور
+                    </span>
+                }
+            </div>
+        }
+        else
+        {
+            <div style="height:180px;background:var(--ac-surface-alt);display:flex;align-items:center;justify-content:center;color:var(--ac-text-muted);font-size:3rem;">🏠</div>
+        }
+
+        <div class="ejar-content mt-3">
+            @* Header *@
+            <div class="d-flex align-items-start justify-content-between gap-2 mb-2">
+                <h1 style="font-size:1.15rem;font-weight:700;color:var(--ac-text);margin:0;">@_listing.Title</h1>
+                <button class="ac-btn ac-btn-sm @(_isFav ? "ac-btn-primary" : "ac-btn-outline-primary")"
+                        @onclick="ToggleFavorite" aria-label="مفضلة">
+                    ♥
+                </button>
+            </div>
+
+            @* Price *@
+            <div class="mb-2">
+                <span class="ejar-price">@_listing.Price.ToString("N0")</span>
+                <span class="ejar-time-unit">@L["common.sar"] / @_listing.TimeUnitLabel</span>
+                @if (_listing.IsVerified)
+                {
+                    <span class="ejar-badge-verified me-2">✔ @(L["listing.verified"])</span>
+                }
+            </div>
+
+            @* Location *@
+            <p style="font-size:0.87rem;color:var(--ac-text-muted);margin:0 0 12px;">
+                📍 @_listing.District — @_listing.City
+            </p>
+
+            @* Stats row *@
+            <div class="d-flex gap-3 mb-3" style="font-size:0.84rem;color:var(--ac-text-muted);">
+                @if (_listing.BedroomCount > 0)
+                {
+                    <span>🛏 @_listing.BedroomCount @(L["listing.bedrooms"])</span>
+                }
+                @if (_listing.AreaSqm > 0)
+                {
+                    <span>📐 @_listing.AreaSqm م²</span>
+                }
+                <span>👁 @_listing.ViewsCount @(L["listing.views"])</span>
+            </div>
+
+            @* Description *@
+            <div class="mb-3">
+                <h2 style="font-size:0.95rem;font-weight:700;margin:0 0 6px;">@(L["listing.description"])</h2>
+                <p style="font-size:0.87rem;color:var(--ac-text-muted);line-height:1.6;margin:0;">@_listing.Description</p>
+            </div>
+
+            @* Amenities *@
+            @if (_listing.Amenities?.Count > 0)
+            {
+                <div class="mb-3">
+                    <h2 style="font-size:0.95rem;font-weight:700;margin:0 0 8px;">@(L["listing.amenities"])</h2>
+                    <div>
+                        @foreach (var a in _listing.Amenities)
+                        {
+                            <span class="ejar-amenity-tag">@a.Label</span>
+                        }
+                    </div>
+                </div>
+            }
+
+            @* Map placeholder *@
+            <div style="height:160px;background:var(--ac-primary-light);border-radius:12px;display:flex;align-items:center;justify-content:center;color:var(--ac-primary);font-size:0.9rem;margin-bottom:16px;">
+                🗺 @_listing.City — @_listing.District
+            </div>
+
+            @* Contact CTA *@
+            @if (Store.Auth.IsAuthenticated)
+            {
+                <button class="ac-btn ac-btn-primary w-100" @onclick="StartChat">
+                    💬 @(L["listing.contact"])
+                </button>
+            }
+            else
+            {
+                <button class="ac-btn ac-btn-primary w-100" @onclick="@(() => Nav.NavigateTo("/login"))">
+                    🔐 سجّل دخولك للتواصل
+                </button>
+            }
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public string Id { get; set; } = "";
+
+    private ListingDetailDto? _listing;
+    private bool _loading = true;
+    private bool _isFav;
+
+    protected override void OnInitialized() => Store.OnChanged += OnChange;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        var env = await Api.GetAsync<ListingDetailDto>($"/listings/{Id}");
+        _listing = env.Data;
+        _isFav = _listing is not null && Store.FavoriteListingIds.Contains(_listing.Id);
+        _loading = false;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task ToggleFavorite()
+    {
+        if (_listing is null) return;
+        if (!Store.Auth.IsAuthenticated) { Nav.NavigateTo("/login"); return; }
+        await Applier.ApplyLocalAsync(EjarOps.ToggleFavorite(_listing.Id));
+        _isFav = Store.FavoriteListingIds.Contains(_listing.Id);
+    }
+
+    private async Task StartChat()
+    {
+        if (_listing is null) return;
+        var env = await Api.PostAsync<ConvStartDto>("/conversations/start",
+            new { listingId = _listing.Id, text = "مرحباً، أريد الاستفسار عن هذا الإعلان" });
+        if (env.Data is not null)
+            Nav.NavigateTo($"/chats/{env.Data.Id}");
+    }
+
+    private void OnChange() => InvokeAsync(StateHasChanged);
+    public void Dispose() => Store.OnChanged -= OnChange;
+
+    private sealed record AmenityDto(string Key, string Label);
+    private sealed record ListingDetailDto(
+        string Id, string Title, string Description, decimal Price,
+        string TimeUnit, string TimeUnitLabel, string PropertyType, string PropertyTypeLabel,
+        string City, string District, double Lat, double Lng,
+        List<AmenityDto> Amenities, string OwnerId, int BedroomCount, int BathroomCount,
+        double AreaSqm, bool IsVerified, int ViewsCount, int Status, bool IsFavorite,
+        List<string>? Images);
+    private sealed record ConvStartDto(string Id);
+}

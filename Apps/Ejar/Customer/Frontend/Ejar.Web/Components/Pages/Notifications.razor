@@ -1,0 +1,93 @@
+@page "/notifications"
+@inject AppStore Store
+@inject ApiReader Api
+@inject NavigationManager Nav
+@inject L L
+@implements IDisposable
+
+<PageTitle>@(L["notification.title"]) — @(L["app.name"])</PageTitle>
+
+<div class="ejar-page">
+    <div style="padding:16px;border-bottom:1px solid var(--ac-border);display:flex;align-items:center;justify-content:space-between;">
+        <h1 style="font-size:1rem;font-weight:700;margin:0;">@(L["notification.title"])</h1>
+        @if (_notifications.Any(n => !n.IsRead))
+        {
+            <button class="ac-btn ac-btn-sm ac-btn-outline-primary" @onclick="ReadAll">@(L["notification.mark_all_read"])</button>
+        }
+    </div>
+
+    @if (!Store.Auth.IsAuthenticated)
+    {
+        <div class="ejar-empty mt-5">
+            <div class="ejar-empty-icon">🔔</div>
+            <button class="ac-btn ac-btn-primary" @onclick="@(() => Nav.NavigateTo("/login"))">@(L["auth.login.title"])</button>
+        </div>
+    }
+    else if (_loading)
+    {
+        <div class="ejar-empty"><div class="acm-spinner"></div></div>
+    }
+    else if (_notifications.Count == 0)
+    {
+        <div class="ejar-empty">
+            <div class="ejar-empty-icon">🔔</div>
+            <div class="ejar-empty-text">@(L["notification.empty"])</div>
+        </div>
+    }
+    else
+    {
+        @foreach (var n in _notifications)
+        {
+            <div class="ejar-notif-item @(n.IsRead ? "" : "unread")" @onclick="@(() => MarkRead(n))">
+                @if (!n.IsRead) { <div class="ejar-notif-dot"></div> }
+                <div style="flex:1;">
+                    <div style="font-weight:@(n.IsRead ? "normal" : "600");font-size:0.9rem;">@n.Title</div>
+                    <div style="font-size:0.8rem;color:var(--ac-text-muted);margin-top:2px;">@n.Body</div>
+                </div>
+            </div>
+        }
+    }
+</div>
+
+@code {
+    private List<NotifDto> _notifications = new();
+    private bool _loading = true;
+
+    protected override void OnInitialized() => Store.OnChanged += OnChange;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || !Store.Auth.IsAuthenticated) return;
+        await Load();
+    }
+
+    private async Task Load()
+    {
+        _loading = true;
+        var env = await Api.GetAsync<List<NotifDto>>("/notifications");
+        _notifications = env.Data ?? new();
+        _loading = false;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task MarkRead(NotifDto n)
+    {
+        if (n.IsRead) return;
+        await Api.PostAsync<object>($"/notifications/{n.Id}/read");
+        var ix = _notifications.FindIndex(x => x.Id == n.Id);
+        if (ix >= 0) _notifications[ix] = n with { IsRead = true };
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task ReadAll()
+    {
+        await Api.PostAsync<object>("/notifications/read-all");
+        _notifications = _notifications.Select(n => n with { IsRead = true }).ToList();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void OnChange() => InvokeAsync(StateHasChanged);
+    public void Dispose() => Store.OnChanged -= OnChange;
+
+    private sealed record NotifDto(string Id, string Title, string Body, string Type, bool IsRead);
+}
