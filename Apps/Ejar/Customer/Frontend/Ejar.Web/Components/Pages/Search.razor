@@ -8,107 +8,76 @@
 
 <PageTitle>@(L["common.search"]) — @(L["app.name"])</PageTitle>
 
-<div class="ejar-page">
-    @* Search box *@
-    <div style="padding:12px 16px;background:var(--ac-surface);border-bottom:1px solid var(--ac-border);">
-        <div class="ejar-search-box">
-            <input type="search" placeholder="@(L["home.search.placeholder"])"
-                   @bind="_q" @bind:event="oninput" @onkeyup="OnSearchKey" />
-            <button @onclick="RunSearch">@(L["common.search"])</button>
-        </div>
-    </div>
+<div class="acs-page acs-search-page">
+    <AcSearchBox Value="@_q" ValueChanged="@(v => _q = v ?? string.Empty)"
+                 Placeholder="@(L["home.search.placeholder"])" OnSubmit="RunSearch" />
 
-    @* Filters *@
-    <div style="padding:10px 16px;background:var(--ac-surface);border-bottom:1px solid var(--ac-border);">
-        <div class="d-flex gap-2 flex-wrap">
-            <select class="ac-input" style="min-width:100px;" @bind="_city">
-                <option value="">@(L["filter.city"])</option>
-                @foreach (var c in _cities) { <option value="@c">@c</option> }
-            </select>
-            <select class="ac-input" style="min-width:120px;" @bind="_propertyType">
-                <option value="">@(L["filter.type"])</option>
-                @foreach (var cat in _categories) { <option value="@cat.Id">@cat.Label</option> }
-            </select>
-            <select class="ac-input" style="min-width:110px;" @bind="_timeUnit">
-                <option value="">@(L["filter.time_unit"])</option>
-                <option value="monthly">شهري</option>
-                <option value="yearly">سنوي</option>
-                <option value="daily">يومي</option>
-                <option value="hourly">بالساعة</option>
-            </select>
-            <select class="ac-input" style="min-width:130px;" @bind="_sort">
-                <option value="">@(L["filter.sort"])</option>
-                <option value="price_asc">@(L["filter.sort.price_asc"])</option>
-                <option value="price_desc">@(L["filter.sort.price_desc"])</option>
-                <option value="views">@(L["filter.sort.views"])</option>
-            </select>
-            <button class="ac-btn ac-btn-sm ac-btn-primary" @onclick="RunSearch">@(L["common.apply"])</button>
-            <button class="ac-btn ac-btn-sm ac-btn-outline-secondary" @onclick="Reset">@(L["common.reset"])</button>
-        </div>
-    </div>
-
-    @* Results *@
-    <div class="ejar-content mt-3">
-        @if (_loading)
-        {
-            <div class="ejar-empty"><div class="acm-spinner"></div></div>
-        }
-        else if (_listings.Count == 0)
-        {
-            <div class="ejar-empty">
-                <div class="ejar-empty-icon">🔍</div>
-                <div class="ejar-empty-text">@(L["listing.no_results"])</div>
+    <AcCard>
+        <ChildContent>
+            <AcField Label="@(L["filter.city"])">
+                <select class="ac-input" @bind="_city">
+                    <option value="">@(L["filter.city"])</option>
+                    @foreach (var c in _cities) { <option value="@c">@c</option> }
+                </select>
+            </AcField>
+            <AcField Label="@(L["filter.type"])">
+                <select class="ac-input" @bind="_propertyType">
+                    <option value="">@(L["filter.type"])</option>
+                    @foreach (var cat in _categories) { <option value="@cat.Id">@cat.Label</option> }
+                </select>
+            </AcField>
+            <AcField Label="@(L["filter.time_unit"])">
+                <select class="ac-input" @bind="_timeUnit">
+                    <option value="">@(L["filter.time_unit"])</option>
+                    <option value="monthly">شهري</option>
+                    <option value="yearly">سنوي</option>
+                    <option value="daily">يومي</option>
+                    <option value="hourly">بالساعة</option>
+                </select>
+            </AcField>
+            <AcField Label="@(L["filter.sort"])">
+                <select class="ac-input" @bind="_sort">
+                    <option value="">@(L["filter.sort"])</option>
+                    <option value="price_asc">@(L["filter.sort.price_asc"])</option>
+                    <option value="price_desc">@(L["filter.sort.price_desc"])</option>
+                    <option value="views">@(L["filter.sort.views"])</option>
+                </select>
+            </AcField>
+            <div style="display:flex; gap:8px; margin-top:8px;">
+                <AcButton Variant="primary" Class="ac-btn-block" Text="@(L["common.apply"])" OnClick="@RunSearch" />
+                <AcButton Variant="ghost" Text="@(L["common.reset"])" OnClick="@Reset" />
             </div>
-        }
-        else
-        {
-            <p style="font-size:0.83rem;color:var(--ac-text-muted);margin-bottom:12px;">@_total نتيجة</p>
-            <div class="row g-3">
-                @foreach (var l in _listings)
-                {
-                    var lid = l.Id;
-                    <div class="col-12 col-md-6 col-lg-4">
-                        <div class="ejar-listing-card p-0" style="cursor:pointer;" @onclick="@(() => Nav.NavigateTo("/listings/" + lid))">
-                            @if (l.FirstImage is not null)
-                            {
-                                <img src="@l.FirstImage" alt="@l.Title" style="width:100%;height:180px;object-fit:cover;" />
-                            }
-                            else
-                            {
-                                <div style="height:120px;background:var(--ac-primary-light);display:flex;align-items:center;justify-content:center;font-size:2.5rem;">🏠</div>
-                            }
-                            <div class="p-3">
-                                <div class="d-flex align-items-center gap-1 mb-1">
-                                    @if (l.IsVerified) { <span class="ejar-badge-verified">✔ موثَّق</span> }
-                                </div>
-                                <p style="font-weight:600;font-size:0.93rem;margin:0 0 4px;line-height:1.3;">@l.Title</p>
-                                <p style="font-size:0.8rem;color:var(--ac-text-muted);margin:0 0 6px;">📍 @l.District — @l.City</p>
-                                <div class="d-flex align-items-center justify-content-between">
-                                    <div>
-                                        <span class="ejar-price">@l.Price.ToString("N0")</span>
-                                        <span class="ejar-time-unit">ر / @l.TimeUnitLabel</span>
-                                    </div>
-                                    <button class="ac-btn ac-btn-xs @(Store.FavoriteListingIds.Contains(l.Id) ? "ac-btn-primary" : "ac-btn-outline-secondary")"
-                                            @onclick:stopPropagation="true"
-                                            @onclick="@(async () => await Applier.ApplyLocalAsync(EjarOps.ToggleFavorite(l.Id)))">♥</button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                }
-            </div>
+        </ChildContent>
+    </AcCard>
 
-            @* Pagination *@
-            @if (_total > _pageSize)
+    @if (_loading) { <AcLoadingState /> }
+    else if (_listings.Count == 0) { <AcEmptyState IconName="search" Message="@(L["listing.no_results"])" /> }
+    else
+    {
+        <p style="font-size:0.83rem; color:var(--ac-text-muted); margin:8px 0;">@_total نتيجة</p>
+        <div class="acm-home-grid">
+            @foreach (var l in _listings)
             {
-                <div class="d-flex justify-content-center gap-2 mt-4">
-                    <button class="ac-btn ac-btn-sm ac-btn-outline-primary" disabled="@(_page <= 1)" @onclick="PrevPage">@(L["common.prev"])</button>
-                    <span style="padding:6px 12px;font-size:0.85rem;color:var(--ac-text-muted);">@_page</span>
-                    <button class="ac-btn ac-btn-sm ac-btn-outline-primary" disabled="@(_page * _pageSize >= _total)" @onclick="NextPage">@(L["common.next"])</button>
-                </div>
+                var lid = l.Id;
+                <AcSpaceCard Title="@l.Title"
+                             ImageUrl="@l.FirstImage"
+                             Location="@($"{l.District} — {l.City}")"
+                             PriceLabel="@($"{l.Price:0} SAR / {l.TimeUnitLabel}")"
+                             IsFavorite="@Store.FavoriteListingIds.Contains(l.Id)"
+                             OnOpen="@(() => Nav.NavigateTo($"/listings/{lid}"))"
+                             OnToggleFavorite="@(async on => await Applier.ApplyLocalAsync(EjarOps.ToggleFavorite(lid)))" />
             }
+        </div>
+
+        @if (_total > _pageSize)
+        {
+            <div style="display:flex; justify-content:center; gap:8px; margin-top:16px;">
+                <AcButton Variant="ghost" Text="@(L["common.prev"])" OnClick="@PrevPage" Disabled="@(_page <= 1)" />
+                <span style="padding:6px 12px; font-size:0.85rem; color:var(--ac-text-muted);">@_page</span>
+                <AcButton Variant="ghost" Text="@(L["common.next"])" OnClick="@NextPage" Disabled="@(_page * _pageSize >= _total)" />
+            </div>
         }
-    </div>
+    }
 </div>
 
 @code {
@@ -140,9 +109,9 @@
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (!firstRender) return;
-        var cEnv = await Api.GetAsync<List<string>>("/cities");
+        var cEnv   = await Api.GetAsync<List<string>>("/cities");
         var catEnv = await Api.GetAsync<List<CategoryDto>>("/categories");
-        _cities = cEnv.Data ?? new();
+        _cities    = cEnv.Data ?? new();
         _categories = catEnv.Data ?? new();
         await RunSearch();
     }
@@ -151,11 +120,10 @@
     {
         _loading = true;
         await InvokeAsync(StateHasChanged);
-        var url = BuildUrl();
-        var env = await Api.GetAsync<ListingsResponse>(url);
-        _total = env.Data?.Total ?? 0;
+        var env = await Api.GetAsync<ListingsResponse>(BuildUrl());
+        _total    = env.Data?.Total ?? 0;
         _listings = env.Data?.Items ?? new();
-        _loading = false;
+        _loading  = false;
         await InvokeAsync(StateHasChanged);
     }
 
@@ -169,8 +137,6 @@
         if (!string.IsNullOrEmpty(_sort))         p.Add($"sort={Uri.EscapeDataString(_sort)}");
         return "/listings?" + string.Join("&", p);
     }
-
-    private void OnSearchKey(KeyboardEventArgs e) { if (e.Key == "Enter") _ = RunSearch(); }
 
     private async Task Reset()
     {

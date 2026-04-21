@@ -1,116 +1,131 @@
 @page "/complaints"
-@inject AppStore Store
+@using ACommerce.Client.Operations
 @inject ApiReader Api
+@inject ClientOpEngine Engine
 @inject NavigationManager Nav
 @inject L L
-@implements IDisposable
 
 <PageTitle>@(L["complaint.title"]) — @(L["app.name"])</PageTitle>
 
-<div class="ejar-page">
-    <div style="padding:16px;border-bottom:1px solid var(--ac-border);display:flex;align-items:center;justify-content:space-between;">
-        <h1 style="font-size:1rem;font-weight:700;margin:0;">@(L["complaint.title"])</h1>
-        <button class="ac-btn ac-btn-sm ac-btn-primary" @onclick="@(() => _showNew = true)">+ @(L["complaint.new"])</button>
-    </div>
+<div class="acs-page acs-complaints-page">
+    <AcSectionHeader Title="@(L["complaint.title"])" ActionLabel="@(L["complaint.new"])" OnAction="@ToggleNew" />
 
-    @if (!Store.Auth.IsAuthenticated)
+    @if (_showNew)
     {
-        <div class="ejar-empty mt-5">
-            <button class="ac-btn ac-btn-primary" @onclick="@(() => Nav.NavigateTo("/login"))">@(L["auth.login.title"])</button>
-        </div>
+        <AcCard>
+            <ChildContent>
+                <AcField Label="@(L["complaint.subject"])" Required="true">
+                    <AcInput Value="@_subject" ValueChanged="@(v => _subject = v ?? string.Empty)" />
+                </AcField>
+                <AcField Label="@(L["complaint.body"])" Required="true">
+                    <textarea class="ac-input" rows="4" @bind="_body"
+                              @bind:event="oninput" placeholder="اشرح المشكلة بالتفصيل…"></textarea>
+                </AcField>
+                <div style="display:flex; gap:8px;">
+                    <AcButton Variant="primary" Text="@(L["complaint.send"])" OnClick="@Submit"
+                              Disabled="@(string.IsNullOrWhiteSpace(_subject) || string.IsNullOrWhiteSpace(_body) || _saving)" />
+                    <AcButton Variant="ghost" Text="@(L["common.cancel"])" OnClick="@ToggleNew" />
+                </div>
+                @if (!string.IsNullOrEmpty(_alert))
+                {
+                    <AcAlert Variant="@_alertVariant" Text="@_alert" />
+                }
+            </ChildContent>
+        </AcCard>
     }
+
+    @if (_loading) { <AcLoadingState /> }
+    else if (_items.Count == 0) { <AcEmptyState IconName="alert-circle" Message="لا توجد شكاوى" /> }
     else
     {
-        @if (_showNew)
-        {
-            <div class="ejar-content mt-3">
-                <div class="mb-2">
-                    <label class="ac-label">@(L["complaint.subject"])</label>
-                    <input type="text" class="ac-input w-100" @bind="_subject" disabled="@_busy" />
-                </div>
-                <div class="mt-2">
-                    <label style="font-size:0.85rem;font-weight:600;color:var(--ac-text-muted);">@(L["complaint.body"])</label>
-                    <textarea class="ac-input w-100 mt-1" rows="4" @bind="_body" disabled="@_busy"></textarea>
-                </div>
-                @if (_error is not null) { <div class="ac-alert ac-alert-danger mt-2">@_error</div> }
-                <div class="d-flex gap-2 mt-3">
-                    <button class="ac-btn ac-btn-primary flex-grow-1" disabled="@_busy" @onclick="SubmitComplaint">@(L["complaint.send"])</button>
-                    <button class="ac-btn ac-btn-outline-secondary" @onclick="@(() => _showNew = false)">@(L["common.cancel"])</button>
-                </div>
-            </div>
-            <hr />
-        }
-
-        @if (_loading)
-        {
-            <div class="ejar-empty"><div class="acm-spinner"></div></div>
-        }
-        else if (_complaints.Count == 0)
-        {
-            <div class="ejar-empty">
-                <div class="ejar-empty-icon">🚨</div>
-                <div class="ejar-empty-text">لا توجد شكاوى</div>
-            </div>
-        }
-        else
-        {
-            @foreach (var c in _complaints)
+        <div style="display:flex; flex-direction:column; gap:8px;">
+            @foreach (var c in _items)
             {
-                <div @onclick="@(() => Nav.NavigateTo($"/complaints/{c.Id}"))"
-                     style="padding:14px 16px;border-bottom:1px solid var(--ac-border);cursor:pointer;">
-                    <div class="d-flex align-items-center justify-content-between mb-1">
-                        <span style="font-weight:600;font-size:0.93rem;">@c.Subject</span>
-                        <span style="font-size:0.75rem;padding:2px 10px;border-radius:99px;background:var(--ac-primary-light);color:var(--ac-primary-dark);">@c.Status</span>
-                    </div>
-                    <p style="font-size:0.8rem;color:var(--ac-text-muted);margin:0;">@c.Body.Substring(0, Math.Min(80, c.Body.Length))…</p>
-                </div>
+                var cid = c.Id;
+                <AcCard Hover="true">
+                    <ChildContent>
+                        <button type="button" class="acm-complaint-btn" @onclick="@(() => Open(cid))">
+                            <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
+                                <strong>@c.Subject</strong>
+                                <AcBadge Variant="@StatusVariant(c.Status)" Text="@StatusLabel(c.Status)" />
+                            </div>
+                            <div class="acm-complaint-body">@Truncate(c.Body, 120)</div>
+                            <small>@c.CreatedAt.ToString("yyyy-MM-dd") — @c.RepliesCount رسالة</small>
+                        </button>
+                    </ChildContent>
+                </AcCard>
             }
-        }
+        </div>
     }
 </div>
 
 @code {
-    private List<ComplaintDto> _complaints = new();
+    private List<ComplaintDto> _items = new();
     private bool _loading = true;
     private bool _showNew;
-    private bool _busy;
+    private bool _saving;
     private string _subject = "";
     private string _body = "";
-    private string? _error;
+    private string? _alert;
+    private string _alertVariant = "success";
 
-    protected override void OnInitialized() => Store.OnChanged += OnChange;
-
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+    protected override async Task OnAfterRenderAsync(bool first)
     {
-        if (!firstRender || !Store.Auth.IsAuthenticated) return;
-        await Load();
+        if (!first) return;
+        await Reload();
     }
 
-    private async Task Load()
+    private async Task Reload()
     {
-        _loading = true;
-        var env = await Api.GetAsync<List<ComplaintDto>>("/complaints");
-        _complaints = env.Data ?? new();
+        var env  = await Api.GetAsync<List<ComplaintDto>>("/complaints");
+        _items   = env.Data ?? new();
         _loading = false;
         await InvokeAsync(StateHasChanged);
     }
 
-    private async Task SubmitComplaint()
+    private void ToggleNew() { _showNew = !_showNew; _alert = null; }
+
+    private void Open(string id) => Nav.NavigateTo($"/complaints/{id}");
+
+    private async Task Submit()
     {
-        _error = null; _busy = true;
-        var env = await Api.PostAsync<ComplaintDto>("/complaints", new { subject = _subject, body = _body });
-        _busy = false;
-        if (env.Operation.Status == "Success" && env.Data is not null)
+        _saving = true;
+        try
         {
-            _complaints.Insert(0, env.Data);
-            _showNew = false; _subject = ""; _body = "";
+            var env = await Engine.ExecuteAsync<object>(
+                EjarOps.FileComplaint(_subject, _body),
+                payload: new { Subject = _subject, Body = _body });
+            if (env?.Operation.Status == "Success")
+            {
+                _alert = "تمّ إرسال الشكوى"; _alertVariant = "success";
+                _subject = ""; _body = ""; _showNew = false;
+                await Reload();
+            }
+            else
+            {
+                _alert = env?.Error?.Message ?? "فشل الإرسال";
+                _alertVariant = "danger";
+            }
         }
-        else { _error = env.Operation.ErrorMessage ?? "فشل الإرسال"; }
-        await InvokeAsync(StateHasChanged);
+        finally { _saving = false; }
     }
 
-    private void OnChange() => InvokeAsync(StateHasChanged);
-    public void Dispose() => Store.OnChanged -= OnChange;
+    private static string StatusLabel(string s) => s switch
+    {
+        "open" => "مفتوحة", "in_progress" => "قيد المعالجة",
+        "resolved" => "محلولة", "closed" => "مغلقة",
+        _ => s
+    };
 
-    private sealed record ComplaintDto(string Id, string UserId, string Subject, string Body, string Status, DateTime CreatedAt, int RepliesCount);
+    private static string StatusVariant(string s) => s switch
+    {
+        "open" => "warning", "in_progress" => "secondary",
+        "resolved" => "success", "closed" => "secondary",
+        _ => "secondary"
+    };
+
+    private static string Truncate(string s, int n) => s.Length <= n ? s : s[..n] + "…";
+
+    private sealed record ComplaintDto(string Id, string UserId, string Subject, string Body,
+        string Status, DateTime CreatedAt, int RepliesCount);
 }

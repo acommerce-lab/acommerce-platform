@@ -3,67 +3,49 @@
 @inject AppStateApplier Applier
 @inject NavigationManager Nav
 @inject L L
-@implements IDisposable
 
 <PageTitle>@(L["settings.title"]) — @(L["app.name"])</PageTitle>
 
-<div class="ejar-page ejar-content mt-3">
-    <h1 style="font-size:1rem;font-weight:700;margin-bottom:20px;">@(L["settings.title"])</h1>
+<div class="acs-page acs-settings-page">
+    <h1 class="acm-wizard-title">@(L["settings.title"])</h1>
 
-    @* Theme *@
-    <div style="padding:14px 0;border-bottom:1px solid var(--ac-border);display:flex;align-items:center;justify-content:space-between;">
-        <span style="font-size:0.93rem;font-weight:500;">@(L["settings.theme"])</span>
-        <AcThemeToggle IsDark="@Store.Ui.IsDark"
-                       IsDarkChanged="@(async v => await Applier.ApplyLocalAsync(EjarOps.SetTheme(v ? "dark" : "light")))" />
-    </div>
+    <AcCard>
+        <ChildContent>
+            <div class="acm-checkout-line">
+                <span>@(L["settings.theme"])</span>
+                <div style="display:inline-flex; gap:8px;">
+                    <AcFilterChip Label="@(L["settings.theme.light"])"
+                                  Active="@(Store.Ui.Theme == "light")"
+                                  OnClick="@SetLight" />
+                    <AcFilterChip Label="@(L["settings.theme.dark"])"
+                                  Active="@(Store.Ui.Theme == "dark")"
+                                  OnClick="@SetDark" />
+                </div>
+            </div>
+            <div class="acm-checkout-line">
+                <span>@(L["settings.language"])</span>
+                <div style="display:inline-flex; gap:8px;">
+                    <AcFilterChip Label="العربيّة" Active="@(Store.Ui.Language == "ar")" OnClick="@SetAr" />
+                    <AcFilterChip Label="English"  Active="@(Store.Ui.Language == "en")" OnClick="@SetEn" />
+                </div>
+            </div>
+        </ChildContent>
+    </AcCard>
 
-    @* Language *@
-    <div style="padding:14px 0;border-bottom:1px solid var(--ac-border);display:flex;align-items:center;justify-content:space-between;">
-        <span style="font-size:0.93rem;font-weight:500;">@(L["settings.language"])</span>
-        <AcLanguageToggle IsArabic="@Store.Ui.IsArabic"
-                          IsArabicChanged="@(async v => await Applier.ApplyLocalAsync(EjarOps.SetLanguage(v ? "ar" : "en")))" />
-    </div>
-
-    @* Legal links *@
-    <div @onclick="@(() => Nav.NavigateTo("/legal"))"
-         style="padding:14px 0;border-bottom:1px solid var(--ac-border);cursor:pointer;display:flex;align-items:center;justify-content:space-between;">
-        <span style="font-size:0.93rem;font-weight:500;">الشروط والسياسات</span>
-        <AcIcon Name="chevron-left" Size="16" />
-    </div>
-
-    <div @onclick="@(() => Nav.NavigateTo("/help"))"
-         style="padding:14px 0;border-bottom:1px solid var(--ac-border);cursor:pointer;display:flex;align-items:center;justify-content:space-between;">
-        <span style="font-size:0.93rem;font-weight:500;">@(L["help.title"])</span>
-        <AcIcon Name="chevron-left" Size="16" />
-    </div>
-
-    @if (Store.Auth.IsAuthenticated)
-    {
-        <button class="ac-btn ac-btn-outline-danger w-100 mt-4" @onclick="SignOut">
-            🚪 @(L["settings.sign_out"])
-        </button>
-    }
-    else
-    {
-        <button class="ac-btn ac-btn-primary w-100 mt-4" @onclick="@(() => Nav.NavigateTo("/login"))">
-            @(L["auth.login.title"])
-        </button>
-    }
+    <AcCard>
+        <ChildContent>
+            <h3 style="margin-top:0;">المستندات القانونيّة</h3>
+            <AcButton Variant="ghost" Class="ac-btn-block" Text="@(L["legal.privacy"])" OnClick="@GoPrivacy" />
+            <AcButton Variant="ghost" Class="ac-btn-block" Text="@(L["legal.terms"])"   OnClick="@GoTerms" />
+        </ChildContent>
+    </AcCard>
 </div>
 
 @code {
-    protected override void OnInitialized() => Store.OnChanged += OnChange;
-
-    private void SignOut()
-    {
-        Store.Auth.UserId = null;
-        Store.Auth.AccessToken = null;
-        Store.Auth.FullName = null;
-        Store.Auth.Phone = null;
-        Store.NotifyChanged();
-        Nav.NavigateTo("/");
-    }
-
-    private void OnChange() => InvokeAsync(StateHasChanged);
-    public void Dispose() => Store.OnChanged -= OnChange;
+    private Task SetLight() => Applier.ApplyLocalAsync(EjarOps.SetTheme("light"));
+    private Task SetDark()  => Applier.ApplyLocalAsync(EjarOps.SetTheme("dark"));
+    private Task SetAr()    => Applier.ApplyLocalAsync(EjarOps.SetLanguage("ar"));
+    private Task SetEn()    => Applier.ApplyLocalAsync(EjarOps.SetLanguage("en"));
+    private void GoPrivacy() => Nav.NavigateTo("/legal/privacy");
+    private void GoTerms()   => Nav.NavigateTo("/legal/terms");
 }

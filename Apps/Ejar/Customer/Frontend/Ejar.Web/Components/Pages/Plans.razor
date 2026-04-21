@@ -7,75 +7,85 @@
 
 <PageTitle>@(L["plans.title"]) — @(L["app.name"])</PageTitle>
 
-<div class="ejar-page">
-    <div style="background:linear-gradient(135deg,var(--ac-primary) 0%,var(--ac-primary-dark) 100%);padding:28px 20px;text-align:center;color:#fff;">
-        <h1 style="font-size:1.2rem;font-weight:700;margin:0 0 6px;color:#fff;">@(L["plans.title"])</h1>
-        @if (_sub is not null)
-        {
-            <p style="margin:0;opacity:0.9;font-size:0.87rem;">@(L["plans.current"]): <strong>@_sub.PlanName</strong> — @_sub.DaysRemaining @(L["subscription.days_remaining"])</p>
-        }
-    </div>
+<div class="acs-page acs-plans-page">
+    <h1 class="acm-wizard-title">@(L["plans.title"])</h1>
+    <p style="color:var(--ac-text-muted);">اختر الخطّة المناسبة — يمكنك الترقية في أيّ وقت.</p>
 
-    @if (!Store.Auth.IsAuthenticated)
+    @if (_sub is not null)
     {
-        <div class="ejar-empty mt-5">
-            <button class="ac-btn ac-btn-primary" @onclick="@(() => Nav.NavigateTo("/login"))">@(L["auth.login.title"])</button>
-        </div>
+        <AcCard>
+            <ChildContent>
+                <div class="acm-checkout-line">
+                    <span>@(L["plans.current"]):</span>
+                    <strong>@_sub.PlanName — @_sub.DaysRemaining @(L["subscription.days_remaining"])</strong>
+                </div>
+            </ChildContent>
+        </AcCard>
     }
-    else if (_loading)
-    {
-        <div class="ejar-empty"><div class="acm-spinner"></div></div>
-    }
+
+    @if (_loading) { <AcLoadingState /> }
     else
     {
-        <div class="ejar-content mt-4">
-            <div class="row g-3">
-                @foreach (var p in _plans)
-                {
-                    var isCurrent = _sub?.PlanId == p.Id;
-                    <div class="col-12">
-                        <div class="ejar-plan-card @(p.Id == "pro" ? "popular" : "")">
-                            @if (p.Id == "pro") { <div class="ejar-plan-popular-badge">الأكثر شيوعاً</div> }
-                            <h2 style="font-size:1rem;font-weight:700;margin:0 0 4px;">@p.Name</h2>
-                            <div class="ejar-plan-price">
-                                @if (p.PriceMonthly == 0) { <span>مجاناً</span> }
-                                else { <span>@p.PriceMonthly</span><span class="ejar-plan-period"> @(L["common.sar"]) / شهر</span> }
-                            </div>
-                            <p style="font-size:0.85rem;color:var(--ac-text-muted);margin:8px 0;">
-                                حتى @p.MaxListings @(L["plans.listings_limit"])
-                            </p>
-                            <ul style="font-size:0.83rem;text-align:right;padding-right:16px;color:var(--ac-text-muted);margin-bottom:16px;">
-                                @foreach (var f in p.Features) { <li>@f</li> }
-                            </ul>
-                            @if (isCurrent)
-                            {
-                                <button class="ac-btn ac-btn-outline-primary w-100" disabled>@(L["plans.current"])</button>
-                            }
-                            else
-                            {
-                                <button class="ac-btn ac-btn-primary w-100">@(L["plans.subscribe"])</button>
-                            }
-                        </div>
-                    </div>
-                }
-            </div>
-
-            @* Invoices *@
-            @if (_invoices.Count > 0)
+        <div class="acm-home-grid acs-plans-grid">
+            @foreach (var p in _plans)
             {
-                <h2 style="font-size:0.95rem;font-weight:700;margin:24px 0 10px;">@(L["subscription.invoices"])</h2>
-                @foreach (var inv in _invoices)
-                {
-                    <div style="padding:12px 0;border-bottom:1px solid var(--ac-border);display:flex;justify-content:space-between;align-items:center;">
-                        <div>
-                            <div style="font-size:0.9rem;font-weight:500;">@inv.PlanName</div>
-                            <div style="font-size:0.78rem;color:var(--ac-text-muted);">@inv.CreatedAt.ToString("yyyy-MM-dd")</div>
+                var plan = p;
+                var isCurrent = _sub?.PlanId == plan.Id;
+                <AcCard Hover="true">
+                    <ChildContent>
+                        <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
+                            <h3 style="margin:0;">@plan.Name</h3>
+                            @if (plan.Id == "pro") { <AcBadge Variant="secondary" Text="الأشهر" /> }
                         </div>
-                        <span style="font-weight:600;color:var(--ac-primary);">@inv.Amount @(L["common.sar"])</span>
-                    </div>
-                }
+                        <div style="font-size:24px; font-weight:700; margin:8px 0;">
+                            @if (plan.PriceMonthly == 0) { <span>مجّاني</span> }
+                            else { <span>@plan.PriceMonthly SAR</span><small style="font-size:13px; color:var(--ac-text-muted);"> / شهر</small> }
+                        </div>
+                        <p style="font-size:13px; color:var(--ac-text-muted); margin:4px 0 8px;">
+                            حتى @plan.MaxListings @(L["plans.listings_limit"])
+                        </p>
+                        <ul style="list-style:none; padding:0; margin:8px 0 12px;">
+                            @foreach (var f in plan.Features)
+                            {
+                                <li style="display:flex; gap:8px; padding:4px 0; align-items:center;">
+                                    <AcIcon Name="check-circle" Size="14" />
+                                    <span>@f</span>
+                                </li>
+                            }
+                        </ul>
+                        @if (isCurrent)
+                        {
+                            <AcButton Variant="outline-primary" Class="ac-btn-block" Text="@(L["plans.current"])" Disabled="true" />
+                        }
+                        else
+                        {
+                            <AcButton Variant="@(plan.Id == "pro" ? "primary" : "outline-primary")"
+                                      Class="ac-btn-block" Text="@(L["plans.subscribe"])"
+                                      OnClick="@(() => Nav.NavigateTo($"/plans/subscribe?planId={plan.Id}"))" />
+                        }
+                    </ChildContent>
+                </AcCard>
             }
         </div>
+
+        @if (_invoices.Count > 0)
+        {
+            <h3 style="margin-top:16px;">@(L["subscription.invoices"])</h3>
+            <AcCard>
+                <ChildContent>
+                    @foreach (var inv in _invoices)
+                    {
+                        <div class="acm-checkout-line">
+                            <div>
+                                <div style="font-weight:500;">@inv.PlanName</div>
+                                <small style="color:var(--ac-text-muted);">@inv.CreatedAt.ToString("yyyy-MM-dd")</small>
+                            </div>
+                            <strong style="color:var(--ac-primary);">@inv.Amount @(L["common.sar"])</strong>
+                        </div>
+                    }
+                </ChildContent>
+            </AcCard>
+        }
     }
 </div>
 
@@ -89,14 +99,14 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (!firstRender || !Store.Auth.IsAuthenticated) return;
-        var plansEnv  = await Api.GetAsync<List<PlanDto>>("/plans");
-        var subEnv    = await Api.GetAsync<SubDto>("/me/subscription");
-        var invEnv    = await Api.GetAsync<List<InvoiceDto>>("/me/invoices");
+        if (!firstRender) return;
+        var plansEnv = await Api.GetAsync<List<PlanDto>>("/plans");
+        var subEnv   = await Api.GetAsync<SubDto>("/me/subscription");
+        var invEnv   = await Api.GetAsync<List<InvoiceDto>>("/me/invoices");
         _plans    = plansEnv.Data ?? new();
         _sub      = subEnv.Data;
         _invoices = invEnv.Data ?? new();
-        _loading = false;
+        _loading  = false;
         await InvokeAsync(StateHasChanged);
     }
 

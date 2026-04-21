@@ -1,89 +1,81 @@
 @page "/notifications"
+@using ACommerce.Client.Operations
 @inject AppStore Store
 @inject ApiReader Api
-@inject NavigationManager Nav
-@inject L L
+@inject ClientOpEngine Engine
 @implements IDisposable
 
-<PageTitle>@(L["notification.title"]) — @(L["app.name"])</PageTitle>
+<PageTitle>الإشعارات — إيجار</PageTitle>
 
-<div class="ejar-page">
-    <div style="padding:16px;border-bottom:1px solid var(--ac-border);display:flex;align-items:center;justify-content:space-between;">
-        <h1 style="font-size:1rem;font-weight:700;margin:0;">@(L["notification.title"])</h1>
-        @if (_notifications.Any(n => !n.IsRead))
-        {
-            <button class="ac-btn ac-btn-sm ac-btn-outline-primary" @onclick="ReadAll">@(L["notification.mark_all_read"])</button>
-        }
+<div class="acs-page acs-notifications-page">
+    <AcSectionHeader Title="الإشعارات" ActionLabel="قراءة الكلّ" OnAction="@MarkAllRead" />
+
+    <div class="acs-filter-chips">
+        <AcFilterChip Label="الكلّ"     Active="@(_filter == "")"        OnClick="@(() => SetFilter(""))" />
+        <AcFilterChip Label="رسائل"     Active="@(_filter == "message")" OnClick="@(() => SetFilter("message"))" />
+        <AcFilterChip Label="إعلانات"   Active="@(_filter == "listing")" OnClick="@(() => SetFilter("listing"))" />
+        <AcFilterChip Label="نظام"      Active="@(_filter == "system")"  OnClick="@(() => SetFilter("system"))" />
     </div>
 
-    @if (!Store.Auth.IsAuthenticated)
-    {
-        <div class="ejar-empty mt-5">
-            <div class="ejar-empty-icon">🔔</div>
-            <button class="ac-btn ac-btn-primary" @onclick="@(() => Nav.NavigateTo("/login"))">@(L["auth.login.title"])</button>
-        </div>
-    }
-    else if (_loading)
-    {
-        <div class="ejar-empty"><div class="acm-spinner"></div></div>
-    }
-    else if (_notifications.Count == 0)
-    {
-        <div class="ejar-empty">
-            <div class="ejar-empty-icon">🔔</div>
-            <div class="ejar-empty-text">@(L["notification.empty"])</div>
-        </div>
-    }
+    @if (_loading) { <AcLoadingState /> }
     else
     {
-        @foreach (var n in _notifications)
+        var filtered = _items.Where(n => string.IsNullOrEmpty(_filter) || n.Type == _filter).ToList();
+
+        @if (filtered.Count == 0) { <AcEmptyState IconName="bell" Message="لا توجد إشعارات" /> }
+        else
         {
-            <div class="ejar-notif-item @(n.IsRead ? "" : "unread")" @onclick="@(() => MarkRead(n))">
-                @if (!n.IsRead) { <div class="ejar-notif-dot"></div> }
-                <div style="flex:1;">
-                    <div style="font-weight:@(n.IsRead ? "normal" : "600");font-size:0.9rem;">@n.Title</div>
-                    <div style="font-size:0.8rem;color:var(--ac-text-muted);margin-top:2px;">@n.Body</div>
-                </div>
+            <div style="display:flex; flex-direction:column; gap:8px; margin-top:8px;">
+                @foreach (var n in filtered)
+                {
+                    var nid = n.Id;
+                    <AcCard Hover="true">
+                        <ChildContent>
+                            <button type="button" class="acm-complaint-btn" @onclick="@(() => OnClick(nid))">
+                                <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
+                                    <strong>@n.Title</strong>
+                                    @if (!n.IsRead) { <AcBadge Variant="primary" Text="جديد" /> }
+                                </div>
+                                <div class="acm-complaint-body">@n.Body</div>
+                            </button>
+                        </ChildContent>
+                    </AcCard>
+                }
             </div>
         }
     }
 </div>
 
 @code {
-    private List<NotifDto> _notifications = new();
+    private List<NotifDto> _items = new();
     private bool _loading = true;
+    private string _filter = "";
 
     protected override void OnInitialized() => Store.OnChanged += OnChange;
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+    protected override async Task OnAfterRenderAsync(bool first)
     {
-        if (!firstRender || !Store.Auth.IsAuthenticated) return;
-        await Load();
-    }
-
-    private async Task Load()
-    {
-        _loading = true;
+        if (!first) return;
         var env = await Api.GetAsync<List<NotifDto>>("/notifications");
-        _notifications = env.Data ?? new();
+        _items   = env.Data ?? new();
         _loading = false;
         await InvokeAsync(StateHasChanged);
     }
 
-    private async Task MarkRead(NotifDto n)
+    private void SetFilter(string f) { _filter = f; StateHasChanged(); }
+
+    private async Task OnClick(string id)
     {
-        if (n.IsRead) return;
-        await Api.PostAsync<object>($"/notifications/{n.Id}/read");
-        var ix = _notifications.FindIndex(x => x.Id == n.Id);
-        if (ix >= 0) _notifications[ix] = n with { IsRead = true };
-        await InvokeAsync(StateHasChanged);
+        var ix = _items.FindIndex(x => x.Id == id);
+        if (ix < 0 || _items[ix].IsRead) return;
+        _items[ix] = _items[ix] with { IsRead = true };
+        await Engine.ExecuteAsync<object>(EjarOps.ReadNotification(id));
     }
 
-    private async Task ReadAll()
+    private async Task MarkAllRead()
     {
-        await Api.PostAsync<object>("/notifications/read-all");
-        _notifications = _notifications.Select(n => n with { IsRead = true }).ToList();
-        await InvokeAsync(StateHasChanged);
+        _items = _items.Select(n => n with { IsRead = true }).ToList();
+        await Engine.ExecuteAsync<object>(EjarOps.ReadAllNotifications());
     }
 
     private void OnChange() => InvokeAsync(StateHasChanged);

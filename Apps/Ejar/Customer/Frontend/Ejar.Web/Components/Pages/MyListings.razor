@@ -1,108 +1,88 @@
 @page "/my-listings"
-@inject AppStore Store
+@using ACommerce.Client.Operations
 @inject ApiReader Api
 @inject NavigationManager Nav
+@inject ClientOpEngine Engine
 @inject L L
-@implements IDisposable
 
 <PageTitle>@(L["my_listings.title"]) — @(L["app.name"])</PageTitle>
 
-<div class="ejar-page">
-    <div style="padding:16px;border-bottom:1px solid var(--ac-border);display:flex;align-items:center;justify-content:space-between;">
-        <h1 style="font-size:1rem;font-weight:700;margin:0;">@(L["my_listings.title"])</h1>
-        <button class="ac-btn ac-btn-sm ac-btn-primary" @onclick="@(() => Nav.NavigateTo("/my-listings/create"))">+ @(L["my_listings.add"])</button>
+<div class="acs-page acs-my-listings">
+    <AcSectionHeader Title="@(L["my_listings.title"])" ActionLabel="@(L["my_listings.add"])" OnAction="@GoCreate" />
+
+    <div class="acs-filter-chips">
+        <AcFilterChip Label="الكلّ"    Active="@(_filter == 0)" OnClick="@(() => SetFilter(0))" />
+        <AcFilterChip Label="نشطة"     Active="@(_filter == 1)" OnClick="@(() => SetFilter(1))" />
+        <AcFilterChip Label="موقوفة"   Active="@(_filter == 2)" OnClick="@(() => SetFilter(2))" />
     </div>
 
-    @if (!Store.Auth.IsAuthenticated)
-    {
-        <div class="ejar-empty mt-5">
-            <button class="ac-btn ac-btn-primary" @onclick="@(() => Nav.NavigateTo("/login"))">@(L["auth.login.title"])</button>
-        </div>
-    }
-    else if (_loading)
-    {
-        <div class="ejar-empty"><div class="acm-spinner"></div></div>
-    }
-    else if (_listings.Count == 0)
-    {
-        <div class="ejar-empty">
-            <div class="ejar-empty-icon">📋</div>
-            <div class="ejar-empty-text">@(L["my_listings.empty"])</div>
-            <button class="ac-btn ac-btn-primary mt-2" @onclick="@(() => Nav.NavigateTo("/my-listings/create"))">@(L["my_listings.add"])</button>
-        </div>
-    }
+    @if (_loading) { <AcLoadingState /> }
     else
     {
-        @foreach (var l in _listings)
+        var list = _filter == 0 ? _items : _items.Where(l => l.Status == _filter).ToList();
+
+        @if (list.Count == 0) { <AcEmptyState IconName="building" Message="لا توجد إعلانات" /> }
+        else
         {
-            <div style="padding:14px 16px;border-bottom:1px solid var(--ac-border);">
-                <div class="d-flex align-items-start gap-3">
-                    <div @onclick="@(() => Nav.NavigateTo($"/listings/{l.Id}"))"
-                         style="width:72px;height:72px;border-radius:8px;overflow:hidden;flex-shrink:0;cursor:pointer;background:var(--ac-primary-light);display:flex;align-items:center;justify-content:center;font-size:1.8rem;">
-                        @if (l.FirstImage is not null) { <img src="@l.FirstImage" alt="" style="width:100%;height:100%;object-fit:cover;" /> }
-                        else { <span>🏠</span> }
-                    </div>
-                    <div style="flex:1;overflow:hidden;">
-                        <div style="font-weight:600;font-size:0.93rem;">@l.Title</div>
-                        <div style="font-size:0.8rem;color:var(--ac-text-muted);margin:2px 0;">@l.City — @l.District</div>
-                        <div class="d-flex align-items-center gap-2 mt-1">
-                            <span style="font-size:0.78rem;padding:2px 8px;border-radius:99px;background:@(l.Status == 1 ? "var(--ac-success)" : "var(--ac-surface-alt)");color:@(l.Status == 1 ? "#fff" : "var(--ac-text-muted)");">
-                                @(l.Status == 1 ? L["my_listings.active"] : L["my_listings.paused"])
-                            </span>
-                            <span class="ejar-price" style="font-size:0.88rem;">@l.Price.ToString("N0") ر</span>
-                        </div>
-                    </div>
-                    <div class="d-flex flex-column gap-1">
-                        <button class="ac-btn ac-btn-xs ac-btn-outline-primary" @onclick="@(() => ToggleStatus(l))">
-                            @(l.Status == 1 ? "إيقاف" : "تفعيل")
-                        </button>
-                        <button class="ac-btn ac-btn-xs ac-btn-outline-danger" @onclick="@(() => Delete(l))">حذف</button>
-                    </div>
-                </div>
+            <div class="acm-home-grid" style="margin-top:12px;">
+                @foreach (var l in list)
+                {
+                    var lid    = l.Id;
+                    var active = l.Status == 1;
+                    <AcCard>
+                        <ChildContent>
+                            <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
+                                <strong>@l.Title</strong>
+                                <AcBadge Variant="@(active ? "success" : "secondary")"
+                                         Text="@(active ? L["my_listings.active"] : L["my_listings.paused"])" />
+                            </div>
+                            <small style="color:var(--ac-text-muted);">@l.City — @l.District</small>
+                            <div style="margin-top:8px; display:flex; gap:12px; font-size:13px; color:var(--ac-text-muted);">
+                                <span><AcIcon Name="eye" Size="14" /> @l.ViewsCount مشاهدة</span>
+                            </div>
+                            <div style="margin-top:8px; font-size:16px;">
+                                <strong>@l.Price.ToString("N0") SAR</strong> / @l.TimeUnitLabel
+                            </div>
+                            <div style="display:flex; gap:8px; margin-top:12px; flex-wrap:wrap;">
+                                <AcButton Variant="outline-primary" Text="عرض" OnClick="@(() => Open(lid))" />
+                                <AcButton Variant="ghost" Text="@(active ? "إيقاف" : "نشر")" OnClick="@(() => Toggle(lid))" />
+                            </div>
+                        </ChildContent>
+                    </AcCard>
+                }
             </div>
         }
     }
 </div>
 
 @code {
-    private List<MyListingDto> _listings = new();
+    private List<MyListingDto> _items = new();
     private bool _loading = true;
+    private int _filter = 0;
 
-    protected override void OnInitialized() => Store.OnChanged += OnChange;
-
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+    protected override async Task OnAfterRenderAsync(bool first)
     {
-        if (!firstRender || !Store.Auth.IsAuthenticated) return;
-        await Load();
-    }
-
-    private async Task Load()
-    {
-        _loading = true;
-        var env = await Api.GetAsync<List<MyListingDto>>("/my-listings");
-        _listings = env.Data ?? new();
+        if (!first) return;
+        var env  = await Api.GetAsync<List<MyListingDto>>("/my-listings");
+        _items   = env.Data ?? new();
         _loading = false;
         await InvokeAsync(StateHasChanged);
     }
 
-    private async Task ToggleStatus(MyListingDto l)
+    private void SetFilter(int s) { _filter = s; StateHasChanged(); }
+    private void GoCreate() => Nav.NavigateTo("/my-listings/create");
+    private void Open(string id) => Nav.NavigateTo($"/listings/{id}");
+
+    private async Task Toggle(string id)
     {
-        await Api.PostAsync<object>($"/my-listings/{l.Id}/toggle");
-        var ix = _listings.FindIndex(x => x.Id == l.Id);
-        if (ix >= 0) _listings[ix] = l with { Status = l.Status == 1 ? 0 : 1 };
+        var env = await Engine.ExecuteAsync<ToggleData>(EjarOps.ToggleListing(id));
+        if (env?.Data is null) return;
+        var ix = _items.FindIndex(x => x.Id == id);
+        if (ix >= 0) _items[ix] = _items[ix] with { Status = env.Data.Status };
         await InvokeAsync(StateHasChanged);
     }
 
-    private async Task Delete(MyListingDto l)
-    {
-        await Api.DeleteAsync<object>($"/my-listings/{l.Id}");
-        _listings.Remove(l);
-        await InvokeAsync(StateHasChanged);
-    }
-
-    private void OnChange() => InvokeAsync(StateHasChanged);
-    public void Dispose() => Store.OnChanged -= OnChange;
-
+    private sealed record ToggleData(string Id, int Status);
     private sealed record MyListingDto(string Id, string Title, decimal Price, string TimeUnit,
         string TimeUnitLabel, string City, string District, int Status, int ViewsCount, string? FirstImage);
 }

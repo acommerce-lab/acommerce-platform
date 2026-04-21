@@ -1,51 +1,86 @@
 @page "/me/edit"
+@using ACommerce.Client.Operations
 @inject AppStore Store
+@inject AppStateApplier Applier
 @inject ApiReader Api
+@inject ClientOpEngine Engine
 @inject NavigationManager Nav
 @inject L L
-@implements IDisposable
 
 <PageTitle>@(L["profile.edit"]) — @(L["app.name"])</PageTitle>
 
-<div class="ejar-page">
-    @if (!Store.Auth.IsAuthenticated)
+<div class="acs-page acs-profile-edit-page">
+    <h1 class="acm-wizard-title">@(L["profile.edit"])</h1>
+
+    @if (_loading) { <AcLoadingState /> }
+    else
     {
-        Nav.NavigateTo("/login");
-        return;
-    }
+        <AcCard>
+            <ChildContent>
+                <div class="acm-details-owner">
+                    <span class="acm-details-owner-avatar" style="width:64px; height:64px;">
+                        @if (!string.IsNullOrEmpty(_avatarDataUrl))
+                        {
+                            <img src="@_avatarDataUrl" alt="avatar"
+                                 style="width:100%; height:100%; border-radius:50%; object-fit:cover;" />
+                        }
+                        else
+                        {
+                            <AcIcon Name="user" Size="32" />
+                        }
+                    </span>
+                    <div class="acm-details-owner-info">
+                        <strong>@_fullName</strong>
+                        <span>@_phone</span>
+                    </div>
+                </div>
+                <div style="margin-top:12px;">
+                    <label class="ac-btn ac-btn-ghost ac-btn-block"
+                           style="display:inline-flex; align-items:center; gap:8px; cursor:pointer;">
+                        <AcIcon Name="camera" Size="16" />
+                        <span>تغيير الصورة</span>
+                        <InputFile OnChange="OnAvatarPicked" accept="image/*" style="display:none;" />
+                    </label>
+                </div>
+            </ChildContent>
+        </AcCard>
 
-    <div class="ejar-content mt-3">
-        <h1 style="font-size:1.1rem;font-weight:700;margin-bottom:20px;">@(L["profile.edit"])</h1>
+        <AcCard>
+            <ChildContent>
+                <AcField Label="@(L["profile.name"])" Required="true">
+                    <AcInput Value="@_fullName"
+                             ValueChanged="@(v => _fullName = v ?? string.Empty)" />
+                </AcField>
+                <AcField Label="@(L["profile.phone"])">
+                    <AcInput Type="tel" Value="@_phone" Disabled="true" />
+                </AcField>
+                <AcField Label="@(L["profile.email"])">
+                    <AcInput Type="email" Value="@_email"
+                             ValueChanged="@(v => _email = v ?? string.Empty)" />
+                </AcField>
+                <AcField Label="@(L["profile.city"])">
+                    <select class="ac-input" value="@_city"
+                            @onchange="@(e => _city = e.Value?.ToString() ?? _city)">
+                        @foreach (var c in _cities)
+                        {
+                            <option value="@c">@c</option>
+                        }
+                    </select>
+                </AcField>
+            </ChildContent>
+        </AcCard>
 
-        @if (_loading) { <div class="ejar-empty"><div class="acm-spinner"></div></div> }
-        else
+        @if (!string.IsNullOrEmpty(_alert))
         {
-            <div class="mb-3">
-                <label class="ac-label">@(L["profile.name"])</label>
-                <input type="text" class="ac-input w-100" @bind="_fullName" disabled="@_busy" />
-            </div>
-            <div class="mb-3">
-                <label class="ac-label">@(L["profile.email"])</label>
-                <input type="email" class="ac-input w-100" @bind="_email" disabled="@_busy" />
-            </div>
-            <div class="mb-3">
-                <label class="ac-label">@(L["profile.phone"])</label>
-                <input type="tel" class="ac-input w-100" @bind="_phone" disabled="true" />
-            </div>
-            <div class="mb-3">
-                <label class="ac-label">@(L["profile.city"])</label>
-                <input type="text" class="ac-input w-100" @bind="_city" disabled="@_busy" />
-            </div>
-
-            @if (_error is not null)   { <div class="ac-alert ac-alert-danger mt-2">@_error</div>   }
-            @if (_success is not null) { <div class="ac-alert ac-alert-success mt-2">@_success</div> }
-
-            <button class="ac-btn ac-btn-primary w-100 mt-4" disabled="@_busy" @onclick="Save">
-                @if (_busy) { <span class="acm-spinner-sm"></span> }
-                @(L["profile.save"])
-            </button>
+            <AcAlert Variant="@_alertVariant" Text="@_alert" />
         }
-    </div>
+
+        <div style="display:flex; gap:8px; margin-top:12px;">
+            <AcButton Variant="primary" Class="ac-btn-block" Text="@(L["profile.save"])"
+                      OnClick="@Save" Disabled="@_saving" />
+            <AcButton Variant="ghost" Text="إلغاء" OnClick="@GoBack" />
+        </div>
+    }
 </div>
 
 @code {
@@ -53,43 +88,75 @@
     private string _email = "";
     private string _phone = "";
     private string _city = "";
+    private IReadOnlyList<string> _cities = Array.Empty<string>();
     private bool _loading = true;
-    private bool _busy;
-    private string? _error;
-    private string? _success;
+    private bool _saving;
+    private string? _alert;
+    private string _alertVariant = "success";
+    private string? _avatarDataUrl;
 
-    protected override void OnInitialized() => Store.OnChanged += OnChange;
-
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+    protected override async Task OnAfterRenderAsync(bool first)
     {
-        if (!firstRender) return;
-        var env = await Api.GetAsync<ProfileDto>("/me/profile");
-        if (env.Data is not null)
+        if (!first) return;
+        var p  = await Api.GetAsync<ProfileDto>("/me/profile");
+        var ci = await Api.GetAsync<List<string>>("/cities");
+        if (p.Data is not null)
         {
-            _fullName = env.Data.FullName;
-            _email    = env.Data.Email ?? "";
-            _phone    = env.Data.Phone;
-            _city     = env.Data.City ?? "";
+            _fullName = p.Data.FullName;
+            _email    = p.Data.Email ?? "";
+            _phone    = p.Data.Phone;
+            _city     = p.Data.City ?? "";
         }
+        _cities  = ci.Data ?? new List<string> { "الرياض" };
         _loading = false;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task OnAvatarPicked(InputFileChangeEventArgs e)
+    {
+        var f = e.File;
+        if (f is null) return;
+        if (f.Size > 2 * 1024 * 1024)
+        {
+            _alert = "حجم الصورة أقصى 2MB"; _alertVariant = "danger"; return;
+        }
+        using var s  = f.OpenReadStream(maxAllowedSize: 2 * 1024 * 1024);
+        using var ms = new MemoryStream();
+        await s.CopyToAsync(ms);
+        _avatarDataUrl = $"data:{f.ContentType};base64,{Convert.ToBase64String(ms.ToArray())}";
+        _alert = null;
         await InvokeAsync(StateHasChanged);
     }
 
     private async Task Save()
     {
-        _error = null; _success = null; _busy = true;
-        await InvokeAsync(StateHasChanged);
-        var env = await Api.PutAsync<object>("/me/profile",
-            new { fullName = _fullName, email = _email, phone = _phone, city = _city });
-        _busy = false;
-        if (env.Operation.Status == "Success") { _success = "تمّ حفظ التغييرات"; Store.Auth.FullName = _fullName; }
-        else { _error = env.Operation.ErrorMessage ?? "فشل الحفظ"; }
-        await InvokeAsync(StateHasChanged);
+        if (string.IsNullOrWhiteSpace(_fullName)) return;
+        _saving = true;
+        try
+        {
+            var env = await Engine.ExecuteAsync<object>(
+                EjarOps.UpdateProfile(_fullName, _email, _phone, _city),
+                payload: new { FullName = _fullName, Email = _email, Phone = _phone, City = _city });
+            if (env?.Operation.Status == "Success")
+            {
+                Store.Auth.FullName = _fullName;
+                Store.Auth.Phone    = _phone;
+                Store.NotifyChanged();
+                _alert = "تمّ الحفظ"; _alertVariant = "success";
+                await Task.Delay(500);
+                Nav.NavigateTo("/me");
+            }
+            else
+            {
+                _alert = env?.Error?.Message ?? "فشل الحفظ";
+                _alertVariant = "danger";
+            }
+        }
+        finally { _saving = false; }
     }
 
-    private void OnChange() => InvokeAsync(StateHasChanged);
-    public void Dispose() => Store.OnChanged -= OnChange;
+    private void GoBack() => Nav.NavigateTo("/me");
 
-    private sealed record ProfileDto(string UserId, string FullName, string Phone, string? Email, string? City, bool IsVerified,
-        int ActiveListingsCount, int TotalViews, int UnreadNotifications);
+    private sealed record ProfileDto(string UserId, string FullName, string Phone, string? Email, string? City,
+        bool IsVerified, int ActiveListingsCount, int TotalViews, int UnreadNotifications);
 }

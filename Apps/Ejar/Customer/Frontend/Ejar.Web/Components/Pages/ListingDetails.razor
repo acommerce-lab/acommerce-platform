@@ -8,134 +8,113 @@
 
 <PageTitle>@(_listing?.Title ?? L["app.name"])</PageTitle>
 
-@if (_loading)
-{
-    <div class="ejar-empty"><div class="acm-spinner"></div></div>
-}
-else if (_listing is null)
-{
-    <div class="ejar-empty">
-        <div class="ejar-empty-icon">🏠</div>
-        <div class="ejar-empty-text">الإعلان غير موجود</div>
-        <button class="ac-btn ac-btn-primary mt-3" @onclick="@(() => Nav.NavigateTo("/search"))">استعرض الإعلانات</button>
-    </div>
-}
-else
-{
-    <div class="ejar-page">
-        @* Image gallery *@
-        @if (_listing.Images?.Count > 0)
-        {
-            <div style="position:relative;overflow:hidden;max-height:280px;">
-                <img src="@_listing.Images[0]" alt="@_listing.Title" style="width:100%;height:280px;object-fit:cover;" />
-                @if (_listing.Images.Count > 1)
-                {
-                    <span style="position:absolute;bottom:12px;left:12px;background:rgba(0,0,0,0.6);color:#fff;padding:4px 10px;border-radius:99px;font-size:0.8rem;">
-                        +@(_listing.Images.Count - 1) صور
-                    </span>
-                }
-            </div>
-        }
-        else
-        {
-            <div style="height:180px;background:var(--ac-surface-alt);display:flex;align-items:center;justify-content:center;color:var(--ac-text-muted);font-size:3rem;">🏠</div>
-        }
-
-        <div class="ejar-content mt-3">
-            @* Header *@
-            <div class="d-flex align-items-start justify-content-between gap-2 mb-2">
-                <h1 style="font-size:1.15rem;font-weight:700;color:var(--ac-text);margin:0;">@_listing.Title</h1>
-                <button class="ac-btn ac-btn-sm @(_isFav ? "ac-btn-primary" : "ac-btn-outline-primary")"
-                        @onclick="ToggleFavorite" aria-label="مفضلة">
-                    ♥
-                </button>
-            </div>
-
-            @* Price *@
-            <div class="mb-2">
-                <span class="ejar-price">@_listing.Price.ToString("N0")</span>
-                <span class="ejar-time-unit">@L["common.sar"] / @_listing.TimeUnitLabel</span>
-                @if (_listing.IsVerified)
-                {
-                    <span class="ejar-badge-verified me-2">✔ @(L["listing.verified"])</span>
-                }
-            </div>
-
-            @* Location *@
-            <p style="font-size:0.87rem;color:var(--ac-text-muted);margin:0 0 12px;">
-                📍 @_listing.District — @_listing.City
-            </p>
-
-            @* Stats row *@
-            <div class="d-flex gap-3 mb-3" style="font-size:0.84rem;color:var(--ac-text-muted);">
-                @if (_listing.BedroomCount > 0)
-                {
-                    <span>🛏 @_listing.BedroomCount @(L["listing.bedrooms"])</span>
-                }
-                @if (_listing.AreaSqm > 0)
-                {
-                    <span>📐 @_listing.AreaSqm م²</span>
-                }
-                <span>👁 @_listing.ViewsCount @(L["listing.views"])</span>
-            </div>
-
-            @* Description *@
-            <div class="mb-3">
-                <h2 style="font-size:0.95rem;font-weight:700;margin:0 0 6px;">@(L["listing.description"])</h2>
-                <p style="font-size:0.87rem;color:var(--ac-text-muted);line-height:1.6;margin:0;">@_listing.Description</p>
-            </div>
-
-            @* Amenities *@
-            @if (_listing.Amenities?.Count > 0)
+<div class="acs-page acs-space-details">
+    @if (_loading) { <AcLoadingState /> }
+    else if (_listing is null) { <AcEmptyState IconName="info" Message="الإعلان غير موجود" /> }
+    else
+    {
+        <div class="acs-gallery-wrap">
+            @if (_listing.Images is not null && _listing.Images.Count > 0)
             {
-                <div class="mb-3">
-                    <h2 style="font-size:0.95rem;font-weight:700;margin:0 0 8px;">@(L["listing.amenities"])</h2>
-                    <div>
-                        @foreach (var a in _listing.Amenities)
-                        {
-                            <span class="ejar-amenity-tag">@a.Label</span>
-                        }
-                    </div>
-                </div>
-            }
-
-            @* Map placeholder *@
-            <div style="height:160px;background:var(--ac-primary-light);border-radius:12px;display:flex;align-items:center;justify-content:center;color:var(--ac-primary);font-size:0.9rem;margin-bottom:16px;">
-                🗺 @_listing.City — @_listing.District
-            </div>
-
-            @* Contact CTA *@
-            @if (Store.Auth.IsAuthenticated)
-            {
-                <button class="ac-btn ac-btn-primary w-100" @onclick="StartChat">
-                    💬 @(L["listing.contact"])
-                </button>
+                <AcGallery Images="@(_listing.Images.ToList())" />
             }
             else
             {
-                <button class="ac-btn ac-btn-primary w-100" @onclick="@(() => Nav.NavigateTo("/login"))">
-                    🔐 سجّل دخولك للتواصل
-                </button>
+                <div class="acs-gallery-ph"><AcIcon Name="image" Size="48" /></div>
+            }
+            <button type="button" class="acs-fav-btn @(_isFav ? "active" : "")" @onclick="ToggleFavorite">
+                <AcIcon Name="heart" Filled="@_isFav" Size="20" />
+            </button>
+        </div>
+
+        <h1 class="acm-wizard-title">@_listing.Title</h1>
+        <div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:8px;">
+            @if (!string.IsNullOrEmpty(_listing.District))
+            {
+                <span><AcIcon Name="map-pin" Size="14" /> @_listing.District — @_listing.City</span>
+            }
+            @if (_listing.BedroomCount > 0)
+            {
+                <span><AcIcon Name="home" Size="14" /> @_listing.BedroomCount @(L["listing.bedrooms"])</span>
+            }
+            @if (_listing.IsVerified)
+            {
+                <AcBadge Variant="success" Text="@(L["listing.verified"])" />
             }
         </div>
-    </div>
-}
+
+        <div class="acm-checkout-line">
+            <strong style="font-size:20px;">@_listing.Price.ToString("N0") SAR</strong>
+            <span>/ @_listing.TimeUnitLabel</span>
+        </div>
+
+        @if (!string.IsNullOrEmpty(_listing.Description))
+        {
+            <AcCard>
+                <ChildContent>
+                    <h3 style="margin-top:0;">@(L["listing.description"])</h3>
+                    <p>@_listing.Description</p>
+                </ChildContent>
+            </AcCard>
+        }
+
+        @if (_listing.Amenities is not null && _listing.Amenities.Count > 0)
+        {
+            <AcCard>
+                <ChildContent>
+                    <h3 style="margin-top:0;">@(L["listing.amenities"])</h3>
+                    <div class="acs-amenity-chips">
+                        @foreach (var a in _listing.Amenities)
+                        {
+                            <span class="acs-amenity-chip"><AcIcon Name="check" Size="14" /> @a.Label</span>
+                        }
+                    </div>
+                </ChildContent>
+            </AcCard>
+        }
+
+        <AcCard>
+            <ChildContent>
+                <h3 style="margin-top:0;">الموقع</h3>
+                <AcMapSim Pins="@MapPins" />
+            </ChildContent>
+        </AcCard>
+
+        <AcStickyActionBar>
+            <AcButton Variant="ghost" Text="رجوع" OnClick="@GoBack" />
+            @if (Store.Auth.IsAuthenticated)
+            {
+                <AcButton Variant="primary" Class="ac-btn-block" Text="@(L["listing.contact"])"
+                          OnClick="@StartChat" Disabled="@_startingChat" />
+            }
+            else
+            {
+                <AcButton Variant="primary" Class="ac-btn-block" Text="سجّل دخولك للتواصل"
+                          OnClick="@(() => Nav.NavigateTo("/login"))" />
+            }
+        </AcStickyActionBar>
+    }
+</div>
 
 @code {
     [Parameter] public string Id { get; set; } = "";
 
     private ListingDetailDto? _listing;
     private bool _loading = true;
-    private bool _isFav;
+    private bool _startingChat;
+    private bool _isFav => _listing is not null && Store.FavoriteListingIds.Contains(_listing.Id);
+
+    private IReadOnlyList<AcMapSim.MapPin> MapPins =>
+        _listing is null ? Array.Empty<AcMapSim.MapPin>()
+                         : new[] { new AcMapSim.MapPin("loc", _listing.Title, _listing.Lat, _listing.Lng) };
 
     protected override void OnInitialized() => Store.OnChanged += OnChange;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (!firstRender) return;
-        var env = await Api.GetAsync<ListingDetailDto>($"/listings/{Id}");
+        var env  = await Api.GetAsync<ListingDetailDto>($"/listings/{Id}");
         _listing = env.Data;
-        _isFav = _listing is not null && Store.FavoriteListingIds.Contains(_listing.Id);
         _loading = false;
         await InvokeAsync(StateHasChanged);
     }
@@ -145,17 +124,23 @@ else
         if (_listing is null) return;
         if (!Store.Auth.IsAuthenticated) { Nav.NavigateTo("/login"); return; }
         await Applier.ApplyLocalAsync(EjarOps.ToggleFavorite(_listing.Id));
-        _isFav = Store.FavoriteListingIds.Contains(_listing.Id);
     }
 
     private async Task StartChat()
     {
         if (_listing is null) return;
-        var env = await Api.PostAsync<ConvStartDto>("/conversations/start",
-            new { listingId = _listing.Id, text = "مرحباً، أريد الاستفسار عن هذا الإعلان" });
-        if (env.Data is not null)
-            Nav.NavigateTo($"/chats/{env.Data.Id}");
+        _startingChat = true;
+        try
+        {
+            var env = await Api.PostAsync<ConvStartDto>("/conversations/start",
+                new { listingId = _listing.Id, text = "مرحباً، أريد الاستفسار عن هذا الإعلان" });
+            if (env.Data is not null) Nav.NavigateTo($"/chats/{env.Data.Id}");
+            else Nav.NavigateTo("/chats");
+        }
+        finally { _startingChat = false; }
     }
+
+    private void GoBack() => Nav.NavigateTo("/search");
 
     private void OnChange() => InvokeAsync(StateHasChanged);
     public void Dispose() => Store.OnChanged -= OnChange;

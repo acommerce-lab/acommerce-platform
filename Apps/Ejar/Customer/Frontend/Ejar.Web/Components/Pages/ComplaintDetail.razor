@@ -1,57 +1,64 @@
 @page "/complaints/{Id}"
-@inject AppStore Store
+@using ACommerce.Client.Operations
 @inject ApiReader Api
+@inject ClientOpEngine Engine
 @inject NavigationManager Nav
-@inject L L
-@implements IDisposable
 
-<PageTitle>@(L["complaint.title"]) — @(L["app.name"])</PageTitle>
+<PageTitle>تفاصيل الشكوى — إيجار</PageTitle>
 
-<div class="ejar-page">
-    <div style="padding:12px 16px;border-bottom:1px solid var(--ac-border);display:flex;align-items:center;gap:10px;">
-        <button class="ac-btn ac-btn-xs ac-btn-outline-secondary" @onclick="@(() => Nav.NavigateTo("/complaints"))">→</button>
-        <h1 style="font-size:1rem;font-weight:700;margin:0;">تفاصيل الشكوى</h1>
-    </div>
-
-    @if (_loading)
-    {
-        <div class="ejar-empty"><div class="acm-spinner"></div></div>
-    }
-    else if (_complaint is null)
-    {
-        <div class="ejar-empty"><div class="ejar-empty-text">الشكوى غير موجودة</div></div>
-    }
+<div class="acs-page acs-complaint-thread">
+    @if (_loading) { <AcLoadingState /> }
+    else if (_c is null) { <AcEmptyState IconName="alert-circle" Message="الشكوى غير موجودة" /> }
     else
     {
-        <div class="ejar-content mt-3">
-            <div style="background:var(--ac-surface-alt);border-radius:12px;padding:16px;margin-bottom:16px;">
-                <h2 style="font-size:0.95rem;font-weight:700;margin:0 0 6px;">@_complaint.Subject</h2>
-                <p style="font-size:0.87rem;color:var(--ac-text-muted);margin:0 0 10px;">@_complaint.Body</p>
-                <span style="font-size:0.75rem;padding:2px 10px;border-radius:99px;background:var(--ac-primary-light);color:var(--ac-primary-dark);">@_complaint.Status</span>
+        <h1 class="acm-wizard-title">@_c.Subject</h1>
+        <AcCard>
+            <ChildContent>
+                <div class="acm-checkout-line">
+                    <span>الحالة:</span>
+                    <AcBadge Variant="@StatusVariant(_c.Status)" Text="@StatusLabel(_c.Status)" />
+                </div>
+                <div class="acm-checkout-line">
+                    <span>أُنشئت:</span>
+                    <strong>@_c.CreatedAt.ToString("yyyy-MM-dd HH:mm")</strong>
+                </div>
+            </ChildContent>
+        </AcCard>
+
+        <h3 style="margin-top:16px;">المحادثة</h3>
+        <div class="acs-chat-messages">
+            @foreach (var r in _c.Replies)
+            {
+                var isMine = r.SenderId != "support";
+                <div class="acs-bubble @(isMine ? "acs-bubble-mine" : "acs-bubble-other acs-bubble-staff")">
+                    @if (!isMine)
+                    {
+                        <small style="display:block; font-weight:700; color:var(--ac-primary);">
+                            <AcIcon Name="shield" Size="14" /> @r.SenderName
+                        </small>
+                    }
+                    <div>@r.Message</div>
+                    <small style="display:block; opacity:.6;">@r.SentAt.ToString("yyyy-MM-dd HH:mm")</small>
+                </div>
+            }
+        </div>
+
+        @if (_c.Status != "closed")
+        {
+            <div style="display:flex; gap:8px; margin-top:12px;">
+                <AcInput Value="@_draft" ValueChanged="@(v => _draft = v ?? string.Empty)"
+                         Placeholder="اكتب ردّك…" />
+                <AcButton Variant="primary" Text="إرسال" OnClick="@Send"
+                          Disabled="@(string.IsNullOrWhiteSpace(_draft) || _sending)" />
             </div>
+        }
+        else
+        {
+            <AcAlert Variant="secondary" Text="الشكوى مغلقة — لا يمكن إضافة ردود." />
+        }
 
-            @foreach (var r in _complaint.Replies)
-            {
-                <div style="margin-bottom:12px;padding:12px 14px;border-radius:10px;background:var(--ac-surface);border:1px solid var(--ac-border);">
-                    <div style="font-size:0.78rem;font-weight:600;color:var(--ac-primary);margin-bottom:4px;">@r.SenderName</div>
-                    <p style="font-size:0.87rem;margin:0;">@r.Message</p>
-                </div>
-            }
-
-            @* Reply form *@
-            @if (_complaint.Status != "closed")
-            {
-                <div class="mt-3">
-                    <div class="mb-2">
-                        <label class="ac-label">@(L["complaint.reply"])</label>
-                        <input type="text" class="ac-input w-100" @bind="_reply" disabled="@_busy" />
-                    </div>
-                    @if (_error is not null) { <div class="ac-alert ac-alert-danger mt-1">@_error</div> }
-                    <button class="ac-btn ac-btn-primary mt-2" disabled="@(string.IsNullOrWhiteSpace(_reply) || _busy)" @onclick="SendReply">
-                        @(L["complaint.send"])
-                    </button>
-                </div>
-            }
+        <div style="margin-top:12px;">
+            <AcButton Variant="ghost" Text="رجوع" OnClick="@GoBack" />
         </div>
     }
 </div>
@@ -59,40 +66,60 @@
 @code {
     [Parameter] public string Id { get; set; } = "";
 
-    private ComplaintDetailDto? _complaint;
+    private ComplaintDetailDto? _c;
     private bool _loading = true;
-    private bool _busy;
-    private string _reply = "";
-    private string? _error;
+    private string _draft = "";
+    private bool _sending;
 
-    protected override void OnInitialized() => Store.OnChanged += OnChange;
-
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+    protected override async Task OnAfterRenderAsync(bool first)
     {
-        if (!firstRender) return;
+        if (!first) return;
+        await Reload();
+    }
+
+    private async Task Reload()
+    {
         var env = await Api.GetAsync<ComplaintDetailDto>($"/complaints/{Id}");
-        _complaint = env.Data;
+        _c = env.Data;
         _loading = false;
         await InvokeAsync(StateHasChanged);
     }
 
-    private async Task SendReply()
+    private async Task Send()
     {
-        _error = null; _busy = true;
-        var env = await Api.PostAsync<ReplyDto>($"/complaints/{Id}/replies", new { message = _reply });
-        _busy = false;
-        if (env.Operation.Status == "Success" && env.Data is not null && _complaint is not null)
+        if (string.IsNullOrWhiteSpace(_draft) || _c is null) return;
+        _sending = true;
+        try
         {
-            _complaint = _complaint with { Replies = _complaint.Replies.Append(env.Data).ToList() };
-            _reply = "";
+            var env = await Engine.ExecuteAsync<object>(
+                EjarOps.ReplyComplaint(Id, _draft),
+                payload: new { Message = _draft });
+            if (env?.Operation.Status == "Success")
+            {
+                _draft = "";
+                await Reload();
+            }
         }
-        else { _error = env.Operation.ErrorMessage ?? "فشل الإرسال"; }
-        await InvokeAsync(StateHasChanged);
+        finally { _sending = false; }
     }
 
-    private void OnChange() => InvokeAsync(StateHasChanged);
-    public void Dispose() => Store.OnChanged -= OnChange;
+    private void GoBack() => Nav.NavigateTo("/complaints");
+
+    private static string StatusLabel(string s) => s switch
+    {
+        "open" => "مفتوحة", "in_progress" => "قيد المعالجة",
+        "resolved" => "محلولة", "closed" => "مغلقة",
+        _ => s
+    };
+
+    private static string StatusVariant(string s) => s switch
+    {
+        "open" => "warning", "in_progress" => "secondary",
+        "resolved" => "success", "closed" => "secondary",
+        _ => "secondary"
+    };
 
     private sealed record ReplyDto(string Id, string ComplaintId, string SenderId, string SenderName, string Message, DateTime SentAt);
-    private sealed record ComplaintDetailDto(string Id, string Subject, string Body, string Status, DateTime CreatedAt, List<ReplyDto> Replies);
+    private sealed record ComplaintDetailDto(string Id, string Subject, string Body, string Status,
+        DateTime CreatedAt, List<ReplyDto> Replies);
 }

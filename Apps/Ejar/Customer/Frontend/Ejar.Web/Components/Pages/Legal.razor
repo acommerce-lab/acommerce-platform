@@ -6,36 +6,32 @@
 
 <PageTitle>@(L["legal.terms"]) — @(L["app.name"])</PageTitle>
 
-<div class="ejar-page">
-    <div style="padding:12px 16px;border-bottom:1px solid var(--ac-border);display:flex;align-items:center;gap:10px;">
-        @if (Key is not null)
-        {
-            <button class="ac-btn ac-btn-xs ac-btn-outline-secondary" @onclick="@(() => Nav.NavigateTo("/legal"))">→</button>
-        }
-        <h1 style="font-size:1rem;font-weight:700;margin:0;">@(Key is null ? "الشروط والسياسات" : _title)</h1>
-    </div>
+<div class="acs-page acs-legal-page">
+    <h1 class="acm-wizard-title">المستندات القانونيّة</h1>
 
-    @if (_loading)
-    {
-        <div class="ejar-empty"><div class="acm-spinner"></div></div>
-    }
-    else if (Key is null)
-    {
-        <div class="ejar-content mt-2">
-            @foreach (var doc in _docs)
-            {
-                <div @onclick="@(() => Nav.NavigateTo($"/legal/{doc.Key}"))"
-                     style="padding:14px 0;border-bottom:1px solid var(--ac-border);cursor:pointer;display:flex;justify-content:space-between;align-items:center;">
-                    <span style="font-size:0.93rem;font-weight:500;">@doc.Title</span>
-                    <AcIcon Name="chevron-left" Size="16" />
-                </div>
-            }
-        </div>
-    }
+    @if (_loading) { <AcLoadingState /> }
+    else if (_docs.Count == 0) { <AcEmptyState IconName="info" Message="لا توجد مستندات" /> }
     else
     {
-        <div class="ejar-content mt-3" style="font-size:0.9rem;line-height:1.7;color:var(--ac-text);">
-            @((MarkupString)(_body ?? ""))
+        <div style="display:flex; flex-direction:column; gap:8px;">
+            @foreach (var d in _docs)
+            {
+                var key = d.Key;
+                var open = _openKey == key;
+                <AcCard>
+                    <ChildContent>
+                        <button type="button" class="acs-accordion-head"
+                                @onclick="@(() => Toggle(key))">
+                            <strong>@d.Title</strong>
+                            <AcIcon Name="@(open ? "chevron-up" : "chevron-down")" Size="16" />
+                        </button>
+                        @if (open)
+                        {
+                            <div class="acs-legal-body"><pre>@d.Body</pre></div>
+                        }
+                    </ChildContent>
+                </AcCard>
+            }
         </div>
     }
 </div>
@@ -44,28 +40,20 @@
     [Parameter] public string? Key { get; set; }
 
     private List<DocDto> _docs = new();
-    private string _title = "";
-    private string? _body;
     private bool _loading = true;
+    private string? _openKey;
 
-    protected override async Task OnParametersSetAsync()
+    protected override async Task OnAfterRenderAsync(bool first)
     {
-        _loading = true;
-        if (Key is null)
-        {
-            var env = await Api.GetAsync<List<DocDto>>("/legal");
-            _docs = env.Data ?? new();
-        }
-        else
-        {
-            var env = await Api.GetAsync<DocDetailDto>($"/legal/{Key}");
-            _title = env.Data?.Title ?? "";
-            _body  = env.Data?.Body?.Replace("\n", "<br/>") ?? "";
-        }
+        if (!first) return;
+        var env = await Api.GetAsync<List<DocDto>>("/legal");
+        _docs    = env.Data ?? new();
+        _openKey = Key ?? _docs.FirstOrDefault()?.Key;
         _loading = false;
         await InvokeAsync(StateHasChanged);
     }
 
-    private sealed record DocDto(string Key, string Title);
-    private sealed record DocDetailDto(string Key, string Title, string Body);
+    private void Toggle(string k) => _openKey = _openKey == k ? null : k;
+
+    private sealed record DocDto(string Key, string Title, string Body);
 }
