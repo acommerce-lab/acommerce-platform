@@ -1,5 +1,5 @@
 using System.Text;
-using ACommerce.Authentication.TwoFactor.Providers.Nafath.Extensions;
+using ACommerce.Authentication.TwoFactor.Providers.Nafath.Mock.Extensions;
 using ACommerce.Files.Storage.AliyunOSS.Extensions;
 using ACommerce.Files.Storage.Local.Extensions;
 using ACommerce.Notification.Providers.Email.Extensions;
@@ -142,17 +142,12 @@ try
     builder.Services.AddSingleton<ACommerce.OperationEngine.Interceptors.IOperationInterceptor>(
         sp => sp.GetRequiredService<OperationLogInterceptor>());
 
-    // ─── Nafath 2FA ───────────────────────────────────────────────────────────
-    var nafathCfg = cfg.GetSection("Authentication:TwoFactor:Nafath");
-    if (nafathCfg.Exists() && !string.IsNullOrEmpty(nafathCfg["ApiKey"]))
-    {
-        builder.Services.AddNafathTwoFactor(cfg);
-        Log.Information("Nafath 2FA: configured (Mode={Mode})", nafathCfg["Mode"]);
-    }
-    else
-    {
-        Log.Warning("Nafath 2FA: not configured — set Authentication:TwoFactor:Nafath:ApiKey");
-    }
+    // ─── JWT config record (يُحقَن في AuthController) ────────────────────────
+    builder.Services.AddSingleton(new AshareV2JwtConfig(jwtKey, jwtIssuer, jwtAud));
+
+    // ─── Nafath Mock 2FA (تحقق تلقائي بعد 10 ث — يُستبدَل بـ AddNafathTwoFactor في الإنتاج) ──
+    builder.Services.AddMockNafathTwoFactor();
+    Log.Information("Nafath 2FA: Mock channel (auto-verify after 10 s)");
 
     // ─── Noon Pay (payment gateway) ───────────────────────────────────────────
     var noonCfg = cfg.GetSection("Payments:Noon");
@@ -236,3 +231,6 @@ finally
 }
 
 public partial class Program { }
+
+// ─── config record ────────────────────────────────────────────────────────────
+public record AshareV2JwtConfig(string Secret, string Issuer, string Audience);

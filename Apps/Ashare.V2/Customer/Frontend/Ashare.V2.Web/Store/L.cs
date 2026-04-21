@@ -88,6 +88,7 @@ public sealed class EmbeddedTranslationProvider : ITranslationProvider
         ["auth.nafath.retry"] = "إعادة المحاولة",
         ["auth.nafath.cancel"] = "إلغاء",
         ["auth.nafath.seconds"] = "ثانية",
+        ["auth.guest.name"] = "زائر",
 
         ["booking.start"] = "احجز الآن",
         ["booking.nights"] = "عدد الليالي",
@@ -211,6 +212,7 @@ public sealed class EmbeddedTranslationProvider : ITranslationProvider
         ["auth.nafath.retry"] = "Try again",
         ["auth.nafath.cancel"] = "Cancel",
         ["auth.nafath.seconds"] = "seconds",
+        ["auth.guest.name"] = "Guest",
 
         ["booking.start"] = "Book now",
         ["booking.nights"] = "Nights",

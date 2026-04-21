@@ -17,6 +17,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- ─── Auth: SMS Mock (رمز ثابت 123456 — يُستبدَل بمزوّد SMS حقيقي في الإنتاج) ── -->
+    <ProjectReference Include="..\..\..\..\..\libs\backend\auth\ACommerce.Authentication.TwoFactor.Operations\ACommerce.Authentication.TwoFactor.Operations.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\backend\auth\ACommerce.Authentication.TwoFactor.Providers.Sms.Mock\ACommerce.Authentication.TwoFactor.Providers.Sms.Mock.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.0" />
     <PackageReference Include="Serilog.AspNetCore" Version="8.0.3" />
     <PackageReference Include="Serilog.Sinks.Console" Version="6.0.0" />
