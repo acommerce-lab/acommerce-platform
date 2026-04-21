@@ -86,6 +86,7 @@ public static class ClientOps
             .From($"User:{readerId}", 1, ("role", "reader"))
             .To($"Conversation:{conversationId}", 1, ("role", "conversation"))
             .Tag("client_dispatch", "true")
+            .Tag("conversation_id", conversationId.ToString())
             .Build();
 
     // ── Notifications ─────────────────────────────────────────────────
@@ -94,6 +95,7 @@ public static class ClientOps
             .From("User:self", 1, ("role", "reader"))
             .To($"Notification:{notificationId}", 1, ("role", "notification"))
             .Tag("client_dispatch", "true")
+            .Tag("notification_id", notificationId.ToString())
             .Build();
 
     public static Operation MarkAllNotificationsRead(Guid? userId) =>
@@ -101,6 +103,7 @@ public static class ClientOps
             .From($"User:{userId}", 1, ("role", "reader"))
             .To("System:notifications", 1, ("role", "notification_batch"))
             .Tag("client_dispatch", "true")
+            .Tag("user_id", userId?.ToString() ?? "")
             .Build();
 
     // ── Profile ────────────────────────────────────────────────────────
