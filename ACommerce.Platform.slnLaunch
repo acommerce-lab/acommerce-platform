@@ -1,0 +1,15 @@
+[
+  {
+    "Name": "Ejar",
+    "Projects": [
+      {
+        "Path": "Apps\\Ejar\\Customer\\Backend\\Ejar.Api\\Ejar.Api.csproj",
+        "Action": "Start"
+      },
+      {
+        "Path": "Apps\\Ejar\\Customer\\Frontend\\Ejar.Web\\Ejar.Web.csproj",
+        "Action": "Start"
+      }
+    ]
+  }
+]
