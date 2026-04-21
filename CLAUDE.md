@@ -166,6 +166,36 @@ To stay safe:
 For files already in the repo, always use `Edit`. Use `Write` only for brand-new
 files or when a complete rewrite is genuinely simpler than a patch.
 
+### Rule T5 — Backend port goes in appsettings.Development.json, not .env
+
+`.env.Development` files are NOT loaded automatically by `WebApplication.CreateBuilder`.
+Only `appsettings.json` and `appsettings.{Environment}.json` are loaded automatically.
+
+**Every new backend must declare its port in `appsettings.Development.json`:**
+```json
+{
+  "Urls": "http://localhost:XXXX"
+}
+```
+
+The corresponding frontend must set the same URL in its own `appsettings.json`:
+```json
+{
+  "SomeApi": { "BaseUrl": "http://localhost:XXXX" },
+  "Urls": "http://localhost:YYYY"
+}
+```
+
+**Startup procedure for every new app pair:**
+1. Start the backend: `dotnet run --project Apps/.../Backend/...`
+2. Confirm the port from the startup log: `Now listening on: http://localhost:XXXX`
+3. Verify the frontend's `appsettings.json` → `BaseUrl` matches that port
+4. Start the frontend: `dotnet run --project Apps/.../Frontend/...`
+
+If the ports diverge (e.g. backend starts on 5000 instead of the expected port),
+the cause is almost always a missing `"Urls"` in `appsettings.Development.json`.
+Fix it there — do NOT rely on `.env.Development` alone.
+
 ## Boundaries
 
 **Do freely**: read any file; add entities/controllers/services/pages/tests/docs;
