@@ -129,7 +129,7 @@ public class OrdersController : ControllerBase
 
         var envelope = await _engine.ExecuteEnvelopeAsync(op, record, ct);
         if (envelope.Operation.Status != "Success")
-            return BadRequest(envelope);
+            return this.BadRequestEnvelope("operation_failed", envelope.Operation.ErrorMessage);
 
         record.OperationId = envelope.Operation.Id;
 
@@ -242,7 +242,7 @@ public class OrdersController : ControllerBase
             .Build();
 
         var envelope = await _engine.ExecuteEnvelopeAsync(op, new { id = o.Id, status = "Accepted" }, ct);
-        if (envelope.Operation.Status != "Success") return BadRequest(envelope);
+        if (envelope.Operation.Status != "Success") return this.BadRequestEnvelope("operation_failed", envelope.Operation.ErrorMessage);
         return this.OkEnvelope("order.accept", new { id = o.Id, status = o.Status.ToString() });
     }
 
@@ -268,7 +268,7 @@ public class OrdersController : ControllerBase
             .Build();
 
         var envelope = await _engine.ExecuteEnvelopeAsync(op, new { id = o.Id, status = "Ready" }, ct);
-        if (envelope.Operation.Status != "Success") return BadRequest(envelope);
+        if (envelope.Operation.Status != "Success") return this.BadRequestEnvelope("operation_failed", envelope.Operation.ErrorMessage);
         return this.OkEnvelope("order.ready", new { id = o.Id, status = o.Status.ToString() });
     }
 
@@ -294,7 +294,7 @@ public class OrdersController : ControllerBase
             .Build();
 
         var envelope = await _engine.ExecuteEnvelopeAsync(op, new { id = o.Id, status = "Delivered" }, ct);
-        if (envelope.Operation.Status != "Success") return BadRequest(envelope);
+        if (envelope.Operation.Status != "Success") return this.BadRequestEnvelope("operation_failed", envelope.Operation.ErrorMessage);
         return this.OkEnvelope("order.deliver", new { id = o.Id, status = o.Status.ToString() });
     }
 
@@ -321,7 +321,7 @@ public class OrdersController : ControllerBase
             .Build();
 
         var envelope = await _engine.ExecuteEnvelopeAsync(op, new { id = o.Id, status = "Cancelled" }, ct);
-        if (envelope.Operation.Status != "Success") return BadRequest(envelope);
+        if (envelope.Operation.Status != "Success") return this.BadRequestEnvelope("operation_failed", envelope.Operation.ErrorMessage);
         return this.OkEnvelope("order.cancel", new { id = o.Id, status = o.Status.ToString() });
     }
 
@@ -359,7 +359,7 @@ public class OrdersController : ControllerBase
             .Build();
 
         var envelope = await _engine.ExecuteEnvelopeAsync(op, new { id = o.Id, status = newStatus.Value.ToString() }, ct);
-        if (envelope.Operation.Status != "Success") return BadRequest(envelope);
+        if (envelope.Operation.Status != "Success") return this.BadRequestEnvelope("operation_failed", envelope.Operation.ErrorMessage);
 
         var notifType = req.Action switch
         {

@@ -137,7 +137,7 @@ public class CatalogController : ControllerBase
         if (env.Operation.Status != "Success")
             return this.ForbiddenEnvelope(env.Operation.FailedAnalyzer ?? "booking_failed",
                 env.Operation.ErrorMessage);
-        return Ok(env);
+        return this.OkEnvelope("booking.create", payload);
     }
 
     // ── Chats ──────────────────────────────────────────────────────────
@@ -194,11 +194,11 @@ public class CatalogController : ControllerBase
             })
             .Build();
 
-        var env = await _engine.ExecuteEnvelopeAsync(op,
-            new { id = msg.Id, from = msg.From, text = msg.Text, sentAt = msg.SentAt }, ct);
-        return env.Operation.Status == "Success"
-            ? Ok(env)
-            : this.BadRequestEnvelope(env.Operation.FailedAnalyzer ?? "send_failed", env.Operation.ErrorMessage);
+        var msgData = new { id = msg.Id, from = msg.From, text = msg.Text, sentAt = msg.SentAt };
+        var env = await _engine.ExecuteEnvelopeAsync(op, msgData, ct);
+        if (env.Operation.Status != "Success")
+            return this.BadRequestEnvelope(env.Operation.FailedAnalyzer ?? "send_failed", env.Operation.ErrorMessage);
+        return this.OkEnvelope("message.send", msgData);
     }
 
     public sealed record StartConversationRequest(string ListingId, string Text);
@@ -244,7 +244,7 @@ public class CatalogController : ControllerBase
         if (env.Operation.Status != "Success")
             return this.ForbiddenEnvelope(env.Operation.FailedAnalyzer ?? "conversation_failed",
                 env.Operation.ErrorMessage);
-        return Ok(env);
+        return this.OkEnvelope("conversation.start", new { id = newId, created = existing is null });
     }
 
     // ── Complaints (list + details + replies + create) ─────────────────
@@ -297,11 +297,11 @@ public class CatalogController : ControllerBase
             .Execute(ctx => { _complaintsMutable.Insert(0, c); return Task.CompletedTask; })
             .Build();
 
-        var env = await _engine.ExecuteEnvelopeAsync(op,
-            new { id = c.Id, subject = c.Subject, status = c.Status, createdAt = c.CreatedAt }, ct);
-        return env.Operation.Status == "Success"
-            ? Ok(env)
-            : this.BadRequestEnvelope(env.Operation.FailedAnalyzer ?? "complaint_failed", env.Operation.ErrorMessage);
+        var complaintData = new { id = c.Id, subject = c.Subject, status = c.Status, createdAt = c.CreatedAt };
+        var env = await _engine.ExecuteEnvelopeAsync(op, complaintData, ct);
+        if (env.Operation.Status != "Success")
+            return this.BadRequestEnvelope(env.Operation.FailedAnalyzer ?? "complaint_failed", env.Operation.ErrorMessage);
+        return this.OkEnvelope("complaint.file", complaintData);
     }
 
     public sealed record ReplyRequest(string Message);
@@ -328,11 +328,11 @@ public class CatalogController : ControllerBase
             })
             .Build();
 
-        var env = await _engine.ExecuteEnvelopeAsync(op,
-            new { id, repliesCount = _complaintsMutable[ix].Replies.Count + 1 }, ct);
-        return env.Operation.Status == "Success"
-            ? Ok(env)
-            : this.BadRequestEnvelope(env.Operation.FailedAnalyzer ?? "reply_failed", env.Operation.ErrorMessage);
+        var replyData = new { id, repliesCount = _complaintsMutable[ix].Replies.Count + 1 };
+        var env = await _engine.ExecuteEnvelopeAsync(op, replyData, ct);
+        if (env.Operation.Status != "Success")
+            return this.BadRequestEnvelope(env.Operation.FailedAnalyzer ?? "reply_failed", env.Operation.ErrorMessage);
+        return this.OkEnvelope("complaint.reply", replyData);
     }
 
     [HttpGet("/my-listings")]
@@ -383,7 +383,7 @@ public class CatalogController : ControllerBase
         if (env.Operation.Status != "Success")
             return this.ForbiddenEnvelope(env.Operation.FailedAnalyzer ?? "listing_toggle_failed",
                 env.Operation.ErrorMessage);
-        return Ok(env);
+        return this.OkEnvelope("listing.toggle", new { id, status = newStatus });
     }
 
     // ── Profile (GET + PUT) ────────────────────────────────────────────
@@ -426,11 +426,11 @@ public class CatalogController : ControllerBase
             })
             .Build();
 
-        var env = await _engine.ExecuteEnvelopeAsync(op,
-            new { id = AshareV2Seed.Profile.Id, fullName = req.FullName }, ct);
-        return env.Operation.Status == "Success"
-            ? Ok(env)
-            : this.BadRequestEnvelope(env.Operation.FailedAnalyzer ?? "profile_failed", env.Operation.ErrorMessage);
+        var profileData = new { id = AshareV2Seed.Profile.Id, fullName = req.FullName };
+        var env = await _engine.ExecuteEnvelopeAsync(op, profileData, ct);
+        if (env.Operation.Status != "Success")
+            return this.BadRequestEnvelope(env.Operation.FailedAnalyzer ?? "profile_failed", env.Operation.ErrorMessage);
+        return this.OkEnvelope("profile.update", profileData);
     }
 
     // ── MySubscription ─────────────────────────────────────────────────
@@ -506,10 +506,11 @@ public class CatalogController : ControllerBase
             })
             .Build();
 
-        var env = await _engine.ExecuteEnvelopeAsync(op, new { id, isFavorite = adding }, ct);
-        return env.Operation.Status == "Success"
-            ? Ok(env)
-            : this.BadRequestEnvelope(env.Operation.FailedAnalyzer ?? "favorite_failed", env.Operation.ErrorMessage);
+        var favoriteData = new { id, isFavorite = adding };
+        var env = await _engine.ExecuteEnvelopeAsync(op, favoriteData, ct);
+        if (env.Operation.Status != "Success")
+            return this.BadRequestEnvelope(env.Operation.FailedAnalyzer ?? "favorite_failed", env.Operation.ErrorMessage);
+        return this.OkEnvelope("listing.favorite.toggle", favoriteData);
     }
 
     // ── Listing CRUD ───────────────────────────────────────────────────
@@ -559,11 +560,11 @@ public class CatalogController : ControllerBase
             })
             .Build();
 
-        var env = await _engine.ExecuteEnvelopeAsync(op,
-            new { id, title = listing.Title, status = listing.Status }, ct);
-        return env.Operation.Status == "Success"
-            ? Ok(env)
-            : this.BadRequestEnvelope(env.Operation.FailedAnalyzer ?? "listing_create_failed", env.Operation.ErrorMessage);
+        var listingData = new { id, title = listing.Title, status = listing.Status };
+        var env = await _engine.ExecuteEnvelopeAsync(op, listingData, ct);
+        if (env.Operation.Status != "Success")
+            return this.BadRequestEnvelope(env.Operation.FailedAnalyzer ?? "listing_create_failed", env.Operation.ErrorMessage);
+        return this.OkEnvelope("listing.create", listingData);
     }
 
     public sealed record UpdateListingRequest(
@@ -619,10 +620,11 @@ public class CatalogController : ControllerBase
             })
             .Build();
 
-        var env = await _engine.ExecuteEnvelopeAsync(op, new { id, title = req.Title ?? l.Title }, ct);
-        return env.Operation.Status == "Success"
-            ? Ok(env)
-            : this.ForbiddenEnvelope(env.Operation.FailedAnalyzer ?? "listing_update_failed", env.Operation.ErrorMessage);
+        var updateData = new { id, title = req.Title ?? l.Title };
+        var env = await _engine.ExecuteEnvelopeAsync(op, updateData, ct);
+        if (env.Operation.Status != "Success")
+            return this.ForbiddenEnvelope(env.Operation.FailedAnalyzer ?? "listing_update_failed", env.Operation.ErrorMessage);
+        return this.OkEnvelope("listing.update", updateData);
     }
 
     /// <summary>
@@ -650,10 +652,11 @@ public class CatalogController : ControllerBase
             })
             .Build();
 
-        var env = await _engine.ExecuteEnvelopeAsync(op, new { id, deleted = true }, ct);
-        return env.Operation.Status == "Success"
-            ? Ok(env)
-            : this.ForbiddenEnvelope(env.Operation.FailedAnalyzer ?? "listing_delete_failed", env.Operation.ErrorMessage);
+        var deleteData = new { id, deleted = true };
+        var env = await _engine.ExecuteEnvelopeAsync(op, deleteData, ct);
+        if (env.Operation.Status != "Success")
+            return this.ForbiddenEnvelope(env.Operation.FailedAnalyzer ?? "listing_delete_failed", env.Operation.ErrorMessage);
+        return this.OkEnvelope("listing.delete", deleteData);
     }
 
     // ── Reviews ────────────────────────────────────────────────────────
@@ -714,11 +717,11 @@ public class CatalogController : ControllerBase
             })
             .Build();
 
-        var env = await _engine.ExecuteEnvelopeAsync(op,
-            new { id = reviewId, listingId = booking.ListingId, rating = req.Rating }, ct);
-        return env.Operation.Status == "Success"
-            ? Ok(env)
-            : this.BadRequestEnvelope(env.Operation.FailedAnalyzer ?? "review_failed", env.Operation.ErrorMessage);
+        var reviewData = new { id = reviewId, listingId = booking.ListingId, rating = req.Rating };
+        var env = await _engine.ExecuteEnvelopeAsync(op, reviewData, ct);
+        if (env.Operation.Status != "Success")
+            return this.BadRequestEnvelope(env.Operation.FailedAnalyzer ?? "review_failed", env.Operation.ErrorMessage);
+        return this.OkEnvelope("booking.review.create", reviewData);
     }
 
     // ── Booking cancel ─────────────────────────────────────────────────
@@ -754,9 +757,10 @@ public class CatalogController : ControllerBase
             })
             .Build();
 
-        var env = await _engine.ExecuteEnvelopeAsync(op, new { id, status = "cancelled" }, ct);
-        return env.Operation.Status == "Success"
-            ? Ok(env)
-            : this.ForbiddenEnvelope(env.Operation.FailedAnalyzer ?? "cancel_failed", env.Operation.ErrorMessage);
+        var cancelData = new { id, status = "cancelled" };
+        var env = await _engine.ExecuteEnvelopeAsync(op, cancelData, ct);
+        if (env.Operation.Status != "Success")
+            return this.ForbiddenEnvelope(env.Operation.FailedAnalyzer ?? "cancel_failed", env.Operation.ErrorMessage);
+        return this.OkEnvelope("booking.cancel", cancelData);
     }
 }

@@ -54,12 +54,12 @@ public class AuthController : ControllerBase
             })
             .Build();
 
-        var env = await _engine.ExecuteEnvelopeAsync(op,
-            new { maskedPhone = MaskPhone(phone), expiresInSeconds = 120 }, ct);
-
-        return env.Operation.Status == "Success" ? Ok(env)
-            : this.BadRequestEnvelope(env.Operation.FailedAnalyzer ?? "otp_request_failed",
-                                      env.Operation.ErrorMessage);
+        var responseData = new { maskedPhone = MaskPhone(phone), expiresInSeconds = 120 };
+        var env = await _engine.ExecuteEnvelopeAsync(op, responseData, ct);
+        if (env.Operation.Status != "Success")
+            return this.BadRequestEnvelope(env.Operation.FailedAnalyzer ?? "otp_request_failed",
+                                           env.Operation.ErrorMessage);
+        return this.OkEnvelope("auth.otp.request", responseData);
     }
 
     // ─── POST /auth/otp/verify ──────────────────────────────────────────────
@@ -105,13 +105,13 @@ public class AuthController : ControllerBase
             })
             .Build();
 
-        var env = await _engine.ExecuteEnvelopeAsync(op,
-            new { token = mockToken, userId = AshareV2Seed.CurrentUserId,
-                  name = AshareV2Seed.Profile.FullName }, ct);
-
-        return env.Operation.Status == "Success" ? Ok(env)
-            : this.BadRequestEnvelope(env.Operation.FailedAnalyzer ?? "otp_verify_failed",
-                                      env.Operation.ErrorMessage);
+        var responseData = new { token = mockToken, userId = AshareV2Seed.CurrentUserId,
+                                 name = AshareV2Seed.Profile.FullName };
+        var env = await _engine.ExecuteEnvelopeAsync(op, responseData, ct);
+        if (env.Operation.Status != "Success")
+            return this.BadRequestEnvelope(env.Operation.FailedAnalyzer ?? "otp_verify_failed",
+                                           env.Operation.ErrorMessage);
+        return this.OkEnvelope("auth.otp.verify", responseData);
     }
 
     // ─── POST /auth/logout ──────────────────────────────────────────────────
@@ -140,10 +140,12 @@ public class AuthController : ControllerBase
             })
             .Build();
 
-        var env = await _engine.ExecuteEnvelopeAsync(op, new { userId }, ct);
-        return env.Operation.Status == "Success" ? Ok(env)
-            : this.BadRequestEnvelope(env.Operation.FailedAnalyzer ?? "logout_failed",
-                                      env.Operation.ErrorMessage);
+        var responseData = new { userId };
+        var env = await _engine.ExecuteEnvelopeAsync(op, responseData, ct);
+        if (env.Operation.Status != "Success")
+            return this.BadRequestEnvelope(env.Operation.FailedAnalyzer ?? "logout_failed",
+                                           env.Operation.ErrorMessage);
+        return this.OkEnvelope("auth.logout", responseData);
     }
 
     // ─── Helpers ────────────────────────────────────────────────────────────
