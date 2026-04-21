@@ -20,9 +20,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- ─── Auth: Nafath 2FA ─────────────────────────────────────────── -->
+    <!-- ─── Auth: Nafath Mock (تحقق تلقائي 10 ث — يُستبدَل بـ Providers.Nafath في الإنتاج) ── -->
     <ProjectReference Include="..\..\..\..\..\libs\backend\auth\ACommerce.Authentication.Operations\ACommerce.Authentication.Operations.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\backend\auth\ACommerce.Authentication.TwoFactor.Providers.Nafath\ACommerce.Authentication.TwoFactor.Providers.Nafath.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\backend\auth\ACommerce.Authentication.TwoFactor.Providers.Nafath.Mock\ACommerce.Authentication.TwoFactor.Providers.Nafath.Mock.csproj" />
   </ItemGroup>
 
   <ItemGroup>

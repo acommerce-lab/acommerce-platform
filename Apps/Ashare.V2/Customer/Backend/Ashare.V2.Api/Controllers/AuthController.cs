@@ -1,3 +1,4 @@
+using ACommerce.Authentication.TwoFactor.Operations.Abstractions;
 using ACommerce.OperationEngine.Analyzers;
 using ACommerce.OperationEngine.Core;
 using ACommerce.OperationEngine.Patterns;
@@ -5,117 +6,116 @@ using ACommerce.OperationEngine.Wire;
 using ACommerce.OperationEngine.Wire.Http;
 using Ashare.V2.Api.Services;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.IdentityModel.Tokens;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
 
 namespace Ashare.V2.Api.Controllers;
 
 /// <summary>
-/// Mock auth: OTP request → OTP verify → logout.
-/// كل عملية تمرّ عبر Entry.Create وفق نموذج OAM.
+/// مصادقة نفاذ — يستخدم ITwoFactorChannel المُحقَن (محاكاة: تحقق تلقائي بعد 10 ثوانٍ).
+/// عند التبديل للإنتاج: أبدل مكتبة Providers.Nafath.Mock بـ Providers.Nafath الحقيقية.
 /// </summary>
 [ApiController]
 [Route("auth")]
 public class AuthController : ControllerBase
 {
     private readonly OpEngine _engine;
-    public AuthController(OpEngine engine) => _engine = engine;
+    private readonly ITwoFactorChannel _nafathChannel;
+    private readonly AshareV2JwtConfig _jwt;
 
-    // mock OTP store: phone → (otp, expiry)
-    private static readonly Dictionary<string, (string Otp, DateTime Expiry)> _otpStore = new();
-    private static readonly object _otpLock = new();
-
-    // mock active sessions: token → userId
-    private static readonly Dictionary<string, string> _sessions = new();
-    private static readonly object _sessLock = new();
+    // challengeId → nationalId (في الذاكرة — كافٍ للمحاكاة)
+    private static readonly Dictionary<string, string> _challengeToId = new();
+    private static readonly object _challengeLock = new();
 
     private string CurrentUserId => HttpContext.Items["user_id"] as string ?? AshareV2Seed.CurrentUserId;
-    private string Caller => $"User:{CurrentUserId}";
 
-    // ─── POST /auth/otp/request ─────────────────────────────────────────────
-
-    [HttpPost("otp/request")]
-    public async Task<IActionResult> RequestOtp([FromBody] OtpRequestBody body, CancellationToken ct)
+    public AuthController(OpEngine engine, ITwoFactorChannel nafathChannel, AshareV2JwtConfig jwt)
     {
-        var phone = body.Phone?.Trim() ?? string.Empty;
+        _engine        = engine;
+        _nafathChannel = nafathChannel;
+        _jwt           = jwt;
+    }
 
-        var op = Entry.Create("auth.otp.request")
-            .Describe($"OTP requested for {MaskPhone(phone)}")
+    // ─── POST /auth/nafath/start ────────────────────────────────────────
+    [HttpPost("nafath/start")]
+    public async Task<IActionResult> NafathStart([FromBody] NafathStartBody body, CancellationToken ct)
+    {
+        var nationalId = body.NationalId?.Trim() ?? string.Empty;
+
+        string? challengeId = null;
+        string? displayCode = null;
+
+        var op = Entry.Create("auth.nafath.start")
+            .Describe($"Start Nafath for {MaskId(nationalId)}")
             .From("System:Auth", 1, ("role", "issuer"))
-            .To($"Phone:{phone}", 1, ("role", "recipient"))
-            .Tag("phone_masked", MaskPhone(phone))
-            .Analyze(new RequiredFieldAnalyzer("phone", () => phone))
-            .Analyze(new ConditionAnalyzer("phone_format",
-                _ => phone.Length >= 9 && phone.All(c => char.IsDigit(c) || c == '+'),
-                "رقم الجوال غير صالح"))
-            .Execute(ctx =>
+            .To($"NationalId:{MaskId(nationalId)}", 1, ("role", "recipient"))
+            .Tag("national_id_masked", MaskId(nationalId))
+            .Analyze(new RequiredFieldAnalyzer("nationalId", () => nationalId))
+            .Analyze(new ConditionAnalyzer("national_id_length",
+                _ => nationalId.Length == 10 && nationalId.All(char.IsDigit),
+                "رقم الهوية يجب أن يكون 10 أرقام"))
+            .Execute(async ctx =>
             {
-                var expiry = DateTime.UtcNow.AddSeconds(120);
-                lock (_otpLock) _otpStore[phone] = ("123456", expiry);
-                return Task.CompletedTask;
+                var result = await _nafathChannel.InitiateAsync(nationalId, null, ctx.CancellationToken);
+                if (!result.Succeeded)
+                    throw new InvalidOperationException(result.Error ?? "initiate_failed");
+
+                challengeId = result.ChallengeId;
+                displayCode = result.ProviderData?["displayCode"] ?? "00";
+                lock (_challengeLock) _challengeToId[challengeId] = nationalId;
             })
             .Build();
 
-        var responseData = new { maskedPhone = MaskPhone(phone), expiresInSeconds = 120 };
-        var env = await _engine.ExecuteEnvelopeAsync(op, responseData, ct);
+        var env = await _engine.ExecuteEnvelopeAsync(op, new { }, ct);
         if (env.Operation.Status != "Success")
-            return this.BadRequestEnvelope(env.Operation.FailedAnalyzer ?? "otp_request_failed",
+            return this.BadRequestEnvelope(env.Operation.FailedAnalyzer ?? "nafath_start_failed",
                                            env.Operation.ErrorMessage);
-        return this.OkEnvelope("auth.otp.request", responseData);
+
+        return this.OkEnvelope("auth.nafath.start", new
+        {
+            challengeId,
+            displayCode,
+            expiresInSeconds = 120
+        });
     }
 
-    // ─── POST /auth/otp/verify ──────────────────────────────────────────────
-
-    [HttpPost("otp/verify")]
-    public async Task<IActionResult> VerifyOtp([FromBody] OtpVerifyBody body, CancellationToken ct)
+    // ─── GET /auth/nafath/status/{challengeId} ──────────────────────────
+    [HttpGet("nafath/status/{challengeId}")]
+    public async Task<IActionResult> NafathStatus(string challengeId, CancellationToken ct)
     {
-        var phone = body.Phone?.Trim() ?? string.Empty;
-        var code  = body.Code?.Trim()  ?? string.Empty;
+        string? nationalId;
+        lock (_challengeLock) _challengeToId.TryGetValue(challengeId, out nationalId);
 
-        // seed OTP if none exists so the mock always passes on first call
-        lock (_otpLock)
+        if (nationalId == null)
+            return this.NotFoundEnvelope("auth.nafath.status", "Challenge not found");
+
+        var result = await _nafathChannel.VerifyAsync(challengeId, null, ct);
+
+        if (result.Verified)
         {
-            if (!_otpStore.ContainsKey(phone))
-                _otpStore[phone] = ("123456", DateTime.UtcNow.AddSeconds(120));
+            var userId = AshareV2Seed.CurrentUserId;
+            var name   = AshareV2Seed.Profile.FullName;
+            var token  = GenerateToken(userId, nationalId);
+            lock (_challengeLock) _challengeToId.Remove(challengeId);
+            return this.OkEnvelope("auth.nafath.verify", new
+            {
+                verified = true,
+                token,
+                userId,
+                name
+            });
         }
 
-        var mockToken = Guid.NewGuid().ToString("N");
+        var pending = result.Reason?.StartsWith("pending:") == true
+            ? int.TryParse(result.Reason[8..], out var s) ? s : 10
+            : 10;
 
-        var op = Entry.Create("auth.otp.verify")
-            .Describe($"OTP verification for {MaskPhone(phone)}")
-            .From($"Phone:{phone}", 1, ("role", "verifier"))
-            .To($"User:{AshareV2Seed.CurrentUserId}", 1, ("role", "authenticated"))
-            .Tag("phone_masked", MaskPhone(phone))
-            .Analyze(new RequiredFieldAnalyzer("phone", () => phone))
-            .Analyze(new RequiredFieldAnalyzer("code",  () => code))
-            .Analyze(new ConditionAnalyzer("code_length",
-                _ => code.Length == 6 && code.All(char.IsDigit),
-                "رمز التحقق يجب أن يكون 6 أرقام"))
-            .Analyze(new ConditionAnalyzer("code_valid", _ =>
-            {
-                lock (_otpLock)
-                {
-                    return _otpStore.TryGetValue(phone, out var entry)
-                        && DateTime.UtcNow <= entry.Expiry;
-                }
-            }, "رمز التحقق غير صحيح أو منتهي الصلاحية"))
-            .Execute(ctx =>
-            {
-                lock (_otpLock) _otpStore.Remove(phone);
-                lock (_sessLock) _sessions[mockToken] = AshareV2Seed.CurrentUserId;
-                return Task.CompletedTask;
-            })
-            .Build();
-
-        var responseData = new { token = mockToken, userId = AshareV2Seed.CurrentUserId,
-                                 name = AshareV2Seed.Profile.FullName };
-        var env = await _engine.ExecuteEnvelopeAsync(op, responseData, ct);
-        if (env.Operation.Status != "Success")
-            return this.BadRequestEnvelope(env.Operation.FailedAnalyzer ?? "otp_verify_failed",
-                                           env.Operation.ErrorMessage);
-        return this.OkEnvelope("auth.otp.verify", responseData);
+        return this.OkEnvelope("auth.nafath.status", new { verified = false, pendingSeconds = pending });
     }
 
-    // ─── POST /auth/logout ──────────────────────────────────────────────────
-
+    // ─── POST /auth/logout ──────────────────────────────────────────────
     [HttpPost("logout")]
     public async Task<IActionResult> Logout(CancellationToken ct)
     {
@@ -126,18 +126,7 @@ public class AuthController : ControllerBase
             .From($"User:{userId}", 1, ("role", "actor"))
             .To("System:Auth", -1, ("role", "session"))
             .Tag("user_id", userId)
-            .Execute(ctx =>
-            {
-                lock (_sessLock)
-                {
-                    var toRemove = _sessions
-                        .Where(kv => kv.Value == userId)
-                        .Select(kv => kv.Key)
-                        .ToList();
-                    foreach (var k in toRemove) _sessions.Remove(k);
-                }
-                return Task.CompletedTask;
-            })
+            .Execute(_ => Task.CompletedTask)
             .Build();
 
         var responseData = new { userId };
@@ -148,14 +137,26 @@ public class AuthController : ControllerBase
         return this.OkEnvelope("auth.logout", responseData);
     }
 
-    // ─── Helpers ────────────────────────────────────────────────────────────
-
-    private static string MaskPhone(string phone)
+    // ─── helpers ────────────────────────────────────────────────────────
+    private string GenerateToken(string userId, string nationalId)
     {
-        if (phone.Length < 4) return "****";
-        return new string('*', phone.Length - 4) + phone[^4..];
+        var claims = new[]
+        {
+            new Claim("sub",         userId),
+            new Claim("user_id",     userId),
+            new Claim("national_id", MaskId(nationalId))
+        };
+        var key   = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwt.Secret));
+        var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+        var token = new JwtSecurityToken(
+            _jwt.Issuer, _jwt.Audience, claims,
+            expires: DateTime.UtcNow.AddDays(30),
+            signingCredentials: creds);
+        return new JwtSecurityTokenHandler().WriteToken(token);
     }
 
-    public sealed record OtpRequestBody(string? Phone);
-    public sealed record OtpVerifyBody(string? Phone, string? Code);
+    private static string MaskId(string id) =>
+        id.Length < 4 ? "****" : new string('*', id.Length - 4) + id[^4..];
+
+    public sealed record NafathStartBody(string? NationalId);
 }

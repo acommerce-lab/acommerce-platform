@@ -1,3 +1,4 @@
+using ACommerce.Authentication.TwoFactor.Operations.Abstractions;
 using ACommerce.OperationEngine.Analyzers;
 using ACommerce.OperationEngine.Core;
 using ACommerce.OperationEngine.Patterns;
@@ -13,22 +14,22 @@ using System.Text;
 namespace Ejar.Api.Controllers;
 
 /// <summary>
-/// مصادقة SMS OTP — محاكاة: رمز التحقق دائماً 123456، يُطبع في السجل.
+/// مصادقة SMS OTP — يستخدم ITwoFactorChannel المُحقَن (محاكاة: رمز 123456).
+/// عند التبديل للإنتاج: أبدل مكتبة Providers.Sms.Mock بـ Providers.Sms الحقيقية.
 /// </summary>
 [ApiController]
 [Route("auth")]
 public class AuthController : ControllerBase
 {
-    private static readonly Dictionary<string, (string Otp, DateTime Expiry)> _otpStore = new();
-    private static readonly object _otpLock = new();
-
     private readonly OpEngine _engine;
     private readonly EjarJwtConfig _jwt;
+    private readonly ITwoFactorChannel _otpChannel;
 
-    public AuthController(OpEngine engine, EjarJwtConfig jwt)
+    public AuthController(OpEngine engine, EjarJwtConfig jwt, ITwoFactorChannel otpChannel)
     {
-        _engine = engine;
-        _jwt    = jwt;
+        _engine     = engine;
+        _jwt        = jwt;
+        _otpChannel = otpChannel;
     }
 
     // ─── POST /auth/otp/request ─────────────────────────────────────────
@@ -46,10 +47,9 @@ public class AuthController : ControllerBase
             .Analyze(new ConditionAnalyzer("phone_format",
                 _ => phone.Length >= 9 && phone.All(c => char.IsDigit(c) || c == '+'),
                 "رقم الجوال غير صالح"))
-            .Execute(ctx =>
+            .Execute(async ctx =>
             {
-                lock (_otpLock) _otpStore[phone] = ("123456", DateTime.UtcNow.AddSeconds(120));
-                return Task.CompletedTask;
+                await _otpChannel.InitiateAsync(phone, phone, ctx.CancellationToken);
             })
             .Build();
 
@@ -68,12 +68,6 @@ public class AuthController : ControllerBase
         var phone = body.Phone?.Trim() ?? string.Empty;
         var code  = body.Code?.Trim()  ?? string.Empty;
 
-        lock (_otpLock)
-        {
-            if (!_otpStore.ContainsKey(phone))
-                _otpStore[phone] = ("123456", DateTime.UtcNow.AddSeconds(120));
-        }
-
         var userId = EjarSeed.GetOrCreateUserId(phone);
         var user   = EjarSeed.GetUser(userId);
         var token  = GenerateToken(userId, phone);
@@ -89,15 +83,11 @@ public class AuthController : ControllerBase
             .Analyze(new ConditionAnalyzer("code_length",
                 _ => code.Length == 6 && code.All(char.IsDigit),
                 "رمز التحقق يجب أن يكون 6 أرقام"))
-            .Analyze(new ConditionAnalyzer("code_valid", _ =>
+            .Execute(async ctx =>
             {
-                lock (_otpLock)
-                    return _otpStore.TryGetValue(phone, out var e) && DateTime.UtcNow <= e.Expiry;
-            }, "رمز التحقق غير صحيح أو منتهي الصلاحية"))
-            .Execute(ctx =>
-            {
-                lock (_otpLock) _otpStore.Remove(phone);
-                return Task.CompletedTask;
+                var result = await _otpChannel.VerifyAsync(phone, code, ctx.CancellationToken);
+                if (!result.Verified)
+                    throw new InvalidOperationException(result.Reason ?? "wrong_code");
             })
             .Build();
 
@@ -113,7 +103,7 @@ public class AuthController : ControllerBase
     [HttpPost("logout")]
     public async Task<IActionResult> Logout(CancellationToken ct)
     {
-        var userId = User.FindFirstValue("user_id") ?? EjarSeed.CurrentUserId;
+        var userId = HttpContext.Items["user_id"] as string ?? EjarSeed.CurrentUserId;
 
         var op = Entry.Create("auth.logout")
             .Describe($"User {userId} logs out")
