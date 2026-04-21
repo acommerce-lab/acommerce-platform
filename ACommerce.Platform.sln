@@ -201,6 +201,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Frontend", "Frontend", "{EA
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ejar.Web", "Apps\Ejar\Customer\Frontend\Ejar.Web\Ejar.Web.csproj", "{EA000006-0000-0000-0000-000000000006}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACommerce.Authentication.TwoFactor.Providers.Sms.Mock", "libs\backend\auth\ACommerce.Authentication.TwoFactor.Providers.Sms.Mock\ACommerce.Authentication.TwoFactor.Providers.Sms.Mock.csproj", "{747C2E51-5667-2AD7-F46E-FC264AA8BD53}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACommerce.Authentication.TwoFactor.Providers.Nafath.Mock", "libs\backend\auth\ACommerce.Authentication.TwoFactor.Providers.Nafath.Mock\ACommerce.Authentication.TwoFactor.Providers.Nafath.Mock.csproj", "{09795D29-29D9-DED8-EF73-72A39F8CEE5D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -1051,6 +1055,30 @@ Global
 		{EA000006-0000-0000-0000-000000000006}.Release|x64.Build.0 = Release|Any CPU
 		{EA000006-0000-0000-0000-000000000006}.Release|x86.ActiveCfg = Release|Any CPU
 		{EA000006-0000-0000-0000-000000000006}.Release|x86.Build.0 = Release|Any CPU
+		{747C2E51-5667-2AD7-F46E-FC264AA8BD53}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{747C2E51-5667-2AD7-F46E-FC264AA8BD53}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{747C2E51-5667-2AD7-F46E-FC264AA8BD53}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{747C2E51-5667-2AD7-F46E-FC264AA8BD53}.Debug|x64.Build.0 = Debug|Any CPU
+		{747C2E51-5667-2AD7-F46E-FC264AA8BD53}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{747C2E51-5667-2AD7-F46E-FC264AA8BD53}.Debug|x86.Build.0 = Debug|Any CPU
+		{747C2E51-5667-2AD7-F46E-FC264AA8BD53}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{747C2E51-5667-2AD7-F46E-FC264AA8BD53}.Release|Any CPU.Build.0 = Release|Any CPU
+		{747C2E51-5667-2AD7-F46E-FC264AA8BD53}.Release|x64.ActiveCfg = Release|Any CPU
+		{747C2E51-5667-2AD7-F46E-FC264AA8BD53}.Release|x64.Build.0 = Release|Any CPU
+		{747C2E51-5667-2AD7-F46E-FC264AA8BD53}.Release|x86.ActiveCfg = Release|Any CPU
+		{747C2E51-5667-2AD7-F46E-FC264AA8BD53}.Release|x86.Build.0 = Release|Any CPU
+		{09795D29-29D9-DED8-EF73-72A39F8CEE5D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{09795D29-29D9-DED8-EF73-72A39F8CEE5D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{09795D29-29D9-DED8-EF73-72A39F8CEE5D}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{09795D29-29D9-DED8-EF73-72A39F8CEE5D}.Debug|x64.Build.0 = Debug|Any CPU
+		{09795D29-29D9-DED8-EF73-72A39F8CEE5D}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{09795D29-29D9-DED8-EF73-72A39F8CEE5D}.Debug|x86.Build.0 = Debug|Any CPU
+		{09795D29-29D9-DED8-EF73-72A39F8CEE5D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{09795D29-29D9-DED8-EF73-72A39F8CEE5D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{09795D29-29D9-DED8-EF73-72A39F8CEE5D}.Release|x64.ActiveCfg = Release|Any CPU
+		{09795D29-29D9-DED8-EF73-72A39F8CEE5D}.Release|x64.Build.0 = Release|Any CPU
+		{09795D29-29D9-DED8-EF73-72A39F8CEE5D}.Release|x86.ActiveCfg = Release|Any CPU
+		{09795D29-29D9-DED8-EF73-72A39F8CEE5D}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -1151,6 +1179,8 @@ Global
 		{EA000004-0000-0000-0000-000000000004} = {EA000003-0000-0000-0000-000000000003}
 		{EA000005-0000-0000-0000-000000000005} = {EA000002-0000-0000-0000-000000000002}
 		{EA000006-0000-0000-0000-000000000006} = {EA000005-0000-0000-0000-000000000005}
+		{747C2E51-5667-2AD7-F46E-FC264AA8BD53} = {53E68328-A0FE-B527-1FBE-1100FE20283E}
+		{09795D29-29D9-DED8-EF73-72A39F8CEE5D} = {53E68328-A0FE-B527-1FBE-1100FE20283E}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {A48D3FD7-D9C6-4C95-A390-0E3A58B60521}
