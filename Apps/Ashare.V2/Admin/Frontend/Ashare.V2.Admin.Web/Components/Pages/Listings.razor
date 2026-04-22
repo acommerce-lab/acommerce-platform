@@ -1,0 +1,104 @@
+@page "/listings"
+@rendermode InteractiveServer
+@inject AppStore Store
+@inject ApiReader Api
+@inject ClientOpEngine Engine
+
+<PageTitle>الإعلانات — عشير V2</PageTitle>
+
+<AcAuthGuard IsAuthenticated="@Store.Auth.IsAuthenticated" LoginHref="/login">
+    <div class="acs-page">
+        <h1 class="acs-page-title">الإعلانات</h1>
+
+        @if (_loading)
+        {
+            <AcLoadingState />
+        }
+        else if (_listings.Count == 0)
+        {
+            <AcEmptyState IconName="home" Title="لا توجد إعلانات" />
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>المعرّف</th>
+                            <th>المالك</th>
+                            <th>السعر</th>
+                            <th>المدينة</th>
+                            <th>الحالة</th>
+                            <th>المشاهدات</th>
+                            <th>الإجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var l in _listings)
+                        {
+                            <tr>
+                                <td dir="ltr" style="font-size:.8rem">@l.Id[..8]…</td>
+                                <td dir="ltr" style="font-size:.8rem">@l.OwnerId[..8]…</td>
+                                <td>@l.Price @l.Currency</td>
+                                <td>@l.City</td>
+                                <td>
+                                    <AcBadge Text="@StatusLabel(l.Status)"
+                                             Variant="@StatusVariant(l.Status)" />
+                                </td>
+                                <td>@l.ViewCount</td>
+                                <td>
+                                    @if (l.Status == 0)
+                                    {
+                                        <AcButton Variant="primary" Size="sm" Text="نشر"
+                                                  OnClick="@(() => Publish(l))" />
+                                        <AcButton Variant="ghost" Size="sm" Text="رفض"
+                                                  OnClick="@(() => Reject(l))" />
+                                    }
+                                    <AcButton Variant="danger" Size="sm" Text="حذف"
+                                              OnClick="@(() => Delete(l))" />
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</AcAuthGuard>
+
+@code {
+    private bool _loading = true;
+    private List<ListingRow> _listings = new();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || !Store.Auth.IsAuthenticated) { _loading = false; StateHasChanged(); return; }
+        var env = await Api.GetAsync<List<ListingRow>>("/api/admin/listings");
+        _listings = env.Data ?? new();
+        _loading = false; StateHasChanged();
+    }
+
+    private async Task Publish(ListingRow l)
+    {
+        var res = await Engine.ExecuteAsync<object>(AdminV2Ops.PublishListing(Guid.Parse(l.Id)), new { });
+        if (res.Operation.Status == "Success") { var i = _listings.FindIndex(x => x.Id == l.Id); if (i >= 0) _listings[i] = l with { Status = 1 }; StateHasChanged(); }
+    }
+
+    private async Task Reject(ListingRow l)
+    {
+        var res = await Engine.ExecuteAsync<object>(AdminV2Ops.RejectListing(Guid.Parse(l.Id)), new { });
+        if (res.Operation.Status == "Success") { var i = _listings.FindIndex(x => x.Id == l.Id); if (i >= 0) _listings[i] = l with { Status = 3 }; StateHasChanged(); }
+    }
+
+    private async Task Delete(ListingRow l)
+    {
+        var res = await Engine.ExecuteAsync<object>(AdminV2Ops.DeleteListing(Guid.Parse(l.Id)), new { });
+        if (res.Operation.Status == "Success") { _listings.RemoveAll(x => x.Id == l.Id); StateHasChanged(); }
+    }
+
+    private static string StatusLabel(int s) => s switch { 0 => "قيد المراجعة", 1 => "منشور", 2 => "مسودة", 3 => "مرفوض", _ => s.ToString() };
+    private static string StatusVariant(int s) => s switch { 1 => "success", 3 => "danger", _ => "warning" };
+
+    private record ListingRow(string Id, string OwnerId, decimal Price, string Currency,
+                               string City, int Status, bool IsFeatured, int ViewCount, DateTime CreatedAt);
+}

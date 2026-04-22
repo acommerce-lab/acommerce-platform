@@ -1,0 +1,78 @@
+@page "/bookings"
+@rendermode InteractiveServer
+@inject AppStore Store
+@inject ApiReader Api
+
+<PageTitle>الحجوزات — عشير V2</PageTitle>
+
+<AcAuthGuard IsAuthenticated="@Store.Auth.IsAuthenticated" LoginHref="/login">
+    <div class="acs-page">
+        <h1 class="acs-page-title">الحجوزات</h1>
+
+        @if (_loading)
+        {
+            <AcLoadingState />
+        }
+        else if (_bookings.Count == 0)
+        {
+            <AcEmptyState IconName="receipt" Title="لا توجد حجوزات" />
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>المعرّف</th>
+                            <th>العميل</th>
+                            <th>الإعلان</th>
+                            <th>من</th>
+                            <th>إلى</th>
+                            <th>المبلغ</th>
+                            <th>الحالة</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var b in _bookings)
+                        {
+                            <tr>
+                                <td dir="ltr" style="font-size:.8rem">@b.Id[..8]…</td>
+                                <td dir="ltr" style="font-size:.8rem">@b.CustomerId[..8]…</td>
+                                <td dir="ltr" style="font-size:.8rem">@b.ListingId[..8]…</td>
+                                <td>@b.StartDate.ToString("yyyy-MM-dd")</td>
+                                <td>@b.EndDate.ToString("yyyy-MM-dd")</td>
+                                <td>@b.TotalAmount @b.Currency</td>
+                                <td><AcBadge Text="@b.Status" Variant="@StatusVariant(b.Status)" /></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</AcAuthGuard>
+
+@code {
+    private bool _loading = true;
+    private List<BookingRow> _bookings = new();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || !Store.Auth.IsAuthenticated) { _loading = false; StateHasChanged(); return; }
+        var env = await Api.GetAsync<List<BookingRow>>("/api/admin/bookings");
+        _bookings = env.Data ?? new();
+        _loading = false; StateHasChanged();
+    }
+
+    private static string StatusVariant(string s) => s.ToLowerInvariant() switch
+    {
+        "confirmed" or "مؤكد" => "success",
+        "cancelled" or "ملغى"  => "danger",
+        "pending"   or "معلق"  => "warning",
+        _ => "default"
+    };
+
+    private record BookingRow(string Id, string CustomerId, string ListingId,
+                               DateTime StartDate, DateTime EndDate,
+                               decimal TotalAmount, string Currency, string Status, DateTime CreatedAt);
+}

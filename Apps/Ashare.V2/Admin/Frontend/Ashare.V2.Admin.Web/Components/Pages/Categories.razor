@@ -1,0 +1,60 @@
+@page "/categories"
+@rendermode InteractiveServer
+@inject AppStore Store
+@inject ApiReader Api
+
+<PageTitle>التصنيفات — عشير V2</PageTitle>
+
+<AcAuthGuard IsAuthenticated="@Store.Auth.IsAuthenticated" LoginHref="/login">
+    <div class="acs-page">
+        <h1 class="acs-page-title">التصنيفات</h1>
+
+        @if (_loading)
+        {
+            <AcLoadingState />
+        }
+        else if (_cats.Count == 0)
+        {
+            <AcEmptyState IconName="tag" Title="لا توجد تصنيفات" />
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>الأيقونة</th>
+                            <th>الاسم</th>
+                            <th>المعرّف</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var c in _cats)
+                        {
+                            <tr>
+                                <td>@(c.Icon ?? "—")</td>
+                                <td>@c.Name</td>
+                                <td dir="ltr" style="font-size:.8rem">@c.Id[..8]…</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</AcAuthGuard>
+
+@code {
+    private bool _loading = true;
+    private List<CatRow> _cats = new();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || !Store.Auth.IsAuthenticated) { _loading = false; StateHasChanged(); return; }
+        var env = await Api.GetAsync<List<CatRow>>("/api/admin/categories");
+        _cats = env.Data ?? new();
+        _loading = false; StateHasChanged();
+    }
+
+    private record CatRow(string Id, string Name, string? Icon);
+}

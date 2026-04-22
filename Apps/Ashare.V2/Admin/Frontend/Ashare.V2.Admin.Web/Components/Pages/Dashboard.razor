@@ -1,0 +1,45 @@
+@page "/"
+@rendermode InteractiveServer
+@inject AppStore Store
+@inject ApiReader Api
+@inject NavigationManager Nav
+
+<PageTitle>لوحة التحكم — عشير V2</PageTitle>
+
+@if (!Store.Auth.IsAuthenticated)
+{
+    <AcAuthGuard IsAuthenticated="false" LoginHref="/login" />
+}
+else
+{
+    <AcAdminMetricsPage Metrics="@_metrics" Loading="@_loading" Title="لوحة تحكم عشير V2" />
+}
+
+@code {
+    private bool _loading = true;
+    private List<PlatformMetricDto> _metrics = new();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || !Store.Auth.IsAuthenticated) { _loading = false; StateHasChanged(); return; }
+
+        var env = await Api.GetAsync<DashboardRow>("/api/admin/dashboard");
+        if (env.Data is { } d)
+        {
+            _metrics = new List<PlatformMetricDto>
+            {
+                new() { Label = "المستخدمون",    Value = d.TotalUsers.ToString(),          IconName = "users"   },
+                new() { Label = "الإعلانات",     Value = d.TotalListings.ToString(),       IconName = "home"    },
+                new() { Label = "قيد المراجعة",  Value = d.PendingListings.ToString(),     IconName = "clock"   },
+                new() { Label = "الحجوزات",      Value = d.TotalBookings.ToString(),       IconName = "receipt" },
+                new() { Label = "اشتراكات نشطة", Value = d.ActiveSubscriptions.ToString(), IconName = "check"  },
+                new() { Label = "الإيرادات",     Value = $"{d.TotalRevenue:0.##} SAR",     IconName = "dollar"  },
+            };
+        }
+        _loading = false;
+        StateHasChanged();
+    }
+
+    private record DashboardRow(int TotalUsers, int TotalListings, int PendingListings,
+                                int TotalBookings, int ActiveSubscriptions, decimal TotalRevenue);
+}

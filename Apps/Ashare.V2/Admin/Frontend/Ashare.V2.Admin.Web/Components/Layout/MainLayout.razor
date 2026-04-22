@@ -1,0 +1,79 @@
+@namespace Ashare.V2.Admin.Web.Components.Layout
+@inherits LayoutComponentBase
+@inject AppStore Store
+@inject AppStateApplier Applier
+@inject AuthStateService AuthService
+@implements IDisposable
+
+<div class="adm-shell">
+    <nav class="adm-navbar">
+        <a href="/" class="adm-navbar-brand">عشير V2 — لوحة الإدارة</a>
+        @if (Store.Auth.IsAuthenticated)
+        {
+            <div class="adm-navbar-actions">
+                <a class="adm-navbar-link" href="/">لوحة التحكم</a>
+                <a class="adm-navbar-link" href="/users">المستخدمون</a>
+                <a class="adm-navbar-link" href="/listings">الإعلانات</a>
+                <a class="adm-navbar-link" href="/bookings">الحجوزات</a>
+                <a class="adm-navbar-link" href="/subscriptions">الاشتراكات</a>
+                <a class="adm-navbar-link" href="/categories">التصنيفات</a>
+                <a class="adm-navbar-link" href="/settings">الإعدادات</a>
+                <span class="adm-user-badge">@Store.Auth.FullName</span>
+                <AcButton Variant="ghost" Size="sm" Text="خروج" OnClick="SignOut" />
+            </div>
+        }
+        else
+        {
+            <div class="adm-navbar-actions">
+                <a href="/login"><AcButton Variant="primary" Size="sm" Text="دخول" /></a>
+            </div>
+        }
+    </nav>
+    <main class="adm-main">
+        @if (_authChecked) { @Body }
+    </main>
+</div>
+
+@code {
+    private bool _authChecked;
+    private Guid? _lastPersistedUserId;
+
+    protected override void OnInitialized() => Store.OnChanged += OnChange;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await AuthService.EnsureRestoredAsync();
+            if (AuthService.IsAuthenticated)
+            {
+                Store.Auth.UserId      = AuthService.UserId;
+                Store.Auth.FullName    = AuthService.FullName;
+                Store.Auth.PhoneNumber = AuthService.PhoneNumber;
+                Store.Auth.AccessToken = AuthService.AccessToken;
+                _lastPersistedUserId   = AuthService.UserId;
+            }
+            _authChecked = true;
+            Store.NotifyChanged();
+        }
+        await SyncAuthAsync();
+    }
+
+    private async Task SyncAuthAsync()
+    {
+        if (Store.Auth.IsAuthenticated && Store.Auth.UserId != _lastPersistedUserId)
+        {
+            _lastPersistedUserId = Store.Auth.UserId;
+            try { await AuthService.SignInAsync(Store.Auth.UserId!.Value, Store.Auth.FullName, Store.Auth.PhoneNumber, Store.Auth.AccessToken!); } catch { }
+        }
+        else if (!Store.Auth.IsAuthenticated && _lastPersistedUserId.HasValue)
+        {
+            _lastPersistedUserId = null;
+            try { await AuthService.SignOutAsync(); } catch { }
+        }
+    }
+
+    private async Task SignOut() => await Applier.ApplyLocalAsync(AdminV2Ops.SignOut());
+    private void OnChange() => InvokeAsync(StateHasChanged);
+    public void Dispose() => Store.OnChanged -= OnChange;
+}
