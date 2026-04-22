@@ -9,6 +9,7 @@ using Ejar.Web.Components;
 using Ejar.Web.Interceptors;
 using Ejar.Web.Interpreters;
 using Ejar.Web.Operations;
+using Ejar.Web.Services;
 using Ejar.Web.Store;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -29,7 +30,7 @@ builder.Services.AddSingleton<INumeralNormalizer, DefaultNumeralNormalizer>();
 
 builder.Services.AddScoped<CultureInterceptor>();
 builder.Services.AddTransient<CultureHeadersHandler>();
-builder.Services.AddTransient<AuthHeadersHandler>();
+builder.Services.AddScoped<EjarCircuitHttp>();
 
 // ─── OpEngine للعمليات المحلّية ────────────────────────────────────────
 builder.Services.AddScoped<OpEngine>(sp =>
@@ -42,8 +43,7 @@ builder.Services.AddHttpClient("ejar", c =>
     c.BaseAddress = new Uri(apiBase);
     c.Timeout = TimeSpan.FromSeconds(30);
 })
-.AddHttpMessageHandler<CultureHeadersHandler>()
-.AddHttpMessageHandler<AuthHeadersHandler>();
+.AddHttpMessageHandler<CultureHeadersHandler>();
 
 var routeRegistry = new HttpRouteRegistry();
 EjarRoutes.Register(routeRegistry);
@@ -51,9 +51,9 @@ builder.Services.AddSingleton(routeRegistry);
 
 builder.Services.AddScoped<HttpDispatcher>(sp =>
 {
-    var f = sp.GetRequiredService<IHttpClientFactory>();
+    var circuit = sp.GetRequiredService<EjarCircuitHttp>();
     return new HttpDispatcher(
-        f.CreateClient("ejar"),
+        circuit.Client,
         sp.GetRequiredService<HttpRouteRegistry>(),
         sp.GetRequiredService<OpEngine>(),
         sp.GetRequiredService<ILogger<HttpDispatcher>>());
@@ -62,9 +62,9 @@ builder.Services.AddScoped<IOperationDispatcher>(sp => sp.GetRequiredService<Htt
 
 builder.Services.AddScoped<ApiReader>(sp =>
 {
-    var f = sp.GetRequiredService<IHttpClientFactory>();
+    var circuit = sp.GetRequiredService<EjarCircuitHttp>();
     return new ApiReader(
-        f.CreateClient("ejar"),
+        circuit.Client,
         sp.GetRequiredService<CultureInterceptor>());
 });
 
@@ -87,6 +87,9 @@ builder.Services.AddScoped<OperationInterpreterRegistry<AppStore>>(sp =>
 
 builder.Services.AddScoped<AppStateApplier>();
 builder.Services.AddScoped<IStateApplier>(sp => sp.GetRequiredService<AppStateApplier>());
+
+// ─── Realtime client ──────────────────────────────────────────────────
+builder.Services.AddScoped<EjarRealtimeService>();
 
 var app = builder.Build();
 

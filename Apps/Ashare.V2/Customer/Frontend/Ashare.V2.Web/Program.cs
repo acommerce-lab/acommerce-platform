@@ -37,7 +37,7 @@ builder.Services.AddScoped<CultureInterceptor>();
 
 // ── معترض الثقافة (ذهاب): DelegatingHandler يختم كلّ طلب برؤوس Culture.
 builder.Services.AddTransient<CultureHeadersHandler>();
-builder.Services.AddTransient<AuthHeadersHandler>();
+builder.Services.AddScoped<Ashare2CircuitHttp>();
 
 // ─── OpEngine للعمليات المحلّية ────────────────────────────────────────
 builder.Services.AddScoped<OpEngine>(sp =>
@@ -54,8 +54,7 @@ builder.Services.AddHttpClient("ashare-v2", c =>
 })
 // CultureHeadersHandler يضيف Accept-Language / X-User-Timezone / X-User-Currency
 // على كلّ طلب صادر — الخدمة الخلفيّة تفهم سياق ثقافة المستخدم.
-.AddHttpMessageHandler<CultureHeadersHandler>()
-.AddHttpMessageHandler<AuthHeadersHandler>();
+.AddHttpMessageHandler<CultureHeadersHandler>();
 
 var routeRegistry = new HttpRouteRegistry();
 V2Routes.Register(routeRegistry);
@@ -63,9 +62,9 @@ builder.Services.AddSingleton(routeRegistry);
 
 builder.Services.AddScoped<HttpDispatcher>(sp =>
 {
-    var f = sp.GetRequiredService<IHttpClientFactory>();
+    var circuit = sp.GetRequiredService<Ashare2CircuitHttp>();
     return new HttpDispatcher(
-        f.CreateClient("ashare-v2"),
+        circuit.Client,
         sp.GetRequiredService<HttpRouteRegistry>(),
         sp.GetRequiredService<OpEngine>(),
         sp.GetRequiredService<ILogger<HttpDispatcher>>());
@@ -74,9 +73,9 @@ builder.Services.AddScoped<IOperationDispatcher>(sp => sp.GetRequiredService<Htt
 
 builder.Services.AddScoped<ApiReader>(sp =>
 {
-    var f = sp.GetRequiredService<IHttpClientFactory>();
+    var circuit = sp.GetRequiredService<Ashare2CircuitHttp>();
     return new ApiReader(
-        f.CreateClient("ashare-v2"),
+        circuit.Client,
         sp.GetRequiredService<CultureInterceptor>());
 });
 

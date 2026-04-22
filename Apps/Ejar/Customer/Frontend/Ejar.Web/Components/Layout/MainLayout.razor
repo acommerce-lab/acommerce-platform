@@ -7,7 +7,9 @@
 @inject L L
 @inject IJSRuntime JS
 @inject NavigationManager Nav
-@implements IDisposable
+@inject EjarRealtimeService Realtime
+@inject IConfiguration Config
+@implements IAsyncDisposable
 
 <div class="@(Store.Ui.HideChrome ? "acm-chrome-hidden" : "")">
 <AcVersionGate IsLoading="@(!_checked)"
@@ -71,6 +73,7 @@
     private string _current = "1.0.0";
     private string _latest = "1.0.0";
     private string? _support;
+    private bool _realtimeConnected;
 
     private static readonly IReadOnlyList<BottomNavItemDto> _bottomItems = new[]
     {
@@ -127,7 +130,15 @@
             }
             _checked = true;
             await InvokeAsync(StateHasChanged);
+
+            // Connect to realtime hub if already authenticated (page reload case)
+            if (Store.Auth.IsAuthenticated)
+                await ConnectRealtimeAsync();
         }
+
+        // Connect after login (OnAfterRenderAsync fires after Store.NotifyChanged)
+        if (Store.Auth.IsAuthenticated && !_realtimeConnected)
+            await ConnectRealtimeAsync();
 
         if (_appliedTheme != Store.Ui.Theme || _appliedLang != Store.Ui.Language)
         {
@@ -139,12 +150,28 @@
         }
     }
 
-    private void OnChange() => InvokeAsync(StateHasChanged);
+    private async Task ConnectRealtimeAsync()
+    {
+        _realtimeConnected = true;
+        var apiBase = Config["EjarApi:BaseUrl"]?.TrimEnd('/') ?? "http://localhost:5300";
+        await Realtime.ConnectAsync($"{apiBase}/hubs/ejar");
+    }
 
-    public void Dispose()
+    private void OnChange()
+    {
+        InvokeAsync(async () =>
+        {
+            StateHasChanged();
+            if (Store.Auth.IsAuthenticated && !_realtimeConnected)
+                await ConnectRealtimeAsync();
+        });
+    }
+
+    public async ValueTask DisposeAsync()
     {
         Store.OnChanged -= OnChange;
         Nav.LocationChanged -= OnLocationChanged;
+        await Realtime.DisposeAsync();
     }
 
     private sealed record VersionDto(string Current, string Latest, bool IsBlocked, string? StoreUrl, string? SupportEmail);

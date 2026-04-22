@@ -1,8 +1,10 @@
+using ACommerce.Notification.Providers.InApp;
 using ACommerce.OperationEngine.Analyzers;
 using ACommerce.OperationEngine.Core;
 using ACommerce.OperationEngine.Patterns;
 using ACommerce.OperationEngine.Wire;
 using ACommerce.OperationEngine.Wire.Http;
+using ACommerce.Realtime.Operations;
 using Ejar.Api.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -19,10 +21,20 @@ namespace Ejar.Api.Controllers;
 public class CatalogController : ControllerBase
 {
     private readonly OpEngine _engine;
+    private readonly RealtimeService? _realtime;
+    private readonly InAppNotificationChannel? _inApp;
     private static readonly List<EjarSeed.ComplaintSeed> _complaints =
         EjarSeed.Complaints.ToList();
 
-    public CatalogController(OpEngine engine) => _engine = engine;
+    public CatalogController(
+        OpEngine engine,
+        RealtimeService? realtime = null,
+        InAppNotificationChannel? inApp = null)
+    {
+        _engine   = engine;
+        _realtime = realtime;
+        _inApp    = inApp;
+    }
 
     private string CurrentUserId =>
         User.FindFirstValue("user_id") ?? EjarSeed.CurrentUserId;
@@ -324,11 +336,23 @@ public class CatalogController : ControllerBase
             })
             .Build();
 
-        var msgData = new { id = msg.Id, from = msg.From, text = msg.Text, sentAt = msg.SentAt };
+        var msgData = new { id = msg.Id, from = msg.From, text = msg.Text, sentAt = msg.SentAt, conversationId = id };
         var env     = await _engine.ExecuteEnvelopeAsync(op, msgData, ct);
         if (env.Operation.Status != "Success")
             return this.BadRequestEnvelope(env.Operation.FailedAnalyzer ?? "send_failed",
                                            env.Operation.ErrorMessage);
+
+        // Push realtime event to partner (best-effort — no failure if not connected)
+        var partnerId = conv.PartnerId;
+        if (_realtime is not null && !string.IsNullOrEmpty(partnerId))
+        {
+            _ = _realtime.SendToUserAsync(
+                    ACommerce.Realtime.Operations.Abstractions.PartyId.User(partnerId),
+                    "ReceiveMessage",
+                    msgData, ct: CancellationToken.None);
+            _ = _inApp?.SendAsync(partnerId, "رسالة جديدة", msg.Text ?? "", msgData, CancellationToken.None);
+        }
+
         return this.OkEnvelope("message.send", msgData);
     }
 

@@ -1,4 +1,8 @@
 using ACommerce.Authentication.TwoFactor.Providers.Sms.Mock.Extensions;
+using ACommerce.Notification.Providers.InApp;
+using ACommerce.Realtime.Operations;
+using ACommerce.Realtime.Providers.SignalR;
+using ACommerce.Realtime.Providers.SignalR.Extensions;
 using ACommerce.OperationEngine.Core;
 using ACommerce.OperationEngine.Interceptors;
 using ACommerce.OperationEngine.Interceptors.Extensions;
@@ -56,7 +60,7 @@ try
     builder.Services.AddMemoryCache();
     builder.Services.AddHttpContextAccessor();
 
-    // ─── CORS ───────────────────────────────────────────────────────────────────
+    // ─── CORS — AllowCredentials is required for SignalR WebSocket ───────────
     builder.Services.AddCors(o => o.AddDefaultPolicy(p =>
     {
         if (env.IsDevelopment())
@@ -66,7 +70,7 @@ try
         {
             var origins = cfg.GetSection("Cors:AllowedOrigins").Get<string[]>()
                           ?? ["https://ejar.app"];
-            p.WithOrigins(origins).AllowAnyHeader().AllowAnyMethod();
+            p.WithOrigins(origins).AllowAnyHeader().AllowAnyMethod().AllowCredentials();
         }
     }));
 
@@ -92,6 +96,19 @@ try
                 ValidateLifetime  = true,
                 ClockSkew = TimeSpan.FromSeconds(30)
             };
+            // SignalR WebSocket connections can't set HTTP headers,
+            // so the token is passed as ?access_token= in the query string.
+            opts.Events = new Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerEvents
+            {
+                OnMessageReceived = ctx =>
+                {
+                    var token = ctx.Request.Query["access_token"].ToString();
+                    if (!string.IsNullOrEmpty(token) &&
+                        ctx.HttpContext.Request.Path.StartsWithSegments("/hubs"))
+                        ctx.Token = token;
+                    return Task.CompletedTask;
+                }
+            };
         });
     builder.Services.AddAuthorization();
 
@@ -109,6 +126,12 @@ try
     // للإنتاج: أبدل هذا السطر بـ builder.Services.AddSmsTwoFactor()
     builder.Services.AddMockSmsTwoFactor();
 
+    // ─── Realtime: SignalR + InApp notification channel ────────────────────────
+    builder.Services.AddSignalRRealtimeTransport();
+    builder.Services.AddScoped<RealtimeService>();
+    builder.Services.AddSingleton(new InAppOptions { MethodName = "ReceiveNotification" });
+    builder.Services.AddScoped<InAppNotificationChannel>();
+
     // ─── Build ──────────────────────────────────────────────────────────────────
     var app = builder.Build();
 
@@ -125,6 +148,7 @@ try
 
     app.MapControllers();
     app.MapHealthChecks("/healthz");
+    app.MapHub<AShareHub>("/hubs/ejar");
 
     app.MapGet("/", () => Results.Ok(new
     {
