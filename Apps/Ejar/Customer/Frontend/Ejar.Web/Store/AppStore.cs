@@ -69,12 +69,13 @@ public class DraftListing
     public string? CategoryId { get; set; }
     public string? City { get; set; }
     public string? District { get; set; }
+    public int BedroomCount { get; set; }
     public HashSet<string> Amenities { get; } = new();
 
     public void Clear()
     {
         Title = null; Description = null; Price = 0; TimeUnit = "monthly";
         CategoryId = null; City = null; District = null;
-        Amenities.Clear();
+        BedroomCount = 0; Amenities.Clear();
     }
 }

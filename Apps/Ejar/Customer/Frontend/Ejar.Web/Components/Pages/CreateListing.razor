@@ -26,8 +26,8 @@
                     {
                         var cat = c;
                         <button type="button" class="acs-cat-pick @(Store.Draft.CategoryId == cat.Id ? "active" : "")"
-                                @onclick="@(() => Store.Draft.CategoryId = cat.Id)">
-                            <span style="font-size:24px;">@cat.Emoji</span>
+                                @onclick="@(() => { Store.Draft.CategoryId = cat.Id; })">
+                            <AcIcon Name="@cat.Icon" Size="24" />
                             <span>@cat.Label</span>
                         </button>
                     }
@@ -66,6 +66,11 @@
                         </select>
                     </AcField>
                 </div>
+                <AcField Label="عدد الغرف (اختياريّ)">
+                    <AcInput Type="number" Value="@Store.Draft.BedroomCount.ToString()"
+                             ValueChanged="@(v => Store.Draft.BedroomCount = int.TryParse(v, out var n) ? n : 0)" />
+                </AcField>
+
                 <AcField Label="@(L["listing.amenities"])">
                     <div class="acs-amenity-chips">
                         @foreach (var a in _amenities)
@@ -193,6 +198,7 @@
     private string? _imgError;
     private List<PickedImage> _images = new();
     private List<CategoryDto> _categories = new();
+    private sealed record HomeResponse(List<CategoryDto> Categories, object? Featured, object? New);
     private List<AmenityDto> _amenities = new();
     private List<string> _cities = new();
     private double _lat = 24.7136;
@@ -205,12 +211,14 @@
     {
         if (!first) return;
         if (string.IsNullOrEmpty(Store.Draft.City)) Store.Draft.City = Store.Ui.City;
-        var cats = await Api.GetAsync<List<CategoryDto>>("/categories");
-        var am   = await Api.GetAsync<List<AmenityDto>>("/amenities");
-        var ci   = await Api.GetAsync<List<string>>("/cities");
-        _categories = cats.Data ?? new();
-        _amenities  = am.Data  ?? new();
-        _cities     = ci.Data  ?? new() { "الرياض" };
+        var home = await Api.GetAsync<HomeResponse>("/home/view");
+        _categories = home.Data?.Categories ?? new();
+        var am = await Api.GetAsync<List<AmenityDto>>("/amenities");
+        var ci = await Api.GetAsync<List<string>>("/cities");
+        var sub = await Api.GetAsync<SubDto>("/me/subscription");
+        _amenities = am.Data ?? new();
+        _cities    = ci.Data ?? new() { "الرياض" };
+        if (sub.Data is not null) _maxImages = sub.Data.ImagesPerListing;
         await InvokeAsync(StateHasChanged);
     }
 
@@ -280,7 +288,10 @@
         finally { _publishing = false; }
     }
 
-    private sealed record CategoryDto(string Id, string Label, string Emoji, string Kind, List<string> TimeUnits);
+    private sealed record CategoryDto(string Id, string Label, string Icon);
+    private sealed record SubDto(string Id, string PlanId, string PlanName, string Status,
+        DateTime StartDate, DateTime EndDate, int DaysRemaining,
+        int ListingsUsed, int ListingsLimit, int FeaturedUsed, int FeaturedLimit, int ImagesPerListing);
     private sealed record AmenityDto(string Key, string Label);
     private sealed record PickedImage(string DataUrl, string Name);
 }

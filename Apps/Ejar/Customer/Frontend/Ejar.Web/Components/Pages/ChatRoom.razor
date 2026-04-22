@@ -1,9 +1,9 @@
 @page "/chat/{Id}"
 @using ACommerce.Client.Operations
-@inject AppStore Store
+@using Ejar.Web.Operations
 @inject ApiReader Api
-@inject ClientOpEngine Engine
 @inject NavigationManager Nav
+@inject ClientOpEngine Engine
 @inject L L
 
 <PageTitle>@(L["chat.title"]) — @(L["app.name"])</PageTitle>
@@ -14,8 +14,8 @@
     {
         <div style="display:flex; justify-content:space-between; align-items:center;">
             <div>
-                <h1 class="acm-wizard-title" style="margin-bottom:4px;">@_conv.OtherUserName</h1>
-                <small style="color:var(--ac-text-muted);">@_conv.ListingTitle</small>
+                <h1 class="acm-wizard-title" style="margin-bottom:4px;">@_conv.PartnerName</h1>
+                <small style="color:var(--ac-text-muted);">@_conv.Subject</small>
             </div>
             <AcButton Variant="ghost" Text="رجوع" OnClick="@GoBack" />
         </div>
@@ -23,28 +23,53 @@
         <div class="acs-chat-messages">
             @foreach (var m in _conv.Messages)
             {
-                var mine = m.SenderId == Store.Auth.UserId?.ToString();
+                var mine = m.From == "me";
                 <div class="acs-bubble @(mine ? "acs-bubble-mine" : "acs-bubble-other")">
-                    <div>@m.Text</div>
+                    @if (m.Attachment is not null)
+                    {
+                        <div class="acs-chat-attach">
+                            <AcIcon Name="file" Size="14" />
+                            <span>@m.Attachment</span>
+                        </div>
+                    }
+                    @if (!string.IsNullOrEmpty(m.Text))
+                    {
+                        <div>@m.Text</div>
+                    }
                     <small style="display:block; opacity:.6;">@m.SentAt.ToString("HH:mm")</small>
+                </div>
+            }
+            @if (_partnerTyping)
+            {
+                <div class="acs-bubble acs-bubble-other acs-typing">
+                    <span></span><span></span><span></span>
                 </div>
             }
         </div>
 
         <div class="acs-chat-composer">
+            <label class="acs-chat-attach-btn" title="إرفاق ملفّ">
+                <AcIcon Name="paperclip" Size="16" />
+                <InputFile OnChange="OnAttach" style="display:none;" />
+            </label>
+            @if (!string.IsNullOrEmpty(_pendingAttach))
+            {
+                <span class="acs-chat-attach-preview">@_pendingAttach <button @onclick="@(() => _pendingAttach = null)">×</button></span>
+            }
             <AcInput Value="@_draft" ValueChanged="@(v => _draft = v ?? string.Empty)"
                      Placeholder="@(L["chat.new_message"])" />
             <AcButton Variant="primary" Text="@(L["chat.send"])" OnClick="@Send"
-                      Disabled="@(_sending || string.IsNullOrWhiteSpace(_draft))" />
+                      Disabled="@(_sending || (string.IsNullOrWhiteSpace(_draft) && string.IsNullOrEmpty(_pendingAttach)))" />
         </div>
     }
 </div>
 
 @code {
     [Parameter] public string Id { get; set; } = "";
-
-    private ConvDetailDto? _conv;
+    private Payload? _conv;
     private string _draft = "";
+    private string? _pendingAttach;
+    private bool _partnerTyping;
     private bool _sending;
 
     protected override async Task OnAfterRenderAsync(bool first)
@@ -55,33 +80,52 @@
 
     private async Task Reload()
     {
-        var env  = await Api.GetAsync<ConvDetailDto>($"/conversations/{Id}");
-        _conv    = env.Data;
+        var env = await Api.GetAsync<Payload>($"/conversations/{Id}", localize: true);
+        _conv = env.Data;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task OnAttach(InputFileChangeEventArgs e)
+    {
+        if (e.File is null) return;
+        _pendingAttach = e.File.Name;
         await InvokeAsync(StateHasChanged);
     }
 
     private async Task Send()
     {
-        if (string.IsNullOrWhiteSpace(_draft) || _conv is null) return;
+        if (string.IsNullOrWhiteSpace(_draft) && string.IsNullOrEmpty(_pendingAttach)) return;
+        if (_conv is null) return;
         _sending = true;
         try
         {
             var env = await Engine.ExecuteAsync<object>(
-                EjarOps.SendMessage(Id, _draft),
-                payload: new { Text = _draft });
+                EjarOps.SendMessage(Id, _draft, _pendingAttach),
+                payload: new { Text = _draft, Attachment = _pendingAttach });
             if (env?.Operation.Status == "Success")
             {
                 _draft = "";
+                _pendingAttach = null;
                 await Reload();
+                _ = SimulatePartnerReply();
             }
         }
         finally { _sending = false; await InvokeAsync(StateHasChanged); }
     }
 
+    private async Task SimulatePartnerReply()
+    {
+        _partnerTyping = true;
+        await InvokeAsync(StateHasChanged);
+        await Task.Delay(1800);
+        _partnerTyping = false;
+        await InvokeAsync(StateHasChanged);
+    }
+
     private void GoBack() => Nav.NavigateTo("/chats");
 
-    private sealed record ConvDetailDto(string Id, string ListingId, string ListingTitle,
-        string OtherUserId, string OtherUserName, List<MsgDto> Messages);
-    private sealed record MsgDto(string Id, string ConversationId, string SenderId, string SenderName,
-        string Text, DateTime SentAt);
+    private sealed record Payload(string Id, string PartnerName, string Subject,
+        string? PartnerId, string? ListingId, List<MessageDto> Messages);
+    private sealed record MessageDto(string Id, string From, string Text, DateTime SentAt,
+        string? Attachment = null);
 }

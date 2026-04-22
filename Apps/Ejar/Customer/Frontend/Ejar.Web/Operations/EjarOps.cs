@@ -84,13 +84,13 @@ public static class EjarOps
             .Analyze(new RequiredFieldAnalyzer("text", () => text))
             .Build();
 
-    public static Operation SendMessage(string conversationId, string text) =>
+    public static Operation SendMessage(string conversationId, string text, string? attachment = null) =>
         Entry.Create("message.send")
             .From("User:self", 1, ("role", "sender"))
             .To($"Conversation:{conversationId}", 1, ("role", "appended"))
             .Tag("client_dispatch", "true")
             .Tag("conversation_id", conversationId)
-            .Analyze(new RequiredFieldAnalyzer("text", () => text))
+            .Analyze(new RequiredFieldAnalyzer("text", () => string.IsNullOrEmpty(attachment) ? text : text ?? ""))
             .Build();
 
     // ── Notifications ─────────────────────────────────────────────────
@@ -110,7 +110,8 @@ public static class EjarOps
             .Build();
 
     // ── Complaints ────────────────────────────────────────────────────
-    public static Operation FileComplaint(string subject, string body) =>
+    public static Operation FileComplaint(string subject, string body,
+        string? priority = null, string? relatedEntity = null) =>
         Entry.Create("complaint.file")
             .Describe($"File complaint: {subject}")
             .From("User:self", 1, ("role", "complainant"))

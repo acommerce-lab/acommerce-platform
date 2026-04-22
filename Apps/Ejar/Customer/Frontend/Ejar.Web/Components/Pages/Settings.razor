@@ -37,6 +37,7 @@
             <h3 style="margin-top:0;">المستندات القانونيّة</h3>
             <AcButton Variant="ghost" Class="ac-btn-block" Text="@(L["legal.privacy"])" OnClick="@GoPrivacy" />
             <AcButton Variant="ghost" Class="ac-btn-block" Text="@(L["legal.terms"])"   OnClick="@GoTerms" />
+            <AcButton Variant="ghost" Class="ac-btn-block" Text="@(L["legal.return"])"  OnClick="@GoRefund" />
         </ChildContent>
     </AcCard>
 </div>
@@ -48,4 +49,5 @@
     private Task SetEn()    => Applier.ApplyLocalAsync(EjarOps.SetLanguage("en"));
     private void GoPrivacy() => Nav.NavigateTo("/legal/privacy");
     private void GoTerms()   => Nav.NavigateTo("/legal/terms");
+    private void GoRefund()  => Nav.NavigateTo("/legal/refund");
 }

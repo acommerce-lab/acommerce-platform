@@ -1,27 +1,13 @@
 @page "/plans"
-@inject AppStore Store
 @inject ApiReader Api
 @inject NavigationManager Nav
 @inject L L
-@implements IDisposable
 
 <PageTitle>@(L["plans.title"]) — @(L["app.name"])</PageTitle>
 
 <div class="acs-page acs-plans-page">
     <h1 class="acm-wizard-title">@(L["plans.title"])</h1>
-    <p style="color:var(--ac-text-muted);">اختر الخطّة المناسبة — يمكنك الترقية في أيّ وقت.</p>
-
-    @if (_sub is not null)
-    {
-        <AcCard>
-            <ChildContent>
-                <div class="acm-checkout-line">
-                    <span>@(L["plans.current"]):</span>
-                    <strong>@_sub.PlanName — @_sub.DaysRemaining @(L["subscription.days_remaining"])</strong>
-                </div>
-            </ChildContent>
-        </AcCard>
-    }
+    <p style="color:var(--ac-text-muted);">اختر الخطّة المناسبة لنشاطك — يمكنك الترقية أو التخفيض في أيّ وقت.</p>
 
     @if (_loading) { <AcLoadingState /> }
     else
@@ -30,20 +16,19 @@
             @foreach (var p in _plans)
             {
                 var plan = p;
-                var isCurrent = _sub?.PlanId == plan.Id;
                 <AcCard Hover="true">
                     <ChildContent>
                         <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
                             <h3 style="margin:0;">@plan.Name</h3>
-                            @if (plan.Id == "pro") { <AcBadge Variant="secondary" Text="الأشهر" /> }
+                            @if (plan.Popular) { <AcBadge Variant="secondary" Text="الأشهر" /> }
                         </div>
+                        <p style="color:var(--ac-text-muted); font-size:13px;">@plan.Description</p>
+
                         <div style="font-size:24px; font-weight:700; margin:8px 0;">
-                            @if (plan.PriceMonthly == 0) { <span>مجّاني</span> }
-                            else { <span>@plan.PriceMonthly SAR</span><small style="font-size:13px; color:var(--ac-text-muted);"> / شهر</small> }
+                            @if (plan.Price == 0) { <span>مجّاني</span> }
+                            else { <span>@plan.Price SAR</span><small style="font-size:13px; color:var(--ac-text-muted);"> / @plan.Unit</small> }
                         </div>
-                        <p style="font-size:13px; color:var(--ac-text-muted); margin:4px 0 8px;">
-                            حتى @plan.MaxListings @(L["plans.listings_limit"])
-                        </p>
+
                         <ul style="list-style:none; padding:0; margin:8px 0 12px;">
                             @foreach (var f in plan.Features)
                             {
@@ -53,67 +38,74 @@
                                 </li>
                             }
                         </ul>
-                        @if (isCurrent)
-                        {
-                            <AcButton Variant="outline-primary" Class="ac-btn-block" Text="@(L["plans.current"])" Disabled="true" />
-                        }
-                        else
-                        {
-                            <AcButton Variant="@(plan.Id == "pro" ? "primary" : "outline-primary")"
-                                      Class="ac-btn-block" Text="@(L["plans.subscribe"])"
-                                      OnClick="@(() => Nav.NavigateTo($"/plans/subscribe?planId={plan.Id}"))" />
-                        }
+
+                        <AcButton Variant="@(plan.Popular ? "primary" : "outline-primary")"
+                                  Class="ac-btn-block"
+                                  Text="@(plan.Price == 0 ? "ابدأ مجّاناً" : "اشترك")"
+                                  OnClick="@(() => Subscribe(plan))" />
                     </ChildContent>
                 </AcCard>
             }
         </div>
 
-        @if (_invoices.Count > 0)
-        {
-            <h3 style="margin-top:16px;">@(L["subscription.invoices"])</h3>
-            <AcCard>
-                <ChildContent>
-                    @foreach (var inv in _invoices)
-                    {
-                        <div class="acm-checkout-line">
-                            <div>
-                                <div style="font-weight:500;">@inv.PlanName</div>
-                                <small style="color:var(--ac-text-muted);">@inv.CreatedAt.ToString("yyyy-MM-dd")</small>
-                            </div>
-                            <strong style="color:var(--ac-primary);">@inv.Amount @(L["common.sar"])</strong>
-                        </div>
-                    }
-                </ChildContent>
-            </AcCard>
-        }
+        <h3 style="margin-top:16px;">مقارنة الخطط</h3>
+        <AcCard>
+            <ChildContent>
+                <table class="acs-plans-compare">
+                    <thead>
+                        <tr>
+                            <th>الميزة</th>
+                            @foreach (var p in _plans) { <th>@p.Name</th> }
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>إعلانات فعّالة</td>
+                            @foreach (var p in _plans) { <td>@(p.ListingQuota == 99 ? "∞" : p.ListingQuota.ToString())</td> }
+                        </tr>
+                        <tr>
+                            <td>إعلانات مميّزة</td>
+                            @foreach (var p in _plans) { <td>@p.FeaturedQuota</td> }
+                        </tr>
+                        <tr>
+                            <td>صور لكلّ إعلان</td>
+                            @foreach (var p in _plans) { <td>@p.ImagesPerListing</td> }
+                        </tr>
+                        <tr>
+                            <td>الدعم</td>
+                            @foreach (var p in _plans) { <td>@SupportLevel(p.Id)</td> }
+                        </tr>
+                    </tbody>
+                </table>
+            </ChildContent>
+        </AcCard>
     }
 </div>
 
 @code {
     private List<PlanDto> _plans = new();
-    private SubDto? _sub;
-    private List<InvoiceDto> _invoices = new();
     private bool _loading = true;
 
-    protected override void OnInitialized() => Store.OnChanged += OnChange;
-
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+    protected override async Task OnAfterRenderAsync(bool first)
     {
-        if (!firstRender) return;
-        var plansEnv = await Api.GetAsync<List<PlanDto>>("/plans");
-        var subEnv   = await Api.GetAsync<SubDto>("/me/subscription");
-        var invEnv   = await Api.GetAsync<List<InvoiceDto>>("/me/invoices");
-        _plans    = plansEnv.Data ?? new();
-        _sub      = subEnv.Data;
-        _invoices = invEnv.Data ?? new();
-        _loading  = false;
+        if (!first) return;
+        var env = await Api.GetAsync<List<PlanDto>>("/plans");
+        _plans = env.Data ?? new();
+        _loading = false;
         await InvokeAsync(StateHasChanged);
     }
 
-    private void OnChange() => InvokeAsync(StateHasChanged);
-    public void Dispose() => Store.OnChanged -= OnChange;
+    private void Subscribe(PlanDto p) => Nav.NavigateTo($"/subscribe?type=plan&id={p.Id}&amount={p.Price}");
 
-    private sealed record PlanDto(string Id, string Name, decimal PriceMonthly, int MaxListings, List<string> Features);
-    private sealed record SubDto(string PlanId, string PlanName, int DaysRemaining, int ListingsUsed, int ListingsLimit);
-    private sealed record InvoiceDto(string Id, string PlanName, decimal Amount, string Status, DateTime CreatedAt);
+    private static string SupportLevel(string id) => id switch
+    {
+        "plan-basic"   => "بريد",
+        "plan-pro"     => "أولويّة",
+        "plan-premium" => "مدير حساب",
+        _              => "—"
+    };
+
+    private sealed record PlanDto(string Id, string Name, string Description,
+        decimal Price, string Unit, int ListingQuota, int FeaturedQuota,
+        int ImagesPerListing, bool Popular, List<string> Features);
 }

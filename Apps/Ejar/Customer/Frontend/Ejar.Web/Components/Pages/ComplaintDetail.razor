@@ -1,10 +1,12 @@
 @page "/complaints/{Id}"
-@using ACommerce.Client.Operations
 @inject ApiReader Api
-@inject ClientOpEngine Engine
 @inject NavigationManager Nav
+@using ACommerce.Client.Operations
+@using Ejar.Web.Operations
+@inject ClientOpEngine Engine
+@inject L L
 
-<PageTitle>تفاصيل الشكوى — إيجار</PageTitle>
+<PageTitle>تفاصيل الشكوى — @(L["app.name"])</PageTitle>
 
 <div class="acs-page acs-complaint-thread">
     @if (_loading) { <AcLoadingState /> }
@@ -14,14 +16,13 @@
         <h1 class="acm-wizard-title">@_c.Subject</h1>
         <AcCard>
             <ChildContent>
-                <div class="acm-checkout-line">
-                    <span>الحالة:</span>
-                    <AcBadge Variant="@StatusVariant(_c.Status)" Text="@StatusLabel(_c.Status)" />
-                </div>
-                <div class="acm-checkout-line">
-                    <span>أُنشئت:</span>
-                    <strong>@_c.CreatedAt.ToString("yyyy-MM-dd HH:mm")</strong>
-                </div>
+                <div class="acm-checkout-line"><span>الحالة:</span><AcBadge Variant="@StatusVariant(_c.Status)" Text="@StatusLabel(_c.Status)" /></div>
+                <div class="acm-checkout-line"><span>الأولويّة:</span><strong>@_c.Priority</strong></div>
+                @if (!string.IsNullOrEmpty(_c.RelatedEntity))
+                {
+                    <div class="acm-checkout-line"><span>مرتبطة بـ:</span><strong>@_c.RelatedEntity</strong></div>
+                }
+                <div class="acm-checkout-line"><span>أُنشئت:</span><strong>@_c.CreatedAt.ToString("yyyy-MM-dd HH:mm")</strong></div>
             </ChildContent>
         </AcCard>
 
@@ -29,25 +30,24 @@
         <div class="acs-chat-messages">
             @foreach (var r in _c.Replies)
             {
-                var isMine = r.SenderId != "support";
-                <div class="acs-bubble @(isMine ? "acs-bubble-mine" : "acs-bubble-other acs-bubble-staff")">
-                    @if (!isMine)
+                var isStaff = r.From == "staff";
+                <div class="acs-bubble @(isStaff ? "acs-bubble-other acs-bubble-staff" : "acs-bubble-mine")">
+                    @if (isStaff)
                     {
                         <small style="display:block; font-weight:700; color:var(--ac-primary);">
-                            <AcIcon Name="shield" Size="14" /> @r.SenderName
+                            <AcIcon Name="shield" Size="14" /> موظّف دعم
                         </small>
                     }
                     <div>@r.Message</div>
-                    <small style="display:block; opacity:.6;">@r.SentAt.ToString("yyyy-MM-dd HH:mm")</small>
+                    <small style="display:block; opacity:.6;">@r.CreatedAt.ToString("yyyy-MM-dd HH:mm")</small>
                 </div>
             }
         </div>
 
-        @if (_c.Status != "closed")
+        @if (_c.Status is "open" or "in_progress")
         {
             <div style="display:flex; gap:8px; margin-top:12px;">
-                <AcInput Value="@_draft" ValueChanged="@(v => _draft = v ?? string.Empty)"
-                         Placeholder="اكتب ردّك…" />
+                <AcInput Value="@_draft" ValueChanged="@(v => _draft = v ?? string.Empty)" Placeholder="اكتب ردّك…" />
                 <AcButton Variant="primary" Text="إرسال" OnClick="@Send"
                           Disabled="@(string.IsNullOrWhiteSpace(_draft) || _sending)" />
             </div>
@@ -66,7 +66,7 @@
 @code {
     [Parameter] public string Id { get; set; } = "";
 
-    private ComplaintDetailDto? _c;
+    private ComplaintDto? _c;
     private bool _loading = true;
     private string _draft = "";
     private bool _sending;
@@ -79,7 +79,7 @@
 
     private async Task Reload()
     {
-        var env = await Api.GetAsync<ComplaintDetailDto>($"/complaints/{Id}");
+        var env = await Api.GetAsync<ComplaintDto>($"/complaints/{Id}");
         _c = env.Data;
         _loading = false;
         await InvokeAsync(StateHasChanged);
@@ -119,7 +119,7 @@
         _ => "secondary"
     };
 
-    private sealed record ReplyDto(string Id, string ComplaintId, string SenderId, string SenderName, string Message, DateTime SentAt);
-    private sealed record ComplaintDetailDto(string Id, string Subject, string Body, string Status,
-        DateTime CreatedAt, List<ReplyDto> Replies);
+    private sealed record ReplyDto(string Id, string From, string Message, DateTime CreatedAt);
+    private sealed record ComplaintDto(string Id, string Subject, string Body, DateTime CreatedAt,
+        string Status, string Priority, string? RelatedEntity, List<ReplyDto> Replies);
 }

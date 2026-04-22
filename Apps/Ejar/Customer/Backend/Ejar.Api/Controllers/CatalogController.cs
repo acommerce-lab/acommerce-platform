@@ -401,7 +401,8 @@ public class CatalogController : ControllerBase
             _complaints.Select(c => new {
                 id = c.Id, subject = c.Subject, body = c.Body,
                 createdAt = c.CreatedAt, status = c.Status,
-                priority = c.Priority, repliesCount = c.Replies.Count
+                priority = c.Priority, relatedEntity = c.RelatedEntity,
+                repliesCount = c.Replies.Count
             }));
 
     [HttpGet("/complaints/{id}")]
@@ -418,7 +419,7 @@ public class CatalogController : ControllerBase
         });
     }
 
-    public sealed record CreateComplaintRequest(string Subject, string Body, string? Priority);
+    public sealed record CreateComplaintRequest(string Subject, string Body, string? Priority, string? RelatedEntity);
 
     [HttpPost("/complaints")]
     public async Task<IActionResult> CreateComplaint([FromBody] CreateComplaintRequest req, CancellationToken ct)
@@ -426,7 +427,7 @@ public class CatalogController : ControllerBase
         var id = $"X-{_complaints.Count + 1:D3}";
         var c  = new EjarSeed.ComplaintSeed(
             id, req.Subject, req.Body, DateTime.UtcNow, "open",
-            req.Priority ?? "عادي", "",
+            req.Priority ?? "عادي", req.RelatedEntity ?? "",
             new List<EjarSeed.ComplaintReplySeed> {
                 new("R1", "user", req.Body, DateTime.UtcNow)
             });
@@ -492,7 +493,8 @@ public class CatalogController : ControllerBase
     public IActionResult Plans() =>
         this.OkEnvelope("plans.list",
             EjarSeed.Plans.Select(p => new {
-                id = p.Id, name = p.Name, price = p.Price, unit = p.Unit,
+                id = p.Id, name = p.Name, description = p.Description,
+                price = p.Price, unit = p.Unit,
                 listingQuota = p.ListingQuota, featuredQuota = p.FeaturedQuota,
                 imagesPerListing = p.ImagesPerListing,
                 popular = p.Popular, features = p.Features

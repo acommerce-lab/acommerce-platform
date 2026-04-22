@@ -232,11 +232,14 @@ public static class EjarSeed
     // ── باقات الاشتراك ────────────────────────────────────────────────────
     public static readonly IReadOnlyList<PlanSeed> Plans = new[]
     {
-        new PlanSeed("plan-basic",    "أساسية",    0m,     "شهرياً",  2,  0, 5,  false,
+        new PlanSeed("plan-basic",   "أساسية",   0m,   "شهرياً", 2,  0,  5,  false,
+            "مثالية للأفراد الذين يبدؤون في نشر إعلاناتهم",
             new[] { "نشر إعلانين نشطين", "بحث وتصفية متقدمة", "رسائل مع المؤجرين" }),
-        new PlanSeed("plan-pro",      "احترافية",  149m,   "شهرياً",  10, 2, 15, true,
+        new PlanSeed("plan-pro",     "احترافية", 149m, "شهرياً", 10, 2,  15, true,
+            "للمؤجرين النشطين الذين يريدون ظهوراً أكبر",
             new[] { "10 إعلانات نشطة", "إعلانان مميزان", "ظهور أعلى في النتائج", "إحصاءات مشاهدات", "دعم مباشر" }),
-        new PlanSeed("plan-premium",  "بريميوم",   399m,   "شهرياً",  50, 10, 30, false,
+        new PlanSeed("plan-premium", "بريميوم",  399m, "شهرياً", 50, 10, 30, false,
+            "للشركات والوكلاء العقاريين المحترفين",
             new[] { "50 إعلاناً نشطاً", "10 إعلانات مميزة", "ظهور أعلى دائماً", "تقارير تفصيلية", "مدير حساب مخصص" }),
     };
 
@@ -329,7 +332,7 @@ public static class EjarSeed
     public record PlanSeed(
         string Id, string Name, decimal Price, string Unit,
         int ListingQuota, int FeaturedQuota, int ImagesPerListing,
-        bool Popular, IReadOnlyList<string> Features);
+        bool Popular, string Description, IReadOnlyList<string> Features);
 
     public record SubscriptionSeed(
         string Id, string PlanId, string PlanName, string Status,
