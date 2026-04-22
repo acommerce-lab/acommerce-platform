@@ -9,7 +9,9 @@ using ACommerce.OperationEngine.Core;
 using ACommerce.OperationEngine.Interceptors;
 using ACommerce.OperationEngine.Interceptors.Extensions;
 using ACommerce.Payments.Providers.Noon.Extensions;
-using ACommerce.Realtime.Providers.InMemory.Extensions;
+using ACommerce.Realtime.Operations;
+using ACommerce.Realtime.Providers.SignalR;
+using ACommerce.Realtime.Providers.SignalR.Extensions;
 using ACommerce.SharedKernel.Abstractions.Entities;
 using ACommerce.SharedKernel.Infrastructure.EFCores.Extensions;
 using Ashare.V2.Api.Entities;
@@ -80,7 +82,7 @@ try
         {
             var origins = cfg.GetSection("Cors:AllowedOrigins").Get<string[]>()
                           ?? ["https://ashare.app", "https://www.ashare.app"];
-            p.WithOrigins(origins).AllowAnyHeader().AllowAnyMethod();
+            p.WithOrigins(origins).AllowAnyHeader().AllowAnyMethod().AllowCredentials();
         }
     }));
 
@@ -123,6 +125,18 @@ try
                 ValidAudience            = jwtAud,
                 ValidateLifetime         = true,
                 ClockSkew                = TimeSpan.FromMinutes(2),
+            };
+            // SignalR WebSocket cannot set HTTP headers — token is passed as query param
+            o.Events = new Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerEvents
+            {
+                OnMessageReceived = ctx =>
+                {
+                    var token = ctx.Request.Query["access_token"];
+                    if (!string.IsNullOrEmpty(token) &&
+                        ctx.Request.Path.StartsWithSegments("/hubs"))
+                        ctx.Token = token;
+                    return Task.CompletedTask;
+                }
             };
         });
     builder.Services.AddAuthorization();
@@ -176,7 +190,7 @@ try
     }
 
     // ─── Notifications ────────────────────────────────────────────────────────
-    builder.Services.AddInMemoryRealtimeTransport();
+    builder.Services.AddSignalRRealtimeTransport();
     builder.Services.AddInAppNotificationChannel();
 
     var firebaseJson = Environment.GetEnvironmentVariable("FIREBASE_SERVICE_ACCOUNT_JSON")
@@ -213,6 +227,7 @@ try
 
     app.MapControllers();
     app.MapHealthChecks("/healthz");
+    app.MapHub<AShareHub>("/hubs/ashare");
 
     // ─── Restore seed snapshot (in-memory mode only) ──────────────────────────
     await Ashare.V2.Api.Services.JsonSnapshotStore.RestoreAsync();

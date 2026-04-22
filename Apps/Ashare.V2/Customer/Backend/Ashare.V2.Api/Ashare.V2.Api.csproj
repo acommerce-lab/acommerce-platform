@@ -44,9 +44,9 @@
     <ProjectReference Include="..\..\..\..\..\libs\backend\messaging\ACommerce.Notification.Providers.Firebase\ACommerce.Notification.Providers.Firebase.csproj" />
     <ProjectReference Include="..\..\..\..\..\libs\backend\messaging\ACommerce.Notification.Providers.Email\ACommerce.Notification.Providers.Email.csproj" />
     <ProjectReference Include="..\..\..\..\..\libs\backend\messaging\ACommerce.Notification.Providers.InApp\ACommerce.Notification.Providers.InApp.csproj" />
-    <!-- Realtime in-memory transport (InApp channel needs it) -->
+    <!-- Realtime SignalR transport (browser push via WebSocket) -->
     <ProjectReference Include="..\..\..\..\..\libs\backend\messaging\ACommerce.Realtime.Operations\ACommerce.Realtime.Operations.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\backend\messaging\ACommerce.Realtime.Providers.InMemory\ACommerce.Realtime.Providers.InMemory.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\backend\messaging\ACommerce.Realtime.Providers.SignalR\ACommerce.Realtime.Providers.SignalR.csproj" />
   </ItemGroup>
 
   <ItemGroup>

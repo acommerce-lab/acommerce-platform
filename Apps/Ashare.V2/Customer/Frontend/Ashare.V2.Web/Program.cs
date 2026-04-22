@@ -9,6 +9,7 @@ using Ashare.V2.Web.Components;
 using Ashare.V2.Web.Interceptors;
 using Ashare.V2.Web.Interpreters;
 using Ashare.V2.Web.Operations;
+using Ashare.V2.Web.Services;
 using Ashare.V2.Web.Store;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -99,6 +100,9 @@ builder.Services.AddScoped<OperationInterpreterRegistry<AppStore>>(sp =>
 
 builder.Services.AddScoped<AppStateApplier>();
 builder.Services.AddScoped<IStateApplier>(sp => sp.GetRequiredService<AppStateApplier>());
+
+// ─── Realtime client ──────────────────────────────────────────────────
+builder.Services.AddScoped<Ashare2RealtimeService>();
 
 var app = builder.Build();
 
