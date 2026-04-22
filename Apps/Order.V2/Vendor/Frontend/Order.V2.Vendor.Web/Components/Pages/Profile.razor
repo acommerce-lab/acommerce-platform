@@ -1,0 +1,82 @@
+@page "/profile"
+@rendermode InteractiveServer
+@inject AppStore Store
+@inject ApiReader Api
+
+<PageTitle>الملف الشخصي — اوردر V2 المتجر</PageTitle>
+
+<AcAuthGuard IsAuthenticated="@Store.Auth.IsAuthenticated" LoginHref="/login">
+    <h2 class="page-title">ملف المتجر</h2>
+    @if (_loading)
+    {
+        <AcSpinner />
+    }
+    else if (_profile is not null)
+    {
+        <div class="card profile-card">
+            <div class="profile-header">
+                <span class="profile-logo">@_profile.LogoEmoji</span>
+                <span class="profile-cover">@_profile.CoverEmoji</span>
+                <h3>@_profile.Name</h3>
+                <p class="text-muted">@_profile.Description</p>
+            </div>
+            <dl class="profile-fields">
+                <dt>المدينة</dt><dd>@_profile.City @_profile.District</dd>
+                <dt>الهاتف</dt><dd>@_profile.Phone</dd>
+                <dt>ساعات العمل</dt><dd>@_profile.OpenHours</dd>
+                <dt>التقييم</dt><dd>⭐ @_profile.Rating.ToString("0.0") (@_profile.RatingCount تقييم)</dd>
+                <dt>الحالة</dt><dd>@(_profile.IsActive ? "نشط" : "معطّل")</dd>
+            </dl>
+        </div>
+
+        <div class="card mt-3">
+            <h4>تعديل المتجر</h4>
+            <div class="form-row">
+                <div class="ac-field"><label class="ac-label">الاسم</label><input class="ac-input" @bind="_editName" /></div>
+                <div class="ac-field"><label class="ac-label">المدينة</label><input class="ac-input" @bind="_editCity" /></div>
+                <div class="ac-field"><label class="ac-label">الهاتف</label><input class="ac-input" @bind="_editPhone" /></div>
+                <div class="ac-field"><label class="ac-label">ساعات العمل</label><input class="ac-input" @bind="_editHours" placeholder="07:00|23:00" /></div>
+            </div>
+            <AcButton Variant="primary" Text="حفظ التغييرات" OnClick="Save" />
+            @if (!string.IsNullOrEmpty(_saveMsg))
+            { <p class="success-msg">@_saveMsg</p> }
+        </div>
+    }
+</AcAuthGuard>
+
+@code {
+    private bool _loading = true;
+    private ProfileRow? _profile;
+    private string _editName = "", _editCity = "", _editPhone = "", _editHours = "";
+    private string _saveMsg = "";
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || !Store.Auth.IsAuthenticated) { _loading = false; StateHasChanged(); return; }
+        var env = await Api.GetAsync<ProfileRow>("/api/vendor/profile");
+        _profile = env.Data;
+        if (_profile is not null)
+        {
+            _editName = _profile.Name; _editCity = _profile.City;
+            _editPhone = _profile.Phone ?? ""; _editHours = _profile.OpenHours;
+        }
+        _loading = false; StateHasChanged();
+    }
+
+    private async Task Save()
+    {
+        _saveMsg = "";
+        var res = await Api.PutAsync<object>("/api/vendor/profile", new
+        {
+            name = _editName, city = _editCity,
+            phone = _editPhone, openHours = _editHours
+        });
+        _saveMsg = res.Operation?.Status == "Success" ? "تم الحفظ بنجاح ✓" : (res.Operation?.ErrorMessage ?? "فشل الحفظ");
+        StateHasChanged();
+    }
+
+    private record ProfileRow(Guid Id, string Name, string? Description, string City,
+                               string? District, string? Phone, string LogoEmoji,
+                               string CoverEmoji, string OpenHours, bool IsActive,
+                               double Rating, int RatingCount, DateTime CreatedAt);
+}

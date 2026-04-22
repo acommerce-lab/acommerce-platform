@@ -1,0 +1,70 @@
+@page "/"
+@rendermode InteractiveServer
+@inject AppStore Store
+@inject ApiReader Api
+
+<PageTitle>لوحة التحكم — اوردر V2 المتجر</PageTitle>
+
+@if (!Store.Auth.IsAuthenticated)
+{
+    <AcAuthGuard IsAuthenticated="false" LoginHref="/login" />
+}
+else
+{
+    <AcVendorDashboard Stats="@_stats"
+                       RecentOrders="@_recentOrders"
+                       Loading="@false"
+                       LoadingOrders="@_loadingOrders"
+                       Title="@($"مرحباً، {Store.Auth.VendorName ?? Store.Auth.FullName}")"
+                       OrdersTitle="آخر الطلبات"
+                       EmptyOrdersMessage="لا توجد طلبات بعد" />
+}
+
+@code {
+    private List<MerchantStatDto> _stats = new();
+    private List<MerchantOrderRowDto> _recentOrders = new();
+    private bool _loadingOrders = true;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || !Store.Auth.IsAuthenticated) return;
+
+        var dashEnv = await Api.GetAsync<DashRow>("/api/vendor/dashboard");
+        if (dashEnv.Data is { } d)
+        {
+            _stats = new List<MerchantStatDto>
+            {
+                new() { Label = "الطلبات الكلية",  Value = d.TotalOrders.ToString(),      IconName = "receipt" },
+                new() { Label = "طلبات معلقة",     Value = d.PendingOrders.ToString(),    IconName = "clock"   },
+                new() { Label = "طلبات نشطة",      Value = d.ActiveOrders.ToString(),     IconName = "fire"    },
+                new() { Label = "مكتملة",           Value = d.CompletedOrders.ToString(),  IconName = "check"   },
+                new() { Label = "عروض نشطة",        Value = d.ActiveOffers.ToString(),     IconName = "tag"     },
+                new() { Label = "الإيرادات",        Value = $"{d.TotalRevenue:0.##} SAR",  IconName = "dollar"  },
+            };
+        }
+
+        var ordersEnv = await Api.GetAsync<List<OrderRow>>("/api/vendor/orders");
+        _recentOrders = (ordersEnv.Data ?? new())
+            .Take(5)
+            .Select(o => new MerchantOrderRowDto
+            {
+                Id           = o.Id.ToString(),
+                CustomerName = o.CustomerId.ToString()[..8] + "…",
+                Total        = o.Total,
+                Currency     = o.Currency,
+                Status       = o.Status,
+                CreatedAt    = o.CreatedAt,
+                Notes        = o.CustomerNotes
+            }).ToList();
+
+        _loadingOrders = false;
+        StateHasChanged();
+    }
+
+    private record DashRow(int TotalOrders, int PendingOrders, int ActiveOrders,
+                            int CompletedOrders, int TotalOffers, int ActiveOffers,
+                            decimal TotalRevenue);
+
+    private record OrderRow(Guid Id, Guid CustomerId, decimal Total, string Currency,
+                             string Status, string? CustomerNotes, DateTime CreatedAt);
+}

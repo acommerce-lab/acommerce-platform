@@ -1,0 +1,90 @@
+@namespace Order.V2.Vendor.Web.Components.Layout
+@inherits LayoutComponentBase
+@inject AppStore Store
+@inject AppStateApplier Applier
+@inject AuthStateService AuthService
+@implements IDisposable
+
+<div class="vndr-shell">
+    <nav class="vndr-navbar">
+        <a href="/" class="vndr-navbar-brand">
+            @if (!string.IsNullOrEmpty(Store.Auth.VendorName))
+            { @Store.Auth.VendorName }
+            else
+            { <span>اوردر V2 — لوحة المتجر</span> }
+        </a>
+        @if (Store.Auth.IsAuthenticated)
+        {
+            <div class="vndr-navbar-actions">
+                <a class="vndr-navbar-link" href="/">لوحة التحكم</a>
+                <a class="vndr-navbar-link" href="/orders">الطلبات</a>
+                <a class="vndr-navbar-link" href="/offers">العروض</a>
+                <a class="vndr-navbar-link" href="/profile">الملف</a>
+                <a class="vndr-navbar-link" href="/settings">الإعدادات</a>
+                <AcButton Variant="ghost" Size="sm" Text="خروج" OnClick="SignOut" />
+            </div>
+        }
+        else
+        {
+            <div class="vndr-navbar-actions">
+                <a href="/login"><AcButton Variant="primary" Size="sm" Text="دخول" /></a>
+            </div>
+        }
+    </nav>
+    <main class="vndr-main">
+        @if (_authChecked) { @Body }
+    </main>
+</div>
+
+@code {
+    private bool _authChecked;
+    private Guid? _lastPersistedUserId;
+
+    protected override void OnInitialized() => Store.OnChanged += OnChange;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await AuthService.EnsureRestoredAsync();
+            if (AuthService.IsAuthenticated)
+            {
+                Store.Auth.UserId      = AuthService.UserId;
+                Store.Auth.VendorId    = AuthService.VendorId;
+                Store.Auth.VendorName  = AuthService.VendorName;
+                Store.Auth.FullName    = AuthService.FullName;
+                Store.Auth.PhoneNumber = AuthService.PhoneNumber;
+                Store.Auth.AccessToken = AuthService.AccessToken;
+                _lastPersistedUserId   = AuthService.UserId;
+            }
+            _authChecked = true;
+            Store.NotifyChanged();
+        }
+        await SyncAuthAsync();
+    }
+
+    private async Task SyncAuthAsync()
+    {
+        if (Store.Auth.IsAuthenticated && Store.Auth.UserId != _lastPersistedUserId)
+        {
+            _lastPersistedUserId = Store.Auth.UserId;
+            try
+            {
+                await AuthService.SignInAsync(
+                    Store.Auth.UserId!.Value, Store.Auth.VendorId!.Value,
+                    Store.Auth.VendorName, Store.Auth.FullName,
+                    Store.Auth.PhoneNumber, Store.Auth.AccessToken!);
+            }
+            catch { }
+        }
+        else if (!Store.Auth.IsAuthenticated && _lastPersistedUserId.HasValue)
+        {
+            _lastPersistedUserId = null;
+            try { await AuthService.SignOutAsync(); } catch { }
+        }
+    }
+
+    private async Task SignOut() => await Applier.ApplyLocalAsync(VendorV2Ops.SignOut());
+    private void OnChange() => InvokeAsync(StateHasChanged);
+    public void Dispose() => Store.OnChanged -= OnChange;
+}

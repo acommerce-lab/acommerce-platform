@@ -1,0 +1,29 @@
+@page "/login"
+@rendermode InteractiveServer
+@inject ClientOpEngine Engine
+@inject AppStore Store
+@inject NavigationManager Nav
+
+<PageTitle>دخول — اوردر V2 المتجر</PageTitle>
+
+<AcLoginPage Mode="TemplateOperationMode.Operation"
+             Engine="Engine"
+             BuildRequestOtpOp="@(phone => VendorV2Ops.RequestOtp(phone))"
+             BuildVerifyOtpOp="@((uid, cid, code) => VendorV2Ops.VerifyOtp(uid, cid, code))"
+             PhonePayload="@(phone => new { phoneNumber = phone })"
+             VerifyPayload="@((uid, cid, code) => new { userId = uid, challengeId = cid, code })"
+             RedirectUrl="/"
+             BrandName="اوردر V2 — لوحة المتجر"
+             BrandTagline="بوابة أصحاب المتاجر والمطاعم"
+             PhoneStepTitle="دخول بالهاتف"
+             PhoneStepSubtitle="سنرسل لك رمز تحقق عبر SMS"
+             PhoneLabel="رقم الهاتف"
+             PhonePlaceholder="+966501111111"
+             RequestOtpLabel="إرسال رمز التحقق"
+             SendingLabel="جاري الإرسال..."
+             OtpStepTitle="رمز التحقق"
+             OtpStepSubtitle="أدخل الرمز المرسل إلى"
+             OtpLabel="رمز التحقق (6 أرقام)"
+             VerifyOtpLabel="تحقق ودخول"
+             VerifyingLabel="جاري التحقق..."
+             BackLabel="تغيير الرقم" />

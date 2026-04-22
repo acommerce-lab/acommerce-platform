@@ -1,0 +1,128 @@
+@page "/offers"
+@rendermode InteractiveServer
+@inject AppStore Store
+@inject ApiReader Api
+@inject ClientOpEngine Engine
+
+<PageTitle>العروض — اوردر V2 المتجر</PageTitle>
+
+<AcAuthGuard IsAuthenticated="@Store.Auth.IsAuthenticated" LoginHref="/login">
+    <h2 class="page-title">عروضي</h2>
+
+    <div class="offer-form-wrap card mb-4">
+        <AcVendorOfferForm Mode="TemplateOperationMode.Callback"
+                           Form="@_form"
+                           FormChanged="@(f => _form = f)"
+                           OnSubmit="@CreateOffer"
+                           Title="إضافة عرض جديد"
+                           TitleLabel="عنوان العرض"
+                           TitlePlaceholder="مثال: كبسة دجاج"
+                           DescriptionLabel="الوصف"
+                           DescriptionPlaceholder="اكتب وصفاً موجزاً..."
+                           PriceLabel="السعر (SAR)"
+                           EmojiLabel="الأيقونة"
+                           AvailableLabel="الكمية المتاحة"
+                           SubmitLabel="إضافة العرض" />
+    </div>
+
+    @if (_loading)
+    {
+        <AcSpinner />
+    }
+    else
+    {
+        <div class="table-wrap">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th></th>
+                        <th>العنوان</th>
+                        <th>السعر</th>
+                        <th>الخصم</th>
+                        <th>الكمية</th>
+                        <th>الحالة</th>
+                        <th>الإجراءات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var o in _offers)
+                    {
+                        <tr>
+                            <td>@(o.Emoji ?? "🍽️")</td>
+                            <td>@o.Title</td>
+                            <td>@o.Price.ToString("0.##") SAR</td>
+                            <td>@(o.DiscountPercent > 0 ? $"{o.DiscountPercent}%" : "—")</td>
+                            <td>@o.QuantityAvailable</td>
+                            <td><span class="status-badge @(o.IsActive ? "status-active" : "status-suspended")">@(o.IsActive ? "نشط" : "معطّل")</span></td>
+                            <td>
+                                <AcButton Variant="@(o.IsActive ? "secondary" : "primary")" Size="sm"
+                                          Text="@(o.IsActive ? "تعطيل" : "تفعيل")"
+                                          OnClick="@(() => Toggle(o))" />
+                                <AcButton Variant="danger" Size="sm" Text="حذف"
+                                          OnClick="@(() => Delete(o))" />
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</AcAuthGuard>
+
+@code {
+    private bool _loading = true;
+    private List<OfferRow> _offers = new();
+    private OfferFormModel _form = new();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || !Store.Auth.IsAuthenticated) { _loading = false; StateHasChanged(); return; }
+        await Reload();
+    }
+
+    private async Task Reload()
+    {
+        var env = await Api.GetAsync<List<OfferRow>>("/api/vendor/offers");
+        _offers = env.Data ?? new();
+        _loading = false; StateHasChanged();
+    }
+
+    private async Task CreateOffer(OfferFormModel f)
+    {
+        if (string.IsNullOrWhiteSpace(f.Title)) return;
+        var res = await Api.PostAsync<object>("/api/vendor/offers", new
+        {
+            title = f.Title, description = f.Description ?? "",
+            price = f.Price, originalPrice = (decimal?)null,
+            categoryId = Guid.Empty,
+            emoji = f.Emoji ?? "🍽️", quantityAvailable = f.Stock ?? 100
+        });
+        if (res.Operation?.Status == "Success")
+        {
+            _form = new OfferFormModel();
+            await Reload();
+        }
+    }
+
+    private async Task Toggle(OfferRow o)
+    {
+        var res = await Engine.ExecuteAsync<object>(VendorV2Ops.ToggleOffer(o.Id), new { });
+        if (res.Operation.Status == "Success")
+        {
+            var i = _offers.FindIndex(x => x.Id == o.Id);
+            if (i >= 0) _offers[i] = _offers[i] with { IsActive = !o.IsActive };
+            StateHasChanged();
+        }
+    }
+
+    private async Task Delete(OfferRow o)
+    {
+        await Engine.ExecuteAsync<object>(VendorV2Ops.DeleteOffer(o.Id), new { });
+        _offers.RemoveAll(x => x.Id == o.Id);
+        StateHasChanged();
+    }
+
+    private record OfferRow(Guid Id, string Title, string? Emoji,
+                             decimal Price, decimal? OriginalPrice, int DiscountPercent,
+                             int QuantityAvailable, bool IsActive, DateTime CreatedAt);
+}

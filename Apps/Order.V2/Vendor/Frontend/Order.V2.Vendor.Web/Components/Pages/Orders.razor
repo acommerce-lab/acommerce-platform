@@ -1,0 +1,95 @@
+@page "/orders"
+@rendermode InteractiveServer
+@inject AppStore Store
+@inject ApiReader Api
+@inject ClientOpEngine Engine
+
+<PageTitle>الطلبات — اوردر V2 المتجر</PageTitle>
+
+<AcAuthGuard IsAuthenticated="@Store.Auth.IsAuthenticated" LoginHref="/login">
+    <h2 class="page-title">الطلبات الواردة</h2>
+    @if (_loading)
+    {
+        <AcSpinner />
+    }
+    else if (!_orders.Any())
+    {
+        <AcEmpty Title="لا توجد طلبات" Message="ستظهر الطلبات الجديدة هنا" />
+    }
+    else
+    {
+        <div class="orders-grid">
+            @foreach (var o in _orders)
+            {
+                <AcVendorOrderCard Order="@o"
+                                   Mode="TemplateOperationMode.Callback"
+                                   OnConfirm="@Accept"
+                                   OnReady="@Ready"
+                                   OnCancel="@Cancel"
+                                   TotalLabel="الإجمالي"
+                                   NotesLabel="ملاحظات"
+                                   ConfirmLabel="قبول"
+                                   ReadyLabel="جاهز"
+                                   CancelLabel="إلغاء" />
+            }
+        </div>
+    }
+</AcAuthGuard>
+
+@code {
+    private bool _loading = true;
+    private List<MerchantOrderRowDto> _orders = new();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || !Store.Auth.IsAuthenticated) { _loading = false; StateHasChanged(); return; }
+        await Reload();
+    }
+
+    private async Task Reload()
+    {
+        var env = await Api.GetAsync<List<OrderRow>>("/api/vendor/orders");
+        _orders = (env.Data ?? new()).Select(o => new MerchantOrderRowDto
+        {
+            Id           = o.Id.ToString(),
+            CustomerName = o.CustomerId.ToString()[..8] + "…",
+            Total        = o.Total,
+            Currency     = o.Currency,
+            Status       = o.Status,
+            CreatedAt    = o.CreatedAt,
+            Notes        = o.CustomerNotes,
+            Extra        = new Dictionary<string, object?>
+            {
+                ["pickupType"] = o.PickupType,
+                ["carModel"]   = o.CarModel,
+                ["carColor"]   = o.CarColor,
+                ["carPlate"]   = o.CarPlate,
+                ["orderNumber"] = o.OrderNumber,
+            }
+        }).ToList();
+        _loading = false; StateHasChanged();
+    }
+
+    private async Task Accept(MerchantOrderRowDto o)
+    {
+        var res = await Engine.ExecuteAsync<object>(VendorV2Ops.AcceptOrder(Guid.Parse(o.Id)), new { });
+        if (res.Operation.Status == "Success") await Reload();
+    }
+
+    private async Task Ready(MerchantOrderRowDto o)
+    {
+        var res = await Engine.ExecuteAsync<object>(VendorV2Ops.ReadyOrder(Guid.Parse(o.Id)), new { });
+        if (res.Operation.Status == "Success") await Reload();
+    }
+
+    private async Task Cancel(MerchantOrderRowDto o)
+    {
+        var res = await Engine.ExecuteAsync<object>(VendorV2Ops.CancelOrder(Guid.Parse(o.Id)), new { });
+        if (res.Operation.Status == "Success") await Reload();
+    }
+
+    private record OrderRow(Guid Id, string OrderNumber, Guid CustomerId,
+                             decimal Total, string Currency, string Status,
+                             string? PickupType, string? CarModel, string? CarColor,
+                             string? CarPlate, string? CustomerNotes, DateTime CreatedAt);
+}
