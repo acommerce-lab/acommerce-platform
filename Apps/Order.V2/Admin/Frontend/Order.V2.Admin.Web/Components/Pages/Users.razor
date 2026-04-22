@@ -1,0 +1,52 @@
+@page "/users"
+@rendermode InteractiveServer
+@inject AppStore Store
+@inject ApiReader Api
+@inject ClientOpEngine Engine
+
+<PageTitle>المستخدمون — اوردر V2</PageTitle>
+
+<AcAuthGuard IsAuthenticated="@Store.Auth.IsAuthenticated" LoginHref="/login">
+    <AcAdminUsersPage Users="@_users"
+                      Loading="@_loading"
+                      Title="المستخدمون"
+                      OnSuspend="@Suspend"
+                      OnActivate="@Activate" />
+</AcAuthGuard>
+
+@code {
+    private bool _loading = true;
+    private List<AdminUserRowDto> _users = new();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || !Store.Auth.IsAuthenticated) { _loading = false; StateHasChanged(); return; }
+        var env = await Api.GetAsync<List<UserRow>>("/api/admin/users");
+        _users = (env.Data ?? new()).Select(u => new AdminUserRowDto
+        {
+            Id          = u.Id.ToString(),
+            DisplayName = u.FullName ?? u.PhoneNumber ?? u.Id.ToString(),
+            Phone       = u.PhoneNumber,
+            Email       = u.Email,
+            Role        = u.Role,
+            Status      = u.IsActive ? "active" : "suspended",
+            JoinedAt    = u.CreatedAt
+        }).ToList();
+        _loading = false; StateHasChanged();
+    }
+
+    private async Task Suspend(AdminUserRowDto u)
+    {
+        var res = await Engine.ExecuteAsync<object>(AdminV2Ops.SuspendUser(Guid.Parse(u.Id)), new { });
+        if (res.Operation.Status == "Success") { var i = _users.FindIndex(x => x.Id == u.Id); if (i >= 0) _users[i] = _users[i] with { Status = "suspended" }; StateHasChanged(); }
+    }
+
+    private async Task Activate(AdminUserRowDto u)
+    {
+        var res = await Engine.ExecuteAsync<object>(AdminV2Ops.ActivateUser(Guid.Parse(u.Id)), new { });
+        if (res.Operation.Status == "Success") { var i = _users.FindIndex(x => x.Id == u.Id); if (i >= 0) _users[i] = _users[i] with { Status = "active" }; StateHasChanged(); }
+    }
+
+    private record UserRow(Guid Id, string? FullName, string? PhoneNumber, string? Email,
+                            string Role, bool IsActive, DateTime CreatedAt);
+}

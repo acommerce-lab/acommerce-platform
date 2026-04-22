@@ -1,0 +1,121 @@
+@page "/categories"
+@rendermode InteractiveServer
+@inject AppStore Store
+@inject ApiReader Api
+@inject ClientOpEngine Engine
+
+<PageTitle>التصنيفات — اوردر V2</PageTitle>
+
+<AcAuthGuard IsAuthenticated="@Store.Auth.IsAuthenticated" LoginHref="/login">
+    <h2 class="page-title">التصنيفات</h2>
+
+    <div class="create-form card mb-4">
+        <h4>إضافة تصنيف جديد</h4>
+        <div class="form-row">
+            <div class="ac-field">
+                <label class="ac-label">الاسم بالعربية</label>
+                <input class="ac-input" placeholder="مثال: مشاوي" @bind="_nameAr" />
+            </div>
+            <div class="ac-field">
+                <label class="ac-label">الاسم بالإنجليزية</label>
+                <input class="ac-input" placeholder="e.g. Grills" @bind="_nameEn" />
+            </div>
+            <div class="ac-field">
+                <label class="ac-label">الرابط (slug)</label>
+                <input class="ac-input" placeholder="grills" @bind="_slug" />
+            </div>
+            <div class="ac-field">
+                <label class="ac-label">الأيقونة (emoji)</label>
+                <input class="ac-input" placeholder="🍖" @bind="_icon" />
+            </div>
+        </div>
+        <AcButton Variant="primary" Text="إضافة" OnClick="Create" />
+        @if (!string.IsNullOrEmpty(_createError))
+        {
+            <p class="error-msg">@_createError</p>
+        }
+    </div>
+
+    @if (_loading)
+    {
+        <AcSpinner />
+    }
+    else
+    {
+        <div class="table-wrap">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>الأيقونة</th>
+                        <th>الاسم العربي</th>
+                        <th>الاسم الإنجليزي</th>
+                        <th>الرابط</th>
+                        <th>إجراء</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var c in _categories)
+                    {
+                        <tr>
+                            <td>@c.Icon</td>
+                            <td>@c.NameAr</td>
+                            <td>@c.NameEn</td>
+                            <td>@c.Slug</td>
+                            <td>
+                                <AcButton Variant="danger" Size="sm" Text="حذف"
+                                          OnClick="@(() => Delete(c))" />
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</AcAuthGuard>
+
+@code {
+    private bool _loading = true;
+    private List<CatRow> _categories = new();
+    private string _nameAr = "", _nameEn = "", _slug = "", _icon = "🍽️";
+    private string _createError = "";
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || !Store.Auth.IsAuthenticated) { _loading = false; StateHasChanged(); return; }
+        await Reload();
+    }
+
+    private async Task Reload()
+    {
+        var env = await Api.GetAsync<List<CatRow>>("/api/admin/categories");
+        _categories = env.Data ?? new();
+        _loading = false; StateHasChanged();
+    }
+
+    private async Task Create()
+    {
+        _createError = "";
+        if (string.IsNullOrWhiteSpace(_nameAr) || string.IsNullOrWhiteSpace(_slug))
+        {
+            _createError = "الاسم العربي والرابط مطلوبان";
+            StateHasChanged(); return;
+        }
+        var res = await Api.PostAsync<object>("/api/admin/categories",
+            new { nameAr = _nameAr, nameEn = _nameEn, slug = _slug, icon = _icon });
+        if (res.Operation?.Status == "Success")
+        {
+            _nameAr = ""; _nameEn = ""; _slug = ""; _icon = "🍽️";
+            await Reload();
+        }
+        else { _createError = res.Operation?.ErrorMessage ?? "فشل الإنشاء"; StateHasChanged(); }
+    }
+
+    private async Task Delete(CatRow c)
+    {
+        await Api.DeleteAsync($"/api/admin/categories/{c.Id}");
+        _categories.RemoveAll(x => x.Id == c.Id);
+        StateHasChanged();
+    }
+
+    private record CatRow(Guid Id, string NameAr, string NameEn, string? Icon, string Slug);
+}

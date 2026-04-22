@@ -1,0 +1,20 @@
+@page "/settings"
+@rendermode InteractiveServer
+@inject AppStore Store
+@inject AppStateApplier Applier
+@implements IDisposable
+
+<PageTitle>الإعدادات — اوردر V2</PageTitle>
+
+<AcSettingsPage Snapshot="@(new SettingsSnapshot { Theme = Store.Ui.Theme, Language = Store.Ui.Language })"
+                Title="الإعدادات"
+                ThemeLabel="المظهر" LanguageLabel="اللغة"
+                LightLabel="فاتح" DarkLabel="داكن"
+                OnThemeChange="@(t => Applier.ApplyLocalAsync(AdminV2Ops.SetTheme(t)))"
+                OnLanguageChange="@(l => Applier.ApplyLocalAsync(AdminV2Ops.SetLanguage(l)))" />
+
+@code {
+    protected override void OnInitialized() => Store.OnChanged += Refresh;
+    private void Refresh() => InvokeAsync(StateHasChanged);
+    public void Dispose() => Store.OnChanged -= Refresh;
+}

@@ -1,0 +1,47 @@
+@page "/"
+@rendermode InteractiveServer
+@inject AppStore Store
+@inject ApiReader Api
+@inject NavigationManager Nav
+
+<PageTitle>لوحة التحكم — اوردر V2</PageTitle>
+
+@if (!Store.Auth.IsAuthenticated)
+{
+    <AcAuthGuard IsAuthenticated="false" LoginHref="/login" />
+}
+else
+{
+    <AcAdminMetricsPage Metrics="@_metrics" Loading="@_loading" Title="لوحة تحكم اوردر V2" />
+}
+
+@code {
+    private bool _loading = true;
+    private List<PlatformMetricDto> _metrics = new();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || !Store.Auth.IsAuthenticated) { _loading = false; StateHasChanged(); return; }
+
+        var env = await Api.GetAsync<DashboardRow>("/api/admin/dashboard");
+        if (env.Data is { } d)
+        {
+            _metrics = new List<PlatformMetricDto>
+            {
+                new() { Label = "المستخدمون",     Value = d.TotalUsers.ToString(),           IconName = "users"   },
+                new() { Label = "نشطون",           Value = d.ActiveUsers.ToString(),          IconName = "check"   },
+                new() { Label = "المتاجر",         Value = d.TotalVendors.ToString(),         IconName = "store"   },
+                new() { Label = "الطلبات",         Value = d.TotalOrders.ToString(),          IconName = "receipt" },
+                new() { Label = "طلبات معلقة",     Value = d.PendingOrders.ToString(),        IconName = "clock"   },
+                new() { Label = "العروض النشطة",   Value = d.ActiveOffers.ToString(),         IconName = "tag"     },
+                new() { Label = "الإيرادات",       Value = $"{d.TotalRevenue:0.##} SAR",      IconName = "dollar"  },
+            };
+        }
+        _loading = false;
+        StateHasChanged();
+    }
+
+    private record DashboardRow(int TotalUsers, int ActiveUsers, int TotalVendors,
+                                int TotalOrders, int PendingOrders, int TotalOffers,
+                                int ActiveOffers, decimal TotalRevenue);
+}
