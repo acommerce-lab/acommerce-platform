@@ -6,6 +6,7 @@
 @using Ejar.Web.Operations
 @inject ClientOpEngine Engine
 @inject L L
+@inject INumeralNormalizer Numerals
 
 <PageTitle>تعديل البروفايل - @(L["app.name"])</PageTitle>
 
@@ -54,7 +55,7 @@
                 <AcField Label="@(L["auth.phone"])">
                     <div style="display:flex; gap:8px; align-items:center;">
                         <AcInput Type="tel" Value="@_data!.Phone"
-                                 ValueChanged="@(v => _data = _data with { Phone = v ?? string.Empty, PhoneVerified = false })" />
+                                 ValueChanged="@(v => _data = _data with { Phone = Numerals.ToLatin(v), PhoneVerified = false })" />
                         @if (_data.PhoneVerified)
                         {
                             <AcBadge Variant="success" Text="موثَّق" />

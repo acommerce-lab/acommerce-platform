@@ -3,6 +3,7 @@
 @inject ApiReader Api
 @inject NavigationManager Nav
 @inject L L
+@inject INumeralNormalizer Numerals
 
 <PageTitle>@(L["listing.create.title"]) — @(L["app.name"])</PageTitle>
 
@@ -55,7 +56,7 @@
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
                     <AcField Label="@(L["listing.create.field.price"])" Required="true">
                         <AcInput Type="number" Value="@Store.Draft.Price.ToString()"
-                                 ValueChanged="@(v => Store.Draft.Price = decimal.TryParse(v, out var p) ? p : 0)" />
+                                 ValueChanged="@(v => Store.Draft.Price = decimal.TryParse(Numerals.ToLatin(v), out var p) ? p : 0)" />
                     </AcField>
                     <AcField Label="@(L["listing.create.field.timeUnit"])">
                         <select class="ac-input" @bind="Store.Draft.TimeUnit">
@@ -68,7 +69,7 @@
                 </div>
                 <AcField Label="عدد الغرف (اختياريّ)">
                     <AcInput Type="number" Value="@Store.Draft.BedroomCount.ToString()"
-                             ValueChanged="@(v => Store.Draft.BedroomCount = int.TryParse(v, out var n) ? n : 0)" />
+                             ValueChanged="@(v => Store.Draft.BedroomCount = int.TryParse(Numerals.ToLatin(v), out var n) ? n : 0)" />
                 </AcField>
 
                 <AcField Label="@(L["listing.amenities"])">
@@ -165,11 +166,11 @@
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
                     <AcField Label="خط العرض (اختياريّ)">
                         <AcInput Type="number" Value="@_lat.ToString("0.######")"
-                                 ValueChanged="@(v => _lat = double.TryParse(v, out var d) ? d : _lat)" />
+                                 ValueChanged="@(v => _lat = double.TryParse(Numerals.ToLatin(v), out var d) ? d : _lat)" />
                     </AcField>
                     <AcField Label="خط الطول (اختياريّ)">
                         <AcInput Type="number" Value="@_lng.ToString("0.######")"
-                                 ValueChanged="@(v => _lng = double.TryParse(v, out var d) ? d : _lng)" />
+                                 ValueChanged="@(v => _lng = double.TryParse(Numerals.ToLatin(v), out var d) ? d : _lng)" />
                     </AcField>
                 </div>
                 <AcMapSim Pins="@MapPins" />

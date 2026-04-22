@@ -642,12 +642,14 @@ main {
 
 /* ── Auth page width on desktop ────────────────────────────────────── */
 .acs-auth-page {
+    width: 100%;
     max-width: 100%;
     padding: 0;
+    align-items: stretch;
 }
 @media (min-width: 768px) {
     .acs-auth-page {
-        max-width: 420px;
+        max-width: 480px;
         margin: 24px auto;
     }
 }
@@ -707,7 +709,7 @@ main {
 .acm-chrome-hidden .acm-v2-topnav-wrap     { display: none !important; }
 .acm-chrome-hidden .acm-v2-bottom-nav-wrap { display: none !important; }
 .acm-chrome-hidden main {
-    padding-top: 0 !important;
-    padding-bottom: 0 !important;
+    padding: 0 !important;
     max-width: 100%;
+    width: 100%;
 }

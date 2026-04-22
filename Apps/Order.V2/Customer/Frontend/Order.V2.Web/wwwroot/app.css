@@ -311,7 +311,8 @@ html[dir="rtl"] .ord-bottom-nav { transform: translateX(50%); }
    ========================================================================= */
 .acs-auth-page {
     background: var(--ac-bg);
-    padding: 40px 20px;
+    padding: 0;
+    align-items: stretch;
 }
 .acs-auth-icon  { font-size:3rem; color: var(--ac-primary); }
 .acs-auth-brand { font-size: 1.5rem; font-weight: 700; color: var(--ac-text); }
@@ -320,6 +321,7 @@ html[dir="rtl"] .ord-bottom-nav { transform: translateX(50%); }
     background: var(--ac-surface);
     border: 1px solid var(--ac-border);
     box-shadow: var(--ac-shadow-md);
+    max-width: 100%;
 }
 .acs-auth-title    { font-size:1.125rem; font-weight: 700; color: var(--ac-text); }
 .acs-auth-subtitle { font-size:0.875rem; color: var(--ac-text-muted); }

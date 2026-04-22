@@ -1,3 +1,4 @@
+using ACommerce.Authentication.Operations;
 using ACommerce.Authentication.TwoFactor.Operations.Abstractions;
 using ACommerce.OperationEngine.Analyzers;
 using ACommerce.OperationEngine.Core;
@@ -36,7 +37,7 @@ public class AuthController : ControllerBase
     [HttpPost("otp/request")]
     public async Task<IActionResult> RequestOtp([FromBody] OtpRequestBody body, CancellationToken ct)
     {
-        var phone = body.Phone?.Trim() ?? string.Empty;
+        var phone = PhoneNormalization.Normalize(body.Phone);
 
         var op = Entry.Create("auth.otp.request")
             .Describe($"OTP requested for {MaskPhone(phone)}")
@@ -45,7 +46,7 @@ public class AuthController : ControllerBase
             .Tag("phone_masked", MaskPhone(phone))
             .Analyze(new RequiredFieldAnalyzer("phone", () => phone))
             .Analyze(new ConditionAnalyzer("phone_format",
-                _ => phone.Length >= 9 && phone.All(c => char.IsDigit(c) || c == '+'),
+                _ => phone.Length >= 10 && phone.StartsWith('+') && phone[1..].All(char.IsDigit),
                 "رقم الجوال غير صالح"))
             .Execute(async ctx =>
             {
@@ -65,7 +66,7 @@ public class AuthController : ControllerBase
     [HttpPost("otp/verify")]
     public async Task<IActionResult> VerifyOtp([FromBody] OtpVerifyBody body, CancellationToken ct)
     {
-        var phone = body.Phone?.Trim() ?? string.Empty;
+        var phone = PhoneNormalization.Normalize(body.Phone);
         var code  = body.Code?.Trim()  ?? string.Empty;
 
         var userId = EjarSeed.GetOrCreateUserId(phone);

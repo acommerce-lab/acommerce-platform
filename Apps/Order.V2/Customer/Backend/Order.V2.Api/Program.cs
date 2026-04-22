@@ -4,7 +4,7 @@ using ACommerce.Authentication.Providers.Token;
 using ACommerce.Authentication.Providers.Token.Extensions;
 using ACommerce.Authentication.TwoFactor.Operations;
 using ACommerce.Authentication.TwoFactor.Operations.Abstractions;
-using ACommerce.Authentication.TwoFactor.Providers.Sms.Extensions;
+using ACommerce.Authentication.TwoFactor.Providers.Sms.Mock.Extensions;
 using ACommerce.Culture.Interceptors;
 using ACommerce.Notification.Operations;
 using ACommerce.Notification.Operations.Abstractions;
@@ -199,8 +199,8 @@ builder.Services.AddSingleton<AuthConfig>(sp =>
 });
 builder.Services.AddScoped<AuthService>();
 
-// SMS 2FA — mock: prints OTP code to console/logs (no external SMS gateway)
-builder.Services.AddSmsTwoFactor();
+// SMS 2FA — mock: رمز ثابت 123456 (يُستبدَل بـ AddSmsTwoFactor() في الإنتاج)
+builder.Services.AddMockSmsTwoFactor();
 builder.Services.AddSingleton<TwoFactorConfig>(sp =>
 {
     var config = new TwoFactorConfig();

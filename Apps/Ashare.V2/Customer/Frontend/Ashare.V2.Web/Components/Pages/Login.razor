@@ -3,6 +3,7 @@
 @inject ApiReader Api
 @inject NavigationManager Nav
 @inject L L
+@inject INumeralNormalizer Numerals
 @implements IDisposable
 
 @* Nafath + Guest — يستدعي الـ API الخلفي الذي يحقن MockNafathTwoFactorChannel.
@@ -23,7 +24,7 @@
             {
                 <AcField Label="@(L["auth.national_id"])" Required="true">
                     <AcInput Type="text" Value="@_nationalId"
-                             ValueChanged="@(v => _nationalId = (v ?? string.Empty).Trim())"
+                             ValueChanged="@(v => _nationalId = (Numerals.ToLatin(v) ?? string.Empty).Trim())"
                              Placeholder="10 أرقام" />
                 </AcField>
 

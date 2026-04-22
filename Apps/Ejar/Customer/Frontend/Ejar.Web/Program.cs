@@ -2,6 +2,8 @@ using ACommerce.Client.Http;
 using ACommerce.Client.Operations;
 using ACommerce.Client.Operations.Interceptors;
 using ACommerce.Client.StateBridge;
+using ACommerce.Culture.Abstractions;
+using ACommerce.Culture.Defaults;
 using ACommerce.OperationEngine.Core;
 using Ejar.Web.Components;
 using Ejar.Web.Interceptors;
@@ -23,9 +25,11 @@ builder.Services.AddSingleton<ITranslationProvider, EmbeddedTranslationProvider>
 builder.Services.AddScoped<L>();
 
 builder.Services.AddScoped<ITimezoneProvider, JsTimezoneProvider>();
+builder.Services.AddSingleton<INumeralNormalizer, DefaultNumeralNormalizer>();
 
 builder.Services.AddScoped<CultureInterceptor>();
 builder.Services.AddTransient<CultureHeadersHandler>();
+builder.Services.AddTransient<AuthHeadersHandler>();
 
 // ─── OpEngine للعمليات المحلّية ────────────────────────────────────────
 builder.Services.AddScoped<OpEngine>(sp =>
@@ -38,7 +42,8 @@ builder.Services.AddHttpClient("ejar", c =>
     c.BaseAddress = new Uri(apiBase);
     c.Timeout = TimeSpan.FromSeconds(30);
 })
-.AddHttpMessageHandler<CultureHeadersHandler>();
+.AddHttpMessageHandler<CultureHeadersHandler>()
+.AddHttpMessageHandler<AuthHeadersHandler>();
 
 var routeRegistry = new HttpRouteRegistry();
 EjarRoutes.Register(routeRegistry);

@@ -2,6 +2,8 @@ using ACommerce.Client.Http;
 using ACommerce.Client.Operations;
 using ACommerce.Client.Operations.Interceptors;
 using ACommerce.Client.StateBridge;
+using ACommerce.Culture.Abstractions;
+using ACommerce.Culture.Defaults;
 using ACommerce.OperationEngine.Core;
 using Ashare.V2.Web.Components;
 using Ashare.V2.Web.Interceptors;
@@ -26,6 +28,7 @@ builder.Services.AddScoped<L>();
 
 // ── ProviderContract للتوقيت (مُبقى للصياغة النسبيّة — Tz.FormatRelative).
 //    التحويل الأساسيّ انتقل إلى CultureInterceptor الذي يستعمل Culture.TimeZone.
+builder.Services.AddSingleton<INumeralNormalizer, DefaultNumeralNormalizer>();
 builder.Services.AddScoped<ITimezoneProvider, JsTimezoneProvider>();
 
 // ── معترض الثقافة (إياب): يطبّق Culture على حمولات OperationEnvelope
@@ -34,6 +37,7 @@ builder.Services.AddScoped<CultureInterceptor>();
 
 // ── معترض الثقافة (ذهاب): DelegatingHandler يختم كلّ طلب برؤوس Culture.
 builder.Services.AddTransient<CultureHeadersHandler>();
+builder.Services.AddTransient<AuthHeadersHandler>();
 
 // ─── OpEngine للعمليات المحلّية ────────────────────────────────────────
 builder.Services.AddScoped<OpEngine>(sp =>
@@ -50,7 +54,8 @@ builder.Services.AddHttpClient("ashare-v2", c =>
 })
 // CultureHeadersHandler يضيف Accept-Language / X-User-Timezone / X-User-Currency
 // على كلّ طلب صادر — الخدمة الخلفيّة تفهم سياق ثقافة المستخدم.
-.AddHttpMessageHandler<CultureHeadersHandler>();
+.AddHttpMessageHandler<CultureHeadersHandler>()
+.AddHttpMessageHandler<AuthHeadersHandler>();
 
 var routeRegistry = new HttpRouteRegistry();
 V2Routes.Register(routeRegistry);

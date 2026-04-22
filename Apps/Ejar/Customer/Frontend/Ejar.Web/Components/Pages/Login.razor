@@ -3,6 +3,7 @@
 @inject ApiReader Api
 @inject NavigationManager Nav
 @inject L L
+@inject INumeralNormalizer Numerals
 @implements IDisposable
 
 <PageTitle>@(L["auth.login.title"]) — @(L["app.name"])</PageTitle>
@@ -19,7 +20,7 @@
             {
                 <AcField Label="@(L["auth.phone"])" Required="true">
                     <AcInput Type="tel" Value="@_phone"
-                             ValueChanged="@(v => _phone = (v ?? string.Empty).Trim())"
+                             ValueChanged="@(v => _phone = (Numerals.ToLatin(v) ?? string.Empty).Trim())"
                              Placeholder="05xxxxxxxx" />
                 </AcField>
 
@@ -39,7 +40,7 @@
 
                 <AcField Label="@(L["auth.otp"])" Required="true">
                     <AcInput Type="tel" Value="@_code"
-                             ValueChanged="@(v => _code = (v ?? string.Empty).Trim())"
+                             ValueChanged="@(v => _code = (Numerals.ToLatin(v) ?? string.Empty).Trim())"
                              Placeholder="123456" />
                 </AcField>
 
