@@ -48,13 +48,17 @@
     private MarketplaceHomeDto? _data;
     private IReadOnlyList<string> _cities = Array.Empty<string>();
 
-    private static readonly IReadOnlyList<QuickActionDto> _quickActions =
-    [
-        new("find-roommate", "ابحث عن شريك سكن", "search-heart", "primary"),
-        new("my-requests",   "طلباتي",            "house-heart",  "secondary")
-    ];
+    private IReadOnlyList<QuickActionDto> _quickActions = Array.Empty<QuickActionDto>();
 
-    protected override void OnInitialized() => Store.OnChanged += OnChange;
+    protected override void OnInitialized()
+    {
+        Store.OnChanged += OnChange;
+        _quickActions = new[]
+        {
+            new QuickActionDto("find-roommate", L["quickaction.find_roommate"], "search-heart", "primary"),
+            new QuickActionDto("my-requests",   L["quickaction.my_requests"],   "house-heart",  "secondary")
+        };
+    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {

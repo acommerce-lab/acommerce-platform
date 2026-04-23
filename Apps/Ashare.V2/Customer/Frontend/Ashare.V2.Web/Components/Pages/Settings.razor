@@ -26,8 +26,8 @@
             <div class="acm-checkout-line">
                 <span>@(L["settings.language"])</span>
                 <div style="display:inline-flex; gap:8px;">
-                    <AcFilterChip Label="العربيّة" Active="@(Store.Ui.Language == "ar")" OnClick="@SetAr" />
-                    <AcFilterChip Label="English"  Active="@(Store.Ui.Language == "en")" OnClick="@SetEn" />
+                    <AcFilterChip Label="@(L["settings.language.ar"])" Active="@(Store.Ui.Language == "ar")" OnClick="@SetAr" />
+                    <AcFilterChip Label="@(L["settings.language.en"])"  Active="@(Store.Ui.Language == "en")" OnClick="@SetEn" />
                 </div>
             </div>
         </ChildContent>
@@ -35,7 +35,7 @@
 
     <AcCard>
         <ChildContent>
-            <h3 style="margin-top:0;">المستندات القانونيّة</h3>
+            <h3 style="margin-top:0;">@(L["settings.legal_docs"])</h3>
             <AcButton Variant="ghost" Class="ac-btn-block" Text="@(L["legal.privacy"])" OnClick="@GoPrivacy" />
             <AcButton Variant="ghost" Class="ac-btn-block" Text="@(L["legal.terms"])"   OnClick="@GoTerms" />
             <AcButton Variant="ghost" Class="ac-btn-block" Text="@(L["legal.return"])"  OnClick="@GoRefund" />
