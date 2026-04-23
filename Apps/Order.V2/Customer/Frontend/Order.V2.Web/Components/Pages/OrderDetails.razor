@@ -69,12 +69,12 @@ else
         }).ToList(),
         PickupType = OrderData.PickupType == 1 ? "Curbside" : "InStore",
         PickupLabel = OrderData.PickupType == 1
-            ? (Store.Ui.IsArabic ? "من السيارة" : "Curbside")
-            : (Store.Ui.IsArabic ? "من المتجر" : "In-store"),
+            ? L["checkout.pickup_curbside"]
+            : L["checkout.pickup_instore"],
         PaymentMethod = OrderData.PreferredPayment == 1 ? "Card" : "Cash",
         PaymentLabel = OrderData.PreferredPayment == 1
-            ? (Store.Ui.IsArabic ? "بطاقة" : "Card")
-            : (Store.Ui.IsArabic ? "نقدي" : "Cash"),
+            ? L["checkout.payment_card"]
+            : L["checkout.payment_cash"],
         CashTendered = OrderData.CashTendered,
         ExpectedChange = OrderData.ExpectedChange,
         CustomerNotes = OrderData.CustomerNotes,

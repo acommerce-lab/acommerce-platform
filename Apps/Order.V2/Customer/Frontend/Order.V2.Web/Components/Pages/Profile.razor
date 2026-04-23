@@ -9,7 +9,7 @@
 @if (!Store.Auth.IsAuthenticated)
 {
     <AcEmptyState IconName="user"
-                  Title="@(L["auth.login.title"])"
+                  Title="@(L["profile.not_signed_in"])"
                   ActionLabel="@(L["auth.login.title"])"
                   ActionHref="/login" />
 }
@@ -35,7 +35,7 @@ else
     {
         new ProfileStatDto(L["orders.title"], "0"),
         new ProfileStatDto(L["favorites.title"], "0"),
-        new ProfileStatDto(L["settings.title"], "0"),
+        new ProfileStatDto(L["profile.points"], "0"),
     };
 
     private IReadOnlyList<MenuSectionDto> MenuSectionsList => new[]
@@ -45,11 +45,11 @@ else
             Title = L["profile.account"],
             Items = new[]
             {
-                new MenuItemDto { Label = L["orders.page_title"],    IconName = "package",  Href = "/orders" },
-                new MenuItemDto { Label = L["favorites.title"],      IconName = "heart",    Href = "/favorites" },
-                new MenuItemDto { Label = L["messages.title"],       IconName = "message",  Href = "/messages" },
-                new MenuItemDto { Label = L["common.empty"],         IconName = "bell",     Href = "/notifications" },
-                new MenuItemDto { Label = L["profile.title"],        IconName = "user",     Href = "/account" },
+                new MenuItemDto { Label = L["orders.page_title"],      IconName = "package",  Href = "/orders" },
+                new MenuItemDto { Label = L["favorites.title"],        IconName = "heart",    Href = "/favorites" },
+                new MenuItemDto { Label = L["messages.title"],         IconName = "message",  Href = "/messages" },
+                new MenuItemDto { Label = L["notifications.title"],    IconName = "bell",     Href = "/notifications" },
+                new MenuItemDto { Label = L["profile.account"],        IconName = "user",     Href = "/account" },
             }
         },
         new MenuSectionDto
