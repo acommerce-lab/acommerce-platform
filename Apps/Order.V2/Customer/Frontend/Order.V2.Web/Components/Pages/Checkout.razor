@@ -5,20 +5,20 @@
 @inject NavigationManager Nav
 @inject L L
 
-<PageTitle>@L.T("إكمال الطلب - اوردر", "Checkout — Order")</PageTitle>
+<PageTitle>@(L["checkout.title"]) — @(L["app.name"])</PageTitle>
 
 @if (!Store.Auth.IsAuthenticated)
 {
     <AcEmptyState IconName="log-in"
-                  Title="@(Store.Ui.IsArabic ? "يجب تسجيل الدخول أولاً" : "Sign in first")"
-                  ActionLabel="@(Store.Ui.IsArabic ? "تسجيل الدخول" : "Sign in")"
+                  Title="@(L["checkout.signin_required"])"
+                  ActionLabel="@(L["checkout.signin"])"
                   ActionHref="/login?return=/checkout" />
 }
 else if (Store.Cart.Items.Count == 0)
 {
     <AcEmptyState IconName="cart"
-                  Title="@(Store.Ui.IsArabic ? "السلة فارغة" : "Cart is empty")"
-                  ActionLabel="@(Store.Ui.IsArabic ? "تصفّح العروض" : "Browse offers")"
+                  Title="@(L["checkout.empty_cart"])"
+                  ActionLabel="@(L["cart.browse"])"
                   ActionHref="/" />
 }
 else
@@ -29,28 +29,28 @@ else
                     OnSubmit="Submit"
                     Submitting="@Submitting"
                     Error="@Error"
-                    Title="@(Store.Ui.IsArabic ? "إكمال الطلب" : "Place order")"
-                    SummaryLabel="@(Store.Ui.IsArabic ? "ملخص الطلب" : "Order summary")"
-                    TotalLabel="@(Store.Ui.IsArabic ? "الإجمالي" : "Total")"
-                    PickupLabel="@(Store.Ui.IsArabic ? "طريقة الاستلام" : "Pickup method")"
-                    InStoreLabel="@(Store.Ui.IsArabic ? "من المتجر" : "In-store")"
-                    CurbsideLabel="@(Store.Ui.IsArabic ? "من السيارة" : "Curbside")"
-                    CarDetailsLabel="@(Store.Ui.IsArabic ? "بيانات السيارة" : "Car details")"
-                    CarModelLabel="@(Store.Ui.IsArabic ? "نوع السيارة" : "Model")"
-                    CarColorLabel="@(Store.Ui.IsArabic ? "اللون" : "Color")"
-                    CarPlateLabel="@(Store.Ui.IsArabic ? "رقم اللوحة (اختياري)" : "Plate number (optional)")"
-                    PaymentLabel="@(Store.Ui.IsArabic ? "طريقة الدفع المفضلة" : "Preferred payment")"
-                    PaymentHint="@(Store.Ui.IsArabic ? "الدفع يتم عند الاستلام في المتجر — لا دفع إلكتروني." : "Payment happens at pickup — no online payment.")"
-                    CashLabel="@(Store.Ui.IsArabic ? "نقدي" : "Cash")"
-                    CardLabel="@(Store.Ui.IsArabic ? "بطاقة" : "Card")"
-                    CashTenderedLabel="@(Store.Ui.IsArabic ? "المبلغ بالريال" : "Amount (SAR)")"
-                    ChangeLabel="@(Store.Ui.IsArabic ? "الباقي المتوقع" : "Expected change")"
-                    NotEnoughLabel="@(Store.Ui.IsArabic ? "المبلغ غير كافٍ — يجب أن يساوي أو يتجاوز الإجمالي" : "Amount must cover the total")"
-                    NotesLabel="@(Store.Ui.IsArabic ? "ملاحظات للتاجر (اختياري)" : "Notes (optional)")"
-                    SubmitLabel="@(Store.Ui.IsArabic ? "تأكيد الطلب" : "Confirm order")"
-                    SubmittingLabel="@(Store.Ui.IsArabic ? "جاري الإرسال..." : "Sending…")"
+                    Title="@(L["checkout.title"])"
+                    SummaryLabel="@(L["checkout.summary"])"
+                    TotalLabel="@(L["checkout.total"])"
+                    PickupLabel="@(L["checkout.pickup_method"])"
+                    InStoreLabel="@(L["checkout.pickup_instore"])"
+                    CurbsideLabel="@(L["checkout.pickup_curbside"])"
+                    CarDetailsLabel="@(L["checkout.car_details"])"
+                    CarModelLabel="@(L["checkout.car_model"])"
+                    CarColorLabel="@(L["checkout.car_color"])"
+                    CarPlateLabel="@(L["checkout.car_plate"])"
+                    PaymentLabel="@(L["checkout.payment"])"
+                    PaymentHint="@(L["checkout.payment_hint"])"
+                    CashLabel="@(L["checkout.payment_cash"])"
+                    CardLabel="@(L["checkout.payment_card"])"
+                    CashTenderedLabel="@(L["checkout.payment_amount"])"
+                    ChangeLabel="@(L["checkout.payment_change"])"
+                    NotEnoughLabel="@(L["checkout.payment_not_enough"])"
+                    NotesLabel="@(L["checkout.notes"])"
+                    SubmitLabel="@(L["checkout.submit"])"
+                    SubmittingLabel="@(L["checkout.submitting"])"
                     BackToCartHref="/cart"
-                    BackToCartLabel="@(Store.Ui.IsArabic ? "العودة للسلة" : "Back to cart")" />
+                    BackToCartLabel="@(L["checkout.back_to_cart"])" />
 }
 
 @code {
@@ -101,12 +101,12 @@ else
         if (!Store.Auth.IsAuthenticated || Store.Cart.Items.Count == 0) return;
         if (Draft.PickupType == "Curbside" && string.IsNullOrWhiteSpace(Draft.CarModel))
         {
-            Error = Store.Ui.IsArabic ? "أدخل بيانات السيارة" : "Please enter car details";
+            Error = L["checkout.car_required"];
             return;
         }
         if (Draft.PaymentMethod == "Cash" && Draft.CashTendered.HasValue && Draft.CashTendered.Value < Store.Cart.Subtotal)
         {
-            Error = Store.Ui.IsArabic ? "المبلغ المقدّم يجب أن يغطي الإجمالي" : "Cash amount must cover the total";
+            Error = L["checkout.payment_insufficient"];
             return;
         }
         Submitting = true;
@@ -127,7 +127,7 @@ else
             var result = await Engine.ExecuteAsync<CreatedOrderDto>(ClientOps.CreateOrder(Store.Auth.UserId), payload);
             if (result.Operation.Status != "Success" || result.Data == null)
             {
-                Error = result.Operation.ErrorMessage ?? result.Error?.Message ?? (Store.Ui.IsArabic ? "تعذّر إنشاء الطلب" : "Could not create order");
+                Error = result.Operation.ErrorMessage ?? result.Error?.Message ?? L["checkout.error"];
                 return;
             }
             var orderId = result.Data.Id;

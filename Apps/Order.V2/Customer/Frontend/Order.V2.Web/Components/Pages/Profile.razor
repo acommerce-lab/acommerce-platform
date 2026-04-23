@@ -4,13 +4,13 @@
 @inject NavigationManager Nav
 @inject L L
 
-<PageTitle>@L.T("حسابي - اوردر", "My account — Order")</PageTitle>
+<PageTitle>@(L["profile.title"]) — @(L["app.name"])</PageTitle>
 
 @if (!Store.Auth.IsAuthenticated)
 {
     <AcEmptyState IconName="user"
-                  Title="@(Store.Ui.IsArabic ? "أنت غير مسجل" : "Not signed in")"
-                  ActionLabel="@(Store.Ui.IsArabic ? "تسجيل الدخول" : "Sign in")"
+                  Title="@(L["profile.not_signed_in"])"
+                  ActionLabel="@(L["auth.login.title"])"
                   ActionHref="/login" />
 }
 else
@@ -18,7 +18,7 @@ else
     <AcProfilePage User="@UserDto"
                    Stats="@StatsList"
                    MenuSections="@MenuSectionsList"
-                   SignOutLabel="@(Store.Ui.IsArabic ? "تسجيل الخروج" : "Sign out")"
+                   SignOutLabel="@(L["settings.sign_out"])"
                    OnSignOut="SignOut" />
 }
 
@@ -26,38 +26,38 @@ else
     private ProfileUserDto UserDto => new()
     {
         Id = Store.Auth.UserId?.ToString() ?? "",
-        FullName = Store.Auth.FullName ?? (Store.Ui.IsArabic ? "عميل اوردر" : "Order customer"),
+        FullName = Store.Auth.FullName ?? L["common.empty"],
         PhoneNumber = Store.Auth.PhoneNumber,
         Initial = !string.IsNullOrEmpty(Store.Auth.FullName) && Store.Auth.FullName.Length > 0 ? Store.Auth.FullName[..1] : "👤"
     };
 
     private IReadOnlyList<ProfileStatDto> StatsList => new[]
     {
-        new ProfileStatDto(Store.Ui.IsArabic ? "طلب" : "Orders", "0"),
-        new ProfileStatDto(Store.Ui.IsArabic ? "مفضلة" : "Favorites", "0"),
-        new ProfileStatDto(Store.Ui.IsArabic ? "نقاط" : "Points", "0"),
+        new ProfileStatDto(L["orders.title"], "0"),
+        new ProfileStatDto(L["favorites.title"], "0"),
+        new ProfileStatDto(L["profile.points"], "0"),
     };
 
     private IReadOnlyList<MenuSectionDto> MenuSectionsList => new[]
     {
         new MenuSectionDto
         {
-            Title = Store.Ui.IsArabic ? "حسابي" : "Account",
+            Title = L["profile.account"],
             Items = new[]
             {
-                new MenuItemDto { Label = Store.Ui.IsArabic ? "طلباتي" : "My orders",         IconName = "package",  Href = "/orders" },
-                new MenuItemDto { Label = Store.Ui.IsArabic ? "المفضلة" : "Favorites",       IconName = "heart",    Href = "/favorites" },
-                new MenuItemDto { Label = Store.Ui.IsArabic ? "محادثاتي" : "Messages",       IconName = "message",  Href = "/messages" },
-                new MenuItemDto { Label = Store.Ui.IsArabic ? "الإشعارات" : "Notifications", IconName = "bell",     Href = "/notifications" },
-                new MenuItemDto { Label = Store.Ui.IsArabic ? "بياناتي" : "My Account",      IconName = "user",     Href = "/account" },
+                new MenuItemDto { Label = L["orders.page_title"],      IconName = "package",  Href = "/orders" },
+                new MenuItemDto { Label = L["favorites.title"],        IconName = "heart",    Href = "/favorites" },
+                new MenuItemDto { Label = L["messages.title"],         IconName = "message",  Href = "/messages" },
+                new MenuItemDto { Label = L["notifications.title"],    IconName = "bell",     Href = "/notifications" },
+                new MenuItemDto { Label = L["profile.account"],        IconName = "user",     Href = "/account" },
             }
         },
         new MenuSectionDto
         {
-            Title = Store.Ui.IsArabic ? "التطبيق" : "App",
+            Title = L["app.name"],
             Items = new[]
             {
-                new MenuItemDto { Label = Store.Ui.IsArabic ? "الإعدادات" : "Settings", IconName = "settings", Href = "/settings" },
+                new MenuItemDto { Label = L["settings.title"], IconName = "settings", Href = "/settings" },
             }
         }
     };

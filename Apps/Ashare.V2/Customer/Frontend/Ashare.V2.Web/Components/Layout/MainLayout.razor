@@ -76,26 +76,8 @@
     private string? _support;
     private bool _realtimeConnected;
 
-    private static readonly IReadOnlyList<BottomNavItemDto> _bottomItems = new[]
-    {
-        new BottomNavItemDto { Href = "/",          Label = "الرئيسية", IconName = "home",    Exact = true },
-        new BottomNavItemDto { Href = "/explore",   Label = "استكشف",   IconName = "search" },
-        new BottomNavItemDto { Href = "/bookings",  Label = "حجوزاتي",  IconName = "receipt" },
-        new BottomNavItemDto { Href = "/chats",     Label = "الرسائل",  IconName = "message" },
-        new BottomNavItemDto { Href = "/favorites", Label = "المفضلة",  IconName = "heart" },
-        new BottomNavItemDto { Href = "/me",        Label = "حسابي",    IconName = "user" }
-    };
-
-    private static readonly IReadOnlyList<AcTopNav.TopNavItem> _topItems = new[]
-    {
-        new AcTopNav.TopNavItem("/",             "الرئيسية",  "home",    null, true),
-        new AcTopNav.TopNavItem("/explore",      "استكشف",    "search"),
-        new AcTopNav.TopNavItem("/bookings",     "حجوزاتي",   "receipt"),
-        new AcTopNav.TopNavItem("/chats",        "الرسائل",   "message"),
-        new AcTopNav.TopNavItem("/favorites",    "المفضلة",   "heart"),
-        new AcTopNav.TopNavItem("/notifications","الإشعارات", "bell"),
-        new AcTopNav.TopNavItem("/me",           "حسابي",     "user")
-    };
+    private IReadOnlyList<BottomNavItemDto> _bottomItems = Array.Empty<BottomNavItemDto>();
+    private IReadOnlyList<AcTopNav.TopNavItem> _topItems = Array.Empty<AcTopNav.TopNavItem>();
 
     private string? _appliedTheme;
     private string? _appliedLang;
@@ -103,20 +85,25 @@
     protected override void OnInitialized()
     {
         Store.OnChanged += OnChange;
-        Nav.LocationChanged += OnLocationChanged;
-        UpdateChrome(Nav.Uri);
-    }
 
-    private void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
-    {
-        UpdateChrome(e.Location);
-        InvokeAsync(StateHasChanged);
-    }
+        _bottomItems = new[]
+        {
+            new BottomNavItemDto { Href = "/",          Label = L["nav.home"],       IconName = "home",    Exact = true },
+            new BottomNavItemDto { Href = "/explore",   Label = L["nav.explore"],    IconName = "search" },
+            new BottomNavItemDto { Href = "/favorites", Label = L["nav.favorites"],  IconName = "heart" },
+            new BottomNavItemDto { Href = "/bookings",  Label = L["nav.bookings"],   IconName = "receipt" },
+            new BottomNavItemDto { Href = "/me",        Label = L["nav.profile"],    IconName = "user" }
+        };
 
-    private void UpdateChrome(string uri)
-    {
-        var path = new Uri(uri).AbsolutePath;
-        Store.Ui.HideChrome = path.StartsWith("/login", StringComparison.OrdinalIgnoreCase);
+        _topItems = new[]
+        {
+            new AcTopNav.TopNavItem("/",            L["nav.home"],         "home",    null, true),
+            new AcTopNav.TopNavItem("/explore",     L["nav.explore"],      "search"),
+            new AcTopNav.TopNavItem("/favorites",   L["nav.favorites"],    "heart"),
+            new AcTopNav.TopNavItem("/bookings",    L["nav.bookings"],     "receipt"),
+            new AcTopNav.TopNavItem("/notifications",L["nav.notifications"], "bell"),
+            new AcTopNav.TopNavItem("/me",          L["nav.profile"],      "user")
+        };
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)

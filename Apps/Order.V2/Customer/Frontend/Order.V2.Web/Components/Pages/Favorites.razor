@@ -3,24 +3,24 @@
 @inject ApiReader Api
 @inject L L
 
-<PageTitle>@L.T("المفضلة - اوردر", "Favorites — Order")</PageTitle>
+<PageTitle>@(L["favorites.title"]) — @(L["app.name"])</PageTitle>
 
 @if (!Store.Auth.IsAuthenticated)
 {
     <AcEmptyState IconName="heart"
-                  Title="@(Store.Ui.IsArabic ? "سجّل دخولك للحفظ" : "Sign in to save")"
-                  ActionLabel="@(Store.Ui.IsArabic ? "تسجيل الدخول" : "Sign in")"
+                  Title="@(L["favorites.signin_required"])"
+                  ActionLabel="@(L["auth.login.title"])"
                   ActionHref="/login" />
 }
 else
 {
     <AcFavoritesPage Items="@Mapped"
                      Loading="@Loading"
-                     Title="@(Store.Ui.IsArabic ? "المفضلة" : "Favorites")"
-                     LoadingMessage="@(Store.Ui.IsArabic ? "جاري التحميل..." : "Loading…")"
-                     EmptyTitle="@(Store.Ui.IsArabic ? "لا توجد عروض محفوظة" : "No favorites yet")"
-                     EmptyMessage="@(Store.Ui.IsArabic ? "اضغط على القلب في صفحة العرض لحفظه" : "Tap the heart on any offer to save it")"
-                     BrowseLabel="@(Store.Ui.IsArabic ? "تصفّح العروض" : "Browse offers")"
+                     Title="@(L["favorites.title"])"
+                     LoadingMessage="@(L["common.loading"])"
+                     EmptyTitle="@(L["favorites.empty_title"])"
+                     EmptyMessage="@(L["favorites.empty_message"])"
+                     BrowseLabel="@(L["cart.browse"])"
                      BrowseHref="/" />
 }
 

@@ -2,18 +2,19 @@
 @inject AppStore Store
 @inject ApiReader Api
 @inject NavigationManager Nav
+@inject L L
 
-<PageTitle>@(Vendor?.Name ?? Store.Ui.Tr("متجر", "Store")) - @Store.Ui.Tr("اوردر", "Order")</PageTitle>
+<PageTitle>@(Vendor?.Name ?? L["vendor.profile"]) - @(L["app.name"])</PageTitle>
 
 @if (Loading)
 {
-    <AcLoadingState Message="@Store.Ui.Tr("جاري التحميل...", "Loading...")" />
+    <AcLoadingState Message="@(L["common.loading"])" />
 }
 else if (Vendor == null)
 {
     <AcEmptyState IconName="store"
-                  Title="@Store.Ui.Tr("المتجر غير موجود", "Store not found")"
-                  ActionLabel="@Store.Ui.Tr("الرئيسية", "Home")"
+                  Title="@(L["vendor.not_found"])"
+                  ActionLabel="@(L["vendor.home"])"
                   ActionHref="/" />
 }
 else
@@ -25,7 +26,7 @@ else
                 @if (Vendor.Rating > 0)
                 {
                     <AcBadge Variant="success">
-                        <span>@Vendor.Rating.ToString("0.0") @Store.Ui.Tr("تقييم", "rating") (@Vendor.RatingCount)</span>
+                        <span>@Vendor.Rating.ToString("0.0") @(L["offer.rating"]) (@Vendor.RatingCount)</span>
                     </AcBadge>
                 }
             </Actions>
@@ -35,7 +36,7 @@ else
             <Header>
                 <div class="ac-row ac-align-center" style="gap:0.5rem">
                     <span style="font-size:1.5rem">@(Vendor.LogoEmoji ?? "🏪")</span>
-                    <strong>@Store.Ui.Tr("معلومات المتجر", "Store info")</strong>
+                    <strong>@(L["vendor.info"])</strong>
                 </div>
             </Header>
             <ChildContent>
@@ -63,12 +64,12 @@ else
             </ChildContent>
         </AcCard>
 
-        <AcPageHeader Title="@Store.Ui.Tr("عروض المتجر", "Store offers")" />
+        <AcPageHeader Title="@(L["vendor.offers"])" />
 
         @if (MappedOffers.Count == 0)
         {
             <AcEmptyState IconName="inbox"
-                          Message="@Store.Ui.Tr("لا توجد عروض حالياً", "No offers right now")" />
+                          Message="@(L["vendor.no_offers"])" />
         }
         else
         {

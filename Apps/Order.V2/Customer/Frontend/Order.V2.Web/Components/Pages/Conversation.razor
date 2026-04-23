@@ -6,13 +6,13 @@
 @inject ACommerce.Culture.Blazor.CultureTimeFormatter TimeFormatter
 @inject L L
 
-<PageTitle>@L.T("محادثة - اوردر", "Chat — Order")</PageTitle>
+<PageTitle>@(L["conversation.title"]) — @(L["app.name"])</PageTitle>
 
 @if (!Store.Auth.IsAuthenticated)
 {
     <AcEmptyState IconName="log-in"
-                  Title="@(Store.Ui.IsArabic ? "سجل دخولك" : "Sign in")"
-                  ActionLabel="@(Store.Ui.IsArabic ? "دخول" : "Sign in")"
+                  Title="@(L["conversation.signin_required"])"
+                  ActionLabel="@(L["auth.login.title"])"
                   ActionHref="/login" />
 }
 else
@@ -25,11 +25,11 @@ else
                 Messages="@Mapped"
                 MySenderId="@(Store.Auth.UserId?.ToString() ?? "")"
                 Loading="@Loading"
-                Title="@(Store.Ui.IsArabic ? "محادثة" : "Chat")"
-                LoadingMessage="@(Store.Ui.IsArabic ? "جاري التحميل..." : "Loading…")"
-                EmptyMessage="@(Store.Ui.IsArabic ? "لا رسائل بعد" : "No messages yet")"
-                InputPlaceholder="@(Store.Ui.IsArabic ? "اكتب رسالة..." : "Type a message...")"
-                SendLabel="@(Store.Ui.IsArabic ? "إرسال" : "Send")" />
+                Title="@(L["conversation.title"])"
+                LoadingMessage="@(L["conversation.loading"])"
+                EmptyMessage="@(L["conversation.empty"])"
+                InputPlaceholder="@(L["messages.placeholder"])"
+                SendLabel="@(L["messages.send"])" />
 }
 
 @code {

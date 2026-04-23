@@ -1,18 +1,19 @@
 @page "/legal"
 @inject AppStore Store
+@inject L L
 
-<PageTitle>@Store.Ui.Tr("الشروط والأحكام", "Terms & Conditions") - @Store.Ui.Tr("اوردر", "Order")</PageTitle>
+<PageTitle>@(L["legal.title"]) - @(L["app.name"])</PageTitle>
 
 <div class="acs-page">
-    <AcPageHeader Title="@Store.Ui.Tr("الشروط والأحكام", "Terms & Conditions")"
-                  Subtitle="@Store.Ui.Tr("آخر تحديث: أبريل 2026", "Last updated: April 2026")" />
+    <AcPageHeader Title="@(L["legal.title"])"
+                  Subtitle="@(L["legal.updated"])" />
 
     <AcCard Class="ac-mb-lg">
         <Header>
-            <strong>@Store.Ui.Tr("شروط الاستخدام", "Terms of Use")</strong>
+            <strong>@(L["legal.terms_header"])</strong>
         </Header>
         <ChildContent>
-            @if (Store.Ui.IsArabic)
+            @if (L.Lang == "ar")
             {
                 <p class="ac-mb-sm">باستخدامك تطبيق اوردر فإنك توافق على الشروط التالية:</p>
                 <ul style="padding-inline-start:1.2rem">
@@ -39,10 +40,10 @@
 
     <AcCard Class="ac-mb-lg">
         <Header>
-            <strong>@Store.Ui.Tr("سياسة الخصوصية", "Privacy Policy")</strong>
+            <strong>@(L["legal.privacy"])</strong>
         </Header>
         <ChildContent>
-            @if (Store.Ui.IsArabic)
+            @if (L.Lang == "ar")
             {
                 <p class="ac-mb-sm">نحن نأخذ خصوصيتك على محمل الجد. إليك كيف نتعامل مع بياناتك:</p>
                 <ul style="padding-inline-start:1.2rem">
@@ -67,10 +68,10 @@
 
     <AcCard Class="ac-mb-lg">
         <Header>
-            <strong>@Store.Ui.Tr("سياسة الاسترجاع", "Refund Policy")</strong>
+            <strong>@(L["legal.refund_header"])</strong>
         </Header>
         <ChildContent>
-            @if (Store.Ui.IsArabic)
+            @if (L.Lang == "ar")
             {
                 <p class="ac-mb-sm">سياسة الاسترجاع الخاصة بنا:</p>
                 <ul style="padding-inline-start:1.2rem">

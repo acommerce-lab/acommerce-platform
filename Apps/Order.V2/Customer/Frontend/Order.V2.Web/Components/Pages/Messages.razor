@@ -4,23 +4,23 @@
 @inject NavigationManager Nav
 @inject L L
 
-<PageTitle>@L.T("المحادثات - اوردر", "Messages — Order")</PageTitle>
+<PageTitle>@(L["messages.title"]) — @(L["app.name"])</PageTitle>
 
 @if (!Store.Auth.IsAuthenticated)
 {
     <AcEmptyState IconName="message"
-                  Title="@(Store.Ui.IsArabic ? "سجّل دخولك لرؤية المحادثات" : "Sign in to chat")"
-                  ActionLabel="@(Store.Ui.IsArabic ? "تسجيل الدخول" : "Sign in")"
+                  Title="@(L["messages.signin_required"])"
+                  ActionLabel="@(L["auth.login.title"])"
                   ActionHref="/login" />
 }
 else
 {
     <AcMessagesListPage Conversations="@Mapped"
                         Loading="@Loading"
-                        Title="@(Store.Ui.IsArabic ? "محادثاتي" : "Messages")"
-                        LoadingMessage="@(Store.Ui.IsArabic ? "جاري التحميل..." : "Loading…")"
-                        EmptyTitle="@(Store.Ui.IsArabic ? "لا محادثات بعد" : "No conversations")"
-                        EmptyMessage="@(Store.Ui.IsArabic ? "ابدأ من صفحة العرض بزر «محادثة المتجر»" : "Tap \"Chat with store\" on any offer")"
+                        Title="@(L["messages.title"])"
+                        LoadingMessage="@(L["messages.loading"])"
+                        EmptyTitle="@(L["messages.empty_title"])"
+                        EmptyMessage="@(L["messages.empty_message"])"
                         OnSelectConversation="@SelectConversation" />
 }
 

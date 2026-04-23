@@ -3,28 +3,27 @@
 @inject AuthStateService AuthService
 @inject IJSRuntime JS
 @inject ACommerce.Culture.Blazor.BrowserCultureProbe CultureProbe
+@inject LocalizationService Localization
 @implements IDisposable
 
 <div class="ord-shell">
     @* Desktop-only top navbar — hidden by CSS when data-ac-mode="mobile" *@
     <nav class="ord-top-nav">
         <div class="ord-top-nav-inner">
-            <NavLink class="ord-top-nav-brand" href="/" Match="NavLinkMatch.All">🍔 @(Store.Ui.IsArabic ? "اوردر" : "Order")</NavLink>
+            <NavLink class="ord-top-nav-brand" href="/" Match="NavLinkMatch.All">🍔 @(Localization["nav_brand"])</NavLink>
             <div class="ord-top-nav-links">
-                <NavLink class="ord-top-nav-link" href="/" Match="NavLinkMatch.All">@(Store.Ui.IsArabic ? "الرئيسية" : "Home")</NavLink>
-                <NavLink class="ord-top-nav-link" href="/search">@(Store.Ui.IsArabic ? "بحث" : "Search")</NavLink>
-                <NavLink class="ord-top-nav-link" href="/orders">@(Store.Ui.IsArabic ? "طلباتي" : "Orders")</NavLink>
-                <NavLink class="ord-top-nav-link" href="/messages">@(Store.Ui.IsArabic ? "الرسائل" : "Messages")</NavLink>
+                <NavLink class="ord-top-nav-link" href="/" Match="NavLinkMatch.All">@(Localization["nav_home"])</NavLink>
+                <NavLink class="ord-top-nav-link" href="/search">@(Localization["nav_search"])</NavLink>
+                <NavLink class="ord-top-nav-link" href="/orders">@(Localization["nav_orders"])</NavLink>
+                <NavLink class="ord-top-nav-link" href="/messages">@(Localization["nav_messages"])</NavLink>
             </div>
             <div class="ord-top-nav-actions">
                 <NavLink class="ord-top-nav-link" href="/cart">
-                    @(Store.Ui.IsArabic ? "السلة" : "Cart")
+                    @(Localization["nav_cart"])
                     @if (Store.Cart.Count > 0) { <span class="ord-top-nav-cart-badge">@Store.Cart.Count</span> }
                 </NavLink>
                 <NavLink class="ord-top-nav-link" href="@(Store.Auth.IsAuthenticated ? "/profile" : "/login")">
-                    @(Store.Auth.IsAuthenticated
-                        ? (Store.Ui.IsArabic ? "حسابي" : "Profile")
-                        : (Store.Ui.IsArabic ? "دخول" : "Sign in"))
+                    @(Store.Auth.IsAuthenticated ? Localization["nav_profile"] : Localization["nav_signin"])
                 </NavLink>
             </div>
         </div>
@@ -38,11 +37,11 @@
     <nav class="ord-bottom-nav">
         <NavLink href="/" Match="NavLinkMatch.All" class="ord-nav-item">
             <AcIcon Name="home" Size="20" />
-            <span>@(Store.Ui.IsArabic ? "الرئيسية" : "Home")</span>
+            <span>@(Localization["nav_home"])</span>
         </NavLink>
         <NavLink href="/search" class="ord-nav-item">
             <AcIcon Name="search" Size="20" />
-            <span>@(Store.Ui.IsArabic ? "بحث" : "Search")</span>
+            <span>@(Localization["nav_search"])</span>
         </NavLink>
         <NavLink href="/cart" class="ord-nav-item ord-nav-cart">
             <div class="ord-nav-cart-btn">
@@ -52,15 +51,15 @@
                     <span class="ord-cart-badge">@Store.Cart.Count</span>
                 }
             </div>
-            <span>@(Store.Ui.IsArabic ? "السلة" : "Cart")</span>
+            <span>@(Localization["nav_cart"])</span>
         </NavLink>
         <NavLink href="/orders" class="ord-nav-item">
             <AcIcon Name="receipt" Size="20" />
-            <span>@(Store.Ui.IsArabic ? "طلباتي" : "Orders")</span>
+            <span>@(Localization["nav_orders"])</span>
         </NavLink>
         <NavLink href="@(Store.Auth.IsAuthenticated ? "/profile" : "/login")" class="ord-nav-item">
             <AcIcon Name="user" Size="20" />
-            <span>@(Store.Ui.IsArabic ? "حسابي" : "Profile")</span>
+            <span>@(Store.Auth.IsAuthenticated ? Localization["nav_profile"] : Localization["nav_signin"])</span>
         </NavLink>
     </nav>
 </div>

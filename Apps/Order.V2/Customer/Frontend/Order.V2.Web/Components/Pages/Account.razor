@@ -3,35 +3,36 @@
 @inject ApiReader Reader
 @inject ClientOpEngine Engine
 @inject NavigationManager Nav
+@inject L L
 
-<PageTitle>@Store.Ui.Tr("تعديل الحساب", "Edit Account") - @Store.Ui.Tr("اوردر", "Order")</PageTitle>
+<PageTitle>@(L["account.title"]) - @(L["app.name"])</PageTitle>
 
 <AcAuthGuard IsAuthenticated="@Store.Auth.IsAuthenticated" IsArabic="@Store.Ui.IsArabic" LoginHref="/login">
     @if (Loading)
     {
-        <AcLoadingState Message="@Store.Ui.Tr("جاري التحميل...", "Loading...")" />
+        <AcLoadingState Message="@(L["common.loading"])" />
     }
     else
     {
         <div class="acs-page" style="padding: 16px">
-            <AcPageHeader Title="@Store.Ui.Tr("تعديل الحساب", "Edit Account")"
-                          Subtitle="@Store.Ui.Tr("حدّث بياناتك الشخصية", "Update your personal info")" />
+            <AcPageHeader Title="@(L["account.title"])"
+                          Subtitle="@(L["account.subtitle"])" />
 
             <AcCard Class="ac-mb-lg">
                 <Header>
-                    <strong>@Store.Ui.Tr("البيانات الشخصية", "Personal Info")</strong>
+                    <strong>@(L["account.personal_info"])</strong>
                 </Header>
                 <ChildContent>
-                    <AcField Label="@Store.Ui.Tr("الاسم الكامل", "Full Name")" Class="ac-mb-md">
+                    <AcField Label="@(L["account.full_name"])" Class="ac-mb-md">
                         <AcInput Value="@FullName"
-                                 Placeholder="@Store.Ui.Tr("أدخل اسمك الكامل", "Enter your full name")"
+                                 Placeholder="@(L["account.full_name_placeholder"])"
                                  ValueChanged="@(v => FullName = v ?? "")" />
                     </AcField>
 
-                    <AcField Label="@Store.Ui.Tr("البريد الإلكتروني", "Email")">
+                    <AcField Label="@(L["account.email"])">
                         <AcInput Value="@Email"
                                  Type="email"
-                                 Placeholder="@Store.Ui.Tr("أدخل بريدك الإلكتروني", "Enter your email")"
+                                 Placeholder="@(L["account.email_placeholder"])"
                                  ValueChanged="@(v => Email = v ?? "")" />
                     </AcField>
                 </ChildContent>
@@ -41,31 +42,29 @@
                 <Header>
                     <div style="display:flex;align-items:center;gap:0.5rem">
                         <AcIcon Name="car" Size="16" />
-                        <strong>@Store.Ui.Tr("بيانات السيارة", "Car Details")</strong>
+                        <strong>@(L["account.car_details"])</strong>
                     </div>
                 </Header>
                 <ChildContent>
                     <p class="ac-text-muted ac-text-sm ac-mb-md">
-                        @Store.Ui.Tr(
-                            "تُستخدم عند الاستلام من السيارة (Curbside)",
-                            "Used for curbside pickup orders")
+                        @(L["account.car_details_hint"])
                     </p>
 
-                    <AcField Label="@Store.Ui.Tr("نوع السيارة", "Car Model")" Class="ac-mb-md">
+                    <AcField Label="@(L["checkout.car_model"])" Class="ac-mb-md">
                         <AcInput Value="@CarModel"
-                                 Placeholder="@Store.Ui.Tr("مثال: كامري 2024", "e.g. Camry 2024")"
+                                 Placeholder="@(L["account.car_model_placeholder"])"
                                  ValueChanged="@(v => CarModel = v ?? "")" />
                     </AcField>
 
-                    <AcField Label="@Store.Ui.Tr("لون السيارة", "Car Color")" Class="ac-mb-md">
+                    <AcField Label="@(L["checkout.car_color"])" Class="ac-mb-md">
                         <AcInput Value="@CarColor"
-                                 Placeholder="@Store.Ui.Tr("مثال: أبيض", "e.g. White")"
+                                 Placeholder="@(L["account.car_color_placeholder"])"
                                  ValueChanged="@(v => CarColor = v ?? "")" />
                     </AcField>
 
-                    <AcField Label="@Store.Ui.Tr("رقم اللوحة", "Plate Number")">
+                    <AcField Label="@(L["checkout.car_plate"])">
                         <AcInput Value="@CarPlate"
-                                 Placeholder="@Store.Ui.Tr("اختياري", "Optional")"
+                                 Placeholder="@(L["account.car_plate_placeholder"])"
                                  ValueChanged="@(v => CarPlate = v ?? "")" />
                     </AcField>
                 </ChildContent>
@@ -78,7 +77,7 @@
 
             <AcButton Variant="primary"
                       Block="true"
-                      Text="@(Saving ? Store.Ui.Tr("جاري الحفظ...", "Saving...") : Store.Ui.Tr("حفظ التعديلات", "Save Changes"))"
+                      Text="@(Saving ? L["account.saving"] : L["account.save_changes"])"
                       Loading="@Saving"
                       Disabled="@Saving"
                       OnClick="Save" />
@@ -132,7 +131,7 @@
         Message = null;
         if (string.IsNullOrWhiteSpace(FullName))
         {
-            Message = Store.Ui.Tr("الاسم مطلوب", "Name is required");
+            Message = L["account.name_required"];
             MessageVariant = "warning";
             return;
         }
@@ -154,14 +153,14 @@
 
             if (result.Operation.Status == "Success")
             {
-                Message = Store.Ui.Tr("تم حفظ التعديلات بنجاح", "Changes saved successfully");
+                Message = L["account.saved_successfully"];
                 MessageVariant = "success";
             }
             else
             {
                 Message = result.Operation.ErrorMessage
                           ?? result.Error?.Message
-                          ?? Store.Ui.Tr("تعذّر حفظ التعديلات", "Could not save changes");
+                          ?? L["account.save_failed"];
                 MessageVariant = "danger";
             }
         }

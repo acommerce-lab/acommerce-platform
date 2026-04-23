@@ -4,7 +4,7 @@
 @inject NavigationManager Nav
 @inject L L
 
-<PageTitle>@L.T("تسجيل الدخول - اوردر", "Sign in — Order")</PageTitle>
+<PageTitle>@(L["auth.login.title"]) — @(L["app.name"])</PageTitle>
 
 <AcLoginPage Mode="TemplateOperationMode.Operation"
              Engine="Engine"
@@ -14,27 +14,27 @@
              VerifyPayload="@((uid, cid, code) => new { userId = uid, challengeId = cid, code })"
              RedirectUrl="@(string.IsNullOrEmpty(ReturnUrl) ? "/" : ReturnUrl)"
              BrandIcon="🍔"
-             BrandName="@L.T("اوردر", "Order")"
-             BrandTagline="@(Store.Ui.IsArabic ? "عروض الكافيهات والمطاعم" : "Cafe & restaurant deals")"
-             PhoneStepTitle="@(Store.Ui.IsArabic ? "مرحباً بك" : "Welcome")"
-             PhoneStepSubtitle="@(Store.Ui.IsArabic ? "أدخل رقم جوالك للمتابعة" : "Enter your phone number to continue")"
-             PhoneLabel="@(Store.Ui.IsArabic ? "رقم الجوال" : "Phone number")"
-             RequestOtpLabel="@(Store.Ui.IsArabic ? "إرسال رمز التحقق" : "Send verification code")"
-             SendingLabel="@(Store.Ui.IsArabic ? "جاري الإرسال..." : "Sending...")"
-             OtpStepTitle="@(Store.Ui.IsArabic ? "رمز التحقق" : "Verification code")"
-             OtpStepSubtitle="@(Store.Ui.IsArabic ? "أدخل الرمز المرسل إلى" : "Enter the code sent to")"
-             OtpLabel="@(Store.Ui.IsArabic ? "رمز التحقق (6 أرقام)" : "Verification code (6 digits)")"
-             VerifyOtpLabel="@(Store.Ui.IsArabic ? "تحقق ودخول" : "Verify & sign in")"
-             VerifyingLabel="@(Store.Ui.IsArabic ? "جاري التحقق..." : "Verifying...")"
-             BackLabel="@(Store.Ui.IsArabic ? "تغيير رقم الجوال" : "Change phone")">
+             BrandName="@(L["app.name"])"
+             BrandTagline="@(L["app.tagline"])"
+             PhoneStepTitle="@(L["auth.welcome"])"
+             PhoneStepSubtitle="@(L["auth.phone_subtitle"])"
+             PhoneLabel="@(L["auth.phone"])"
+             RequestOtpLabel="@(L["auth.send_otp"])"
+             SendingLabel="@(L["auth.sending"])"
+             OtpStepTitle="@(L["auth.otp"])"
+             OtpStepSubtitle="@(L["auth.otp_subtitle"])"
+             OtpLabel="@(L["auth.otp"])"
+             VerifyOtpLabel="@(L["auth.verify"])"
+             VerifyingLabel="@(L["auth.verifying"])"
+             BackLabel="@(L["auth.change_phone"])">
     <HintSlot>
-        <strong>@(Store.Ui.IsArabic ? "وضع تجريبي:" : "Demo mode:")</strong>
-        @(Store.Ui.IsArabic
+        <strong>@(L["auth.demo_mode"])</strong>
+        @(L.Lang == "ar"
             ? "أي رقم +9665xxxxxxxx يفتح حساباً جديداً. الرمز دائماً: 123456"
             : "Any +9665xxxxxxxx number creates a new account. The code is always: 123456")
         <br />
-        <span style="font-size:0.875rem">@(Store.Ui.IsArabic ? "حسابات تجريبية: " : "Demo accounts: ")</span>
-        <code dir="ltr">+966500000001</code> (@L.T("سارة", "Sara"))
+        <span style="font-size:0.875rem">@(L["auth.demo_accounts"])</span>
+        <code dir="ltr">+966500000001</code> (@(L["demo.sara"]))
     </HintSlot>
 </AcLoginPage>
 

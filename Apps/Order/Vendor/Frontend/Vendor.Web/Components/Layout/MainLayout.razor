@@ -2,24 +2,23 @@
 @inject AppStore Store
 @inject AuthStateService AuthService
 @inject IJSRuntime JS
+@inject L L
 @implements IDisposable
 
 <div class="vnd-shell">
     @* Desktop-only top navbar — hidden by CSS when data-ac-mode="mobile" *@
     <nav class="vnd-top-nav">
         <div class="vnd-top-nav-inner">
-            <NavLink class="vnd-top-nav-brand" href="/" Match="NavLinkMatch.All">🏪 @(Store.Ui.IsArabic ? "لوحة التاجر" : "Vendor")</NavLink>
+            <NavLink class="vnd-top-nav-brand" href="/" Match="NavLinkMatch.All">🏪 @(L["nav.brand"])</NavLink>
             <div class="vnd-top-nav-links">
-                <NavLink class="vnd-top-nav-link" href="/" Match="NavLinkMatch.All">@(Store.Ui.IsArabic ? "الرئيسية" : "Home")</NavLink>
-                <NavLink class="vnd-top-nav-link" href="/orders">@(Store.Ui.IsArabic ? "الطلبات" : "Orders")</NavLink>
-                <NavLink class="vnd-top-nav-link" href="/offers">@(Store.Ui.IsArabic ? "العروض" : "Offers")</NavLink>
-                <NavLink class="vnd-top-nav-link" href="/messages">@(Store.Ui.IsArabic ? "الرسائل" : "Messages")</NavLink>
+                <NavLink class="vnd-top-nav-link" href="/" Match="NavLinkMatch.All">@(L["nav.home"])</NavLink>
+                <NavLink class="vnd-top-nav-link" href="/orders">@(L["nav.orders"])</NavLink>
+                <NavLink class="vnd-top-nav-link" href="/offers">@(L["nav.offers"])</NavLink>
+                <NavLink class="vnd-top-nav-link" href="/messages">@(L["nav.messages"])</NavLink>
             </div>
             <div class="vnd-top-nav-actions">
                 <NavLink class="vnd-top-nav-link" href="@(Store.Auth.IsAuthenticated ? "/profile" : "/login")">
-                    @(Store.Auth.IsAuthenticated
-                        ? (Store.Ui.IsArabic ? "حسابي" : "Profile")
-                        : (Store.Ui.IsArabic ? "دخول" : "Sign in"))
+                    @(Store.Auth.IsAuthenticated ? L["nav.profile"] : L["nav.signin"])
                 </NavLink>
             </div>
         </div>
@@ -33,23 +32,23 @@
     <nav class="vnd-bottom-nav">
         <NavLink href="/" Match="NavLinkMatch.All" class="vnd-nav-item">
             <AcIcon Name="home" Size="20" />
-            <span>@(Store.Ui.IsArabic ? "الرئيسية" : "Home")</span>
+            <span>@(L["nav.home"])</span>
         </NavLink>
         <NavLink href="/orders" class="vnd-nav-item">
             <AcIcon Name="receipt" Size="20" />
-            <span>@(Store.Ui.IsArabic ? "الطلبات" : "Orders")</span>
+            <span>@(L["nav.orders"])</span>
         </NavLink>
         <NavLink href="/offers" class="vnd-nav-item">
             <AcIcon Name="tag" Size="20" />
-            <span>@(Store.Ui.IsArabic ? "العروض" : "Offers")</span>
+            <span>@(L["nav.offers"])</span>
         </NavLink>
         <NavLink href="/messages" class="vnd-nav-item">
             <AcIcon Name="message" Size="20" />
-            <span>@(Store.Ui.IsArabic ? "الرسائل" : "Messages")</span>
+            <span>@(L["nav.messages"])</span>
         </NavLink>
         <NavLink href="@(Store.Auth.IsAuthenticated ? "/profile" : "/login")" class="vnd-nav-item">
             <AcIcon Name="user" Size="20" />
-            <span>@(Store.Ui.IsArabic ? "حسابي" : "Profile")</span>
+            <span>@(Store.Auth.IsAuthenticated ? L["nav.profile"] : L["nav.signin"])</span>
         </NavLink>
     </nav>
 </div>

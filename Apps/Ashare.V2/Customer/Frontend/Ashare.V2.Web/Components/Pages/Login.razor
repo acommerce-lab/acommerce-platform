@@ -15,7 +15,7 @@
 <div class="acs-page acs-auth-page">
     <div class="acs-nafath-head">
         <AcIcon Name="shield" Size="48" />
-        <h1 class="acm-wizard-title">نفاذ</h1>
+        <h1 class="acm-wizard-title">@(L["auth.nafath"])</h1>
     </div>
 
     <AcCard>
@@ -24,8 +24,8 @@
             {
                 <AcField Label="@(L["auth.national_id"])" Required="true">
                     <AcInput Type="text" Value="@_nationalId"
-                             ValueChanged="@(v => _nationalId = (Numerals.ToLatin(v) ?? string.Empty).Trim())"
-                             Placeholder="10 أرقام" />
+                             ValueChanged="@(v => _nationalId = (v ?? string.Empty).Trim())"
+                             Placeholder="@(L["auth.national_id_placeholder"])" />
                 </AcField>
 
                 @if (_error is not null)

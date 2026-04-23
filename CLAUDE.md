@@ -46,14 +46,17 @@ loading procedure (includes the dotnet install prerequisite).
 4. **`docs/BUILDING-A-BACKEND.md`** — step-by-step recipe for a new backend.
 5. **`docs/BUILDING-A-FRONTEND.md`** — step-by-step recipe for a new Blazor
    frontend.
-6. **`docs/ROADMAP.md`** — what's done, what's next, modification plan.
+6. **`docs/I18N.md`** — the bilingual (Arabic/English) translation system
+   used across all V2 frontends. Read before writing any user-facing text
+   in a Razor page.
+7. **`docs/ROADMAP.md`** — what's done, what's next, modification plan.
 
 Reference apps (read the smallest first):
 - `Apps/Order.Api` + `Apps/Order.Web` — cafe deals, cleanest example.
 - `Apps/Vendor.Api` + `Apps/Vendor.Web` — vendor-side microservice.
 - `Apps/Ashare.Api` + `Apps/Ashare.Web` — property classifieds, larger.
 
-## The five laws
+## The seven laws
 
 ### Law 1 — Every state change is an operation
 
@@ -100,6 +103,29 @@ OperationEnvelope, handle both. Any attribute key not in the template is
 preserved as a raw `DynamicAttribute` entry. We serve the stakeholder's
 existing data exactly as they expect it; the platform is a tool, not an
 authority over business data.
+
+### Law 7 — Every user-visible string goes through `L["key"]`
+
+Blazor apps are bilingual (Arabic/English) and the user can toggle at any
+moment. Hardcoded strings freeze the page in one language and break
+re-render on language change. The rule:
+
+1. Reference implementation:
+   `Apps/Order.V2/Customer/Frontend/Order.V2.Web/Store/L.cs` —
+   `CustomerTranslations` extending `EmbeddedTranslationProvider` with
+   `_ar` and `_en` dictionaries. Copy this pattern for new apps.
+2. Register once in `Program.cs`:
+   `builder.Services.AddEmbeddedL10n<AppTranslations, AppLangContext>();`
+3. In pages: `@inject L L` then `@(L["home.title"])`.
+4. `L.T("عربي", "english")` is a **migration-only** shortcut — extract
+   to the dictionary before the PR lands.
+5. `Store.Ui.IsArabic ? "…" : "…"` is a **code smell** unless it's one
+   of: a language-toggle button (shows the *opposite* language),
+   selecting between API `NameAr`/`NameEn` fields, or passing a bool
+   to a widget's own RTL logic.
+
+Full guide — **`docs/I18N.md`**. Read it before adding any user-facing
+text.
 
 ## Constraint vocabulary — when to use what
 

@@ -2,27 +2,28 @@
 @inject AppStore Store
 @inject ApiReader Api
 @inject NavigationManager Nav
+@inject L L
 
 @* 4 خطوات حقيقيّة: Category → Details → Images → Location.
    مطابقة لـ Ashare.Shared/Components/Pages/CreateListing.razor (585 سطراً). *@
 
-<PageTitle>إضافة إعلان - عشير</PageTitle>
+<PageTitle>@(L["listing.create.title"]) - @(L["app.name"])</PageTitle>
 
 <div class="acs-page acs-create-listing">
-    <h1 class="acm-wizard-title">أضف إعلانك</h1>
+    <h1 class="acm-wizard-title">@(L["listing.create.title"])</h1>
 
     <div class="acs-step-indicator">
-        <span class="@(_step >= 1 ? "active" : "")">١ الفئة</span>
-        <span class="@(_step >= 2 ? "active" : "")">٢ التفاصيل</span>
-        <span class="@(_step >= 3 ? "active" : "")">٣ الصور</span>
-        <span class="@(_step >= 4 ? "active" : "")">٤ الموقع</span>
+        <span class="@(_step >= 1 ? "active" : "")">١ @(L["listing.step.category"])</span>
+        <span class="@(_step >= 2 ? "active" : "")">٢ @(L["listing.step.details"])</span>
+        <span class="@(_step >= 3 ? "active" : "")">٣ @(L["listing.step.images"])</span>
+        <span class="@(_step >= 4 ? "active" : "")">٤ @(L["listing.step.location"])</span>
     </div>
 
     @if (_step == 1)
     {
         <AcCard>
             <ChildContent>
-                <h3 style="margin-top:0;">اختر فئة الإعلان</h3>
+                <h3 style="margin-top:0;">@(L["listing.choose_category"])</h3>
                 <div class="acm-home-grid">
                     @foreach (var c in _categories)
                     {
@@ -34,7 +35,7 @@
                         </button>
                     }
                 </div>
-                <AcButton Variant="primary" Class="ac-btn-block" Text="التالي"
+                <AcButton Variant="primary" Class="ac-btn-block" Text="@(L["listing.next"])"
                           OnClick="@(() => _step = 2)" Disabled="@(string.IsNullOrEmpty(_draft.CategoryId))" />
             </ChildContent>
         </AcCard>
@@ -43,34 +44,34 @@
     {
         <AcCard>
             <ChildContent>
-                <h3 style="margin-top:0;">تفاصيل الإعلان</h3>
-                <AcField Label="العنوان" Required="true">
+                <h3 style="margin-top:0;">@(L["listing.listing_details"])</h3>
+                <AcField Label="@(L["listing.create.field.title"])" Required="true">
                     <AcInput Value="@_draft.Title" ValueChanged="@(v => _draft.Title = v ?? string.Empty)"
-                             Placeholder="مثلاً: شقة مفروشة في حيّ النرجس" />
+                             Placeholder="@(L["listing.title_placeholder"])" />
                 </AcField>
-                <AcField Label="الوصف" Required="true">
+                <AcField Label="@(L["listing.description"])" Required="true">
                     <textarea class="ac-input" rows="4" @bind="_draft.Description"
-                              placeholder="اذكر المساحة، الغرف، الميزات…"></textarea>
+                              placeholder="@(L["listing.description_placeholder"])"></textarea>
                 </AcField>
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
-                    <AcField Label="السعر (SAR)" Required="true">
+                    <AcField Label="@(L["listing.create.field.price_sar"])" Required="true">
                         <AcInput Type="number" Value="@_draft.Price.ToString()"
                                  ValueChanged="@(v => _draft.Price = decimal.TryParse(v, out var p) ? p : 0)" />
                     </AcField>
-                    <AcField Label="الوحدة الزمنيّة">
+                    <AcField Label="@(L["listing.create.field.time_unit"])">
                         <select class="ac-input" @bind="_draft.TimeUnit">
-                            <option value="day">يوميّ</option>
-                            <option value="month">شهريّ</option>
-                            <option value="year">سنويّ</option>
+                            <option value="day">@(L["listing.time_unit.day"])</option>
+                            <option value="month">@(L["listing.time_unit.month"])</option>
+                            <option value="year">@(L["listing.time_unit.year"])</option>
                         </select>
                     </AcField>
                 </div>
-                <AcField Label="السعة (عدد الأشخاص)">
+                <AcField Label="@(L["listing.create.field.capacity"])">
                     <AcInput Type="number" Value="@_draft.Capacity.ToString()"
                              ValueChanged="@(v => _draft.Capacity = int.TryParse(v, out var n) ? n : 0)" />
                 </AcField>
 
-                <AcField Label="المرافق المتوفّرة">
+                <AcField Label="@(L["listing.create.field.amenities"])">
                     <div class="acs-amenity-chips">
                         @foreach (var a in _amenities)
                         {
@@ -83,8 +84,8 @@
                 </AcField>
 
                 <div style="display:flex; gap:8px;">
-                    <AcButton Variant="ghost" Text="رجوع" OnClick="@(() => _step = 1)" />
-                    <AcButton Variant="primary" Class="ac-btn-block" Text="التالي"
+                    <AcButton Variant="ghost" Text="@(L["listing.back"])" OnClick="@(() => _step = 1)" />
+                    <AcButton Variant="primary" Class="ac-btn-block" Text="@(L["listing.next"])"
                               OnClick="@(() => _step = 3)"
                               Disabled="@(string.IsNullOrWhiteSpace(_draft.Title) || string.IsNullOrWhiteSpace(_draft.Description) || _draft.Price <= 0)" />
                 </div>
@@ -95,14 +96,14 @@
     {
         <AcCard>
             <ChildContent>
-                <h3 style="margin-top:0;">صور الإعلان</h3>
+                <h3 style="margin-top:0;">@(L["listing.listing_images"])</h3>
                 <p style="color:var(--ac-text-muted); font-size:13px;">
-                    حتّى @_maxImages صور • كل صورة أقصى 5MB • الصورة الأولى هي الرئيسيّة.
+                    @(L["listing.images_help"].Replace("@max", _maxImages.ToString()))
                 </p>
 
                 <label class="ac-btn ac-btn-outline-primary ac-btn-block" style="cursor:pointer; display:inline-flex; align-items:center; gap:8px; justify-content:center;">
                     <AcIcon Name="camera" Size="16" />
-                    <span>إضافة صور</span>
+                    <span>@(L["listing.add_images"])</span>
                     <InputFile OnChange="OnImagesPicked" accept="image/*" multiple style="display:none;" />
                 </label>
 
@@ -115,15 +116,15 @@
                             var img = _images[idx];
                             <div class="acs-image-thumb @(idx == 0 ? "main" : "")">
                                 <img src="@img.DataUrl" alt="img-@idx" />
-                                @if (idx == 0) { <span class="acs-image-badge">رئيسيّة</span> }
+                                @if (idx == 0) { <span class="acs-image-badge">@(L["listing.main_image"])</span> }
                                 <div class="acs-image-actions">
                                     @if (idx > 0)
                                     {
-                                        <button type="button" title="اجعلها رئيسيّة" @onclick="@(() => MakeMain(idx))">
+                                        <button type="button" title="@(L["listing.make_main"])" @onclick="@(() => MakeMain(idx))">
                                             <AcIcon Name="star" Size="14" />
                                         </button>
                                     }
-                                    <button type="button" title="حذف" @onclick="@(() => Remove(idx))">
+                                    <button type="button" title="@(L["listing.delete"])" @onclick="@(() => Remove(idx))">
                                         <AcIcon Name="x" Size="14" />
                                     </button>
                                 </div>
@@ -139,8 +140,8 @@
                 }
 
                 <div style="display:flex; gap:8px; margin-top:12px;">
-                    <AcButton Variant="ghost" Text="رجوع" OnClick="@(() => _step = 2)" />
-                    <AcButton Variant="primary" Class="ac-btn-block" Text="التالي"
+                    <AcButton Variant="ghost" Text="@(L["listing.back"])" OnClick="@(() => _step = 2)" />
+                    <AcButton Variant="primary" Class="ac-btn-block" Text="@(L["listing.next"])"
                               OnClick="@(() => _step = 4)" Disabled="@(_images.Count == 0)" />
                 </div>
             </ChildContent>
@@ -150,22 +151,22 @@
     {
         <AcCard>
             <ChildContent>
-                <h3 style="margin-top:0;">موقع الإعلان</h3>
-                <AcField Label="المدينة" Required="true">
+                <h3 style="margin-top:0;">@(L["listing.listing_location"])</h3>
+                <AcField Label="@(L["listing.create.field.city"])" Required="true">
                     <select class="ac-input" @bind="_draft.City">
                         @foreach (var c in _cities) { <option value="@c">@c</option> }
                     </select>
                 </AcField>
-                <AcField Label="الحيّ / المنطقة" Required="true">
+                <AcField Label="@(L["listing.create.field.district"])" Required="true">
                     <AcInput Value="@_draft.District" ValueChanged="@(v => _draft.District = v ?? string.Empty)"
-                             Placeholder="مثلاً: النرجس" />
+                             Placeholder="@(L["listing.district_placeholder"])" />
                 </AcField>
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
-                    <AcField Label="خط العرض (اختياريّ)">
+                    <AcField Label="@(L["listing.create.field.latitude"])">
                         <AcInput Type="number" Value="@_lat.ToString("0.######")"
                                  ValueChanged="@(v => _lat = double.TryParse(v, out var d) ? d : _lat)" />
                     </AcField>
-                    <AcField Label="خط الطول (اختياريّ)">
+                    <AcField Label="@(L["listing.create.field.longitude"])">
                         <AcInput Type="number" Value="@_lng.ToString("0.######")"
                                  ValueChanged="@(v => _lng = double.TryParse(v, out var d) ? d : _lng)" />
                     </AcField>
@@ -177,9 +178,8 @@
                     <AcAlert Variant="danger" Text="@_publishError" />
                 }
                 <div style="display:flex; gap:8px; margin-top:12px;">
-                    <AcButton Variant="ghost" Text="رجوع" OnClick="@(() => _step = 3)" Disabled="@_publishing" />
-                    <AcButton Variant="primary" Class="ac-btn-block"
-                              Text="@(_publishing ? "جارٍ النشر…" : "نشر الإعلان")"
+                    <AcButton Variant="ghost" Text="@(L["listing.back"])" OnClick="@(() => _step = 3)" />
+                    <AcButton Variant="primary" Class="ac-btn-block" Text="@(L["listing.publish"])"
                               OnClick="@Publish"
                               Disabled="@(_publishing || string.IsNullOrWhiteSpace(_draft.City) || string.IsNullOrWhiteSpace(_draft.District))" />
                 </div>
@@ -203,7 +203,7 @@
     private string? _imgError;
 
     private IReadOnlyList<AcMapSim.MapPin> MapPins =>
-        new[] { new AcMapSim.MapPin("loc", "الموقع", _lat, _lng) };
+        new[] { new AcMapSim.MapPin("loc", L["listing.map_location"], _lat, _lng) };
 
     protected override async Task OnAfterRenderAsync(bool first)
     {

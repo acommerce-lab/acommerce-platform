@@ -6,7 +6,7 @@
 @inject L L
 @implements IDisposable
 
-<PageTitle>@L.T("اوردر — عروض اليوم", "Order — Today's offers")</PageTitle>
+<PageTitle>@(L["home.title"])</PageTitle>
 
 @*
     Single template — viewport adaptation is purely CSS:
@@ -22,17 +22,17 @@
                Loading="@Loading"
                Columns="1"
                DetailsHrefPrefix="/offer"
-               HeroTitle="@(Store.Ui.IsArabic ? "اوردر" : "Order")"
-               HeroSubtitle="@(Store.Ui.IsArabic ? "عروض اليوم من كافيهات ومطاعم المدينة" : "Today's deals from local cafes and restaurants")"
-               AllLabel="@(Store.Ui.IsArabic ? "الكل" : "All")"
-               LoadingMessage="@(Store.Ui.IsArabic ? "جاري تحميل العروض..." : "Loading offers…")"
-               EmptyMessage="@(Store.Ui.IsArabic ? "لا توجد عروض" : "No offers")">
+               HeroTitle="@(L["app.name"])"
+               HeroSubtitle="@(L["home.subtitle"])"
+               AllLabel="@(L["common.all"])"
+               LoadingMessage="@(L["home.loading"])"
+               EmptyMessage="@(L["home.empty"])">
     <HeroActions>
         @* The top-nav already handles login on desktop; hide the hero
            sign-in button there to avoid duplication. *@
         @if (!Store.Auth.IsAuthenticated)
         {
-            <span class="ac-mode-mobile"><a href="/login"><AcButton Variant="primary" Size="sm" Text="@(Store.Ui.IsArabic ? "تسجيل الدخول" : "Sign in")" /></a></span>
+            <span class="ac-mode-mobile"><a href="/login"><AcButton Variant="primary" Size="sm" Text="@(L["auth.login.title"])" /></a></span>
         }
         <AcButton Variant="ghost" Size="sm" OnClick="ToggleLanguage"
                   Text="@(Store.Ui.IsArabic ? "English" : "العربية")" />

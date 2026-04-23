@@ -4,20 +4,21 @@
 @inject AppStateApplier Applier
 @inject ApiReader Api
 @inject NavigationManager Nav
+@inject LocalizationService Localization
 
-<PageTitle>@(OfferApiData?.Title ?? "تفاصيل العرض") - اوردر</PageTitle>
+<PageTitle>@(OfferApiData?.Title ?? Localization["offer_page_title_fallback"]) - @(Localization["app_name"])</PageTitle>
 
 <AcOfferDetailsPage Offer="@Mapped"
                     Loading="@Loading"
                     InFavorites="@IsFavorite"
                     BackHref="/"
-                    LoadingMessage="@(Store.Ui.IsArabic ? "جاري التحميل..." : "Loading…")"
-                    NotFoundTitle="@(Store.Ui.IsArabic ? "العرض غير موجود" : "Offer not found")"
-                    BackLabel="@(Store.Ui.IsArabic ? "العودة للرئيسية" : "Back to home")"
-                    DescriptionLabel="@(Store.Ui.IsArabic ? "تفاصيل العرض" : "Details")"
-                    StoreInfoLabel="@(Store.Ui.IsArabic ? "معلومات المتجر" : "Store info")"
-                    AddToCartLabel="@($"{(Store.Ui.IsArabic ? "أضف إلى السلة" : "Add to cart")} • {OfferApiData?.Price.ToString("N0")} {OfferApiData?.Currency}")"
-                    ChatLabel="@(Store.Ui.IsArabic ? "محادثة المتجر" : "Chat with store")"
+                    LoadingMessage="@(Localization["common_loading_dots"])"
+                    NotFoundTitle="@(Localization["offer_not_found"])"
+                    BackLabel="@(Localization["offer_back_home"])"
+                    DescriptionLabel="@(Localization["offer_description"])"
+                    StoreInfoLabel="@(Localization["offer_store_info"])"
+                    AddToCartLabel="@($"{Localization["offer_add_to_cart"]} • {OfferApiData?.Price.ToString("N0")} {OfferApiData?.Currency}")"
+                    ChatLabel="@(Localization["offer_chat"])"
                     OnAddToCart="AddToCart"
                     OnToggleFavorite="ToggleFavorite"
                     OnChatWithStore="@(Store.Auth.IsAuthenticated && OfferApiData?.Vendor != null ? EventCallback.Factory.Create(this, StartChat) : default)" />

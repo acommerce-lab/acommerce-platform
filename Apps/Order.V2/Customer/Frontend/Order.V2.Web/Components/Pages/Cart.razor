@@ -5,19 +5,19 @@
 @inject L L
 @implements IDisposable
 
-<PageTitle>@L.T("السلة - اوردر", "Cart — Order")</PageTitle>
+<PageTitle>@(L["cart.page_title"]) — @(L["app.name"])</PageTitle>
 
 <AcCartPage Cart="@Snapshot"
-            Title="@(Store.Ui.IsArabic ? "سلة الطلبات" : "Your cart")"
-            EmptyTitle="@(Store.Ui.IsArabic ? "السلة فارغة" : "Cart is empty")"
-            EmptyMessage="@(Store.Ui.IsArabic ? "تصفّح العروض وأضف أصنافك المفضلة" : "Browse offers and add your favorites")"
-            BrowseLabel="@(Store.Ui.IsArabic ? "تصفّح العروض" : "Browse offers")"
+            Title="@(L["cart.page_title"])"
+            EmptyTitle="@(L["cart.empty_title"])"
+            EmptyMessage="@(L["cart.empty_message"])"
+            BrowseLabel="@(L["cart.browse"])"
             BrowseHref="/"
-            PickupHint="@(Store.Ui.IsArabic ? "الاستلام من المتجر أو من السيارة" : "In-store or curbside pickup")"
-            SubtotalLabel="@(Store.Ui.IsArabic ? "المجموع الفرعي" : "Subtotal")"
-            TotalLabel="@(Store.Ui.IsArabic ? "الإجمالي" : "Total")"
-            CheckoutLabel="@(Store.Ui.IsArabic ? "متابعة للطلب" : "Continue to checkout")"
-            ClearLabel="@(Store.Ui.IsArabic ? "إفراغ السلة" : "Clear cart")"
+            PickupHint="@(L["cart.pickup_hint"])"
+            SubtotalLabel="@(L["cart.subtotal"])"
+            TotalLabel="@(L["cart.total"])"
+            CheckoutLabel="@(L["cart.checkout"])"
+            ClearLabel="@(L["cart.clear"])"
             OnQuantityChange="HandleQtyChange"
             OnClear="@(async () => { await Applier.ApplyLocalAsync(ClientOps.CartClear()); })"
             OnCheckout="GoCheckout" />

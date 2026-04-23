@@ -1,0 +1,294 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata" type="xsd:string" minOccurs="0" />
+          <xsd:element name="assembly" type="xsd:string" minOccurs="0" />
+          <xsd:element name="data" type="xsd:string" minOccurs="0" msdata:Locale="en-US" />
+          <xsd:element name="resheader" type="xsd:string" />
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+
+  <!-- Common -->
+  <data name="app_name" xml:space="preserve"><value>Order</value></data>
+  <data name="common_loading" xml:space="preserve"><value>Loading…</value></data>
+  <data name="common_loading_dots" xml:space="preserve"><value>Loading...</value></data>
+  <data name="common_error" xml:space="preserve"><value>An error occurred</value></data>
+  <data name="common_signin" xml:space="preserve"><value>Sign in</value></data>
+  <data name="common_signout" xml:space="preserve"><value>Sign out</value></data>
+  <data name="common_home" xml:space="preserve"><value>Home</value></data>
+  <data name="common_back" xml:space="preserve"><value>Back</value></data>
+  <data name="common_send" xml:space="preserve"><value>Send</value></data>
+  <data name="common_save" xml:space="preserve"><value>Save</value></data>
+  <data name="common_all" xml:space="preserve"><value>All</value></data>
+  <data name="common_optional" xml:space="preserve"><value>Optional</value></data>
+
+  <!-- Navigation -->
+  <data name="nav_brand" xml:space="preserve"><value>Order</value></data>
+  <data name="nav_home" xml:space="preserve"><value>Home</value></data>
+  <data name="nav_search" xml:space="preserve"><value>Search</value></data>
+  <data name="nav_orders" xml:space="preserve"><value>Orders</value></data>
+  <data name="nav_messages" xml:space="preserve"><value>Messages</value></data>
+  <data name="nav_cart" xml:space="preserve"><value>Cart</value></data>
+  <data name="nav_profile" xml:space="preserve"><value>Profile</value></data>
+  <data name="nav_signin" xml:space="preserve"><value>Sign in</value></data>
+
+  <!-- Home Page -->
+  <data name="home_title" xml:space="preserve"><value>Order</value></data>
+  <data name="home_subtitle" xml:space="preserve"><value>Today's deals from local cafes and restaurants</value></data>
+  <data name="home_all" xml:space="preserve"><value>All</value></data>
+  <data name="home_loading" xml:space="preserve"><value>Loading offers…</value></data>
+  <data name="home_empty" xml:space="preserve"><value>No offers</value></data>
+  <data name="home_signin" xml:space="preserve"><value>Sign in</value></data>
+  <data name="home_language_toggle" xml:space="preserve"><value>العربية</value></data>
+
+  <!-- Settings Page -->
+  <data name="settings_title" xml:space="preserve"><value>Settings</value></data>
+  <data name="settings_theme" xml:space="preserve"><value>Appearance</value></data>
+  <data name="settings_theme_light" xml:space="preserve"><value>Light</value></data>
+  <data name="settings_theme_dark" xml:space="preserve"><value>Dark</value></data>
+  <data name="settings_language" xml:space="preserve"><value>Language</value></data>
+  <data name="settings_language_ar" xml:space="preserve"><value>العربيّة</value></data>
+  <data name="settings_language_en" xml:space="preserve"><value>English</value></data>
+  <data name="settings_about" xml:space="preserve"><value>About</value></data>
+  <data name="settings_version" xml:space="preserve"><value>Version</value></data>
+  <data name="settings_sign_out" xml:space="preserve"><value>Sign out</value></data>
+  <data name="settings_terms" xml:space="preserve"><value>Terms &amp; Conditions</value></data>
+
+  <!-- Cart Page -->
+  <data name="cart_page_title" xml:space="preserve"><value>Cart</value></data>
+  <data name="cart_title" xml:space="preserve"><value>Your cart</value></data>
+  <data name="cart_empty_title" xml:space="preserve"><value>Cart is empty</value></data>
+  <data name="cart_empty_message" xml:space="preserve"><value>Browse offers and add your favorites</value></data>
+  <data name="cart_browse" xml:space="preserve"><value>Browse offers</value></data>
+  <data name="cart_pickup_hint" xml:space="preserve"><value>In-store or curbside pickup</value></data>
+  <data name="cart_subtotal" xml:space="preserve"><value>Subtotal</value></data>
+  <data name="cart_total" xml:space="preserve"><value>Total</value></data>
+  <data name="cart_checkout" xml:space="preserve"><value>Continue to checkout</value></data>
+  <data name="cart_clear" xml:space="preserve"><value>Clear cart</value></data>
+
+  <!-- Checkout Page -->
+  <data name="checkout_page_title" xml:space="preserve"><value>Checkout</value></data>
+  <data name="checkout_signin_first" xml:space="preserve"><value>Sign in first</value></data>
+  <data name="checkout_cart_empty" xml:space="preserve"><value>Cart is empty</value></data>
+  <data name="checkout_browse_offers" xml:space="preserve"><value>Browse offers</value></data>
+  <data name="checkout_title" xml:space="preserve"><value>Place order</value></data>
+  <data name="checkout_summary" xml:space="preserve"><value>Order summary</value></data>
+  <data name="checkout_total" xml:space="preserve"><value>Total</value></data>
+  <data name="checkout_pickup" xml:space="preserve"><value>Pickup method</value></data>
+  <data name="checkout_instore" xml:space="preserve"><value>In-store</value></data>
+  <data name="checkout_curbside" xml:space="preserve"><value>Curbside</value></data>
+  <data name="checkout_car_details" xml:space="preserve"><value>Car details</value></data>
+  <data name="checkout_car_model" xml:space="preserve"><value>Model</value></data>
+  <data name="checkout_car_color" xml:space="preserve"><value>Color</value></data>
+  <data name="checkout_car_plate" xml:space="preserve"><value>Plate number (optional)</value></data>
+  <data name="checkout_payment" xml:space="preserve"><value>Preferred payment</value></data>
+  <data name="checkout_payment_hint" xml:space="preserve"><value>Payment happens at pickup — no online payment.</value></data>
+  <data name="checkout_cash" xml:space="preserve"><value>Cash</value></data>
+  <data name="checkout_card" xml:space="preserve"><value>Card</value></data>
+  <data name="checkout_cash_tendered" xml:space="preserve"><value>Amount (SAR)</value></data>
+  <data name="checkout_change" xml:space="preserve"><value>Expected change</value></data>
+  <data name="checkout_not_enough" xml:space="preserve"><value>Amount must cover the total</value></data>
+  <data name="checkout_notes" xml:space="preserve"><value>Notes (optional)</value></data>
+  <data name="checkout_submit" xml:space="preserve"><value>Confirm order</value></data>
+  <data name="checkout_submitting" xml:space="preserve"><value>Sending…</value></data>
+  <data name="checkout_back_to_cart" xml:space="preserve"><value>Back to cart</value></data>
+  <data name="checkout_err_car_details" xml:space="preserve"><value>Please enter car details</value></data>
+  <data name="checkout_err_cash_cover" xml:space="preserve"><value>Cash amount must cover the total</value></data>
+  <data name="checkout_err_create" xml:space="preserve"><value>Could not create order</value></data>
+
+  <!-- Favorites -->
+  <data name="favorites_page_title" xml:space="preserve"><value>Favorites</value></data>
+  <data name="favorites_signin_title" xml:space="preserve"><value>Sign in to save</value></data>
+  <data name="favorites_signin_action" xml:space="preserve"><value>Sign in</value></data>
+  <data name="favorites_title" xml:space="preserve"><value>Favorites</value></data>
+  <data name="favorites_empty_title" xml:space="preserve"><value>No favorites yet</value></data>
+  <data name="favorites_empty_message" xml:space="preserve"><value>Tap the heart on any offer to save it</value></data>
+  <data name="favorites_browse" xml:space="preserve"><value>Browse offers</value></data>
+
+  <!-- Login -->
+  <data name="login_page_title" xml:space="preserve"><value>Sign in</value></data>
+  <data name="login_brand_name" xml:space="preserve"><value>Order</value></data>
+  <data name="login_brand_tagline" xml:space="preserve"><value>Cafe &amp; restaurant deals</value></data>
+  <data name="login_phone_title" xml:space="preserve"><value>Welcome</value></data>
+  <data name="login_phone_subtitle" xml:space="preserve"><value>Enter your phone number to continue</value></data>
+  <data name="login_phone_label" xml:space="preserve"><value>Phone number</value></data>
+  <data name="login_request_otp" xml:space="preserve"><value>Send verification code</value></data>
+  <data name="login_sending" xml:space="preserve"><value>Sending...</value></data>
+  <data name="login_otp_title" xml:space="preserve"><value>Verification code</value></data>
+  <data name="login_otp_subtitle" xml:space="preserve"><value>Enter the code sent to</value></data>
+  <data name="login_otp_label" xml:space="preserve"><value>Verification code (6 digits)</value></data>
+  <data name="login_verify_otp" xml:space="preserve"><value>Verify &amp; sign in</value></data>
+  <data name="login_verifying" xml:space="preserve"><value>Verifying...</value></data>
+  <data name="login_back" xml:space="preserve"><value>Change phone</value></data>
+  <data name="login_demo_mode" xml:space="preserve"><value>Demo mode:</value></data>
+  <data name="login_demo_hint" xml:space="preserve"><value>Any +9665xxxxxxxx number creates a new account. The code is printed in the API log.</value></data>
+  <data name="login_demo_accounts" xml:space="preserve"><value>Demo accounts: </value></data>
+
+  <!-- My Orders -->
+  <data name="orders_page_title" xml:space="preserve"><value>My orders</value></data>
+  <data name="orders_signin_title" xml:space="preserve"><value>Sign in to view orders</value></data>
+  <data name="orders_title" xml:space="preserve"><value>My orders</value></data>
+  <data name="orders_empty_title" xml:space="preserve"><value>No orders yet</value></data>
+  <data name="orders_empty_message" xml:space="preserve"><value>Place your first order</value></data>
+  <data name="orders_browse" xml:space="preserve"><value>Browse offers</value></data>
+  <data name="orders_pickup_curbside" xml:space="preserve"><value>Curbside</value></data>
+  <data name="orders_pickup_instore" xml:space="preserve"><value>In-store</value></data>
+  <data name="orders_payment_card" xml:space="preserve"><value>Card</value></data>
+  <data name="orders_payment_cash" xml:space="preserve"><value>Cash</value></data>
+
+  <!-- Notifications -->
+  <data name="notifications_page_title" xml:space="preserve"><value>Notifications</value></data>
+  <data name="notifications_signin_title" xml:space="preserve"><value>Sign in for notifications</value></data>
+  <data name="notifications_title" xml:space="preserve"><value>Notifications</value></data>
+  <data name="notifications_empty_title" xml:space="preserve"><value>All caught up</value></data>
+  <data name="notifications_empty_message" xml:space="preserve"><value>New activity will appear here</value></data>
+  <data name="notifications_mark_all_read" xml:space="preserve"><value>Mark all read</value></data>
+
+  <!-- Messages -->
+  <data name="messages_page_title" xml:space="preserve"><value>Messages</value></data>
+  <data name="messages_signin_title" xml:space="preserve"><value>Sign in to chat</value></data>
+  <data name="messages_title" xml:space="preserve"><value>Messages</value></data>
+  <data name="messages_empty_title" xml:space="preserve"><value>No conversations</value></data>
+  <data name="messages_empty_message" xml:space="preserve"><value>Tap "Chat with store" on any offer</value></data>
+
+  <!-- Conversation (Chat) -->
+  <data name="chat_page_title" xml:space="preserve"><value>Chat</value></data>
+  <data name="chat_signin_title" xml:space="preserve"><value>Sign in</value></data>
+  <data name="chat_title" xml:space="preserve"><value>Chat</value></data>
+  <data name="chat_empty" xml:space="preserve"><value>No messages yet</value></data>
+  <data name="chat_placeholder" xml:space="preserve"><value>Type a message...</value></data>
+  <data name="chat_send" xml:space="preserve"><value>Send</value></data>
+
+  <!-- Offer Details -->
+  <data name="offer_page_title_fallback" xml:space="preserve"><value>Offer details</value></data>
+  <data name="offer_not_found" xml:space="preserve"><value>Offer not found</value></data>
+  <data name="offer_back_home" xml:space="preserve"><value>Back to home</value></data>
+  <data name="offer_description" xml:space="preserve"><value>Details</value></data>
+  <data name="offer_store_info" xml:space="preserve"><value>Store info</value></data>
+  <data name="offer_add_to_cart" xml:space="preserve"><value>Add to cart</value></data>
+  <data name="offer_chat" xml:space="preserve"><value>Chat with store</value></data>
+
+  <!-- Order Details -->
+  <data name="order_details_page_title" xml:space="preserve"><value>Order details</value></data>
+  <data name="order_success_title" xml:space="preserve"><value>Order received</value></data>
+  <data name="order_success_subtitle" xml:space="preserve"><value>The store will confirm shortly</value></data>
+  <data name="order_total" xml:space="preserve"><value>Total</value></data>
+  <data name="order_view" xml:space="preserve"><value>View order</value></data>
+  <data name="order_continue" xml:space="preserve"><value>Continue shopping</value></data>
+  <data name="order_not_found" xml:space="preserve"><value>Order not found</value></data>
+  <data name="order_all" xml:space="preserve"><value>All orders</value></data>
+  <data name="order_items" xml:space="preserve"><value>Items</value></data>
+  <data name="order_vendor" xml:space="preserve"><value>Store</value></data>
+  <data name="order_pickup" xml:space="preserve"><value>Pickup</value></data>
+  <data name="order_payment" xml:space="preserve"><value>Payment (at pickup)</value></data>
+  <data name="order_cash_tendered" xml:space="preserve"><value>Cash tendered</value></data>
+  <data name="order_expected_change" xml:space="preserve"><value>Expected change</value></data>
+  <data name="order_notes" xml:space="preserve"><value>Notes</value></data>
+  <data name="order_cancel" xml:space="preserve"><value>Cancel order</value></data>
+
+  <!-- Profile -->
+  <data name="profile_page_title" xml:space="preserve"><value>Profile</value></data>
+  <data name="profile_not_signed_in" xml:space="preserve"><value>Not signed in</value></data>
+  <data name="profile_default_name" xml:space="preserve"><value>Order customer</value></data>
+  <data name="profile_stat_orders" xml:space="preserve"><value>Orders</value></data>
+  <data name="profile_stat_favorites" xml:space="preserve"><value>Favorites</value></data>
+  <data name="profile_stat_points" xml:space="preserve"><value>Points</value></data>
+  <data name="profile_section_account" xml:space="preserve"><value>Account</value></data>
+  <data name="profile_menu_orders" xml:space="preserve"><value>My orders</value></data>
+  <data name="profile_menu_favorites" xml:space="preserve"><value>Favorites</value></data>
+  <data name="profile_menu_messages" xml:space="preserve"><value>Messages</value></data>
+  <data name="profile_menu_notifications" xml:space="preserve"><value>Notifications</value></data>
+  <data name="profile_menu_account" xml:space="preserve"><value>My Account</value></data>
+  <data name="profile_section_app" xml:space="preserve"><value>App</value></data>
+  <data name="profile_menu_settings" xml:space="preserve"><value>Settings</value></data>
+
+  <!-- Account -->
+  <data name="account_page_title" xml:space="preserve"><value>Edit Account</value></data>
+  <data name="account_title" xml:space="preserve"><value>Edit Account</value></data>
+  <data name="account_subtitle" xml:space="preserve"><value>Update your personal info</value></data>
+  <data name="account_personal_info" xml:space="preserve"><value>Personal Info</value></data>
+  <data name="account_full_name" xml:space="preserve"><value>Full Name</value></data>
+  <data name="account_full_name_placeholder" xml:space="preserve"><value>Enter your full name</value></data>
+  <data name="account_email" xml:space="preserve"><value>Email</value></data>
+  <data name="account_email_placeholder" xml:space="preserve"><value>Enter your email</value></data>
+  <data name="account_car_details" xml:space="preserve"><value>Car Details</value></data>
+  <data name="account_car_hint" xml:space="preserve"><value>Used for curbside pickup orders</value></data>
+  <data name="account_car_model" xml:space="preserve"><value>Car Model</value></data>
+  <data name="account_car_model_placeholder" xml:space="preserve"><value>e.g. Camry 2024</value></data>
+  <data name="account_car_color" xml:space="preserve"><value>Car Color</value></data>
+  <data name="account_car_color_placeholder" xml:space="preserve"><value>e.g. White</value></data>
+  <data name="account_car_plate" xml:space="preserve"><value>Plate Number</value></data>
+  <data name="account_car_plate_placeholder" xml:space="preserve"><value>Optional</value></data>
+  <data name="account_save" xml:space="preserve"><value>Save Changes</value></data>
+  <data name="account_saving" xml:space="preserve"><value>Saving...</value></data>
+  <data name="account_name_required" xml:space="preserve"><value>Name is required</value></data>
+  <data name="account_saved" xml:space="preserve"><value>Changes saved successfully</value></data>
+  <data name="account_save_failed" xml:space="preserve"><value>Could not save changes</value></data>
+
+  <!-- Legal -->
+  <data name="legal_page_title" xml:space="preserve"><value>Terms &amp; Conditions</value></data>
+  <data name="legal_title" xml:space="preserve"><value>Terms &amp; Conditions</value></data>
+  <data name="legal_subtitle" xml:space="preserve"><value>Last updated: April 2026</value></data>
+  <data name="legal_terms_of_use" xml:space="preserve"><value>Terms of Use</value></data>
+  <data name="legal_terms_intro" xml:space="preserve"><value>By using the Order app, you agree to the following terms:</value></data>
+  <data name="legal_terms_age" xml:space="preserve"><value>You must be 18 years or older to use the service.</value></data>
+  <data name="legal_terms_accuracy" xml:space="preserve"><value>You are responsible for the accuracy of the information provided in your account.</value></data>
+  <data name="legal_terms_illegal" xml:space="preserve"><value>Using the app for any illegal or unauthorized purpose is prohibited.</value></data>
+  <data name="legal_terms_suspend" xml:space="preserve"><value>We reserve the right to suspend or terminate your account for violations of these terms.</value></data>
+  <data name="legal_terms_prices" xml:space="preserve"><value>Prices displayed are set by individual stores and may change without prior notice.</value></data>
+  <data name="legal_privacy_title" xml:space="preserve"><value>Privacy Policy</value></data>
+  <data name="legal_privacy_intro" xml:space="preserve"><value>We take your privacy seriously. Here is how we handle your data:</value></data>
+  <data name="legal_privacy_data" xml:space="preserve"><value>We only collect data necessary to provide the service (name, phone number, order details).</value></data>
+  <data name="legal_privacy_share" xml:space="preserve"><value>We do not share your personal data with third parties without your consent or as required by law.</value></data>
+  <data name="legal_privacy_car" xml:space="preserve"><value>Car details are used solely to facilitate curbside pickup service.</value></data>
+  <data name="legal_privacy_delete" xml:space="preserve"><value>You can request deletion of your data at any time by contacting support.</value></data>
+  <data name="legal_refund_title" xml:space="preserve"><value>Refund Policy</value></data>
+  <data name="legal_refund_intro" xml:space="preserve"><value>Our refund policy:</value></data>
+  <data name="legal_refund_cancel" xml:space="preserve"><value>You can cancel an order before the store starts preparing it.</value></data>
+  <data name="legal_refund_after" xml:space="preserve"><value>After preparation begins, automatic cancellation is not available — please contact the store directly.</value></data>
+  <data name="legal_refund_issue" xml:space="preserve"><value>If there is an issue with your order, contact the store within 24 hours of pickup.</value></data>
+  <data name="legal_refund_money" xml:space="preserve"><value>Monetary refunds (if applicable) are handled according to the store's policy and the payment method used.</value></data>
+
+  <!-- Search -->
+  <data name="search_page_title" xml:space="preserve"><value>Search</value></data>
+  <data name="search_title" xml:space="preserve"><value>Discover</value></data>
+  <data name="search_placeholder" xml:space="preserve"><value>Store, product, district...</value></data>
+  <data name="search_all" xml:space="preserve"><value>All</value></data>
+  <data name="search_map_view" xml:space="preserve"><value>Map</value></data>
+  <data name="search_list_view" xml:space="preserve"><value>List</value></data>
+  <data name="search_loading" xml:space="preserve"><value>Loading…</value></data>
+  <data name="search_empty_title" xml:space="preserve"><value>No results</value></data>
+  <data name="search_empty_message" xml:space="preserve"><value>Try a different filter or search</value></data>
+  <data name="search_stores" xml:space="preserve"><value>Stores</value></data>
+  <data name="search_offers" xml:space="preserve"><value>Offers</value></data>
+  <data name="search_advanced_filters" xml:space="preserve"><value>Advanced filters</value></data>
+  <data name="search_discounted_only" xml:space="preserve"><value>Discounted only</value></data>
+  <data name="search_min_price" xml:space="preserve"><value>Min price</value></data>
+  <data name="search_max_price" xml:space="preserve"><value>Max price</value></data>
+  <data name="search_min_rating" xml:space="preserve"><value>Min rating</value></data>
+  <data name="search_chip_discount" xml:space="preserve"><value>Discount</value></data>
+  <data name="search_chip_clear_all" xml:space="preserve"><value>Clear all</value></data>
+  <data name="search_view_menu" xml:space="preserve"><value>View store menu</value></data>
+  <data name="search_view_details" xml:space="preserve"><value>View details</value></data>
+
+  <!-- Vendor Profile -->
+  <data name="vendor_page_title_fallback" xml:space="preserve"><value>Store</value></data>
+  <data name="vendor_loading" xml:space="preserve"><value>Loading...</value></data>
+  <data name="vendor_not_found" xml:space="preserve"><value>Store not found</value></data>
+  <data name="vendor_home" xml:space="preserve"><value>Home</value></data>
+  <data name="vendor_rating" xml:space="preserve"><value>rating</value></data>
+  <data name="vendor_store_info" xml:space="preserve"><value>Store info</value></data>
+  <data name="vendor_offers" xml:space="preserve"><value>Store offers</value></data>
+  <data name="vendor_no_offers" xml:space="preserve"><value>No offers right now</value></data>
+
+</root>

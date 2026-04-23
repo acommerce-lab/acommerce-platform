@@ -1,39 +1,40 @@
 @page "/complaints"
 @inject ApiReader Api
 @inject NavigationManager Nav
+@inject L L
 @using ACommerce.Client.Operations
 @using Ashare.V2.Web.Operations
 @inject ClientOpEngine Engine
 
-<PageTitle>الشكاوى - عشير</PageTitle>
+<PageTitle>@(L["complaint.title"]) - @(L["app.name"])</PageTitle>
 
 <div class="acs-page acs-complaints-page">
-    <AcSectionHeader Title="الشكاوى والملاحظات" ActionLabel="شكوى جديدة" OnAction="@ToggleNew" />
+    <AcSectionHeader Title="@(L["complaint.page_title"])" ActionLabel="@(L["complaint.new"])" OnAction="@ToggleNew" />
 
     @if (_showNew)
     {
         <AcCard>
             <ChildContent>
-                <AcField Label="الموضوع" Required="true">
+                <AcField Label="@(L["complaint.subject"])" Required="true">
                     <AcInput Value="@_subject" ValueChanged="@(v => _subject = v ?? string.Empty)" />
                 </AcField>
-                <AcField Label="التفاصيل" Required="true">
+                <AcField Label="@(L["complaint.body"])" Required="true">
                     <textarea class="ac-input" rows="4" @bind="_body"
-                              @bind:event="oninput" placeholder="اشرح المشكلة بالتفصيل…"></textarea>
+                              @bind:event="oninput" placeholder="@(L["complaint.description"])"></textarea>
                 </AcField>
-                <AcField Label="الأولويّة">
+                <AcField Label="@(L["complaint.priority"])">
                     <select class="ac-input" @bind="_priority">
-                        <option value="عادي">عادي</option>
-                        <option value="عالي">عالي</option>
-                        <option value="عاجل">عاجل</option>
+                        <option value="normal">@(L["complaint.priority.normal"])</option>
+                        <option value="high">@(L["complaint.priority.high"])</option>
+                        <option value="urgent">@(L["complaint.priority.urgent"])</option>
                     </select>
                 </AcField>
-                <AcField Label="مرتبطة بـ (اختياريّ)">
-                    <AcInput Value="@_related" ValueChanged="@(v => _related = v ?? string.Empty)" Placeholder="الحجز #B-1 أو الإعلان L-101" />
+                <AcField Label="@(L["complaint.related"])">
+                    <AcInput Value="@_related" ValueChanged="@(v => _related = v ?? string.Empty)" Placeholder="@(L["complaint.related_placeholder"])" />
                 </AcField>
                 <div style="display:flex; gap:8px;">
-                    <AcButton Variant="primary" Text="إرسال" OnClick="@Submit" Disabled="@(string.IsNullOrWhiteSpace(_subject) || string.IsNullOrWhiteSpace(_body) || _saving)" />
-                    <AcButton Variant="ghost" Text="إلغاء" OnClick="@ToggleNew" />
+                    <AcButton Variant="primary" Text="@(L["complaint.send"])" OnClick="@Submit" Disabled="@(string.IsNullOrWhiteSpace(_subject) || string.IsNullOrWhiteSpace(_body) || _saving)" />
+                    <AcButton Variant="ghost" Text="@(L["complaint.cancel"])" OnClick="@ToggleNew" />
                 </div>
                 @if (!string.IsNullOrEmpty(_alert))
                 {
@@ -44,7 +45,7 @@
     }
 
     @if (_loading) { <AcLoadingState /> }
-    else if (_items.Count == 0) { <AcEmptyState IconName="alert-circle" Message="لا توجد شكاوى" /> }
+    else if (_items.Count == 0) { <AcEmptyState IconName="alert-circle" Message="@(L["common.empty"])" /> }
     else
     {
         <div style="display:flex; flex-direction:column; gap:8px;">
@@ -75,7 +76,7 @@
     private bool _saving;
     private string _subject = "";
     private string _body = "";
-    private string _priority = "عادي";
+    private string _priority = "normal";
     private string _related = "";
     private string? _alert;
     private string _alertVariant = "success";
@@ -108,23 +109,25 @@
                 payload: new { Subject = _subject, Body = _body, Priority = _priority, RelatedEntity = _related });
             if (env?.Operation.Status == "Success")
             {
-                _alert = "تمّ إرسال الشكوى"; _alertVariant = "success";
+                _alert = L["common.saved"]; _alertVariant = "success";
                 _subject = ""; _body = ""; _related = ""; _showNew = false;
                 await Reload();
             }
             else
             {
-                _alert = env?.Error?.Message ?? "فشل الإرسال";
+                _alert = env?.Error?.Message ?? L["common.error"];
                 _alertVariant = "danger";
             }
         }
         finally { _saving = false; }
     }
 
-    private static string StatusLabel(string s) => s switch
+    private string StatusLabel(string s) => s switch
     {
-        "open" => "مفتوحة", "in_progress" => "قيد المعالجة",
-        "resolved" => "محلولة", "closed" => "مغلقة",
+        "open" => L["complaint.status.open"],
+        "in_progress" => L["complaint.status.in_progress"],
+        "resolved" => L["complaint.status.resolved"],
+        "closed" => L["complaint.status.closed"],
         _ => s
     };
 

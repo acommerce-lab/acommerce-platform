@@ -3,35 +3,36 @@
 @inject ClientOpEngine Engine
 @inject ApiReader Api
 @inject NavigationManager Nav
+@inject LocalizationService Localization
 
-<PageTitle>تفاصيل الطلب - اوردر</PageTitle>
+<PageTitle>@(Localization["order_details_page_title"]) - @(Localization["app_name"])</PageTitle>
 
 @if (JustCreated && Mapped != null)
 {
     <AcOrderSuccessPage Order="@Mapped"
-                        Title="@(Store.Ui.IsArabic ? "تم استلام طلبك" : "Order received")"
-                        Subtitle="@(Store.Ui.IsArabic ? "سيؤكد المتجر طلبك قريباً جداً" : "The store will confirm shortly")"
-                        TotalLabel="@(Store.Ui.IsArabic ? "الإجمالي" : "Total")"
-                        ViewOrderLabel="@(Store.Ui.IsArabic ? "تفاصيل الطلب" : "View order")"
-                        ContinueLabel="@(Store.Ui.IsArabic ? "متابعة التسوق" : "Continue shopping")" />
+                        Title="@(Localization["order_success_title"])"
+                        Subtitle="@(Localization["order_success_subtitle"])"
+                        TotalLabel="@(Localization["order_total"])"
+                        ViewOrderLabel="@(Localization["order_view"])"
+                        ContinueLabel="@(Localization["order_continue"])" />
 }
 else
 {
     <AcOrderDetailsPage Order="@Mapped"
                         Loading="@Loading"
                         BackHref="/orders"
-                        LoadingMessage="@(Store.Ui.IsArabic ? "جاري التحميل..." : "Loading…")"
-                        NotFoundTitle="@(Store.Ui.IsArabic ? "الطلب غير موجود" : "Order not found")"
-                        BackLabel="@(Store.Ui.IsArabic ? "كل الطلبات" : "All orders")"
-                        ItemsLabel="@(Store.Ui.IsArabic ? "العناصر" : "Items")"
-                        TotalLabel="@(Store.Ui.IsArabic ? "الإجمالي" : "Total")"
-                        VendorLabel="@(Store.Ui.IsArabic ? "المتجر" : "Store")"
-                        PickupLabel="@(Store.Ui.IsArabic ? "الاستلام" : "Pickup")"
-                        PaymentLabel="@(Store.Ui.IsArabic ? "الدفع (في المتجر)" : "Payment (at pickup)")"
-                        CashTenderedLabel="@(Store.Ui.IsArabic ? "المبلغ المتوقع" : "Cash tendered")"
-                        ExpectedChangeLabel="@(Store.Ui.IsArabic ? "الباقي المتوقع" : "Expected change")"
-                        NotesLabel="@(Store.Ui.IsArabic ? "ملاحظاتك" : "Notes")"
-                        CancelLabel="@(Store.Ui.IsArabic ? "إلغاء الطلب" : "Cancel order")"
+                        LoadingMessage="@(Localization["common_loading_dots"])"
+                        NotFoundTitle="@(Localization["order_not_found"])"
+                        BackLabel="@(Localization["order_all"])"
+                        ItemsLabel="@(Localization["order_items"])"
+                        TotalLabel="@(Localization["order_total"])"
+                        VendorLabel="@(Localization["order_vendor"])"
+                        PickupLabel="@(Localization["order_pickup"])"
+                        PaymentLabel="@(Localization["order_payment"])"
+                        CashTenderedLabel="@(Localization["order_cash_tendered"])"
+                        ExpectedChangeLabel="@(Localization["order_expected_change"])"
+                        NotesLabel="@(Localization["order_notes"])"
+                        CancelLabel="@(Localization["order_cancel"])"
                         OnCancel="Cancel" />
 }
 
@@ -68,12 +69,12 @@ else
         }).ToList(),
         PickupType = OrderData.PickupType == 1 ? "Curbside" : "InStore",
         PickupLabel = OrderData.PickupType == 1
-            ? (Store.Ui.IsArabic ? "من السيارة" : "Curbside")
-            : (Store.Ui.IsArabic ? "من المتجر" : "In-store"),
+            ? Localization["orders_pickup_curbside"]
+            : Localization["orders_pickup_instore"],
         PaymentMethod = OrderData.PreferredPayment == 1 ? "Card" : "Cash",
         PaymentLabel = OrderData.PreferredPayment == 1
-            ? (Store.Ui.IsArabic ? "بطاقة" : "Card")
-            : (Store.Ui.IsArabic ? "نقدي" : "Cash"),
+            ? Localization["orders_payment_card"]
+            : Localization["orders_payment_cash"],
         CashTendered = OrderData.CashTendered,
         ExpectedChange = OrderData.ExpectedChange,
         CustomerNotes = OrderData.CustomerNotes,

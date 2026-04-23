@@ -6,17 +6,17 @@
 @inject L L
 @implements IDisposable
 
-<PageTitle>@L.T("الإعدادات - اوردر", "Settings — Order")</PageTitle>
+<PageTitle>@(L["settings.title"]) — @(L["app.name"])</PageTitle>
 
 <AcSettingsPage Snapshot="Snapshot"
-                Title="@(Store.Ui.IsArabic ? "الإعدادات" : "Settings")"
-                ThemeLabel="@(Store.Ui.IsArabic ? "المظهر" : "Appearance")"
-                LanguageLabel="@(Store.Ui.IsArabic ? "اللغة" : "Language")"
-                AboutLabel="@(Store.Ui.IsArabic ? "حول التطبيق" : "About")"
-                VersionLabel="@(Store.Ui.IsArabic ? "الإصدار" : "Version")"
-                LightLabel="@(Store.Ui.IsArabic ? "فاتح" : "Light")"
-                DarkLabel="@(Store.Ui.IsArabic ? "داكن" : "Dark")"
-                SignOutLabel="@(Store.Ui.IsArabic ? "تسجيل الخروج" : "Sign out")"
+                Title="@(L["settings.title"])"
+                ThemeLabel="@(L["settings.theme"])"
+                LanguageLabel="@(L["settings.language"])"
+                AboutLabel="@(L["settings.title"])"
+                VersionLabel="@(L["settings.title"])"
+                LightLabel="@(L["settings.theme_light"])"
+                DarkLabel="@(L["settings.theme_dark"])"
+                SignOutLabel="@(L["settings.sign_out"])"
                 OnThemeChange="@(async t => { await Applier.ApplyLocalAsync(ClientOps.SetTheme(t)); })"
                 OnLanguageChange="@(async l => { await Applier.ApplyLocalAsync(ClientOps.SetLanguage(l)); })"
                 OnSignOut="@(Store.Auth.IsAuthenticated ? EventCallback.Factory.Create(this, SignOut) : default)">
@@ -24,7 +24,7 @@
         <div class="s-card" style="margin-top: 16px">
             <a href="/legal" style="display:flex;align-items:center;gap: 8px;text-decoration:none;color:inherit">
                 <AcIcon Name="file" Size="20" />
-                @(Store.Ui.IsArabic ? "الشروط والأحكام" : "Terms & Conditions")
+                @(L["legal.terms"])
             </a>
         </div>
     </ExtraSections>

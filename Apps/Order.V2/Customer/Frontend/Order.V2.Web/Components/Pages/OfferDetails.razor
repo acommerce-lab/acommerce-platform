@@ -6,19 +6,19 @@
 @inject NavigationManager Nav
 @inject L L
 
-<PageTitle>@(OfferApiData?.Title ?? L.T("تفاصيل العرض", "Offer details")) - @L.T("اوردر", "Order")</PageTitle>
+<PageTitle>@(OfferApiData?.Title ?? L["offer.details"]) - @(L["app.name"])</PageTitle>
 
 <AcOfferDetailsPage Offer="@Mapped"
                     Loading="@Loading"
                     InFavorites="@IsFavorite"
                     BackHref="/"
-                    LoadingMessage="@(Store.Ui.IsArabic ? "جاري التحميل..." : "Loading…")"
-                    NotFoundTitle="@(Store.Ui.IsArabic ? "العرض غير موجود" : "Offer not found")"
-                    BackLabel="@(Store.Ui.IsArabic ? "العودة للرئيسية" : "Back to home")"
-                    DescriptionLabel="@(Store.Ui.IsArabic ? "تفاصيل العرض" : "Details")"
-                    StoreInfoLabel="@(Store.Ui.IsArabic ? "معلومات المتجر" : "Store info")"
-                    AddToCartLabel="@($"{(Store.Ui.IsArabic ? "أضف إلى السلة" : "Add to cart")} • {OfferApiData?.Price.ToString("N0")} {OfferApiData?.Currency}")"
-                    ChatLabel="@(Store.Ui.IsArabic ? "محادثة المتجر" : "Chat with store")"
+                    LoadingMessage="@(L["common.loading"])"
+                    NotFoundTitle="@(L["offer.not_found"])"
+                    BackLabel="@(L["offer.back_to_home"])"
+                    DescriptionLabel="@(L["offer.description"])"
+                    StoreInfoLabel="@(L["vendor.info"])"
+                    AddToCartLabel="@($"{L["offer.add_to_cart"]} • {OfferApiData?.Price.ToString("N0")} {OfferApiData?.Currency}")"
+                    ChatLabel="@(L["offer.chat_with_store"])"
                     OnAddToCart="AddToCart"
                     OnToggleFavorite="ToggleFavorite"
                     OnChatWithStore="@(Store.Auth.IsAuthenticated && OfferApiData?.Vendor != null ? EventCallback.Factory.Create(this, StartChat) : default)" />

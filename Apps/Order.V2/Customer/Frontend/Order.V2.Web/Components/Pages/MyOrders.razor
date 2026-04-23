@@ -3,24 +3,24 @@
 @inject ApiReader Api
 @inject L L
 
-<PageTitle>@L.T("طلباتي - اوردر", "My Orders — Order")</PageTitle>
+<PageTitle>@(L["orders.page_title"]) — @(L["app.name"])</PageTitle>
 
 @if (!Store.Auth.IsAuthenticated)
 {
     <AcEmptyState IconName="log-in"
-                  Title="@(Store.Ui.IsArabic ? "سجل دخولك لرؤية طلباتك" : "Sign in to view orders")"
-                  ActionLabel="@(Store.Ui.IsArabic ? "تسجيل الدخول" : "Sign in")"
+                  Title="@(L["orders.signin_required"])"
+                  ActionLabel="@(L["auth.login.title"])"
                   ActionHref="/login" />
 }
 else
 {
     <AcOrdersListPage Orders="@Mapped"
                       Loading="@Loading"
-                      Title="@(Store.Ui.IsArabic ? "طلباتي" : "My orders")"
-                      LoadingMessage="@(Store.Ui.IsArabic ? "جاري التحميل..." : "Loading…")"
-                      EmptyTitle="@(Store.Ui.IsArabic ? "لا توجد طلبات" : "No orders yet")"
-                      EmptyMessage="@(Store.Ui.IsArabic ? "اطلب أول وجبتك من اوردر" : "Place your first order")"
-                      BrowseLabel="@(Store.Ui.IsArabic ? "تصفّح العروض" : "Browse offers")"
+                      Title="@(L["orders.my_orders"])"
+                      LoadingMessage="@(L["common.loading"])"
+                      EmptyTitle="@(L["orders.empty_title"])"
+                      EmptyMessage="@(L["orders.empty_message"])"
+                      BrowseLabel="@(L["cart.browse"])"
                       BrowseHref="/" />
 }
 
@@ -61,12 +61,12 @@ else
     private static string StatusKey(int s) => ACommerce.Templates.Shared.Models.StatusHelpers.OrderStatusKey(s);
 
     private string PickupLabel(int t) => t == 1
-        ? (Store.Ui.IsArabic ? "من السيارة" : "Curbside")
-        : (Store.Ui.IsArabic ? "من المتجر" : "In-store");
+        ? L["checkout.pickup_curbside"]
+        : L["checkout.pickup_instore"];
 
     private string PaymentLabel(int p) => p == 1
-        ? (Store.Ui.IsArabic ? "بطاقة" : "Card")
-        : (Store.Ui.IsArabic ? "نقدي" : "Cash");
+        ? L["checkout.payment_card"]
+        : L["checkout.payment_cash"];
 
     public class OrderRowApi
     {

@@ -2,21 +2,22 @@
 @inject AppStore Store
 @inject AppStateApplier Applier
 @inject NavigationManager Nav
+@inject LocalizationService Localization
 @implements IDisposable
 
-<PageTitle>السلة - اوردر</PageTitle>
+<PageTitle>@(Localization["cart_page_title"]) - @(Localization["app_name"])</PageTitle>
 
 <AcCartPage Cart="@Snapshot"
-            Title="@(Store.Ui.IsArabic ? "سلة الطلبات" : "Your cart")"
-            EmptyTitle="@(Store.Ui.IsArabic ? "السلة فارغة" : "Cart is empty")"
-            EmptyMessage="@(Store.Ui.IsArabic ? "تصفّح العروض وأضف أصنافك المفضلة" : "Browse offers and add your favorites")"
-            BrowseLabel="@(Store.Ui.IsArabic ? "تصفّح العروض" : "Browse offers")"
+            Title="@(Localization["cart_title"])"
+            EmptyTitle="@(Localization["cart_empty_title"])"
+            EmptyMessage="@(Localization["cart_empty_message"])"
+            BrowseLabel="@(Localization["cart_browse"])"
             BrowseHref="/"
-            PickupHint="@(Store.Ui.IsArabic ? "الاستلام من المتجر أو من السيارة" : "In-store or curbside pickup")"
-            SubtotalLabel="@(Store.Ui.IsArabic ? "المجموع الفرعي" : "Subtotal")"
-            TotalLabel="@(Store.Ui.IsArabic ? "الإجمالي" : "Total")"
-            CheckoutLabel="@(Store.Ui.IsArabic ? "متابعة للطلب" : "Continue to checkout")"
-            ClearLabel="@(Store.Ui.IsArabic ? "إفراغ السلة" : "Clear cart")"
+            PickupHint="@(Localization["cart_pickup_hint"])"
+            SubtotalLabel="@(Localization["cart_subtotal"])"
+            TotalLabel="@(Localization["cart_total"])"
+            CheckoutLabel="@(Localization["cart_checkout"])"
+            ClearLabel="@(Localization["cart_clear"])"
             OnQuantityChange="HandleQtyChange"
             OnClear="@(async () => { await Applier.ApplyLocalAsync(ClientOps.CartClear()); })"
             OnCheckout="GoCheckout" />
