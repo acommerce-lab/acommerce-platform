@@ -2,24 +2,25 @@
 @inject AppStore Store
 @inject ApiReader Api
 @inject NavigationManager Nav
+@inject LocalizationService Localization
 
-<PageTitle>المحادثات - اوردر</PageTitle>
+<PageTitle>@(Localization["messages_page_title"]) - @(Localization["app_name"])</PageTitle>
 
 @if (!Store.Auth.IsAuthenticated)
 {
     <AcEmptyState IconName="message"
-                  Title="@(Store.Ui.IsArabic ? "سجّل دخولك لرؤية المحادثات" : "Sign in to chat")"
-                  ActionLabel="@(Store.Ui.IsArabic ? "تسجيل الدخول" : "Sign in")"
+                  Title="@(Localization["messages_signin_title"])"
+                  ActionLabel="@(Localization["common_signin"])"
                   ActionHref="/login" />
 }
 else
 {
     <AcMessagesListPage Conversations="@Mapped"
                         Loading="@Loading"
-                        Title="@(Store.Ui.IsArabic ? "محادثاتي" : "Messages")"
-                        LoadingMessage="@(Store.Ui.IsArabic ? "جاري التحميل..." : "Loading…")"
-                        EmptyTitle="@(Store.Ui.IsArabic ? "لا محادثات بعد" : "No conversations")"
-                        EmptyMessage="@(Store.Ui.IsArabic ? "ابدأ من صفحة العرض بزر «محادثة المتجر»" : "Tap \"Chat with store\" on any offer")"
+                        Title="@(Localization["messages_title"])"
+                        LoadingMessage="@(Localization["common_loading_dots"])"
+                        EmptyTitle="@(Localization["messages_empty_title"])"
+                        EmptyMessage="@(Localization["messages_empty_message"])"
                         OnSelectConversation="@SelectConversation" />
 }
 
@@ -29,7 +30,7 @@ else
 
     private IReadOnlyList<ConversationRowDto> Mapped =>
         Conversations
-            .Where(c => c.LastMessageAt.HasValue) // hide conversations with no messages sent yet
+            .Where(c => c.LastMessageAt.HasValue)
             .Select(c => new ConversationRowDto
             {
                 Id = c.Id.ToString(),

@@ -4,14 +4,15 @@
 @inject ApiReader Api
 @inject NavigationManager Nav
 @inject ACommerce.Culture.Blazor.CultureTimeFormatter TimeFormatter
+@inject LocalizationService Localization
 
-<PageTitle>محادثة - اوردر</PageTitle>
+<PageTitle>@(Localization["chat_page_title"]) - @(Localization["app_name"])</PageTitle>
 
 @if (!Store.Auth.IsAuthenticated)
 {
     <AcEmptyState IconName="log-in"
-                  Title="@(Store.Ui.IsArabic ? "سجل دخولك" : "Sign in")"
-                  ActionLabel="@(Store.Ui.IsArabic ? "دخول" : "Sign in")"
+                  Title="@(Localization["chat_signin_title"])"
+                  ActionLabel="@(Localization["nav_signin"])"
                   ActionHref="/login" />
 }
 else
@@ -24,11 +25,11 @@ else
                 Messages="@Mapped"
                 MySenderId="@(Store.Auth.UserId?.ToString() ?? "")"
                 Loading="@Loading"
-                Title="@(Store.Ui.IsArabic ? "محادثة" : "Chat")"
-                LoadingMessage="@(Store.Ui.IsArabic ? "جاري التحميل..." : "Loading…")"
-                EmptyMessage="@(Store.Ui.IsArabic ? "لا رسائل بعد" : "No messages yet")"
-                InputPlaceholder="@(Store.Ui.IsArabic ? "اكتب رسالة..." : "Type a message...")"
-                SendLabel="@(Store.Ui.IsArabic ? "إرسال" : "Send")" />
+                Title="@(Localization["chat_title"])"
+                LoadingMessage="@(Localization["common_loading_dots"])"
+                EmptyMessage="@(Localization["chat_empty"])"
+                InputPlaceholder="@(Localization["chat_placeholder"])"
+                SendLabel="@(Localization["chat_send"])" />
 }
 
 @code {
@@ -42,10 +43,6 @@ else
             Id = m.Id.ToString(),
             Content = m.Content,
             SenderId = m.SenderId.ToString(),
-            // Convert the DB-UTC timestamp to the viewer's actual timezone
-            // (from the browser), then mark it Kind=Local so that
-            // AcChatPage's .ToLocalTime() is idempotent and doesn't shift
-            // it again by the server's timezone.
             CreatedAt = DateTime.SpecifyKind(TimeFormatter.AsLocal(m.CreatedAt), DateTimeKind.Local)
         }).ToList();
 

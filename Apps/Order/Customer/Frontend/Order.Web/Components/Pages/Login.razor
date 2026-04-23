@@ -2,8 +2,9 @@
 @inject AppStore Store
 @inject ClientOpEngine Engine
 @inject NavigationManager Nav
+@inject LocalizationService Localization
 
-<PageTitle>تسجيل الدخول - اوردر</PageTitle>
+<PageTitle>@(Localization["login_page_title"]) - @(Localization["app_name"])</PageTitle>
 
 <AcLoginPage Mode="TemplateOperationMode.Operation"
              Engine="Engine"
@@ -13,27 +14,25 @@
              VerifyPayload="@((uid, cid, code) => new { userId = uid, challengeId = cid, code })"
              RedirectUrl="@(string.IsNullOrEmpty(ReturnUrl) ? "/" : ReturnUrl)"
              BrandIcon="🍔"
-             BrandName="اوردر"
-             BrandTagline="@(Store.Ui.IsArabic ? "عروض الكافيهات والمطاعم" : "Cafe & restaurant deals")"
-             PhoneStepTitle="@(Store.Ui.IsArabic ? "مرحباً بك" : "Welcome")"
-             PhoneStepSubtitle="@(Store.Ui.IsArabic ? "أدخل رقم جوالك للمتابعة" : "Enter your phone number to continue")"
-             PhoneLabel="@(Store.Ui.IsArabic ? "رقم الجوال" : "Phone number")"
-             RequestOtpLabel="@(Store.Ui.IsArabic ? "إرسال رمز التحقق" : "Send verification code")"
-             SendingLabel="@(Store.Ui.IsArabic ? "جاري الإرسال..." : "Sending...")"
-             OtpStepTitle="@(Store.Ui.IsArabic ? "رمز التحقق" : "Verification code")"
-             OtpStepSubtitle="@(Store.Ui.IsArabic ? "أدخل الرمز المرسل إلى" : "Enter the code sent to")"
-             OtpLabel="@(Store.Ui.IsArabic ? "رمز التحقق (6 أرقام)" : "Verification code (6 digits)")"
-             VerifyOtpLabel="@(Store.Ui.IsArabic ? "تحقق ودخول" : "Verify & sign in")"
-             VerifyingLabel="@(Store.Ui.IsArabic ? "جاري التحقق..." : "Verifying...")"
-             BackLabel="@(Store.Ui.IsArabic ? "تغيير رقم الجوال" : "Change phone")">
+             BrandName="@(Localization["login_brand_name"])"
+             BrandTagline="@(Localization["login_brand_tagline"])"
+             PhoneStepTitle="@(Localization["login_phone_title"])"
+             PhoneStepSubtitle="@(Localization["login_phone_subtitle"])"
+             PhoneLabel="@(Localization["login_phone_label"])"
+             RequestOtpLabel="@(Localization["login_request_otp"])"
+             SendingLabel="@(Localization["login_sending"])"
+             OtpStepTitle="@(Localization["login_otp_title"])"
+             OtpStepSubtitle="@(Localization["login_otp_subtitle"])"
+             OtpLabel="@(Localization["login_otp_label"])"
+             VerifyOtpLabel="@(Localization["login_verify_otp"])"
+             VerifyingLabel="@(Localization["login_verifying"])"
+             BackLabel="@(Localization["login_back"])">
     <HintSlot>
-        <strong>@(Store.Ui.IsArabic ? "وضع تجريبي:" : "Demo mode:")</strong>
-        @(Store.Ui.IsArabic
-            ? "أي رقم +9665xxxxxxxx يفتح حساباً جديداً. الرمز يطبع في سجل الـ API."
-            : "Any +9665xxxxxxxx number creates a new account. The code is printed in the API log.")
+        <strong>@(Localization["login_demo_mode"])</strong>
+        @(Localization["login_demo_hint"])
         <br />
-        <span style="font-size:0.875rem">@(Store.Ui.IsArabic ? "حسابات تجريبية: " : "Demo accounts: ")</span>
-        <code dir="ltr">+966500000001</code> (سارة)
+        <span style="font-size:0.875rem">@(Localization["login_demo_accounts"])</span>
+        <code dir="ltr">+966500000001</code>
     </HintSlot>
 </AcLoginPage>
 

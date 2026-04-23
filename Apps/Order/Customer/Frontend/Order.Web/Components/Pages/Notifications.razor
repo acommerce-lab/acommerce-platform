@@ -2,14 +2,15 @@
 @inject AppStore Store
 @inject ClientOpEngine Engine
 @inject ApiReader Api
+@inject LocalizationService Localization
 
-<PageTitle>الإشعارات - اوردر</PageTitle>
+<PageTitle>@(Localization["notifications_page_title"]) - @(Localization["app_name"])</PageTitle>
 
 @if (!Store.Auth.IsAuthenticated)
 {
     <AcEmptyState IconName="bell"
-                  Title="@(Store.Ui.IsArabic ? "سجّل دخولك للإشعارات" : "Sign in for notifications")"
-                  ActionLabel="@(Store.Ui.IsArabic ? "تسجيل الدخول" : "Sign in")"
+                  Title="@(Localization["notifications_signin_title"])"
+                  ActionLabel="@(Localization["common_signin"])"
                   ActionHref="/login" />
 }
 else
@@ -20,11 +21,11 @@ else
                          BuildMarkAllReadOp="@(() => ClientOps.MarkAllNotificationsRead(Store.Auth.UserId))"
                          Notifications="@Mapped"
                          Loading="@Loading"
-                         Title="@(Store.Ui.IsArabic ? "الإشعارات" : "Notifications")"
-                         LoadingMessage="@(Store.Ui.IsArabic ? "جاري التحميل..." : "Loading…")"
-                         EmptyTitle="@(Store.Ui.IsArabic ? "لا إشعارات" : "All caught up")"
-                         EmptyMessage="@(Store.Ui.IsArabic ? "سيظهر هنا كل جديد" : "New activity will appear here")"
-                         MarkAllReadLabel="@(Store.Ui.IsArabic ? "تعليم الكل مقروءاً" : "Mark all read")" />
+                         Title="@(Localization["notifications_title"])"
+                         LoadingMessage="@(Localization["common_loading_dots"])"
+                         EmptyTitle="@(Localization["notifications_empty_title"])"
+                         EmptyMessage="@(Localization["notifications_empty_message"])"
+                         MarkAllReadLabel="@(Localization["notifications_mark_all_read"])" />
 }
 
 @code {

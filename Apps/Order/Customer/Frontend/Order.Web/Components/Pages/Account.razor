@@ -3,35 +3,36 @@
 @inject ApiReader Reader
 @inject ClientOpEngine Engine
 @inject NavigationManager Nav
+@inject LocalizationService Localization
 
-<PageTitle>@Store.Ui.Tr("تعديل الحساب", "Edit Account") - @Store.Ui.Tr("اوردر", "Order")</PageTitle>
+<PageTitle>@(Localization["account_page_title"]) - @(Localization["app_name"])</PageTitle>
 
 <AcAuthGuard IsAuthenticated="@Store.Auth.IsAuthenticated" IsArabic="@Store.Ui.IsArabic" LoginHref="/login">
     @if (Loading)
     {
-        <AcLoadingState Message="@Store.Ui.Tr("جاري التحميل...", "Loading...")" />
+        <AcLoadingState Message="@(Localization["common_loading_dots"])" />
     }
     else
     {
         <div class="acs-page" style="padding: 16px">
-            <AcPageHeader Title="@Store.Ui.Tr("تعديل الحساب", "Edit Account")"
-                          Subtitle="@Store.Ui.Tr("حدّث بياناتك الشخصية", "Update your personal info")" />
+            <AcPageHeader Title="@(Localization["account_title"])"
+                          Subtitle="@(Localization["account_subtitle"])" />
 
             <AcCard Class="ac-mb-lg">
                 <Header>
-                    <strong>@Store.Ui.Tr("البيانات الشخصية", "Personal Info")</strong>
+                    <strong>@(Localization["account_personal_info"])</strong>
                 </Header>
                 <ChildContent>
-                    <AcField Label="@Store.Ui.Tr("الاسم الكامل", "Full Name")" Class="ac-mb-md">
+                    <AcField Label="@(Localization["account_full_name"])" Class="ac-mb-md">
                         <AcInput Value="@FullName"
-                                 Placeholder="@Store.Ui.Tr("أدخل اسمك الكامل", "Enter your full name")"
+                                 Placeholder="@(Localization["account_full_name_placeholder"])"
                                  ValueChanged="@(v => FullName = v ?? "")" />
                     </AcField>
 
-                    <AcField Label="@Store.Ui.Tr("البريد الإلكتروني", "Email")">
+                    <AcField Label="@(Localization["account_email"])">
                         <AcInput Value="@Email"
                                  Type="email"
-                                 Placeholder="@Store.Ui.Tr("أدخل بريدك الإلكتروني", "Enter your email")"
+                                 Placeholder="@(Localization["account_email_placeholder"])"
                                  ValueChanged="@(v => Email = v ?? "")" />
                     </AcField>
                 </ChildContent>
@@ -41,31 +42,29 @@
                 <Header>
                     <div style="display:flex;align-items:center;gap:0.5rem">
                         <AcIcon Name="car" Size="16" />
-                        <strong>@Store.Ui.Tr("بيانات السيارة", "Car Details")</strong>
+                        <strong>@(Localization["account_car_details"])</strong>
                     </div>
                 </Header>
                 <ChildContent>
                     <p class="ac-text-muted ac-text-sm ac-mb-md">
-                        @Store.Ui.Tr(
-                            "تُستخدم عند الاستلام من السيارة (Curbside)",
-                            "Used for curbside pickup orders")
+                        @(Localization["account_car_hint"])
                     </p>
 
-                    <AcField Label="@Store.Ui.Tr("نوع السيارة", "Car Model")" Class="ac-mb-md">
+                    <AcField Label="@(Localization["account_car_model"])" Class="ac-mb-md">
                         <AcInput Value="@CarModel"
-                                 Placeholder="@Store.Ui.Tr("مثال: كامري 2024", "e.g. Camry 2024")"
+                                 Placeholder="@(Localization["account_car_model_placeholder"])"
                                  ValueChanged="@(v => CarModel = v ?? "")" />
                     </AcField>
 
-                    <AcField Label="@Store.Ui.Tr("لون السيارة", "Car Color")" Class="ac-mb-md">
+                    <AcField Label="@(Localization["account_car_color"])" Class="ac-mb-md">
                         <AcInput Value="@CarColor"
-                                 Placeholder="@Store.Ui.Tr("مثال: أبيض", "e.g. White")"
+                                 Placeholder="@(Localization["account_car_color_placeholder"])"
                                  ValueChanged="@(v => CarColor = v ?? "")" />
                     </AcField>
 
-                    <AcField Label="@Store.Ui.Tr("رقم اللوحة", "Plate Number")">
+                    <AcField Label="@(Localization["account_car_plate"])">
                         <AcInput Value="@CarPlate"
-                                 Placeholder="@Store.Ui.Tr("اختياري", "Optional")"
+                                 Placeholder="@(Localization["account_car_plate_placeholder"])"
                                  ValueChanged="@(v => CarPlate = v ?? "")" />
                     </AcField>
                 </ChildContent>
@@ -78,7 +77,7 @@
 
             <AcButton Variant="primary"
                       Block="true"
-                      Text="@(Saving ? Store.Ui.Tr("جاري الحفظ...", "Saving...") : Store.Ui.Tr("حفظ التعديلات", "Save Changes"))"
+                      Text="@(Saving ? Localization["account_saving"] : Localization["account_save"])"
                       Loading="@Saving"
                       Disabled="@Saving"
                       OnClick="Save" />
@@ -132,7 +131,7 @@
         Message = null;
         if (string.IsNullOrWhiteSpace(FullName))
         {
-            Message = Store.Ui.Tr("الاسم مطلوب", "Name is required");
+            Message = Localization["account_name_required"];
             MessageVariant = "warning";
             return;
         }
@@ -154,14 +153,14 @@
 
             if (result.Operation.Status == "Success")
             {
-                Message = Store.Ui.Tr("تم حفظ التعديلات بنجاح", "Changes saved successfully");
+                Message = Localization["account_saved"];
                 MessageVariant = "success";
             }
             else
             {
                 Message = result.Operation.ErrorMessage
                           ?? result.Error?.Message
-                          ?? Store.Ui.Tr("تعذّر حفظ التعديلات", "Could not save changes");
+                          ?? Localization["account_save_failed"];
                 MessageVariant = "danger";
             }
         }

@@ -6,54 +6,45 @@ using Order.Web.Store;
 namespace Order.Web.Services;
 
 /// <summary>
-/// Localization service using .NET Resource Files (.resx)
-/// Supports multiple languages and automatic culture switching.
+/// Localization service using .NET Resource Files (.resx).
+/// Binds to AppStore.Ui.Language changes and exposes strongly-typed
+/// access through Strings properties or indexer by key.
+/// Supports multi-language (en, ar, and any culture with a .resx).
 /// </summary>
 public class LocalizationService
 {
     private readonly AppStore _store;
     private readonly ResourceManager _resourceManager;
     private CultureInfo _currentCulture;
+    private string _lastLanguage;
 
     public event EventHandler? LanguageChanged;
 
     public LocalizationService(AppStore store)
     {
         _store = store;
-        _resourceManager = new ResourceManager(
-            typeof(Strings));
-        _currentCulture = GetCultureFromLanguage(_store.Ui.Language);
+        _resourceManager = new ResourceManager(typeof(Strings));
+        _lastLanguage = _store.Ui.Language;
+        _currentCulture = GetCultureFromLanguage(_lastLanguage);
+        CultureInfo.CurrentUICulture = _currentCulture;
 
-        // Subscribe to language changes
         _store.OnChanged += OnStoreChanged;
     }
 
-    /// <summary>
-    /// Get localized string by key from resource file.
-    /// </summary>
+    /// <summary>Get localized string by resource key.</summary>
     public string GetString(string key)
     {
         return _resourceManager.GetString(key, _currentCulture) ?? key;
     }
 
-    /// <summary>
-    /// Get localized string with fallback to key if not found.
-    /// </summary>
+    /// <summary>Indexer access for Razor: @Localization["key"]</summary>
     public string this[string key] => GetString(key);
 
-    /// <summary>
-    /// Current language code (en, ar, etc.).
-    /// </summary>
-    public string Language => _store.Ui.Language;
-
-    /// <summary>
-    /// Current culture info.
-    /// </summary>
+    public string Language => _lastLanguage;
     public CultureInfo CurrentCulture => _currentCulture;
+    public bool IsRtl => _currentCulture.TextInfo.IsRightToLeft;
 
-    /// <summary>
-    /// Get all available language codes and their display names.
-    /// </summary>
+    /// <summary>Languages available with display names.</summary>
     public IReadOnlyDictionary<string, string> AvailableLanguages => new Dictionary<string, string>
     {
         { "en", "English" },
@@ -62,30 +53,19 @@ public class LocalizationService
 
     private void OnStoreChanged()
     {
-        if (_store.Ui.Language != Language)
+        var newLang = _store.Ui.Language;
+        if (newLang != _lastLanguage)
         {
-            _currentCulture = GetCultureFromLanguage(_store.Ui.Language);
+            _lastLanguage = newLang;
+            _currentCulture = GetCultureFromLanguage(newLang);
+            CultureInfo.CurrentUICulture = _currentCulture;
             LanguageChanged?.Invoke(this, EventArgs.Empty);
         }
     }
 
     private static CultureInfo GetCultureFromLanguage(string language)
     {
-        return language switch
-        {
-            "ar" => new CultureInfo("ar"),
-            "en" => new CultureInfo("en"),
-            _ => new CultureInfo("en")
-        };
-    }
-
-    /// <summary>
-    /// Initialize localization with language from store.
-    /// Call this in app startup.
-    /// </summary>
-    public void Initialize()
-    {
-        _currentCulture = GetCultureFromLanguage(_store.Ui.Language);
-        CultureInfo.CurrentUICulture = _currentCulture;
+        try { return CultureInfo.GetCultureInfo(language); }
+        catch { return CultureInfo.GetCultureInfo("en"); }
     }
 }

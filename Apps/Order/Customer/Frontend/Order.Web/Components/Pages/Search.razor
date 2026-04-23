@@ -2,29 +2,30 @@
 @inject AppStore Store
 @inject ApiReader Api
 @inject NavigationManager Nav
+@inject LocalizationService Localization
 @implements IDisposable
 
-<PageTitle>البحث - اوردر</PageTitle>
+<PageTitle>@(Localization["search_page_title"]) - @(Localization["app_name"])</PageTitle>
 
-<AcMapSearchPage Title="@(Store.Ui.IsArabic ? "اكتشف" : "Discover")"
+<AcMapSearchPage Title="@(Localization["search_title"])"
                  Pins="@Pins"
                  Loading="@Loading"
                  SearchQuery="@Query"
                  SearchQueryChanged="@(q => { Query = q; StateHasChanged(); })"
-                 SearchPlaceholder="@(Store.Ui.IsArabic ? "متجر، منتج، حي..." : "Store, product, district...")"
+                 SearchPlaceholder="@(Localization["search_placeholder"])"
                  Categories="@MappedCategories"
                  SelectedCategoryId="@SelectedCategoryId"
                  OnSelectCategory="HandleCategory"
-                 AllLabel="@(Store.Ui.IsArabic ? "الكل" : "All")"
+                 AllLabel="@(Localization["search_all"])"
                  View="@View"
                  ViewChanged="@(v => { View = v; StateHasChanged(); })"
-                 MapViewLabel="@(Store.Ui.IsArabic ? "خريطة" : "Map")"
-                 ListViewLabel="@(Store.Ui.IsArabic ? "قائمة" : "List")"
+                 MapViewLabel="@(Localization["search_map_view"])"
+                 ListViewLabel="@(Localization["search_list_view"])"
                  SelectedPinId="@SelectedPinId"
                  OnSelectPin="HandleSelect"
-                 LoadingMessage="@(Store.Ui.IsArabic ? "جاري التحميل..." : "Loading…")"
-                 EmptyTitle="@(Store.Ui.IsArabic ? "لا توجد نتائج" : "No results")"
-                 EmptyMessage="@(Store.Ui.IsArabic ? "جرّب فلتراً آخر أو ابحث باسم آخر" : "Try a different filter or search")">
+                 LoadingMessage="@(Localization["search_loading"])"
+                 EmptyTitle="@(Localization["search_empty_title"])"
+                 EmptyMessage="@(Localization["search_empty_message"])">
     <FilterExtras>
         @* Mode toggle *@
         <div class="acs-seg" style="margin-bottom:8px">
@@ -32,13 +33,13 @@
                     class="acs-seg-btn @(Mode == "vendors" ? "active" : "")"
                     @onclick="@(() => SetMode("vendors"))">
                 <AcIcon Name="store" Size="16" />
-                @(Store.Ui.IsArabic ? "المتاجر" : "Stores")
+                @(Localization["search_stores"])
             </button>
             <button type="button"
                     class="acs-seg-btn @(Mode == "offers" ? "active" : "")"
                     @onclick="@(() => SetMode("offers"))">
                 <AcIcon Name="tag" Size="16" />
-                @(Store.Ui.IsArabic ? "العروض" : "Offers")
+                @(Localization["search_offers"])
             </button>
         </div>
 
@@ -46,7 +47,7 @@
         <div class="acc-filter-panel @(ShowFilters ? "open" : "")">
             <button type="button" class="acc-filter-toggle" @onclick="@(() => ShowFilters = !ShowFilters)">
                 <AcIcon Name="settings" Size="16" />
-                <span>@(Store.Ui.IsArabic ? "فلاتر متقدمة" : "Advanced filters")</span>
+                <span>@(Localization["search_advanced_filters"])</span>
                 <AcIcon Name="@(ShowFilters ? "chevron-down" : "chevron-right")" Size="16" />
             </button>
 
@@ -55,21 +56,19 @@
                 <div class="acc-filter-body">
                     @if (Mode == "offers")
                     {
-                        @* Has discount *@
                         <label class="acc-filter-check">
                             <input type="checkbox" @bind="OnlyDiscounted" />
-                            <span>@(Store.Ui.IsArabic ? "مع خصم فقط" : "Discounted only")</span>
+                            <span>@(Localization["search_discounted_only"])</span>
                         </label>
 
-                        @* Price range *@
                         <div class="acc-filter-row">
                             <div class="acc-filter-field">
-                                <label class="form-label">@(Store.Ui.IsArabic ? "السعر من" : "Min price")</label>
+                                <label class="form-label">@(Localization["search_min_price"])</label>
                                 <input type="number" class="form-input" placeholder="0"
                                        value="@MinPrice" @oninput="@(e => { MinPrice = ParseDecimal(e); })" />
                             </div>
                             <div class="acc-filter-field">
-                                <label class="form-label">@(Store.Ui.IsArabic ? "إلى" : "Max price")</label>
+                                <label class="form-label">@(Localization["search_max_price"])</label>
                                 <input type="number" class="form-input" placeholder="∞"
                                        value="@MaxPrice" @oninput="@(e => { MaxPrice = ParseDecimal(e); })" />
                             </div>
@@ -78,16 +77,15 @@
 
                     @if (Mode == "vendors")
                     {
-                        @* Minimum rating *@
                         <div class="acc-filter-field">
-                            <label class="form-label">@(Store.Ui.IsArabic ? "الحد الأدنى للتقييم" : "Min rating")</label>
+                            <label class="form-label">@(Localization["search_min_rating"])</label>
                             <div class="acs-seg">
                                 @foreach (var r in new[] { 0, 3.0, 4.0, 4.5 })
                                 {
                                     <button type="button"
                                             class="acs-seg-btn @(MinRating == r ? "active" : "")"
                                             @onclick="@(() => MinRating = r)">
-                                        @(r == 0 ? (Store.Ui.IsArabic ? "الكل" : "All") : $"★ {r:0.#}+")
+                                        @(r == 0 ? Localization["search_all"] : $"★ {r:0.#}+")
                                     </button>
                                 }
                             </div>
@@ -104,7 +102,7 @@
                 @if (OnlyDiscounted)
                 {
                     <button class="acc-filter-chip" @onclick="@(() => OnlyDiscounted = false)">
-                        @(Store.Ui.IsArabic ? "خصم" : "Discount") ✕
+                        @(Localization["search_chip_discount"]) ✕
                     </button>
                 }
                 @if (MinPrice.HasValue)
@@ -126,7 +124,7 @@
                     </button>
                 }
                 <button class="acc-filter-chip acc-filter-chip-clear" @onclick="ClearFilters">
-                    @(Store.Ui.IsArabic ? "مسح الكل" : "Clear all")
+                    @(Localization["search_chip_clear_all"])
                 </button>
             </div>
         }
@@ -153,9 +151,7 @@
         {
             <a href="@href" style="margin-top: 12px;display:block">
                 <AcButton Variant="primary" Block="true"
-                          Text="@(Mode == "vendors"
-                                  ? (Store.Ui.IsArabic ? "عرض قائمة المتجر" : "View store menu")
-                                  : (Store.Ui.IsArabic ? "عرض التفاصيل" : "View details"))" />
+                          Text="@(Mode == "vendors" ? Localization["search_view_menu"] : Localization["search_view_details"])" />
             </a>
         }
     </DetailsSlot>
@@ -174,7 +170,6 @@
     private string? SelectedCategoryId => SelectedCategoryGuid?.ToString();
     private string? SelectedPinId;
 
-    // Advanced filters
     private bool ShowFilters;
     private bool OnlyDiscounted;
     private decimal? MinPrice;
@@ -281,7 +276,6 @@
 
     public void Dispose() => Store.OnChanged -= OnUiChange;
 
-    // ── API shapes ──────────────────────────────────────────────────
     public class CatApi
     {
         public Guid Id { get; set; }

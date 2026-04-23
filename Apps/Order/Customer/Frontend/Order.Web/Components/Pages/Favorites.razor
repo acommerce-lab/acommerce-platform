@@ -1,25 +1,26 @@
 @page "/favorites"
 @inject AppStore Store
 @inject ApiReader Api
+@inject LocalizationService Localization
 
-<PageTitle>المفضلة - اوردر</PageTitle>
+<PageTitle>@(Localization["favorites_page_title"]) - @(Localization["app_name"])</PageTitle>
 
 @if (!Store.Auth.IsAuthenticated)
 {
     <AcEmptyState IconName="heart"
-                  Title="@(Store.Ui.IsArabic ? "سجّل دخولك للحفظ" : "Sign in to save")"
-                  ActionLabel="@(Store.Ui.IsArabic ? "تسجيل الدخول" : "Sign in")"
+                  Title="@(Localization["favorites_signin_title"])"
+                  ActionLabel="@(Localization["favorites_signin_action"])"
                   ActionHref="/login" />
 }
 else
 {
     <AcFavoritesPage Items="@Mapped"
                      Loading="@Loading"
-                     Title="@(Store.Ui.IsArabic ? "المفضلة" : "Favorites")"
-                     LoadingMessage="@(Store.Ui.IsArabic ? "جاري التحميل..." : "Loading…")"
-                     EmptyTitle="@(Store.Ui.IsArabic ? "لا توجد عروض محفوظة" : "No favorites yet")"
-                     EmptyMessage="@(Store.Ui.IsArabic ? "اضغط على القلب في صفحة العرض لحفظه" : "Tap the heart on any offer to save it")"
-                     BrowseLabel="@(Store.Ui.IsArabic ? "تصفّح العروض" : "Browse offers")"
+                     Title="@(Localization["favorites_title"])"
+                     LoadingMessage="@(Localization["common_loading_dots"])"
+                     EmptyTitle="@(Localization["favorites_empty_title"])"
+                     EmptyMessage="@(Localization["favorites_empty_message"])"
+                     BrowseLabel="@(Localization["favorites_browse"])"
                      BrowseHref="/" />
 }
 

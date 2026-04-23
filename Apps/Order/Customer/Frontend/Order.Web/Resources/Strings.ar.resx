@@ -1,7 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <root>
-  <!-- Microsoft ResX File, format version 2.0 -->
-  <!-- https://resx.microsoft.com/ -->
   <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
     <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
     <xsd:element name="root" msdata:IsDataSet="true">
@@ -15,112 +13,282 @@
       </xsd:complexType>
     </xsd:element>
   </xsd:schema>
-  <resheader name="resmimetype">
-    <value>text/microsoft-resx</value>
-  </resheader>
-  <resheader name="version">
-    <value>2.0</value>
-  </resheader>
-  <resheader name="reader">
-    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </resheader>
-  <resheader name="writer">
-    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </resheader>
-
-  <!-- Navigation -->
-  <data name="nav_brand" xml:space="preserve">
-    <value>اوردر</value>
-  </data>
-  <data name="nav_home" xml:space="preserve">
-    <value>الرئيسية</value>
-  </data>
-  <data name="nav_search" xml:space="preserve">
-    <value>بحث</value>
-  </data>
-  <data name="nav_orders" xml:space="preserve">
-    <value>طلباتي</value>
-  </data>
-  <data name="nav_messages" xml:space="preserve">
-    <value>الرسائل</value>
-  </data>
-  <data name="nav_cart" xml:space="preserve">
-    <value>السلة</value>
-  </data>
-  <data name="nav_profile" xml:space="preserve">
-    <value>حسابي</value>
-  </data>
-  <data name="nav_signin" xml:space="preserve">
-    <value>دخول</value>
-  </data>
-
-  <!-- Home Page -->
-  <data name="home_title" xml:space="preserve">
-    <value>اوردر</value>
-  </data>
-  <data name="home_subtitle" xml:space="preserve">
-    <value>عروض اليوم من كافيهات ومطاعم المدينة</value>
-  </data>
-  <data name="home_all" xml:space="preserve">
-    <value>الكل</value>
-  </data>
-  <data name="home_loading" xml:space="preserve">
-    <value>جاري تحميل العروض…</value>
-  </data>
-  <data name="home_empty" xml:space="preserve">
-    <value>لا توجد عروض</value>
-  </data>
-  <data name="home_signin" xml:space="preserve">
-    <value>تسجيل الدخول</value>
-  </data>
-  <data name="home_language_toggle" xml:space="preserve">
-    <value>English</value>
-  </data>
-
-  <!-- Settings Page -->
-  <data name="settings_title" xml:space="preserve">
-    <value>الإعدادات</value>
-  </data>
-  <data name="settings_theme" xml:space="preserve">
-    <value>المظهر</value>
-  </data>
-  <data name="settings_theme_light" xml:space="preserve">
-    <value>فاتح</value>
-  </data>
-  <data name="settings_theme_dark" xml:space="preserve">
-    <value>داكن</value>
-  </data>
-  <data name="settings_language" xml:space="preserve">
-    <value>اللغة</value>
-  </data>
-  <data name="settings_language_ar" xml:space="preserve">
-    <value>العربيّة</value>
-  </data>
-  <data name="settings_language_en" xml:space="preserve">
-    <value>English</value>
-  </data>
-  <data name="settings_about" xml:space="preserve">
-    <value>حول التطبيق</value>
-  </data>
-  <data name="settings_version" xml:space="preserve">
-    <value>الإصدار</value>
-  </data>
-  <data name="settings_sign_out" xml:space="preserve">
-    <value>تسجيل الخروج</value>
-  </data>
-  <data name="settings_terms" xml:space="preserve">
-    <value>الشروط والأحكام</value>
-  </data>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
 
   <!-- Common -->
-  <data name="app_name" xml:space="preserve">
-    <value>اوردر</value>
-  </data>
-  <data name="common_loading" xml:space="preserve">
-    <value>جاري التحميل…</value>
-  </data>
-  <data name="common_error" xml:space="preserve">
-    <value>حدث خطأ ما</value>
-  </data>
+  <data name="app_name" xml:space="preserve"><value>اوردر</value></data>
+  <data name="common_loading" xml:space="preserve"><value>جاري التحميل…</value></data>
+  <data name="common_loading_dots" xml:space="preserve"><value>جاري التحميل...</value></data>
+  <data name="common_error" xml:space="preserve"><value>حدث خطأ ما</value></data>
+  <data name="common_signin" xml:space="preserve"><value>تسجيل الدخول</value></data>
+  <data name="common_signout" xml:space="preserve"><value>تسجيل الخروج</value></data>
+  <data name="common_home" xml:space="preserve"><value>الرئيسية</value></data>
+  <data name="common_back" xml:space="preserve"><value>رجوع</value></data>
+  <data name="common_send" xml:space="preserve"><value>إرسال</value></data>
+  <data name="common_save" xml:space="preserve"><value>حفظ</value></data>
+  <data name="common_all" xml:space="preserve"><value>الكل</value></data>
+  <data name="common_optional" xml:space="preserve"><value>اختياري</value></data>
+
+  <!-- Navigation -->
+  <data name="nav_brand" xml:space="preserve"><value>اوردر</value></data>
+  <data name="nav_home" xml:space="preserve"><value>الرئيسية</value></data>
+  <data name="nav_search" xml:space="preserve"><value>بحث</value></data>
+  <data name="nav_orders" xml:space="preserve"><value>طلباتي</value></data>
+  <data name="nav_messages" xml:space="preserve"><value>الرسائل</value></data>
+  <data name="nav_cart" xml:space="preserve"><value>السلة</value></data>
+  <data name="nav_profile" xml:space="preserve"><value>حسابي</value></data>
+  <data name="nav_signin" xml:space="preserve"><value>دخول</value></data>
+
+  <!-- Home Page -->
+  <data name="home_title" xml:space="preserve"><value>اوردر</value></data>
+  <data name="home_subtitle" xml:space="preserve"><value>عروض اليوم من كافيهات ومطاعم المدينة</value></data>
+  <data name="home_all" xml:space="preserve"><value>الكل</value></data>
+  <data name="home_loading" xml:space="preserve"><value>جاري تحميل العروض…</value></data>
+  <data name="home_empty" xml:space="preserve"><value>لا توجد عروض</value></data>
+  <data name="home_signin" xml:space="preserve"><value>تسجيل الدخول</value></data>
+  <data name="home_language_toggle" xml:space="preserve"><value>English</value></data>
+
+  <!-- Settings Page -->
+  <data name="settings_title" xml:space="preserve"><value>الإعدادات</value></data>
+  <data name="settings_theme" xml:space="preserve"><value>المظهر</value></data>
+  <data name="settings_theme_light" xml:space="preserve"><value>فاتح</value></data>
+  <data name="settings_theme_dark" xml:space="preserve"><value>داكن</value></data>
+  <data name="settings_language" xml:space="preserve"><value>اللغة</value></data>
+  <data name="settings_language_ar" xml:space="preserve"><value>العربيّة</value></data>
+  <data name="settings_language_en" xml:space="preserve"><value>English</value></data>
+  <data name="settings_about" xml:space="preserve"><value>حول التطبيق</value></data>
+  <data name="settings_version" xml:space="preserve"><value>الإصدار</value></data>
+  <data name="settings_sign_out" xml:space="preserve"><value>تسجيل الخروج</value></data>
+  <data name="settings_terms" xml:space="preserve"><value>الشروط والأحكام</value></data>
+
+  <!-- Cart Page -->
+  <data name="cart_page_title" xml:space="preserve"><value>السلة</value></data>
+  <data name="cart_title" xml:space="preserve"><value>سلة الطلبات</value></data>
+  <data name="cart_empty_title" xml:space="preserve"><value>السلة فارغة</value></data>
+  <data name="cart_empty_message" xml:space="preserve"><value>تصفّح العروض وأضف أصنافك المفضلة</value></data>
+  <data name="cart_browse" xml:space="preserve"><value>تصفّح العروض</value></data>
+  <data name="cart_pickup_hint" xml:space="preserve"><value>الاستلام من المتجر أو من السيارة</value></data>
+  <data name="cart_subtotal" xml:space="preserve"><value>المجموع الفرعي</value></data>
+  <data name="cart_total" xml:space="preserve"><value>الإجمالي</value></data>
+  <data name="cart_checkout" xml:space="preserve"><value>متابعة للطلب</value></data>
+  <data name="cart_clear" xml:space="preserve"><value>إفراغ السلة</value></data>
+
+  <!-- Checkout Page -->
+  <data name="checkout_page_title" xml:space="preserve"><value>إكمال الطلب</value></data>
+  <data name="checkout_signin_first" xml:space="preserve"><value>يجب تسجيل الدخول أولاً</value></data>
+  <data name="checkout_cart_empty" xml:space="preserve"><value>السلة فارغة</value></data>
+  <data name="checkout_browse_offers" xml:space="preserve"><value>تصفّح العروض</value></data>
+  <data name="checkout_title" xml:space="preserve"><value>إكمال الطلب</value></data>
+  <data name="checkout_summary" xml:space="preserve"><value>ملخص الطلب</value></data>
+  <data name="checkout_total" xml:space="preserve"><value>الإجمالي</value></data>
+  <data name="checkout_pickup" xml:space="preserve"><value>طريقة الاستلام</value></data>
+  <data name="checkout_instore" xml:space="preserve"><value>من المتجر</value></data>
+  <data name="checkout_curbside" xml:space="preserve"><value>من السيارة</value></data>
+  <data name="checkout_car_details" xml:space="preserve"><value>بيانات السيارة</value></data>
+  <data name="checkout_car_model" xml:space="preserve"><value>نوع السيارة</value></data>
+  <data name="checkout_car_color" xml:space="preserve"><value>اللون</value></data>
+  <data name="checkout_car_plate" xml:space="preserve"><value>رقم اللوحة (اختياري)</value></data>
+  <data name="checkout_payment" xml:space="preserve"><value>طريقة الدفع المفضلة</value></data>
+  <data name="checkout_payment_hint" xml:space="preserve"><value>الدفع يتم عند الاستلام في المتجر — لا دفع إلكتروني.</value></data>
+  <data name="checkout_cash" xml:space="preserve"><value>نقدي</value></data>
+  <data name="checkout_card" xml:space="preserve"><value>بطاقة</value></data>
+  <data name="checkout_cash_tendered" xml:space="preserve"><value>المبلغ بالريال</value></data>
+  <data name="checkout_change" xml:space="preserve"><value>الباقي المتوقع</value></data>
+  <data name="checkout_not_enough" xml:space="preserve"><value>المبلغ غير كافٍ — يجب أن يساوي أو يتجاوز الإجمالي</value></data>
+  <data name="checkout_notes" xml:space="preserve"><value>ملاحظات للتاجر (اختياري)</value></data>
+  <data name="checkout_submit" xml:space="preserve"><value>تأكيد الطلب</value></data>
+  <data name="checkout_submitting" xml:space="preserve"><value>جاري الإرسال...</value></data>
+  <data name="checkout_back_to_cart" xml:space="preserve"><value>العودة للسلة</value></data>
+  <data name="checkout_err_car_details" xml:space="preserve"><value>أدخل بيانات السيارة</value></data>
+  <data name="checkout_err_cash_cover" xml:space="preserve"><value>المبلغ المقدّم يجب أن يغطي الإجمالي</value></data>
+  <data name="checkout_err_create" xml:space="preserve"><value>تعذّر إنشاء الطلب</value></data>
+
+  <!-- Favorites -->
+  <data name="favorites_page_title" xml:space="preserve"><value>المفضلة</value></data>
+  <data name="favorites_signin_title" xml:space="preserve"><value>سجّل دخولك للحفظ</value></data>
+  <data name="favorites_signin_action" xml:space="preserve"><value>تسجيل الدخول</value></data>
+  <data name="favorites_title" xml:space="preserve"><value>المفضلة</value></data>
+  <data name="favorites_empty_title" xml:space="preserve"><value>لا توجد عروض محفوظة</value></data>
+  <data name="favorites_empty_message" xml:space="preserve"><value>اضغط على القلب في صفحة العرض لحفظه</value></data>
+  <data name="favorites_browse" xml:space="preserve"><value>تصفّح العروض</value></data>
+
+  <!-- Login -->
+  <data name="login_page_title" xml:space="preserve"><value>تسجيل الدخول</value></data>
+  <data name="login_brand_name" xml:space="preserve"><value>اوردر</value></data>
+  <data name="login_brand_tagline" xml:space="preserve"><value>عروض الكافيهات والمطاعم</value></data>
+  <data name="login_phone_title" xml:space="preserve"><value>مرحباً بك</value></data>
+  <data name="login_phone_subtitle" xml:space="preserve"><value>أدخل رقم جوالك للمتابعة</value></data>
+  <data name="login_phone_label" xml:space="preserve"><value>رقم الجوال</value></data>
+  <data name="login_request_otp" xml:space="preserve"><value>إرسال رمز التحقق</value></data>
+  <data name="login_sending" xml:space="preserve"><value>جاري الإرسال...</value></data>
+  <data name="login_otp_title" xml:space="preserve"><value>رمز التحقق</value></data>
+  <data name="login_otp_subtitle" xml:space="preserve"><value>أدخل الرمز المرسل إلى</value></data>
+  <data name="login_otp_label" xml:space="preserve"><value>رمز التحقق (6 أرقام)</value></data>
+  <data name="login_verify_otp" xml:space="preserve"><value>تحقق ودخول</value></data>
+  <data name="login_verifying" xml:space="preserve"><value>جاري التحقق...</value></data>
+  <data name="login_back" xml:space="preserve"><value>تغيير رقم الجوال</value></data>
+  <data name="login_demo_mode" xml:space="preserve"><value>وضع تجريبي:</value></data>
+  <data name="login_demo_hint" xml:space="preserve"><value>أي رقم +9665xxxxxxxx يفتح حساباً جديداً. الرمز يطبع في سجل الـ API.</value></data>
+  <data name="login_demo_accounts" xml:space="preserve"><value>حسابات تجريبية: </value></data>
+
+  <!-- My Orders -->
+  <data name="orders_page_title" xml:space="preserve"><value>طلباتي</value></data>
+  <data name="orders_signin_title" xml:space="preserve"><value>سجل دخولك لرؤية طلباتك</value></data>
+  <data name="orders_title" xml:space="preserve"><value>طلباتي</value></data>
+  <data name="orders_empty_title" xml:space="preserve"><value>لا توجد طلبات</value></data>
+  <data name="orders_empty_message" xml:space="preserve"><value>اطلب أول وجبتك من اوردر</value></data>
+  <data name="orders_browse" xml:space="preserve"><value>تصفّح العروض</value></data>
+  <data name="orders_pickup_curbside" xml:space="preserve"><value>من السيارة</value></data>
+  <data name="orders_pickup_instore" xml:space="preserve"><value>من المتجر</value></data>
+  <data name="orders_payment_card" xml:space="preserve"><value>بطاقة</value></data>
+  <data name="orders_payment_cash" xml:space="preserve"><value>نقدي</value></data>
+
+  <!-- Notifications -->
+  <data name="notifications_page_title" xml:space="preserve"><value>الإشعارات</value></data>
+  <data name="notifications_signin_title" xml:space="preserve"><value>سجّل دخولك للإشعارات</value></data>
+  <data name="notifications_title" xml:space="preserve"><value>الإشعارات</value></data>
+  <data name="notifications_empty_title" xml:space="preserve"><value>لا إشعارات</value></data>
+  <data name="notifications_empty_message" xml:space="preserve"><value>سيظهر هنا كل جديد</value></data>
+  <data name="notifications_mark_all_read" xml:space="preserve"><value>تعليم الكل مقروءاً</value></data>
+
+  <!-- Messages -->
+  <data name="messages_page_title" xml:space="preserve"><value>المحادثات</value></data>
+  <data name="messages_signin_title" xml:space="preserve"><value>سجّل دخولك لرؤية المحادثات</value></data>
+  <data name="messages_title" xml:space="preserve"><value>محادثاتي</value></data>
+  <data name="messages_empty_title" xml:space="preserve"><value>لا محادثات بعد</value></data>
+  <data name="messages_empty_message" xml:space="preserve"><value>ابدأ من صفحة العرض بزر «محادثة المتجر»</value></data>
+
+  <!-- Conversation (Chat) -->
+  <data name="chat_page_title" xml:space="preserve"><value>محادثة</value></data>
+  <data name="chat_signin_title" xml:space="preserve"><value>سجل دخولك</value></data>
+  <data name="chat_title" xml:space="preserve"><value>محادثة</value></data>
+  <data name="chat_empty" xml:space="preserve"><value>لا رسائل بعد</value></data>
+  <data name="chat_placeholder" xml:space="preserve"><value>اكتب رسالة...</value></data>
+  <data name="chat_send" xml:space="preserve"><value>إرسال</value></data>
+
+  <!-- Offer Details -->
+  <data name="offer_page_title_fallback" xml:space="preserve"><value>تفاصيل العرض</value></data>
+  <data name="offer_not_found" xml:space="preserve"><value>العرض غير موجود</value></data>
+  <data name="offer_back_home" xml:space="preserve"><value>العودة للرئيسية</value></data>
+  <data name="offer_description" xml:space="preserve"><value>تفاصيل العرض</value></data>
+  <data name="offer_store_info" xml:space="preserve"><value>معلومات المتجر</value></data>
+  <data name="offer_add_to_cart" xml:space="preserve"><value>أضف إلى السلة</value></data>
+  <data name="offer_chat" xml:space="preserve"><value>محادثة المتجر</value></data>
+
+  <!-- Order Details -->
+  <data name="order_details_page_title" xml:space="preserve"><value>تفاصيل الطلب</value></data>
+  <data name="order_success_title" xml:space="preserve"><value>تم استلام طلبك</value></data>
+  <data name="order_success_subtitle" xml:space="preserve"><value>سيؤكد المتجر طلبك قريباً جداً</value></data>
+  <data name="order_total" xml:space="preserve"><value>الإجمالي</value></data>
+  <data name="order_view" xml:space="preserve"><value>تفاصيل الطلب</value></data>
+  <data name="order_continue" xml:space="preserve"><value>متابعة التسوق</value></data>
+  <data name="order_not_found" xml:space="preserve"><value>الطلب غير موجود</value></data>
+  <data name="order_all" xml:space="preserve"><value>كل الطلبات</value></data>
+  <data name="order_items" xml:space="preserve"><value>العناصر</value></data>
+  <data name="order_vendor" xml:space="preserve"><value>المتجر</value></data>
+  <data name="order_pickup" xml:space="preserve"><value>الاستلام</value></data>
+  <data name="order_payment" xml:space="preserve"><value>الدفع (في المتجر)</value></data>
+  <data name="order_cash_tendered" xml:space="preserve"><value>المبلغ المتوقع</value></data>
+  <data name="order_expected_change" xml:space="preserve"><value>الباقي المتوقع</value></data>
+  <data name="order_notes" xml:space="preserve"><value>ملاحظاتك</value></data>
+  <data name="order_cancel" xml:space="preserve"><value>إلغاء الطلب</value></data>
+
+  <!-- Profile -->
+  <data name="profile_page_title" xml:space="preserve"><value>حسابي</value></data>
+  <data name="profile_not_signed_in" xml:space="preserve"><value>أنت غير مسجل</value></data>
+  <data name="profile_default_name" xml:space="preserve"><value>عميل اوردر</value></data>
+  <data name="profile_stat_orders" xml:space="preserve"><value>طلب</value></data>
+  <data name="profile_stat_favorites" xml:space="preserve"><value>مفضلة</value></data>
+  <data name="profile_stat_points" xml:space="preserve"><value>نقاط</value></data>
+  <data name="profile_section_account" xml:space="preserve"><value>حسابي</value></data>
+  <data name="profile_menu_orders" xml:space="preserve"><value>طلباتي</value></data>
+  <data name="profile_menu_favorites" xml:space="preserve"><value>المفضلة</value></data>
+  <data name="profile_menu_messages" xml:space="preserve"><value>محادثاتي</value></data>
+  <data name="profile_menu_notifications" xml:space="preserve"><value>الإشعارات</value></data>
+  <data name="profile_menu_account" xml:space="preserve"><value>بياناتي</value></data>
+  <data name="profile_section_app" xml:space="preserve"><value>التطبيق</value></data>
+  <data name="profile_menu_settings" xml:space="preserve"><value>الإعدادات</value></data>
+
+  <!-- Account -->
+  <data name="account_page_title" xml:space="preserve"><value>تعديل الحساب</value></data>
+  <data name="account_title" xml:space="preserve"><value>تعديل الحساب</value></data>
+  <data name="account_subtitle" xml:space="preserve"><value>حدّث بياناتك الشخصية</value></data>
+  <data name="account_personal_info" xml:space="preserve"><value>البيانات الشخصية</value></data>
+  <data name="account_full_name" xml:space="preserve"><value>الاسم الكامل</value></data>
+  <data name="account_full_name_placeholder" xml:space="preserve"><value>أدخل اسمك الكامل</value></data>
+  <data name="account_email" xml:space="preserve"><value>البريد الإلكتروني</value></data>
+  <data name="account_email_placeholder" xml:space="preserve"><value>أدخل بريدك الإلكتروني</value></data>
+  <data name="account_car_details" xml:space="preserve"><value>بيانات السيارة</value></data>
+  <data name="account_car_hint" xml:space="preserve"><value>تُستخدم عند الاستلام من السيارة (Curbside)</value></data>
+  <data name="account_car_model" xml:space="preserve"><value>نوع السيارة</value></data>
+  <data name="account_car_model_placeholder" xml:space="preserve"><value>مثال: كامري 2024</value></data>
+  <data name="account_car_color" xml:space="preserve"><value>لون السيارة</value></data>
+  <data name="account_car_color_placeholder" xml:space="preserve"><value>مثال: أبيض</value></data>
+  <data name="account_car_plate" xml:space="preserve"><value>رقم اللوحة</value></data>
+  <data name="account_car_plate_placeholder" xml:space="preserve"><value>اختياري</value></data>
+  <data name="account_save" xml:space="preserve"><value>حفظ التعديلات</value></data>
+  <data name="account_saving" xml:space="preserve"><value>جاري الحفظ...</value></data>
+  <data name="account_name_required" xml:space="preserve"><value>الاسم مطلوب</value></data>
+  <data name="account_saved" xml:space="preserve"><value>تم حفظ التعديلات بنجاح</value></data>
+  <data name="account_save_failed" xml:space="preserve"><value>تعذّر حفظ التعديلات</value></data>
+
+  <!-- Legal -->
+  <data name="legal_page_title" xml:space="preserve"><value>الشروط والأحكام</value></data>
+  <data name="legal_title" xml:space="preserve"><value>الشروط والأحكام</value></data>
+  <data name="legal_subtitle" xml:space="preserve"><value>آخر تحديث: أبريل 2026</value></data>
+  <data name="legal_terms_of_use" xml:space="preserve"><value>شروط الاستخدام</value></data>
+  <data name="legal_terms_intro" xml:space="preserve"><value>باستخدامك تطبيق اوردر فإنك توافق على الشروط التالية:</value></data>
+  <data name="legal_terms_age" xml:space="preserve"><value>يجب أن يكون عمرك 18 سنة أو أكثر لاستخدام الخدمة.</value></data>
+  <data name="legal_terms_accuracy" xml:space="preserve"><value>أنت مسؤول عن دقة المعلومات المقدّمة في حسابك.</value></data>
+  <data name="legal_terms_illegal" xml:space="preserve"><value>يُحظر استخدام التطبيق لأي غرض غير قانوني أو غير مصرّح به.</value></data>
+  <data name="legal_terms_suspend" xml:space="preserve"><value>نحتفظ بحق تعليق أو إنهاء حسابك في حال مخالفة هذه الشروط.</value></data>
+  <data name="legal_terms_prices" xml:space="preserve"><value>الأسعار المعروضة تحدّدها المتاجر وقد تتغير دون إشعار مسبق.</value></data>
+  <data name="legal_privacy_title" xml:space="preserve"><value>سياسة الخصوصية</value></data>
+  <data name="legal_privacy_intro" xml:space="preserve"><value>نحن نأخذ خصوصيتك على محمل الجد. إليك كيف نتعامل مع بياناتك:</value></data>
+  <data name="legal_privacy_data" xml:space="preserve"><value>نجمع فقط البيانات الضرورية لتقديم الخدمة (الاسم، رقم الهاتف، بيانات الطلب).</value></data>
+  <data name="legal_privacy_share" xml:space="preserve"><value>لا نشارك بياناتك الشخصية مع أطراف ثالثة إلا بموافقتك أو حسب ما يقتضيه القانون.</value></data>
+  <data name="legal_privacy_car" xml:space="preserve"><value>بيانات السيارة تُستخدم فقط لتسهيل خدمة الاستلام من السيارة.</value></data>
+  <data name="legal_privacy_delete" xml:space="preserve"><value>يمكنك طلب حذف بياناتك في أي وقت عبر التواصل مع الدعم الفني.</value></data>
+  <data name="legal_refund_title" xml:space="preserve"><value>سياسة الاسترجاع</value></data>
+  <data name="legal_refund_intro" xml:space="preserve"><value>سياسة الاسترجاع الخاصة بنا:</value></data>
+  <data name="legal_refund_cancel" xml:space="preserve"><value>يمكنك إلغاء الطلب قبل أن يبدأ المتجر بتحضيره.</value></data>
+  <data name="legal_refund_after" xml:space="preserve"><value>بعد بدء التحضير، لا يمكن الإلغاء تلقائياً — يرجى التواصل مع المتجر مباشرة.</value></data>
+  <data name="legal_refund_issue" xml:space="preserve"><value>في حالة وجود مشكلة في الطلب، تواصل مع المتجر خلال 24 ساعة من الاستلام.</value></data>
+  <data name="legal_refund_money" xml:space="preserve"><value>الاسترجاع المالي (إن وُجد) يتم وفقاً لسياسة المتجر وطريقة الدفع المستخدمة.</value></data>
+
+  <!-- Search -->
+  <data name="search_page_title" xml:space="preserve"><value>البحث</value></data>
+  <data name="search_title" xml:space="preserve"><value>اكتشف</value></data>
+  <data name="search_placeholder" xml:space="preserve"><value>متجر، منتج، حي...</value></data>
+  <data name="search_all" xml:space="preserve"><value>الكل</value></data>
+  <data name="search_map_view" xml:space="preserve"><value>خريطة</value></data>
+  <data name="search_list_view" xml:space="preserve"><value>قائمة</value></data>
+  <data name="search_loading" xml:space="preserve"><value>جاري التحميل...</value></data>
+  <data name="search_empty_title" xml:space="preserve"><value>لا توجد نتائج</value></data>
+  <data name="search_empty_message" xml:space="preserve"><value>جرّب فلتراً آخر أو ابحث باسم آخر</value></data>
+  <data name="search_stores" xml:space="preserve"><value>المتاجر</value></data>
+  <data name="search_offers" xml:space="preserve"><value>العروض</value></data>
+  <data name="search_advanced_filters" xml:space="preserve"><value>فلاتر متقدمة</value></data>
+  <data name="search_discounted_only" xml:space="preserve"><value>مع خصم فقط</value></data>
+  <data name="search_min_price" xml:space="preserve"><value>السعر من</value></data>
+  <data name="search_max_price" xml:space="preserve"><value>إلى</value></data>
+  <data name="search_min_rating" xml:space="preserve"><value>الحد الأدنى للتقييم</value></data>
+  <data name="search_chip_discount" xml:space="preserve"><value>خصم</value></data>
+  <data name="search_chip_clear_all" xml:space="preserve"><value>مسح الكل</value></data>
+  <data name="search_view_menu" xml:space="preserve"><value>عرض قائمة المتجر</value></data>
+  <data name="search_view_details" xml:space="preserve"><value>عرض التفاصيل</value></data>
+
+  <!-- Vendor Profile -->
+  <data name="vendor_page_title_fallback" xml:space="preserve"><value>متجر</value></data>
+  <data name="vendor_loading" xml:space="preserve"><value>جاري التحميل...</value></data>
+  <data name="vendor_not_found" xml:space="preserve"><value>المتجر غير موجود</value></data>
+  <data name="vendor_home" xml:space="preserve"><value>الرئيسية</value></data>
+  <data name="vendor_rating" xml:space="preserve"><value>تقييم</value></data>
+  <data name="vendor_store_info" xml:space="preserve"><value>معلومات المتجر</value></data>
+  <data name="vendor_offers" xml:space="preserve"><value>عروض المتجر</value></data>
+  <data name="vendor_no_offers" xml:space="preserve"><value>لا توجد عروض حالياً</value></data>
 
 </root>

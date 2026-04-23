@@ -1,25 +1,26 @@
 @page "/orders"
 @inject AppStore Store
 @inject ApiReader Api
+@inject LocalizationService Localization
 
-<PageTitle>طلباتي - اوردر</PageTitle>
+<PageTitle>@(Localization["orders_page_title"]) - @(Localization["app_name"])</PageTitle>
 
 @if (!Store.Auth.IsAuthenticated)
 {
     <AcEmptyState IconName="log-in"
-                  Title="@(Store.Ui.IsArabic ? "سجل دخولك لرؤية طلباتك" : "Sign in to view orders")"
-                  ActionLabel="@(Store.Ui.IsArabic ? "تسجيل الدخول" : "Sign in")"
+                  Title="@(Localization["orders_signin_title"])"
+                  ActionLabel="@(Localization["common_signin"])"
                   ActionHref="/login" />
 }
 else
 {
     <AcOrdersListPage Orders="@Mapped"
                       Loading="@Loading"
-                      Title="@(Store.Ui.IsArabic ? "طلباتي" : "My orders")"
-                      LoadingMessage="@(Store.Ui.IsArabic ? "جاري التحميل..." : "Loading…")"
-                      EmptyTitle="@(Store.Ui.IsArabic ? "لا توجد طلبات" : "No orders yet")"
-                      EmptyMessage="@(Store.Ui.IsArabic ? "اطلب أول وجبتك من اوردر" : "Place your first order")"
-                      BrowseLabel="@(Store.Ui.IsArabic ? "تصفّح العروض" : "Browse offers")"
+                      Title="@(Localization["orders_title"])"
+                      LoadingMessage="@(Localization["common_loading_dots"])"
+                      EmptyTitle="@(Localization["orders_empty_title"])"
+                      EmptyMessage="@(Localization["orders_empty_message"])"
+                      BrowseLabel="@(Localization["orders_browse"])"
                       BrowseHref="/" />
 }
 
@@ -60,12 +61,12 @@ else
     private static string StatusKey(int s) => ACommerce.Templates.Shared.Models.StatusHelpers.OrderStatusKey(s);
 
     private string PickupLabel(int t) => t == 1
-        ? (Store.Ui.IsArabic ? "من السيارة" : "Curbside")
-        : (Store.Ui.IsArabic ? "من المتجر" : "In-store");
+        ? Localization["orders_pickup_curbside"]
+        : Localization["orders_pickup_instore"];
 
     private string PaymentLabel(int p) => p == 1
-        ? (Store.Ui.IsArabic ? "بطاقة" : "Card")
-        : (Store.Ui.IsArabic ? "نقدي" : "Cash");
+        ? Localization["orders_payment_card"]
+        : Localization["orders_payment_cash"];
 
     public class OrderRowApi
     {
