@@ -1,0 +1,78 @@
+@page "/subscriptions"
+@rendermode InteractiveServer
+@inject AppStore Store
+@inject ApiReader Api
+@inject L L
+
+<PageTitle>@L.T("الاشتراكات — عشير V2", "Subscriptions — Ashare V2")</PageTitle>
+
+<AcAuthGuard IsAuthenticated="@Store.Auth.IsAuthenticated" LoginHref="/login">
+    <div class="acs-page">
+        <h1 class="acs-page-title">@L.T("الاشتراكات", "Subscriptions")</h1>
+
+        @if (_loading)
+        {
+            <AcLoadingState />
+        }
+        else if (_subs.Count == 0)
+        {
+            <AcEmptyState IconName="check" Title="@L.T("لا توجد اشتراكات", "No subscriptions")" />
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>@L.T("المعرّف", "ID")</th>
+                            <th>@L.T("المالك", "Owner")</th>
+                            <th>@L.T("الخطة", "Plan")</th>
+                            <th>@L.T("البداية", "Start")</th>
+                            <th>@L.T("النهاية", "End")</th>
+                            <th>@L.T("الحالة", "Status")</th>
+                            <th>@L.T("نشط", "Active")</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var s in _subs)
+                        {
+                            <tr>
+                                <td dir="ltr" style="font-size:.8rem">@s.Id[..8]…</td>
+                                <td dir="ltr" style="font-size:.8rem">@s.OwnerId[..8]…</td>
+                                <td>@s.PlanKey</td>
+                                <td>@s.PeriodStart.ToString("yyyy-MM-dd")</td>
+                                <td>@s.PeriodEnd.ToString("yyyy-MM-dd")</td>
+                                <td><AcBadge Text="@s.Status" Variant="@StatusVariant(s.Status)" /></td>
+                                <td>@(s.IsActive ? "✓" : "—")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</AcAuthGuard>
+
+@code {
+    private bool _loading = true;
+    private List<SubRow> _subs = new();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || !Store.Auth.IsAuthenticated) { _loading = false; StateHasChanged(); return; }
+        var env = await Api.GetAsync<List<SubRow>>("/api/admin/subscriptions");
+        _subs = env.Data ?? new();
+        _loading = false; StateHasChanged();
+    }
+
+    private static string StatusVariant(string s) => s.ToLowerInvariant() switch
+    {
+        "active"   => "success",
+        "expired"  => "danger",
+        "canceled" => "warning",
+        _ => "default"
+    };
+
+    private record SubRow(string Id, string OwnerId, string PlanKey,
+                           DateTime PeriodStart, DateTime PeriodEnd, string Status, bool IsActive);
+}
