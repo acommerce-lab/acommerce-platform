@@ -5,34 +5,34 @@
 @inject NavigationManager Nav
 @inject L L
 
-<PageTitle>@L.T("تفاصيل الطلب - اوردر", "Order details — Order")</PageTitle>
+<PageTitle>@(L["order.details"]) — @(L["app.name"])</PageTitle>
 
 @if (JustCreated && Mapped != null)
 {
     <AcOrderSuccessPage Order="@Mapped"
-                        Title="@(Store.Ui.IsArabic ? "تم استلام طلبك" : "Order received")"
-                        Subtitle="@(Store.Ui.IsArabic ? "سيؤكد المتجر طلبك قريباً جداً" : "The store will confirm shortly")"
-                        TotalLabel="@(Store.Ui.IsArabic ? "الإجمالي" : "Total")"
-                        ViewOrderLabel="@(Store.Ui.IsArabic ? "تفاصيل الطلب" : "View order")"
-                        ContinueLabel="@(Store.Ui.IsArabic ? "متابعة التسوق" : "Continue shopping")" />
+                        Title="@(L["order.success_title"])"
+                        Subtitle="@(L["order.success_subtitle"])"
+                        TotalLabel="@(L["checkout.total"])"
+                        ViewOrderLabel="@(L["order.view_order"])"
+                        ContinueLabel="@(L["order.continue_shopping"])" />
 }
 else
 {
     <AcOrderDetailsPage Order="@Mapped"
                         Loading="@Loading"
                         BackHref="/orders"
-                        LoadingMessage="@(Store.Ui.IsArabic ? "جاري التحميل..." : "Loading…")"
-                        NotFoundTitle="@(Store.Ui.IsArabic ? "الطلب غير موجود" : "Order not found")"
-                        BackLabel="@(Store.Ui.IsArabic ? "كل الطلبات" : "All orders")"
-                        ItemsLabel="@(Store.Ui.IsArabic ? "العناصر" : "Items")"
-                        TotalLabel="@(Store.Ui.IsArabic ? "الإجمالي" : "Total")"
-                        VendorLabel="@(Store.Ui.IsArabic ? "المتجر" : "Store")"
-                        PickupLabel="@(Store.Ui.IsArabic ? "الاستلام" : "Pickup")"
-                        PaymentLabel="@(Store.Ui.IsArabic ? "الدفع (في المتجر)" : "Payment (at pickup)")"
-                        CashTenderedLabel="@(Store.Ui.IsArabic ? "المبلغ المتوقع" : "Cash tendered")"
-                        ExpectedChangeLabel="@(Store.Ui.IsArabic ? "الباقي المتوقع" : "Expected change")"
-                        NotesLabel="@(Store.Ui.IsArabic ? "ملاحظاتك" : "Notes")"
-                        CancelLabel="@(Store.Ui.IsArabic ? "إلغاء الطلب" : "Cancel order")"
+                        LoadingMessage="@(L["common.loading"])"
+                        NotFoundTitle="@(L["order.not_found"])"
+                        BackLabel="@(L["orders.my_orders"])"
+                        ItemsLabel="@(L["order.items"])"
+                        TotalLabel="@(L["checkout.total"])"
+                        VendorLabel="@(L["order.vendor"])"
+                        PickupLabel="@(L["order.pickup"])"
+                        PaymentLabel="@(L["order.payment"])"
+                        CashTenderedLabel="@(L["order.cash_tendered"])"
+                        ExpectedChangeLabel="@(L["order.expected_change"])"
+                        NotesLabel="@(L["order.notes"])"
+                        CancelLabel="@(L["order.cancel"])"
                         OnCancel="Cancel" />
 }
 

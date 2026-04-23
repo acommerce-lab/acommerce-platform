@@ -4,12 +4,12 @@
 @inject ApiReader Api
 @inject L L
 
-<PageTitle>@(L.Lang == "ar" ? "الإشعارات" : "Notifications") — @(L["app.name"])</PageTitle>
+<PageTitle>@(L["notifications.title"]) — @(L["app.name"])</PageTitle>
 
 @if (!Store.Auth.IsAuthenticated)
 {
     <AcEmptyState IconName="bell"
-                  Title="@(L.Lang == "ar" ? "سجّل دخولك للإشعارات" : "Sign in for notifications")"
+                  Title="@(L["notifications.signin_required"])"
                   ActionLabel="@(L["auth.login.title"])"
                   ActionHref="/login" />
 }
@@ -21,11 +21,11 @@ else
                          BuildMarkAllReadOp="@(() => ClientOps.MarkAllNotificationsRead(Store.Auth.UserId))"
                          Notifications="@Mapped"
                          Loading="@Loading"
-                         Title="@(L.Lang == "ar" ? "الإشعارات" : "Notifications")"
+                         Title="@(L["notifications.title"])"
                          LoadingMessage="@(L["common.loading"])"
-                         EmptyTitle="@(L.Lang == "ar" ? "لا إشعارات" : "All caught up")"
-                         EmptyMessage="@(L.Lang == "ar" ? "سيظهر هنا كل جديد" : "New activity will appear here")"
-                         MarkAllReadLabel="@(L.Lang == "ar" ? "تعليم الكل مقروءاً" : "Mark all read")" />
+                         EmptyTitle="@(L["notifications.empty_title"])"
+                         EmptyMessage="@(L["notifications.empty_message"])"
+                         MarkAllReadLabel="@(L["notifications.mark_all_read"])" />
 }
 
 @code {

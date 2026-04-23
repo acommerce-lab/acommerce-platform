@@ -18,8 +18,8 @@ else
                       Loading="@Loading"
                       Title="@(L["orders.my_orders"])"
                       LoadingMessage="@(L["common.loading"])"
-                      EmptyTitle="@(L.Lang == "ar" ? "لا توجد طلبات" : "No orders yet")"
-                      EmptyMessage="@(L.Lang == "ar" ? "اطلب أول وجبتك من اوردر" : "Place your first order")"
+                      EmptyTitle="@(L["orders.empty_title"])"
+                      EmptyMessage="@(L["orders.empty_message"])"
                       BrowseLabel="@(L["cart.browse"])"
                       BrowseHref="/" />
 }

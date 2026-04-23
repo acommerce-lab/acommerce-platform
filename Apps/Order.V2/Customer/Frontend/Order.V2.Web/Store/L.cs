@@ -141,12 +141,18 @@ public sealed class CustomerTranslations : EmbeddedTranslationProvider
         ["orders.page_title"] = "طلباتي",
         ["orders.signin_required"] = "سجل دخولك لرؤية طلباتك",
         ["orders.my_orders"] = "طلباتي",
+        ["orders.empty_title"] = "لا توجد طلبات",
+        ["orders.empty_message"] = "اطلب أول وجبتك من اوردر",
 
         ["offer.details"] = "تفاصيل العرض",
         ["offer.price"] = "السعر",
         ["offer.description"] = "الوصف",
         ["offer.vendor"] = "التاجر",
         ["offer.rating"] = "التقييم",
+        ["offer.not_found"] = "العرض غير موجود",
+        ["offer.back_to_home"] = "العودة للرئيسية",
+        ["offer.add_to_cart"] = "أضف إلى السلة",
+        ["offer.chat_with_store"] = "محادثة المتجر",
 
         ["vendor.profile"] = "ملف التاجر",
         ["vendor.info"] = "معلومات المتجر",
@@ -183,6 +189,12 @@ public sealed class CustomerTranslations : EmbeddedTranslationProvider
         ["conversation.signin_required"] = "سجل دخولك",
         ["conversation.loading"] = "جاري التحميل...",
         ["conversation.empty"] = "لا رسائل بعد",
+
+        ["notifications.title"] = "الإشعارات",
+        ["notifications.signin_required"] = "سجّل دخولك للإشعارات",
+        ["notifications.empty_title"] = "لا إشعارات",
+        ["notifications.empty_message"] = "سيظهر هنا كل جديد",
+        ["notifications.mark_all_read"] = "تعليم الكل مقروءاً",
 
         ["demo.sara"] = "سارة",
     };
@@ -293,12 +305,18 @@ public sealed class CustomerTranslations : EmbeddedTranslationProvider
         ["orders.page_title"] = "My orders",
         ["orders.signin_required"] = "Sign in to view orders",
         ["orders.my_orders"] = "My orders",
+        ["orders.empty_title"] = "No orders yet",
+        ["orders.empty_message"] = "Place your first order",
 
         ["offer.details"] = "Offer details",
         ["offer.price"] = "Price",
         ["offer.description"] = "Description",
         ["offer.vendor"] = "Vendor",
         ["offer.rating"] = "Rating",
+        ["offer.not_found"] = "Offer not found",
+        ["offer.back_to_home"] = "Back to home",
+        ["offer.add_to_cart"] = "Add to cart",
+        ["offer.chat_with_store"] = "Chat with store",
 
         ["vendor.profile"] = "Vendor profile",
         ["vendor.info"] = "Store info",
@@ -335,6 +353,12 @@ public sealed class CustomerTranslations : EmbeddedTranslationProvider
         ["conversation.signin_required"] = "Sign in",
         ["conversation.loading"] = "Loading…",
         ["conversation.empty"] = "No messages yet",
+
+        ["notifications.title"] = "Notifications",
+        ["notifications.signin_required"] = "Sign in for notifications",
+        ["notifications.empty_title"] = "All caught up",
+        ["notifications.empty_message"] = "New activity will appear here",
+        ["notifications.mark_all_read"] = "Mark all read",
 
         ["demo.sara"] = "Sara",
     };
