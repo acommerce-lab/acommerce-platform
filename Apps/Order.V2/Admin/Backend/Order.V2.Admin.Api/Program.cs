@@ -7,6 +7,7 @@ using ACommerce.SharedKernel.Infrastructure.EFCores;
 using ACommerce.SharedKernel.Infrastructure.EFCores.Extensions;
 using Order.V2.Admin.Api;
 using Order.V2.Api.Entities;
+using Serilog;
 
 // ── Entity registration ────────────────────────────────────────────────────
 EntityDiscoveryRegistry.RegisterEntity(typeof(User));
@@ -26,14 +27,31 @@ EntityDiscoveryRegistry.RegisterEntity(typeof(ACommerce.OrderPlatform.Entities.W
 EntityDiscoveryRegistry.RegisterEntity(typeof(ACommerce.OrderPlatform.Entities.IncomingOrder));
 
 var builder = WebApplication.CreateBuilder(args);
+var cfg = builder.Configuration;
+var env = builder.Environment;
 
 // ── Database ───────────────────────────────────────────────────────────────
-var connStr = builder.Configuration["Database:ConnectionString"];
-var dbConn = !string.IsNullOrWhiteSpace(connStr)
-    ? connStr
-    : ACommerce.SharedKernel.Infrastructure.EFCores.PlatformDataRoot
-        .SqliteConnectionString(builder.Environment.ContentRootPath, "order-v2.db");
-builder.Services.AddACommerceSQLite(dbConn);
+var dbProvider = cfg["Database:Provider"] ?? "SQLite";
+var dbConnection = cfg["Database:ConnectionString"];
+
+switch (dbProvider.ToLowerInvariant())
+{
+    case "sqlserver":
+    case "mssql":
+        if (string.IsNullOrWhiteSpace(dbConnection))
+            Log.Warning("Order.V2: SQL Server selected but Database:ConnectionString is empty. Check your env vars.");
+        else
+            builder.Services.AddACommerceSqlServer(dbConnection);
+        break;
+
+    default: // SQLite
+        var sqliteConn = !string.IsNullOrWhiteSpace(dbConnection)
+            ? dbConnection
+            : ACommerce.SharedKernel.Infrastructure.EFCores.PlatformDataRoot
+                .SqliteConnectionString(builder.Environment.ContentRootPath, "order-v2.db");
+        builder.Services.AddACommerceSQLite(sqliteConn);
+        break;
+}
 
 // ── MVC (only this assembly) ───────────────────────────────────────────────
 builder.Services.AddControllers()

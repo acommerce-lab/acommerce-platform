@@ -17,6 +17,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Content Update="appsettings*.json">
+      <CopyToPublishDirectory>Never</CopyToPublishDirectory>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>
     <!-- SharedKernel + EF Core (SQLite dev / SQL Server prod) -->
     <ProjectReference Include="..\..\..\..\..\libs\backend\core\ACommerce.SharedKernel.Abstractions\ACommerce.SharedKernel.Abstractions.csproj" />
     <ProjectReference Include="..\..\..\..\..\libs\backend\core\ACommerce.SharedKernel.Infrastructure.EFCores\ACommerce.SharedKernel.Infrastructure.EFCores.csproj" />
