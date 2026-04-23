@@ -3,9 +3,10 @@
 @inject AppStateApplier Applier
 @inject ClientOpEngine Engine
 @inject NavigationManager Nav
+@inject L L
 @implements IDisposable
 
-<PageTitle>الإعدادات - اوردر</PageTitle>
+<PageTitle>@L.T("الإعدادات - اوردر", "Settings — Order")</PageTitle>
 
 <AcSettingsPage Snapshot="Snapshot"
                 Title="@(Store.Ui.IsArabic ? "الإعدادات" : "Settings")"

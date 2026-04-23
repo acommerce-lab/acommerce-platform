@@ -3,14 +3,15 @@
 @inject AppStore Store
 @inject ApiReader Api
 @inject ClientOpEngine Engine
+@inject L L
 
-<PageTitle>الحجوزات — عشير V2</PageTitle>
+<PageTitle>@L.T("الحجوزات — عشير V2", "Bookings — Ashare V2")</PageTitle>
 
 <AcAuthGuard IsAuthenticated="@Store.Auth.IsAuthenticated" LoginHref="/login">
     <AcBookingsPage Bookings="@_bookings"
                     Loading="@_loading"
-                    Title="الحجوزات"
-                    EmptyMessage="لا توجد حجوزات"
+                    Title="@L.T("الحجوزات", "Bookings")"
+                    EmptyMessage="@L.T("لا توجد حجوزات", "No bookings")"
                     IsOwnerView="true"
                     OnConfirm="@Confirm"
                     OnReject="@Reject" />

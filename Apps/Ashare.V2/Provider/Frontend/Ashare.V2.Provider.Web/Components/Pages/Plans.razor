@@ -2,14 +2,15 @@
 @rendermode InteractiveServer
 @inject AppStore Store
 @inject ApiReader Api
+@inject L L
 
-<PageTitle>الباقات — عشير V2</PageTitle>
+<PageTitle>@L.T("الباقات — عشير V2", "Plans — Ashare V2")</PageTitle>
 
 <AcAuthGuard IsAuthenticated="@Store.Auth.IsAuthenticated" LoginHref="/login">
     <AcSubscriptionPage AvailablePlans="@_plans"
                         Subscription="@_subscription"
                         Loading="@_loading"
-                        Title="باقات الاشتراك" />
+                        Title="@L.T("باقات الاشتراك", "Subscription plans")" />
 </AcAuthGuard>
 
 @code {

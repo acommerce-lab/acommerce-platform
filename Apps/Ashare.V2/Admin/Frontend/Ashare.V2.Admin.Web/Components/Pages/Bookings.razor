@@ -2,12 +2,13 @@
 @rendermode InteractiveServer
 @inject AppStore Store
 @inject ApiReader Api
+@inject L L
 
-<PageTitle>الحجوزات — عشير V2</PageTitle>
+<PageTitle>@L.T("الحجوزات — عشير V2", "Bookings — Ashare V2")</PageTitle>
 
 <AcAuthGuard IsAuthenticated="@Store.Auth.IsAuthenticated" LoginHref="/login">
     <div class="acs-page">
-        <h1 class="acs-page-title">الحجوزات</h1>
+        <h1 class="acs-page-title">@L.T("الحجوزات", "Bookings")</h1>
 
         @if (_loading)
         {
@@ -15,7 +16,7 @@
         }
         else if (_bookings.Count == 0)
         {
-            <AcEmptyState IconName="receipt" Title="لا توجد حجوزات" />
+            <AcEmptyState IconName="receipt" Title="@L.T("لا توجد حجوزات", "No bookings")" />
         }
         else
         {
@@ -23,13 +24,13 @@
                 <table class="table">
                     <thead>
                         <tr>
-                            <th>المعرّف</th>
-                            <th>العميل</th>
-                            <th>الإعلان</th>
-                            <th>من</th>
-                            <th>إلى</th>
-                            <th>المبلغ</th>
-                            <th>الحالة</th>
+                            <th>@L.T("المعرّف", "ID")</th>
+                            <th>@L.T("العميل", "Customer")</th>
+                            <th>@L.T("الإعلان", "Listing")</th>
+                            <th>@L.T("من", "From")</th>
+                            <th>@L.T("إلى", "To")</th>
+                            <th>@L.T("المبلغ", "Amount")</th>
+                            <th>@L.T("الحالة", "Status")</th>
                         </tr>
                     </thead>
                     <tbody>

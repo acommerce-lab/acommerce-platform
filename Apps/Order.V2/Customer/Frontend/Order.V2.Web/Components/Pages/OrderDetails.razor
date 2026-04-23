@@ -3,8 +3,9 @@
 @inject ClientOpEngine Engine
 @inject ApiReader Api
 @inject NavigationManager Nav
+@inject L L
 
-<PageTitle>تفاصيل الطلب - اوردر</PageTitle>
+<PageTitle>@L.T("تفاصيل الطلب - اوردر", "Order details — Order")</PageTitle>
 
 @if (JustCreated && Mapped != null)
 {

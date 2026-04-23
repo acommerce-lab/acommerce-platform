@@ -4,8 +4,9 @@
 @inject AppStateApplier Applier
 @inject ApiReader Api
 @inject NavigationManager Nav
+@inject L L
 
-<PageTitle>@(OfferApiData?.Title ?? "تفاصيل العرض") - اوردر</PageTitle>
+<PageTitle>@(OfferApiData?.Title ?? L.T("تفاصيل العرض", "Offer details")) - @L.T("اوردر", "Order")</PageTitle>
 
 <AcOfferDetailsPage Offer="@Mapped"
                     Loading="@Loading"

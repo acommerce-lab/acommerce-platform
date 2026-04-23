@@ -2,8 +2,9 @@
 @inject AppStore Store
 @inject ApiReader Api
 @inject NavigationManager Nav
+@inject L L
 
-<PageTitle>المحادثات - اوردر</PageTitle>
+<PageTitle>@L.T("المحادثات - اوردر", "Messages — Order")</PageTitle>
 
 @if (!Store.Auth.IsAuthenticated)
 {

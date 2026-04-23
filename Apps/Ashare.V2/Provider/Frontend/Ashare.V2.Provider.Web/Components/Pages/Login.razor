@@ -4,25 +4,26 @@
 @inject ApiReader Api
 @inject AuthStateService AuthState
 @inject NavigationManager Nav
+@inject L L
 @implements IDisposable
 
-<PageTitle>دخول — عشير V2 للمُلاّك</PageTitle>
+<PageTitle>@L.T("دخول — عشير V2 للمُلاّك", "Sign in — Ashare V2 for Owners")</PageTitle>
 
 <div class="acs-page acs-auth-page">
     <div class="acs-nafath-head">
         <AcIcon Name="shield" Size="48" />
-        <h1 class="acm-wizard-title">نفاذ</h1>
-        <p class="ac-text-muted">بوابة ملاك العقارات</p>
+        <h1 class="acm-wizard-title">@L.T("نفاذ", "Nafath")</h1>
+        <p class="ac-text-muted">@L.T("بوابة ملاك العقارات", "Property owners portal")</p>
     </div>
 
     <AcCard>
         <ChildContent>
             @if (_stage == "id")
             {
-                <AcField Label="رقم الهوية الوطنية" Required="true">
+                <AcField Label="@L.T("رقم الهوية الوطنية", "National ID")" Required="true">
                     <AcInput Type="text" Value="@_nationalId"
                              ValueChanged="@((string v) => { _nationalId = v.Trim(); })"
-                             Placeholder="10 أرقام" />
+                             Placeholder="@L.T("10 أرقام", "10 digits")" />
                 </AcField>
 
                 @if (_error is not null)
@@ -31,14 +32,14 @@
                 }
 
                 <AcButton Variant="primary" Size="lg" Class="ac-btn-block"
-                          Text="متابعة مع نفاذ"
+                          Text="@L.T("متابعة مع نفاذ", "Continue with Nafath")"
                           OnClick="@StartNafath"
                           Disabled="@(_nationalId.Length != 10 || _busy)" />
             }
             else
             {
                 <div class="acs-nafath-wait">
-                    <p class="acs-nafath-instruction">افتح تطبيق نفاذ واختر الرقم</p>
+                    <p class="acs-nafath-instruction">@L.T("افتح تطبيق نفاذ واختر الرقم", "Open the Nafath app and pick the number")</p>
 
                     <div class="acs-nafath-circle">
                         <span class="acs-nafath-number">@_displayCode</span>
@@ -48,26 +49,26 @@
                     {
                         <div class="acs-nafath-state acs-nafath-state--ok">
                             <AcIcon Name="check-circle" Size="20" />
-                            <span>تم التحقق بنجاح</span>
+                            <span>@L.T("تم التحقق بنجاح", "Verified successfully")</span>
                         </div>
                     }
                     else if (_failed || _expired)
                     {
                         <div class="acs-nafath-state acs-nafath-state--err">
                             <AcIcon Name="x-circle" Size="20" />
-                            <span>@(_expired ? "انتهت مدة الطلب" : "فشل التحقق")</span>
+                            <span>@(_expired ? L.T("انتهت مدة الطلب", "Request timed out") : L.T("فشل التحقق", "Verification failed"))</span>
                         </div>
                         <AcButton Variant="ghost" Class="ac-btn-block"
-                                  Text="إعادة المحاولة" OnClick="@Reset" />
+                                  Text="@L.T("إعادة المحاولة", "Retry")" OnClick="@Reset" />
                     }
                     else
                     {
                         <div class="acs-nafath-timer">
                             <AcIcon Name="clock" Size="16" />
-                            <span>@_countdown ثانية</span>
+                            <span>@_countdown @L.T("ثانية", "s")</span>
                         </div>
                         <AcButton Variant="ghost" Class="ac-btn-block"
-                                  Text="إلغاء" OnClick="@Reset" />
+                                  Text="@L.T("إلغاء", "Cancel")" OnClick="@Reset" />
                     }
                 </div>
             }
@@ -97,7 +98,7 @@
 
         if (env.Operation?.Status != "Success" || env.Data is null)
         {
-            _error = "تعذّر بدء التحقق. حاول مرة أخرى.";
+            _error = L.T("تعذّر بدء التحقق. حاول مرة أخرى.", "Could not start verification. Please try again.");
             await InvokeAsync(StateHasChanged);
             return;
         }

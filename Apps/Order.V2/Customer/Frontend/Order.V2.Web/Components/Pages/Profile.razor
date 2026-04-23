@@ -2,8 +2,9 @@
 @inject AppStore Store
 @inject AppStateApplier Applier
 @inject NavigationManager Nav
+@inject L L
 
-<PageTitle>حسابي - اوردر</PageTitle>
+<PageTitle>@L.T("حسابي - اوردر", "My account — Order")</PageTitle>
 
 @if (!Store.Auth.IsAuthenticated)
 {

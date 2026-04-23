@@ -3,14 +3,15 @@
 @inject AppStore Store
 @inject ApiReader Api
 @inject ClientOpEngine Engine
+@inject L L
 
-<PageTitle>إعلاناتي — عشير V2</PageTitle>
+<PageTitle>@L.T("إعلاناتي — عشير V2", "My listings — Ashare V2")</PageTitle>
 
 <AcAuthGuard IsAuthenticated="@Store.Auth.IsAuthenticated" LoginHref="/login">
     <AcListingsPage Listings="@_listings"
                     Loading="@_loading"
-                    Title="إعلاناتي"
-                    EmptyMessage="لا توجد إعلانات بعد" />
+                    Title="@L.T("إعلاناتي", "My listings")"
+                    EmptyMessage="@L.T("لا توجد إعلانات بعد", "No listings yet")" />
 </AcAuthGuard>
 
 @code {

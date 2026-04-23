@@ -2,8 +2,9 @@
 @inject AppStore Store
 @inject ClientOpEngine Engine
 @inject NavigationManager Nav
+@inject L L
 
-<PageTitle>تسجيل الدخول - اوردر</PageTitle>
+<PageTitle>@L.T("تسجيل الدخول - اوردر", "Sign in — Order")</PageTitle>
 
 <AcLoginPage Mode="TemplateOperationMode.Operation"
              Engine="Engine"
@@ -13,7 +14,7 @@
              VerifyPayload="@((uid, cid, code) => new { userId = uid, challengeId = cid, code })"
              RedirectUrl="@(string.IsNullOrEmpty(ReturnUrl) ? "/" : ReturnUrl)"
              BrandIcon="🍔"
-             BrandName="اوردر"
+             BrandName="@L.T("اوردر", "Order")"
              BrandTagline="@(Store.Ui.IsArabic ? "عروض الكافيهات والمطاعم" : "Cafe & restaurant deals")"
              PhoneStepTitle="@(Store.Ui.IsArabic ? "مرحباً بك" : "Welcome")"
              PhoneStepSubtitle="@(Store.Ui.IsArabic ? "أدخل رقم جوالك للمتابعة" : "Enter your phone number to continue")"
@@ -33,7 +34,7 @@
             : "Any +9665xxxxxxxx number creates a new account. The code is always: 123456")
         <br />
         <span style="font-size:0.875rem">@(Store.Ui.IsArabic ? "حسابات تجريبية: " : "Demo accounts: ")</span>
-        <code dir="ltr">+966500000001</code> (سارة)
+        <code dir="ltr">+966500000001</code> (@L.T("سارة", "Sara"))
     </HintSlot>
 </AcLoginPage>
 

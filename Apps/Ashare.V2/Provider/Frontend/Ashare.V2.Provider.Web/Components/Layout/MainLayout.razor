@@ -2,9 +2,10 @@
 @inject AppStore Store
 @inject AppStateApplier Applier
 @inject AuthStateService AuthState
+@inject L L
 @implements IAsyncDisposable
 
-<AcShell Brand="🏠 عشير V2 للمُلاّك" FooterText="عشير V2 — بوابة ملاك العقارات">
+<AcShell Brand="@($"🏠 {L.T("عشير V2 للمُلاّك", "Ashare V2 for Owners")}")" FooterText="@L.T("عشير V2 — بوابة ملاك العقارات", "Ashare V2 — Property owners portal")">
     <Links>
         @if (Store.Auth.IsAuthenticated)
         {

@@ -2,9 +2,10 @@
 @inject AppStore Store
 @inject ApiReader Api
 @inject NavigationManager Nav
+@inject L L
 @implements IDisposable
 
-<PageTitle>البحث - اوردر</PageTitle>
+<PageTitle>@L.T("البحث - اوردر", "Search — Order")</PageTitle>
 
 <AcMapSearchPage Title="@(Store.Ui.IsArabic ? "اكتشف" : "Discover")"
                  Pins="@Pins"

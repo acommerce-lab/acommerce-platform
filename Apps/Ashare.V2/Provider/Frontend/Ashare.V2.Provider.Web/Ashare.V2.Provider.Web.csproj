@@ -17,5 +17,6 @@
     <ProjectReference Include="..\..\..\..\..\libs\frontend\ACommerce.Widgets\ACommerce.Widgets.csproj" />
     <ProjectReference Include="..\..\..\..\..\libs\frontend\ACommerce.Templates.Shared\ACommerce.Templates.Shared.csproj" />
     <ProjectReference Include="..\..\..\..\..\libs\frontend\ACommerce.Templates.Marketplace\ACommerce.Templates.Marketplace.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\frontend\ACommerce.L10n.Blazor\ACommerce.L10n.Blazor.csproj" />
   </ItemGroup>
 </Project>

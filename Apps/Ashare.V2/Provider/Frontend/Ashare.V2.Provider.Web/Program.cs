@@ -2,6 +2,7 @@ using ACommerce.Client.Http;
 using ACommerce.Client.Operations;
 using ACommerce.Client.Operations.Interceptors;
 using ACommerce.Client.StateBridge;
+using ACommerce.L10n.Blazor;
 using ACommerce.OperationEngine.Core;
 using Ashare.V2.Provider.Web.Components;
 using Ashare.V2.Provider.Web.Interceptors;
@@ -65,6 +66,8 @@ builder.Services.AddScoped<OperationInterpreterRegistry<AppStore>>(sp =>
 builder.Services.AddScoped<AppStateApplier>();
 builder.Services.AddScoped<IStateApplier>(sp => sp.GetRequiredService<AppStateApplier>());
 builder.Services.AddScoped<AuthStateService>();
+
+builder.Services.AddEmbeddedL10n<ProviderTranslations, AppLangContext>();
 
 var app = builder.Build();
 if (!app.Environment.IsDevelopment()) app.UseExceptionHandler("/Error");

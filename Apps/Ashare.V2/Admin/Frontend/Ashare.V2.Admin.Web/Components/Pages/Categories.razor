@@ -2,12 +2,13 @@
 @rendermode InteractiveServer
 @inject AppStore Store
 @inject ApiReader Api
+@inject L L
 
-<PageTitle>التصنيفات — عشير V2</PageTitle>
+<PageTitle>@L.T("التصنيفات — عشير V2", "Categories — Ashare V2")</PageTitle>
 
 <AcAuthGuard IsAuthenticated="@Store.Auth.IsAuthenticated" LoginHref="/login">
     <div class="acs-page">
-        <h1 class="acs-page-title">التصنيفات</h1>
+        <h1 class="acs-page-title">@L.T("التصنيفات", "Categories")</h1>
 
         @if (_loading)
         {
@@ -15,7 +16,7 @@
         }
         else if (_cats.Count == 0)
         {
-            <AcEmptyState IconName="tag" Title="لا توجد تصنيفات" />
+            <AcEmptyState IconName="tag" Title="@L.T("لا توجد تصنيفات", "No categories")" />
         }
         else
         {
@@ -23,9 +24,9 @@
                 <table class="table">
                     <thead>
                         <tr>
-                            <th>الأيقونة</th>
-                            <th>الاسم</th>
-                            <th>المعرّف</th>
+                            <th>@L.T("الأيقونة", "Icon")</th>
+                            <th>@L.T("الاسم", "Name")</th>
+                            <th>@L.T("المعرّف", "ID")</th>
                         </tr>
                     </thead>
                     <tbody>

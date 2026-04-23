@@ -3,8 +3,9 @@
 @inject ClientOpEngine Engine
 @inject AppStateApplier Applier
 @inject NavigationManager Nav
+@inject L L
 
-<PageTitle>إكمال الطلب - اوردر</PageTitle>
+<PageTitle>@L.T("إكمال الطلب - اوردر", "Checkout — Order")</PageTitle>
 
 @if (!Store.Auth.IsAuthenticated)
 {

@@ -2,9 +2,10 @@
 @inject AppStore Store
 @inject AppStateApplier Applier
 @inject NavigationManager Nav
+@inject L L
 @implements IDisposable
 
-<PageTitle>السلة - اوردر</PageTitle>
+<PageTitle>@L.T("السلة - اوردر", "Cart — Order")</PageTitle>
 
 <AcCartPage Cart="@Snapshot"
             Title="@(Store.Ui.IsArabic ? "سلة الطلبات" : "Your cart")"

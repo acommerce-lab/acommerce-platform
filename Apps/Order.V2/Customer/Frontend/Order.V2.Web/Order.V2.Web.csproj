@@ -25,5 +25,8 @@
 
     <!-- Culture stack for timezone-aware timestamps -->
     <ProjectReference Include="..\..\..\..\..\libs\frontend\ACommerce.Culture.Blazor\ACommerce.Culture.Blazor.csproj" />
+
+    <!-- i18n -->
+    <ProjectReference Include="..\..\..\..\..\libs\frontend\ACommerce.L10n.Blazor\ACommerce.L10n.Blazor.csproj" />
   </ItemGroup>
 </Project>

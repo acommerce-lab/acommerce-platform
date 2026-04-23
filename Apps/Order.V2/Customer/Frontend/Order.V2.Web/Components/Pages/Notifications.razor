@@ -2,8 +2,9 @@
 @inject AppStore Store
 @inject ClientOpEngine Engine
 @inject ApiReader Api
+@inject L L
 
-<PageTitle>الإشعارات - اوردر</PageTitle>
+<PageTitle>@L.T("الإشعارات - اوردر", "Notifications — Order")</PageTitle>
 
 @if (!Store.Auth.IsAuthenticated)
 {

@@ -3,8 +3,10 @@
 @inject AppStore Store
 @inject ApiReader Api
 @inject NavigationManager Nav
+@inject L L
+@implements IDisposable
 
-<PageTitle>@Store.Ui.Tr("لوحة التحكم","Dashboard") — عشير V2 للمُلاّك</PageTitle>
+<PageTitle>@L.T("لوحة التحكم","Dashboard") — @L.T("عشير V2 للمُلاّك", "Ashare V2 for Owners")</PageTitle>
 
 @if (!Store.Auth.IsAuthenticated)
 {
@@ -15,12 +17,12 @@ else
     <AcOwnerDashboard Stats="@_stats"
                       RecentBookings="@_recentBookings"
                       LoadingBookings="@_loading"
-                      Title="@($"مرحباً {Store.Auth.FullName ?? ""}")"
-                      BookingsTitle="@Store.Ui.Tr("آخر الحجوزات","Recent Bookings")"
+                      Title="@($"{L.T("مرحباً","Welcome")} {Store.Auth.FullName ?? ""}")"
+                      BookingsTitle="@L.T("آخر الحجوزات","Recent bookings")"
                       OnBookingClick="@(_ => Nav.NavigateTo("/owner-bookings"))">
         <QuickActions>
             <a href="/my-listings" style="display:block;margin-top:8px">
-                <AcButton Variant="primary" Block="true" Text="عرض إعلاناتي" />
+                <AcButton Variant="primary" Block="true" Text="@L.T("عرض إعلاناتي", "Show my listings")" />
             </a>
         </QuickActions>
     </AcOwnerDashboard>
@@ -30,26 +32,41 @@ else
     private bool _loading = true;
     private List<OwnerStatDto> _stats = new();
     private List<BookingRowDto> _recentBookings = new();
+    private List<ListingApiRow>? _rawListings;
+    private List<BookingApiRow>? _rawBookings;
+
+    protected override void OnInitialized() => Store.OnChanged += Refresh;
+    private void Refresh() { Rebuild(); InvokeAsync(StateHasChanged); }
+    public void Dispose() => Store.OnChanged -= Refresh;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (!firstRender || !Store.Auth.IsAuthenticated) { _loading = false; StateHasChanged(); return; }
 
         var listingsEnv = await Api.GetAsync<List<ListingApiRow>>("/my-listings");
-        var listings    = listingsEnv.Data ?? new();
+        _rawListings = listingsEnv.Data ?? new();
 
         var bookingsEnv = await Api.GetAsync<List<BookingApiRow>>("/bookings");
-        var bookings    = bookingsEnv.Data ?? new();
+        _rawBookings = bookingsEnv.Data ?? new();
+
+        Rebuild();
+        _loading = false;
+        StateHasChanged();
+    }
+
+    private void Rebuild()
+    {
+        if (_rawListings is null || _rawBookings is null) return;
 
         _stats = new List<OwnerStatDto>
         {
-            new() { Label = "إعلاناتي",    Value = listings.Count.ToString(),                     IconName = "home"   },
-            new() { Label = "حجوزات معلقة", Value = bookings.Count(b => b.Status == 0).ToString(), IconName = "clock"  },
-            new() { Label = "منشورة",       Value = listings.Count(l => l.IsActive).ToString(),    IconName = "check"  },
-            new() { Label = "مشاهدات",      Value = listings.Sum(l => l.ViewCount).ToString(),     IconName = "search" },
+            new() { Label = L.T("إعلاناتي", "My listings"),   Value = _rawListings.Count.ToString(),                                IconName = "home"   },
+            new() { Label = L.T("حجوزات معلقة", "Pending bookings"), Value = _rawBookings.Count(b => b.Status == 0).ToString(),     IconName = "clock"  },
+            new() { Label = L.T("منشورة", "Published"),       Value = _rawListings.Count(l => l.IsActive).ToString(),               IconName = "check"  },
+            new() { Label = L.T("مشاهدات", "Views"),          Value = _rawListings.Sum(l => l.ViewCount).ToString(),                IconName = "search" },
         };
 
-        _recentBookings = bookings
+        _recentBookings = _rawBookings
             .OrderByDescending(b => b.StartDate)
             .Take(5)
             .Select(b => new BookingRowDto
@@ -62,9 +79,6 @@ else
                 Status     = b.Status,
             })
             .ToList();
-
-        _loading = false;
-        StateHasChanged();
     }
 
     private record ListingApiRow(string Id, bool IsActive, int ViewCount, decimal Price);

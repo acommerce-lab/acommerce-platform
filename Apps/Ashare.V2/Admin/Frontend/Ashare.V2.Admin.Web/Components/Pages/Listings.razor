@@ -3,12 +3,13 @@
 @inject AppStore Store
 @inject ApiReader Api
 @inject ClientOpEngine Engine
+@inject L L
 
-<PageTitle>الإعلانات — عشير V2</PageTitle>
+<PageTitle>@L.T("الإعلانات — عشير V2", "Listings — Ashare V2")</PageTitle>
 
 <AcAuthGuard IsAuthenticated="@Store.Auth.IsAuthenticated" LoginHref="/login">
     <div class="acs-page">
-        <h1 class="acs-page-title">الإعلانات</h1>
+        <h1 class="acs-page-title">@L.T("الإعلانات", "Listings")</h1>
 
         @if (_loading)
         {
@@ -16,7 +17,7 @@
         }
         else if (_listings.Count == 0)
         {
-            <AcEmptyState IconName="home" Title="لا توجد إعلانات" />
+            <AcEmptyState IconName="home" Title="@L.T("لا توجد إعلانات", "No listings")" />
         }
         else
         {
@@ -24,13 +25,13 @@
                 <table class="table">
                     <thead>
                         <tr>
-                            <th>المعرّف</th>
-                            <th>المالك</th>
-                            <th>السعر</th>
-                            <th>المدينة</th>
-                            <th>الحالة</th>
-                            <th>المشاهدات</th>
-                            <th>الإجراءات</th>
+                            <th>@L.T("المعرّف", "ID")</th>
+                            <th>@L.T("المالك", "Owner")</th>
+                            <th>@L.T("السعر", "Price")</th>
+                            <th>@L.T("المدينة", "City")</th>
+                            <th>@L.T("الحالة", "Status")</th>
+                            <th>@L.T("المشاهدات", "Views")</th>
+                            <th>@L.T("الإجراءات", "Actions")</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -49,12 +50,12 @@
                                 <td>
                                     @if (l.Status == 0)
                                     {
-                                        <AcButton Variant="primary" Size="sm" Text="نشر"
+                                        <AcButton Variant="primary" Size="sm" Text="@L.T("نشر", "Publish")"
                                                   OnClick="@(() => Publish(l))" />
-                                        <AcButton Variant="ghost" Size="sm" Text="رفض"
+                                        <AcButton Variant="ghost" Size="sm" Text="@L.T("رفض", "Reject")"
                                                   OnClick="@(() => Reject(l))" />
                                     }
-                                    <AcButton Variant="danger" Size="sm" Text="حذف"
+                                    <AcButton Variant="danger" Size="sm" Text="@L.T("حذف", "Delete")"
                                               OnClick="@(() => Delete(l))" />
                                 </td>
                             </tr>
@@ -96,7 +97,14 @@
         if (res.Operation.Status == "Success") { _listings.RemoveAll(x => x.Id == l.Id); StateHasChanged(); }
     }
 
-    private static string StatusLabel(int s) => s switch { 0 => "قيد المراجعة", 1 => "منشور", 2 => "مسودة", 3 => "مرفوض", _ => s.ToString() };
+    private string StatusLabel(int s) => s switch
+    {
+        0 => L.T("قيد المراجعة", "Pending"),
+        1 => L.T("منشور", "Published"),
+        2 => L.T("مسودة", "Draft"),
+        3 => L.T("مرفوض", "Rejected"),
+        _ => s.ToString()
+    };
     private static string StatusVariant(int s) => s switch { 1 => "success", 3 => "danger", _ => "warning" };
 
     private record ListingRow(string Id, string OwnerId, decimal Price, string Currency,

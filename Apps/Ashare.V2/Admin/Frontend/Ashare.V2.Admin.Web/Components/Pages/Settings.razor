@@ -2,14 +2,15 @@
 @rendermode InteractiveServer
 @inject AppStore Store
 @inject AppStateApplier Applier
+@inject L L
 @implements IDisposable
 
-<PageTitle>الإعدادات — عشير V2</PageTitle>
+<PageTitle>@L.T("الإعدادات — عشير V2", "Settings — Ashare V2")</PageTitle>
 
 <AcSettingsPage Snapshot="@(new SettingsSnapshot { Theme = Store.Ui.Theme, Language = Store.Ui.Language })"
-                Title="الإعدادات"
-                ThemeLabel="المظهر" LanguageLabel="اللغة"
-                LightLabel="فاتح" DarkLabel="داكن"
+                Title="@L.T("الإعدادات", "Settings")"
+                ThemeLabel="@L.T("المظهر", "Theme")" LanguageLabel="@L.T("اللغة", "Language")"
+                LightLabel="@L.T("فاتح", "Light")" DarkLabel="@L.T("داكن", "Dark")"
                 OnThemeChange="@(t => Applier.ApplyLocalAsync(AdminV2Ops.SetTheme(t)))"
                 OnLanguageChange="@(l => Applier.ApplyLocalAsync(AdminV2Ops.SetLanguage(l)))" />
 

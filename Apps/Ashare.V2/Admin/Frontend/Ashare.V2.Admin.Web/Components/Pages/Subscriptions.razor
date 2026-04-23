@@ -2,12 +2,13 @@
 @rendermode InteractiveServer
 @inject AppStore Store
 @inject ApiReader Api
+@inject L L
 
-<PageTitle>الاشتراكات — عشير V2</PageTitle>
+<PageTitle>@L.T("الاشتراكات — عشير V2", "Subscriptions — Ashare V2")</PageTitle>
 
 <AcAuthGuard IsAuthenticated="@Store.Auth.IsAuthenticated" LoginHref="/login">
     <div class="acs-page">
-        <h1 class="acs-page-title">الاشتراكات</h1>
+        <h1 class="acs-page-title">@L.T("الاشتراكات", "Subscriptions")</h1>
 
         @if (_loading)
         {
@@ -15,7 +16,7 @@
         }
         else if (_subs.Count == 0)
         {
-            <AcEmptyState IconName="check" Title="لا توجد اشتراكات" />
+            <AcEmptyState IconName="check" Title="@L.T("لا توجد اشتراكات", "No subscriptions")" />
         }
         else
         {
@@ -23,13 +24,13 @@
                 <table class="table">
                     <thead>
                         <tr>
-                            <th>المعرّف</th>
-                            <th>المالك</th>
-                            <th>الخطة</th>
-                            <th>البداية</th>
-                            <th>النهاية</th>
-                            <th>الحالة</th>
-                            <th>نشط</th>
+                            <th>@L.T("المعرّف", "ID")</th>
+                            <th>@L.T("المالك", "Owner")</th>
+                            <th>@L.T("الخطة", "Plan")</th>
+                            <th>@L.T("البداية", "Start")</th>
+                            <th>@L.T("النهاية", "End")</th>
+                            <th>@L.T("الحالة", "Status")</th>
+                            <th>@L.T("نشط", "Active")</th>
                         </tr>
                     </thead>
                     <tbody>

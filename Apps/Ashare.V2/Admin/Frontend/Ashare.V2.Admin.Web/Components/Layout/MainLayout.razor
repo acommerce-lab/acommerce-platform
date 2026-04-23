@@ -3,29 +3,30 @@
 @inject AppStore Store
 @inject AppStateApplier Applier
 @inject AuthStateService AuthService
+@inject L L
 @implements IDisposable
 
 <div class="adm-shell">
     <nav class="adm-navbar">
-        <a href="/" class="adm-navbar-brand">عشير V2 — لوحة الإدارة</a>
+        <a href="/" class="adm-navbar-brand">@L.T("عشير V2 — لوحة الإدارة", "Ashare V2 — Admin Panel")</a>
         @if (Store.Auth.IsAuthenticated)
         {
             <div class="adm-navbar-actions">
-                <a class="adm-navbar-link" href="/">لوحة التحكم</a>
-                <a class="adm-navbar-link" href="/users">المستخدمون</a>
-                <a class="adm-navbar-link" href="/listings">الإعلانات</a>
-                <a class="adm-navbar-link" href="/bookings">الحجوزات</a>
-                <a class="adm-navbar-link" href="/subscriptions">الاشتراكات</a>
-                <a class="adm-navbar-link" href="/categories">التصنيفات</a>
-                <a class="adm-navbar-link" href="/settings">الإعدادات</a>
+                <a class="adm-navbar-link" href="/">@L.T("لوحة التحكم", "Dashboard")</a>
+                <a class="adm-navbar-link" href="/users">@L.T("المستخدمون", "Users")</a>
+                <a class="adm-navbar-link" href="/listings">@L.T("الإعلانات", "Listings")</a>
+                <a class="adm-navbar-link" href="/bookings">@L.T("الحجوزات", "Bookings")</a>
+                <a class="adm-navbar-link" href="/subscriptions">@L.T("الاشتراكات", "Subscriptions")</a>
+                <a class="adm-navbar-link" href="/categories">@L.T("التصنيفات", "Categories")</a>
+                <a class="adm-navbar-link" href="/settings">@L.T("الإعدادات", "Settings")</a>
                 <span class="adm-user-badge">@Store.Auth.FullName</span>
-                <AcButton Variant="ghost" Size="sm" Text="خروج" OnClick="SignOut" />
+                <AcButton Variant="ghost" Size="sm" Text="@L.T("خروج", "Sign out")" OnClick="SignOut" />
             </div>
         }
         else
         {
             <div class="adm-navbar-actions">
-                <a href="/login"><AcButton Variant="primary" Size="sm" Text="دخول" /></a>
+                <a href="/login"><AcButton Variant="primary" Size="sm" Text="@L.T("دخول", "Sign in")" /></a>
             </div>
         }
     </nav>

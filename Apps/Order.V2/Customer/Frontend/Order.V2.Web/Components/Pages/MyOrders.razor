@@ -1,8 +1,9 @@
 @page "/orders"
 @inject AppStore Store
 @inject ApiReader Api
+@inject L L
 
-<PageTitle>طلباتي - اوردر</PageTitle>
+<PageTitle>@L.T("طلباتي - اوردر", "My Orders — Order")</PageTitle>
 
 @if (!Store.Auth.IsAuthenticated)
 {

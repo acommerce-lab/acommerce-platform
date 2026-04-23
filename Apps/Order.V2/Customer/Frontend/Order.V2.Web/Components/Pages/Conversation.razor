@@ -4,8 +4,9 @@
 @inject ApiReader Api
 @inject NavigationManager Nav
 @inject ACommerce.Culture.Blazor.CultureTimeFormatter TimeFormatter
+@inject L L
 
-<PageTitle>محادثة - اوردر</PageTitle>
+<PageTitle>@L.T("محادثة - اوردر", "Chat — Order")</PageTitle>
 
 @if (!Store.Auth.IsAuthenticated)
 {

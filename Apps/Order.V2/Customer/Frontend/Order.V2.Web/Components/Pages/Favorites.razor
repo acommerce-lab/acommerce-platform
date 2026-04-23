@@ -1,8 +1,9 @@
 @page "/favorites"
 @inject AppStore Store
 @inject ApiReader Api
+@inject L L
 
-<PageTitle>المفضلة - اوردر</PageTitle>
+<PageTitle>@L.T("المفضلة - اوردر", "Favorites — Order")</PageTitle>
 
 @if (!Store.Auth.IsAuthenticated)
 {

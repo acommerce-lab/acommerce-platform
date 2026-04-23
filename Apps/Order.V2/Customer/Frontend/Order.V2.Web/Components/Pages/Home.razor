@@ -3,9 +3,10 @@
 @inject AppStateApplier Applier
 @inject ApiReader Api
 @inject NavigationManager Nav
+@inject L L
 @implements IDisposable
 
-<PageTitle>اوردر — عروض اليوم</PageTitle>
+<PageTitle>@L.T("اوردر — عروض اليوم", "Order — Today's offers")</PageTitle>
 
 @*
     Single template — viewport adaptation is purely CSS:

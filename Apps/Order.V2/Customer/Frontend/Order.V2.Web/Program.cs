@@ -4,6 +4,7 @@ using ACommerce.Culture.Blazor;
 using ACommerce.Client.Operations;
 using ACommerce.Client.Operations.Interceptors;
 using ACommerce.Client.StateBridge;
+using ACommerce.L10n.Blazor;
 using ACommerce.OperationEngine.Core;
 using ACommerce.OperationEngine.Interceptors;
 using ACommerce.OperationEngine.Interceptors.Extensions;
@@ -77,6 +78,8 @@ builder.Services.AddScoped<AppStateApplier>();
 builder.Services.AddScoped<IStateApplier>(sp => sp.GetRequiredService<AppStateApplier>());
 
 builder.Services.AddScoped<AuthStateService>();
+
+builder.Services.AddEmbeddedL10n<CustomerTranslations, AppLangContext>();
 
 var app = builder.Build();
 
