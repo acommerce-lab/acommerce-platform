@@ -1,12 +1,12 @@
 {
   "profiles": {
-    "Ashare.Web": {
+    "Order.Api": {
       "commandName": "Project",
       "launchBrowser": true,
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
       },
-      "applicationUrl": "https://localhost:55395;http://localhost:55398"
+      "applicationUrl": "https://localhost:56902;http://localhost:56904"
     }
   }
 }
