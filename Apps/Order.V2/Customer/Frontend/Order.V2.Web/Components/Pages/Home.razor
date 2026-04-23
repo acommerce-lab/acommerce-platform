@@ -1,0 +1,149 @@
+@page "/"
+@inject AppStore Store
+@inject AppStateApplier Applier
+@inject ApiReader Api
+@inject NavigationManager Nav
+@inject L L
+@implements IDisposable
+
+<PageTitle>@(L["home.title"])</PageTitle>
+
+@*
+    Single template — viewport adaptation is purely CSS:
+    .acc-offer-grid defaults to 1 column (mobile), and a desktop rule
+    at `:root[data-ac-mode="desktop"]` promotes it to 3 columns.  We
+    still pass a Columns="1" hint for downstream components that read
+    it, but CSS has the final word via !important.
+*@
+<AcCatalogHome Categories="@MappedCategories"
+               SelectedCategoryId="@SelectedCategoryId"
+               OnSelectCategory="SelectCategory"
+               Offers="@MappedOffers"
+               Loading="@Loading"
+               Columns="1"
+               DetailsHrefPrefix="/offer"
+               HeroTitle="@(L["app.name"])"
+               HeroSubtitle="@(L["home.subtitle"])"
+               AllLabel="@(L["common.all"])"
+               LoadingMessage="@(L["home.loading"])"
+               EmptyMessage="@(L["home.empty"])">
+    <HeroActions>
+        @* The top-nav already handles login on desktop; hide the hero
+           sign-in button there to avoid duplication. *@
+        @if (!Store.Auth.IsAuthenticated)
+        {
+            <span class="ac-mode-mobile"><a href="/login"><AcButton Variant="primary" Size="sm" Text="@(L["auth.login.title"])" /></a></span>
+        }
+        <AcButton Variant="ghost" Size="sm" OnClick="ToggleLanguage"
+                  Text="@(Store.Ui.IsArabic ? "English" : "العربية")" />
+    </HeroActions>
+</AcCatalogHome>
+
+@code {
+    private List<CatApi> Categories = new();
+    private List<OfferApi> Offers = new();
+    private Guid? SelectedCategoryGuid;
+    private bool Loading = true;
+
+    private string? SelectedCategoryId => SelectedCategoryGuid?.ToString();
+
+    private IReadOnlyList<CategoryDto> MappedCategories =>
+        Categories.Select(c => new CategoryDto
+        {
+            Id = c.Id.ToString(),
+            Label = Store.Ui.IsArabic ? c.NameAr : c.NameEn,
+            Icon = c.Icon
+        }).ToList();
+
+    private IReadOnlyList<OfferDto> MappedOffers =>
+        Offers.Select(o => new OfferDto
+        {
+            Id = o.Id.ToString(),
+            Title = o.Title,
+            Description = o.Description,
+            Price = o.Price,
+            OriginalPrice = o.OriginalPrice,
+            Currency = o.Currency,
+            Emoji = o.Emoji,
+            DiscountPercent = o.DiscountPercent,
+            IsFeatured = o.IsFeatured,
+            Vendor = o.Vendor is null ? null : new VendorMiniDto
+            {
+                Id = o.Vendor.Id.ToString(),
+                Name = o.Vendor.Name,
+                LogoEmoji = o.Vendor.LogoEmoji,
+                City = o.Vendor.City,
+                District = o.Vendor.District,
+                Rating = o.Vendor.Rating,
+                OpenHours = o.Vendor.OpenHours
+            }
+        }).ToList();
+
+    protected override async Task OnInitializedAsync()
+    {
+        Store.OnChanged += OnUiChange;
+        var catEnv = await Api.GetAsync<List<CatApi>>("/api/categories");
+        if (catEnv.Data != null) Categories = catEnv.Data;
+        await Reload();
+    }
+
+    private void OnUiChange() => InvokeAsync(StateHasChanged);
+
+    private async Task ToggleLanguage() => await Applier.ApplyLocalAsync(ClientOps.SetLanguage(Store.Ui.IsArabic ? "en" : "ar"));
+
+    public void Dispose()
+    {
+        Store.OnChanged -= OnUiChange;
+    }
+
+    private async Task SelectCategory(string? id)
+    {
+        SelectedCategoryGuid = string.IsNullOrEmpty(id) ? null : Guid.Parse(id);
+        await Reload();
+    }
+
+    private async Task Reload()
+    {
+        Loading = true;
+        var path = SelectedCategoryGuid.HasValue
+            ? $"/api/offers?categoryId={SelectedCategoryGuid.Value}"
+            : "/api/offers";
+        var env = await Api.GetAsync<List<OfferApi>>(path);
+        Offers = env.Data ?? new();
+        Loading = false;
+    }
+
+    public class CatApi
+    {
+        public Guid Id { get; set; }
+        public string Slug { get; set; } = "";
+        public string NameAr { get; set; } = "";
+        public string NameEn { get; set; } = "";
+        public string Icon { get; set; } = "🍔";
+    }
+
+    public class OfferApi
+    {
+        public Guid Id { get; set; }
+        public string Title { get; set; } = "";
+        public string Description { get; set; } = "";
+        public decimal Price { get; set; }
+        public decimal? OriginalPrice { get; set; }
+        public string Currency { get; set; } = "SAR";
+        public string Emoji { get; set; } = "🍽️";
+        public int DiscountPercent { get; set; }
+        public bool IsFeatured { get; set; }
+        public VendorApi? Vendor { get; set; }
+    }
+
+    public class VendorApi
+    {
+        public Guid Id { get; set; }
+        public string Name { get; set; } = "";
+        public string LogoEmoji { get; set; } = "🏪";
+        public string City { get; set; } = "";
+        public string? District { get; set; }
+        public double Rating { get; set; }
+        public string OpenHours { get; set; } = "";
+    }
+}

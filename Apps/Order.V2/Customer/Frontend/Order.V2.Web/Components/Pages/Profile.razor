@@ -1,0 +1,70 @@
+@page "/profile"
+@inject AppStore Store
+@inject AppStateApplier Applier
+@inject NavigationManager Nav
+@inject L L
+
+<PageTitle>@(L["profile.title"]) — @(L["app.name"])</PageTitle>
+
+@if (!Store.Auth.IsAuthenticated)
+{
+    <AcEmptyState IconName="user"
+                  Title="@(L["auth.login.title"])"
+                  ActionLabel="@(L["auth.login.title"])"
+                  ActionHref="/login" />
+}
+else
+{
+    <AcProfilePage User="@UserDto"
+                   Stats="@StatsList"
+                   MenuSections="@MenuSectionsList"
+                   SignOutLabel="@(L["settings.sign_out"])"
+                   OnSignOut="SignOut" />
+}
+
+@code {
+    private ProfileUserDto UserDto => new()
+    {
+        Id = Store.Auth.UserId?.ToString() ?? "",
+        FullName = Store.Auth.FullName ?? L["common.empty"],
+        PhoneNumber = Store.Auth.PhoneNumber,
+        Initial = !string.IsNullOrEmpty(Store.Auth.FullName) && Store.Auth.FullName.Length > 0 ? Store.Auth.FullName[..1] : "👤"
+    };
+
+    private IReadOnlyList<ProfileStatDto> StatsList => new[]
+    {
+        new ProfileStatDto(L["orders.title"], "0"),
+        new ProfileStatDto(L["favorites.title"], "0"),
+        new ProfileStatDto(L["settings.title"], "0"),
+    };
+
+    private IReadOnlyList<MenuSectionDto> MenuSectionsList => new[]
+    {
+        new MenuSectionDto
+        {
+            Title = L["profile.account"],
+            Items = new[]
+            {
+                new MenuItemDto { Label = L["orders.page_title"],    IconName = "package",  Href = "/orders" },
+                new MenuItemDto { Label = L["favorites.title"],      IconName = "heart",    Href = "/favorites" },
+                new MenuItemDto { Label = L["messages.title"],       IconName = "message",  Href = "/messages" },
+                new MenuItemDto { Label = L["common.empty"],         IconName = "bell",     Href = "/notifications" },
+                new MenuItemDto { Label = L["profile.title"],        IconName = "user",     Href = "/account" },
+            }
+        },
+        new MenuSectionDto
+        {
+            Title = L["app.name"],
+            Items = new[]
+            {
+                new MenuItemDto { Label = L["settings.title"], IconName = "settings", Href = "/settings" },
+            }
+        }
+    };
+
+    private async Task SignOut()
+    {
+        await Applier.ApplyLocalAsync(ClientOps.SignOut());
+        Nav.NavigateTo("/", forceLoad: false);
+    }
+}

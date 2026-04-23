@@ -1,0 +1,43 @@
+@page "/login"
+@inject AppStore Store
+@inject ClientOpEngine Engine
+@inject NavigationManager Nav
+@inject L L
+
+<PageTitle>@(L["auth.login.title"]) — @(L["app.name"])</PageTitle>
+
+<AcLoginPage Mode="TemplateOperationMode.Operation"
+             Engine="Engine"
+             BuildRequestOtpOp="@(phone => ClientOps.RequestOtp(phone))"
+             BuildVerifyOtpOp="@((uid, cid, code) => ClientOps.VerifyOtp(uid, cid, code))"
+             PhonePayload="@(phone => new { phoneNumber = phone })"
+             VerifyPayload="@((uid, cid, code) => new { userId = uid, challengeId = cid, code })"
+             RedirectUrl="@(string.IsNullOrEmpty(ReturnUrl) ? "/" : ReturnUrl)"
+             BrandIcon="🍔"
+             BrandName="@(L["app.name"])"
+             BrandTagline="@(L["app.tagline"])"
+             PhoneStepTitle="@(L["auth.welcome"])"
+             PhoneStepSubtitle="@(L["auth.phone_subtitle"])"
+             PhoneLabel="@(L["auth.phone"])"
+             RequestOtpLabel="@(L["auth.send_otp"])"
+             SendingLabel="@(L["auth.sending"])"
+             OtpStepTitle="@(L["auth.otp"])"
+             OtpStepSubtitle="@(L["auth.otp_subtitle"])"
+             OtpLabel="@(L["auth.otp"])"
+             VerifyOtpLabel="@(L["auth.verify"])"
+             VerifyingLabel="@(L["auth.verifying"])"
+             BackLabel="@(L["auth.change_phone"])">
+    <HintSlot>
+        <strong>@(L["auth.demo_mode"])</strong>
+        @(L.Lang == "ar"
+            ? "أي رقم +9665xxxxxxxx يفتح حساباً جديداً. الرمز دائماً: 123456"
+            : "Any +9665xxxxxxxx number creates a new account. The code is always: 123456")
+        <br />
+        <span style="font-size:0.875rem">@(L["auth.demo_accounts"])</span>
+        <code dir="ltr">+966500000001</code> (@(L["demo.sara"]))
+    </HintSlot>
+</AcLoginPage>
+
+@code {
+    [SupplyParameterFromQuery(Name = "return")] public string? ReturnUrl { get; set; }
+}

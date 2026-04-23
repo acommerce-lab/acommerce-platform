@@ -1,0 +1,145 @@
+@page "/checkout"
+@inject AppStore Store
+@inject ClientOpEngine Engine
+@inject AppStateApplier Applier
+@inject NavigationManager Nav
+@inject L L
+
+<PageTitle>@(L["checkout.title"]) — @(L["app.name"])</PageTitle>
+
+@if (!Store.Auth.IsAuthenticated)
+{
+    <AcEmptyState IconName="log-in"
+                  Title="@(L["checkout.signin_required"])"
+                  ActionLabel="@(L["checkout.signin"])"
+                  ActionHref="/login?return=/checkout" />
+}
+else if (Store.Cart.Items.Count == 0)
+{
+    <AcEmptyState IconName="cart"
+                  Title="@(L["checkout.empty_cart"])"
+                  ActionLabel="@(L["cart.browse"])"
+                  ActionHref="/" />
+}
+else
+{
+    <AcCheckoutPage Cart="@Snapshot"
+                    Draft="@Draft"
+                    OnFieldChange="HandleFieldChange"
+                    OnSubmit="Submit"
+                    Submitting="@Submitting"
+                    Error="@Error"
+                    Title="@(L["checkout.title"])"
+                    SummaryLabel="@(L["checkout.summary"])"
+                    TotalLabel="@(L["checkout.total"])"
+                    PickupLabel="@(L["checkout.pickup_method"])"
+                    InStoreLabel="@(L["checkout.pickup_instore"])"
+                    CurbsideLabel="@(L["checkout.pickup_curbside"])"
+                    CarDetailsLabel="@(L["checkout.car_details"])"
+                    CarModelLabel="@(L["checkout.car_model"])"
+                    CarColorLabel="@(L["checkout.car_color"])"
+                    CarPlateLabel="@(L["checkout.car_plate"])"
+                    PaymentLabel="@(L["checkout.payment"])"
+                    PaymentHint="@(L["checkout.payment_hint"])"
+                    CashLabel="@(L["checkout.payment_cash"])"
+                    CardLabel="@(L["checkout.payment_card"])"
+                    CashTenderedLabel="@(L["checkout.payment_amount"])"
+                    ChangeLabel="@(L["checkout.payment_change"])"
+                    NotEnoughLabel="@(L["checkout.payment_not_enough"])"
+                    NotesLabel="@(L["checkout.notes"])"
+                    SubmitLabel="@(L["checkout.submit"])"
+                    SubmittingLabel="@(L["checkout.submitting"])"
+                    BackToCartHref="/cart"
+                    BackToCartLabel="@(L["checkout.back_to_cart"])" />
+}
+
+@code {
+    private CheckoutDraft Draft { get; set; } = new();
+    private string Error = "";
+    private bool Submitting;
+
+    private CartSnapshot Snapshot => new()
+    {
+        Items = Store.Cart.Items.Select(i => new CartLineDto
+        {
+            OfferId = i.OfferId.ToString(),
+            Title = i.Title,
+            Emoji = i.Emoji,
+            UnitPrice = i.UnitPrice,
+            Quantity = i.Quantity
+        }).ToList(),
+        Vendor = Store.Cart.VendorId.HasValue ? new VendorMiniDto
+        {
+            Id = Store.Cart.VendorId.Value.ToString(),
+            Name = Store.Cart.VendorName ?? "",
+            LogoEmoji = Store.Cart.VendorEmoji
+        } : null,
+        Subtotal = Store.Cart.Subtotal,
+        Currency = "SAR"
+    };
+
+    protected override void OnInitialized()
+    {
+        if (Store.Cart.Subtotal > 0)
+        {
+            // Pre-fill a sensible cash amount (next 10s)
+            Draft.CashTendered = Math.Ceiling(Store.Cart.Subtotal / 10) * 10;
+        }
+    }
+
+    private Task HandleFieldChange((string Field, object? Value) args)
+    {
+        // Draft is mutated by the template; we just trigger re-render here
+        // so conditional sections (curbside car details, cash change) update live.
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    private async Task Submit()
+    {
+        Error = "";
+        if (!Store.Auth.IsAuthenticated || Store.Cart.Items.Count == 0) return;
+        if (Draft.PickupType == "Curbside" && string.IsNullOrWhiteSpace(Draft.CarModel))
+        {
+            Error = L["checkout.car_required"];
+            return;
+        }
+        if (Draft.PaymentMethod == "Cash" && Draft.CashTendered.HasValue && Draft.CashTendered.Value < Store.Cart.Subtotal)
+        {
+            Error = L["checkout.payment_insufficient"];
+            return;
+        }
+        Submitting = true;
+        try
+        {
+            var payload = new
+            {
+                customerId = Store.Auth.UserId,
+                items = Store.Cart.Items.Select(i => new { offerId = i.OfferId, quantity = i.Quantity }),
+                pickupType = Draft.PickupType == "Curbside" ? 1 : 0,
+                preferredPayment = Draft.PaymentMethod == "Card" ? 1 : 0,
+                cashTendered = Draft.PaymentMethod == "Cash" ? Draft.CashTendered : null,
+                carModel = Draft.PickupType == "Curbside" ? Draft.CarModel : null,
+                carColor = Draft.PickupType == "Curbside" ? Draft.CarColor : null,
+                carPlate = Draft.PickupType == "Curbside" ? Draft.CarPlate : null,
+                customerNotes = string.IsNullOrWhiteSpace(Draft.Notes) ? null : Draft.Notes
+            };
+            var result = await Engine.ExecuteAsync<CreatedOrderDto>(ClientOps.CreateOrder(Store.Auth.UserId), payload);
+            if (result.Operation.Status != "Success" || result.Data == null)
+            {
+                Error = result.Operation.ErrorMessage ?? result.Error?.Message ?? L["checkout.error"];
+                return;
+            }
+            var orderId = result.Data.Id;
+            await Applier.ApplyLocalAsync(ClientOps.CartClear());
+            Nav.NavigateTo($"/order/{orderId}?just=1");
+        }
+        finally { Submitting = false; }
+    }
+
+    public class CreatedOrderDto
+    {
+        public Guid Id { get; set; }
+        public string OrderNumber { get; set; } = "";
+    }
+}

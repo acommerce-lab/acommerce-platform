@@ -1,0 +1,80 @@
+@page "/"
+@rendermode InteractiveServer
+@inject AppStore Store
+@inject ApiReader Api
+@inject L L
+@implements IDisposable
+
+<PageTitle>@L.T("لوحة التحكم — اوردر V2 المتجر", "Dashboard — Order V2 Vendor")</PageTitle>
+
+@if (!Store.Auth.IsAuthenticated)
+{
+    <AcAuthGuard IsAuthenticated="false" LoginHref="/login" />
+}
+else
+{
+    <AcVendorDashboard Stats="@_stats"
+                       RecentOrders="@_recentOrders"
+                       LoadingOrders="@_loadingOrders"
+                       Title="@($"{L.T("مرحباً", "Welcome")}، {Store.Auth.VendorName ?? Store.Auth.FullName}")"
+                       OrdersTitle="@L.T("آخر الطلبات", "Recent orders")"
+                       EmptyOrdersMessage="@L.T("لا توجد طلبات بعد", "No orders yet")" />
+}
+
+@code {
+    private List<MerchantStatDto> _stats = new();
+    private List<MerchantOrderRowDto> _recentOrders = new();
+    private bool _loadingOrders = true;
+    private DashRow? _last;
+
+    protected override void OnInitialized() => Store.OnChanged += Refresh;
+    private void Refresh() { Rebuild(); InvokeAsync(StateHasChanged); }
+    public void Dispose() => Store.OnChanged -= Refresh;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || !Store.Auth.IsAuthenticated) return;
+
+        var dashEnv = await Api.GetAsync<DashRow>("/api/vendor/dashboard");
+        _last = dashEnv.Data;
+        Rebuild();
+
+        var ordersEnv = await Api.GetAsync<List<OrderRow>>("/api/vendor/orders");
+        _recentOrders = (ordersEnv.Data ?? new())
+            .Take(5)
+            .Select(o => new MerchantOrderRowDto
+            {
+                Id           = o.Id.ToString(),
+                CustomerName = o.CustomerId.ToString()[..8] + "…",
+                Total        = o.Total,
+                Currency     = o.Currency,
+                Status       = o.Status,
+                CreatedAt    = o.CreatedAt,
+                Notes        = o.CustomerNotes
+            }).ToList();
+
+        _loadingOrders = false;
+        StateHasChanged();
+    }
+
+    private void Rebuild()
+    {
+        if (_last is null) return;
+        _stats = new List<MerchantStatDto>
+        {
+            new() { Label = L.T("الطلبات الكلية", "Total orders"), Value = _last.TotalOrders.ToString(),      IconName = "receipt" },
+            new() { Label = L.T("طلبات معلقة", "Pending"),          Value = _last.PendingOrders.ToString(),    IconName = "clock"   },
+            new() { Label = L.T("طلبات نشطة", "Active"),            Value = _last.ActiveOrders.ToString(),     IconName = "fire"    },
+            new() { Label = L.T("مكتملة", "Completed"),              Value = _last.CompletedOrders.ToString(),  IconName = "check"   },
+            new() { Label = L.T("عروض نشطة", "Active offers"),       Value = _last.ActiveOffers.ToString(),     IconName = "tag"     },
+            new() { Label = L.T("الإيرادات", "Revenue"),             Value = $"{_last.TotalRevenue:0.##} {L.T("ر.س", "SAR")}", IconName = "dollar" },
+        };
+    }
+
+    private record DashRow(int TotalOrders, int PendingOrders, int ActiveOrders,
+                            int CompletedOrders, int TotalOffers, int ActiveOffers,
+                            decimal TotalRevenue);
+
+    private record OrderRow(Guid Id, Guid CustomerId, decimal Total, string Currency,
+                             string Status, string? CustomerNotes, DateTime CreatedAt);
+}

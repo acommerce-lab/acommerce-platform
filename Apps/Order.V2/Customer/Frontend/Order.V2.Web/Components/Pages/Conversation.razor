@@ -1,0 +1,91 @@
+@page "/chat/{Id:guid}"
+@inject AppStore Store
+@inject ClientOpEngine Engine
+@inject ApiReader Api
+@inject NavigationManager Nav
+@inject ACommerce.Culture.Blazor.CultureTimeFormatter TimeFormatter
+@inject L L
+
+<PageTitle>@(L["conversation.title"]) — @(L["app.name"])</PageTitle>
+
+@if (!Store.Auth.IsAuthenticated)
+{
+    <AcEmptyState IconName="log-in"
+                  Title="@(L["conversation.signin_required"])"
+                  ActionLabel="@(L["auth.login.title"])"
+                  ActionHref="/login" />
+}
+else
+{
+    <AcChatPage Mode="TemplateOperationMode.Operation"
+                Engine="Engine"
+                BuildSendOp="@(text => ClientOps.SendMessage(Id, Store.Auth.UserId, text))"
+                SendPayload="@(text => new { conversationId = Id, senderId = Store.Auth.UserId, content = text })"
+                OnMessageSent="OnNewMessage"
+                Messages="@Mapped"
+                MySenderId="@(Store.Auth.UserId?.ToString() ?? "")"
+                Loading="@Loading"
+                Title="@(L["conversation.title"])"
+                LoadingMessage="@(L["conversation.loading"])"
+                EmptyMessage="@(L["conversation.empty"])"
+                InputPlaceholder="@(L["messages.placeholder"])"
+                SendLabel="@(L["messages.send"])" />
+}
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+    private List<MsgApi> Messages = new();
+    private bool Loading = true;
+
+    private IReadOnlyList<ChatMessageDto> Mapped =>
+        Messages.Select(m => new ChatMessageDto
+        {
+            Id = m.Id.ToString(),
+            Content = m.Content,
+            SenderId = m.SenderId.ToString(),
+            // Convert the DB-UTC timestamp to the viewer's actual timezone
+            // (from the browser), then mark it Kind=Local so that
+            // AcChatPage's .ToLocalTime() is idempotent and doesn't shift
+            // it again by the server's timezone.
+            CreatedAt = DateTime.SpecifyKind(TimeFormatter.AsLocal(m.CreatedAt), DateTimeKind.Local)
+        }).ToList();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        await Reload();
+        StateHasChanged();
+    }
+
+    private async Task Reload()
+    {
+        Loading = true;
+        var env = await Api.GetAsync<List<MsgApi>>($"/api/messages/conversations/{Id}/messages");
+        Messages = env.Data ?? new();
+        Loading = false;
+        if (Store.Auth.UserId.HasValue)
+            await Engine.ExecuteAsync<object>(ClientOps.MarkConversationRead(Id, Store.Auth.UserId.Value),
+                new { readerId = Store.Auth.UserId.Value });
+    }
+
+    private async Task OnNewMessage(ChatMessageDto msg)
+    {
+        Messages.Add(new MsgApi
+        {
+            Id = Guid.TryParse(msg.Id, out var gid) ? gid : Guid.NewGuid(),
+            SenderId = Guid.TryParse(msg.SenderId, out var sid) ? sid : Guid.Empty,
+            Content = msg.Content,
+            CreatedAt = msg.CreatedAt
+        });
+        StateHasChanged();
+    }
+
+    public class MsgApi
+    {
+        public Guid Id { get; set; }
+        public Guid ConversationId { get; set; }
+        public Guid SenderId { get; set; }
+        public string Content { get; set; } = "";
+        public DateTime CreatedAt { get; set; }
+    }
+}

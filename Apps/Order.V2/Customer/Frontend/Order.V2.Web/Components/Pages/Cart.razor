@@ -1,0 +1,64 @@
+@page "/cart"
+@inject AppStore Store
+@inject AppStateApplier Applier
+@inject NavigationManager Nav
+@inject L L
+@implements IDisposable
+
+<PageTitle>@(L["cart.page_title"]) — @(L["app.name"])</PageTitle>
+
+<AcCartPage Cart="@Snapshot"
+            Title="@(L["cart.page_title"])"
+            EmptyTitle="@(L["cart.empty_title"])"
+            EmptyMessage="@(L["cart.empty_message"])"
+            BrowseLabel="@(L["cart.browse"])"
+            BrowseHref="/"
+            PickupHint="@(L["cart.pickup_hint"])"
+            SubtotalLabel="@(L["cart.subtotal"])"
+            TotalLabel="@(L["cart.total"])"
+            CheckoutLabel="@(L["cart.checkout"])"
+            ClearLabel="@(L["cart.clear"])"
+            OnQuantityChange="HandleQtyChange"
+            OnClear="@(async () => { await Applier.ApplyLocalAsync(ClientOps.CartClear()); })"
+            OnCheckout="GoCheckout" />
+
+@code {
+    private CartSnapshot Snapshot => new()
+    {
+        Items = Store.Cart.Items.Select(i => new CartLineDto
+        {
+            OfferId = i.OfferId.ToString(),
+            Title = i.Title,
+            Emoji = i.Emoji,
+            UnitPrice = i.UnitPrice,
+            Quantity = i.Quantity
+        }).ToList(),
+        Vendor = Store.Cart.VendorId.HasValue ? new VendorMiniDto
+        {
+            Id = Store.Cart.VendorId.Value.ToString(),
+            Name = Store.Cart.VendorName ?? "",
+            LogoEmoji = Store.Cart.VendorEmoji
+        } : null,
+        Subtotal = Store.Cart.Subtotal,
+        Currency = "SAR"
+    };
+
+    protected override void OnInitialized() => Store.OnChanged += OnChanged;
+    private void OnChanged() => InvokeAsync(StateHasChanged);
+    public void Dispose() => Store.OnChanged -= OnChanged;
+
+    private async Task HandleQtyChange((string OfferId, int NewQty) args)
+    {
+        await Applier.ApplyLocalAsync(ClientOps.CartSetQuantity(Guid.Parse(args.OfferId), args.NewQty));
+    }
+
+    private void GoCheckout()
+    {
+        if (!Store.Auth.IsAuthenticated)
+        {
+            Nav.NavigateTo("/login?return=/checkout");
+            return;
+        }
+        Nav.NavigateTo("/checkout");
+    }
+}
