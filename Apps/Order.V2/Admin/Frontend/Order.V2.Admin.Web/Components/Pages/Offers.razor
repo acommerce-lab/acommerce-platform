@@ -3,11 +3,12 @@
 @inject AppStore Store
 @inject ApiReader Api
 @inject ClientOpEngine Engine
+@inject L L
 
-<PageTitle>العروض — اوردر V2</PageTitle>
+<PageTitle>@L.T("العروض — اوردر V2", "Offers — Order V2")</PageTitle>
 
 <AcAuthGuard IsAuthenticated="@Store.Auth.IsAuthenticated" LoginHref="/login">
-    <h2 class="page-title">العروض</h2>
+    <h2 class="page-title">@L.T("العروض", "Offers")</h2>
     @if (_loading)
     {
         <AcSpinner />
@@ -18,16 +19,16 @@
             <table class="table">
                 <thead>
                     <tr>
-                        <th>العنوان</th>
-                        <th>المتجر</th>
-                        <th>السعر</th>
-                        <th>السعر الأصلي</th>
-                        <th>الخصم %</th>
-                        <th>العملة</th>
-                        <th>نشط</th>
-                        <th>مميز</th>
-                        <th>التاريخ</th>
-                        <th>إجراء</th>
+                        <th>@L.T("العنوان", "Title")</th>
+                        <th>@L.T("المتجر", "Vendor")</th>
+                        <th>@L.T("السعر", "Price")</th>
+                        <th>@L.T("السعر الأصلي", "Original")</th>
+                        <th>@L.T("الخصم %", "Discount %")</th>
+                        <th>@L.T("العملة", "Currency")</th>
+                        <th>@L.T("نشط", "Active")</th>
+                        <th>@L.T("مميز", "Featured")</th>
+                        <th>@L.T("التاريخ", "Date")</th>
+                        <th>@L.T("إجراء", "Action")</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -46,7 +47,7 @@
                             <td>
                                 @if (o.IsActive)
                                 {
-                                    <AcButton Variant="danger" Size="sm" Text="تعطيل"
+                                    <AcButton Variant="danger" Size="sm" Text="@L.T("تعطيل", "Disable")"
                                               OnClick="@(() => Deactivate(o))" />
                                 }
                             </td>

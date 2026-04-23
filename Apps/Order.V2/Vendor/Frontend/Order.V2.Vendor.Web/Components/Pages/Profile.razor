@@ -2,11 +2,12 @@
 @rendermode InteractiveServer
 @inject AppStore Store
 @inject ApiReader Api
+@inject L L
 
-<PageTitle>الملف الشخصي — اوردر V2 المتجر</PageTitle>
+<PageTitle>@L.T("الملف الشخصي — اوردر V2 المتجر", "Profile — Order V2 Vendor")</PageTitle>
 
 <AcAuthGuard IsAuthenticated="@Store.Auth.IsAuthenticated" LoginHref="/login">
-    <h2 class="page-title">ملف المتجر</h2>
+    <h2 class="page-title">@L.T("ملف المتجر", "Vendor profile")</h2>
     @if (_loading)
     {
         <AcSpinner />
@@ -21,23 +22,23 @@
                 <p class="text-muted">@_profile.Description</p>
             </div>
             <dl class="profile-fields">
-                <dt>المدينة</dt><dd>@_profile.City @_profile.District</dd>
-                <dt>الهاتف</dt><dd>@_profile.Phone</dd>
-                <dt>ساعات العمل</dt><dd>@_profile.OpenHours</dd>
-                <dt>التقييم</dt><dd>⭐ @_profile.Rating.ToString("0.0") (@_profile.RatingCount تقييم)</dd>
-                <dt>الحالة</dt><dd>@(_profile.IsActive ? "نشط" : "معطّل")</dd>
+                <dt>@L.T("المدينة", "City")</dt><dd>@_profile.City @_profile.District</dd>
+                <dt>@L.T("الهاتف", "Phone")</dt><dd>@_profile.Phone</dd>
+                <dt>@L.T("ساعات العمل", "Open hours")</dt><dd>@_profile.OpenHours</dd>
+                <dt>@L.T("التقييم", "Rating")</dt><dd>⭐ @_profile.Rating.ToString("0.0") (@_profile.RatingCount @L.T("تقييم", "ratings"))</dd>
+                <dt>@L.T("الحالة", "Status")</dt><dd>@(_profile.IsActive ? L.T("نشط", "Active") : L.T("معطّل", "Disabled"))</dd>
             </dl>
         </div>
 
         <div class="card mt-3">
-            <h4>تعديل المتجر</h4>
+            <h4>@L.T("تعديل المتجر", "Edit vendor")</h4>
             <div class="form-row">
-                <div class="ac-field"><label class="ac-label">الاسم</label><input class="ac-input" @bind="_editName" /></div>
-                <div class="ac-field"><label class="ac-label">المدينة</label><input class="ac-input" @bind="_editCity" /></div>
-                <div class="ac-field"><label class="ac-label">الهاتف</label><input class="ac-input" @bind="_editPhone" /></div>
-                <div class="ac-field"><label class="ac-label">ساعات العمل</label><input class="ac-input" @bind="_editHours" placeholder="07:00|23:00" /></div>
+                <div class="ac-field"><label class="ac-label">@L.T("الاسم", "Name")</label><input class="ac-input" @bind="_editName" /></div>
+                <div class="ac-field"><label class="ac-label">@L.T("المدينة", "City")</label><input class="ac-input" @bind="_editCity" /></div>
+                <div class="ac-field"><label class="ac-label">@L.T("الهاتف", "Phone")</label><input class="ac-input" @bind="_editPhone" /></div>
+                <div class="ac-field"><label class="ac-label">@L.T("ساعات العمل", "Open hours")</label><input class="ac-input" @bind="_editHours" placeholder="07:00|23:00" /></div>
             </div>
-            <AcButton Variant="primary" Text="حفظ التغييرات" OnClick="Save" />
+            <AcButton Variant="primary" Text="@L.T("حفظ التغييرات", "Save changes")" OnClick="Save" />
             @if (!string.IsNullOrEmpty(_saveMsg))
             { <p class="success-msg">@_saveMsg</p> }
         </div>
@@ -71,7 +72,9 @@
             name = _editName, city = _editCity,
             phone = _editPhone, openHours = _editHours
         });
-        _saveMsg = res.Operation?.Status == "Success" ? "تم الحفظ بنجاح ✓" : (res.Operation?.ErrorMessage ?? "فشل الحفظ");
+        _saveMsg = res.Operation?.Status == "Success"
+            ? L.T("تم الحفظ بنجاح ✓", "Saved successfully ✓")
+            : (res.Operation?.ErrorMessage ?? L.T("فشل الحفظ", "Save failed"));
         StateHasChanged();
     }
 

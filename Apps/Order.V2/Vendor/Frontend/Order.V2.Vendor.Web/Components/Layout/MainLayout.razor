@@ -3,6 +3,7 @@
 @inject AppStore Store
 @inject AppStateApplier Applier
 @inject AuthStateService AuthService
+@inject L L
 @implements IDisposable
 
 <div class="vndr-shell">
@@ -11,23 +12,23 @@
             @if (!string.IsNullOrEmpty(Store.Auth.VendorName))
             { @Store.Auth.VendorName }
             else
-            { <span>اوردر V2 — لوحة المتجر</span> }
+            { <span>@L.T("اوردر V2 — لوحة المتجر", "Order V2 — Vendor Panel")</span> }
         </a>
         @if (Store.Auth.IsAuthenticated)
         {
             <div class="vndr-navbar-actions">
-                <a class="vndr-navbar-link" href="/">لوحة التحكم</a>
-                <a class="vndr-navbar-link" href="/orders">الطلبات</a>
-                <a class="vndr-navbar-link" href="/offers">العروض</a>
-                <a class="vndr-navbar-link" href="/profile">الملف</a>
-                <a class="vndr-navbar-link" href="/settings">الإعدادات</a>
-                <AcButton Variant="ghost" Size="sm" Text="خروج" OnClick="SignOut" />
+                <a class="vndr-navbar-link" href="/">@L.T("لوحة التحكم", "Dashboard")</a>
+                <a class="vndr-navbar-link" href="/orders">@L.T("الطلبات", "Orders")</a>
+                <a class="vndr-navbar-link" href="/offers">@L.T("العروض", "Offers")</a>
+                <a class="vndr-navbar-link" href="/profile">@L.T("الملف", "Profile")</a>
+                <a class="vndr-navbar-link" href="/settings">@L.T("الإعدادات", "Settings")</a>
+                <AcButton Variant="ghost" Size="sm" Text="@L.T("خروج", "Sign out")" OnClick="SignOut" />
             </div>
         }
         else
         {
             <div class="vndr-navbar-actions">
-                <a href="/login"><AcButton Variant="primary" Size="sm" Text="دخول" /></a>
+                <a href="/login"><AcButton Variant="primary" Size="sm" Text="@L.T("دخول", "Sign in")" /></a>
             </div>
         }
     </nav>

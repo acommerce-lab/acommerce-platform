@@ -2,11 +2,12 @@
 @rendermode InteractiveServer
 @inject AppStore Store
 @inject ApiReader Api
+@inject L L
 
-<PageTitle>الطلبات — اوردر V2</PageTitle>
+<PageTitle>@L.T("الطلبات — اوردر V2", "Orders — Order V2")</PageTitle>
 
 <AcAuthGuard IsAuthenticated="@Store.Auth.IsAuthenticated" LoginHref="/login">
-    <h2 class="page-title">الطلبات</h2>
+    <h2 class="page-title">@L.T("الطلبات", "Orders")</h2>
     @if (_loading)
     {
         <AcSpinner />
@@ -17,14 +18,14 @@
             <table class="table">
                 <thead>
                     <tr>
-                        <th>رقم الطلب</th>
-                        <th>العميل</th>
-                        <th>المتجر</th>
-                        <th>الإجمالي</th>
-                        <th>العملة</th>
-                        <th>الحالة</th>
-                        <th>نوع الاستلام</th>
-                        <th>التاريخ</th>
+                        <th>@L.T("رقم الطلب", "Order #")</th>
+                        <th>@L.T("العميل", "Customer")</th>
+                        <th>@L.T("المتجر", "Vendor")</th>
+                        <th>@L.T("الإجمالي", "Total")</th>
+                        <th>@L.T("العملة", "Currency")</th>
+                        <th>@L.T("الحالة", "Status")</th>
+                        <th>@L.T("نوع الاستلام", "Pickup")</th>
+                        <th>@L.T("التاريخ", "Date")</th>
                     </tr>
                 </thead>
                 <tbody>

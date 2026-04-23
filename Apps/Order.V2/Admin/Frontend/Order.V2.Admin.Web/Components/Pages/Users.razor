@@ -3,13 +3,14 @@
 @inject AppStore Store
 @inject ApiReader Api
 @inject ClientOpEngine Engine
+@inject L L
 
-<PageTitle>المستخدمون — اوردر V2</PageTitle>
+<PageTitle>@L.T("المستخدمون — اوردر V2", "Users — Order V2")</PageTitle>
 
 <AcAuthGuard IsAuthenticated="@Store.Auth.IsAuthenticated" LoginHref="/login">
     <AcAdminUsersPage Users="@_users"
                       Loading="@_loading"
-                      Title="المستخدمون"
+                      Title="@L.T("المستخدمون", "Users")"
                       OnSuspend="@Suspend"
                       OnActivate="@Activate" />
 </AcAuthGuard>

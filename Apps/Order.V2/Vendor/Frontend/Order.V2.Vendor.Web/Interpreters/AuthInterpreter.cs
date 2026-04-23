@@ -10,7 +10,9 @@ public class AuthInterpreter : IOperationInterpreter<AppStore>
     private static readonly JsonSerializerOptions _json = new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
 
     public bool CanInterpret(OperationDescriptor op) =>
-        op.Type is "auth.sms.request" or "auth.sms.verify" or "auth.sign_out";
+        op.Type is "auth.sms.request" or "auth.sms.verify"
+                or "auth.vendor.sms.request" or "auth.vendor.sms.verify"
+                or "auth.sign_out";
 
     public Task InterpretAsync(OperationDescriptor op, object? data, AppStore store, CancellationToken ct)
     {
@@ -30,6 +32,7 @@ public class AuthInterpreter : IOperationInterpreter<AppStore>
         switch (op.Type)
         {
             case "auth.sms.request":
+            case "auth.vendor.sms.request":
                 if (json.TryGetProperty("userId", out var uid))
                     store.Auth.PendingUserId = Guid.Parse(uid.GetString()!);
                 if (json.TryGetProperty("challengeId", out var cid))
@@ -37,6 +40,7 @@ public class AuthInterpreter : IOperationInterpreter<AppStore>
                 break;
 
             case "auth.sms.verify":
+            case "auth.vendor.sms.verify":
                 if (json.TryGetProperty("userId", out var id))
                     store.Auth.UserId = Guid.Parse(id.GetString()!);
                 if (json.TryGetProperty("vendorId", out var vid))

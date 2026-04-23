@@ -3,33 +3,34 @@
 @inject AppStore Store
 @inject ApiReader Api
 @inject ClientOpEngine Engine
+@inject L L
 
-<PageTitle>التصنيفات — اوردر V2</PageTitle>
+<PageTitle>@L.T("التصنيفات — اوردر V2", "Categories — Order V2")</PageTitle>
 
 <AcAuthGuard IsAuthenticated="@Store.Auth.IsAuthenticated" LoginHref="/login">
-    <h2 class="page-title">التصنيفات</h2>
+    <h2 class="page-title">@L.T("التصنيفات", "Categories")</h2>
 
     <div class="create-form card mb-4">
-        <h4>إضافة تصنيف جديد</h4>
+        <h4>@L.T("إضافة تصنيف جديد", "Add new category")</h4>
         <div class="form-row">
             <div class="ac-field">
-                <label class="ac-label">الاسم بالعربية</label>
-                <input class="ac-input" placeholder="مثال: مشاوي" @bind="_nameAr" />
+                <label class="ac-label">@L.T("الاسم بالعربية", "Arabic name")</label>
+                <input class="ac-input" placeholder="@L.T("مثال: مشاوي", "e.g. Grills")" @bind="_nameAr" />
             </div>
             <div class="ac-field">
-                <label class="ac-label">الاسم بالإنجليزية</label>
+                <label class="ac-label">@L.T("الاسم بالإنجليزية", "English name")</label>
                 <input class="ac-input" placeholder="e.g. Grills" @bind="_nameEn" />
             </div>
             <div class="ac-field">
-                <label class="ac-label">الرابط (slug)</label>
+                <label class="ac-label">@L.T("الرابط (slug)", "Slug")</label>
                 <input class="ac-input" placeholder="grills" @bind="_slug" />
             </div>
             <div class="ac-field">
-                <label class="ac-label">الأيقونة (emoji)</label>
+                <label class="ac-label">@L.T("الأيقونة (emoji)", "Icon (emoji)")</label>
                 <input class="ac-input" placeholder="🍖" @bind="_icon" />
             </div>
         </div>
-        <AcButton Variant="primary" Text="إضافة" OnClick="Create" />
+        <AcButton Variant="primary" Text="@L.T("إضافة", "Add")" OnClick="Create" />
         @if (!string.IsNullOrEmpty(_createError))
         {
             <p class="error-msg">@_createError</p>
@@ -46,11 +47,11 @@
             <table class="table">
                 <thead>
                     <tr>
-                        <th>الأيقونة</th>
-                        <th>الاسم العربي</th>
-                        <th>الاسم الإنجليزي</th>
-                        <th>الرابط</th>
-                        <th>إجراء</th>
+                        <th>@L.T("الأيقونة", "Icon")</th>
+                        <th>@L.T("الاسم العربي", "Arabic name")</th>
+                        <th>@L.T("الاسم الإنجليزي", "English name")</th>
+                        <th>@L.T("الرابط", "Slug")</th>
+                        <th>@L.T("إجراء", "Action")</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -62,7 +63,7 @@
                             <td>@c.NameEn</td>
                             <td>@c.Slug</td>
                             <td>
-                                <AcButton Variant="danger" Size="sm" Text="حذف"
+                                <AcButton Variant="danger" Size="sm" Text="@L.T("حذف", "Delete")"
                                           OnClick="@(() => Delete(c))" />
                             </td>
                         </tr>
@@ -97,7 +98,7 @@
         _createError = "";
         if (string.IsNullOrWhiteSpace(_nameAr) || string.IsNullOrWhiteSpace(_slug))
         {
-            _createError = "الاسم العربي والرابط مطلوبان";
+            _createError = L.T("الاسم العربي والرابط مطلوبان", "Arabic name and slug are required");
             StateHasChanged(); return;
         }
         var res = await Api.PostAsync<object>("/api/admin/categories",
@@ -107,7 +108,7 @@
             _nameAr = ""; _nameEn = ""; _slug = ""; _icon = "🍽️";
             await Reload();
         }
-        else { _createError = res.Operation?.ErrorMessage ?? "فشل الإنشاء"; StateHasChanged(); }
+        else { _createError = res.Operation?.ErrorMessage ?? L.T("فشل الإنشاء", "Create failed"); StateHasChanged(); }
     }
 
     private async Task Delete(CatRow c)

@@ -3,18 +3,19 @@
 @inject AppStore Store
 @inject ApiReader Api
 @inject ClientOpEngine Engine
+@inject L L
 
-<PageTitle>الطلبات — اوردر V2 المتجر</PageTitle>
+<PageTitle>@L.T("الطلبات — اوردر V2 المتجر", "Orders — Order V2 Vendor")</PageTitle>
 
 <AcAuthGuard IsAuthenticated="@Store.Auth.IsAuthenticated" LoginHref="/login">
-    <h2 class="page-title">الطلبات الواردة</h2>
+    <h2 class="page-title">@L.T("الطلبات الواردة", "Incoming orders")</h2>
     @if (_loading)
     {
         <AcSpinner />
     }
     else if (!_orders.Any())
     {
-        <AcEmpty Title="لا توجد طلبات" Message="ستظهر الطلبات الجديدة هنا" />
+        <AcEmpty Title="@L.T("لا توجد طلبات", "No orders")" Message="@L.T("ستظهر الطلبات الجديدة هنا", "New orders will appear here")" />
     }
     else
     {
@@ -26,11 +27,11 @@
                                    OnConfirm="@Accept"
                                    OnReady="@Ready"
                                    OnCancel="@Cancel"
-                                   TotalLabel="الإجمالي"
-                                   NotesLabel="ملاحظات"
-                                   ConfirmLabel="قبول"
-                                   ReadyLabel="جاهز"
-                                   CancelLabel="إلغاء" />
+                                   TotalLabel="@L.T("الإجمالي", "Total")"
+                                   NotesLabel="@L.T("ملاحظات", "Notes")"
+                                   ConfirmLabel="@L.T("قبول", "Accept")"
+                                   ReadyLabel="@L.T("جاهز", "Ready")"
+                                   CancelLabel="@L.T("إلغاء", "Cancel")" />
             }
         </div>
     }

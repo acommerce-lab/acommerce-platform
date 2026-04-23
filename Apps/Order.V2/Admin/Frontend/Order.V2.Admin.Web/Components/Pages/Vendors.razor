@@ -3,15 +3,16 @@
 @inject AppStore Store
 @inject ApiReader Api
 @inject ClientOpEngine Engine
+@inject L L
 
-<PageTitle>المتاجر — اوردر V2</PageTitle>
+<PageTitle>@L.T("المتاجر — اوردر V2", "Vendors — Order V2")</PageTitle>
 
 <AcAuthGuard IsAuthenticated="@Store.Auth.IsAuthenticated" LoginHref="/login">
     <AcAdminVendorsPage Vendors="@_vendors"
                         Loading="@_loading"
-                        Title="المتاجر"
-                        OnSuspend="@Suspend"
-                        OnActivate="@Activate" />
+                        Title="@L.T("المتاجر", "Vendors")"
+                        OnSuspend="@(EventCallback.Factory.Create<AdminVendorRowDto>(this, Suspend))"
+                        OnActivate="@(EventCallback.Factory.Create<AdminVendorRowDto>(this, Activate))" />
 </AcAuthGuard>
 
 @code {
