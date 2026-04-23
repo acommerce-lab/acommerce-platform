@@ -1,0 +1,160 @@
+@page "/login"
+@rendermode InteractiveServer
+@inject AppStore Store
+@inject ApiReader Api
+@inject AuthStateService AuthState
+@inject NavigationManager Nav
+@inject L L
+@implements IDisposable
+
+<PageTitle>@L.T("دخول — عشير V2 للمُلاّك", "Sign in — Ashare V2 for Owners")</PageTitle>
+
+<div class="acs-page acs-auth-page">
+    <div class="acs-nafath-head">
+        <AcIcon Name="shield" Size="48" />
+        <h1 class="acm-wizard-title">@L.T("نفاذ", "Nafath")</h1>
+        <p class="ac-text-muted">@L.T("بوابة ملاك العقارات", "Property owners portal")</p>
+    </div>
+
+    <AcCard>
+        <ChildContent>
+            @if (_stage == "id")
+            {
+                <AcField Label="@L.T("رقم الهوية الوطنية", "National ID")" Required="true">
+                    <AcInput Type="text" Value="@_nationalId"
+                             ValueChanged="@((string v) => { _nationalId = v.Trim(); })"
+                             Placeholder="@L.T("10 أرقام", "10 digits")" />
+                </AcField>
+
+                @if (_error is not null)
+                {
+                    <div class="ac-alert ac-alert-danger mt-2">@_error</div>
+                }
+
+                <AcButton Variant="primary" Size="lg" Class="ac-btn-block"
+                          Text="@L.T("متابعة مع نفاذ", "Continue with Nafath")"
+                          OnClick="@StartNafath"
+                          Disabled="@(_nationalId.Length != 10 || _busy)" />
+            }
+            else
+            {
+                <div class="acs-nafath-wait">
+                    <p class="acs-nafath-instruction">@L.T("افتح تطبيق نفاذ واختر الرقم", "Open the Nafath app and pick the number")</p>
+
+                    <div class="acs-nafath-circle">
+                        <span class="acs-nafath-number">@_displayCode</span>
+                    </div>
+
+                    @if (_completed)
+                    {
+                        <div class="acs-nafath-state acs-nafath-state--ok">
+                            <AcIcon Name="check-circle" Size="20" />
+                            <span>@L.T("تم التحقق بنجاح", "Verified successfully")</span>
+                        </div>
+                    }
+                    else if (_failed || _expired)
+                    {
+                        <div class="acs-nafath-state acs-nafath-state--err">
+                            <AcIcon Name="x-circle" Size="20" />
+                            <span>@(_expired ? L.T("انتهت مدة الطلب", "Request timed out") : L.T("فشل التحقق", "Verification failed"))</span>
+                        </div>
+                        <AcButton Variant="ghost" Class="ac-btn-block"
+                                  Text="@L.T("إعادة المحاولة", "Retry")" OnClick="@Reset" />
+                    }
+                    else
+                    {
+                        <div class="acs-nafath-timer">
+                            <AcIcon Name="clock" Size="16" />
+                            <span>@_countdown @L.T("ثانية", "s")</span>
+                        </div>
+                        <AcButton Variant="ghost" Class="ac-btn-block"
+                                  Text="@L.T("إلغاء", "Cancel")" OnClick="@Reset" />
+                    }
+                </div>
+            }
+        </ChildContent>
+    </AcCard>
+</div>
+
+@code {
+    private string _stage = "id";
+    private string _nationalId = "";
+    private string _displayCode = "00";
+    private string? _challengeId;
+    private int _countdown = 120;
+    private bool _completed, _failed, _expired, _busy, _polling;
+    private string? _error;
+    private System.Threading.Timer? _timer;
+
+    private async Task StartNafath()
+    {
+        _error = null; _busy = true;
+        await InvokeAsync(StateHasChanged);
+
+        var env = await Api.PostAsync<NafathStartDto>(
+            "/auth/nafath/start", new { nationalId = _nationalId });
+
+        _busy = false;
+
+        if (env.Operation?.Status != "Success" || env.Data is null)
+        {
+            _error = L.T("تعذّر بدء التحقق. حاول مرة أخرى.", "Could not start verification. Please try again.");
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        _challengeId = env.Data.ChallengeId;
+        _displayCode = env.Data.DisplayCode;
+        _countdown   = env.Data.ExpiresInSeconds;
+        _stage       = "wait";
+        _completed = false; _failed = false; _expired = false;
+
+        _timer = new System.Threading.Timer(OnTick, null, 1000, 1000);
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void OnTick(object? _)
+    {
+        _countdown = Math.Max(0, _countdown - 1);
+        if (_countdown == 0) { _expired = true; StopTimer(); InvokeAsync(StateHasChanged); return; }
+
+        InvokeAsync(async () =>
+        {
+            if (_polling || _challengeId is null) return;
+            _polling = true;
+            try
+            {
+                var env = await Api.GetAsync<NafathStatusDto>(
+                    $"/auth/nafath/status/{_challengeId}");
+
+                if (env.Data?.Verified == true && env.Data.Token is not null)
+                {
+                    _completed = true;
+                    StopTimer();
+                    Store.Auth.UserId      = Guid.TryParse(env.Data.UserId, out var uid) ? uid : Guid.NewGuid();
+                    Store.Auth.FullName    = env.Data.Name ?? _nationalId;
+                    Store.Auth.NationalId  = _nationalId;
+                    Store.Auth.AccessToken = env.Data.Token;
+                    Store.NotifyChanged();
+                    await AuthState.PersistAsync();
+                    Nav.NavigateTo("/");
+                }
+            }
+            finally { _polling = false; }
+            await InvokeAsync(StateHasChanged);
+        });
+    }
+
+    private void Reset()
+    {
+        StopTimer();
+        _stage = "id"; _challengeId = null;
+        _completed = false; _failed = false; _expired = false; _error = null;
+    }
+
+    private void StopTimer() { _timer?.Dispose(); _timer = null; }
+    public void Dispose() => StopTimer();
+
+    private sealed record NafathStartDto(string ChallengeId, string DisplayCode, int ExpiresInSeconds);
+    private sealed record NafathStatusDto(bool Verified, string? Token, string? UserId, string? Name);
+}

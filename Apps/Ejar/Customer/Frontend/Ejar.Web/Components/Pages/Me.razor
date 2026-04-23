@@ -1,0 +1,107 @@
+@page "/me"
+@inject AppStore Store
+@inject ApiReader Api
+@inject NavigationManager Nav
+@inject L L
+
+<PageTitle>@(L["nav.profile"]) - @(L["app.name"])</PageTitle>
+
+<div class="acs-page acs-profile-page">
+    <h1 class="acm-wizard-title">@(L["nav.profile"])</h1>
+
+    <AcCard>
+        <ChildContent>
+            <div class="acm-details-owner">
+                <span class="acm-details-owner-avatar"><AcIcon Name="user" Size="24" /></span>
+                <div class="acm-details-owner-info" style="flex:1;">
+                    <h3 style="margin:0;">@(_profile?.FullName ?? Store.Auth.FullName ?? "زائر")</h3>
+                    <span>@(_profile?.Phone ?? Store.Auth.Phone ?? "")</span>
+                    @if (_profile is not null)
+                    {
+                        <small style="display:block; color:var(--ac-text-muted);">
+                            عضو منذ @_profile.MemberSince.ToString("yyyy-MM-dd") • @_profile.City
+                        </small>
+                    }
+                </div>
+                <AcButton Variant="outline-primary" Text="تعديل" OnClick="@GoEdit" />
+            </div>
+        </ChildContent>
+    </AcCard>
+
+    @if (_stats is not null)
+    {
+        <div class="acm-home-grid" style="margin-top:12px;">
+            <AcCard><ChildContent>
+                <strong>@_stats.Listings</strong>
+                <div style="color:var(--ac-text-muted);">إعلاناتي</div>
+            </ChildContent></AcCard>
+            <AcCard><ChildContent>
+                <strong>@_stats.Favorites</strong>
+                <div style="color:var(--ac-text-muted);">مفضّلتي</div>
+            </ChildContent></AcCard>
+            <AcCard><ChildContent>
+                <strong>@_stats.Complaints</strong>
+                <div style="color:var(--ac-text-muted);">شكاواي</div>
+            </ChildContent></AcCard>
+        </div>
+    }
+
+    <div class="acm-home-actions" style="margin-top:12px;">
+        <AcActionCard Label="إعلاناتي"             IconName="building"    Variant="surface" OnClick="@GoMyListings" />
+        <AcActionCard Label="@(L["nav.favorites"])" IconName="heart"      Variant="surface" OnClick="@GoFavorites" />
+        <AcActionCard Label="اشتراكي"              IconName="package"     Variant="surface" OnClick="@GoMySub" />
+        <AcActionCard Label="@(L["complaint.title"])" IconName="alert-circle" Variant="surface" OnClick="@GoComplaints" />
+        <AcActionCard Label="الرسائل"              IconName="message"     Variant="surface" OnClick="@GoChats" />
+        <AcActionCard Label="@(L["settings.title"])" IconName="settings" Variant="surface" OnClick="@GoSettings" />
+    </div>
+
+    <div style="margin-top:12px; display:flex; gap:8px;">
+        <AcButton Variant="outline-primary" Text="الخطط" OnClick="@GoPlans" />
+        <AcButton Variant="ghost" Text="@(L["settings.sign_out"])" OnClick="@SignOut" />
+    </div>
+</div>
+
+@code {
+    private ProfileDto? _profile;
+    private StatsDto? _stats;
+
+    protected override async Task OnAfterRenderAsync(bool first)
+    {
+        if (!first) return;
+        var p = await Api.GetAsync<ProfileDto>("/me/profile");
+        _profile = p.Data;
+
+        var listings   = await Api.GetAsync<List<object>>("/my-listings");
+        var complaints = await Api.GetAsync<List<object>>("/complaints");
+
+        _stats = new StatsDto(
+            Listings:   listings.Data?.Count ?? 0,
+            Favorites:  Store.FavoriteListingIds.Count,
+            Complaints: complaints.Data?.Count ?? 0);
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void GoEdit()       => Nav.NavigateTo("/profile/edit");
+    private void GoMyListings() => Nav.NavigateTo("/my-listings");
+    private void GoFavorites()  => Nav.NavigateTo("/favorites");
+    private void GoMySub()      => Nav.NavigateTo("/my-subscription");
+    private void GoComplaints() => Nav.NavigateTo("/complaints");
+    private void GoChats()      => Nav.NavigateTo("/chats");
+    private void GoSettings()   => Nav.NavigateTo("/settings");
+    private void GoPlans()      => Nav.NavigateTo("/plans");
+
+    private void SignOut()
+    {
+        Store.Auth.UserId = null;
+        Store.Auth.AccessToken = null;
+        Store.Auth.FullName = null;
+        Store.Auth.Phone = null;
+        Store.NotifyChanged();
+        Nav.NavigateTo("/login");
+    }
+
+    private sealed record ProfileDto(string Id, string FullName, string Email, bool EmailVerified,
+        string Phone, bool PhoneVerified, string City, string? AvatarUrl, DateTime MemberSince);
+    private sealed record StatsDto(int Listings, int Favorites, int Complaints);
+}

@@ -61,12 +61,24 @@ internal static class AshareV2Seed
         new("N-7", "system",  "تحديث سياسة الخصوصيّة",   "اطّلع على النصّ الجديد قبل 1 مايو",   Hours(-120), true)
     ];
 
-    public static readonly IReadOnlyList<BookingSeed> Bookings =
+    public static readonly List<BookingSeed> Bookings =
     [
-        new("B-1", "L-101", "شقة مفروشة في حي النرجس", 2500m, Days(7),  1, 2, "pending"),
-        new("B-2", "L-103", "استديو قرب جامعة الملك سعود", 1800m, Days(-3), 3, 1, "confirmed"),
-        new("B-3", "L-202", "شقة يومي قرب الحرم",       350m,  Days(-20),2, 3, "completed"),
-        new("B-4", "L-204", "استديو في شمال الرياض",    2100m, Days(-35),1, 1, "cancelled")
+        new("B-1", "L-101", "شقة مفروشة في حي النرجس",        2500m, Days(7),   1, 2, "pending",   CurrentUserId),
+        new("B-2", "L-103", "استديو قرب جامعة الملك سعود",    1800m, Days(-3),  3, 1, "confirmed", CurrentUserId),
+        new("B-3", "L-202", "شقة يومي قرب الحرم",             350m,  Days(-20), 2, 3, "completed", CurrentUserId),
+        new("B-4", "L-204", "استديو في شمال الرياض",          2100m, Days(-35), 1, 1, "cancelled", CurrentUserId),
+        new("B-5", "L-206", "غرفة فاخرة في حيّ غرناطة",       1800m, Days(-60), 1, 1, "completed", CurrentUserId)
+    ];
+
+    /// <summary>معرّفات الإعلانات المفضّلة — قابلة للتغيير (toggle).</summary>
+    public static readonly HashSet<string> FavoriteIds = ["L-102", "L-207"];
+
+    /// <summary>التقييمات — قابلة للإضافة بعد إتمام حجز.</summary>
+    public static readonly List<ReviewSeed> Reviews =
+    [
+        new("RV-1", "L-202", "B-3", CurrentUserId, "عبدالله القحطاني", 5, "مكان رائع وقريب من الحرم، سأعود حتماً", Days(-18)),
+        new("RV-2", "L-202", null, OtherOwner1,    "أحمد الغامدي",     4, "نظيف ومريح، بعض التفاصيل تحتاج تحسين",    Days(-25)),
+        new("RV-3", "L-103", null, OtherOwner2,    "محمد العنزي",      5, "موقع ممتاز وصاحب المكان متعاون",           Days(-40))
     ];
 
     /// <summary>المحادثات — قابلة للتغيير لإرسال الرسائل.</summary>
@@ -198,53 +210,63 @@ internal static class AshareV2Seed
                 2500m, "month", "الرياض", "النرجس", 24.872, 46.638, ["ac","kitchen","wifi"],
                 ownerId: CurrentUserId,
                 featured: true,  capacity: 3, rating: 4.5m, categoryId: "apartment",
-                viewsCount: 142, bookingsCount: 8),
+                viewsCount: 142, bookingsCount: 8,
+                images: ["https://picsum.photos/seed/L101a/800/600","https://picsum.photos/seed/L101b/800/600","https://picsum.photos/seed/L101c/800/600"]),
             new("L-102","غرفة في شقة طلاب","غرفة مفردة قرب جامعة الملك عبدالعزيز.",
                  900m, "month", "جدة", "السلامة", 21.590, 39.168, ["wifi","ac"],
                 ownerId: OtherOwner1,
                 featured: true,  capacity: 4, rating: 4.2m, categoryId: "room",
-                viewsCount: 85, bookingsCount: 3),
+                viewsCount: 85, bookingsCount: 3,
+                images: ["https://picsum.photos/seed/L102a/800/600","https://picsum.photos/seed/L102b/800/600"]),
             new("L-103","استديو قرب جامعة الملك سعود","استديو مفروش بحمام خاص.",
                 1800m, "month", "الرياض", "الدرعية", 24.751, 46.605, ["ac","kitchen","parking"],
                 ownerId: CurrentUserId,
                 featured: true,  capacity: 2, rating: 4.8m, categoryId: "studio",
-                viewsCount: 213, bookingsCount: 12),
+                viewsCount: 213, bookingsCount: 12,
+                images: ["https://picsum.photos/seed/L103a/800/600","https://picsum.photos/seed/L103b/800/600","https://picsum.photos/seed/L103c/800/600"]),
             new("L-201","سكن عائلي في المزاحمية","شقة ثلاث غرف، مناسبة للعائلات.",
                 3200m, "month", "الرياض", "المزاحمية", 24.480, 46.267, ["ac","parking","laundry"],
                 ownerId: OtherOwner1,
                 featured: false, capacity: 5, rating: 4.0m, categoryId: "apartment",
-                viewsCount: 47, bookingsCount: 1),
+                viewsCount: 47, bookingsCount: 1,
+                images: ["https://picsum.photos/seed/L201a/800/600","https://picsum.photos/seed/L201b/800/600"]),
             new("L-202","شقة يومي قرب الحرم","شقة يوميّة قرب الحرم.",
                  350m, "day", "مكة", "العزيزية", 21.395, 39.867, ["ac","kitchen","wifi","parking"],
                 ownerId: OtherOwner2,
                 featured: false, capacity: 6, rating: 4.7m, categoryId: "apartment",
-                viewsCount: 195, bookingsCount: 15),
+                viewsCount: 195, bookingsCount: 15,
+                images: ["https://picsum.photos/seed/L202a/800/600","https://picsum.photos/seed/L202b/800/600","https://picsum.photos/seed/L202c/800/600"]),
             new("L-203","غرفة في فيلا مشتركة","غرفة مؤثّثة في فيلا.",
                 1200m, "month", "الدمام", "الشاطئ", 26.441, 50.108, ["ac","parking"],
                 ownerId: OtherOwner2,
                 featured: false, capacity: 4, rating: 4.3m, categoryId: "villa",
-                viewsCount: 63, bookingsCount: 2),
+                viewsCount: 63, bookingsCount: 2,
+                images: ["https://picsum.photos/seed/L203a/800/600","https://picsum.photos/seed/L203b/800/600"]),
             new("L-204","استديو في شمال الرياض","استديو صغير مفروش.",
                 2100m, "month", "الرياض", "الصحافة", 24.797, 46.629, ["ac","wifi"],
                 ownerId: OtherOwner1,
                 featured: false, capacity: 2, rating: 4.1m, categoryId: "studio",
-                viewsCount: 112, bookingsCount: 5),
+                viewsCount: 112, bookingsCount: 5,
+                images: ["https://picsum.photos/seed/L204a/800/600","https://picsum.photos/seed/L204b/800/600"]),
             new("L-205","غرفة وصالة حيّ العارض","للمشاركة — غرفة وصالة.",
                37000m, "year", "الرياض", "العارض", 24.872, 46.638, ["ac","kitchen"],
                 ownerId: OtherOwner2,
                 featured: false, capacity: 2, rating: 4.0m, categoryId: "shared",
                 status: 2, // مجمّد — لنستعرض فلتر "موقوفة"
-                viewsCount: 28, bookingsCount: 0),
+                viewsCount: 28, bookingsCount: 0,
+                images: ["https://picsum.photos/seed/L205a/800/600"]),
             new("L-206","غرفة فاخرة في حيّ غرناطة","غرفة كبيرة بحمام خاص.",
                 1800m, "month", "الرياض", "غرناطة", 24.793, 46.766, ["ac","kitchen","parking","wifi"],
                 ownerId: CurrentUserId,
                 featured: true,  capacity: 1, rating: 4.9m, categoryId: "room",
-                viewsCount: 301, bookingsCount: 18),
+                viewsCount: 301, bookingsCount: 18,
+                images: ["https://picsum.photos/seed/L206a/800/600","https://picsum.photos/seed/L206b/800/600","https://picsum.photos/seed/L206c/800/600"]),
             new("L-207","استديو مفروش في الملقا","استديو يومي مفروش.",
                  550m, "day", "الرياض", "الملقا", 24.795, 46.628, ["wifi","ac","kitchen","parking"],
                 ownerId: OtherOwner1,
                 featured: false, capacity: 2, rating: 4.6m, categoryId: "studio",
-                viewsCount: 178, bookingsCount: 14)
+                viewsCount: 178, bookingsCount: 14,
+                images: ["https://picsum.photos/seed/L207a/800/600","https://picsum.photos/seed/L207b/800/600"])
         };
         return list;
     }
@@ -263,7 +285,8 @@ internal static class AshareV2Seed
         string ownerId = OtherOwner1,
         bool featured = false, int capacity = 0, decimal rating = 0m,
         string categoryId = "apartment",
-        int status = 1, int viewsCount = 0, int bookingsCount = 0)
+        int status = 1, int viewsCount = 0, int bookingsCount = 0,
+        IReadOnlyList<string>? images = null)
     {
         public bool IsFeatured => featured;
         public int Capacity => capacity;
@@ -273,10 +296,12 @@ internal static class AshareV2Seed
         public int Status => status;           // 1 = active, 2 = inactive
         public int ViewsCount => viewsCount;
         public int BookingsCount => bookingsCount;
+        public IReadOnlyList<string> Images => images ?? Array.Empty<string>();
     }
 
     public sealed record NotificationSeed(string Id, string Type, string Title, string Body, DateTime CreatedAt, bool IsRead);
-    public sealed record BookingSeed(string Id, string ListingId, string ListingTitle, decimal Total, DateTime StartDate, int Nights, int Guests, string Status);
+    public sealed record BookingSeed(string Id, string ListingId, string ListingTitle, decimal Total, DateTime StartDate, int Nights, int Guests, string Status, string UserId = CurrentUserId);
+    public sealed record ReviewSeed(string Id, string ListingId, string? BookingId, string UserId, string AuthorName, int Rating, string Comment, DateTime CreatedAt);
     public sealed record ConversationSeed(
         string Id, string PartnerName, string Subject, DateTime LastAt, int UnreadCount,
         string partnerId, string? listingId, List<MessageSeed> messages)

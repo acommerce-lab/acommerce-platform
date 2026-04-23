@@ -1,0 +1,56 @@
+@page "/"
+@rendermode InteractiveServer
+@inject AppStore Store
+@inject ApiReader Api
+@inject NavigationManager Nav
+@inject L L
+@implements IDisposable
+
+<PageTitle>@L.T("لوحة التحكم — عشير V2", "Dashboard — Ashare V2")</PageTitle>
+
+@if (!Store.Auth.IsAuthenticated)
+{
+    <AcAuthGuard IsAuthenticated="false" LoginHref="/login" />
+}
+else
+{
+    <AcAdminMetricsPage Metrics="@_metrics" Loading="@_loading" Title="@L.T("لوحة تحكم عشير V2", "Ashare V2 Dashboard")" />
+}
+
+@code {
+    private bool _loading = true;
+    private List<PlatformMetricDto> _metrics = new();
+    private DashboardRow? _last;
+
+    protected override void OnInitialized() => Store.OnChanged += Refresh;
+    private void Refresh() { Rebuild(); InvokeAsync(StateHasChanged); }
+    public void Dispose() => Store.OnChanged -= Refresh;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || !Store.Auth.IsAuthenticated) { _loading = false; StateHasChanged(); return; }
+
+        var env = await Api.GetAsync<DashboardRow>("/api/admin/dashboard");
+        _last = env.Data;
+        Rebuild();
+        _loading = false;
+        StateHasChanged();
+    }
+
+    private void Rebuild()
+    {
+        if (_last is null) return;
+        _metrics = new List<PlatformMetricDto>
+        {
+            new() { Label = L.T("المستخدمون", "Users"),           Value = _last.TotalUsers.ToString(),          IconName = "users"   },
+            new() { Label = L.T("الإعلانات", "Listings"),          Value = _last.TotalListings.ToString(),       IconName = "home"    },
+            new() { Label = L.T("قيد المراجعة", "Pending"),        Value = _last.PendingListings.ToString(),     IconName = "clock"   },
+            new() { Label = L.T("الحجوزات", "Bookings"),           Value = _last.TotalBookings.ToString(),       IconName = "receipt" },
+            new() { Label = L.T("اشتراكات نشطة", "Active subs"),   Value = _last.ActiveSubscriptions.ToString(), IconName = "check"   },
+            new() { Label = L.T("الإيرادات", "Revenue"),           Value = $"{_last.TotalRevenue:0.##} {L.T("ر.س", "SAR")}", IconName = "dollar" },
+        };
+    }
+
+    private record DashboardRow(int TotalUsers, int TotalListings, int PendingListings,
+                                int TotalBookings, int ActiveSubscriptions, decimal TotalRevenue);
+}

@@ -1,13 +1,14 @@
 @page "/login"
 @inject AppStore Store
+@inject ApiReader Api
 @inject NavigationManager Nav
 @inject L L
+@inject INumeralNormalizer Numerals
 @implements IDisposable
 
-@* Nafath-only + Guest — مطابق للتطبيق القديم Ashare.Shared/Components/Pages/Auth/Login.razor.
-   UX: المستخدم يُدخل رقم الهويّة (10 أرقام) → نعرض رقماً عشوائيّاً في دائرة
-   + عدّاد تنازليّ 120 ثانية + تعليمات "افتح تطبيق نفاذ واختر هذا الرقم".
-   المحاكاة: النجاح بعد ~6 ثوانٍ. *@
+@* Nafath + Guest — يستدعي الـ API الخلفي الذي يحقن MockNafathTwoFactorChannel.
+   MockNafathTwoFactorChannel تتحقق تلقائياً بعد 10 ثوانٍ من بدء التحدي.
+   في الإنتاج: يُستبدَل المزود بـ NafathTwoFactorChannel الحقيقي. *@
 
 <PageTitle>@(L["auth.login.title"]) - @(L["app.name"])</PageTitle>
 
@@ -23,13 +24,19 @@
             {
                 <AcField Label="@(L["auth.national_id"])" Required="true">
                     <AcInput Type="text" Value="@_nationalId"
-                             ValueChanged="@(v => _nationalId = (v ?? string.Empty).Trim())"
+                             ValueChanged="@(v => _nationalId = (Numerals.ToLatin(v) ?? string.Empty).Trim())"
                              Placeholder="10 أرقام" />
                 </AcField>
+
+                @if (_error is not null)
+                {
+                    <div class="ac-alert ac-alert-danger mt-2">@_error</div>
+                }
+
                 <AcButton Variant="primary" Size="lg" Class="ac-btn-block"
                           Text="@(L["auth.nafath.continue"])"
                           OnClick="@StartNafath"
-                          Disabled="@(_nationalId.Length != 10)" />
+                          Disabled="@(_nationalId.Length != 10 || _busy)" />
                 <div class="acs-login-divider"><span>@(L["auth.or"])</span></div>
                 <AcButton Variant="outline-primary" Size="lg" Class="ac-btn-block"
                           Text="@(L["auth.guest.continue"])" OnClick="@ContinueGuest" />
@@ -40,7 +47,7 @@
                     <p class="acs-nafath-instruction">@(L["auth.nafath.select_number"])</p>
 
                     <div class="acs-nafath-circle">
-                        <span class="acs-nafath-number">@_randomNumber</span>
+                        <span class="acs-nafath-number">@_displayCode</span>
                     </div>
 
                     @if (_completed)
@@ -86,50 +93,83 @@
 @code {
     private string _stage = "id";
     private string _nationalId = "";
-    private string _randomNumber = "00";
+    private string _displayCode = "00";
+    private string? _challengeId;
     private int _countdown = 120;
-    private bool _completed;
-    private bool _failed;
-    private bool _expired;
+    private bool _completed, _failed, _expired, _busy, _polling;
+    private string? _error;
     private System.Threading.Timer? _timer;
-    private int _tick;
 
-    private void StartNafath()
+    private async Task StartNafath()
     {
-        _stage = "wait";
-        _randomNumber = Random.Shared.Next(10, 100).ToString();
-        _countdown = 120;
-        _completed = false; _failed = false; _expired = false;
-        _tick = 0;
+        _error = null; _busy = true;
+        await InvokeAsync(StateHasChanged);
+
+        var env = await Api.PostAsync<NafathStartDto>(
+            "/auth/nafath/start", new { nationalId = _nationalId });
+
+        _busy = false;
+
+        if (env.Operation.Status != "Success" || env.Data is null)
+        {
+            _error = env.Operation.ErrorMessage ?? L["auth.nafath.failed"];
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        _challengeId = env.Data.ChallengeId;
+        _displayCode = env.Data.DisplayCode;
+        _stage       = "wait";
+        _countdown   = env.Data.ExpiresInSeconds;
+        _completed   = false; _failed = false; _expired = false;
+
         _timer = new System.Threading.Timer(OnTick, null, 1000, 1000);
+        await InvokeAsync(StateHasChanged);
     }
 
     private void OnTick(object? _)
     {
-        _tick++;
         _countdown = Math.Max(0, _countdown - 1);
 
-        // محاكاة: بعد ~6 ثوانٍ → نجاح
-        if (_tick == 6)
-        {
-            _completed = true;
-            StopTimer();
-            InvokeAsync(() => { FinishLogin(); StateHasChanged(); });
-            return;
-        }
         if (_countdown == 0)
         {
             _expired = true;
             StopTimer();
+            InvokeAsync(StateHasChanged);
+            return;
         }
-        InvokeAsync(StateHasChanged);
+
+        // Poll status endpoint every tick
+        InvokeAsync(async () =>
+        {
+            if (_polling || _challengeId is null) return;
+            _polling = true;
+            try
+            {
+                var env = await Api.GetAsync<NafathStatusDto>(
+                    $"/auth/nafath/status/{_challengeId}");
+
+                if (env.Data?.Verified == true && env.Data.Token is not null)
+                {
+                    _completed = true;
+                    StopTimer();
+                    FinishLogin(env.Data.Token, env.Data.UserId ?? "", env.Data.Name ?? "");
+                    return;
+                }
+            }
+            finally
+            {
+                _polling = false;
+            }
+            await InvokeAsync(StateHasChanged);
+        });
     }
 
-    private void FinishLogin()
+    private void FinishLogin(string token, string userId, string name)
     {
-        Store.Auth.UserId = Guid.NewGuid();
-        Store.Auth.AccessToken = "nafath-demo-token";
-        Store.Auth.FullName = $"User #{_nationalId[..4]}";
+        Store.Auth.UserId      = Guid.NewGuid(); // معرّف محلي للعرض فقط
+        Store.Auth.AccessToken = token;
+        Store.Auth.FullName    = name;
         Store.NotifyChanged();
         Nav.NavigateTo("/");
     }
@@ -137,19 +177,22 @@
     private void ResetNafath()
     {
         StopTimer();
-        _stage = "id";
-        _completed = false; _failed = false; _expired = false;
+        _stage = "id"; _challengeId = null;
+        _completed = false; _failed = false; _expired = false; _error = null;
     }
 
     private void ContinueGuest()
     {
-        Store.Auth.UserId = Guid.NewGuid();
+        Store.Auth.UserId      = Guid.NewGuid();
         Store.Auth.AccessToken = "guest-token";
-        Store.Auth.FullName = "زائر";
+        Store.Auth.FullName    = L["auth.guest.name"];
         Store.NotifyChanged();
         Nav.NavigateTo("/");
     }
 
     private void StopTimer() { _timer?.Dispose(); _timer = null; }
     public void Dispose() => StopTimer();
+
+    private sealed record NafathStartDto(string ChallengeId, string DisplayCode, int ExpiresInSeconds);
+    private sealed record NafathStatusDto(bool Verified, string? Token, string? UserId, string? Name, int? PendingSeconds);
 }

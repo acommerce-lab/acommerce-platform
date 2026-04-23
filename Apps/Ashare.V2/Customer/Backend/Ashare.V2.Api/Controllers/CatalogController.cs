@@ -137,7 +137,7 @@ public class CatalogController : ControllerBase
         if (env.Operation.Status != "Success")
             return this.ForbiddenEnvelope(env.Operation.FailedAnalyzer ?? "booking_failed",
                 env.Operation.ErrorMessage);
-        return Ok(env);
+        return this.OkEnvelope("booking.create", payload);
     }
 
     // ── Chats ──────────────────────────────────────────────────────────
@@ -194,11 +194,11 @@ public class CatalogController : ControllerBase
             })
             .Build();
 
-        var env = await _engine.ExecuteEnvelopeAsync(op,
-            new { id = msg.Id, from = msg.From, text = msg.Text, sentAt = msg.SentAt }, ct);
-        return env.Operation.Status == "Success"
-            ? Ok(env)
-            : this.BadRequestEnvelope(env.Operation.FailedAnalyzer ?? "send_failed", env.Operation.ErrorMessage);
+        var msgData = new { id = msg.Id, from = msg.From, text = msg.Text, sentAt = msg.SentAt };
+        var env = await _engine.ExecuteEnvelopeAsync(op, msgData, ct);
+        if (env.Operation.Status != "Success")
+            return this.BadRequestEnvelope(env.Operation.FailedAnalyzer ?? "send_failed", env.Operation.ErrorMessage);
+        return this.OkEnvelope("message.send", msgData);
     }
 
     public sealed record StartConversationRequest(string ListingId, string Text);
@@ -244,7 +244,7 @@ public class CatalogController : ControllerBase
         if (env.Operation.Status != "Success")
             return this.ForbiddenEnvelope(env.Operation.FailedAnalyzer ?? "conversation_failed",
                 env.Operation.ErrorMessage);
-        return Ok(env);
+        return this.OkEnvelope("conversation.start", new { id = newId, created = existing is null });
     }
 
     // ── Complaints (list + details + replies + create) ─────────────────
@@ -297,11 +297,11 @@ public class CatalogController : ControllerBase
             .Execute(ctx => { _complaintsMutable.Insert(0, c); return Task.CompletedTask; })
             .Build();
 
-        var env = await _engine.ExecuteEnvelopeAsync(op,
-            new { id = c.Id, subject = c.Subject, status = c.Status, createdAt = c.CreatedAt }, ct);
-        return env.Operation.Status == "Success"
-            ? Ok(env)
-            : this.BadRequestEnvelope(env.Operation.FailedAnalyzer ?? "complaint_failed", env.Operation.ErrorMessage);
+        var complaintData = new { id = c.Id, subject = c.Subject, status = c.Status, createdAt = c.CreatedAt };
+        var env = await _engine.ExecuteEnvelopeAsync(op, complaintData, ct);
+        if (env.Operation.Status != "Success")
+            return this.BadRequestEnvelope(env.Operation.FailedAnalyzer ?? "complaint_failed", env.Operation.ErrorMessage);
+        return this.OkEnvelope("complaint.file", complaintData);
     }
 
     public sealed record ReplyRequest(string Message);
@@ -328,11 +328,11 @@ public class CatalogController : ControllerBase
             })
             .Build();
 
-        var env = await _engine.ExecuteEnvelopeAsync(op,
-            new { id, repliesCount = _complaintsMutable[ix].Replies.Count + 1 }, ct);
-        return env.Operation.Status == "Success"
-            ? Ok(env)
-            : this.BadRequestEnvelope(env.Operation.FailedAnalyzer ?? "reply_failed", env.Operation.ErrorMessage);
+        var replyData = new { id, repliesCount = _complaintsMutable[ix].Replies.Count + 1 };
+        var env = await _engine.ExecuteEnvelopeAsync(op, replyData, ct);
+        if (env.Operation.Status != "Success")
+            return this.BadRequestEnvelope(env.Operation.FailedAnalyzer ?? "reply_failed", env.Operation.ErrorMessage);
+        return this.OkEnvelope("complaint.reply", replyData);
     }
 
     [HttpGet("/my-listings")]
@@ -373,7 +373,8 @@ public class CatalogController : ControllerBase
                     l.Lat, l.Lng, l.Amenities,
                     ownerId: l.OwnerId, featured: l.IsFeatured, capacity: l.Capacity,
                     rating: l.Rating, categoryId: l.CategoryId,
-                    status: newStatus, viewsCount: l.ViewsCount, bookingsCount: l.BookingsCount);
+                    status: newStatus, viewsCount: l.ViewsCount, bookingsCount: l.BookingsCount,
+                    images: l.Images);
                 return Task.CompletedTask;
             })
             .Build();
@@ -382,7 +383,7 @@ public class CatalogController : ControllerBase
         if (env.Operation.Status != "Success")
             return this.ForbiddenEnvelope(env.Operation.FailedAnalyzer ?? "listing_toggle_failed",
                 env.Operation.ErrorMessage);
-        return Ok(env);
+        return this.OkEnvelope("listing.toggle", new { id, status = newStatus });
     }
 
     // ── Profile (GET + PUT) ────────────────────────────────────────────
@@ -425,11 +426,11 @@ public class CatalogController : ControllerBase
             })
             .Build();
 
-        var env = await _engine.ExecuteEnvelopeAsync(op,
-            new { id = AshareV2Seed.Profile.Id, fullName = req.FullName }, ct);
-        return env.Operation.Status == "Success"
-            ? Ok(env)
-            : this.BadRequestEnvelope(env.Operation.FailedAnalyzer ?? "profile_failed", env.Operation.ErrorMessage);
+        var profileData = new { id = AshareV2Seed.Profile.Id, fullName = req.FullName };
+        var env = await _engine.ExecuteEnvelopeAsync(op, profileData, ct);
+        if (env.Operation.Status != "Success")
+            return this.BadRequestEnvelope(env.Operation.FailedAnalyzer ?? "profile_failed", env.Operation.ErrorMessage);
+        return this.OkEnvelope("profile.update", profileData);
     }
 
     // ── MySubscription ─────────────────────────────────────────────────
@@ -463,4 +464,303 @@ public class CatalogController : ControllerBase
                 id = i.Id, planId = i.PlanId, amount = i.Amount,
                 date = i.Date, status = i.Status
             }));
+
+    // ── Favorites ──────────────────────────────────────────────────────
+
+    /// <summary>قائمة الإعلانات المفضّلة للمستخدم الحاليّ.</summary>
+    [HttpGet("/favorites")]
+    public IActionResult Favorites() =>
+        this.OkEnvelope("favorite.list",
+            AshareV2Seed.Listings
+                .Where(l => AshareV2Seed.FavoriteIds.Contains(l.Id))
+                .Select(l => new {
+                    id = l.Id, title = l.Title, price = l.Price, timeUnit = l.TimeUnit,
+                    city = l.City, district = l.District, categoryId = l.CategoryId,
+                    rating = l.Rating, isFeatured = l.IsFeatured, status = l.Status
+                }));
+
+    /// <summary>
+    /// تبديل حالة الإعلان في المفضّلة (إضافة ↔ حذف).
+    /// لا قيد ملكيّة — يجوز تفضيل أيّ إعلان.
+    /// </summary>
+    [HttpPost("/listings/{id}/favorite")]
+    public async Task<IActionResult> ToggleFavorite(string id, CancellationToken ct)
+    {
+        var listing = AshareV2Seed.Listings.FirstOrDefault(l => l.Id == id);
+        if (listing is null) return this.NotFoundEnvelope("listing_not_found");
+
+        bool adding = !AshareV2Seed.FavoriteIds.Contains(id);
+        int sign = adding ? 1 : -1;
+
+        var op = Entry.Create("listing.favorite.toggle")
+            .Describe($"User {(adding ? "adds" : "removes")} listing {id} {(adding ? "to" : "from")} favorites")
+            .From(Caller, sign, ("role", adding ? "liked" : "unliked"))
+            .To($"Listing:{id}", sign, ("role", "favorited"))
+            .Tag("listing_id", id)
+            .Tag("action", adding ? "add" : "remove")
+            .Execute(ctx =>
+            {
+                if (adding) AshareV2Seed.FavoriteIds.Add(id);
+                else        AshareV2Seed.FavoriteIds.Remove(id);
+                return Task.CompletedTask;
+            })
+            .Build();
+
+        var favoriteData = new { id, isFavorite = adding };
+        var env = await _engine.ExecuteEnvelopeAsync(op, favoriteData, ct);
+        if (env.Operation.Status != "Success")
+            return this.BadRequestEnvelope(env.Operation.FailedAnalyzer ?? "favorite_failed", env.Operation.ErrorMessage);
+        return this.OkEnvelope("listing.favorite.toggle", favoriteData);
+    }
+
+    // ── Listing CRUD ───────────────────────────────────────────────────
+
+    public sealed record CreateListingRequest(
+        string Title, string Description,
+        decimal Price, string TimeUnit,
+        string City, string District,
+        string CategoryId, int Capacity,
+        double Lat, double Lng,
+        IReadOnlyList<string>? Amenities);
+
+    /// <summary>
+    /// إنشاء إعلان جديد.
+    /// السياسة: ListingQuotaInterceptor يفرض حدّ الخطّة عبر tag "quota_listing".
+    /// </summary>
+    [HttpPost("/my-listings")]
+    public async Task<IActionResult> CreateListing([FromBody] CreateListingRequest req, CancellationToken ct)
+    {
+        var id = $"L-{Random.Shared.Next(10_000, 99_999)}";
+        var listing = new AshareV2Seed.ListingSeed(
+            id, req.Title, req.Description,
+            req.Price, req.TimeUnit, req.City, req.District,
+            req.Lat, req.Lng,
+            req.Amenities ?? Array.Empty<string>(),
+            ownerId: CurrentUserId, featured: false,
+            capacity: req.Capacity, rating: 0m,
+            categoryId: req.CategoryId, status: 1,
+            viewsCount: 0, bookingsCount: 0);
+
+        var op = Entry.Create("listing.create")
+            .Describe($"Owner creates listing: {req.Title}")
+            .From(Caller, 1, ("role", "owner"))
+            .To($"Listing:{id}", 1, ("role", "created"))
+            .Tag("listing_id", id)
+            .Tag("quota_listing", "true")
+            .Analyze(new RequiredFieldAnalyzer("title",       () => req.Title))
+            .Analyze(new RequiredFieldAnalyzer("city",        () => req.City))
+            .Analyze(new MaxLengthAnalyzer("title",           () => req.Title, 200))
+            .Analyze(new MaxLengthAnalyzer("description",     () => req.Description, 2000))
+            .Analyze(new RangeAnalyzer("price",               () => (int)req.Price, 1, 1_000_000))
+            .Analyze(new RangeAnalyzer("capacity",            () => req.Capacity, 1, 50))
+            .Execute(ctx =>
+            {
+                AshareV2Seed.Listings.Add(listing);
+                return Task.CompletedTask;
+            })
+            .Build();
+
+        var listingData = new { id, title = listing.Title, status = listing.Status };
+        var env = await _engine.ExecuteEnvelopeAsync(op, listingData, ct);
+        if (env.Operation.Status != "Success")
+            return this.BadRequestEnvelope(env.Operation.FailedAnalyzer ?? "listing_create_failed", env.Operation.ErrorMessage);
+        return this.OkEnvelope("listing.create", listingData);
+    }
+
+    public sealed record UpdateListingRequest(
+        string? Title, string? Description,
+        decimal? Price, string? TimeUnit,
+        string? City, string? District,
+        string? CategoryId, int? Capacity,
+        double? Lat, double? Lng,
+        IReadOnlyList<string>? Amenities);
+
+    /// <summary>
+    /// تعديل إعلان موجود.
+    /// السياسة: OwnershipInterceptor يفرض must_own.
+    /// </summary>
+    [HttpPut("/my-listings/{id}")]
+    public async Task<IActionResult> UpdateListing(string id, [FromBody] UpdateListingRequest req, CancellationToken ct)
+    {
+        var ix = AshareV2Seed.Listings.FindIndex(l => l.Id == id);
+        if (ix < 0) return this.NotFoundEnvelope("listing_not_found");
+        var l = AshareV2Seed.Listings[ix];
+
+        var op = Entry.Create("listing.update")
+            .Describe($"Owner updates listing {id}")
+            .From(Caller, 1, ("role", "owner"))
+            .To($"Listing:{id}", 1, ("role", "updated"))
+            .Tag("listing_id", id)
+            .Tag("owner_policy", "must_own")
+            .Tag("resource_owner", l.OwnerId)
+            .Analyze(new MaxLengthAnalyzer("title",       () => req.Title ?? l.Title, 200))
+            .Analyze(new MaxLengthAnalyzer("description", () => req.Description ?? l.Description, 2000))
+            .Execute(ctx =>
+            {
+                AshareV2Seed.Listings[ix] = new AshareV2Seed.ListingSeed(
+                    id,
+                    req.Title       ?? l.Title,
+                    req.Description ?? l.Description,
+                    req.Price       ?? l.Price,
+                    req.TimeUnit    ?? l.TimeUnit,
+                    req.City        ?? l.City,
+                    req.District    ?? l.District,
+                    req.Lat         ?? l.Lat,
+                    req.Lng         ?? l.Lng,
+                    req.Amenities   ?? l.Amenities,
+                    ownerId: l.OwnerId, featured: l.IsFeatured,
+                    capacity:    req.Capacity   ?? l.Capacity,
+                    rating:      l.Rating,
+                    categoryId:  req.CategoryId ?? l.CategoryId,
+                    status:      l.Status,
+                    viewsCount:  l.ViewsCount,
+                    bookingsCount: l.BookingsCount,
+                    images: l.Images);
+                return Task.CompletedTask;
+            })
+            .Build();
+
+        var updateData = new { id, title = req.Title ?? l.Title };
+        var env = await _engine.ExecuteEnvelopeAsync(op, updateData, ct);
+        if (env.Operation.Status != "Success")
+            return this.ForbiddenEnvelope(env.Operation.FailedAnalyzer ?? "listing_update_failed", env.Operation.ErrorMessage);
+        return this.OkEnvelope("listing.update", updateData);
+    }
+
+    /// <summary>
+    /// حذف إعلان.
+    /// السياسة: OwnershipInterceptor يفرض must_own.
+    /// </summary>
+    [HttpDelete("/my-listings/{id}")]
+    public async Task<IActionResult> DeleteListing(string id, CancellationToken ct)
+    {
+        var ix = AshareV2Seed.Listings.FindIndex(l => l.Id == id);
+        if (ix < 0) return this.NotFoundEnvelope("listing_not_found");
+        var l = AshareV2Seed.Listings[ix];
+
+        var op = Entry.Create("listing.delete")
+            .Describe($"Owner deletes listing {id}")
+            .From(Caller, 1, ("role", "owner"))
+            .To($"Listing:{id}", -1, ("role", "deleted"))
+            .Tag("listing_id", id)
+            .Tag("owner_policy", "must_own")
+            .Tag("resource_owner", l.OwnerId)
+            .Execute(ctx =>
+            {
+                AshareV2Seed.Listings.RemoveAt(ix);
+                return Task.CompletedTask;
+            })
+            .Build();
+
+        var deleteData = new { id, deleted = true };
+        var env = await _engine.ExecuteEnvelopeAsync(op, deleteData, ct);
+        if (env.Operation.Status != "Success")
+            return this.ForbiddenEnvelope(env.Operation.FailedAnalyzer ?? "listing_delete_failed", env.Operation.ErrorMessage);
+        return this.OkEnvelope("listing.delete", deleteData);
+    }
+
+    // ── Reviews ────────────────────────────────────────────────────────
+
+    /// <summary>تقييمات إعلان محدّد.</summary>
+    [HttpGet("/listings/{id}/reviews")]
+    public IActionResult GetReviews(string id)
+    {
+        if (!AshareV2Seed.Listings.Any(l => l.Id == id))
+            return this.NotFoundEnvelope("listing_not_found");
+        return this.OkEnvelope("listing.reviews",
+            AshareV2Seed.Reviews
+                .Where(r => r.ListingId == id)
+                .OrderByDescending(r => r.CreatedAt)
+                .Select(r => new {
+                    id = r.Id, rating = r.Rating, comment = r.Comment,
+                    authorName = r.AuthorName, createdAt = r.CreatedAt
+                }));
+    }
+
+    public sealed record CreateReviewRequest(int Rating, string? Comment);
+
+    /// <summary>
+    /// إضافة تقييم على حجز مكتمل.
+    /// السياسة: owner_policy = must_own (المستخدم يجب أن يكون صاحب الحجز).
+    /// شرط: الحجز يجب أن يكون "completed"، ولا يمكن تقييم نفس الحجز مرّتين.
+    /// </summary>
+    [HttpPost("/bookings/{id}/review")]
+    public async Task<IActionResult> CreateReview(string id, [FromBody] CreateReviewRequest req, CancellationToken ct)
+    {
+        var booking = AshareV2Seed.Bookings.FirstOrDefault(b => b.Id == id);
+        if (booking is null) return this.NotFoundEnvelope("booking_not_found");
+        if (booking.Status != "completed")
+            return this.BadRequestEnvelope("booking_not_completed", "لا يمكن تقييم حجز غير مكتمل");
+        if (AshareV2Seed.Reviews.Any(r => r.BookingId == id))
+            return this.BadRequestEnvelope("already_reviewed", "هذا الحجز قُيِّم مسبقاً");
+
+        var reviewId = $"RV-{Random.Shared.Next(10_000, 99_999)}";
+        var review = new AshareV2Seed.ReviewSeed(
+            reviewId, booking.ListingId, booking.Id, CurrentUserId,
+            AshareV2Seed.Profile.FullName, req.Rating, req.Comment ?? string.Empty,
+            DateTime.UtcNow);
+
+        var op = Entry.Create("booking.review.create")
+            .Describe($"User reviews booking {id} — {req.Rating} stars")
+            .From(Caller, 1, ("role", "reviewer"))
+            .To($"Listing:{booking.ListingId}", 1, ("role", "reviewed"))
+            .Tag("booking_id",  id)
+            .Tag("listing_id",  booking.ListingId)
+            .Tag("owner_policy",    "must_own")
+            .Tag("resource_owner",  CurrentUserId)
+            .Analyze(new RangeAnalyzer("rating", () => req.Rating, 1, 5))
+            .Analyze(new MaxLengthAnalyzer("comment", () => req.Comment, 1000))
+            .Execute(ctx =>
+            {
+                AshareV2Seed.Reviews.Add(review);
+                return Task.CompletedTask;
+            })
+            .Build();
+
+        var reviewData = new { id = reviewId, listingId = booking.ListingId, rating = req.Rating };
+        var env = await _engine.ExecuteEnvelopeAsync(op, reviewData, ct);
+        if (env.Operation.Status != "Success")
+            return this.BadRequestEnvelope(env.Operation.FailedAnalyzer ?? "review_failed", env.Operation.ErrorMessage);
+        return this.OkEnvelope("booking.review.create", reviewData);
+    }
+
+    // ── Booking cancel ─────────────────────────────────────────────────
+
+    /// <summary>
+    /// إلغاء حجز.
+    /// السياسة: owner_policy = must_own (المستخدم يجب أن يكون صاحب الحجز).
+    /// </summary>
+    [HttpPost("/bookings/{id}/cancel")]
+    public async Task<IActionResult> CancelBooking(string id, CancellationToken ct)
+    {
+        var ix = AshareV2Seed.Bookings.FindIndex(b => b.Id == id);
+        if (ix < 0) return this.NotFoundEnvelope("booking_not_found");
+        var b = AshareV2Seed.Bookings[ix];
+
+        if (b.Status == "cancelled")
+            return this.BadRequestEnvelope("already_cancelled", "الحجز ملغى مسبقاً");
+        if (b.Status == "completed")
+            return this.BadRequestEnvelope("booking_completed", "لا يمكن إلغاء حجز مكتمل");
+
+        var op = Entry.Create("booking.cancel")
+            .Describe($"User cancels booking {id}")
+            .From(Caller, -1, ("role", "canceller"))
+            .To($"Booking:{id}", -1, ("role", "cancelled"))
+            .Tag("booking_id",   id)
+            .Tag("listing_id",   b.ListingId)
+            .Tag("owner_policy", "must_own")
+            .Tag("resource_owner", b.UserId)
+            .Execute(ctx =>
+            {
+                AshareV2Seed.Bookings[ix] = b with { Status = "cancelled" };
+                return Task.CompletedTask;
+            })
+            .Build();
+
+        var cancelData = new { id, status = "cancelled" };
+        var env = await _engine.ExecuteEnvelopeAsync(op, cancelData, ct);
+        if (env.Operation.Status != "Success")
+            return this.ForbiddenEnvelope(env.Operation.FailedAnalyzer ?? "cancel_failed", env.Operation.ErrorMessage);
+        return this.OkEnvelope("booking.cancel", cancelData);
+    }
 }

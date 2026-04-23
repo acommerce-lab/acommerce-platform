@@ -19,6 +19,10 @@
     <ProjectReference Include="..\..\..\..\..\clients\ACommerce.Client.Http\ACommerce.Client.Http.csproj" />
     <ProjectReference Include="..\..\..\..\..\clients\ACommerce.Client.StateBridge\ACommerce.Client.StateBridge.csproj" />
 
+    <!-- Culture: numeral + phone normalization -->
+    <ProjectReference Include="..\..\..\..\..\libs\backend\culture\ACommerce.Culture.Abstractions\ACommerce.Culture.Abstractions.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\backend\culture\ACommerce.Culture.Defaults\ACommerce.Culture.Defaults.csproj" />
+
     <!-- Widgets + Marketplace templates only (Home slice) -->
     <ProjectReference Include="..\..\..\..\..\libs\frontend\ACommerce.Widgets\ACommerce.Widgets.csproj" />
     <ProjectReference Include="..\..\..\..\..\libs\frontend\ACommerce.Templates.Shared\ACommerce.Templates.Shared.csproj" />

@@ -47,13 +47,13 @@
         <AcCard>
             <ChildContent>
                 <AcField Label="الاسم الكامل" Required="true">
-                    <AcInput Value="@_data.FullName"
+                    <AcInput Value="@_data!.FullName"
                              ValueChanged="@(v => _data = _data with { FullName = v ?? string.Empty })" />
                 </AcField>
 
                 <AcField Label="@(L["auth.phone"])">
                     <div style="display:flex; gap:8px; align-items:center;">
-                        <AcInput Type="tel" Value="@_data.Phone"
+                        <AcInput Type="tel" Value="@_data!.Phone"
                                  ValueChanged="@(v => _data = _data with { Phone = v ?? string.Empty, PhoneVerified = false })" />
                         @if (_data.PhoneVerified)
                         {
@@ -68,7 +68,7 @@
 
                 <AcField Label="البريد الإلكترونيّ">
                     <div style="display:flex; gap:8px; align-items:center;">
-                        <AcInput Type="email" Value="@_data.Email"
+                        <AcInput Type="email" Value="@_data!.Email"
                                  ValueChanged="@(v => _data = _data with { Email = v ?? string.Empty, EmailVerified = false })" />
                         @if (_data.EmailVerified)
                         {
@@ -82,7 +82,7 @@
                 </AcField>
 
                 <AcField Label="المدينة">
-                    <select class="ac-input" value="@_data.City"
+                    <select class="ac-input" value="@_data!.City"
                             @onchange="@(e => _data = _data with { City = e.Value?.ToString() ?? _data.City })">
                         @foreach (var c in _cities)
                         {

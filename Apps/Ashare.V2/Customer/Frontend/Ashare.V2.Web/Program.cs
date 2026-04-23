@@ -2,11 +2,14 @@ using ACommerce.Client.Http;
 using ACommerce.Client.Operations;
 using ACommerce.Client.Operations.Interceptors;
 using ACommerce.Client.StateBridge;
+using ACommerce.Culture.Abstractions;
+using ACommerce.Culture.Defaults;
 using ACommerce.OperationEngine.Core;
 using Ashare.V2.Web.Components;
 using Ashare.V2.Web.Interceptors;
 using Ashare.V2.Web.Interpreters;
 using Ashare.V2.Web.Operations;
+using Ashare.V2.Web.Services;
 using Ashare.V2.Web.Store;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -26,6 +29,7 @@ builder.Services.AddScoped<L>();
 
 // ── ProviderContract للتوقيت (مُبقى للصياغة النسبيّة — Tz.FormatRelative).
 //    التحويل الأساسيّ انتقل إلى CultureInterceptor الذي يستعمل Culture.TimeZone.
+builder.Services.AddSingleton<INumeralNormalizer, DefaultNumeralNormalizer>();
 builder.Services.AddScoped<ITimezoneProvider, JsTimezoneProvider>();
 
 // ── معترض الثقافة (إياب): يطبّق Culture على حمولات OperationEnvelope
@@ -34,6 +38,7 @@ builder.Services.AddScoped<CultureInterceptor>();
 
 // ── معترض الثقافة (ذهاب): DelegatingHandler يختم كلّ طلب برؤوس Culture.
 builder.Services.AddTransient<CultureHeadersHandler>();
+builder.Services.AddScoped<Ashare2CircuitHttp>();
 
 // ─── OpEngine للعمليات المحلّية ────────────────────────────────────────
 builder.Services.AddScoped<OpEngine>(sp =>
@@ -58,9 +63,9 @@ builder.Services.AddSingleton(routeRegistry);
 
 builder.Services.AddScoped<HttpDispatcher>(sp =>
 {
-    var f = sp.GetRequiredService<IHttpClientFactory>();
+    var circuit = sp.GetRequiredService<Ashare2CircuitHttp>();
     return new HttpDispatcher(
-        f.CreateClient("ashare-v2"),
+        circuit.Client,
         sp.GetRequiredService<HttpRouteRegistry>(),
         sp.GetRequiredService<OpEngine>(),
         sp.GetRequiredService<ILogger<HttpDispatcher>>());
@@ -69,9 +74,9 @@ builder.Services.AddScoped<IOperationDispatcher>(sp => sp.GetRequiredService<Htt
 
 builder.Services.AddScoped<ApiReader>(sp =>
 {
-    var f = sp.GetRequiredService<IHttpClientFactory>();
+    var circuit = sp.GetRequiredService<Ashare2CircuitHttp>();
     return new ApiReader(
-        f.CreateClient("ashare-v2"),
+        circuit.Client,
         sp.GetRequiredService<CultureInterceptor>());
 });
 
@@ -95,6 +100,9 @@ builder.Services.AddScoped<OperationInterpreterRegistry<AppStore>>(sp =>
 
 builder.Services.AddScoped<AppStateApplier>();
 builder.Services.AddScoped<IStateApplier>(sp => sp.GetRequiredService<AppStateApplier>());
+
+// ─── Realtime client ──────────────────────────────────────────────────
+builder.Services.AddScoped<Ashare2RealtimeService>();
 
 var app = builder.Build();
 

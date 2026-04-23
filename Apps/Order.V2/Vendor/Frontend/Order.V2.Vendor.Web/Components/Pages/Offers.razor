@@ -1,0 +1,129 @@
+@page "/offers"
+@rendermode InteractiveServer
+@inject AppStore Store
+@inject ApiReader Api
+@inject ClientOpEngine Engine
+@inject L L
+
+<PageTitle>@L.T("العروض — اوردر V2 المتجر", "Offers — Order V2 Vendor")</PageTitle>
+
+<AcAuthGuard IsAuthenticated="@Store.Auth.IsAuthenticated" LoginHref="/login">
+    <h2 class="page-title">@L.T("عروضي", "My offers")</h2>
+
+    <div class="offer-form-wrap card mb-4">
+        <AcVendorOfferForm Mode="TemplateOperationMode.Callback"
+                           Form="@_form"
+                           FormChanged="@(f => _form = f)"
+                           OnSubmit="@CreateOffer"
+                           Title="@L.T("إضافة عرض جديد", "Add new offer")"
+                           TitleLabel="@L.T("عنوان العرض", "Offer title")"
+                           TitlePlaceholder="@L.T("مثال: كبسة دجاج", "e.g. Chicken Kabsa")"
+                           DescriptionLabel="@L.T("الوصف", "Description")"
+                           DescriptionPlaceholder="@L.T("اكتب وصفاً موجزاً...", "Write a short description...")"
+                           PriceLabel="@L.T("السعر (ر.س)", "Price (SAR)")"
+                           EmojiLabel="@L.T("الأيقونة", "Icon")"
+                           AvailableLabel="@L.T("الكمية المتاحة", "Available quantity")"
+                           SubmitLabel="@L.T("إضافة العرض", "Add offer")" />
+    </div>
+
+    @if (_loading)
+    {
+        <AcSpinner />
+    }
+    else
+    {
+        <div class="table-wrap">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th></th>
+                        <th>@L.T("العنوان", "Title")</th>
+                        <th>@L.T("السعر", "Price")</th>
+                        <th>@L.T("الخصم", "Discount")</th>
+                        <th>@L.T("الكمية", "Quantity")</th>
+                        <th>@L.T("الحالة", "Status")</th>
+                        <th>@L.T("الإجراءات", "Actions")</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var o in _offers)
+                    {
+                        <tr>
+                            <td>@(o.Emoji ?? "🍽️")</td>
+                            <td>@o.Title</td>
+                            <td>@o.Price.ToString("0.##") @L.T("ر.س", "SAR")</td>
+                            <td>@(o.DiscountPercent > 0 ? $"{o.DiscountPercent}%" : "—")</td>
+                            <td>@o.QuantityAvailable</td>
+                            <td><span class="status-badge @(o.IsActive ? "status-active" : "status-suspended")">@(o.IsActive ? L.T("نشط", "Active") : L.T("معطّل", "Disabled"))</span></td>
+                            <td>
+                                <AcButton Variant="@(o.IsActive ? "secondary" : "primary")" Size="sm"
+                                          Text="@(o.IsActive ? L.T("تعطيل", "Disable") : L.T("تفعيل", "Enable"))"
+                                          OnClick="@(() => Toggle(o))" />
+                                <AcButton Variant="danger" Size="sm" Text="@L.T("حذف", "Delete")"
+                                          OnClick="@(() => Delete(o))" />
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</AcAuthGuard>
+
+@code {
+    private bool _loading = true;
+    private List<OfferRow> _offers = new();
+    private OfferFormModel _form = new();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || !Store.Auth.IsAuthenticated) { _loading = false; StateHasChanged(); return; }
+        await Reload();
+    }
+
+    private async Task Reload()
+    {
+        var env = await Api.GetAsync<List<OfferRow>>("/api/vendor/offers");
+        _offers = env.Data ?? new();
+        _loading = false; StateHasChanged();
+    }
+
+    private async Task CreateOffer(OfferFormModel f)
+    {
+        if (string.IsNullOrWhiteSpace(f.Title)) return;
+        var res = await Api.PostAsync<object>("/api/vendor/offers", new
+        {
+            title = f.Title, description = f.Description ?? "",
+            price = f.Price, originalPrice = (decimal?)null,
+            categoryId = Guid.Empty,
+            emoji = f.Emoji ?? "🍽️", quantityAvailable = f.Stock ?? 100
+        });
+        if (res.Operation?.Status == "Success")
+        {
+            _form = new OfferFormModel();
+            await Reload();
+        }
+    }
+
+    private async Task Toggle(OfferRow o)
+    {
+        var res = await Engine.ExecuteAsync<object>(VendorV2Ops.ToggleOffer(o.Id), new { });
+        if (res.Operation.Status == "Success")
+        {
+            var i = _offers.FindIndex(x => x.Id == o.Id);
+            if (i >= 0) _offers[i] = _offers[i] with { IsActive = !o.IsActive };
+            StateHasChanged();
+        }
+    }
+
+    private async Task Delete(OfferRow o)
+    {
+        await Engine.ExecuteAsync<object>(VendorV2Ops.DeleteOffer(o.Id), new { });
+        _offers.RemoveAll(x => x.Id == o.Id);
+        StateHasChanged();
+    }
+
+    private record OfferRow(Guid Id, string Title, string? Emoji,
+                             decimal Price, decimal? OriginalPrice, int DiscountPercent,
+                             int QuantityAvailable, bool IsActive, DateTime CreatedAt);
+}

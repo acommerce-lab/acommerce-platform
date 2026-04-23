@@ -1,0 +1,53 @@
+@page "/vendors"
+@rendermode InteractiveServer
+@inject AppStore Store
+@inject ApiReader Api
+@inject ClientOpEngine Engine
+@inject L L
+
+<PageTitle>@L.T("المتاجر — اوردر V2", "Vendors — Order V2")</PageTitle>
+
+<AcAuthGuard IsAuthenticated="@Store.Auth.IsAuthenticated" LoginHref="/login">
+    <AcAdminVendorsPage Vendors="@_vendors"
+                        Loading="@_loading"
+                        Title="@L.T("المتاجر", "Vendors")"
+                        OnSuspend="@(EventCallback.Factory.Create<AdminVendorRowDto>(this, Suspend))"
+                        OnActivate="@(EventCallback.Factory.Create<AdminVendorRowDto>(this, Activate))" />
+</AcAuthGuard>
+
+@code {
+    private bool _loading = true;
+    private List<AdminVendorRowDto> _vendors = new();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || !Store.Auth.IsAuthenticated) { _loading = false; StateHasChanged(); return; }
+        var env = await Api.GetAsync<List<VendorRow>>("/api/admin/vendors");
+        _vendors = (env.Data ?? new()).Select(v => new AdminVendorRowDto
+        {
+            Id        = v.Id.ToString(),
+            Name      = $"{v.LogoEmoji} {v.Name}".Trim(),
+            Phone     = v.Phone,
+            Status    = v.IsActive ? "active" : "suspended",
+            Category  = v.City,
+            CreatedAt = v.CreatedAt
+        }).ToList();
+        _loading = false; StateHasChanged();
+    }
+
+    private async Task Suspend(AdminVendorRowDto v)
+    {
+        var res = await Engine.ExecuteAsync<object>(AdminV2Ops.SuspendVendor(Guid.Parse(v.Id)), new { });
+        if (res.Operation.Status == "Success") { var i = _vendors.FindIndex(x => x.Id == v.Id); if (i >= 0) _vendors[i] = _vendors[i] with { Status = "suspended" }; StateHasChanged(); }
+    }
+
+    private async Task Activate(AdminVendorRowDto v)
+    {
+        var res = await Engine.ExecuteAsync<object>(AdminV2Ops.ActivateVendor(Guid.Parse(v.Id)), new { });
+        if (res.Operation.Status == "Success") { var i = _vendors.FindIndex(x => x.Id == v.Id); if (i >= 0) _vendors[i] = _vendors[i] with { Status = "active" }; StateHasChanged(); }
+    }
+
+    private record VendorRow(Guid Id, string Name, string? City, string? Phone,
+                              bool IsActive, decimal Rating, int RatingCount,
+                              string? LogoEmoji, DateTime CreatedAt);
+}
