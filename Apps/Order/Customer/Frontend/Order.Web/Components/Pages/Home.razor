@@ -3,10 +3,10 @@
 @inject AppStateApplier Applier
 @inject ApiReader Api
 @inject NavigationManager Nav
-@inject L L
+@inject LocalizationService Localization
 @implements IDisposable
 
-<PageTitle>@(L["app.name"]) — @(L["home.subtitle"])</PageTitle>
+<PageTitle>@(Localization["app_name"]) — @(Localization["home_subtitle"])</PageTitle>
 
 @*
     Single template — viewport adaptation is purely CSS:
@@ -22,20 +22,20 @@
                Loading="@Loading"
                Columns="1"
                DetailsHrefPrefix="/offer"
-               HeroTitle="@(L["home.title"])"
-               HeroSubtitle="@(L["home.subtitle"])"
-               AllLabel="@(L["home.all"])"
-               LoadingMessage="@(L["home.loading"])"
-               EmptyMessage="@(L["home.empty"])">
+               HeroTitle="@(Localization["home_title"])"
+               HeroSubtitle="@(Localization["home_subtitle"])"
+               AllLabel="@(Localization["home_all"])"
+               LoadingMessage="@(Localization["home_loading"])"
+               EmptyMessage="@(Localization["home_empty"])">
     <HeroActions>
         @* The top-nav already handles login on desktop; hide the hero
            sign-in button there to avoid duplication. *@
         @if (!Store.Auth.IsAuthenticated)
         {
-            <span class="ac-mode-mobile"><a href="/login"><AcButton Variant="primary" Size="sm" Text="@(L["home.signin"])" /></a></span>
+            <span class="ac-mode-mobile"><a href="/login"><AcButton Variant="primary" Size="sm" Text="@(Localization["home_signin"])" /></a></span>
         }
         <AcButton Variant="ghost" Size="sm" OnClick="ToggleLanguage"
-                  Text="@(L["home.language_toggle"])" />
+                  Text="@(Localization["home_language_toggle"])" />
     </HeroActions>
 </AcCatalogHome>
 

@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- Microsoft ResX File, format version 2.0 -->
+  <!-- https://resx.microsoft.com/ -->
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata" type="xsd:string" minOccurs="0" />
+          <xsd:element name="assembly" type="xsd:string" minOccurs="0" />
+          <xsd:element name="data" type="xsd:string" minOccurs="0" msdata:Locale="en-US" />
+          <xsd:element name="resheader" type="xsd:string" />
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+
+  <!-- Navigation -->
+  <data name="nav_brand" xml:space="preserve">
+    <value>Order</value>
+  </data>
+  <data name="nav_home" xml:space="preserve">
+    <value>Home</value>
+  </data>
+  <data name="nav_search" xml:space="preserve">
+    <value>Search</value>
+  </data>
+  <data name="nav_orders" xml:space="preserve">
+    <value>Orders</value>
+  </data>
+  <data name="nav_messages" xml:space="preserve">
+    <value>Messages</value>
+  </data>
+  <data name="nav_cart" xml:space="preserve">
+    <value>Cart</value>
+  </data>
+  <data name="nav_profile" xml:space="preserve">
+    <value>Profile</value>
+  </data>
+  <data name="nav_signin" xml:space="preserve">
+    <value>Sign in</value>
+  </data>
+
+  <!-- Home Page -->
+  <data name="home_title" xml:space="preserve">
+    <value>Order</value>
+  </data>
+  <data name="home_subtitle" xml:space="preserve">
+    <value>Today's deals from local cafes and restaurants</value>
+  </data>
+  <data name="home_all" xml:space="preserve">
+    <value>All</value>
+  </data>
+  <data name="home_loading" xml:space="preserve">
+    <value>Loading offers…</value>
+  </data>
+  <data name="home_empty" xml:space="preserve">
+    <value>No offers</value>
+  </data>
+  <data name="home_signin" xml:space="preserve">
+    <value>Sign in</value>
+  </data>
+  <data name="home_language_toggle" xml:space="preserve">
+    <value>العربية</value>
+  </data>
+
+  <!-- Settings Page -->
+  <data name="settings_title" xml:space="preserve">
+    <value>Settings</value>
+  </data>
+  <data name="settings_theme" xml:space="preserve">
+    <value>Appearance</value>
+  </data>
+  <data name="settings_theme_light" xml:space="preserve">
+    <value>Light</value>
+  </data>
+  <data name="settings_theme_dark" xml:space="preserve">
+    <value>Dark</value>
+  </data>
+  <data name="settings_language" xml:space="preserve">
+    <value>Language</value>
+  </data>
+  <data name="settings_language_ar" xml:space="preserve">
+    <value>العربيّة</value>
+  </data>
+  <data name="settings_language_en" xml:space="preserve">
+    <value>English</value>
+  </data>
+  <data name="settings_about" xml:space="preserve">
+    <value>About</value>
+  </data>
+  <data name="settings_version" xml:space="preserve">
+    <value>Version</value>
+  </data>
+  <data name="settings_sign_out" xml:space="preserve">
+    <value>Sign out</value>
+  </data>
+  <data name="settings_terms" xml:space="preserve">
+    <value>Terms &amp; Conditions</value>
+  </data>
+
+  <!-- Common -->
+  <data name="app_name" xml:space="preserve">
+    <value>Order</value>
+  </data>
+  <data name="common_loading" xml:space="preserve">
+    <value>Loading…</value>
+  </data>
+  <data name="common_error" xml:space="preserve">
+    <value>An error occurred</value>
+  </data>
+
+</root>

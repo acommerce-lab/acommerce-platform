@@ -3,28 +3,28 @@
 @inject AppStateApplier Applier
 @inject ClientOpEngine Engine
 @inject NavigationManager Nav
-@inject L L
+@inject LocalizationService Localization
 @implements IDisposable
 
-<PageTitle>@(L["settings.title"]) - @(L["app.name"])</PageTitle>
+<PageTitle>@(Localization["settings_title"]) - @(Localization["app_name"])</PageTitle>
 
 <AcSettingsPage Snapshot="Snapshot"
-                Title="@(L["settings.title"])"
-                ThemeLabel="@(L["settings.theme"])"
-                LanguageLabel="@(L["settings.language"])"
-                AboutLabel="@(L["settings.about"])"
-                VersionLabel="@(L["settings.version"])"
-                LightLabel="@(L["settings.theme.light"])"
-                DarkLabel="@(L["settings.theme.dark"])"
-                SignOutLabel="@(L["settings.sign_out"])"
+                Title="@(Localization["settings_title"])"
+                ThemeLabel="@(Localization["settings_theme"])"
+                LanguageLabel="@(Localization["settings_language"])"
+                AboutLabel="@(Localization["settings_about"])"
+                VersionLabel="@(Localization["settings_version"])"
+                LightLabel="@(Localization["settings_theme_light"])"
+                DarkLabel="@(Localization["settings_theme_dark"])"
+                SignOutLabel="@(Localization["settings_sign_out"])"
                 OnThemeChange="@(async t => { await Applier.ApplyLocalAsync(ClientOps.SetTheme(t)); })"
-                OnLanguageChange="@(async l => { await Applier.ApplyLocalAsync(ClientOps.SetLanguage(l)); })"
+                OnLanguageChange="@(async l => { await Applier.ApplyLocalAsync(ClientOps.SetLanguage(l)); OnLanguageChanged(); })"
                 OnSignOut="@(Store.Auth.IsAuthenticated ? EventCallback.Factory.Create(this, SignOut) : default)">
     <ExtraSections>
         <div class="s-card" style="margin-top: 16px">
             <a href="/legal" style="display:flex;align-items:center;gap: 8px;text-decoration:none;color:inherit">
                 <AcIcon Name="file" Size="20" />
-                @(L["settings.terms"])
+                @(Localization["settings_terms"])
             </a>
         </div>
     </ExtraSections>
@@ -43,6 +43,8 @@
     protected override void OnInitialized() => Store.OnChanged += OnChanged;
 
     private void OnChanged() => InvokeAsync(StateHasChanged);
+
+    private void OnLanguageChanged() => InvokeAsync(StateHasChanged);
 
     private async Task SignOut()
     {
