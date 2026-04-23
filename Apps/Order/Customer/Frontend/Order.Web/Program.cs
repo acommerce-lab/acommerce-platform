@@ -26,6 +26,10 @@ builder.Services.AddRazorComponents()
 // render timestamps (chat, orders) in the viewing user's local time.
 builder.Services.AddBlazorCultureStack();
 
+// ─── Translation service ──────────────────────────────────────────────
+builder.Services.AddScoped<ITranslationProvider, EmbeddedTranslationProvider>();
+builder.Services.AddScoped<L>();
+
 // ─── AppStore (حالة التطبيق — Scoped per circuit) ────────────────────
 builder.Services.AddScoped<AppStore>();
 builder.Services.AddScoped<ITemplateStore>(sp => sp.GetRequiredService<AppStore>());
