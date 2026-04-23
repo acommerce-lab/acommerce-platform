@@ -166,6 +166,44 @@ To stay safe:
 For files already in the repo, always use `Edit`. Use `Write` only for brand-new
 files or when a complete rewrite is genuinely simpler than a patch.
 
+### Rule T6 — Server-returned operation type ≠ client-dispatched type (recurring login trap)
+
+This bug has broken login silently in at least three separate sessions. Understand it
+**before** writing any `IOperationInterpreter`.
+
+**The trap:** `ClientOpEngine` merges the server's `OperationEnvelope` back into the
+client operation using `OperationMerger.Merge()`. Merge copies tags and parties — but
+**NOT** the `Type` field. The `envelope.Operation.Type` the interpreter receives is the
+**server-returned** type, not the client-dispatched type.
+
+Apps with role-scoped backends consistently do this:
+- Client dispatches `auth.sms.verify` (generic)
+- Server returns `auth.admin.sms.verify`, `auth.vendor.sms.verify`, etc. (scoped)
+
+If `CanInterpret` only matches the generic client type, it silently skips the envelope
+and the store is never populated. Login appears to succeed (no error) but nothing changes.
+
+**The fix — always match both sides:**
+
+```csharp
+// WRONG — only matches the client-dispatched type:
+public bool CanInterpret(OperationDescriptor op) =>
+    op.Type is "auth.sms.verify";
+
+// RIGHT — match the server-returned type too:
+public bool CanInterpret(OperationDescriptor op) =>
+    op.Type is "auth.sms.verify" or "auth.admin.sms.verify";
+
+// The switch/case must also handle both:
+case "auth.sms.verify":
+case "auth.admin.sms.verify":
+    // populate store ...
+```
+
+**Every time you add a new interpreter or a new operation type on the backend, verify
+the server's actual returned `Type` value (log it or check the backend route) and make
+sure `CanInterpret` covers it.**
+
 ### Rule T5 — Backend port goes in appsettings.Development.json, not .env
 
 `.env.Development` files are NOT loaded automatically by `WebApplication.CreateBuilder`.
