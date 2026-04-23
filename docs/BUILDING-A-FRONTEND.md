@@ -392,6 +392,24 @@ which writes the JWT to `ProtectedLocalStorage`. Next full reload,
 
 ---
 
+## 9.5. Wire up i18n (bilingual Arabic/English)
+
+Every V2 app is bilingual from day one. The pattern:
+
+1. Add project reference to `libs/frontend/ACommerce.L10n.Blazor`.
+2. Create `Store/AppLangContext.cs` (bridge reading `AppStore.Ui.Language`).
+3. Create `Store/L.cs` with `{App}Translations : EmbeddedTranslationProvider`
+   holding `_ar` and `_en` static dictionaries.
+4. Register in `Program.cs`:
+   `builder.Services.AddEmbeddedL10n<{App}Translations, AppLangContext>();`
+5. In `_Imports.razor` add `@using ACommerce.L10n.Blazor`.
+6. In pages: `@inject L L` then `@(L["home.title"])`.
+
+Reference: `Apps/Order.V2/Customer/Frontend/Order.V2.Web/Store/L.cs`.
+Full guide with rules, naming conventions, and exceptions: **`docs/I18N.md`**.
+
+---
+
 ## 10. Run it
 
 ```bash
