@@ -1,0 +1,138 @@
+@inherits LayoutComponentBase
+@inject AppStore Store
+@inject AuthStateService AuthService
+@inject IJSRuntime JS
+@inject ACommerce.Culture.Blazor.BrowserCultureProbe CultureProbe
+@implements IDisposable
+
+<div class="ord-shell">
+    @* Desktop-only top navbar — hidden by CSS when data-ac-mode="mobile" *@
+    <nav class="ord-top-nav">
+        <div class="ord-top-nav-inner">
+            <NavLink class="ord-top-nav-brand" href="/" Match="NavLinkMatch.All">🍔 @(Store.Ui.IsArabic ? "اوردر" : "Order")</NavLink>
+            <div class="ord-top-nav-links">
+                <NavLink class="ord-top-nav-link" href="/" Match="NavLinkMatch.All">@(Store.Ui.IsArabic ? "الرئيسية" : "Home")</NavLink>
+                <NavLink class="ord-top-nav-link" href="/search">@(Store.Ui.IsArabic ? "بحث" : "Search")</NavLink>
+                <NavLink class="ord-top-nav-link" href="/orders">@(Store.Ui.IsArabic ? "طلباتي" : "Orders")</NavLink>
+                <NavLink class="ord-top-nav-link" href="/messages">@(Store.Ui.IsArabic ? "الرسائل" : "Messages")</NavLink>
+            </div>
+            <div class="ord-top-nav-actions">
+                <NavLink class="ord-top-nav-link" href="/cart">
+                    @(Store.Ui.IsArabic ? "السلة" : "Cart")
+                    @if (Store.Cart.Count > 0) { <span class="ord-top-nav-cart-badge">@Store.Cart.Count</span> }
+                </NavLink>
+                <NavLink class="ord-top-nav-link" href="@(Store.Auth.IsAuthenticated ? "/profile" : "/login")">
+                    @(Store.Auth.IsAuthenticated
+                        ? (Store.Ui.IsArabic ? "حسابي" : "Profile")
+                        : (Store.Ui.IsArabic ? "دخول" : "Sign in"))
+                </NavLink>
+            </div>
+        </div>
+    </nav>
+
+    <main class="ord-main">
+        @Body
+    </main>
+
+    @* Mobile-only bottom navbar *@
+    <nav class="ord-bottom-nav">
+        <NavLink href="/" Match="NavLinkMatch.All" class="ord-nav-item">
+            <AcIcon Name="home" Size="20" />
+            <span>@(Store.Ui.IsArabic ? "الرئيسية" : "Home")</span>
+        </NavLink>
+        <NavLink href="/search" class="ord-nav-item">
+            <AcIcon Name="search" Size="20" />
+            <span>@(Store.Ui.IsArabic ? "بحث" : "Search")</span>
+        </NavLink>
+        <NavLink href="/cart" class="ord-nav-item ord-nav-cart">
+            <div class="ord-nav-cart-btn">
+                <AcIcon Name="bag" Size="20" />
+                @if (Store.Cart.Count > 0) { <span class="ord-cart-badge">@Store.Cart.Count</span> }
+            </div>
+            <span>@(Store.Ui.IsArabic ? "السلة" : "Cart")</span>
+        </NavLink>
+        <NavLink href="/orders" class="ord-nav-item">
+            <AcIcon Name="receipt" Size="20" />
+            <span>@(Store.Ui.IsArabic ? "طلباتي" : "Orders")</span>
+        </NavLink>
+        <NavLink href="@(Store.Auth.IsAuthenticated ? "/profile" : "/login")" class="ord-nav-item">
+            <AcIcon Name="user" Size="20" />
+            <span>@(Store.Ui.IsArabic ? "حسابي" : "Profile")</span>
+        </NavLink>
+    </nav>
+</div>
+
+@code {
+    protected override void OnInitialized()
+    {
+        Store.OnChanged += OnChange;
+    }
+
+    private string _lastAppliedTheme = "";
+    private string _lastAppliedLang  = "";
+    private Guid? _lastPersistedUserId;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try { await CultureProbe.InitAsync(); } catch { }
+
+            await AuthService.EnsureRestoredAsync();
+            if (AuthService.IsAuthenticated)
+            {
+                Store.Auth.UserId = AuthService.UserId;
+                Store.Auth.PhoneNumber = AuthService.PhoneNumber;
+                Store.Auth.FullName = AuthService.FullName;
+                Store.Auth.AccessToken = AuthService.AccessToken;
+                _lastPersistedUserId = AuthService.UserId;
+                Store.NotifyChanged();
+            }
+
+            _lastAppliedTheme = Store.Ui.Theme;
+            _lastAppliedLang  = Store.Ui.Language;
+        }
+
+        await SyncAuthToStorageAsync();
+
+        if (_lastAppliedTheme != Store.Ui.Theme)
+        {
+            _lastAppliedTheme = Store.Ui.Theme;
+            try { await JS.InvokeVoidAsync("acTheme.set", Store.Ui.Theme); } catch { }
+        }
+        if (_lastAppliedLang != Store.Ui.Language)
+        {
+            _lastAppliedLang = Store.Ui.Language;
+            try { await JS.InvokeVoidAsync("acLang.set", Store.Ui.Language); } catch { }
+        }
+    }
+
+    private async Task SyncAuthToStorageAsync()
+    {
+        if (Store.Auth.IsAuthenticated && Store.Auth.UserId != _lastPersistedUserId)
+        {
+            _lastPersistedUserId = Store.Auth.UserId;
+            try
+            {
+                await AuthService.SignInAsync(
+                    Store.Auth.UserId!.Value,
+                    Store.Auth.PhoneNumber,
+                    Store.Auth.FullName,
+                    Store.Auth.AccessToken!);
+            }
+            catch { }
+        }
+        else if (!Store.Auth.IsAuthenticated && _lastPersistedUserId.HasValue)
+        {
+            _lastPersistedUserId = null;
+            try { await AuthService.SignOutAsync(); } catch { }
+        }
+    }
+
+    private void OnChange() => InvokeAsync(StateHasChanged);
+
+    public void Dispose()
+    {
+        Store.OnChanged -= OnChange;
+    }
+}

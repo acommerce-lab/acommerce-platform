@@ -23,6 +23,12 @@ public sealed record ListingRowDto
     public string? ThumbnailUrl { get; init; }
     public string? OwnerName { get; init; }
     public string? OwnerAvatarUrl { get; init; }
+
+    /// <summary>عدد الأشخاص المستوعَب (للسكن المشترك) — يظهر بجانب أيقونة people.</summary>
+    public int? Capacity { get; init; }
+    /// <summary>متوسّط التقييم (0–5) — يظهر بجانب أيقونة star-fill.</summary>
+    public decimal? Rating { get; init; }
+
     public Dictionary<string, object?>? Extra { get; init; }
 }
 
@@ -108,3 +114,30 @@ public sealed record PlanRowDto
     public string Currency { get; init; } = "SAR";
     public string Slug { get; init; } = "";
 }
+
+/// <summary>
+/// فئة في الصفحة الرئيسية (صف أفقي من AcCategoryTile).
+/// </summary>
+public sealed record CategoryTileDto
+{
+    public required string Id { get; init; }
+    public required string Label { get; init; }
+    public string Icon { get; init; } = "tag";
+}
+
+/// <summary>
+/// حمولة الصفحة الرئيسية: فئات + مميّزة + جديدة.
+/// تُقرأ بواسطة ApiReader، ثم تُمرّر إلى AcMarketplaceHomePage.
+/// </summary>
+public sealed record MarketplaceHomeDto
+{
+    public IReadOnlyList<CategoryTileDto> Categories { get; init; } = Array.Empty<CategoryTileDto>();
+    public IReadOnlyList<ListingRowDto> Featured { get; init; } = Array.Empty<ListingRowDto>();
+    public IReadOnlyList<ListingRowDto> New { get; init; } = Array.Empty<ListingRowDto>();
+}
+
+/// <summary>
+/// بطاقة إجراء سريعة في أسفل الصفحة الرئيسية (مثل: "ابحث عن شريك سكن").
+/// الـ Variant: "primary" | "secondary" | "surface".
+/// </summary>
+public sealed record QuickActionDto(string Id, string Label, string Icon, string Variant = "primary");

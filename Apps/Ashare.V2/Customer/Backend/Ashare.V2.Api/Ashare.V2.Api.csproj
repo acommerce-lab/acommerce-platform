@@ -1,0 +1,60 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RollForward>LatestMajor</RollForward>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>Ashare.V2.Api</RootNamespace>
+    <AssemblyName>Ashare.V2.Api</AssemblyName>
+    <UserSecretsId>ashare-v2-api</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- ─── Core OAM engine ──────────────────────────────────────────── -->
+    <ProjectReference Include="..\..\..\..\..\libs\backend\core\ACommerce.OperationEngine\ACommerce.OperationEngine.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\backend\core\ACommerce.OperationEngine.Wire\ACommerce.OperationEngine.Wire.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\backend\core\ACommerce.OperationEngine.Interceptors\ACommerce.OperationEngine.Interceptors.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\backend\core\ACommerce.SharedKernel.Abstractions\ACommerce.SharedKernel.Abstractions.csproj" />
+    <!-- EF Core (SQLite dev / SQL Server prod / PostgreSQL) -->
+    <ProjectReference Include="..\..\..\..\..\libs\backend\core\ACommerce.SharedKernel.Infrastructure.EFCores\ACommerce.SharedKernel.Infrastructure.EFCores.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- ─── Auth: Nafath Mock (تحقق تلقائي 10 ث — يُستبدَل بـ Providers.Nafath في الإنتاج) ── -->
+    <ProjectReference Include="..\..\..\..\..\libs\backend\auth\ACommerce.Authentication.Operations\ACommerce.Authentication.Operations.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\backend\auth\ACommerce.Authentication.TwoFactor.Providers.Nafath.Mock\ACommerce.Authentication.TwoFactor.Providers.Nafath.Mock.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- ─── Payments: Noon Pay ───────────────────────────────────────── -->
+    <ProjectReference Include="..\..\..\..\..\libs\backend\sales\ACommerce.Payments.Operations\ACommerce.Payments.Operations.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\backend\sales\ACommerce.Payments.Providers.Noon\ACommerce.Payments.Providers.Noon.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- ─── Files: AliyunOSS (prod) + Local (dev) ────────────────────── -->
+    <ProjectReference Include="..\..\..\..\..\libs\backend\files\ACommerce.Files.Operations\ACommerce.Files.Operations.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\backend\files\ACommerce.Files.Storage.AliyunOSS\ACommerce.Files.Storage.AliyunOSS.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\backend\files\ACommerce.Files.Storage.Local\ACommerce.Files.Storage.Local.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- ─── Notifications: Firebase (prod) + InApp + Email ───────────── -->
+    <ProjectReference Include="..\..\..\..\..\libs\backend\messaging\ACommerce.Notification.Operations\ACommerce.Notification.Operations.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\backend\messaging\ACommerce.Notification.Providers.Firebase\ACommerce.Notification.Providers.Firebase.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\backend\messaging\ACommerce.Notification.Providers.Email\ACommerce.Notification.Providers.Email.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\backend\messaging\ACommerce.Notification.Providers.InApp\ACommerce.Notification.Providers.InApp.csproj" />
+    <!-- Realtime SignalR transport (browser push via WebSocket) -->
+    <ProjectReference Include="..\..\..\..\..\libs\backend\messaging\ACommerce.Realtime.Operations\ACommerce.Realtime.Operations.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\backend\messaging\ACommerce.Realtime.Providers.SignalR\ACommerce.Realtime.Providers.SignalR.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.0" />
+    <PackageReference Include="Serilog.AspNetCore" Version="8.0.3" />
+    <PackageReference Include="Serilog.Sinks.Console" Version="6.0.0" />
+    <PackageReference Include="Serilog.Sinks.File" Version="6.0.0" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="7.0.0" />
+  </ItemGroup>
+</Project>
+

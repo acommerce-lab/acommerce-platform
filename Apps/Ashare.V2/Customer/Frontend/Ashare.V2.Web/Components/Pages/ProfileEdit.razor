@@ -1,0 +1,190 @@
+@page "/profile/edit"
+@inject ApiReader Api
+@inject AppStore Store
+@inject NavigationManager Nav
+@using ACommerce.Client.Operations
+@using Ashare.V2.Web.Operations
+@inject ClientOpEngine Engine
+@inject L L
+
+<PageTitle>تعديل البروفايل - @(L["app.name"])</PageTitle>
+
+<div class="acs-page acs-profile-edit-page">
+    <h1 class="acm-wizard-title">تعديل الملفّ الشخصيّ</h1>
+
+    @if (_loading) { <AcLoadingState /> }
+    else
+    {
+        <AcCard>
+            <ChildContent>
+                <div class="acm-details-owner">
+                    <span class="acm-details-owner-avatar" style="width:64px; height:64px;">
+                        @if (!string.IsNullOrEmpty(_avatarDataUrl))
+                        {
+                            <img src="@_avatarDataUrl" alt="avatar" style="width:100%; height:100%; border-radius:50%; object-fit:cover;" />
+                        }
+                        else
+                        {
+                            <AcIcon Name="user" Size="32" />
+                        }
+                    </span>
+                    <div class="acm-details-owner-info">
+                        <strong>@(_data!.FullName)</strong>
+                        <span>عضو منذ @_data.MemberSince.ToString("yyyy-MM-dd")</span>
+                    </div>
+                </div>
+
+                <div style="margin-top:12px;">
+                    <label class="ac-btn ac-btn-ghost ac-btn-block" style="display:inline-flex; align-items:center; gap:8px; cursor:pointer;">
+                        <AcIcon Name="camera" Size="16" />
+                        <span>تغيير الصورة</span>
+                        <InputFile OnChange="OnAvatarPicked" accept="image/*" style="display:none;" />
+                    </label>
+                </div>
+            </ChildContent>
+        </AcCard>
+
+        <AcCard>
+            <ChildContent>
+                <AcField Label="الاسم الكامل" Required="true">
+                    <AcInput Value="@_data!.FullName"
+                             ValueChanged="@(v => _data = _data with { FullName = v ?? string.Empty })" />
+                </AcField>
+
+                <AcField Label="@(L["auth.phone"])">
+                    <div style="display:flex; gap:8px; align-items:center;">
+                        <AcInput Type="tel" Value="@_data!.Phone"
+                                 ValueChanged="@(v => _data = _data with { Phone = v ?? string.Empty, PhoneVerified = false })" />
+                        @if (_data.PhoneVerified)
+                        {
+                            <AcBadge Variant="success" Text="موثَّق" />
+                        }
+                        else
+                        {
+                            <AcButton Variant="ghost" Text="تحقّق" OnClick="@VerifyPhone" />
+                        }
+                    </div>
+                </AcField>
+
+                <AcField Label="البريد الإلكترونيّ">
+                    <div style="display:flex; gap:8px; align-items:center;">
+                        <AcInput Type="email" Value="@_data!.Email"
+                                 ValueChanged="@(v => _data = _data with { Email = v ?? string.Empty, EmailVerified = false })" />
+                        @if (_data.EmailVerified)
+                        {
+                            <AcBadge Variant="success" Text="موثَّق" />
+                        }
+                        else
+                        {
+                            <AcButton Variant="ghost" Text="تحقّق" OnClick="@VerifyEmail" />
+                        }
+                    </div>
+                </AcField>
+
+                <AcField Label="المدينة">
+                    <select class="ac-input" value="@_data!.City"
+                            @onchange="@(e => _data = _data with { City = e.Value?.ToString() ?? _data.City })">
+                        @foreach (var c in _cities)
+                        {
+                            <option value="@c">@c</option>
+                        }
+                    </select>
+                </AcField>
+            </ChildContent>
+        </AcCard>
+
+        @if (!string.IsNullOrEmpty(_alert))
+        {
+            <AcAlert Variant="@_alertVariant" Text="@_alert" />
+        }
+
+        <div style="display:flex; gap:8px; margin-top:12px;">
+            <AcButton Variant="primary" Class="ac-btn-block" Text="حفظ التغييرات" OnClick="@Save" Disabled="@_saving" />
+            <AcButton Variant="ghost" Text="إلغاء" OnClick="@GoBack" />
+        </div>
+    }
+</div>
+
+@code {
+    private ProfileDto? _data;
+    private IReadOnlyList<string> _cities = Array.Empty<string>();
+    private bool _loading = true;
+    private bool _saving;
+    private string? _alert;
+    private string _alertVariant = "success";
+    private string? _avatarDataUrl;
+
+    protected override async Task OnAfterRenderAsync(bool first)
+    {
+        if (!first) return;
+        var p = await Api.GetAsync<ProfileDto>("/me/profile");
+        _data = p.Data ?? new ProfileDto("U-1", "", "", false, "", false, "الرياض", null, DateTime.UtcNow);
+        var c = await Api.GetAsync<List<string>>("/cities");
+        _cities = c.Data ?? new() { "الرياض" };
+        _loading = false;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task OnAvatarPicked(InputFileChangeEventArgs e)
+    {
+        var f = e.File;
+        if (f is null) return;
+        if (f.Size > 2 * 1024 * 1024)
+        {
+            _alert = "حجم الصورة أقصى 2MB"; _alertVariant = "danger"; return;
+        }
+        using var s = f.OpenReadStream(maxAllowedSize: 2 * 1024 * 1024);
+        using var ms = new MemoryStream();
+        await s.CopyToAsync(ms);
+        var b64 = Convert.ToBase64String(ms.ToArray());
+        _avatarDataUrl = $"data:{f.ContentType};base64,{b64}";
+        _alert = null;
+    }
+
+    private void VerifyPhone()
+    {
+        _data = _data! with { PhoneVerified = true };
+        _alert = "تمّ إرسال رمز التحقّق — تمّ التأكيد (محاكاة)";
+        _alertVariant = "success";
+    }
+
+    private void VerifyEmail()
+    {
+        _data = _data! with { EmailVerified = true };
+        _alert = "تمّ إرسال رابط التحقّق — تمّ التأكيد (محاكاة)";
+        _alertVariant = "success";
+    }
+
+    private async Task Save()
+    {
+        if (_data is null) return;
+        _saving = true;
+        try
+        {
+            var req = new { FullName = _data.FullName, Email = _data.Email, Phone = _data.Phone, City = _data.City };
+            var env = await Engine.ExecuteAsync<object>(
+                V2Ops.UpdateProfile(_data.FullName, _data.Email, _data.Phone, _data.City),
+                payload: req);
+            if (env?.Operation.Status == "Success")
+            {
+                Store.Auth.FullName = _data.FullName;
+                Store.Auth.Phone = _data.Phone;
+                Store.NotifyChanged();
+                _alert = "تمّ الحفظ"; _alertVariant = "success";
+                await Task.Delay(500);
+                Nav.NavigateTo("/me");
+            }
+            else
+            {
+                _alert = env?.Error?.Message ?? "فشل الحفظ";
+                _alertVariant = "danger";
+            }
+        }
+        finally { _saving = false; }
+    }
+
+    private void GoBack() => Nav.NavigateTo("/me");
+
+    private sealed record ProfileDto(string Id, string FullName, string Email, bool EmailVerified,
+        string Phone, bool PhoneVerified, string City, string? AvatarUrl, DateTime MemberSince);
+}

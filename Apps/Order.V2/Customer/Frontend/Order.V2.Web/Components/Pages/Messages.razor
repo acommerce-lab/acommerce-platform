@@ -1,0 +1,70 @@
+@page "/messages"
+@inject AppStore Store
+@inject ApiReader Api
+@inject NavigationManager Nav
+@inject L L
+
+<PageTitle>@L.T("المحادثات - اوردر", "Messages — Order")</PageTitle>
+
+@if (!Store.Auth.IsAuthenticated)
+{
+    <AcEmptyState IconName="message"
+                  Title="@(Store.Ui.IsArabic ? "سجّل دخولك لرؤية المحادثات" : "Sign in to chat")"
+                  ActionLabel="@(Store.Ui.IsArabic ? "تسجيل الدخول" : "Sign in")"
+                  ActionHref="/login" />
+}
+else
+{
+    <AcMessagesListPage Conversations="@Mapped"
+                        Loading="@Loading"
+                        Title="@(Store.Ui.IsArabic ? "محادثاتي" : "Messages")"
+                        LoadingMessage="@(Store.Ui.IsArabic ? "جاري التحميل..." : "Loading…")"
+                        EmptyTitle="@(Store.Ui.IsArabic ? "لا محادثات بعد" : "No conversations")"
+                        EmptyMessage="@(Store.Ui.IsArabic ? "ابدأ من صفحة العرض بزر «محادثة المتجر»" : "Tap \"Chat with store\" on any offer")"
+                        OnSelectConversation="@SelectConversation" />
+}
+
+@code {
+    private List<ConvApi> Conversations = new();
+    private bool Loading = true;
+
+    private IReadOnlyList<ConversationRowDto> Mapped =>
+        Conversations
+            .Where(c => c.LastMessageAt.HasValue) // hide conversations with no messages sent yet
+            .Select(c => new ConversationRowDto
+            {
+                Id = c.Id.ToString(),
+                Title = c.Title,
+                Emoji = c.Emoji,
+                LastMessageSnippet = c.LastMessageSnippet,
+                LastMessageAt = c.LastMessageAt,
+                Unread = c.Unread
+            }).ToList();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        if (Store.Auth.IsAuthenticated)
+        {
+            var env = await Api.GetAsync<List<ConvApi>>($"/api/messages/conversations/by-user/{Store.Auth.UserId}");
+            Conversations = env.Data ?? new();
+        }
+        Loading = false;
+        StateHasChanged();
+    }
+
+    private void SelectConversation(ConversationRowDto c)
+    {
+        Nav.NavigateTo($"/chat/{c.Id}");
+    }
+
+    public class ConvApi
+    {
+        public Guid Id { get; set; }
+        public string Title { get; set; } = "";
+        public string Emoji { get; set; } = "💬";
+        public string? LastMessageSnippet { get; set; }
+        public DateTime? LastMessageAt { get; set; }
+        public int Unread { get; set; }
+    }
+}

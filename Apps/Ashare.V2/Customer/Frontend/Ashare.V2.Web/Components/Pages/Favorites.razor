@@ -1,0 +1,69 @@
+@page "/favorites"
+@using Ashare.V2.Web.Operations
+@inject AppStore Store
+@inject AppStateApplier Applier
+@inject ApiReader Api
+@inject NavigationManager Nav
+@inject L L
+@implements IDisposable
+
+<PageTitle>@(L["nav.favorites"]) - @(L["app.name"])</PageTitle>
+
+<div class="acs-page">
+    <h1 class="acm-wizard-title">@(L["nav.favorites"])</h1>
+    @if (_loading) { <AcLoadingState /> }
+    else if (_items.Count == 0) { <AcEmptyState IconName="heart" Message="لا توجد مفضلة بعد" /> }
+    else
+    {
+        <div class="acm-home-grid">
+            @foreach (var l in _items)
+            {
+                var lid = l.Id;
+                <AcSpaceCard Title="@l.Title"
+                             ImageUrl="@l.ThumbnailUrl"
+                             Location="@LocText(l)"
+                             Capacity="@(l.Capacity == 0 ? null : l.Capacity)"
+                             Rating="@(l.Rating == 0 ? null : l.Rating)"
+                             PriceLabel="@PriceText(l)"
+                             IsFavorite="true"
+                             OnOpen="@(() => Open(lid))"
+                             OnToggleFavorite="@(on => Toggle(lid, on))" />
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private List<ListingDto> _items = new();
+    private bool _loading = true;
+
+    protected override void OnInitialized() => Store.OnChanged += OnChange;
+
+    protected override async Task OnAfterRenderAsync(bool first) { if (first) await Load(); }
+
+    private async Task Load()
+    {
+        if (Store.FavoriteListingIds.Count == 0) { _items = new(); _loading = false; await InvokeAsync(StateHasChanged); return; }
+        var env = await Api.GetAsync<List<ListingDto>>("/home/explore?sort=newest");
+        var all = env.Data ?? new();
+        _items = all.Where(l => Store.FavoriteListingIds.Contains(l.Id)).ToList();
+        _loading = false;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private static string LocText(ListingDto l) => $"{l.City} — {l.District}";
+    private static string PriceText(ListingDto l) => $"{l.Price:0} SAR";
+
+    private void Open(string id) => Nav.NavigateTo($"/space/{id}");
+
+    private Task Toggle(string id, bool on) => Applier.ApplyLocalAsync(V2Ops.ToggleFavorite(id));
+
+    private async void OnChange() { await Load(); }
+    public void Dispose() => Store.OnChanged -= OnChange;
+
+    private sealed record ListingDto(
+        string Id, string Title, string? Description, decimal Price, string Currency,
+        string? TimeUnit, string? City, string? District, string? CategoryName,
+        int Status, bool IsFeatured, int ViewCount, string? ThumbnailUrl,
+        string? OwnerName, string? OwnerAvatarUrl, int Capacity, decimal Rating);
+}

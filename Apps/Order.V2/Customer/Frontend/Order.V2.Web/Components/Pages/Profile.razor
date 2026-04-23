@@ -1,0 +1,70 @@
+@page "/profile"
+@inject AppStore Store
+@inject AppStateApplier Applier
+@inject NavigationManager Nav
+@inject L L
+
+<PageTitle>@L.T("حسابي - اوردر", "My account — Order")</PageTitle>
+
+@if (!Store.Auth.IsAuthenticated)
+{
+    <AcEmptyState IconName="user"
+                  Title="@(Store.Ui.IsArabic ? "أنت غير مسجل" : "Not signed in")"
+                  ActionLabel="@(Store.Ui.IsArabic ? "تسجيل الدخول" : "Sign in")"
+                  ActionHref="/login" />
+}
+else
+{
+    <AcProfilePage User="@UserDto"
+                   Stats="@StatsList"
+                   MenuSections="@MenuSectionsList"
+                   SignOutLabel="@(Store.Ui.IsArabic ? "تسجيل الخروج" : "Sign out")"
+                   OnSignOut="SignOut" />
+}
+
+@code {
+    private ProfileUserDto UserDto => new()
+    {
+        Id = Store.Auth.UserId?.ToString() ?? "",
+        FullName = Store.Auth.FullName ?? (Store.Ui.IsArabic ? "عميل اوردر" : "Order customer"),
+        PhoneNumber = Store.Auth.PhoneNumber,
+        Initial = !string.IsNullOrEmpty(Store.Auth.FullName) && Store.Auth.FullName.Length > 0 ? Store.Auth.FullName[..1] : "👤"
+    };
+
+    private IReadOnlyList<ProfileStatDto> StatsList => new[]
+    {
+        new ProfileStatDto(Store.Ui.IsArabic ? "طلب" : "Orders", "0"),
+        new ProfileStatDto(Store.Ui.IsArabic ? "مفضلة" : "Favorites", "0"),
+        new ProfileStatDto(Store.Ui.IsArabic ? "نقاط" : "Points", "0"),
+    };
+
+    private IReadOnlyList<MenuSectionDto> MenuSectionsList => new[]
+    {
+        new MenuSectionDto
+        {
+            Title = Store.Ui.IsArabic ? "حسابي" : "Account",
+            Items = new[]
+            {
+                new MenuItemDto { Label = Store.Ui.IsArabic ? "طلباتي" : "My orders",         IconName = "package",  Href = "/orders" },
+                new MenuItemDto { Label = Store.Ui.IsArabic ? "المفضلة" : "Favorites",       IconName = "heart",    Href = "/favorites" },
+                new MenuItemDto { Label = Store.Ui.IsArabic ? "محادثاتي" : "Messages",       IconName = "message",  Href = "/messages" },
+                new MenuItemDto { Label = Store.Ui.IsArabic ? "الإشعارات" : "Notifications", IconName = "bell",     Href = "/notifications" },
+                new MenuItemDto { Label = Store.Ui.IsArabic ? "بياناتي" : "My Account",      IconName = "user",     Href = "/account" },
+            }
+        },
+        new MenuSectionDto
+        {
+            Title = Store.Ui.IsArabic ? "التطبيق" : "App",
+            Items = new[]
+            {
+                new MenuItemDto { Label = Store.Ui.IsArabic ? "الإعدادات" : "Settings", IconName = "settings", Href = "/settings" },
+            }
+        }
+    };
+
+    private async Task SignOut()
+    {
+        await Applier.ApplyLocalAsync(ClientOps.SignOut());
+        Nav.NavigateTo("/", forceLoad: false);
+    }
+}

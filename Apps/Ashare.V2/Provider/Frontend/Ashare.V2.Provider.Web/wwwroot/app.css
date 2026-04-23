@@ -1,0 +1,76 @@
+/* =========================================================================
+   عشير V2 — بوابة المُلاّك — الهوية البصرية
+   ========================================================================= */
+
+:root {
+    /* أزرق بحري + عنبري — نفس ألوان V1 */
+    --ac-primary:       #1E40AF;
+    --ac-primary-hover: #1E3A8A;
+    --ac-on-primary:    #ffffff;
+
+    --ac-secondary:       #F59E0B;
+    --ac-secondary-hover: #D97706;
+
+    --ac-font-family: 'Cairo', 'Noto Kufi Arabic', 'Segoe UI', Tahoma, sans-serif;
+
+    --ac-radius-md: 0.6rem;
+    --ac-radius-lg: 1rem;
+}
+
+body {
+    font-family: var(--ac-font-family);
+    background: var(--ac-bg-alt);
+    margin: 0;
+}
+
+.acs-nafath-head {
+    text-align: center;
+    padding: 2rem 0 1rem;
+    color: var(--ac-primary);
+}
+
+.acs-nafath-wait {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem 0;
+}
+
+.acs-nafath-circle {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    background: var(--ac-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.acs-nafath-number {
+    color: #fff;
+    font-size: 2.5rem;
+    font-weight: 700;
+}
+
+.acs-nafath-state {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    padding: .5rem 1rem;
+    border-radius: var(--ac-radius-md);
+}
+
+.acs-nafath-state--ok  { background: #d1fae5; color: #065f46; }
+.acs-nafath-state--err { background: #fee2e2; color: #991b1b; }
+
+.acs-nafath-timer {
+    display: flex;
+    align-items: center;
+    gap: .4rem;
+    color: var(--ac-text-muted);
+}
+
+.acs-nafath-instruction { color: var(--ac-text-muted); text-align: center; }
+
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap');

@@ -1,0 +1,54 @@
+@page "/settings"
+@inject AppStore Store
+@inject AppStateApplier Applier
+@inject ClientOpEngine Engine
+@inject NavigationManager Nav
+@inject L L
+@implements IDisposable
+
+<PageTitle>@L.T("الإعدادات - اوردر", "Settings — Order")</PageTitle>
+
+<AcSettingsPage Snapshot="Snapshot"
+                Title="@(Store.Ui.IsArabic ? "الإعدادات" : "Settings")"
+                ThemeLabel="@(Store.Ui.IsArabic ? "المظهر" : "Appearance")"
+                LanguageLabel="@(Store.Ui.IsArabic ? "اللغة" : "Language")"
+                AboutLabel="@(Store.Ui.IsArabic ? "حول التطبيق" : "About")"
+                VersionLabel="@(Store.Ui.IsArabic ? "الإصدار" : "Version")"
+                LightLabel="@(Store.Ui.IsArabic ? "فاتح" : "Light")"
+                DarkLabel="@(Store.Ui.IsArabic ? "داكن" : "Dark")"
+                SignOutLabel="@(Store.Ui.IsArabic ? "تسجيل الخروج" : "Sign out")"
+                OnThemeChange="@(async t => { await Applier.ApplyLocalAsync(ClientOps.SetTheme(t)); })"
+                OnLanguageChange="@(async l => { await Applier.ApplyLocalAsync(ClientOps.SetLanguage(l)); })"
+                OnSignOut="@(Store.Auth.IsAuthenticated ? EventCallback.Factory.Create(this, SignOut) : default)">
+    <ExtraSections>
+        <div class="s-card" style="margin-top: 16px">
+            <a href="/legal" style="display:flex;align-items:center;gap: 8px;text-decoration:none;color:inherit">
+                <AcIcon Name="file" Size="20" />
+                @(Store.Ui.IsArabic ? "الشروط والأحكام" : "Terms & Conditions")
+            </a>
+        </div>
+    </ExtraSections>
+</AcSettingsPage>
+
+@code {
+    private SettingsSnapshot Snapshot => new()
+    {
+        Theme = Store.Ui.IsDark ? "dark" : "light",
+        Language = Store.Ui.IsArabic ? "ar" : "en",
+        AppVersion = "1.0.0",
+        BackendInfo = "Order.Api (OpEngine + SQLite)",
+        FrontendInfo = "Order.Web + ACommerce.Widgets"
+    };
+
+    protected override void OnInitialized() => Store.OnChanged += OnChanged;
+
+    private void OnChanged() => InvokeAsync(StateHasChanged);
+
+    private async Task SignOut()
+    {
+        await Applier.ApplyLocalAsync(ClientOps.SignOut());
+        Nav.NavigateTo("/");
+    }
+
+    public void Dispose() => Store.OnChanged -= OnChanged;
+}

@@ -1,0 +1,44 @@
+/* ── Ashare V2 Admin — Dark Navy Theme (ألوان من V1) ─────────────────── */
+:root {
+    --ac-primary:       #3b5998;
+    --ac-primary-hover: #4c6cab;
+    --ac-on-primary:    #ffffff;
+    --ac-bg:            #f3f4f6;
+    --ac-surface:       #ffffff;
+    --ac-bg-alt:        #eef2f7;
+    --ac-border:        #e0e6ed;
+    --ac-text:          #1a2b4a;
+    --ac-text-muted:    #6a7a94;
+    --adm-nav-bg:       #1a2b4a;
+    --adm-nav-brand:    #ffffff;
+    --adm-nav-link:     #b8c9e8;
+    --adm-nav-link-hover: #ffffff;
+    --adm-user-badge:   #8fa8cc;
+    --adm-nav-border:   rgba(255,255,255,0.08);
+}
+
+body { background: var(--ac-bg); color: var(--ac-text); margin: 0; font-family: 'Segoe UI', Tahoma, sans-serif; }
+
+.adm-shell { min-height: 100vh; }
+
+.adm-navbar {
+    background: var(--adm-nav-bg);
+    color: var(--adm-nav-brand);
+    padding: 0 24px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    height: 56px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    border-bottom: 1px solid var(--adm-nav-border);
+    flex-wrap: wrap;
+}
+
+.adm-navbar-brand { color: var(--adm-nav-brand); font-weight: 700; font-size: 1.125rem; text-decoration: none; }
+.adm-navbar-link  { color: var(--adm-nav-link); text-decoration: none; font-size: .875rem; transition: color .15s; }
+.adm-navbar-link:hover { color: var(--adm-nav-link-hover); }
+.adm-user-badge   { color: var(--adm-user-badge); font-size: .875rem; }
+.adm-navbar-actions { display: flex; gap: 8px; margin-inline-start: auto; align-items: center; flex-wrap: wrap; }
+.adm-main { max-width: 1100px; margin: 0 auto; padding: 24px 16px; }

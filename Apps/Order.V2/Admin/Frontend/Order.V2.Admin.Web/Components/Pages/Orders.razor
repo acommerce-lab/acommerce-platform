@@ -1,0 +1,66 @@
+@page "/orders"
+@rendermode InteractiveServer
+@inject AppStore Store
+@inject ApiReader Api
+@inject L L
+
+<PageTitle>@L.T("الطلبات — اوردر V2", "Orders — Order V2")</PageTitle>
+
+<AcAuthGuard IsAuthenticated="@Store.Auth.IsAuthenticated" LoginHref="/login">
+    <h2 class="page-title">@L.T("الطلبات", "Orders")</h2>
+    @if (_loading)
+    {
+        <AcSpinner />
+    }
+    else
+    {
+        <div class="table-wrap">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>@L.T("رقم الطلب", "Order #")</th>
+                        <th>@L.T("العميل", "Customer")</th>
+                        <th>@L.T("المتجر", "Vendor")</th>
+                        <th>@L.T("الإجمالي", "Total")</th>
+                        <th>@L.T("العملة", "Currency")</th>
+                        <th>@L.T("الحالة", "Status")</th>
+                        <th>@L.T("نوع الاستلام", "Pickup")</th>
+                        <th>@L.T("التاريخ", "Date")</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var o in _orders)
+                    {
+                        <tr>
+                            <td>@o.OrderNumber</td>
+                            <td class="id-cell">@o.CustomerId.ToString()[..8]…</td>
+                            <td class="id-cell">@o.VendorId.ToString()[..8]…</td>
+                            <td>@o.Total.ToString("0.##")</td>
+                            <td>@o.Currency</td>
+                            <td><span class="status-badge status-@o.Status.ToLower()">@o.Status</span></td>
+                            <td>@o.PickupType</td>
+                            <td>@o.CreatedAt.ToString("yyyy-MM-dd")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</AcAuthGuard>
+
+@code {
+    private bool _loading = true;
+    private List<OrderRow> _orders = new();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || !Store.Auth.IsAuthenticated) { _loading = false; StateHasChanged(); return; }
+        var env = await Api.GetAsync<List<OrderRow>>("/api/admin/orders");
+        _orders = env.Data ?? new();
+        _loading = false; StateHasChanged();
+    }
+
+    private record OrderRow(Guid Id, string OrderNumber, Guid CustomerId, Guid VendorId,
+                             decimal Total, string Currency, string Status,
+                             string? PickupType, DateTime CreatedAt);
+}

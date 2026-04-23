@@ -1,0 +1,42 @@
+@page "/my-listings"
+@rendermode InteractiveServer
+@inject AppStore Store
+@inject ApiReader Api
+@inject ClientOpEngine Engine
+@inject L L
+
+<PageTitle>@L.T("إعلاناتي — عشير V2", "My listings — Ashare V2")</PageTitle>
+
+<AcAuthGuard IsAuthenticated="@Store.Auth.IsAuthenticated" LoginHref="/login">
+    <AcListingsPage Listings="@_listings"
+                    Loading="@_loading"
+                    Title="@L.T("إعلاناتي", "My listings")"
+                    EmptyMessage="@L.T("لا توجد إعلانات بعد", "No listings yet")" />
+</AcAuthGuard>
+
+@code {
+    private bool _loading = true;
+    private List<ListingRowDto> _listings = new();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || !Store.Auth.IsAuthenticated) { _loading = false; StateHasChanged(); return; }
+        var env = await Api.GetAsync<List<ListingRow>>("/my-listings");
+        _listings = (env.Data ?? new()).Select(l => new ListingRowDto
+        {
+            Id         = l.Id,
+            Title      = l.Title ?? l.Id,
+            Price      = l.Price,
+            Currency   = l.Currency,
+            City       = l.City,
+            Status     = l.IsActive ? 1 : 0,
+            IsFeatured = l.IsFeatured,
+            ViewCount  = l.ViewCount,
+        }).ToList();
+        _loading = false;
+        StateHasChanged();
+    }
+
+    private record ListingRow(string Id, string? Title, decimal Price, string Currency,
+                               string? City, bool IsActive, bool IsFeatured, int ViewCount);
+}

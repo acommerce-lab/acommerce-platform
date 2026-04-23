@@ -1,0 +1,18 @@
+@inject L L
+
+<Router AppAssembly="typeof(Program).Assembly">
+    <Found Context="routeData">
+        <RouteView RouteData="routeData" DefaultLayout="typeof(MainLayout)" />
+        <FocusOnNavigate RouteData="routeData" Selector="h1" />
+    </Found>
+    <NotFound>
+        <LayoutView Layout="typeof(MainLayout)">
+            <div class="acs-page" style="text-align:center;padding-top: 48px">
+                <div style="font-size:3rem">🤔</div>
+                <h2>@L.T("الصفحة غير موجودة", "Page not found")</h2>
+                <p class="ac-text-muted">@L.T("الرابط الذي اتبعته لا يطابق أي صفحة في اوردر.", "The URL you followed doesn't match any page in Order.")</p>
+                <a href="/"><AcButton Variant="primary" Text="@L.T("العودة للرئيسية", "Back to home")" /></a>
+            </div>
+        </LayoutView>
+    </NotFound>
+</Router>

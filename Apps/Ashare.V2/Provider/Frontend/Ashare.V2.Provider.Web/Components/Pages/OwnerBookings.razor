@@ -1,0 +1,70 @@
+@page "/owner-bookings"
+@rendermode InteractiveServer
+@inject AppStore Store
+@inject ApiReader Api
+@inject ClientOpEngine Engine
+@inject L L
+
+<PageTitle>@L.T("الحجوزات — عشير V2", "Bookings — Ashare V2")</PageTitle>
+
+<AcAuthGuard IsAuthenticated="@Store.Auth.IsAuthenticated" LoginHref="/login">
+    <AcBookingsPage Bookings="@_bookings"
+                    Loading="@_loading"
+                    Title="@L.T("الحجوزات", "Bookings")"
+                    EmptyMessage="@L.T("لا توجد حجوزات", "No bookings")"
+                    IsOwnerView="true"
+                    OnConfirm="@Confirm"
+                    OnReject="@Reject" />
+</AcAuthGuard>
+
+@code {
+    private bool _loading = true;
+    private List<BookingRowDto> _bookings = new();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || !Store.Auth.IsAuthenticated) { _loading = false; StateHasChanged(); return; }
+        var env = await Api.GetAsync<List<BookingRow>>("/bookings");
+        _bookings = (env.Data ?? new()).Select(b => new BookingRowDto
+        {
+            Id           = b.Id,
+            TotalPrice   = b.TotalPrice,
+            Currency     = b.Currency,
+            StartDate    = b.StartDate,
+            EndDate      = b.EndDate,
+            Status       = b.Status,
+            CustomerName = b.CustomerName,
+            Notes        = b.Notes,
+        }).ToList();
+        _loading = false;
+        StateHasChanged();
+    }
+
+    private async Task Confirm(BookingRowDto b)
+    {
+        if (!Guid.TryParse(b.Id, out var id)) return;
+        var res = await Engine.ExecuteAsync<object>(ProviderV2Ops.ConfirmBooking(id), new { });
+        if (res.Operation.Status == "Success")
+        {
+            var i = _bookings.FindIndex(x => x.Id == b.Id);
+            if (i >= 0) _bookings[i] = _bookings[i] with { Status = 1 };
+            StateHasChanged();
+        }
+    }
+
+    private async Task Reject(BookingRowDto b)
+    {
+        if (!Guid.TryParse(b.Id, out var id)) return;
+        var res = await Engine.ExecuteAsync<object>(ProviderV2Ops.RejectBooking(id), new { });
+        if (res.Operation.Status == "Success")
+        {
+            var i = _bookings.FindIndex(x => x.Id == b.Id);
+            if (i >= 0) _bookings[i] = _bookings[i] with { Status = 4 };
+            StateHasChanged();
+        }
+    }
+
+    private record BookingRow(string Id, decimal TotalPrice, string Currency,
+                               DateTime StartDate, DateTime EndDate, int Status,
+                               string? CustomerName, string? Notes);
+}

@@ -1,0 +1,88 @@
+@page "/offers"
+@rendermode InteractiveServer
+@inject AppStore Store
+@inject ApiReader Api
+@inject ClientOpEngine Engine
+@inject L L
+
+<PageTitle>@L.T("العروض — اوردر V2", "Offers — Order V2")</PageTitle>
+
+<AcAuthGuard IsAuthenticated="@Store.Auth.IsAuthenticated" LoginHref="/login">
+    <h2 class="page-title">@L.T("العروض", "Offers")</h2>
+    @if (_loading)
+    {
+        <AcSpinner />
+    }
+    else
+    {
+        <div class="table-wrap">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>@L.T("العنوان", "Title")</th>
+                        <th>@L.T("المتجر", "Vendor")</th>
+                        <th>@L.T("السعر", "Price")</th>
+                        <th>@L.T("السعر الأصلي", "Original")</th>
+                        <th>@L.T("الخصم %", "Discount %")</th>
+                        <th>@L.T("العملة", "Currency")</th>
+                        <th>@L.T("نشط", "Active")</th>
+                        <th>@L.T("مميز", "Featured")</th>
+                        <th>@L.T("التاريخ", "Date")</th>
+                        <th>@L.T("إجراء", "Action")</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var o in _offers)
+                    {
+                        <tr>
+                            <td>@o.Title</td>
+                            <td class="id-cell">@o.VendorId.ToString()[..8]…</td>
+                            <td>@o.Price.ToString("0.##")</td>
+                            <td>@o.OriginalPrice.ToString("0.##")</td>
+                            <td>@o.DiscountPercent%</td>
+                            <td>@o.Currency</td>
+                            <td>@(o.IsActive ? "✓" : "✗")</td>
+                            <td>@(o.IsFeatured ? "✓" : "✗")</td>
+                            <td>@o.CreatedAt.ToString("yyyy-MM-dd")</td>
+                            <td>
+                                @if (o.IsActive)
+                                {
+                                    <AcButton Variant="danger" Size="sm" Text="@L.T("تعطيل", "Disable")"
+                                              OnClick="@(() => Deactivate(o))" />
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</AcAuthGuard>
+
+@code {
+    private bool _loading = true;
+    private List<OfferRow> _offers = new();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || !Store.Auth.IsAuthenticated) { _loading = false; StateHasChanged(); return; }
+        var env = await Api.GetAsync<List<OfferRow>>("/api/admin/offers");
+        _offers = env.Data ?? new();
+        _loading = false; StateHasChanged();
+    }
+
+    private async Task Deactivate(OfferRow o)
+    {
+        var res = await Engine.ExecuteAsync<object>(AdminV2Ops.DeactivateOffer(o.Id), new { });
+        if (res.Operation.Status == "Success")
+        {
+            var i = _offers.FindIndex(x => x.Id == o.Id);
+            if (i >= 0) _offers[i] = _offers[i] with { IsActive = false };
+            StateHasChanged();
+        }
+    }
+
+    private record OfferRow(Guid Id, string Title, Guid VendorId, Guid? CategoryId,
+                             decimal Price, decimal OriginalPrice, string Currency,
+                             bool IsActive, bool IsFeatured, decimal DiscountPercent, DateTime CreatedAt);
+}

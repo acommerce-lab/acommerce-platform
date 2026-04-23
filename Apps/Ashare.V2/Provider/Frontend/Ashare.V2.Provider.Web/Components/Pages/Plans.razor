@@ -1,0 +1,40 @@
+@page "/plans"
+@rendermode InteractiveServer
+@inject AppStore Store
+@inject ApiReader Api
+@inject L L
+
+<PageTitle>@L.T("الباقات — عشير V2", "Plans — Ashare V2")</PageTitle>
+
+<AcAuthGuard IsAuthenticated="@Store.Auth.IsAuthenticated" LoginHref="/login">
+    <AcSubscriptionPage AvailablePlans="@_plans"
+                        Subscription="@_subscription"
+                        Loading="@_loading"
+                        Title="@L.T("باقات الاشتراك", "Subscription plans")" />
+</AcAuthGuard>
+
+@code {
+    private bool _loading = true;
+    private List<PlanRowDto> _plans = new();
+    private SubscriptionInfoDto? _subscription;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || !Store.Auth.IsAuthenticated) { _loading = false; StateHasChanged(); return; }
+        var env = await Api.GetAsync<List<PlanRow>>("/plans");
+        _plans = (env.Data ?? new()).Select(p => new PlanRowDto
+        {
+            Id           = p.Id,
+            Name         = p.Name,
+            Description  = p.Description,
+            MonthlyPrice = p.MonthlyPrice,
+            Currency     = p.Currency,
+            Slug         = p.Slug,
+        }).ToList();
+        _loading = false;
+        StateHasChanged();
+    }
+
+    private record PlanRow(string Id, string Name, string? Description,
+                            decimal MonthlyPrice, string Currency, string Slug);
+}

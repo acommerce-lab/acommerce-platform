@@ -1,0 +1,78 @@
+/* ── اوردر V2 Vendor — Teal Theme ──────────────────────────────────────── */
+:root {
+    --ac-primary:       #0f766e;
+    --ac-primary-hover: #0d9488;
+    --ac-on-primary:    #ffffff;
+    --ac-bg:            #f0fdfb;
+    --ac-surface:       #ffffff;
+    --ac-bg-alt:        #ccfbf1;
+    --ac-border:        #99f6e4;
+    --ac-text:          #042f2e;
+    --ac-text-muted:    #4d7c78;
+    --vndr-nav-bg:      #0d3330;
+    --vndr-nav-brand:   #ffffff;
+    --vndr-nav-link:    #7dd3ca;
+    --vndr-nav-link-hover: #ffffff;
+    --vndr-nav-border:  rgba(255,255,255,0.07);
+}
+
+body { background: var(--ac-bg); color: var(--ac-text); margin: 0; font-family: 'Segoe UI', Tahoma, sans-serif; }
+
+.vndr-shell { min-height: 100vh; }
+
+.vndr-navbar {
+    background: var(--vndr-nav-bg);
+    color: var(--vndr-nav-brand);
+    padding: 0 24px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    height: 56px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    border-bottom: 1px solid var(--vndr-nav-border);
+    flex-wrap: wrap;
+}
+
+.vndr-navbar-brand { color: var(--vndr-nav-brand); font-weight: 700; font-size: 1.125rem; text-decoration: none; }
+.vndr-navbar-link  { color: var(--vndr-nav-link); text-decoration: none; font-size: .875rem; transition: color .15s; }
+.vndr-navbar-link:hover { color: var(--vndr-nav-link-hover); }
+.vndr-navbar-actions { display: flex; gap: 8px; margin-inline-start: auto; align-items: center; flex-wrap: wrap; }
+.vndr-main { max-width: 1100px; margin: 0 auto; padding: 24px 16px; }
+
+/* ── Orders grid ─────────────────────────────────────────────────────────── */
+.orders-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; }
+
+/* ── Page title ──────────────────────────────────────────────────────────── */
+.page-title { font-size: 1.4rem; font-weight: 700; margin-bottom: 20px; }
+
+/* ── Tables ──────────────────────────────────────────────────────────────── */
+.table-wrap { overflow-x: auto; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,.08); }
+.table { width: 100%; border-collapse: collapse; background: var(--ac-surface); font-size: .875rem; }
+.table thead tr { background: var(--ac-bg-alt); }
+.table th, .table td { padding: 10px 14px; border-bottom: 1px solid var(--ac-border); text-align: start; }
+.table th { font-weight: 600; color: var(--ac-text-muted); font-size: .8rem; }
+.table tbody tr:hover { background: var(--ac-bg-alt); }
+
+/* ── Status badges ───────────────────────────────────────────────────────── */
+.status-badge { display: inline-block; padding: 2px 10px; border-radius: 12px; font-size: .75rem; font-weight: 600; }
+.status-active  { background: #d1fae5; color: #065f46; }
+.status-suspended { background: #fee2e2; color: #991b1b; }
+
+/* ── Card helpers ────────────────────────────────────────────────────────── */
+.card { background: var(--ac-surface); border: 1px solid var(--ac-border); border-radius: 8px; padding: 20px; box-shadow: 0 1px 4px rgba(0,0,0,.06); }
+.mb-4 { margin-bottom: 24px; }
+.mt-3 { margin-top: 16px; }
+.offer-form-wrap { }
+
+/* ── Profile card ────────────────────────────────────────────────────────── */
+.profile-header { text-align: center; margin-bottom: 20px; }
+.profile-logo { font-size: 3rem; }
+.profile-cover { font-size: 1.5rem; }
+.profile-header h3 { margin: 8px 0 4px; font-size: 1.5rem; }
+.profile-fields { display: grid; grid-template-columns: 1fr 2fr; gap: 8px; }
+.profile-fields dt { font-weight: 600; color: var(--ac-text-muted); }
+.text-muted { color: var(--ac-text-muted); }
+.form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 16px; }
+.success-msg { color: #065f46; font-size: .875rem; margin-top: 8px; }

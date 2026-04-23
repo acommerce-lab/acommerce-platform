@@ -29,6 +29,34 @@
 
 ---
 
+## Execution strategy — horizontal slicing
+
+Starting with the Ashare-design import (session 5+), we deliver one
+**page end-to-end** per session (widgets → template → app page) rather
+than completing an entire layer at once.
+
+Each slice:
+1. Adds only the atomic widgets the page needs to `libs/frontend/ACommerce.Widgets`.
+2. Adds the page's template to the right `Templates.*` library,
+   operation-aware (emits entries, reads from `ITemplateStore`).
+3. Wires the page into the new `Apps/Ashare.V2` consumer app with a
+   minimal backend endpoint returning an `OperationEnvelope`.
+4. Extends `scripts/widget-contracts.json`, adds a `/catalog` entry,
+   and runs `verify-page-structure / verify-css / verify-design-tokens /
+   verify-widget-contracts` before committing.
+
+Slice order (first pass):
+
+| # | Slice | New widgets | New template | Ashare.V2 page |
+|---|---|---|---|---|
+| 1 | Home | AcSearchBox, AcCategoryTile, AcSpaceCard, AcSectionHeader, AcHScroll | AcMarketplaceHomePage | `/` |
+| 2 | Explore | AcFilterChip, AcSortMenu, AcViewToggle, AcBottomSheet | AcListingExplorePage | `/explore` |
+| 3 | Listing details | AcGallery, AcStickyActionBar, AcRatingStars | AcListingDetailsPage | `/space/{id}` |
+| 4 | Booking wizard | AcProgressSteps | AcBookingWizardPage | `/book/{id}` |
+| 5 | Version gate | (none — re-uses existing) | AcVersionGate | app-level guard |
+| 6 | Auth (Nafath + SMS) | — | AcNafathLoginPage | `/login` |
+| 7 | Complaints, Legal, Profile | — | AcComplaintsPage, AcLegalPageView | `/help/*`, `/me` |
+
 ## Phase 0 — Core model enhancements — DONE
 
 تحسينات OperationEngine لإضفاء الصفة الرسمية على مفاهيم النموذج.
@@ -252,7 +280,23 @@ deployments.
 - **مبدأ "لا بتر"**: المفاتيح غير الموجودة في القالب تُحفظ كصفات إضافية.
 - عند فشل الاتصال → يعود لبيانات البذر المحلية.
 
-### B.5 Template adaptation log
+### B.5 Missing items — legacy Ashare mobile features to carry over
+
+Items found in `acommerce-lab/ACommerce.Libraries → Apps/Ashare.*` that
+don't exist yet on the new platform:
+
+| Item | Old location | Needed here |
+|---|---|---|
+| **Version gate** (force-update screen) | `Ashare.App/Components/AppStartup.razor` + `IAppVersionService` + `VersionCheckService` | `AcVersionGate` template + `app.version.check` entry + `IAppVersionChannel` provider contract |
+| **Conditional shell** (hide navbar/bottom-nav on auth + full-screen routes) | `Ashare.Shared/Components/Layout/MainLayout.razor` | `AppStore.Ui.HideChromeOn: string[]` + `AcConditionalShell` template |
+| **LegalPageView** (`/legal/{key}` iframe + retry) | `Ashare.Shared/Components/Pages/LegalPageView.razor` | `AcLegalPageView` template + `legal.fetch` entry |
+| **Tracking consent** (once-per-user) | `ITrackingConsentService` | `tracking.consent.grant` / `.revoke` entries |
+| **Listing drafts** (save-before-auth) | `PendingListingService` | `listing.draft.save` / `.resume` |
+| **Complaints flow** | `Complaints.razor`, `ComplaintDetails.razor` | `AcComplaintsPage` + `complaint.file`, `complaint.reply` |
+| **Cultural patterns (5)** | `ashare.css` (`.ashare-pattern-sadu/asiri/najdi/roshan/gypsum`) | SVG stroke-only patterns inherited via `currentColor` |
+| **Splash asset** | `Ashare.App/Resources/Splash/splash.svg` | moved to `Apps/Ashare.V2/Customer/Frontend/Ashare.V2.Web/wwwroot/` |
+
+### B.6 Template adaptation log
 
 القوالب تتكيّف مع بيانات الإنتاج الحقيقية بدلاً من فرض شكل جديد:
 
@@ -276,6 +320,23 @@ tiles. Same UX pattern (pins → popup → bottom sheet).
 ### 5.3 Formal model specification
 Write the mathematical definition of OAM as described in `MODEL.md`
 algebraic structure section. Target: workshop paper or technical report.
+
+---
+
+### Session 6 — Ashare V2 Migration: Pair A (Bootstrap)
+- Branch: `claude/migrate-pair-v2-BKhe8`
+- **Backend (Ashare.V2.Api)**:
+  - تسجيل 19 كيان في `EntityDiscoveryRegistry`
+  - إضافة Serilog + Swagger (v2 doc) + Health checks (`/healthz` + `/health` envelope)
+  - `GlobalExceptionMiddleware` → `OperationEnvelope<object>` عند الاستثناءات
+  - سكربتات فحص خلفيّة: `verify-backend-envelope.sh`, `verify-backend-mutations.sh`, `verify-backend-entries.sh`
+  - اختبارات تكاملية: `tests/Ashare.V2.Api.Tests/HealthTests.cs` (3 اختبارات)
+- **Frontend (Ashare.V2.Web)**:
+  - تحديث ألوان العلامة التجارية في `app.css`: تيل داكن (#345454) + خلفية دافئة (#FEE8D6)
+  - إصلاح تحذيرات البناء (CS8602 في ProfileEdit + RZ10012 في AcVersionGate)
+  - صورة الشعار الأوّلية في `wwwroot/images/ashare-logo.png`
+- **Build**: 0 warnings, 0 errors — frontend + backend + tests
+- **Verify scripts**: envelope ✓, mutations ✓, entries ✓, page-structure ✓, css ✓, widget-contracts ✓, design-tokens ✓
 
 ---
 

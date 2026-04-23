@@ -1,0 +1,226 @@
+@namespace ACommerce.Templates.Marketplace
+
+@*
+    AcMarketplaceHomePage — صفحة رئيسيّة لتطبيق سوق.
+    بنية مطابقة لـ Ashare/Apps/Ashare.Shared/Components/Pages/Home.razor:
+      ├─ AcHeroBanner (logo + title + subtitle + AcSearchBox)
+      ├─ Categories (AcHScroll of AcCategoryTile)
+      ├─ AcCtaCard (لديك غرفة للمشاركة؟)
+      ├─ Featured spaces (AcHScroll of AcSpaceCard)
+      ├─ New spaces (grid of AcSpaceCard)
+      └─ Quick actions (2x AcActionCard)
+
+    Operation-aware: كل إجراء يُصدِر Entry عبر ITemplateEngine.
+*@
+
+<div class="acs-page acm-home">
+
+    <AcHeroBanner Title="@Title" Subtitle="@Subtitle" LogoContent="@LogoContent">
+        <AcSearchBox Placeholder="@SearchPlaceholder"
+                     Value="@_query"
+                     ValueChanged="v => _query = v"
+                     OnSubmit="SubmitSearch" />
+    </AcHeroBanner>
+
+    @if (Data is null)
+    {
+        <AcLoadingState />
+    }
+    else
+    {
+        @if (Data.Categories.Count > 0)
+        {
+            <AcSectionHeader Title="@CategoriesTitle" />
+            <AcHScroll>
+                @foreach (var c in Data.Categories)
+                {
+                    <AcCategoryTile Label="@c.Label"
+                                    Icon="@c.Icon"
+                                    OnClick="@(() => SelectCategory(c))" />
+                }
+            </AcHScroll>
+        }
+
+        @if (!string.IsNullOrEmpty(CtaTitle))
+        {
+            <AcCtaCard Title="@CtaTitle"
+                       Subtitle="@CtaSubtitle"
+                       IconName="@CtaIcon"
+                       Variant="secondary"
+                       OnClick="OnCtaClicked" />
+        }
+
+        @if (Data.Featured.Count > 0)
+        {
+            <AcSectionHeader Title="@FeaturedTitle"
+                             ActionLabel="@ViewAllLabel"
+                             OnAction="@(() => ViewAll("featured"))" />
+            <AcHScroll Class="acm-home-rail">
+                @foreach (var l in Data.Featured)
+                {
+                    <div class="acm-home-rail-item">
+                        <AcSpaceCard Title="@l.Title"
+                                     ImageUrl="@l.ThumbnailUrl"
+                                     Location="@LocationText(l)"
+                                     Capacity="@l.Capacity"
+                                     Rating="@l.Rating"
+                                     PriceLabel="@PriceText(l)"
+                                     Ribbon="مميّز"
+                                     IsFavorite="@IsFavorite(l.Id)"
+                                     OnOpen="() => OpenListing(l)"
+                                     OnToggleFavorite="on => ToggleFavorite(l, on)" />
+                    </div>
+                }
+            </AcHScroll>
+        }
+
+        @if (Data.New.Count > 0)
+        {
+            <AcSectionHeader Title="@NewTitle"
+                             ActionLabel="@ViewAllLabel"
+                             OnAction="@(() => ViewAll("new"))" />
+            <div class="acm-home-grid">
+                @foreach (var l in Data.New)
+                {
+                    <AcSpaceCard Title="@l.Title"
+                                 ImageUrl="@l.ThumbnailUrl"
+                                 Location="@LocationText(l)"
+                                 Capacity="@l.Capacity"
+                                 Rating="@l.Rating"
+                                 PriceLabel="@PriceText(l)"
+                                 Ribbon="جديد"
+                                 IsFavorite="@IsFavorite(l.Id)"
+                                 OnOpen="() => OpenListing(l)"
+                                 OnToggleFavorite="on => ToggleFavorite(l, on)" />
+                }
+            </div>
+        }
+
+        @if (QuickActions is not null && QuickActions.Count > 0)
+        {
+            <section class="acm-home-actions">
+                @foreach (var a in QuickActions)
+                {
+                    <AcActionCard Label="@a.Label"
+                                  IconName="@a.Icon"
+                                  Variant="@a.Variant"
+                                  OnClick="@(() => OnQuickAction.InvokeAsync(a))" />
+                }
+            </section>
+        }
+
+        @if (Data.Categories.Count == 0 && Data.Featured.Count == 0 && Data.New.Count == 0)
+        {
+            <AcEmptyState IconName="building" Message="@EmptyMessage" />
+        }
+    }
+</div>
+
+@code {
+    [Parameter] public MarketplaceHomeDto? Data { get; set; }
+    [Parameter] public ITemplateEngine? Engine { get; set; }
+    [Parameter] public ITemplateStore? Store { get; set; }
+
+    [Parameter] public string Title { get; set; } = "ابحث عن سكنك المشترك";
+    [Parameter] public string Subtitle { get; set; } = "تطبيق السكن المشترك الأول في السعودية";
+    [Parameter] public RenderFragment? LogoContent { get; set; }
+    [Parameter] public string SearchPlaceholder { get; set; } = "ابحث عن سكن مشترك…";
+
+    [Parameter] public string CategoriesTitle { get; set; } = "الفئات";
+    [Parameter] public string FeaturedTitle { get; set; } = "سكن مميّز";
+    [Parameter] public string NewTitle { get; set; } = "أُضيف حديثاً";
+    [Parameter] public string ViewAllLabel { get; set; } = "عرض الكل";
+    [Parameter] public string EmptyMessage { get; set; } = "لا توجد إعلانات حالياً";
+
+    [Parameter] public string? CtaTitle { get; set; } = "لديك غرفة أو شقة للمشاركة؟";
+    [Parameter] public string? CtaSubtitle { get; set; } = "أضف سكنك الآن وابدأ بالكسب من مشاركته مع الآخرين";
+    [Parameter] public string? CtaIcon { get; set; } = "house-add";
+
+    [Parameter] public IReadOnlyList<QuickActionDto>? QuickActions { get; set; }
+    [Parameter] public ISet<string>? FavoriteIds { get; set; }
+
+    [Parameter] public EventCallback<string?> OnSearch { get; set; }
+    [Parameter] public EventCallback<CategoryTileDto> OnCategorySelected { get; set; }
+    [Parameter] public EventCallback<ListingRowDto> OnListingOpen { get; set; }
+    [Parameter] public EventCallback<(ListingRowDto Listing, bool On)> OnFavoriteToggled { get; set; }
+    [Parameter] public EventCallback<string> OnViewAll { get; set; }
+    [Parameter] public EventCallback OnCtaClick { get; set; }
+    [Parameter] public EventCallback<QuickActionDto> OnQuickAction { get; set; }
+
+    private string? _query;
+
+    private bool IsFavorite(string id) => FavoriteIds?.Contains(id) ?? false;
+
+    private static string? LocationText(ListingRowDto l) =>
+        string.Join(" — ", new[] { l.City, l.District }.Where(s => !string.IsNullOrWhiteSpace(s)));
+
+    private static string PriceText(ListingRowDto l)
+    {
+        var unit = l.TimeUnit switch
+        {
+            "day" or "يوم" => "/ يوم",
+            "night" or "ليلة" => "/ ليلة",
+            "week" or "أسبوع" => "/ أسبوع",
+            "month" or "شهر" => "/ شهر",
+            _ => ""
+        };
+        return $"{l.Price:0} {l.Currency} {unit}".Trim();
+    }
+
+    private async Task SubmitSearch()
+    {
+        if (Engine is not null)
+        {
+            var op = Entry.Create("catalog.search")
+                .From($"User:{Store?.UserId?.ToString() ?? "anon"}", 1, ("role", "searcher"))
+                .To("Catalog:listings", 1, ("role", "target"))
+                .Tag("q", _query ?? "")
+                .Build();
+            await Engine.ExecuteAsync<object>(op, new { Query = _query });
+        }
+        await OnSearch.InvokeAsync(_query);
+    }
+
+    private async Task SelectCategory(CategoryTileDto c)
+    {
+        if (Engine is not null)
+        {
+            var op = Entry.Create("category.select")
+                .From($"User:{Store?.UserId?.ToString() ?? "anon"}", 1, ("role", "selector"))
+                .To($"Category:{c.Id}", 1, ("role", "target"))
+                .Build();
+            await Engine.ExecuteAsync<object>(op, new { CategoryId = c.Id });
+        }
+        await OnCategorySelected.InvokeAsync(c);
+    }
+
+    private async Task OpenListing(ListingRowDto l)
+    {
+        if (Engine is not null)
+        {
+            var op = Entry.Create("listing.view")
+                .From($"User:{Store?.UserId?.ToString() ?? "anon"}", 1, ("role", "viewer"))
+                .To($"Listing:{l.Id}", 1, ("role", "target"))
+                .Build();
+            await Engine.ExecuteAsync<object>(op, new { ListingId = l.Id });
+        }
+        await OnListingOpen.InvokeAsync(l);
+    }
+
+    private async Task ToggleFavorite(ListingRowDto l, bool on)
+    {
+        if (Engine is not null && Store?.UserId is not null)
+        {
+            var op = Entry.Create("listing.favorite")
+                .From($"User:{Store.UserId}", 1, ("role", "user"))
+                .To($"Listing:{l.Id}", 1, ("role", "target"))
+                .Tag("state", on ? "on" : "off")
+                .Build();
+            await Engine.ExecuteAsync<object>(op, new { ListingId = l.Id, On = on });
+        }
+        await OnFavoriteToggled.InvokeAsync((l, on));
+    }
+
+    private Task ViewAll(string section) => OnViewAll.InvokeAsync(section);
+    private Task OnCtaClicked() => OnCtaClick.InvokeAsync();
+}

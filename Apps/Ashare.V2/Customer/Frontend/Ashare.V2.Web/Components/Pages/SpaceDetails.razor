@@ -1,0 +1,188 @@
+@page "/space/{Id}"
+@using ACommerce.Client.Operations
+@using Ashare.V2.Web.Operations
+@inject AppStore Store
+@inject AppStateApplier Applier
+@inject ApiReader Api
+@inject NavigationManager Nav
+@inject ClientOpEngine Engine
+@implements IDisposable
+
+<PageTitle>تفاصيل - عشير</PageTitle>
+
+<div class="acs-page acs-space-details">
+    @if (_loading) { <AcLoadingState /> }
+    else if (_data is null) { <AcEmptyState IconName="info" Message="الإعلان غير موجود" /> }
+    else
+    {
+        <div class="acs-gallery-wrap">
+            @if (_data.Images is not null && _data.Images.Count > 0)
+            {
+                <AcGallery Images="@(_data.Images.ToList())" />
+            }
+            else
+            {
+                <div class="acs-gallery-ph"><AcIcon Name="image" Size="48" /></div>
+            }
+            <button type="button" class="acs-fav-btn @(IsFav ? "active" : "")" @onclick="ToggleFavorite">
+                <AcIcon Name="heart" Filled="@IsFav" Size="20" />
+            </button>
+        </div>
+
+        <h1 class="acm-wizard-title">@_data.Title</h1>
+        <div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:8px;">
+            @if (!string.IsNullOrEmpty(_data.LocationText))
+            {
+                <span><AcIcon Name="map-pin" Size="14" /> @_data.LocationText</span>
+            }
+            @if (_data.Capacity > 0)
+            {
+                <span><AcIcon Name="user" Size="14" /> @_data.Capacity أشخاص</span>
+            }
+            @if (_data.Rating > 0)
+            {
+                <span><AcIcon Name="star" Size="14" /> @_data.Rating.ToString("0.0")</span>
+            }
+            @if (IsMine)
+            {
+                <AcBadge Variant="secondary" Text="إعلانك" />
+            }
+        </div>
+
+        <div class="acm-checkout-line">
+            <strong style="font-size:20px;">@_data.PriceDisplay</strong>
+            @if (!string.IsNullOrEmpty(_data.PriceUnit)) { <span>/ @_data.PriceUnit</span> }
+        </div>
+
+        @if (!string.IsNullOrEmpty(_data.Description))
+        {
+            <AcCard>
+                <ChildContent>
+                    <h3 style="margin-top:0;">الوصف</h3>
+                    <p>@_data.Description</p>
+                </ChildContent>
+            </AcCard>
+        }
+
+        @if (_data.Amenities is not null && _data.Amenities.Count > 0)
+        {
+            <AcCard>
+                <ChildContent>
+                    <h3 style="margin-top:0;">المرافق</h3>
+                    <div class="acs-amenity-chips">
+                        @foreach (var a in _data.Amenities)
+                        {
+                            <span class="acs-amenity-chip"><AcIcon Name="check" Size="14" /> @a.Label</span>
+                        }
+                    </div>
+                </ChildContent>
+            </AcCard>
+        }
+
+        <AcCard>
+            <ChildContent>
+                <h3 style="margin-top:0;">الموقع</h3>
+                <AcMapSim Pins="@MapPins" />
+            </ChildContent>
+        </AcCard>
+
+        @if (_data.Owner is not null && !IsMine)
+        {
+            <AcCard>
+                <ChildContent>
+                    <h3 style="margin-top:0;">المالك</h3>
+                    <div class="acm-details-owner">
+                        <span class="acm-details-owner-avatar"><AcIcon Name="user" Size="20" /></span>
+                        <div class="acm-details-owner-info">
+                            <strong>@_data.Owner.Name</strong>
+                            @if (!string.IsNullOrEmpty(_data.Owner.MemberSince))
+                            {
+                                <span>عضو منذ @_data.Owner.MemberSince</span>
+                            }
+                        </div>
+                        <AcButton Variant="outline-primary" Text="مراسلة" OnClick="@MessageOwner" Disabled="@_startingChat" />
+                    </div>
+                </ChildContent>
+            </AcCard>
+        }
+
+        <AcStickyActionBar>
+            <AcButton Variant="ghost" Text="رجوع" OnClick="@GoBack" />
+            @if (IsMine)
+            {
+                <AcButton Variant="outline-primary" Class="ac-btn-block" Text="تعديل الإعلان" OnClick="@EditListing" />
+            }
+            else
+            {
+                <AcButton Variant="primary" Class="ac-btn-block" Text="احجز الآن" OnClick="@Book" />
+            }
+        </AcStickyActionBar>
+    }
+</div>
+
+@code {
+    [Parameter] public string Id { get; set; } = "";
+
+    private DetailsPayload? _data;
+    private bool _loading = true;
+    private bool _startingChat;
+    private bool IsFav => _data is not null && Store.FavoriteListingIds.Contains(_data.Id);
+
+    // المقارنة: هل العرض من إنشاء المستخدم الحاليّ؟
+    // في غياب تكامل AuthN كامل، نعتمد على "U-1" (CurrentUserId في الخادم).
+    private bool IsMine => _data is not null && _data.OwnerId == "U-1";
+
+    private IReadOnlyList<AcMapSim.MapPin> MapPins =>
+        _data is null ? Array.Empty<AcMapSim.MapPin>()
+                      : new[] { new AcMapSim.MapPin("loc", _data.Title, _data.Lat ?? 24.7136, _data.Lng ?? 46.6753) };
+
+    protected override void OnInitialized() => Store.OnChanged += OnChange;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        var env = await Api.GetAsync<DetailsPayload>($"/home/space/{Id}");
+        _data = env.Data;
+        _loading = false;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void GoBack() => Nav.NavigateTo("/explore");
+    private void Book() => Nav.NavigateTo($"/book/{Id}");
+    private void EditListing() => Nav.NavigateTo($"/create-listing?edit={Id}");
+
+    private async Task MessageOwner()
+    {
+        if (_data is null || IsMine) return;
+        _startingChat = true;
+        try
+        {
+            var env = await Engine.ExecuteAsync<StartChatData>(
+                V2Ops.StartConversation(_data.Id, $"مرحباً، أنا مهتمّ بـ \"{_data.Title}\"."),
+                payload: new { ListingId = _data.Id, Text = $"مرحباً، أنا مهتمّ بـ \"{_data.Title}\"." });
+            if (env?.Data is not null) Nav.NavigateTo($"/chat/{env.Data.Id}");
+            else                       Nav.NavigateTo("/chats");
+        }
+        finally { _startingChat = false; }
+    }
+
+    private Task ToggleFavorite()
+        => _data is null ? Task.CompletedTask
+                         : Applier.ApplyLocalAsync(V2Ops.ToggleFavorite(_data.Id));
+
+    private void OnChange() => InvokeAsync(StateHasChanged);
+    public void Dispose() => Store.OnChanged -= OnChange;
+
+    private sealed record DetailsPayload(
+        string Id, string Title, string? Description,
+        List<string>? Images, string? LocationText,
+        int Capacity, decimal Rating,
+        string PriceDisplay, string? PriceUnit,
+        List<AmenityDto>? Amenities, OwnerDto? Owner,
+        string? OwnerId = null,
+        double? Lat = null, double? Lng = null);
+
+    private sealed record AmenityDto(string Key, string Label);
+    private sealed record OwnerDto(string Name, string? MemberSince);
+    private sealed record StartChatData(string Id, bool Created);
+}

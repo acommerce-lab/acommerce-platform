@@ -1,0 +1,93 @@
+@namespace ACommerce.Templates.Marketplace
+
+@*
+    AcPaymentCheckoutPage — صفحة سداد بمحاكاة.
+    - ملخّص الطلب على اليسار
+    - AcPaymentForm على اليمين (أو أسفل في الموبايل)
+
+    محاكاة الدفع:
+      * آخر رقم بطاقة زوجيّ → نجاح → OnPaymentSuccess
+      * آخر رقم بطاقة فرديّ → فشل → يعرض تنبيه داخل النموذج
+*@
+
+<div class="acs-page acm-checkout">
+    <h1 class="acm-wizard-title">@Title</h1>
+    <div class="acm-checkout-grid">
+        <AcCard Class="acm-checkout-summary">
+            <ChildContent>
+                <h3 style="margin-top:0;">@SummaryTitle</h3>
+                <div class="acm-checkout-line"><span>@ItemLabel</span><span>@ItemText</span></div>
+                <div class="acm-checkout-line"><span>@AmountLabel</span><strong>@AmountText @Currency</strong></div>
+            </ChildContent>
+        </AcCard>
+        <AcCard Class="acm-checkout-form">
+            <ChildContent>
+                <h3 style="margin-top:0;">@PaymentTitle</h3>
+                <AcPaymentForm OnSubmit="HandleSubmit" Submitting="@_submitting" />
+                @if (!string.IsNullOrEmpty(_message))
+                {
+                    <AcAlert Variant="@(_success ? "success" : "danger")" Text="@_message" />
+                }
+            </ChildContent>
+        </AcCard>
+    </div>
+</div>
+
+@code {
+    [Parameter] public string Title { get; set; } = "الدفع";
+    [Parameter] public string SummaryTitle { get; set; } = "ملخّص الطلب";
+    [Parameter] public string PaymentTitle { get; set; } = "بيانات الدفع";
+    [Parameter] public string ItemLabel { get; set; } = "العنصر";
+    [Parameter] public string AmountLabel { get; set; } = "المبلغ";
+    [Parameter] public string Currency { get; set; } = "SAR";
+    [Parameter] public string ItemText { get; set; } = "";
+    [Parameter] public string AmountText { get; set; } = "0";
+
+    [Parameter] public ITemplateEngine? Engine { get; set; }
+    [Parameter] public ITemplateStore? Store { get; set; }
+    [Parameter] public string? RelatedEntityKind { get; set; }
+    [Parameter] public string? RelatedEntityId { get; set; }
+    [Parameter] public decimal Amount { get; set; }
+    [Parameter] public EventCallback<bool> OnPaymentComplete { get; set; }
+
+    private bool _submitting;
+    private bool _success;
+    private string? _message;
+
+    private async Task HandleSubmit(AcPaymentForm.PaymentFormValues values)
+    {
+        _submitting = true;
+        _message = null;
+
+        // محاكاة: فحص آخر رقم في البطاقة
+        var last = values.CardNumber.LastOrDefault();
+        var lastIsEven = last >= '0' && last <= '9' && (last - '0') % 2 == 0;
+        await Task.Delay(400);
+
+        if (lastIsEven)
+        {
+            _success = true;
+            _message = "تمّ الدفع بنجاح";
+
+            if (Engine is not null)
+            {
+                var op = Entry.Create("payment.charge")
+                    .From($"User:{Store?.UserId?.ToString() ?? "anon"}", Amount, ("role", "payer"))
+                    .To($"{RelatedEntityKind ?? "Vendor"}:{RelatedEntityId ?? "platform"}", Amount, ("role", "payee"))
+                    .Tag("method", "card")
+                    .Tag("currency", Currency)
+                    .Tag("amount", Amount.ToString())
+                    .Build();
+                try { await Engine.ExecuteAsync<object>(op, values); } catch {}
+            }
+        }
+        else
+        {
+            _success = false;
+            _message = "فشل الدفع — تحقّق من البيانات";
+        }
+
+        _submitting = false;
+        await OnPaymentComplete.InvokeAsync(_success);
+    }
+}

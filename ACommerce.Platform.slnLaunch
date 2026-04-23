@@ -1,0 +1,44 @@
+[
+  {
+    "Name": "Ejar",
+    "Projects": [
+      {
+        "Path": "Apps\\Ejar\\Customer\\Backend\\Ejar.Api\\Ejar.Api.csproj",
+        "Action": "Start"
+      },
+      {
+        "Path": "Apps\\Ejar\\Customer\\Frontend\\Ejar.Web\\Ejar.Web.csproj",
+        "Action": "Start"
+      }
+    ]
+  },
+  {
+    "Name": "Full Order V2",
+    "Projects": [
+      {
+        "Path": "Apps\\Order.V2\\Admin\\Backend\\Order.V2.Admin.Api\\Order.V2.Admin.Api.csproj",
+        "Action": "Start"
+      },
+      {
+        "Path": "Apps\\Order.V2\\Admin\\Frontend\\Order.V2.Admin.Web\\Order.V2.Admin.Web.csproj",
+        "Action": "Start"
+      },
+      {
+        "Path": "Apps\\Order.V2\\Vendor\\Backend\\Order.V2.Vendor.Api\\Order.V2.Vendor.Api.csproj",
+        "Action": "Start"
+      },
+      {
+        "Path": "Apps\\Order.V2\\Vendor\\Frontend\\Order.V2.Vendor.Web\\Order.V2.Vendor.Web.csproj",
+        "Action": "Start"
+      },
+      {
+        "Path": "Apps\\Order.V2\\Customer\\Backend\\Order.V2.Api\\Order.V2.Api.csproj",
+        "Action": "Start"
+      },
+      {
+        "Path": "Apps\\Order.V2\\Customer\\Frontend\\Order.V2.Web\\Order.V2.Web.csproj",
+        "Action": "Start"
+      }
+    ]
+  }
+]

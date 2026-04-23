@@ -1,0 +1,303 @@
+@page "/create-listing"
+@inject AppStore Store
+@inject ApiReader Api
+@inject NavigationManager Nav
+
+@* 4 خطوات حقيقيّة: Category → Details → Images → Location.
+   مطابقة لـ Ashare.Shared/Components/Pages/CreateListing.razor (585 سطراً). *@
+
+<PageTitle>إضافة إعلان - عشير</PageTitle>
+
+<div class="acs-page acs-create-listing">
+    <h1 class="acm-wizard-title">أضف إعلانك</h1>
+
+    <div class="acs-step-indicator">
+        <span class="@(_step >= 1 ? "active" : "")">١ الفئة</span>
+        <span class="@(_step >= 2 ? "active" : "")">٢ التفاصيل</span>
+        <span class="@(_step >= 3 ? "active" : "")">٣ الصور</span>
+        <span class="@(_step >= 4 ? "active" : "")">٤ الموقع</span>
+    </div>
+
+    @if (_step == 1)
+    {
+        <AcCard>
+            <ChildContent>
+                <h3 style="margin-top:0;">اختر فئة الإعلان</h3>
+                <div class="acm-home-grid">
+                    @foreach (var c in _categories)
+                    {
+                        var cat = c;
+                        <button type="button" class="acs-cat-pick @(_draft.CategoryId == cat.Id ? "active" : "")"
+                                @onclick="@(() => { _draft.CategoryId = cat.Id; })">
+                            <AcIcon Name="@cat.Icon" Size="24" />
+                            <span>@cat.Label</span>
+                        </button>
+                    }
+                </div>
+                <AcButton Variant="primary" Class="ac-btn-block" Text="التالي"
+                          OnClick="@(() => _step = 2)" Disabled="@(string.IsNullOrEmpty(_draft.CategoryId))" />
+            </ChildContent>
+        </AcCard>
+    }
+    else if (_step == 2)
+    {
+        <AcCard>
+            <ChildContent>
+                <h3 style="margin-top:0;">تفاصيل الإعلان</h3>
+                <AcField Label="العنوان" Required="true">
+                    <AcInput Value="@_draft.Title" ValueChanged="@(v => _draft.Title = v ?? string.Empty)"
+                             Placeholder="مثلاً: شقة مفروشة في حيّ النرجس" />
+                </AcField>
+                <AcField Label="الوصف" Required="true">
+                    <textarea class="ac-input" rows="4" @bind="_draft.Description"
+                              placeholder="اذكر المساحة، الغرف، الميزات…"></textarea>
+                </AcField>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                    <AcField Label="السعر (SAR)" Required="true">
+                        <AcInput Type="number" Value="@_draft.Price.ToString()"
+                                 ValueChanged="@(v => _draft.Price = decimal.TryParse(v, out var p) ? p : 0)" />
+                    </AcField>
+                    <AcField Label="الوحدة الزمنيّة">
+                        <select class="ac-input" @bind="_draft.TimeUnit">
+                            <option value="day">يوميّ</option>
+                            <option value="month">شهريّ</option>
+                            <option value="year">سنويّ</option>
+                        </select>
+                    </AcField>
+                </div>
+                <AcField Label="السعة (عدد الأشخاص)">
+                    <AcInput Type="number" Value="@_draft.Capacity.ToString()"
+                             ValueChanged="@(v => _draft.Capacity = int.TryParse(v, out var n) ? n : 0)" />
+                </AcField>
+
+                <AcField Label="المرافق المتوفّرة">
+                    <div class="acs-amenity-chips">
+                        @foreach (var a in _amenities)
+                        {
+                            var am = a;
+                            <AcFilterChip Label="@am.Label"
+                                          Active="@_draft.Amenities.Contains(am.Key)"
+                                          OnClick="@(() => ToggleAmenity(am.Key))" />
+                        }
+                    </div>
+                </AcField>
+
+                <div style="display:flex; gap:8px;">
+                    <AcButton Variant="ghost" Text="رجوع" OnClick="@(() => _step = 1)" />
+                    <AcButton Variant="primary" Class="ac-btn-block" Text="التالي"
+                              OnClick="@(() => _step = 3)"
+                              Disabled="@(string.IsNullOrWhiteSpace(_draft.Title) || string.IsNullOrWhiteSpace(_draft.Description) || _draft.Price <= 0)" />
+                </div>
+            </ChildContent>
+        </AcCard>
+    }
+    else if (_step == 3)
+    {
+        <AcCard>
+            <ChildContent>
+                <h3 style="margin-top:0;">صور الإعلان</h3>
+                <p style="color:var(--ac-text-muted); font-size:13px;">
+                    حتّى @_maxImages صور • كل صورة أقصى 5MB • الصورة الأولى هي الرئيسيّة.
+                </p>
+
+                <label class="ac-btn ac-btn-outline-primary ac-btn-block" style="cursor:pointer; display:inline-flex; align-items:center; gap:8px; justify-content:center;">
+                    <AcIcon Name="camera" Size="16" />
+                    <span>إضافة صور</span>
+                    <InputFile OnChange="OnImagesPicked" accept="image/*" multiple style="display:none;" />
+                </label>
+
+                @if (_images.Count > 0)
+                {
+                    <div class="acs-images-grid">
+                        @for (int i = 0; i < _images.Count; i++)
+                        {
+                            var idx = i;
+                            var img = _images[idx];
+                            <div class="acs-image-thumb @(idx == 0 ? "main" : "")">
+                                <img src="@img.DataUrl" alt="img-@idx" />
+                                @if (idx == 0) { <span class="acs-image-badge">رئيسيّة</span> }
+                                <div class="acs-image-actions">
+                                    @if (idx > 0)
+                                    {
+                                        <button type="button" title="اجعلها رئيسيّة" @onclick="@(() => MakeMain(idx))">
+                                            <AcIcon Name="star" Size="14" />
+                                        </button>
+                                    }
+                                    <button type="button" title="حذف" @onclick="@(() => Remove(idx))">
+                                        <AcIcon Name="x" Size="14" />
+                                    </button>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                    <small style="color:var(--ac-text-muted);">@_images.Count / @_maxImages</small>
+                }
+
+                @if (!string.IsNullOrEmpty(_imgError))
+                {
+                    <AcAlert Variant="danger" Text="@_imgError" />
+                }
+
+                <div style="display:flex; gap:8px; margin-top:12px;">
+                    <AcButton Variant="ghost" Text="رجوع" OnClick="@(() => _step = 2)" />
+                    <AcButton Variant="primary" Class="ac-btn-block" Text="التالي"
+                              OnClick="@(() => _step = 4)" Disabled="@(_images.Count == 0)" />
+                </div>
+            </ChildContent>
+        </AcCard>
+    }
+    else
+    {
+        <AcCard>
+            <ChildContent>
+                <h3 style="margin-top:0;">موقع الإعلان</h3>
+                <AcField Label="المدينة" Required="true">
+                    <select class="ac-input" @bind="_draft.City">
+                        @foreach (var c in _cities) { <option value="@c">@c</option> }
+                    </select>
+                </AcField>
+                <AcField Label="الحيّ / المنطقة" Required="true">
+                    <AcInput Value="@_draft.District" ValueChanged="@(v => _draft.District = v ?? string.Empty)"
+                             Placeholder="مثلاً: النرجس" />
+                </AcField>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                    <AcField Label="خط العرض (اختياريّ)">
+                        <AcInput Type="number" Value="@_lat.ToString("0.######")"
+                                 ValueChanged="@(v => _lat = double.TryParse(v, out var d) ? d : _lat)" />
+                    </AcField>
+                    <AcField Label="خط الطول (اختياريّ)">
+                        <AcInput Type="number" Value="@_lng.ToString("0.######")"
+                                 ValueChanged="@(v => _lng = double.TryParse(v, out var d) ? d : _lng)" />
+                    </AcField>
+                </div>
+                <AcMapSim Pins="@MapPins" />
+
+                @if (!string.IsNullOrEmpty(_publishError))
+                {
+                    <AcAlert Variant="danger" Text="@_publishError" />
+                }
+                <div style="display:flex; gap:8px; margin-top:12px;">
+                    <AcButton Variant="ghost" Text="رجوع" OnClick="@(() => _step = 3)" Disabled="@_publishing" />
+                    <AcButton Variant="primary" Class="ac-btn-block"
+                              Text="@(_publishing ? "جارٍ النشر…" : "نشر الإعلان")"
+                              OnClick="@Publish"
+                              Disabled="@(_publishing || string.IsNullOrWhiteSpace(_draft.City) || string.IsNullOrWhiteSpace(_draft.District))" />
+                </div>
+            </ChildContent>
+        </AcCard>
+    }
+</div>
+
+@code {
+    private int _step = 1;
+    private int _maxImages = 10;
+    private bool _publishing;
+    private string? _publishError;
+    private DraftListing _draft => Store.Draft;
+    private List<PickedImage> _images = new();
+    private IReadOnlyList<CategoryDto> _categories = Array.Empty<CategoryDto>();
+    private IReadOnlyList<AmenityDto> _amenities = Array.Empty<AmenityDto>();
+    private IReadOnlyList<string> _cities = Array.Empty<string>();
+    private double _lat = 24.7136;
+    private double _lng = 46.6753;
+    private string? _imgError;
+
+    private IReadOnlyList<AcMapSim.MapPin> MapPins =>
+        new[] { new AcMapSim.MapPin("loc", "الموقع", _lat, _lng) };
+
+    protected override async Task OnAfterRenderAsync(bool first)
+    {
+        if (!first) return;
+        if (string.IsNullOrEmpty(_draft.City)) _draft.City = Store.Ui.City;
+        var home = await Api.GetAsync<HomeResponse>("/home/view");
+        _categories = (IReadOnlyList<CategoryDto>)(home.Data?.Categories ?? new List<CategoryDto>());
+        var am = await Api.GetAsync<List<AmenityDto>>("/amenities");
+        _amenities = am.Data ?? new();
+        var ci = await Api.GetAsync<List<string>>("/cities");
+        _cities = ci.Data ?? new() { "الرياض" };
+        var sub = await Api.GetAsync<SubDto>("/me/subscription");
+        if (sub.Data is not null) _maxImages = sub.Data.ImagesPerListing;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void ToggleAmenity(string key)
+    {
+        if (!_draft.Amenities.Add(key)) _draft.Amenities.Remove(key);
+    }
+
+    private async Task OnImagesPicked(InputFileChangeEventArgs e)
+    {
+        _imgError = null;
+        foreach (var f in e.GetMultipleFiles(_maxImages - _images.Count))
+        {
+            if (f.Size > 5 * 1024 * 1024)
+            {
+                _imgError = $"الصورة {f.Name} أكبر من 5MB — تُخطَّى.";
+                continue;
+            }
+            using var s = f.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024);
+            using var ms = new MemoryStream();
+            await s.CopyToAsync(ms);
+            var b64 = Convert.ToBase64String(ms.ToArray());
+            _images.Add(new PickedImage($"data:{f.ContentType};base64,{b64}", f.Name));
+        }
+    }
+
+    private void MakeMain(int idx)
+    {
+        if (idx <= 0 || idx >= _images.Count) return;
+        var img = _images[idx];
+        _images.RemoveAt(idx);
+        _images.Insert(0, img);
+    }
+
+    private void Remove(int idx) => _images.RemoveAt(idx);
+
+    private async Task Publish()
+    {
+        _publishing = true;
+        _publishError = null;
+        try
+        {
+            var req = new
+            {
+                title       = _draft.Title,
+                description = _draft.Description,
+                price       = _draft.Price,
+                timeUnit    = _draft.TimeUnit,
+                city        = _draft.City,
+                district    = _draft.District,
+                categoryId  = _draft.CategoryId,
+                capacity    = _draft.Capacity,
+                lat         = _lat,
+                lng         = _lng,
+                amenities   = _draft.Amenities.ToList()
+            };
+            var env = await Api.PostAsync<object>("/my-listings", req);
+            if (env.Data is not null || env.Operation?.Status == "Success")
+            {
+                _draft.Clear();
+                _images.Clear();
+                Nav.NavigateTo("/my-listings");
+            }
+            else
+            {
+                _publishError = env.Operation?.ErrorMessage ?? "فشل نشر الإعلان";
+            }
+        }
+        catch
+        {
+            _publishError = "حدث خطأ أثناء النشر — حاول مجدّداً";
+        }
+        finally { _publishing = false; }
+    }
+
+    private sealed record HomeResponse(List<CategoryDto> Categories, object Featured, object New);
+    private sealed record CategoryDto(string Id, string Label, string Icon);
+    private sealed record AmenityDto(string Key, string Label);
+    private sealed record SubDto(string Id, string PlanId, string PlanName, string Status,
+        DateTime StartDate, DateTime EndDate, int DaysRemaining,
+        int ListingsUsed, int ListingsLimit, int FeaturedUsed, int FeaturedLimit,
+        int ImagesPerListing, int ApiCallsUsed, int ApiCallsLimit, List<string> Features);
+    private sealed record PickedImage(string DataUrl, string Name);
+}

@@ -1,0 +1,104 @@
+@namespace ACommerce.Templates.Marketplace
+
+@*
+    AcCreateListingPage — نموذج إنشاء إعلان.
+    مسوَّدة تُحفَظ في AppStore.Draft حتى مع الانتقال للمصادقة.
+    يُصدِر listing.create عند التقديم.
+*@
+
+<div class="acs-page acm-create">
+    <h1 class="acm-wizard-title">@Title</h1>
+    <AcField Label="@TitleFieldLabel" Required="true">
+        <AcInput Type="text" Value="@Data.Title" ValueChanged="@(v => Data.Title = v ?? string.Empty)" />
+    </AcField>
+    <AcField Label="@DescriptionLabel">
+        <AcInput Type="text" Value="@Data.Description" ValueChanged="@(v => Data.Description = v ?? string.Empty)" />
+    </AcField>
+    <AcField Label="@PriceLabel" Required="true">
+        <AcInput Type="number" Value="@(Data.Price.ToString())"
+                 ValueChanged="v => Data.Price = decimal.TryParse(v, out var d) ? d : 0" />
+    </AcField>
+    <AcField Label="@CityLabel">
+        <AcInput Type="text" Value="@Data.City" ValueChanged="@(v => Data.City = v ?? string.Empty)" />
+    </AcField>
+    <AcField Label="@DistrictLabel">
+        <AcInput Type="text" Value="@Data.District" ValueChanged="@(v => Data.District = v ?? string.Empty)" />
+    </AcField>
+    <AcField Label="@CapacityLabel">
+        <AcInput Type="number" Value="@(Data.Capacity.ToString())"
+                 ValueChanged="v => Data.Capacity = int.TryParse(v, out var n) ? n : 0" />
+    </AcField>
+    @if (Categories.Count > 0)
+    {
+        <AcField Label="@CategoryLabel">
+            <div class="acm-create-chips">
+                @foreach (var c in Categories)
+                {
+                    <AcFilterChip Label="@c.Label" Icon="@c.Icon"
+                                  Active="@(Data.CategoryId == c.Id)"
+                                  OnClick="@(() => Data.CategoryId = c.Id)" />
+                }
+            </div>
+        </AcField>
+    }
+    @if (!string.IsNullOrEmpty(_error))
+    {
+        <AcAlert Variant="danger" Text="@_error" />
+    }
+    <AcButton Variant="primary" Size="lg" Text="@SubmitLabel" OnClick="SubmitInternal"
+              Disabled="@_submitting" Class="ac-btn-block" />
+</div>
+
+@code {
+    [Parameter] public CreateListingDto Data { get; set; } = new();
+    [Parameter] public IReadOnlyList<CategoryTileDto> Categories { get; set; } = Array.Empty<CategoryTileDto>();
+    [Parameter] public ITemplateEngine? Engine { get; set; }
+    [Parameter] public ITemplateStore? Store { get; set; }
+    [Parameter] public EventCallback<CreateListingDto> OnSubmit { get; set; }
+
+    [Parameter] public string Title { get; set; } = "أضف إعلانك";
+    [Parameter] public string TitleFieldLabel { get; set; } = "العنوان";
+    [Parameter] public string DescriptionLabel { get; set; } = "الوصف";
+    [Parameter] public string PriceLabel { get; set; } = "السعر (ريال)";
+    [Parameter] public string CityLabel { get; set; } = "المدينة";
+    [Parameter] public string DistrictLabel { get; set; } = "الحيّ";
+    [Parameter] public string CapacityLabel { get; set; } = "السعة";
+    [Parameter] public string CategoryLabel { get; set; } = "الفئة";
+    [Parameter] public string SubmitLabel { get; set; } = "نشر الإعلان";
+
+    private string? _error;
+    private bool _submitting;
+
+    private async Task SubmitInternal()
+    {
+        _error = null;
+        if (string.IsNullOrWhiteSpace(Data.Title)) { _error = "العنوان مطلوب"; return; }
+        if (Data.Price <= 0) { _error = "السعر غير صحيح"; return; }
+
+        _submitting = true;
+        if (Engine is not null)
+        {
+            var op = Entry.Create("listing.create")
+                .From($"User:{Store?.UserId?.ToString() ?? "anon"}", 1, ("role", "owner"))
+                .To($"Listing:{Guid.NewGuid()}", 1, ("role", "created"))
+                .Tag("category", Data.CategoryId ?? "")
+                .Tag("price", Data.Price.ToString())
+                .Tag("district", Data.District ?? "")
+                .Build();
+            try { await Engine.ExecuteAsync<object>(op, Data); } catch {}
+        }
+        _submitting = false;
+        await OnSubmit.InvokeAsync(Data);
+    }
+
+    public sealed class CreateListingDto
+    {
+        public string Title { get; set; } = "";
+        public string? Description { get; set; }
+        public decimal Price { get; set; }
+        public string? City { get; set; }
+        public string? District { get; set; }
+        public int Capacity { get; set; }
+        public string? CategoryId { get; set; }
+    }
+}

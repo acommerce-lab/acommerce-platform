@@ -1,0 +1,97 @@
+@page "/my-listings"
+@using ACommerce.Client.Operations
+@using Ashare.V2.Web.Operations
+@inject ApiReader Api
+@inject NavigationManager Nav
+@inject ClientOpEngine Engine
+
+<PageTitle>إعلاناتي - عشير</PageTitle>
+
+<div class="acs-page acs-my-listings">
+    <AcSectionHeader Title="إعلاناتي" ActionLabel="إضافة جديد" OnAction="@GoCreate" />
+
+    <div class="acs-filter-chips">
+        <AcFilterChip Label="الكلّ" Active="@(_filter == 0)" OnClick="@(() => SetFilter(0))" />
+        <AcFilterChip Label="نشطة" Active="@(_filter == 1)" OnClick="@(() => SetFilter(1))" />
+        <AcFilterChip Label="موقوفة" Active="@(_filter == 2)" OnClick="@(() => SetFilter(2))" />
+    </div>
+
+    @if (_loading) { <AcLoadingState /> }
+    else
+    {
+        var list = _filter == 0 ? _items : _items.Where(l => l.Status == _filter).ToList();
+
+        @if (list.Count == 0) { <AcEmptyState IconName="building" Message="لا توجد إعلانات" /> }
+        else
+        {
+            <div class="acm-home-grid" style="margin-top:12px;">
+                @foreach (var l in list)
+                {
+                    var lid = l.Id;
+                    var active = l.Status == 1;
+                    <AcCard>
+                        <ChildContent>
+                            <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
+                                <strong>@l.Title</strong>
+                                <AcBadge Variant="@(active ? "success" : "secondary")" Text="@(active ? "نشط" : "موقوف")" />
+                            </div>
+                            <small style="color:var(--ac-text-muted);">@l.City — @l.District</small>
+                            <div style="margin-top:8px; display:flex; gap:12px; font-size:13px; color:var(--ac-text-muted);">
+                                <span><AcIcon Name="eye" Size="14" /> @l.ViewsCount مشاهدة</span>
+                                <span><AcIcon Name="receipt" Size="14" /> @l.BookingsCount حجز</span>
+                            </div>
+                            <div style="margin-top:8px; font-size:16px;"><strong>@l.Price @l.Currency</strong> / @l.TimeUnit
+                                @if (l.IsFeatured) { <AcBadge Variant="secondary" Text="مميّز" /> }
+                            </div>
+
+                            <div style="display:flex; gap:8px; margin-top:12px; flex-wrap:wrap;">
+                                <AcButton Variant="outline-primary" Text="عرض" OnClick="@(() => Open(lid))" />
+                                <AcButton Variant="ghost" Text="تعديل" OnClick="@(() => Edit(lid))" />
+                                <AcButton Variant="ghost" Text="@(active ? "إيقاف" : "نشر")" OnClick="@(() => Toggle(lid))" />
+                                @if (!l.IsFeatured)
+                                {
+                                    <AcButton Variant="ghost" Text="ترقية لمميّز" OnClick="@(() => Feature(lid))" />
+                                }
+                            </div>
+                        </ChildContent>
+                    </AcCard>
+                }
+            </div>
+        }
+    }
+</div>
+
+@code {
+    private List<ListingDto> _items = new();
+    private bool _loading = true;
+    private int _filter = 0;
+
+    protected override async Task OnAfterRenderAsync(bool first)
+    {
+        if (!first) return;
+        var env = await Api.GetAsync<List<ListingDto>>("/my-listings");
+        _items = env.Data ?? new();
+        _loading = false;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void SetFilter(int s) { _filter = s; StateHasChanged(); }
+    private void GoCreate() => Nav.NavigateTo("/create-listing");
+    private void Open(string id) => Nav.NavigateTo($"/space/{id}");
+    private void Edit(string id) => Nav.NavigateTo($"/create-listing?edit={id}");
+
+    private async Task Toggle(string id)
+    {
+        var env = await Engine.ExecuteAsync<ToggleData>(V2Ops.ToggleListing(id));
+        if (env?.Data is null) return;
+        var ix = _items.FindIndex(x => x.Id == id);
+        if (ix >= 0) _items[ix] = _items[ix] with { Status = env.Data.Status };
+    }
+    private sealed record ToggleData(string Id, int Status);
+
+    private void Feature(string id) => Nav.NavigateTo($"/subscribe?type=plan&id=pro&amount=99");
+
+    private sealed record ListingDto(string Id, string Title, decimal Price, string Currency,
+        string TimeUnit, string City, string District, bool IsFeatured, int Status,
+        int ViewsCount, int BookingsCount);
+}

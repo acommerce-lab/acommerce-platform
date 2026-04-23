@@ -84,6 +84,101 @@
     ".act-footer": {
       "description": "Bottom footer — needs a top border or a distinguishing background to separate it from page content. Horizontal padding optional.",
       "required": ["background"]
+    },
+    ".ac-search": {
+      "description": "Search box: must contain the input within a bordered, padded shell that users can tap anywhere on.",
+      "required": ["background", "border", "border-radius", "padding", "min-height"],
+      "min-values": { "padding": 6, "min-height": 32, "border-width": 1 }
+    },
+    ".ac-tile": {
+      "description": "Category tile wrapper — vertical stack of icon circle + label. The wrapper itself is transparent; the circle (.ac-tile-icon) carries the background. Only min-height matters for the tap target.",
+      "required": ["padding", "min-height"],
+      "min-values": { "padding": 4, "min-height": 72 }
+    },
+    ".ac-tile-icon": {
+      "description": "Category tile icon circle — pill-shaped filled with a tinted brand colour.",
+      "required": ["background", "border-radius", "min-height"],
+      "min-values": { "border-radius": 20, "min-height": 40 }
+    },
+    ".ac-space": {
+      "description": "Listing / space preview card. Must visually contain image + body with border and radius.",
+      "required": ["background", "border", "border-radius"],
+      "min-values": { "border-width": 1, "border-radius": 4 }
+    },
+    ".ac-space-body": {
+      "description": "Space card body — padding so text doesn't touch image edge.",
+      "required": ["padding"],
+      "min-values": { "padding": 8 }
+    },
+    ".ac-hero": {
+      "description": "Hero banner — must have a solid brand background + rounded corners + internal padding so the title reads against a visible surface.",
+      "required": ["background", "padding", "border-radius"],
+      "min-values": { "padding": 16, "border-radius": 8 }
+    },
+    ".ac-cta": {
+      "description": "CTA card — icon + title + subtitle; needs bold background, internal padding, rounded corners, and fingertip-sized min-height.",
+      "required": ["background", "padding", "border-radius", "min-height"],
+      "min-values": { "padding": 12, "border-radius": 8, "min-height": 56 }
+    },
+    ".ac-action": {
+      "description": "Quick-action tile — large tappable card; needs background, padding, rounded corners, and min-height.",
+      "required": ["background", "padding", "border-radius", "min-height"],
+      "min-values": { "padding": 12, "border-radius": 8, "min-height": 72 }
+    },
+    ".ac-chip": {
+      "description": "Filter chip — pill-shaped button with toggleable active state. Needs visible bounds + tap target.",
+      "required": ["background", "border", "border-radius", "padding", "min-height"],
+      "min-values": { "padding": 6, "border-radius": 12, "min-height": 32, "border-width": 1 }
+    },
+    ".ac-sort-select": {
+      "description": "Sort dropdown — native select styled to match inputs.",
+      "required": ["background", "border", "padding", "min-height"],
+      "min-values": { "padding": 6, "min-height": 32, "border-width": 1 }
+    },
+    ".ac-viewtoggle-btn": {
+      "description": "View-toggle button — icon inside a bordered group; parent .ac-viewtoggle carries the visible frame, so individual buttons are transparent until active.",
+      "required": ["min-height"],
+      "min-values": { "min-height": 32 }
+    },
+    ".ac-sheet": {
+      "description": "Bottom sheet — slides from viewport bottom; must have surface + rounded top corners + shadow.",
+      "required": ["background", "border-radius"],
+      "min-values": { "border-radius": 12 }
+    },
+    ".ac-modal": {
+      "description": "Modal dialog — centred surface with header/body/footer; needs visible frame.",
+      "required": ["background", "border", "border-radius"],
+      "min-values": { "border-radius": 12, "border-width": 1 }
+    },
+    ".ac-topnav": {
+      "description": "Desktop top navigation — bordered strip above the page; must have surface + border + padding + min-height.",
+      "required": ["background", "border", "border-radius", "padding", "min-height"],
+      "min-values": { "padding": 8, "min-height": 48, "border-radius": 8, "border-width": 1 }
+    },
+    ".ac-gallery-main": {
+      "description": "Gallery main image container — must have background, border, rounded corners.",
+      "required": ["background", "border", "border-radius"],
+      "min-values": { "border-width": 1, "border-radius": 8 }
+    },
+    ".ac-stickybar": {
+      "description": "Sticky action bar — visible surface + top border so it doesn't float invisibly.",
+      "required": ["background", "padding", "min-height"],
+      "min-values": { "padding": 8, "min-height": 48 }
+    },
+    ".ac-map-sim": {
+      "description": "Simulated map — bordered surface the size of the content area.",
+      "required": ["background", "border", "border-radius", "min-height"],
+      "min-values": { "border-width": 1, "border-radius": 8, "min-height": 200 }
+    },
+    ".ac-map-sim-pin": {
+      "description": "Map pin — tappable marker on the map.",
+      "required": ["background", "border", "border-radius", "padding", "min-height"],
+      "min-values": { "padding": 2, "min-height": 24, "border-radius": 4, "border-width": 1 }
+    },
+    ".ac-searchitem": {
+      "description": "Search suggestion row — padded tappable row.",
+      "required": ["background", "padding", "min-height"],
+      "min-values": { "padding": 6, "min-height": 36 }
     }
   }
 }

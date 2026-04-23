@@ -1,0 +1,12 @@
+{
+  "profiles": {
+    "Order.V2.Admin.Api": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      },
+      "applicationUrl": "https://localhost:55784;http://localhost:55785"
+    }
+  }
+}
