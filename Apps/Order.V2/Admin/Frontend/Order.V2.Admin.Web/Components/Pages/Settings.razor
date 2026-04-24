@@ -5,12 +5,12 @@
 @inject L L
 @implements IDisposable
 
-<PageTitle>@L.T("الإعدادات — اوردر V2", "Settings — Order V2")</PageTitle>
+<PageTitle>@L["page.settings.title"]</PageTitle>
 
 <AcSettingsPage Snapshot="@(new SettingsSnapshot { Theme = Store.Ui.Theme, Language = Store.Ui.Language })"
-                Title="@L.T("الإعدادات", "Settings")"
-                ThemeLabel="@L.T("المظهر", "Theme")" LanguageLabel="@L.T("اللغة", "Language")"
-                LightLabel="@L.T("فاتح", "Light")" DarkLabel="@L.T("داكن", "Dark")"
+                Title="@L["settings.heading"]"
+                ThemeLabel="@L["settings.theme"]" LanguageLabel="@L["settings.language"]"
+                LightLabel="@L["settings.theme_light"]" DarkLabel="@L["settings.theme_dark"]"
                 OnThemeChange="@(t => Applier.ApplyLocalAsync(AdminV2Ops.SetTheme(t)))"
                 OnLanguageChange="@(l => Applier.ApplyLocalAsync(AdminV2Ops.SetLanguage(l)))" />
 

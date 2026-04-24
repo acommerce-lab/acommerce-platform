@@ -5,12 +5,12 @@
 @inject ClientOpEngine Engine
 @inject L L
 
-<PageTitle>@L.T("المستخدمون — اوردر V2", "Users — Order V2")</PageTitle>
+<PageTitle>@L["page.users.title"]</PageTitle>
 
 <AcAuthGuard IsAuthenticated="@Store.Auth.IsAuthenticated" LoginHref="/login">
     <AcAdminUsersPage Users="@_users"
                       Loading="@_loading"
-                      Title="@L.T("المستخدمون", "Users")"
+                      Title="@L["users.heading"]"
                       OnSuspend="@Suspend"
                       OnActivate="@Activate" />
 </AcAuthGuard>

@@ -5,10 +5,10 @@
 @inject ClientOpEngine Engine
 @inject L L
 
-<PageTitle>@L.T("العروض — اوردر V2", "Offers — Order V2")</PageTitle>
+<PageTitle>@L["page.offers.title"]</PageTitle>
 
 <AcAuthGuard IsAuthenticated="@Store.Auth.IsAuthenticated" LoginHref="/login">
-    <h2 class="page-title">@L.T("العروض", "Offers")</h2>
+    <h2 class="page-title">@L["offers.heading"]</h2>
     @if (_loading)
     {
         <AcSpinner />
@@ -19,16 +19,16 @@
             <table class="table">
                 <thead>
                     <tr>
-                        <th>@L.T("العنوان", "Title")</th>
-                        <th>@L.T("المتجر", "Vendor")</th>
-                        <th>@L.T("السعر", "Price")</th>
-                        <th>@L.T("السعر الأصلي", "Original")</th>
-                        <th>@L.T("الخصم %", "Discount %")</th>
-                        <th>@L.T("العملة", "Currency")</th>
-                        <th>@L.T("نشط", "Active")</th>
-                        <th>@L.T("مميز", "Featured")</th>
-                        <th>@L.T("التاريخ", "Date")</th>
-                        <th>@L.T("إجراء", "Action")</th>
+                        <th>@L["table.title"]</th>
+                        <th>@L["table.vendor"]</th>
+                        <th>@L["table.price"]</th>
+                        <th>@L["table.original_price"]</th>
+                        <th>@L["table.discount_pct"]</th>
+                        <th>@L["table.currency"]</th>
+                        <th>@L["table.active"]</th>
+                        <th>@L["table.featured"]</th>
+                        <th>@L["table.date"]</th>
+                        <th>@L["table.action"]</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -47,7 +47,7 @@
                             <td>
                                 @if (o.IsActive)
                                 {
-                                    <AcButton Variant="danger" Size="sm" Text="@L.T("تعطيل", "Disable")"
+                                    <AcButton Variant="danger" Size="sm" Text="@L["common.disable"]"
                                               OnClick="@(() => Deactivate(o))" />
                                 }
                             </td>

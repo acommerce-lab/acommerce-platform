@@ -5,12 +5,12 @@
 @inject ClientOpEngine Engine
 @inject L L
 
-<PageTitle>@L.T("المتاجر — اوردر V2", "Vendors — Order V2")</PageTitle>
+<PageTitle>@L["page.vendors.title"]</PageTitle>
 
 <AcAuthGuard IsAuthenticated="@Store.Auth.IsAuthenticated" LoginHref="/login">
     <AcAdminVendorsPage Vendors="@_vendors"
                         Loading="@_loading"
-                        Title="@L.T("المتاجر", "Vendors")"
+                        Title="@L["vendors.heading"]"
                         OnSuspend="@(EventCallback.Factory.Create<AdminVendorRowDto>(this, Suspend))"
                         OnActivate="@(EventCallback.Factory.Create<AdminVendorRowDto>(this, Activate))" />
 </AcAuthGuard>

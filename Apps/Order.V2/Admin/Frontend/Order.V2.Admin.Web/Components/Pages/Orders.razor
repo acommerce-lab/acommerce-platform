@@ -4,10 +4,10 @@
 @inject ApiReader Api
 @inject L L
 
-<PageTitle>@L.T("الطلبات — اوردر V2", "Orders — Order V2")</PageTitle>
+<PageTitle>@L["page.orders.title"]</PageTitle>
 
 <AcAuthGuard IsAuthenticated="@Store.Auth.IsAuthenticated" LoginHref="/login">
-    <h2 class="page-title">@L.T("الطلبات", "Orders")</h2>
+    <h2 class="page-title">@L["orders.heading"]</h2>
     @if (_loading)
     {
         <AcSpinner />
@@ -18,14 +18,14 @@
             <table class="table">
                 <thead>
                     <tr>
-                        <th>@L.T("رقم الطلب", "Order #")</th>
-                        <th>@L.T("العميل", "Customer")</th>
-                        <th>@L.T("المتجر", "Vendor")</th>
-                        <th>@L.T("الإجمالي", "Total")</th>
-                        <th>@L.T("العملة", "Currency")</th>
-                        <th>@L.T("الحالة", "Status")</th>
-                        <th>@L.T("نوع الاستلام", "Pickup")</th>
-                        <th>@L.T("التاريخ", "Date")</th>
+                        <th>@L["table.order_number"]</th>
+                        <th>@L["table.customer"]</th>
+                        <th>@L["table.vendor"]</th>
+                        <th>@L["table.total"]</th>
+                        <th>@L["table.currency"]</th>
+                        <th>@L["table.status"]</th>
+                        <th>@L["table.pickup_type"]</th>
+                        <th>@L["table.date"]</th>
                     </tr>
                 </thead>
                 <tbody>
