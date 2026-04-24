@@ -5,13 +5,13 @@
 @inject L L
 @implements IDisposable
 
-<PageTitle>@L.T("الإعدادات — اوردر V2 المتجر", "Settings — Order V2 Vendor")</PageTitle>
+<PageTitle>@L["page.settings.title"]</PageTitle>
 
 <AcAuthGuard IsAuthenticated="@Store.Auth.IsAuthenticated" LoginHref="/login">
     <AcSettingsPage Snapshot="@(new SettingsSnapshot { Theme = Store.Ui.Theme, Language = Store.Ui.Language })"
-                    Title="@L.T("الإعدادات", "Settings")"
-                    ThemeLabel="@L.T("المظهر", "Theme")" LanguageLabel="@L.T("اللغة", "Language")"
-                    LightLabel="@L.T("فاتح", "Light")" DarkLabel="@L.T("داكن", "Dark")"
+                    Title="@L["settings.heading"]"
+                    ThemeLabel="@L["settings.theme"]" LanguageLabel="@L["settings.language"]"
+                    LightLabel="@L["settings.theme_light"]" DarkLabel="@L["settings.theme_dark"]"
                     OnThemeChange="@(t => Applier.ApplyLocalAsync(VendorV2Ops.SetTheme(t)))"
                     OnLanguageChange="@(l => Applier.ApplyLocalAsync(VendorV2Ops.SetLanguage(l)))" />
 </AcAuthGuard>

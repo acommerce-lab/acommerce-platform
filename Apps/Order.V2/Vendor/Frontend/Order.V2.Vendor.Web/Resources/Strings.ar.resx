@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+
+  <data name="page.login.title" xml:space="preserve"><value>دخول — اوردر V2 المتجر</value></data>
+  <data name="page.dashboard.title" xml:space="preserve"><value>لوحة التحكم — اوردر V2 المتجر</value></data>
+  <data name="page.offers.title" xml:space="preserve"><value>العروض — اوردر V2 المتجر</value></data>
+  <data name="page.orders.title" xml:space="preserve"><value>الطلبات — اوردر V2 المتجر</value></data>
+  <data name="page.profile.title" xml:space="preserve"><value>الملف الشخصي — اوردر V2 المتجر</value></data>
+  <data name="page.settings.title" xml:space="preserve"><value>الإعدادات — اوردر V2 المتجر</value></data>
+
+  <data name="brand.name" xml:space="preserve"><value>اوردر V2 — لوحة المتجر</value></data>
+  <data name="brand.tagline" xml:space="preserve"><value>بوابة أصحاب المتاجر والمطاعم</value></data>
+
+  <data name="auth.phone_step.title" xml:space="preserve"><value>دخول بالهاتف</value></data>
+  <data name="auth.phone_step.subtitle" xml:space="preserve"><value>سنرسل لك رمز تحقق عبر SMS</value></data>
+  <data name="auth.phone_label" xml:space="preserve"><value>رقم الهاتف</value></data>
+  <data name="auth.request_otp" xml:space="preserve"><value>إرسال رمز التحقق</value></data>
+  <data name="auth.sending" xml:space="preserve"><value>جاري الإرسال...</value></data>
+  <data name="auth.otp_step.title" xml:space="preserve"><value>رمز التحقق</value></data>
+  <data name="auth.otp_step.subtitle" xml:space="preserve"><value>أدخل الرمز المرسل إلى</value></data>
+  <data name="auth.otp_label" xml:space="preserve"><value>رمز التحقق (6 أرقام)</value></data>
+  <data name="auth.verify_otp" xml:space="preserve"><value>تحقق ودخول</value></data>
+  <data name="auth.verifying" xml:space="preserve"><value>جاري التحقق...</value></data>
+  <data name="auth.change_phone" xml:space="preserve"><value>تغيير الرقم</value></data>
+
+  <data name="dashboard.welcome" xml:space="preserve"><value>مرحباً</value></data>
+  <data name="dashboard.recent_orders" xml:space="preserve"><value>آخر الطلبات</value></data>
+  <data name="dashboard.no_orders" xml:space="preserve"><value>لا توجد طلبات بعد</value></data>
+  <data name="metric.total_orders" xml:space="preserve"><value>الطلبات الكلية</value></data>
+  <data name="metric.pending" xml:space="preserve"><value>طلبات معلقة</value></data>
+  <data name="metric.active_orders" xml:space="preserve"><value>طلبات نشطة</value></data>
+  <data name="metric.completed" xml:space="preserve"><value>مكتملة</value></data>
+  <data name="metric.active_offers" xml:space="preserve"><value>عروض نشطة</value></data>
+  <data name="metric.revenue" xml:space="preserve"><value>الإيرادات</value></data>
+  <data name="common.currency_sar" xml:space="preserve"><value>ر.س</value></data>
+
+  <data name="offers.my_offers" xml:space="preserve"><value>عروضي</value></data>
+  <data name="offers.add_new" xml:space="preserve"><value>إضافة عرض جديد</value></data>
+  <data name="offers.title" xml:space="preserve"><value>عنوان العرض</value></data>
+  <data name="offers.title_placeholder" xml:space="preserve"><value>مثال: كبسة دجاج</value></data>
+  <data name="offers.description" xml:space="preserve"><value>الوصف</value></data>
+  <data name="offers.description_placeholder" xml:space="preserve"><value>اكتب وصفاً موجزاً...</value></data>
+  <data name="offers.price" xml:space="preserve"><value>السعر (ر.س)</value></data>
+  <data name="offers.emoji" xml:space="preserve"><value>الأيقونة</value></data>
+  <data name="offers.quantity" xml:space="preserve"><value>الكمية المتاحة</value></data>
+  <data name="offers.submit" xml:space="preserve"><value>إضافة العرض</value></data>
+
+  <data name="table.title" xml:space="preserve"><value>العنوان</value></data>
+  <data name="table.price" xml:space="preserve"><value>السعر</value></data>
+  <data name="table.discount" xml:space="preserve"><value>الخصم</value></data>
+  <data name="table.quantity" xml:space="preserve"><value>الكمية</value></data>
+  <data name="table.status" xml:space="preserve"><value>الحالة</value></data>
+  <data name="table.actions" xml:space="preserve"><value>الإجراءات</value></data>
+  <data name="table.total" xml:space="preserve"><value>الإجمالي</value></data>
+  <data name="table.notes" xml:space="preserve"><value>ملاحظات</value></data>
+
+  <data name="common.active" xml:space="preserve"><value>نشط</value></data>
+  <data name="common.disabled" xml:space="preserve"><value>معطّل</value></data>
+  <data name="common.disable" xml:space="preserve"><value>تعطيل</value></data>
+  <data name="common.enable" xml:space="preserve"><value>تفعيل</value></data>
+  <data name="common.delete" xml:space="preserve"><value>حذف</value></data>
+  <data name="common.cancel" xml:space="preserve"><value>إلغاء</value></data>
+  <data name="common.save_changes" xml:space="preserve"><value>حفظ التغييرات</value></data>
+  <data name="common.save_success" xml:space="preserve"><value>تم الحفظ بنجاح ✓</value></data>
+  <data name="common.save_failed" xml:space="preserve"><value>فشل الحفظ</value></data>
+
+  <data name="orders.incoming" xml:space="preserve"><value>الطلبات الواردة</value></data>
+  <data name="orders.empty_title" xml:space="preserve"><value>لا توجد طلبات</value></data>
+  <data name="orders.empty_message" xml:space="preserve"><value>ستظهر الطلبات الجديدة هنا</value></data>
+  <data name="orders.accept" xml:space="preserve"><value>قبول</value></data>
+  <data name="orders.ready" xml:space="preserve"><value>جاهز</value></data>
+
+  <data name="profile.heading" xml:space="preserve"><value>ملف المتجر</value></data>
+  <data name="profile.city" xml:space="preserve"><value>المدينة</value></data>
+  <data name="profile.phone" xml:space="preserve"><value>الهاتف</value></data>
+  <data name="profile.open_hours" xml:space="preserve"><value>ساعات العمل</value></data>
+  <data name="profile.rating" xml:space="preserve"><value>التقييم</value></data>
+  <data name="profile.ratings_suffix" xml:space="preserve"><value>تقييم</value></data>
+  <data name="profile.edit_vendor" xml:space="preserve"><value>تعديل المتجر</value></data>
+  <data name="profile.name" xml:space="preserve"><value>الاسم</value></data>
+
+  <data name="settings.heading" xml:space="preserve"><value>الإعدادات</value></data>
+  <data name="settings.theme" xml:space="preserve"><value>المظهر</value></data>
+  <data name="settings.language" xml:space="preserve"><value>اللغة</value></data>
+  <data name="settings.theme_light" xml:space="preserve"><value>فاتح</value></data>
+  <data name="settings.theme_dark" xml:space="preserve"><value>داكن</value></data>
+</root>

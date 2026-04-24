@@ -1,3 +1,5 @@
+using System.Globalization;
+using System.Resources;
 using ACommerce.L10n.Blazor;
 
 namespace Order.V2.Vendor.Web.Store;
@@ -10,10 +12,22 @@ public sealed class AppLangContext : ILanguageContext
     public bool IsRtl => _store.Ui.Language != "en";
 }
 
-public sealed class VendorTranslations : EmbeddedTranslationProvider
+/// <summary>
+/// Reads translations from compiled .NET resource files
+/// (<c>Resources/Strings.resx</c> — English default, <c>Resources/Strings.ar.resx</c> — Arabic).
+/// Swapping back to embedded dictionaries or API-backed providers is a one-line DI change.
+/// </summary>
+public sealed class VendorTranslations : ITranslationProvider
 {
-    protected override IReadOnlyDictionary<string, string> Ar => _ar;
-    protected override IReadOnlyDictionary<string, string> En => _en;
-    private static readonly Dictionary<string, string> _ar = new();
-    private static readonly Dictionary<string, string> _en = new();
+    private static readonly ResourceManager _rm = new(
+        "Order.V2.Vendor.Web.Resources.Strings",
+        typeof(VendorTranslations).Assembly);
+
+    public string Translate(string key, string language)
+    {
+        var culture = string.IsNullOrEmpty(language)
+            ? CultureInfo.InvariantCulture
+            : CultureInfo.GetCultureInfo(language);
+        return _rm.GetString(key, culture) ?? key;
+    }
 }
