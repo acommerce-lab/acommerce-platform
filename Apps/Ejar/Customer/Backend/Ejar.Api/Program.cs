@@ -94,7 +94,7 @@ try
                 ValidateIssuer    = true, ValidIssuer    = jwtIssuer,
                 ValidateAudience  = true, ValidAudience  = jwtAudience,
                 ValidateLifetime  = true,
-                ClockSkew = TimeSpan.FromSeconds(30)
+                ClockSkew = TimeSpan.FromMinutes(2)
             };
             // SignalR WebSocket connections can't set HTTP headers,
             // so the token is passed as ?access_token= in the query string.
