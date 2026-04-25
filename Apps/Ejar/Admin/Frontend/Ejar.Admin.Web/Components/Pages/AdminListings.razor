@@ -1,0 +1,75 @@
+@page "/admin/listings"
+@inject AppStore Store
+@inject ApiReader Api
+@inject IHttpClientFactory HttpFactory
+@inject L L
+
+<PageTitle>الإعلانات — إدارة إيجار</PageTitle>
+
+<AcAuthGuard IsAuthenticated="@Store.Auth.IsAuthenticated" LoginHref="/login">
+    <h2 class="page-title">كلّ الإعلانات</h2>
+    @if (_rows is null) { <AcLoadingState /> }
+    else if (!_rows.Any()) { <AcEmpty Title="لا إعلانات بعد" Message="" /> }
+    else
+    {
+        <div class="table-wrap"><table class="table">
+            <thead><tr>
+                <th>العنوان</th><th>المدينة</th><th>النوع</th><th>السعر</th>
+                <th>المالك</th><th>موثَّق</th><th>حالة</th><th></th>
+            </tr></thead>
+            <tbody>
+                @foreach (var l in _rows)
+                {
+                    <tr>
+                        <td>@l.Title</td><td>@l.City</td><td>@l.PropertyType</td>
+                        <td>@l.Price.ToString("0.##") @l.TimeUnit</td>
+                        <td class="id-cell">@l.OwnerId</td>
+                        <td>@(l.IsVerified ? "✓" : "—")</td>
+                        <td>@(l.Status == 1 ? "نشط" : "موقوف")</td>
+                        <td>
+                            @if (!l.IsVerified)
+                            { <AcButton Variant="primary" Size="sm" Text="توثيق" OnClick="@(() => Verify(l.Id))" /> }
+                            @if (l.Status == 1)
+                            { <AcButton Variant="danger" Size="sm" Text="إيقاف" OnClick="@(() => Suspend(l.Id))" /> }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table></div>
+    }
+</AcAuthGuard>
+
+@code {
+    private List<Row>? _rows;
+
+    protected override async Task OnAfterRenderAsync(bool first)
+    {
+        if (!first || !Store.Auth.IsAuthenticated) return;
+        await Reload();
+    }
+
+    private async Task Reload()
+    {
+        var env = await Api.GetAsync<List<Row>>("/admin/listings");
+        _rows = env.Data ?? new();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task Verify(string id)
+    {
+        var http = HttpFactory.CreateClient("ejar-admin");
+        await http.PostAsync($"/admin/listings/{id}/verify", null);
+        await Reload();
+    }
+
+    private async Task Suspend(string id)
+    {
+        var http = HttpFactory.CreateClient("ejar-admin");
+        await http.PostAsync($"/admin/listings/{id}/suspend", null);
+        await Reload();
+    }
+
+    private record Row(string Id, string Title, string City, string PropertyType,
+                        decimal Price, string TimeUnit, string OwnerId,
+                        bool IsVerified, int Status, int ViewsCount);
+}

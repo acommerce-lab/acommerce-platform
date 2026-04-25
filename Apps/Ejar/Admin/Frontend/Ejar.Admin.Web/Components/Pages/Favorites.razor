@@ -1,0 +1,65 @@
+@page "/favorites"
+@using Ejar.Admin.Web.Operations
+@inject AppStore Store
+@inject AppStateApplier Applier
+@inject ApiReader Api
+@inject NavigationManager Nav
+@inject L L
+@implements IDisposable
+
+<PageTitle>@(L["nav.favorites"]) - @(L["app.name"])</PageTitle>
+
+<div class="acs-page">
+    <h1 class="acm-wizard-title">@(L["nav.favorites"])</h1>
+    @if (_loading) { <AcLoadingState /> }
+    else if (_items.Count == 0) { <AcEmptyState IconName="heart" Message="لا توجد مفضلة بعد" /> }
+    else
+    {
+        <div class="acm-home-grid">
+            @foreach (var l in _items)
+            {
+                var lid = l.Id;
+                <AcSpaceCard Title="@l.Title"
+                             ImageUrl="@l.FirstImage"
+                             Location="@($"{l.City} — {l.District}")"
+                             Capacity="@(l.BedroomCount == 0 ? null : l.BedroomCount)"
+                             PriceLabel="@($"{l.Price:0} SAR")"
+                             IsFavorite="true"
+                             OnOpen="@(() => Open(lid))"
+                             OnToggleFavorite="@(on => Toggle(lid, on))" />
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private List<ListingDto> _items = new();
+    private bool _loading = true;
+
+    protected override void OnInitialized() => Store.OnChanged += OnChange;
+
+    protected override async Task OnAfterRenderAsync(bool first) { if (first) await Load(); }
+
+    private async Task Load()
+    {
+        if (Store.FavoriteListingIds.Count == 0) { _items = new(); _loading = false; await InvokeAsync(StateHasChanged); return; }
+        var env = await Api.GetAsync<List<ListingDto>>("/home/explore?sort=newest");
+        var all = env.Data ?? new();
+        _items = all.Where(l => Store.FavoriteListingIds.Contains(l.Id)).ToList();
+        _loading = false;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void Open(string id) => Nav.NavigateTo($"/listings/{id}");
+
+    private Task Toggle(string id, bool on) => Applier.ApplyLocalAsync(EjarOps.ToggleFavorite(id));
+
+    private async void OnChange() { await Load(); }
+    public void Dispose() => Store.OnChanged -= OnChange;
+
+    private sealed record ListingDto(
+        string Id, string Title, decimal Price, string TimeUnit, string TimeUnitLabel,
+        string PropertyType, string PropertyTypeLabel, string City, string District,
+        double Lat, double Lng, int BedroomCount, double AreaSqm, bool IsVerified,
+        int ViewsCount, bool IsFavorite, List<string>? Amenities, string? FirstImage);
+}
