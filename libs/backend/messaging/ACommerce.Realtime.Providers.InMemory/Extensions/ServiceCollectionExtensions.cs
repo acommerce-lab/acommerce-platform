@@ -1,3 +1,4 @@
+using ACommerce.Realtime.Operations;
 using ACommerce.Realtime.Operations.Abstractions;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -19,6 +20,8 @@ public static class ServiceCollectionExtensions
 
         services.AddSingleton<InMemoryConnectionTracker>();
         services.AddSingleton<IConnectionTracker>(sp => sp.GetRequiredService<InMemoryConnectionTracker>());
+
+        services.AddRealtimeChannels();
 
         return services;
     }

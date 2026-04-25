@@ -1,3 +1,4 @@
+using ACommerce.Realtime.Operations;
 using ACommerce.Realtime.Operations.Abstractions;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -10,6 +11,7 @@ public static class ServiceCollectionExtensions
     {
         services.AddSignalR();
         services.AddSingleton<IRealtimeTransport, SignalRRealtimeTransport>();
+        services.AddRealtimeChannels();
         return services;
     }
 }

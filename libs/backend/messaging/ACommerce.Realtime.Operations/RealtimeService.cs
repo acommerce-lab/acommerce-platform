@@ -1,5 +1,6 @@
 using ACommerce.OperationEngine.Core;
 using ACommerce.Realtime.Operations.Abstractions;
+using ACommerce.Realtime.Operations.Channels;
 using ACommerce.Realtime.Operations.Operations;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -55,6 +56,17 @@ public static class RealtimeExtensions
     {
         services.AddSingleton(transport);
         services.AddScoped<RealtimeService>();
+        return services;
+    }
+
+    /// <summary>
+    /// يسجّل <see cref="IRealtimeChannelManager"/> كـ Singleton.
+    /// شرط: <see cref="IRealtimeTransport"/> مسجَّل بالفعل كـ Singleton (ينطبق على
+    /// مزوّدَي SignalR وInMemory المرفقَين). تُستدعى تلقائيّاً من تمديدات المزوّدات.
+    /// </summary>
+    public static IServiceCollection AddRealtimeChannels(this IServiceCollection services)
+    {
+        services.AddSingleton<IRealtimeChannelManager, RealtimeChannelManager>();
         return services;
     }
 
