@@ -1,6 +1,8 @@
+using ACommerce.Chat.Operations;
 using ACommerce.OperationEngine.Core;
 using ACommerce.OperationEngine.Patterns;
 using ACommerce.OperationEngine.Wire;
+using ACommerce.Realtime.Operations.Abstractions;
 using ACommerce.SharedKernel.Abstractions.Repositories;
 using Microsoft.AspNetCore.Mvc;
 using Order.V2.Api.Entities;
@@ -16,14 +18,28 @@ public class MessagesController : ControllerBase
     private readonly IBaseAsyncRepository<Vendor> _vendors;
     private readonly IBaseAsyncRepository<User> _users;
     private readonly OpEngine _engine;
+    private readonly IChatService? _chat;
+    private readonly IConnectionTracker? _connections;
 
-    public MessagesController(IRepositoryFactory f, OpEngine engine)
+    /// <summary>
+    /// Chat channel idle timeout — backend auto-closes a user's chat:conv:X
+    /// subscription after this, which re-opens notif:conv:X for them.
+    /// </summary>
+    private static readonly TimeSpan ChatIdleTimeout = TimeSpan.FromMinutes(2);
+
+    public MessagesController(
+        IRepositoryFactory f,
+        OpEngine engine,
+        IChatService? chat = null,
+        IConnectionTracker? connections = null)
     {
-        _convs = f.CreateRepository<Conversation>();
-        _msgs = f.CreateRepository<Message>();
-        _vendors = f.CreateRepository<Vendor>();
-        _users = f.CreateRepository<User>();
-        _engine = engine;
+        _convs       = f.CreateRepository<Conversation>();
+        _msgs        = f.CreateRepository<Message>();
+        _vendors     = f.CreateRepository<Vendor>();
+        _users       = f.CreateRepository<User>();
+        _engine      = engine;
+        _chat        = chat;
+        _connections = connections;
     }
 
     public record StartRequest(Guid CustomerId, Guid VendorId, Guid? OrderId);
@@ -123,9 +139,14 @@ public class MessagesController : ControllerBase
             })
             .Build();
 
-        var envelope = await _engine.ExecuteEnvelopeAsync(op, msg, ct);
+        var envelope = await _engine.ExecuteEnvelopeAsync(op, (IChatMessage)msg, ct);
         if (envelope.Operation.Status != "Success")
             return this.BadRequestEnvelope(envelope.Operation.FailedAnalyzer ?? "message_send_failed", envelope.Operation.ErrorMessage);
+
+        // Broadcast on both chat:conv:X and notif:conv:X groups; recipient sees
+        // the message in-chat if they're in the conversation, or as notif otherwise.
+        if (_chat is not null) await _chat.BroadcastNewMessageAsync(msg, CancellationToken.None);
+
         return this.OkEnvelope("message.send", msg);
     }
 
@@ -162,5 +183,40 @@ public class MessagesController : ControllerBase
         var result = await _engine.ExecuteAsync(op, ct);
         if (!result.Success) return this.BadRequestEnvelope("mark_read_failed", result.ErrorMessage);
         return this.OkEnvelope("conversation.mark_read", new { });
+    }
+
+    // ─── Chat channel lifecycle ──────────────────────────────────────────────
+    // Caller identity is resolved from the JWT `sub` claim (JwtRegisteredClaimNames.Sub).
+
+    private string? CallerPartyId
+    {
+        get
+        {
+            var sub = User.FindFirst(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub)?.Value
+                   ?? User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            return string.IsNullOrEmpty(sub) ? null : $"User:{sub}";
+        }
+    }
+
+    [Microsoft.AspNetCore.Authorization.Authorize]
+    [HttpPost("/chat/{convId}/enter")]
+    public async Task<IActionResult> EnterChat(Guid convId, CancellationToken ct)
+    {
+        if (_chat is null) return this.OkEnvelope("chat.enter", new { ok = true });
+        if (CallerPartyId is null) return this.ForbiddenEnvelope("not_authenticated");
+        var connId = _connections is null ? null : await _connections.GetConnectionIdAsync(CallerPartyId, ct);
+        if (string.IsNullOrEmpty(connId))
+            return this.OkEnvelope("chat.enter", new { ok = false, reason = "no_connection" });
+        await _chat.EnterConversationAsync(convId.ToString(), CallerPartyId, connId, ChatIdleTimeout, ct);
+        return this.OkEnvelope("chat.enter", new { ok = true, conversationId = convId });
+    }
+
+    [Microsoft.AspNetCore.Authorization.Authorize]
+    [HttpPost("/chat/{convId}/leave")]
+    public async Task<IActionResult> LeaveChat(Guid convId, CancellationToken ct)
+    {
+        if (_chat is null || CallerPartyId is null) return this.OkEnvelope("chat.leave", new { ok = true });
+        await _chat.LeaveConversationAsync(convId.ToString(), CallerPartyId, ct);
+        return this.OkEnvelope("chat.leave", new { ok = true, conversationId = convId });
     }
 }

@@ -28,5 +28,8 @@
 
     <!-- i18n -->
     <ProjectReference Include="..\..\..\..\..\libs\frontend\ACommerce.L10n.Blazor\ACommerce.L10n.Blazor.csproj" />
+
+    <!-- Chat client (realtime + HTTP chat enter/leave + conversation-scoped message push) -->
+    <ProjectReference Include="..\..\..\..\..\libs\frontend\ACommerce.Chat.Client.Blazor\ACommerce.Chat.Client.Blazor.csproj" />
   </ItemGroup>
 </Project>

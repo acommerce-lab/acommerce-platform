@@ -1,10 +1,14 @@
 @page "/chat/{Id:guid}"
+@using ACommerce.Chat.Client.Blazor
+@using ACommerce.Chat.Operations
 @inject AppStore Store
 @inject ClientOpEngine Engine
 @inject ApiReader Api
 @inject NavigationManager Nav
 @inject ACommerce.Culture.Blazor.CultureTimeFormatter TimeFormatter
+@inject IChatClient Chat
 @inject L L
+@implements IAsyncDisposable
 
 <PageTitle>@(L["conversation.title"]) — @(L["app.name"])</PageTitle>
 
@@ -53,7 +57,15 @@ else
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (!firstRender) return;
+        // 1) Load persisted history from DB.
         await Reload();
+
+        // 2) Open chat channel for this conversation; backend closes notif:conv:Id
+        // for this user, so future messages on THIS conversation flow here as
+        // realtime events; other conversations continue to surface as notifs.
+        Chat.MessageReceived += OnRealtimeMessage;
+        await Chat.EnterAsync(Id.ToString());
+
         StateHasChanged();
     }
 
@@ -68,8 +80,33 @@ else
                 new { readerId = Store.Auth.UserId.Value });
     }
 
+    private void OnRealtimeMessage(IChatMessage msg)
+    {
+        // Skip already-present (optimistic echo of our own send) & keep order.
+        var id = Guid.TryParse(msg.Id, out var g) ? g : Guid.Empty;
+        if (Messages.Any(m => m.Id == id)) return;
+        Messages.Add(new MsgApi
+        {
+            Id = id, ConversationId = Id,
+            SenderId = ParseSender(msg.SenderPartyId),
+            Content = msg.Body,
+            CreatedAt = msg.SentAt
+        });
+        InvokeAsync(StateHasChanged);
+    }
+
+    private static Guid ParseSender(string partyId)
+    {
+        // "User:<guid>" → Guid; fall back to Empty for non-user senders.
+        var idx = partyId.IndexOf(':');
+        if (idx < 0) return Guid.Empty;
+        return Guid.TryParse(partyId[(idx + 1)..], out var g) ? g : Guid.Empty;
+    }
+
     private async Task OnNewMessage(ChatMessageDto msg)
     {
+        // Optimistic local echo for instant feedback; realtime broadcast-back
+        // is de-duped in OnRealtimeMessage.
         Messages.Add(new MsgApi
         {
             Id = Guid.TryParse(msg.Id, out var gid) ? gid : Guid.NewGuid(),
@@ -78,6 +115,14 @@ else
             CreatedAt = msg.CreatedAt
         });
         StateHasChanged();
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        Chat.MessageReceived -= OnRealtimeMessage;
+        // Leave the chat channel: backend re-opens notif:conv:Id so subsequent
+        // messages surface as notifications instead of silent drops.
+        await Chat.LeaveAsync();
     }
 
     public class MsgApi

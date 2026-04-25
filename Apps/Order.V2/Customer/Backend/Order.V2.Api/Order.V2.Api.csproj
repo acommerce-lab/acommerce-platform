@@ -37,11 +37,14 @@
     <ProjectReference Include="..\..\..\..\..\libs\backend\auth\ACommerce.Authentication.TwoFactor.Operations\ACommerce.Authentication.TwoFactor.Operations.csproj" />
     <ProjectReference Include="..\..\..\..\..\libs\backend\auth\ACommerce.Authentication.TwoFactor.Providers.Sms.Mock\ACommerce.Authentication.TwoFactor.Providers.Sms.Mock.csproj" />
 
-    <!-- Realtime + Notifications -->
+    <!-- Realtime + Notifications + Chat -->
     <ProjectReference Include="..\..\..\..\..\libs\backend\messaging\ACommerce.Realtime.Operations\ACommerce.Realtime.Operations.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\backend\messaging\ACommerce.Realtime.Providers.SignalR\ACommerce.Realtime.Providers.SignalR.csproj" />
     <ProjectReference Include="..\..\..\..\..\libs\backend\messaging\ACommerce.Realtime.Providers.InMemory\ACommerce.Realtime.Providers.InMemory.csproj" />
     <ProjectReference Include="..\..\..\..\..\libs\backend\messaging\ACommerce.Notification.Operations\ACommerce.Notification.Operations.csproj" />
     <ProjectReference Include="..\..\..\..\..\libs\backend\messaging\ACommerce.Notification.Providers.InApp\ACommerce.Notification.Providers.InApp.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\backend\messaging\ACommerce.Notification.Providers.Firebase\ACommerce.Notification.Providers.Firebase.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\backend\messaging\ACommerce.Chat.Operations\ACommerce.Chat.Operations.csproj" />
 
     <!-- Favorites + Translations -->
     <ProjectReference Include="..\..\..\..\..\libs\backend\other\ACommerce.Favorites.Operations\ACommerce.Favorites.Operations.csproj" />
