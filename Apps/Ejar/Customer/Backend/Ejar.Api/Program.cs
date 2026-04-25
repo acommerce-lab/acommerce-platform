@@ -1,4 +1,7 @@
 using ACommerce.Authentication.TwoFactor.Providers.Sms.Mock.Extensions;
+using ACommerce.Cache.Operations.Abstractions;
+using ACommerce.Cache.Providers.InMemory.Extensions;
+using ACommerce.Cache.Providers.Redis.Extensions;
 using ACommerce.Chat.Operations;
 using ACommerce.Notification.Providers.Firebase.Extensions;
 using ACommerce.Notification.Providers.InApp;
@@ -6,6 +9,7 @@ using ACommerce.Notification.Providers.InApp.Extensions;
 using ACommerce.Realtime.Operations;
 using ACommerce.Realtime.Providers.SignalR;
 using ACommerce.Realtime.Providers.SignalR.Extensions;
+using ACommerce.Realtime.Providers.SignalR.Redis.Extensions;
 using ACommerce.OperationEngine.Core;
 using ACommerce.OperationEngine.Interceptors;
 using ACommerce.OperationEngine.Interceptors.Extensions;
@@ -134,10 +138,33 @@ try
     // subscriptions with idle timeouts and OnOpened/OnClosed app hooks).
     builder.Services.AddSignalRRealtimeTransport();
     builder.Services.AddScoped<RealtimeService>();
-    // userId → connectionId tracker (in-memory; swap for Redis when scaling out).
-    builder.Services.AddSingleton<ACommerce.Realtime.Providers.InMemory.InMemoryConnectionTracker>();
-    builder.Services.AddSingleton<ACommerce.Realtime.Operations.Abstractions.IConnectionTracker>(
-        sp => sp.GetRequiredService<ACommerce.Realtime.Providers.InMemory.InMemoryConnectionTracker>());
+
+    // ── Cache + cluster-ready realtime (opt-in via config) ──────────────────
+    // REMINDER: set Cache:Redis:ConnectionString in appsettings.{Env}.json
+    // (and optionally Realtime:Redis:ConnectionString — falls back to the
+    // cache one) before deploying multi-instance. Without it, runs single-instance
+    // with InMemoryCache + InMemoryConnectionTracker.
+    var cacheRedis = cfg["Cache:Redis:ConnectionString"];
+    var rtRedis    = cfg["Realtime:Redis:ConnectionString"] ?? cacheRedis;
+    if (!string.IsNullOrEmpty(cacheRedis))
+    {
+        builder.Services.AddRedisCache(cacheRedis);
+        builder.Services.AddRedisConnectionTracker();
+        Log.Information("Cache: Redis enabled (ICache + RedisConnectionTracker)");
+    }
+    else
+    {
+        builder.Services.AddInMemoryCache();
+        builder.Services.AddSingleton<ACommerce.Realtime.Providers.InMemory.InMemoryConnectionTracker>();
+        builder.Services.AddSingleton<IConnectionTracker>(
+            sp => sp.GetRequiredService<ACommerce.Realtime.Providers.InMemory.InMemoryConnectionTracker>());
+        Log.Information("Cache: in-memory (single-instance only — set Cache:Redis:ConnectionString for production)");
+    }
+    if (!string.IsNullOrEmpty(rtRedis))
+    {
+        builder.Services.AddSignalRRedisBackplane(rtRedis);
+        Log.Information("Realtime: SignalR Redis backplane enabled (multi-host SendToGroup/User)");
+    }
 
     // InApp channel — uses the realtime transport to push notifications to
     // currently-connected clients via a single `ReceiveNotification` method.

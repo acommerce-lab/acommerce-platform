@@ -1,12 +1,15 @@
 using ACommerce.Authentication.TwoFactor.Operations;
 using ACommerce.Authentication.TwoFactor.Operations.Abstractions;
 using ACommerce.Authentication.TwoFactor.Providers.Sms.Mock.Extensions;
+using ACommerce.Cache.Providers.InMemory.Extensions;
+using ACommerce.Cache.Providers.Redis.Extensions;
 using ACommerce.Chat.Operations;
 using ACommerce.OperationEngine.Core;
 using ACommerce.Realtime.Operations.Abstractions;
 using ACommerce.Realtime.Providers.InMemory;
 using ACommerce.Realtime.Providers.SignalR;
 using ACommerce.Realtime.Providers.SignalR.Extensions;
+using ACommerce.Realtime.Providers.SignalR.Redis.Extensions;
 using ACommerce.SharedKernel.Abstractions.Entities;
 using ACommerce.SharedKernel.Infrastructure.EFCores;
 using ACommerce.SharedKernel.Infrastructure.EFCores.Extensions;
@@ -116,8 +119,28 @@ builder.Services.AddAuthorization(opt =>
 
 // ── Realtime + Chat (abstractions only; providers DI-wired here) ───────────
 builder.Services.AddSignalRRealtimeTransport();
-builder.Services.AddSingleton<InMemoryConnectionTracker>();
-builder.Services.AddSingleton<IConnectionTracker>(sp => sp.GetRequiredService<InMemoryConnectionTracker>());
+
+// REMINDER: set Cache:Redis:ConnectionString (and optionally
+// Realtime:Redis:ConnectionString) in appsettings.{Env}.json before deploying
+// multi-instance — otherwise runs single-instance with in-memory cache.
+{
+    var cacheRedis = builder.Configuration["Cache:Redis:ConnectionString"];
+    var rtRedis    = builder.Configuration["Realtime:Redis:ConnectionString"] ?? cacheRedis;
+    if (!string.IsNullOrEmpty(cacheRedis))
+    {
+        builder.Services.AddRedisCache(cacheRedis);
+        builder.Services.AddRedisConnectionTracker();
+    }
+    else
+    {
+        builder.Services.AddInMemoryCache();
+        builder.Services.AddSingleton<InMemoryConnectionTracker>();
+        builder.Services.AddSingleton<IConnectionTracker>(sp => sp.GetRequiredService<InMemoryConnectionTracker>());
+    }
+    if (!string.IsNullOrEmpty(rtRedis))
+        builder.Services.AddSignalRRedisBackplane(rtRedis);
+}
+
 builder.Services.AddChat();
 
 // ── 2FA SMS Mock ───────────────────────────────────────────────────────────

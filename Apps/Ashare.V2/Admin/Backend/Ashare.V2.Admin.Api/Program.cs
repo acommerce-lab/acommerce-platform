@@ -2,6 +2,8 @@ using System.Text;
 using ACommerce.Authentication.TwoFactor.Operations;
 using ACommerce.Authentication.TwoFactor.Operations.Abstractions;
 using ACommerce.Authentication.TwoFactor.Providers.Sms.Mock.Extensions;
+using ACommerce.Cache.Providers.InMemory.Extensions;
+using ACommerce.Cache.Providers.Redis.Extensions;
 using ACommerce.Chat.Operations;
 using ACommerce.Notification.Providers.InApp.Extensions;
 using ACommerce.OperationEngine.Core;
@@ -9,6 +11,7 @@ using ACommerce.Realtime.Operations.Abstractions;
 using ACommerce.Realtime.Providers.InMemory;
 using ACommerce.Realtime.Providers.SignalR;
 using ACommerce.Realtime.Providers.SignalR.Extensions;
+using ACommerce.Realtime.Providers.SignalR.Redis.Extensions;
 using ACommerce.SharedKernel.Abstractions.Entities;
 using ACommerce.SharedKernel.Infrastructure.EFCores.Extensions;
 using Ashare.V2.Api.Entities;
@@ -130,9 +133,29 @@ try
 
     // ─── Realtime + Chat + InApp notifications (abstractions only) ────────
     builder.Services.AddSignalRRealtimeTransport();
-    builder.Services.AddSingleton<InMemoryConnectionTracker>();
-    builder.Services.AddSingleton<IConnectionTracker>(sp => sp.GetRequiredService<InMemoryConnectionTracker>());
     builder.Services.AddInAppNotificationChannel(o => o.MethodName = "ReceiveNotification");
+
+    // REMINDER: set Cache:Redis:ConnectionString (and optionally
+    // Realtime:Redis:ConnectionString) in appsettings.{Env}.json before
+    // multi-instance deployment.
+    {
+        var cacheRedis = cfg["Cache:Redis:ConnectionString"];
+        var rtRedis    = cfg["Realtime:Redis:ConnectionString"] ?? cacheRedis;
+        if (!string.IsNullOrEmpty(cacheRedis))
+        {
+            builder.Services.AddRedisCache(cacheRedis);
+            builder.Services.AddRedisConnectionTracker();
+        }
+        else
+        {
+            builder.Services.AddInMemoryCache();
+            builder.Services.AddSingleton<InMemoryConnectionTracker>();
+            builder.Services.AddSingleton<IConnectionTracker>(sp => sp.GetRequiredService<InMemoryConnectionTracker>());
+        }
+        if (!string.IsNullOrEmpty(rtRedis))
+            builder.Services.AddSignalRRedisBackplane(rtRedis);
+    }
+
     builder.Services.AddChat();
 
     var app = builder.Build();

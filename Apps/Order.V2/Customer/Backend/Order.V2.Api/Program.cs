@@ -11,10 +11,14 @@ using ACommerce.Notification.Operations.Abstractions;
 using ACommerce.Notification.Providers.InApp.Extensions;
 using ACommerce.OperationEngine.Core;
 using ACommerce.Realtime.Operations.Abstractions;
-using ACommerce.Realtime.Providers.InMemory;          // InMemoryConnectionTracker (userId→connId map)
+using ACommerce.Cache.Operations.Abstractions;
+using ACommerce.Cache.Providers.InMemory.Extensions;
+using ACommerce.Cache.Providers.Redis.Extensions;
+using ACommerce.Realtime.Providers.InMemory;          // InMemoryConnectionTracker (single-instance fallback)
 using ACommerce.Realtime.Providers.InMemory.Extensions;
 using ACommerce.Realtime.Providers.SignalR;
 using ACommerce.Realtime.Providers.SignalR.Extensions;
+using ACommerce.Realtime.Providers.SignalR.Redis.Extensions;
 using ACommerce.Notification.Providers.Firebase.Extensions;
 using ACommerce.Chat.Operations;
 using ACommerce.SharedKernel.Abstractions.Entities;
@@ -142,8 +146,29 @@ builder.Services.AddScoped<OpEngine>(sp =>
 // InMemoryConnectionTracker maps userId → connectionId (swap for Redis at scale).
 // ─────────────────────────────────────────────────────────
 builder.Services.AddSignalRRealtimeTransport();
-builder.Services.AddSingleton<InMemoryConnectionTracker>();
-builder.Services.AddSingleton<IConnectionTracker>(sp => sp.GetRequiredService<InMemoryConnectionTracker>());
+
+// ── Cache + cluster-ready realtime (opt-in via config) ─────────────────────
+// REMINDER: set Cache:Redis:ConnectionString in appsettings.{Env}.json
+// (and optionally Realtime:Redis:ConnectionString — falls back to the cache one)
+// before deploying multi-instance. Without it, runs single-instance with
+// in-memory cache + per-process tracker.
+{
+    var cacheRedis = builder.Configuration["Cache:Redis:ConnectionString"];
+    var rtRedis    = builder.Configuration["Realtime:Redis:ConnectionString"] ?? cacheRedis;
+    if (!string.IsNullOrEmpty(cacheRedis))
+    {
+        builder.Services.AddRedisCache(cacheRedis);
+        builder.Services.AddRedisConnectionTracker();
+    }
+    else
+    {
+        builder.Services.AddInMemoryCache();
+        builder.Services.AddSingleton<InMemoryConnectionTracker>();
+        builder.Services.AddSingleton<IConnectionTracker>(sp => sp.GetRequiredService<InMemoryConnectionTracker>());
+    }
+    if (!string.IsNullOrEmpty(rtRedis))
+        builder.Services.AddSignalRRedisBackplane(rtRedis);
+}
 builder.Services.AddInAppNotificationChannel(opt =>
 {
     opt.MethodName = "ReceiveNotification";

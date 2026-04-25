@@ -27,12 +27,20 @@ public static class ServiceCollectionExtensions
     }
 
     /// <summary>
-    /// يستبدل <see cref="IConnectionTracker"/> بنسخة مدعومة بـ Redis (عبر <c>ICache</c>).
-    /// شرط: <c>AddRedisCache</c> أو <c>AddInMemoryCache</c> مسجَّل (للاختبار يكفي
-    /// in-memory، لكنّ الفائدة الحقيقيّة تظهر مع Redis متعدّد العمليّات).
-    /// استبدل تسجيلك السابق <c>AddSingleton&lt;InMemoryConnectionTracker&gt;</c>
-    /// بهذا.
+    /// نسخة على <see cref="IServiceCollection"/> للأبسط: تعمل مع <c>AddSignalR()</c> داخليّاً
+    /// (آمنة للاستدعاء بعد <c>AddSignalRRealtimeTransport</c>).
     /// </summary>
+    public static IServiceCollection AddSignalRRedisBackplane(
+        this IServiceCollection services, string connectionString)
+    {
+        if (string.IsNullOrWhiteSpace(connectionString))
+            throw new ArgumentException("Redis connection string is required", nameof(connectionString));
+        services.AddSignalR().AddStackExchangeRedis(connectionString);
+        return services;
+    }
+
+    /// <summary>
+    /// يستبدل <see cref="IConnectionTracker"/> بنسخة مدعومة بـ Redis (عبر <c>ICache</c>).</summary>
     public static IServiceCollection AddRedisConnectionTracker(this IServiceCollection services)
     {
         services.AddSingleton<RedisConnectionTracker>();

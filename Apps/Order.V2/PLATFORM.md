@@ -115,6 +115,26 @@ Conversation ──< Message
 كل تحوّل حالة (`Pending → Accepted → Ready → Delivered → Done | Cancelled`)
 هو **عمليّة واحدة** بمرسِل ومستقبِل وعلامات وعقد تنفيذ — بلا استثناء.
 
+## التشغيل في الإنتاج — Redis
+
+كلتا خدمتَي Customer و Vendor تنطلقان افتراضيّاً بـ in-memory cache + per-process
+connection tracker (يعمل لـ instance واحدة فقط). للنشر على عدّة instances
+وتوصيل لحظيّ عابر للـ hubs:
+
+```jsonc
+// appsettings.{Environment}.json (أو متغيّرات بيئة)
+"Cache":    { "Redis": { "ConnectionString": "redis-host:6379,password=...,abortConnect=false" } },
+"Realtime": { "Redis": { "ConnectionString": "<same as above>" } }  // اختياريّ — يرث من Cache
+```
+
+عند ضبط القيمة الأولى: ينقلب `ICache` إلى Redis، ويتبدّل `IConnectionTracker`
+إلى `RedisConnectionTracker` (يبحث عن اتّصالات المستخدمين عبر كلّ instances).
+عند ضبط الثانية: SignalR Backplane يفعَّل (`SendToGroup` و `SendToUser` تصل
+كلّ نسخة Hub متّصلة بنفس Redis).
+
+> Customer و Vendor backends يجب أن يشيرا لـ **نفس Redis** ليعمل توصيل
+> الرسائل عابراً بين الـ hubs.
+
 ## مراجع داخل الريبو
 
 - `Apps/Order.V2/Customer/Frontend/Order.V2.Web/Store/L.cs` — قالب L10n.

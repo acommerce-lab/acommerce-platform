@@ -2,10 +2,13 @@ using System.Text;
 using ACommerce.Authentication.TwoFactor.Providers.Nafath.Mock.Extensions;
 using ACommerce.Files.Storage.AliyunOSS.Extensions;
 using ACommerce.Files.Storage.Local.Extensions;
+using ACommerce.Cache.Providers.InMemory.Extensions;
+using ACommerce.Cache.Providers.Redis.Extensions;
 using ACommerce.Chat.Operations;
 using ACommerce.Notification.Providers.Email.Extensions;
 using ACommerce.Notification.Providers.Firebase.Extensions;
 using ACommerce.Notification.Providers.InApp.Extensions;
+using ACommerce.Realtime.Providers.SignalR.Redis.Extensions;
 using ACommerce.OperationEngine.Core;
 using ACommerce.OperationEngine.Interceptors;
 using ACommerce.OperationEngine.Interceptors.Extensions;
@@ -193,10 +196,34 @@ try
     // ─── Notifications + Chat ────────────────────────────────────────────────
     builder.Services.AddSignalRRealtimeTransport();
     builder.Services.AddInAppNotificationChannel();
-    // userId → connectionId tracker (in-memory; swap for Redis at scale).
-    builder.Services.AddSingleton<ACommerce.Realtime.Providers.InMemory.InMemoryConnectionTracker>();
-    builder.Services.AddSingleton<ACommerce.Realtime.Operations.Abstractions.IConnectionTracker>(
-        sp => sp.GetRequiredService<ACommerce.Realtime.Providers.InMemory.InMemoryConnectionTracker>());
+
+    // ── Cache + cluster-ready realtime (opt-in via config) ───────────────────
+    // REMINDER: set Cache:Redis:ConnectionString in appsettings.{Env}.json
+    // (and optionally Realtime:Redis:ConnectionString — falls back to the cache one)
+    // before deploying multi-instance.
+    {
+        var cacheRedis = cfg["Cache:Redis:ConnectionString"];
+        var rtRedis    = cfg["Realtime:Redis:ConnectionString"] ?? cacheRedis;
+        if (!string.IsNullOrEmpty(cacheRedis))
+        {
+            builder.Services.AddRedisCache(cacheRedis);
+            builder.Services.AddRedisConnectionTracker();
+            Log.Information("Cache: Redis enabled");
+        }
+        else
+        {
+            builder.Services.AddInMemoryCache();
+            builder.Services.AddSingleton<ACommerce.Realtime.Providers.InMemory.InMemoryConnectionTracker>();
+            builder.Services.AddSingleton<ACommerce.Realtime.Operations.Abstractions.IConnectionTracker>(
+                sp => sp.GetRequiredService<ACommerce.Realtime.Providers.InMemory.InMemoryConnectionTracker>());
+        }
+        if (!string.IsNullOrEmpty(rtRedis))
+        {
+            builder.Services.AddSignalRRedisBackplane(rtRedis);
+            Log.Information("Realtime: SignalR Redis backplane enabled");
+        }
+    }
+
     builder.Services.AddChat();
 
     var firebaseJson = Environment.GetEnvironmentVariable("FIREBASE_SERVICE_ACCOUNT_JSON")

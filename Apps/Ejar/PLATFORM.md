@@ -165,6 +165,23 @@ Complaint
 - نسخ منطق دردشة Ashare V2 إلى إيجار حرفيّاً — البنية متشابهة، لكن
   الكيانات تختلف.
 
+## التشغيل في الإنتاج — Redis
+
+افتراضيّاً in-memory cache + per-process tracker (instance واحدة). للنشر
+متعدّد الـ instances اضبط:
+
+```jsonc
+"Cache":    { "Redis": { "ConnectionString": "redis-host:6379,password=...,abortConnect=false" } },
+"Realtime": { "Redis": { "ConnectionString": "<same>" } }
+```
+
+عندها `ICache` ينقلب إلى Redis، `IConnectionTracker` إلى نسخة Redis، و
+SignalR backplane يفعَّل. كلّ نسخ Ejar تتشارك حالة قنوات الدردشة والإشعارات.
+
+> الإجابة على سؤال "هل أحتاج Redis منفصلاً عن قاعدة البيانات؟": نعم. Redis
+> هو لـ التخزين المؤقّت ودردشة الزمن الحقيقيّ، قاعدة البيانات (SQL Server)
+> هي للـ persistence الدائم.
+
 ## مراجع داخل الريبو
 
 - `Apps/Ejar/Customer/Backend/Ejar.Api/Controllers/CatalogController.cs`

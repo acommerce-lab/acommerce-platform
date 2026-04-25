@@ -145,6 +145,23 @@ Complaint
   └── Reply[]
 ```
 
+## التشغيل في الإنتاج — Redis
+
+ثلاث خدمات (Customer + Admin؛ Provider يستعمل Customer)؛ كلّها تبدأ بـ
+in-memory cache افتراضيّاً. للإنتاج متعدّد الـ instances:
+
+```jsonc
+"Cache":    { "Redis": { "ConnectionString": "redis-host:6379,password=...,abortConnect=false" } },
+"Realtime": { "Redis": { "ConnectionString": "<same>" } }
+```
+
+شرط: Customer و Admin backends يجب أن يشيرا لنفس Redis لتبادل قنوات الدردشة
+بين الـ hubs (Customer Hub `/hubs/ashare-v2` و Admin Hub `/hubs/ashare-v2-admin`
+مفصولان منطقيّاً، لكنّ مكتب الإشعارات والقنوات يعتمد على نفس قاموس الاتّصالات).
+
+> SignalR Redis Backplane هي الآليّة الرسميّة لتبادل الـ groups بين instances؛
+> `RedisConnectionTracker` هي آليّتنا لـ userId→connectionId بين الـ hubs.
+
 ## مراجع داخل الريبو
 
 - `Apps/Ashare.V2/Customer/Backend/Ashare.V2.Api/Program.cs` — قالب Backend
