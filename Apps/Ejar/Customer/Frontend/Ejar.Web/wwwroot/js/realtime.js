@@ -41,6 +41,13 @@ export function start(hubUrl, token, ref) {
         dotnetRef.invokeMethodAsync("OnMessage", JSON.stringify(data));
     });
 
+    // chat.message — sent on the chat:conv:{id} group (when the recipient has
+    // an open ChatRoom for that conversation). Routed to IChatClient via the
+    // realtime service.
+    builder.on("chat.message", (data) => {
+        dotnetRef.invokeMethodAsync("OnChatMessage", JSON.stringify(data));
+    });
+
     builder.on("ReceiveNotification", (data) => {
         playBeep();
         dotnetRef.invokeMethodAsync("OnNotification", JSON.stringify(data));
@@ -67,4 +74,38 @@ export function stop() {
 export function updateToken(token) {
     // SignalR reconnects automatically and will call accessTokenFactory again.
     // No action needed here — token closure is updated on next reconnect.
+}
+
+// Subscribe to the browser's beforeunload event so the chat client can fire
+// a synchronous "leave current chat" beacon to the backend before the tab
+// closes. The Blazor circuit may be torn down before async cleanup completes;
+// sendBeacon is fire-and-forget and survives that.
+//   ref.invokeMethodAsync('OnBeforeUnload') is called via DotNet.
+let _unloadHandler = null;
+export function registerBeforeUnload(ref) {
+    if (_unloadHandler) return;
+    _unloadHandler = () => { ref.invokeMethodAsync('OnBeforeUnload'); };
+    window.addEventListener('beforeunload', _unloadHandler);
+}
+export function unregisterBeforeUnload() {
+    if (_unloadHandler) window.removeEventListener('beforeunload', _unloadHandler);
+    _unloadHandler = null;
+}
+
+// Fire-and-forget HTTP POST that survives page unload. Used to call the
+// backend chat-leave endpoint when the tab closes.
+export function leaveChatBeacon(path, token) {
+    try {
+        const blob = new Blob([JSON.stringify({})], { type: 'application/json' });
+        // sendBeacon doesn't allow custom headers — fall back to fetch with keepalive.
+        if (token) {
+            fetch(path, {
+                method: 'POST', keepalive: true,
+                headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+                body: '{}'
+            }).catch(() => {});
+        } else {
+            navigator.sendBeacon(path, blob);
+        }
+    } catch (_) { /* nothing more we can do at unload */ }
 }

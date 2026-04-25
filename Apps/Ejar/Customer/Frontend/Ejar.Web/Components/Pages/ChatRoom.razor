@@ -1,10 +1,11 @@
 @page "/chat/{Id}"
-@using ACommerce.Client.Operations
-@using Ejar.Web.Operations
+@using ACommerce.Chat.Client.Blazor
+@using ACommerce.Chat.Operations
 @inject ApiReader Api
 @inject NavigationManager Nav
-@inject ClientOpEngine Engine
+@inject IChatClient Chat
 @inject L L
+@implements IAsyncDisposable
 
 <PageTitle>@(L["chat.title"]) — @(L["app.name"])</PageTitle>
 
@@ -21,45 +22,24 @@
         </div>
 
         <div class="acs-chat-messages">
-            @foreach (var m in _conv.Messages)
+            @foreach (var m in _messages)
             {
-                var mine = m.From == "me";
+                var mine = m.SenderPartyId == "me";
                 <div class="acs-bubble @(mine ? "acs-bubble-mine" : "acs-bubble-other")">
-                    @if (m.Attachment is not null)
+                    @if (!string.IsNullOrEmpty(m.Body))
                     {
-                        <div class="acs-chat-attach">
-                            <AcIcon Name="file" Size="14" />
-                            <span>@m.Attachment</span>
-                        </div>
+                        <div>@m.Body</div>
                     }
-                    @if (!string.IsNullOrEmpty(m.Text))
-                    {
-                        <div>@m.Text</div>
-                    }
-                    <small style="display:block; opacity:.6;">@m.SentAt.ToString("HH:mm")</small>
-                </div>
-            }
-            @if (_partnerTyping)
-            {
-                <div class="acs-bubble acs-bubble-other acs-typing">
-                    <span></span><span></span><span></span>
+                    <small style="display:block; opacity:.6;">@m.SentAt.ToLocalTime().ToString("HH:mm")</small>
                 </div>
             }
         </div>
 
         <div class="acs-chat-composer">
-            <label class="acs-chat-attach-btn" title="إرفاق ملفّ">
-                <AcIcon Name="paperclip" Size="16" />
-                <InputFile OnChange="OnAttach" style="display:none;" />
-            </label>
-            @if (!string.IsNullOrEmpty(_pendingAttach))
-            {
-                <span class="acs-chat-attach-preview">@_pendingAttach <button @onclick="@(() => _pendingAttach = null)">×</button></span>
-            }
             <AcInput Value="@_draft" ValueChanged="@(v => _draft = v ?? string.Empty)"
                      Placeholder="@(L["chat.new_message"])" />
             <AcButton Variant="primary" Text="@(L["chat.send"])" OnClick="@Send"
-                      Disabled="@(_sending || (string.IsNullOrWhiteSpace(_draft) && string.IsNullOrEmpty(_pendingAttach)))" />
+                      Disabled="@(_sending || string.IsNullOrWhiteSpace(_draft))" />
         </div>
     }
 </div>
@@ -67,62 +47,67 @@
 @code {
     [Parameter] public string Id { get; set; } = "";
     private Payload? _conv;
+    private readonly List<IChatMessage> _messages = new();
     private string _draft = "";
-    private string? _pendingAttach;
-    private bool _partnerTyping;
     private bool _sending;
 
     protected override async Task OnAfterRenderAsync(bool first)
     {
         if (!first) return;
-        await Reload();
-    }
 
-    private async Task Reload()
-    {
+        // 1) Load message history from the DB (HTTP) — these are messages already persisted.
         var env = await Api.GetAsync<Payload>($"/conversations/{Id}", localize: true);
         _conv = env.Data;
+        if (_conv is not null)
+            _messages.AddRange(_conv.Messages.Select(m => (IChatMessage)
+                new ChatMessage(m.Id, Id, m.From, m.Text, m.SentAt)));
+
+        // 2) Open the chat channel for this conversation.
+        // Backend will close the user's notif channel for the same conversation,
+        // so future messages flow into MessageReceived (below) — not as notifications.
+        Chat.MessageReceived += OnRealtimeMessage;
+        await Chat.EnterAsync(Id);
+
         await InvokeAsync(StateHasChanged);
     }
 
-    private async Task OnAttach(InputFileChangeEventArgs e)
+    private void OnRealtimeMessage(IChatMessage msg)
     {
-        if (e.File is null) return;
-        _pendingAttach = e.File.Name;
-        await InvokeAsync(StateHasChanged);
+        // Skip our own echo (already added optimistically below) and de-dup by id.
+        if (_messages.Any(m => m.Id == msg.Id)) return;
+        _messages.Add(msg);
+        InvokeAsync(StateHasChanged);
     }
 
     private async Task Send()
     {
-        if (string.IsNullOrWhiteSpace(_draft) && string.IsNullOrEmpty(_pendingAttach)) return;
-        if (_conv is null) return;
+        if (string.IsNullOrWhiteSpace(_draft)) return;
         _sending = true;
         try
         {
-            var env = await Engine.ExecuteAsync<object>(
-                EjarOps.SendMessage(Id, _draft, _pendingAttach),
-                payload: new { Text = _draft, Attachment = _pendingAttach });
-            if (env?.Operation.Status == "Success")
-            {
-                _draft = "";
-                _pendingAttach = null;
-                await Reload();
-                _ = SimulatePartnerReply();
-            }
+            await Chat.SendAsync(_draft);
+            // Optimistic local echo — the broadcast-back through chat:conv:X will
+            // arrive shortly; OnRealtimeMessage de-dups by id when it lands.
+            _messages.Add(new ChatMessage(
+                Id: $"local-{DateTime.UtcNow.Ticks}",
+                ConversationId: Id,
+                SenderPartyId: "me",
+                Body: _draft,
+                SentAt: DateTime.UtcNow));
+            _draft = "";
         }
         finally { _sending = false; await InvokeAsync(StateHasChanged); }
     }
 
-    private async Task SimulatePartnerReply()
-    {
-        _partnerTyping = true;
-        await InvokeAsync(StateHasChanged);
-        await Task.Delay(1800);
-        _partnerTyping = false;
-        await InvokeAsync(StateHasChanged);
-    }
-
     private void GoBack() => Nav.NavigateTo("/chats");
+
+    public async ValueTask DisposeAsync()
+    {
+        Chat.MessageReceived -= OnRealtimeMessage;
+        // Closing the chat channel re-opens the notif channel for this
+        // conversation, so future messages reach the user as notifications.
+        await Chat.LeaveAsync();
+    }
 
     private sealed record Payload(string Id, string PartnerName, string Subject,
         string? PartnerId, string? ListingId, List<MessageDto> Messages);

@@ -1,3 +1,4 @@
+using ACommerce.Chat.Client.Blazor;
 using ACommerce.Client.Http;
 using ACommerce.Client.Operations;
 using ACommerce.Client.Operations.Interceptors;
@@ -88,8 +89,19 @@ builder.Services.AddScoped<OperationInterpreterRegistry<AppStore>>(sp =>
 builder.Services.AddScoped<AppStateApplier>();
 builder.Services.AddScoped<IStateApplier>(sp => sp.GetRequiredService<AppStateApplier>());
 
-// ─── Realtime client ──────────────────────────────────────────────────
+// ─── Realtime client + Chat client ────────────────────────────────────
 builder.Services.AddScoped<EjarRealtimeService>();
+
+// Chat client uses the named "ejar" HttpClient so calls go to the API.
+// Backend exposes /chat/{convId}/enter and /leave (registered in CatalogController);
+// send falls back to the existing /conversations/{convId}/messages endpoint.
+builder.Services.AddBlazorChatClient(opts =>
+{
+    opts.HttpClientName    = "ejar";
+    opts.EnterPathTemplate = "/chat/{convId}/enter";
+    opts.LeavePathTemplate = "/chat/{convId}/leave";
+    opts.SendPathTemplate  = "/conversations/{convId}/messages";
+});
 
 var app = builder.Build();
 
