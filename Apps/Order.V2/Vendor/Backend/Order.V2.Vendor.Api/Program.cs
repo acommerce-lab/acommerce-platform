@@ -1,7 +1,12 @@
 using ACommerce.Authentication.TwoFactor.Operations;
 using ACommerce.Authentication.TwoFactor.Operations.Abstractions;
 using ACommerce.Authentication.TwoFactor.Providers.Sms.Mock.Extensions;
+using ACommerce.Chat.Operations;
 using ACommerce.OperationEngine.Core;
+using ACommerce.Realtime.Operations.Abstractions;
+using ACommerce.Realtime.Providers.InMemory;
+using ACommerce.Realtime.Providers.SignalR;
+using ACommerce.Realtime.Providers.SignalR.Extensions;
 using ACommerce.SharedKernel.Abstractions.Entities;
 using ACommerce.SharedKernel.Infrastructure.EFCores;
 using ACommerce.SharedKernel.Infrastructure.EFCores.Extensions;
@@ -91,13 +96,29 @@ builder.Services.AddAuthentication(
             ValidateIssuer   = true,  ValidIssuer   = jwtIssuer,
             ValidateAudience = true,  ValidAudience = jwtAud,
             ValidateLifetime = true,
-            ClockSkew = TimeSpan.FromSeconds(30)
+            ClockSkew = TimeSpan.FromMinutes(2)
+        };
+        opt.Events = new Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerEvents
+        {
+            OnMessageReceived = ctx =>
+            {
+                var t = ctx.Request.Query["access_token"].ToString();
+                if (!string.IsNullOrEmpty(t) && ctx.HttpContext.Request.Path.StartsWithSegments("/hubs"))
+                    ctx.Token = t;
+                return Task.CompletedTask;
+            }
         };
     });
 
 builder.Services.AddAuthorization(opt =>
     opt.AddPolicy("VendorOnly", p =>
         p.RequireAuthenticatedUser().RequireClaim("role", "vendor")));
+
+// ── Realtime + Chat (abstractions only; providers DI-wired here) ───────────
+builder.Services.AddSignalRRealtimeTransport();
+builder.Services.AddSingleton<InMemoryConnectionTracker>();
+builder.Services.AddSingleton<IConnectionTracker>(sp => sp.GetRequiredService<InMemoryConnectionTracker>());
+builder.Services.AddChat();
 
 // ── 2FA SMS Mock ───────────────────────────────────────────────────────────
 builder.Services.AddMockSmsTwoFactor();
@@ -117,7 +138,13 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.UseSwagger();
 app.UseSwaggerUI();
+
+// Chat<->Notif coupling: opening chat:conv:X closes notif:conv:X for same
+// user; closing chat (any reason) re-opens notif.
+app.Services.WireChatNotificationCoupling();
+
 app.MapControllers();
+app.MapHub<AShareHub>("/hubs/order-v2-vendor");
 app.MapGet("/", () => Results.Ok(new { service = "Order.V2.Vendor.Api", version = "2.0" }));
 app.MapGet("/health", () => Results.Ok(new { status = "healthy", time = DateTime.UtcNow }));
 

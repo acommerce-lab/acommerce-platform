@@ -1,0 +1,48 @@
+@page "/messages"
+@rendermode InteractiveServer
+@inject AppStore Store
+@inject ApiReader Api
+@inject NavigationManager Nav
+@inject L L
+
+<PageTitle>@L["messages.title"] — @L["app.name"]</PageTitle>
+
+<AcAuthGuard IsAuthenticated="@Store.Auth.IsAuthenticated" LoginHref="/login">
+    <h2 class="page-title">@L["messages.title"]</h2>
+    @if (_loading)
+    {
+        <AcSpinner />
+    }
+    else if (!_conversations.Any())
+    {
+        <AcEmpty Title="@L["messages.empty_title"]" Message="@L["messages.empty_message"]" />
+    }
+    else
+    {
+        <ul class="conversation-list">
+            @foreach (var c in _conversations)
+            {
+                <li @onclick="@(() => Nav.NavigateTo($"/messages/{c.Id}"))" class="conversation-item">
+                    <div class="conversation-title">@c.LastMessageSnippet</div>
+                    <small>@(c.LastMessageAt?.ToString("yyyy-MM-dd HH:mm") ?? "")</small>
+                    @if (c.Unread > 0) { <span class="unread-badge">@c.Unread</span> }
+                </li>
+            }
+        </ul>
+    }
+</AcAuthGuard>
+
+@code {
+    private bool _loading = true;
+    private List<ConvRow> _conversations = new();
+
+    protected override async Task OnAfterRenderAsync(bool first)
+    {
+        if (!first || !Store.Auth.IsAuthenticated) { _loading = false; StateHasChanged(); return; }
+        var env = await Api.GetAsync<List<ConvRow>>("/api/messages/conversations");
+        _conversations = env.Data ?? new();
+        _loading = false; StateHasChanged();
+    }
+
+    private record ConvRow(Guid Id, Guid CustomerId, string? LastMessageSnippet, DateTime? LastMessageAt, int Unread);
+}

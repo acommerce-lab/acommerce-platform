@@ -18,5 +18,8 @@
     <ProjectReference Include="..\..\..\..\..\libs\frontend\ACommerce.Templates.Shared\ACommerce.Templates.Shared.csproj" />
     <ProjectReference Include="..\..\..\..\..\libs\frontend\ACommerce.Templates.Merchant.Commerce\ACommerce.Templates.Merchant.Commerce.csproj" />
     <ProjectReference Include="..\..\..\..\..\libs\frontend\ACommerce.L10n.Blazor\ACommerce.L10n.Blazor.csproj" />
+
+    <!-- Chat client (realtime + HTTP chat enter/leave + conversation-scoped message push) -->
+    <ProjectReference Include="..\..\..\..\..\libs\frontend\ACommerce.Chat.Client.Blazor\ACommerce.Chat.Client.Blazor.csproj" />
   </ItemGroup>
 </Project>
