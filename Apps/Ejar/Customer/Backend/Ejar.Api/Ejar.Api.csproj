@@ -23,11 +23,16 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- ─── Realtime: SignalR transport + InApp notification channel ──── -->
+    <!-- ─── Realtime + Chat + Notifications (InApp + Firebase) ──────────── -->
     <ProjectReference Include="..\..\..\..\..\libs\backend\messaging\ACommerce.Realtime.Operations\ACommerce.Realtime.Operations.csproj" />
     <ProjectReference Include="..\..\..\..\..\libs\backend\messaging\ACommerce.Realtime.Providers.SignalR\ACommerce.Realtime.Providers.SignalR.csproj" />
+    <!-- InMemory provider only for the InMemoryConnectionTracker — used by the SignalR
+         hub to map userId → connectionId; not used as a transport. -->
+    <ProjectReference Include="..\..\..\..\..\libs\backend\messaging\ACommerce.Realtime.Providers.InMemory\ACommerce.Realtime.Providers.InMemory.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\backend\messaging\ACommerce.Chat.Operations\ACommerce.Chat.Operations.csproj" />
     <ProjectReference Include="..\..\..\..\..\libs\backend\messaging\ACommerce.Notification.Operations\ACommerce.Notification.Operations.csproj" />
     <ProjectReference Include="..\..\..\..\..\libs\backend\messaging\ACommerce.Notification.Providers.InApp\ACommerce.Notification.Providers.InApp.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\backend\messaging\ACommerce.Notification.Providers.Firebase\ACommerce.Notification.Providers.Firebase.csproj" />
   </ItemGroup>
 
   <ItemGroup>

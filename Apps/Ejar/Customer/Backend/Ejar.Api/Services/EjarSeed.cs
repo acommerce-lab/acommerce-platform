@@ -195,15 +195,15 @@ public static class EjarSeed
         new("C-1", "خالد السالم", "U-2", "L-104", "استفسار عن فيلا الملقا",
             DateTime.UtcNow.AddHours(-2), 1,
             new List<MessageSeed> {
-                new("M-1", "other", "السلام عليكم، هل الفيلا متاحة من أول الشهر؟", DateTime.UtcNow.AddHours(-2)),
-                new("M-2", "me",    "وعليكم السلام، نعم متاحة من الأول. يسرنا خدمتك", DateTime.UtcNow.AddHours(-1.5)),
+                new("M-1", "C-1", "other", "السلام عليكم، هل الفيلا متاحة من أول الشهر؟", DateTime.UtcNow.AddHours(-2)),
+                new("M-2", "C-1", "me",    "وعليكم السلام، نعم متاحة من الأول. يسرنا خدمتك", DateTime.UtcNow.AddHours(-1.5)),
             }),
 
         new("C-2", "أحمد محمد",  "U-3", "L-109", "استوديو العليا",
             DateTime.UtcNow.AddDays(-1), 0,
             new List<MessageSeed> {
-                new("M-3", "other", "هل يوجد مواقف مجانية في المبنى؟", DateTime.UtcNow.AddDays(-1)),
-                new("M-4", "me",    "نعم، موقف مجاني لكل وحدة سكنية", DateTime.UtcNow.AddDays(-1).AddMinutes(30)),
+                new("M-3", "C-2", "other", "هل يوجد مواقف مجانية في المبنى؟", DateTime.UtcNow.AddDays(-1)),
+                new("M-4", "C-2", "me",    "نعم، موقف مجاني لكل وحدة سكنية", DateTime.UtcNow.AddDays(-1).AddMinutes(30)),
             }),
     };
 
@@ -313,9 +313,26 @@ public static class EjarSeed
     public record ConversationSeed(
         string Id, string PartnerName, string PartnerId,
         string ListingId, string Subject, DateTime LastAt, int UnreadCount,
-        List<MessageSeed> Messages);
+        List<MessageSeed> Messages) : ACommerce.Chat.Operations.IChatConversation
+    {
+        // The current user is hardcoded as "me" in the seed; partner is PartnerId.
+        // Real implementation will hydrate this from the request user identity.
+        IReadOnlyList<string> ACommerce.Chat.Operations.IChatConversation.ParticipantPartyIds
+            => new[] { "me", PartnerId };
+    }
 
-    public record MessageSeed(string Id, string From, string Text, DateTime SentAt);
+    /// <summary>
+    /// Implements <see cref="ACommerce.Chat.Operations.IChatMessage"/> directly so
+    /// the chat service can broadcast it without an intermediate DTO (Law 6 amended).
+    /// <c>From</c> is mapped to <c>SenderPartyId</c>; <c>Text</c> to <c>Body</c>.
+    /// </summary>
+    public record MessageSeed(string Id, string ConversationId, string From, string Text, DateTime SentAt)
+        : ACommerce.Chat.Operations.IChatMessage
+    {
+        string ACommerce.Chat.Operations.IChatMessage.SenderPartyId => From;
+        string ACommerce.Chat.Operations.IChatMessage.Body          => Text;
+        DateTime? ACommerce.Chat.Operations.IChatMessage.ReadAt     => null;
+    }
 
     public record NotificationSeed(
         string Id, string Title, string Body,

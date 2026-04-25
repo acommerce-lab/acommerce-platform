@@ -1,5 +1,8 @@
 using ACommerce.Authentication.TwoFactor.Providers.Sms.Mock.Extensions;
+using ACommerce.Chat.Operations;
+using ACommerce.Notification.Providers.Firebase.Extensions;
 using ACommerce.Notification.Providers.InApp;
+using ACommerce.Notification.Providers.InApp.Extensions;
 using ACommerce.Realtime.Operations;
 using ACommerce.Realtime.Providers.SignalR;
 using ACommerce.Realtime.Providers.SignalR.Extensions;
@@ -126,14 +129,44 @@ try
     // للإنتاج: أبدل هذا السطر بـ builder.Services.AddSmsTwoFactor()
     builder.Services.AddMockSmsTwoFactor();
 
-    // ─── Realtime: SignalR + InApp notification channel ────────────────────────
+    // ─── Realtime + Notifications + Chat ────────────────────────────────────────
+    // SignalR transport also registers IRealtimeChannelManager (per-user channel
+    // subscriptions with idle timeouts and OnOpened/OnClosed app hooks).
     builder.Services.AddSignalRRealtimeTransport();
     builder.Services.AddScoped<RealtimeService>();
-    builder.Services.AddSingleton(new InAppOptions { MethodName = "ReceiveNotification" });
-    builder.Services.AddScoped<InAppNotificationChannel>();
+    // userId → connectionId tracker (in-memory; swap for Redis when scaling out).
+    builder.Services.AddSingleton<ACommerce.Realtime.Providers.InMemory.InMemoryConnectionTracker>();
+    builder.Services.AddSingleton<ACommerce.Realtime.Operations.Abstractions.IConnectionTracker>(
+        sp => sp.GetRequiredService<ACommerce.Realtime.Providers.InMemory.InMemoryConnectionTracker>());
+
+    // InApp channel — uses the realtime transport to push notifications to
+    // currently-connected clients via a single `ReceiveNotification` method.
+    builder.Services.AddInAppNotificationChannel(o => o.MethodName = "ReceiveNotification");
+
+    // Firebase Push (Android/iOS). Activated only if FIREBASE_SERVICE_ACCOUNT_JSON
+    // is set (env var or appsettings:Notifications:Firebase:ServiceAccountKeyJson).
+    var firebaseJson = Environment.GetEnvironmentVariable("FIREBASE_SERVICE_ACCOUNT_JSON")
+                       ?? cfg["Notifications:Firebase:ServiceAccountKeyJson"];
+    if (!string.IsNullOrEmpty(firebaseJson))
+    {
+        builder.Services.AddFirebaseNotificationChannel(cfg);
+        Log.Information("Ejar: Firebase FCM configured");
+    }
+    else
+    {
+        Log.Information("Ejar: Firebase FCM disabled (set FIREBASE_SERVICE_ACCOUNT_JSON to enable)");
+    }
+
+    // Chat — depends on the realtime channel manager registered above.
+    builder.Services.AddChat();
 
     // ─── Build ──────────────────────────────────────────────────────────────────
     var app = builder.Build();
+
+    // Bind the standard chat<->notif policy: open chat:conv:X → close notif:conv:X
+    // for the same user, and close chat → re-open notif. App-level wiring; the
+    // notification module itself stays unaware of chat.
+    app.Services.WireChatNotificationCoupling();
 
     // ─── Middleware pipeline (بنفس ترتيب عشير V2) ─────────────────────────────
     app.UseGlobalExceptionHandler();
