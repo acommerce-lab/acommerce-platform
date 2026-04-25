@@ -1,8 +1,10 @@
+using ACommerce.Chat.Operations;
 using ACommerce.OperationEngine.Analyzers;
 using ACommerce.OperationEngine.Core;
 using ACommerce.OperationEngine.Patterns;
 using ACommerce.OperationEngine.Wire;
 using ACommerce.OperationEngine.Wire.Http;
+using ACommerce.Realtime.Operations.Abstractions;
 using Ashare.V2.Api.Services;
 using Microsoft.AspNetCore.Mvc;
 
@@ -21,7 +23,20 @@ namespace Ashare.V2.Api.Controllers;
 public class CatalogController : ControllerBase
 {
     private readonly OpEngine _engine;
-    public CatalogController(OpEngine engine) => _engine = engine;
+    private readonly IChatService? _chat;
+    private readonly IConnectionTracker? _connections;
+
+    private static readonly TimeSpan ChatIdleTimeout = TimeSpan.FromMinutes(2);
+
+    public CatalogController(
+        OpEngine engine,
+        IChatService? chat = null,
+        IConnectionTracker? connections = null)
+    {
+        _engine      = engine;
+        _chat        = chat;
+        _connections = connections;
+    }
 
     // Complaints replies live here in-memory so POST creates are visible immediately.
     private static readonly List<AshareV2Seed.ComplaintSeed> _complaintsMutable =
@@ -175,10 +190,11 @@ public class CatalogController : ControllerBase
         if (ix < 0) return this.NotFoundEnvelope("conversation_not_found");
         var conv = AshareV2Seed.Conversations[ix];
         var msg  = new AshareV2Seed.MessageSeed(
-            Id:   $"m-{conv.Messages.Count + 1}",
-            From: "me",
-            Text: req.Text ?? string.Empty,
-            SentAt: DateTime.UtcNow);
+            Id:             $"m-{conv.Messages.Count + 1}",
+            ConversationId: id,
+            From:           "me",
+            Text:           req.Text ?? string.Empty,
+            SentAt:         DateTime.UtcNow);
 
         var op = Entry.Create("message.send")
             .Describe($"User sends message to conversation {id}")
@@ -194,11 +210,35 @@ public class CatalogController : ControllerBase
             })
             .Build();
 
-        var msgData = new { id = msg.Id, from = msg.From, text = msg.Text, sentAt = msg.SentAt };
-        var env = await _engine.ExecuteEnvelopeAsync(op, msgData, ct);
+        var env = await _engine.ExecuteEnvelopeAsync(op, (IChatMessage)msg, ct);
         if (env.Operation.Status != "Success")
             return this.BadRequestEnvelope(env.Operation.FailedAnalyzer ?? "send_failed", env.Operation.ErrorMessage);
-        return this.OkEnvelope("message.send", msgData);
+
+        // Push on both chat:conv:X and notif:conv:X — partner gets whichever
+        // they're subscribed to (chat if their ChatRoom is open, else notif).
+        if (_chat is not null) await _chat.BroadcastNewMessageAsync(msg, CancellationToken.None);
+
+        return this.OkEnvelope("message.send", msg);
+    }
+
+    // ─── Chat channel lifecycle (frontend ChatRoom calls these) ─────────────
+
+    [HttpPost("/chat/{convId}/enter")]
+    public async Task<IActionResult> EnterChat(string convId, CancellationToken ct)
+    {
+        if (_chat is null) return this.OkEnvelope("chat.enter", new { ok = true });
+        var connId = _connections is null ? null : await _connections.GetConnectionIdAsync(CurrentUserId, ct);
+        if (string.IsNullOrEmpty(connId))
+            return this.OkEnvelope("chat.enter", new { ok = false, reason = "no_connection" });
+        await _chat.EnterConversationAsync(convId, CurrentUserId, connId, ChatIdleTimeout, ct);
+        return this.OkEnvelope("chat.enter", new { ok = true, conversationId = convId });
+    }
+
+    [HttpPost("/chat/{convId}/leave")]
+    public async Task<IActionResult> LeaveChat(string convId, CancellationToken ct)
+    {
+        if (_chat is not null) await _chat.LeaveConversationAsync(convId, CurrentUserId, ct);
+        return this.OkEnvelope("chat.leave", new { ok = true, conversationId = convId });
     }
 
     public sealed record StartConversationRequest(string ListingId, string Text);

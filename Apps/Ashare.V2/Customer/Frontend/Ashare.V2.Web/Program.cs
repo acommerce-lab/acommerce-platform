@@ -1,3 +1,4 @@
+using ACommerce.Chat.Client.Blazor;
 using ACommerce.Client.Http;
 using ACommerce.Client.Operations;
 using ACommerce.Client.Operations.Interceptors;
@@ -101,8 +102,15 @@ builder.Services.AddScoped<OperationInterpreterRegistry<AppStore>>(sp =>
 builder.Services.AddScoped<AppStateApplier>();
 builder.Services.AddScoped<IStateApplier>(sp => sp.GetRequiredService<AppStateApplier>());
 
-// ─── Realtime client ──────────────────────────────────────────────────
+// ─── Realtime client + Chat client ────────────────────────────────────
 builder.Services.AddScoped<Ashare2RealtimeService>();
+builder.Services.AddBlazorChatClient(opts =>
+{
+    opts.HttpClientName    = "ashare-v2";
+    opts.EnterPathTemplate = "/chat/{convId}/enter";
+    opts.LeavePathTemplate = "/chat/{convId}/leave";
+    opts.SendPathTemplate  = "/conversations/{convId}/messages";
+});
 
 var app = builder.Build();
 

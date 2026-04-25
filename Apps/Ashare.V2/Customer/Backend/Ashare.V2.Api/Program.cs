@@ -2,6 +2,7 @@ using System.Text;
 using ACommerce.Authentication.TwoFactor.Providers.Nafath.Mock.Extensions;
 using ACommerce.Files.Storage.AliyunOSS.Extensions;
 using ACommerce.Files.Storage.Local.Extensions;
+using ACommerce.Chat.Operations;
 using ACommerce.Notification.Providers.Email.Extensions;
 using ACommerce.Notification.Providers.Firebase.Extensions;
 using ACommerce.Notification.Providers.InApp.Extensions;
@@ -189,9 +190,14 @@ try
         Log.Information("File storage: Local (dev)");
     }
 
-    // ─── Notifications ────────────────────────────────────────────────────────
+    // ─── Notifications + Chat ────────────────────────────────────────────────
     builder.Services.AddSignalRRealtimeTransport();
     builder.Services.AddInAppNotificationChannel();
+    // userId → connectionId tracker (in-memory; swap for Redis at scale).
+    builder.Services.AddSingleton<ACommerce.Realtime.Providers.InMemory.InMemoryConnectionTracker>();
+    builder.Services.AddSingleton<ACommerce.Realtime.Operations.Abstractions.IConnectionTracker>(
+        sp => sp.GetRequiredService<ACommerce.Realtime.Providers.InMemory.InMemoryConnectionTracker>());
+    builder.Services.AddChat();
 
     var firebaseJson = Environment.GetEnvironmentVariable("FIREBASE_SERVICE_ACCOUNT_JSON")
                        ?? cfg["Notifications:Firebase:ServiceAccountKeyJson"];
@@ -213,6 +219,11 @@ try
 
     // ─── Build ────────────────────────────────────────────────────────────────
     var app = builder.Build();
+
+    // Bind chat<->notif coupling: open chat:conv:X → close notif:conv:X for
+    // same user; close chat → re-open notif. App-level wiring; the chat lib
+    // never reaches into the notification module.
+    app.Services.WireChatNotificationCoupling();
 
     // ─── Middleware pipeline ──────────────────────────────────────────────────
     app.UseGlobalExceptionHandler();

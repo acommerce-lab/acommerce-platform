@@ -87,14 +87,14 @@ internal static class AshareV2Seed
         // C-1: مع مالك L-102 (ليس المستخدم الحالي) — استعلام عن شقة في جدة
         new("C-1", "أحمد - مالك النرجس", "شقة مفروشة في حي النرجس", Hours(-1), 1,
             partnerId: OtherOwner1, listingId: "L-102",
-            messages: [new("م1", "partner", "أهلاً، هل العرض متاح؟",           Hours(-3)),
-                       new("م2", "me",      "نعم، ما التواريخ المناسبة؟",      Hours(-2)),
-                       new("م3", "partner", "1 مايو — لمدة 30 ليلة",            Hours(-1))]),
+            messages: [new("م1", "C-1", "partner", "أهلاً، هل العرض متاح؟",           Hours(-3)),
+                       new("م2", "C-1", "me",      "نعم، ما التواريخ المناسبة؟",      Hours(-2)),
+                       new("م3", "C-1", "partner", "1 مايو — لمدة 30 ليلة",            Hours(-1))]),
         // C-2: مع خدمة العملاء — لا ListingId
         new("C-2", "خدمة العملاء",     "استفسار عن الحجز #B-2",    Hours(-10), 0,
             partnerId: "staff",  listingId: null,
-            messages: [new("م1", "me",      "الحجز مؤكَّد لكنّي لم أستلم المفتاح", Hours(-12)),
-                       new("م2", "partner", "نعتذر، سيتواصل المالك خلال ساعة",   Hours(-10))])
+            messages: [new("م1", "C-2", "me",      "الحجز مؤكَّد لكنّي لم أستلم المفتاح", Hours(-12)),
+                       new("م2", "C-2", "partner", "نعتذر، سيتواصل المالك خلال ساعة",   Hours(-10))])
     ];
 
     public static readonly IReadOnlyList<ComplaintSeed> Complaints =
@@ -305,12 +305,26 @@ internal static class AshareV2Seed
     public sealed record ConversationSeed(
         string Id, string PartnerName, string Subject, DateTime LastAt, int UnreadCount,
         string partnerId, string? listingId, List<MessageSeed> messages)
+        : ACommerce.Chat.Operations.IChatConversation
     {
         public string PartnerId => partnerId;
         public string? ListingId => listingId;
         public List<MessageSeed> Messages => messages;
+        IReadOnlyList<string> ACommerce.Chat.Operations.IChatConversation.ParticipantPartyIds
+            => new[] { CurrentUserId, partnerId };
     }
-    public sealed record MessageSeed(string Id, string From, string Text, DateTime SentAt);
+
+    /// <summary>
+    /// Implements <see cref="ACommerce.Chat.Operations.IChatMessage"/> directly so
+    /// the chat service can broadcast it without an intermediate DTO (Law 6 amended).
+    /// </summary>
+    public sealed record MessageSeed(string Id, string ConversationId, string From, string Text, DateTime SentAt)
+        : ACommerce.Chat.Operations.IChatMessage
+    {
+        string ACommerce.Chat.Operations.IChatMessage.SenderPartyId => From;
+        string ACommerce.Chat.Operations.IChatMessage.Body          => Text;
+        DateTime? ACommerce.Chat.Operations.IChatMessage.ReadAt     => null;
+    }
     public sealed record ComplaintReplySeed(string Id, string From, string Message, DateTime CreatedAt);
     public sealed record ComplaintSeed(string Id, string Subject, string Body, DateTime CreatedAt,
         string Status, string Priority, string RelatedEntity, IReadOnlyList<ComplaintReplySeed> Replies);

@@ -1,9 +1,13 @@
 @page "/chat/{Id}"
+@using ACommerce.Chat.Client.Blazor
+@using ACommerce.Chat.Operations
 @using ACommerce.Client.Operations
 @using Ashare.V2.Web.Operations
 @inject ApiReader Api
 @inject NavigationManager Nav
 @inject ClientOpEngine Engine
+@inject IChatClient Chat
+@implements IAsyncDisposable
 
 <PageTitle>محادثة - عشير</PageTitle>
 
@@ -75,6 +79,31 @@
     {
         if (!first) return;
         await Reload();
+
+        // Open the chat channel; backend closes notif:conv:Id for this user.
+        // New messages for this conversation come through Chat.MessageReceived;
+        // messages for OTHER conversations stay on the notification channel.
+        Chat.MessageReceived += OnRealtimeMessage;
+        await Chat.EnterAsync(Id);
+    }
+
+    private void OnRealtimeMessage(IChatMessage msg)
+    {
+        if (_conv is null) return;
+        if (_conv.Messages.Any(m => m.Id == msg.Id)) return; // de-dup echo
+        _conv = _conv with { Messages = _conv.Messages.Concat(new[]
+        {
+            new MessageDto(msg.Id, msg.SenderPartyId, msg.Body, msg.SentAt)
+        }).ToList() };
+        InvokeAsync(StateHasChanged);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        Chat.MessageReceived -= OnRealtimeMessage;
+        // Closing chat channel re-opens notif:conv:Id, so future messages
+        // for this conversation reach the user via notifications again.
+        await Chat.LeaveAsync();
     }
 
     private async Task Reload()
