@@ -1,0 +1,62 @@
+@page "/"
+@inject AppStore Store
+@inject ApiReader Api
+@inject NavigationManager Nav
+@inject L L
+
+<PageTitle>@(L["app.name"]) — مزود</PageTitle>
+
+@if (!Store.Auth.IsAuthenticated)
+{
+    <AcEmptyState IconName="log-in"
+                  Title="مرحباً في لوحة المزود"
+                  Message="سجّل دخولك لإدارة إعلاناتك ومحادثاتك"
+                  ActionLabel="@(L["auth.login.title"])"
+                  ActionHref="/login" />
+}
+else
+{
+    <div class="acs-page">
+        <h1 class="acm-wizard-title">مرحباً، @_displayName</h1>
+        <p style="color:var(--ac-text-muted);">لوحة مزود إيجار — أدِر إعلاناتك وردّ على رسائل المستأجرين.</p>
+
+        <div class="acs-stats-grid" style="display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:12px; margin:16px 0;">
+            <div class="acs-stat card">
+                <small>الإعلانات</small>
+                <div style="font-size:24px; font-weight:600;">@_listingsCount</div>
+            </div>
+            <div class="acs-stat card">
+                <small>المحادثات</small>
+                <div style="font-size:24px; font-weight:600;">@_conversationsCount</div>
+            </div>
+        </div>
+
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            <AcButton Variant="primary"   Text="إعلاناتي"     OnClick="@(() => Nav.NavigateTo("/my-listings"))" />
+            <AcButton Variant="secondary" Text="إضافة إعلان"  OnClick="@(() => Nav.NavigateTo("/listings/new"))" />
+            <AcButton Variant="ghost"     Text="@(L["nav.chats"])" OnClick="@(() => Nav.NavigateTo("/chats"))" />
+        </div>
+    </div>
+}
+
+@code {
+    private string _displayName = "";
+    private int _listingsCount;
+    private int _conversationsCount;
+
+    protected override async Task OnAfterRenderAsync(bool first)
+    {
+        if (!first || !Store.Auth.IsAuthenticated) return;
+        _displayName = Store.Auth.FullName ?? Store.Auth.Phone ?? "";
+
+        try
+        {
+            var listings = await Api.GetAsync<List<object>>("/my-listings");
+            _listingsCount = listings.Data?.Count ?? 0;
+            var convs = await Api.GetAsync<List<object>>("/conversations");
+            _conversationsCount = convs.Data?.Count ?? 0;
+            await InvokeAsync(StateHasChanged);
+        }
+        catch { /* tolerate API offline — show zeros */ }
+    }
+}
