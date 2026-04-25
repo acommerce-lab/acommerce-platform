@@ -34,5 +34,13 @@
 
     <!-- Shared entities from Ashare.V2.Api -->
     <ProjectReference Include="..\..\..\Customer\Backend\Ashare.V2.Api\Ashare.V2.Api.csproj" />
+
+    <!-- Realtime + Chat + InApp notifications (admin push + admin chat) -->
+    <ProjectReference Include="..\..\..\..\..\libs\backend\messaging\ACommerce.Realtime.Operations\ACommerce.Realtime.Operations.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\backend\messaging\ACommerce.Realtime.Providers.SignalR\ACommerce.Realtime.Providers.SignalR.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\backend\messaging\ACommerce.Realtime.Providers.InMemory\ACommerce.Realtime.Providers.InMemory.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\backend\messaging\ACommerce.Chat.Operations\ACommerce.Chat.Operations.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\backend\messaging\ACommerce.Notification.Operations\ACommerce.Notification.Operations.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\backend\messaging\ACommerce.Notification.Providers.InApp\ACommerce.Notification.Providers.InApp.csproj" />
   </ItemGroup>
 </Project>

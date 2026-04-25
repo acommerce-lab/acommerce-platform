@@ -1,3 +1,4 @@
+using ACommerce.Chat.Client.Blazor;
 using ACommerce.Client.Http;
 using ACommerce.Client.Operations;
 using ACommerce.Client.Operations.Interceptors;
@@ -68,6 +69,16 @@ builder.Services.AddScoped<IStateApplier>(sp => sp.GetRequiredService<AppStateAp
 builder.Services.AddScoped<AuthStateService>();
 
 builder.Services.AddEmbeddedL10n<ProviderTranslations, AppLangContext>();
+
+// Realtime + Chat client — Provider uses the Customer backend (same hub + APIs).
+builder.Services.AddScoped<Ashare.V2.Provider.Web.Services.ProviderRealtimeService>();
+builder.Services.AddBlazorChatClient(opts =>
+{
+    opts.HttpClientName    = "ashare-v2";
+    opts.EnterPathTemplate = "/chat/{convId}/enter";
+    opts.LeavePathTemplate = "/chat/{convId}/leave";
+    opts.SendPathTemplate  = "/conversations/{convId}/messages";
+});
 
 var app = builder.Build();
 if (!app.Environment.IsDevelopment()) app.UseExceptionHandler("/Error");

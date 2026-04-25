@@ -21,5 +21,8 @@
     <ProjectReference Include="..\..\..\..\..\libs\backend\culture\ACommerce.Culture.Abstractions\ACommerce.Culture.Abstractions.csproj" />
     <ProjectReference Include="..\..\..\..\..\libs\backend\culture\ACommerce.Culture.Defaults\ACommerce.Culture.Defaults.csproj" />
     <ProjectReference Include="..\..\..\..\..\libs\frontend\ACommerce.L10n.Blazor\ACommerce.L10n.Blazor.csproj" />
+
+    <!-- Chat client (realtime + HTTP chat enter/leave) -->
+    <ProjectReference Include="..\..\..\..\..\libs\frontend\ACommerce.Chat.Client.Blazor\ACommerce.Chat.Client.Blazor.csproj" />
   </ItemGroup>
 </Project>
