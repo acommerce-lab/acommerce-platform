@@ -66,18 +66,15 @@ try
     builder.Services.AddMemoryCache();
     builder.Services.AddHttpContextAccessor();
 
-    // ─── CORS — AllowCredentials required for SignalR WebSocket ───────────
+    // ─── CORS — يُقرأ من Cors:AllowedOrigins في كل البيئات. AllowCredentials
+    // مطلوب لـ SignalR WebSocket ولـ ملفات تعريف الجلسة (cookies).
     builder.Services.AddCors(o => o.AddDefaultPolicy(p =>
     {
-        if (env.IsDevelopment())
-            p.WithOrigins("http://localhost:5301", "https://localhost:5301")
-             .AllowAnyHeader().AllowAnyMethod().AllowCredentials();
-        else
-        {
-            var origins = cfg.GetSection("Cors:AllowedOrigins").Get<string[]>()
-                          ?? ["https://ejar.app"];
-            p.WithOrigins(origins).AllowAnyHeader().AllowAnyMethod().AllowCredentials();
-        }
+        var origins = cfg.GetSection("Cors:AllowedOrigins").Get<string[]>()
+                      ?? (env.IsDevelopment()
+                            ? new[] { "http://localhost:5301", "http://localhost:5302" }
+                            : new[] { "https://ejar.ye" });
+        p.WithOrigins(origins).AllowAnyHeader().AllowAnyMethod().AllowCredentials();
     }));
 
     // ─── JWT ───────────────────────────────────────────────────────────────

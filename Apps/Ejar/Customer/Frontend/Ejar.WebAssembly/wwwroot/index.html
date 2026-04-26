@@ -6,12 +6,17 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#1d4ed8" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="إيجار" />
+    <meta name="application-name" content="إيجار" />
     <title>إيجار</title>
     <base href="/" />
 
     <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png" />
     <link rel="apple-touch-icon" sizes="192x192" href="icon-192.png" />
-    <link rel="icon" type="image/png" href="icon-192.png" />
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -38,12 +43,12 @@
 
     <script src="_framework/blazor.webassembly.js"></script>
     <script src="_content/Ejar.Customer.UI/ui-prefs.js"></script>
+    <script src="install-prompt.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.7/signalr.min.js"
             integrity="sha512-7SRCYIJtR6F8ocwW7UxW6wGKqbSyqREDbfCORCNGarvHiAIzNh7pBnFAw4QcVBSzQMbLp0bOGv7TFfvqBL3qg=="
             crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 
     <script>
-      // تسجيل service worker لجعل التطبيق PWA قابلاً للتثبيت + يعمل offline.
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('service-worker.js');
       }
