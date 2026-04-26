@@ -39,6 +39,10 @@
 
     <!-- Domain (entities + seed state) — single source of truth shared with Customer/Admin -->
     <ProjectReference Include="..\..\..\Domain\Ejar.Domain.csproj" />
+
+    <!-- Kits (drop-in Auth + Chat). Replace the in-app Controllers entirely. -->
+    <ProjectReference Include="..\..\..\..\..\libs\kits\ACommerce.Kits.Auth.Sms\ACommerce.Kits.Auth.Sms.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\kits\ACommerce.Kits.Chat\ACommerce.Kits.Chat.csproj" />
   </ItemGroup>
 
   <ItemGroup>

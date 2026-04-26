@@ -2,6 +2,7 @@ using ACommerce.Authentication.TwoFactor.Providers.Sms.Mock.Extensions;
 using ACommerce.Cache.Providers.InMemory.Extensions;
 using ACommerce.Cache.Providers.Redis.Extensions;
 using ACommerce.Chat.Operations;
+using ACommerce.Kits.Auth.Sms.Backend;
 using ACommerce.Notification.Providers.Firebase.Extensions;
 using ACommerce.Notification.Providers.InApp.Extensions;
 using ACommerce.OperationEngine.Core;
@@ -13,9 +14,9 @@ using ACommerce.Realtime.Providers.InMemory;
 using ACommerce.Realtime.Providers.SignalR;
 using ACommerce.Realtime.Providers.SignalR.Extensions;
 using ACommerce.Realtime.Providers.SignalR.Redis.Extensions;
+using Ejar.Admin.Api.Stores;
 using Ejar.Api.Interceptors;
 using Ejar.Api.Middleware;
-using Ejar.Admin.Api;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Serilog;
@@ -85,7 +86,8 @@ try
     if (jwtSecret.Contains("dev-secret"))
         Log.Warning("Ejar.Admin: JWT:SecretKey is a development placeholder — set a real secret in production.");
 
-    builder.Services.AddSingleton(new EjarAdminJwtConfig(jwtSecret, jwtIssuer, jwtAudience));
+    // (EjarAdminJwtConfig record removed — the Auth Kit owns its own
+    //  AuthSmsKitJwtConfig; we hand it the raw values further below.)
 
     builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         .AddJwtBearer(opts =>
@@ -121,8 +123,15 @@ try
         sp => sp.GetRequiredService<OperationLogInterceptor>());
     builder.Services.AddOperationInterceptors();
 
-    // ─── Auth: SMS Mock OTP (دائم 123456) ───────────────────────────────────
+    // ─── Auth Kit (drop-in /auth/otp/{request,verify} + /auth/logout) ──────
     builder.Services.AddMockSmsTwoFactor();
+    builder.Services.AddSmsAuthKit<EjarAdminAuthUserStore>(
+        new AuthSmsKitJwtConfig(
+            Secret:    jwtSecret,
+            Issuer:    jwtIssuer,
+            Audience:  jwtAudience,
+            Role:      "admin",
+            PartyKind: "Admin"));
 
     // ─── Realtime + Chat + Notifications + Cache ────────────────────────────
     builder.Services.AddSignalRRealtimeTransport();
@@ -194,9 +203,4 @@ catch (Exception ex)
 finally
 {
     Log.CloseAndFlush();
-}
-
-namespace Ejar.Admin.Api
-{
-    public record EjarAdminJwtConfig(string Secret, string Issuer, string Audience);
 }

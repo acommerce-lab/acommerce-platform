@@ -1,7 +1,8 @@
 using ACommerce.Authentication.TwoFactor.Providers.Sms.Mock.Extensions;
 using ACommerce.Cache.Providers.InMemory.Extensions;
 using ACommerce.Cache.Providers.Redis.Extensions;
-using ACommerce.Chat.Operations;
+using ACommerce.Kits.Auth.Sms.Backend;
+using ACommerce.Kits.Chat.Backend;
 using ACommerce.Notification.Providers.Firebase.Extensions;
 using ACommerce.Notification.Providers.InApp.Extensions;
 using ACommerce.OperationEngine.Core;
@@ -15,7 +16,7 @@ using ACommerce.Realtime.Providers.SignalR.Extensions;
 using ACommerce.Realtime.Providers.SignalR.Redis.Extensions;
 using Ejar.Api.Interceptors;
 using Ejar.Api.Middleware;
-using Ejar.Provider.Api;
+using Ejar.Provider.Api.Stores;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Serilog;
@@ -85,7 +86,8 @@ try
     if (jwtSecret.Contains("dev-secret"))
         Log.Warning("Ejar.Provider: JWT:SecretKey is a development placeholder — set a real secret in production.");
 
-    builder.Services.AddSingleton(new EjarProviderJwtConfig(jwtSecret, jwtIssuer, jwtAudience));
+    // (EjarProviderJwtConfig record removed — the Auth Kit owns its own
+    //  AuthSmsKitJwtConfig; we hand it the raw values further below.)
 
     builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         .AddJwtBearer(opts =>
@@ -121,14 +123,21 @@ try
         sp => sp.GetRequiredService<OperationLogInterceptor>());
     builder.Services.AddOperationInterceptors();
 
-    // ─── Auth: SMS Mock OTP (دائم 123456) ───────────────────────────────────
+    // ─── Auth Kit (drop-in /auth/otp/{request,verify} + /auth/logout) ──────
     builder.Services.AddMockSmsTwoFactor();
+    builder.Services.AddSmsAuthKit<EjarProviderAuthUserStore>(
+        new AuthSmsKitJwtConfig(
+            Secret:    jwtSecret,
+            Issuer:    jwtIssuer,
+            Audience:  jwtAudience,
+            Role:      "provider",
+            PartyKind: "Provider"));
 
-    // ─── Realtime + Chat + Notifications + Cache ────────────────────────────
+    // ─── Realtime + Chat Kit (drop-in /conversations + /chat/{id}/enter|leave) ─
     builder.Services.AddSignalRRealtimeTransport();
     builder.Services.AddScoped<RealtimeService>();
     builder.Services.AddInAppNotificationChannel(o => o.MethodName = "ReceiveNotification");
-    builder.Services.AddChat();
+    builder.Services.AddChatKit<EjarProviderChatStore>(o => o.PartyKind = "Provider");
 
     var firebaseJson = Environment.GetEnvironmentVariable("FIREBASE_SERVICE_ACCOUNT_JSON")
                        ?? cfg["Notifications:Firebase:ServiceAccountKeyJson"];
@@ -194,9 +203,4 @@ catch (Exception ex)
 finally
 {
     Log.CloseAndFlush();
-}
-
-namespace Ejar.Provider.Api
-{
-    public record EjarProviderJwtConfig(string Secret, string Issuer, string Audience);
 }
