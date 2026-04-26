@@ -164,14 +164,17 @@ while IFS= read -r csproj; do
     app_razor="$app_dir/Components/App.razor"
     [ -f "$app_razor" ] || continue
     # Library project references → package IDs expected in _content/<Pkg>/
-    refs=$(grep -oE 'libs[/\\]frontend[/\\][^"]+\.csproj' "$csproj" 2>/dev/null | \
-           tr '\\' '/' | sed 's|.*libs/frontend/||; s|/[^/]*\.csproj$||' | sort -u)
+    refs=$(grep -oE 'libs[/\\](frontend|kits)[/\\][^"]+\.csproj' "$csproj" 2>/dev/null | \
+           tr '\\' '/' | sed 's|.*/||; s|\.csproj$||' | sort -u || true)
     # _content/<Pkg>/ links actually present in App.razor
-    links=$(grep -oE '_content/[^/]+/' "$app_razor" | sed 's|_content/||; s|/$||' | sort -u)
+    links=$(grep -oE '_content/[^/]+/' "$app_razor" 2>/dev/null | sed 's|_content/||; s|/$||' | sort -u || true)
     for pkg in $refs; do
         # Skip libs that contain NO css (only .razor components).
         # `|| true` guards against SIGPIPE tripping `set -eo pipefail`.
-        has_css=$(ls "$ROOT/libs/frontend/$pkg/wwwroot"/*.css 2>/dev/null || true)
+        # Search for the wwwroot under either old or new tree (any depth).
+        has_css=$(find "$ROOT/libs" -type d -name "$pkg" 2>/dev/null \
+                  -exec sh -c 'ls "$1"/wwwroot/*.css 2>/dev/null' _ {} \; \
+                  | head -1 || true)
         [ -z "$has_css" ] && continue
         if ! echo "$links" | grep -qxF "$pkg" ; then
             report "missing-css-link [$pkg]" "$(realpath --relative-to="$ROOT" "$app_razor")" "1" "referenced via .csproj but App.razor doesn't link _content/$pkg/*.css"
