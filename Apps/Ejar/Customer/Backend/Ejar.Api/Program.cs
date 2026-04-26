@@ -66,8 +66,11 @@ try
     builder.Services.AddMemoryCache();
     builder.Services.AddHttpContextAccessor();
 
-    // ─── CORS — يُقرأ من Cors:AllowedOrigins في كل البيئات. AllowCredentials
-    // مطلوب لـ SignalR WebSocket ولـ ملفات تعريف الجلسة (cookies).
+    // ─── CORS ────────────────────────────────────────────────────────────
+    // - Cors:AllowedOrigins  → قائمة origins صريحة.
+    // - Cors:AllowedOriginPatterns → قائمة wildcards (مثلاً
+    //   "https://*.runasp.net") ليُقبَل أيّ subdomain منشور دون تعديل الكود
+    //   عند كل إعادة نشر. AllowCredentials مطلوب لـ SignalR + cookies.
     builder.Services.AddCors(o => o.AddDefaultPolicy(p =>
     {
         var origins = cfg.GetSection("Cors:AllowedOrigins").Get<string[]>()
@@ -75,6 +78,21 @@ try
                             ? new[] { "http://localhost:5301", "http://localhost:5302" }
                             : new[] { "https://ejar.ye" });
         p.WithOrigins(origins).AllowAnyHeader().AllowAnyMethod().AllowCredentials();
+
+        var patterns = cfg.GetSection("Cors:AllowedOriginPatterns").Get<string[]>()
+                       ?? Array.Empty<string>();
+        if (patterns.Length > 0)
+        {
+            // تحويل كل نمط wildcard إلى regex متساهل: "https://*.runasp.net"
+            //  → "^https://[^/]+\.runasp\.net$"
+            var regexes = patterns.Select(pat =>
+                new System.Text.RegularExpressions.Regex(
+                    "^" + System.Text.RegularExpressions.Regex.Escape(pat).Replace("\\*", "[^/]+") + "$",
+                    System.Text.RegularExpressions.RegexOptions.IgnoreCase)
+            ).ToArray();
+            p.SetIsOriginAllowed(origin =>
+                regexes.Any(r => r.IsMatch(origin)));
+        }
     }));
 
     // ─── JWT ───────────────────────────────────────────────────────────────
