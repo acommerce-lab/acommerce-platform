@@ -24,45 +24,45 @@
 
   <ItemGroup>
     <!-- SharedKernel + EF Core (SQLite dev / SQL Server prod) -->
-    <ProjectReference Include="..\..\..\..\..\libs\backend\core\ACommerce.SharedKernel.Abstractions\ACommerce.SharedKernel.Abstractions.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\backend\core\ACommerce.SharedKernel.Infrastructure.EFCores\ACommerce.SharedKernel.Infrastructure.EFCores.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Core\SharedKernel\ACommerce.SharedKernel.Abstractions\ACommerce.SharedKernel.Abstractions.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Core\SharedKernel\ACommerce.SharedKernel.Infrastructure.EFCores\ACommerce.SharedKernel.Infrastructure.EFCores.csproj" />
 
     <!-- OperationEngine -->
-    <ProjectReference Include="..\..\..\..\..\libs\backend\core\ACommerce.OperationEngine\ACommerce.OperationEngine.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\backend\core\ACommerce.OperationEngine.Wire\ACommerce.OperationEngine.Wire.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Core\OperationEngine\ACommerce.OperationEngine\ACommerce.OperationEngine.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Core\OperationEngine\ACommerce.OperationEngine.Wire\ACommerce.OperationEngine.Wire.csproj" />
 
     <!-- Authentication: JWT + SMS 2FA (mock) -->
-    <ProjectReference Include="..\..\..\..\..\libs\backend\auth\ACommerce.Authentication.Operations\ACommerce.Authentication.Operations.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\backend\auth\ACommerce.Authentication.Providers.Token\ACommerce.Authentication.Providers.Token.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\backend\auth\ACommerce.Authentication.TwoFactor.Operations\ACommerce.Authentication.TwoFactor.Operations.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\backend\auth\ACommerce.Authentication.TwoFactor.Providers.Sms.Mock\ACommerce.Authentication.TwoFactor.Providers.Sms.Mock.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Auth\ACommerce.Authentication.Operations\ACommerce.Authentication.Operations.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Auth\Providers\Token\ACommerce.Authentication.Providers.Token\ACommerce.Authentication.Providers.Token.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Auth.TwoFactor\ACommerce.Authentication.TwoFactor.Operations\ACommerce.Authentication.TwoFactor.Operations.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Auth.TwoFactor\Providers\Sms\ACommerce.Authentication.TwoFactor.Providers.Sms.Mock\ACommerce.Authentication.TwoFactor.Providers.Sms.Mock.csproj" />
 
     <!-- Realtime + Notifications + Chat -->
-    <ProjectReference Include="..\..\..\..\..\libs\backend\messaging\ACommerce.Realtime.Operations\ACommerce.Realtime.Operations.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\backend\messaging\ACommerce.Realtime.Providers.SignalR\ACommerce.Realtime.Providers.SignalR.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\backend\messaging\ACommerce.Realtime.Providers.InMemory\ACommerce.Realtime.Providers.InMemory.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\backend\messaging\ACommerce.Notification.Operations\ACommerce.Notification.Operations.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\backend\messaging\ACommerce.Notification.Providers.InApp\ACommerce.Notification.Providers.InApp.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\backend\messaging\ACommerce.Notification.Providers.Firebase\ACommerce.Notification.Providers.Firebase.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\backend\messaging\ACommerce.Chat.Operations\ACommerce.Chat.Operations.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Realtime\ACommerce.Realtime.Operations\ACommerce.Realtime.Operations.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Realtime\Providers\SignalR\ACommerce.Realtime.Providers.SignalR\ACommerce.Realtime.Providers.SignalR.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Realtime\Providers\InMemory\ACommerce.Realtime.Providers.InMemory\ACommerce.Realtime.Providers.InMemory.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Notifications\ACommerce.Notification.Operations\ACommerce.Notification.Operations.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Notifications\Providers\InApp\ACommerce.Notification.Providers.InApp\ACommerce.Notification.Providers.InApp.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Notifications\Providers\Firebase\ACommerce.Notification.Providers.Firebase\ACommerce.Notification.Providers.Firebase.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Chat\ACommerce.Chat.Operations\ACommerce.Chat.Operations.csproj" />
     <ProjectReference Include="..\..\..\Domain\Order.V2.Domain.csproj" />
 
     <!-- Production-grade cache + SignalR Redis backplane (opt-in via config) -->
-    <ProjectReference Include="..\..\..\..\..\libs\backend\messaging\ACommerce.Cache.Operations\ACommerce.Cache.Operations.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\backend\messaging\ACommerce.Cache.Providers.InMemory\ACommerce.Cache.Providers.InMemory.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\backend\messaging\ACommerce.Cache.Providers.Redis\ACommerce.Cache.Providers.Redis.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\backend\messaging\ACommerce.Realtime.Providers.SignalR.Redis\ACommerce.Realtime.Providers.SignalR.Redis.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Cache\ACommerce.Cache.Operations\ACommerce.Cache.Operations.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Cache\Providers\InMemory\ACommerce.Cache.Providers.InMemory\ACommerce.Cache.Providers.InMemory.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Cache\Providers\Redis\ACommerce.Cache.Providers.Redis\ACommerce.Cache.Providers.Redis.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Realtime\Providers\SignalR.Redis\ACommerce.Realtime.Providers.SignalR.Redis\ACommerce.Realtime.Providers.SignalR.Redis.csproj" />
 
     <!-- Favorites + Translations -->
-    <ProjectReference Include="..\..\..\..\..\libs\backend\other\ACommerce.Favorites.Operations\ACommerce.Favorites.Operations.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\backend\other\ACommerce.Translations.Operations\ACommerce.Translations.Operations.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Favorites\ACommerce.Favorites.Operations\ACommerce.Favorites.Operations.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Translations\ACommerce.Translations.Operations\ACommerce.Translations.Operations.csproj" />
 
     <!-- Culture stack -->
-    <ProjectReference Include="..\..\..\..\..\libs\backend\culture\ACommerce.Culture.Abstractions\ACommerce.Culture.Abstractions.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\backend\culture\ACommerce.Culture.Defaults\ACommerce.Culture.Defaults.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\backend\culture\ACommerce.Culture.Interceptors\ACommerce.Culture.Interceptors.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Culture\ACommerce.Culture.Abstractions\ACommerce.Culture.Abstractions.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Culture\ACommerce.Culture.Defaults\ACommerce.Culture.Defaults.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Culture\ACommerce.Culture.Interceptors\ACommerce.Culture.Interceptors.csproj" />
 
     <!-- Shared platform entities -->
-    <ProjectReference Include="..\..\..\..\..\libs\backend\platform\ACommerce.OrderPlatform.Entities\ACommerce.OrderPlatform.Entities.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Platform\Order\ACommerce.OrderPlatform.Entities\ACommerce.OrderPlatform.Entities.csproj" />
   </ItemGroup>
 </Project>

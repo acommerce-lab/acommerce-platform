@@ -11,8 +11,8 @@
 
   <ItemGroup>
     <!-- OperationEngine core + Wire -->
-    <ProjectReference Include="..\..\..\..\..\libs\backend\core\ACommerce.OperationEngine\ACommerce.OperationEngine.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\backend\core\ACommerce.OperationEngine.Wire\ACommerce.OperationEngine.Wire.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Core\OperationEngine\ACommerce.OperationEngine\ACommerce.OperationEngine.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Core\OperationEngine\ACommerce.OperationEngine.Wire\ACommerce.OperationEngine.Wire.csproj" />
 
     <!-- Client libraries -->
     <ProjectReference Include="..\..\..\..\..\clients\ACommerce.Client.Operations\ACommerce.Client.Operations.csproj" />
@@ -20,15 +20,15 @@
     <ProjectReference Include="..\..\..\..\..\clients\ACommerce.Client.StateBridge\ACommerce.Client.StateBridge.csproj" />
 
     <!-- Culture: numeral + phone normalization -->
-    <ProjectReference Include="..\..\..\..\..\libs\backend\culture\ACommerce.Culture.Abstractions\ACommerce.Culture.Abstractions.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\backend\culture\ACommerce.Culture.Defaults\ACommerce.Culture.Defaults.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Culture\ACommerce.Culture.Abstractions\ACommerce.Culture.Abstractions.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Culture\ACommerce.Culture.Defaults\ACommerce.Culture.Defaults.csproj" />
 
     <!-- Widgets + Marketplace templates -->
-    <ProjectReference Include="..\..\..\..\..\libs\frontend\ACommerce.Widgets\ACommerce.Widgets.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\frontend\ACommerce.Templates.Shared\ACommerce.Templates.Shared.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\frontend\ACommerce.Templates.Marketplace\ACommerce.Templates.Marketplace.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Widgets\ACommerce.Widgets\ACommerce.Widgets.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Templates\Shared\ACommerce.Templates.Shared\ACommerce.Templates.Shared.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Templates\Marketplace\ACommerce.Templates.Marketplace\ACommerce.Templates.Marketplace.csproj" />
 
     <!-- Chat client (uses the existing realtime pipe; backed by /chat/* HTTP endpoints) -->
-    <ProjectReference Include="..\..\..\..\..\libs\frontend\ACommerce.Chat.Client.Blazor\ACommerce.Chat.Client.Blazor.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Chat\ACommerce.Chat.Client.Blazor\ACommerce.Chat.Client.Blazor.csproj" />
   </ItemGroup>
 </Project>

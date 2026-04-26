@@ -10,7 +10,7 @@
 
   <ItemGroup>
     <!-- Wire format (OperationEnvelope<T>) shared with Order.Api -->
-    <ProjectReference Include="..\..\..\..\..\libs\backend\core\ACommerce.OperationEngine.Wire\ACommerce.OperationEngine.Wire.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Core\OperationEngine\ACommerce.OperationEngine.Wire\ACommerce.OperationEngine.Wire.csproj" />
 
     <!-- Client accounting libraries -->
     <ProjectReference Include="..\..\..\..\..\clients\ACommerce.Client.Operations\ACommerce.Client.Operations.csproj" />
@@ -18,12 +18,12 @@
     <ProjectReference Include="..\..\..\..\..\clients\ACommerce.Client.StateBridge\ACommerce.Client.StateBridge.csproj" />
 
     <!-- Our widgets + commerce templates (the styling cascade) -->
-    <ProjectReference Include="..\..\..\..\..\libs\frontend\ACommerce.Widgets\ACommerce.Widgets.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\frontend\ACommerce.Templates.Commerce\ACommerce.Templates.Commerce.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\frontend\ACommerce.Templates.Shared\ACommerce.Templates.Shared.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\frontend\ACommerce.Templates.Customer.Commerce\ACommerce.Templates.Customer.Commerce.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Widgets\ACommerce.Widgets\ACommerce.Widgets.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Templates\Commerce\ACommerce.Templates.Commerce\ACommerce.Templates.Commerce.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Templates\Shared\ACommerce.Templates.Shared\ACommerce.Templates.Shared.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Templates\Commerce.Customer\ACommerce.Templates.Customer.Commerce\ACommerce.Templates.Customer.Commerce.csproj" />
 
     <!-- Culture stack for timezone-aware timestamps + numeral rendering -->
-    <ProjectReference Include="..\..\..\..\..\libs\frontend\ACommerce.Culture.Blazor\ACommerce.Culture.Blazor.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Culture\ACommerce.Culture.Blazor\ACommerce.Culture.Blazor.csproj" />
   </ItemGroup>
 </Project>

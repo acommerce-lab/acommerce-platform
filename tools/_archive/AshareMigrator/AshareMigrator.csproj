@@ -21,6 +21,6 @@
   </ItemGroup>
   <ItemGroup>
     <!-- SharedKernel for DynamicAttributeHelper + DynamicAttribute types -->
-    <ProjectReference Include="..\..\libs\backend\core\ACommerce.SharedKernel.Abstractions\ACommerce.SharedKernel.Abstractions.csproj" />
+    <ProjectReference Include="..\..\..\libs\kits\Core\SharedKernel\ACommerce.SharedKernel.Abstractions\ACommerce.SharedKernel.Abstractions.csproj" />
   </ItemGroup>
 </Project>

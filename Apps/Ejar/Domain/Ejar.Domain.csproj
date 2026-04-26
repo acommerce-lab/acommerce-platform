@@ -10,6 +10,6 @@
   <ItemGroup>
     <!-- Domain entities implement the cross-cutting Chat interfaces (Law 6 amended).
          When more interfaces emerge (IBooking, IListing for Catalog kit) they get added here. -->
-    <ProjectReference Include="..\..\..\libs\backend\messaging\ACommerce.Chat.Operations\ACommerce.Chat.Operations.csproj" />
+    <ProjectReference Include="..\..\..\libs\kits\Chat\ACommerce.Chat.Operations\ACommerce.Chat.Operations.csproj" />
   </ItemGroup>
 </Project>
