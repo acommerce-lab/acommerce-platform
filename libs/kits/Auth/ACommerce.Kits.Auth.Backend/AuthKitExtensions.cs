@@ -1,3 +1,4 @@
+using ACommerce.Kits.Auth.Operations;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace ACommerce.Kits.Auth.Backend;
@@ -5,24 +6,23 @@ namespace ACommerce.Kits.Auth.Backend;
 public static class AuthKitExtensions
 {
     /// <summary>
-    /// يسجّل الـ Auth Kit بالكامل: <see cref="IAuthUserStore"/> ينحلّ إلى
+    /// يسجّل الـ Auth Kit: <see cref="IAuthUserStore"/> ينحلّ إلى
     /// <typeparamref name="TStore"/>، <see cref="AuthKitJwtConfig"/> يأخذ
     /// قيمه عبر <paramref name="jwt"/>، و <see cref="AuthController"/> يُكتشف
     /// عبر <c>AddApplicationPart</c>.
     ///
     /// <para>الاستخدام في <c>Program.cs</c>:</para>
     /// <code>
-    /// builder.Services.AddAuthKit&lt;EjarAuthUserStore&gt;(
-    ///     new AuthKitJwtConfig(
-    ///         Secret:    cfg["JWT:SecretKey"]!,
-    ///         Issuer:    cfg["JWT:Issuer"]!,
-    ///         Audience:  cfg["JWT:Audience"]!,
-    ///         Role:      "provider",
-    ///         PartyKind: "Provider"));
+    /// // 1) auth kit (shell + controller — provider-agnostic):
+    /// builder.Services.AddAuthKit&lt;MyAuthUserStore&gt;(jwt);
+    /// // 2) pick a flow — common case is OTP-via-2FA:
+    /// builder.Services.AddMockSmsTwoFactor();         // 2FA channel
+    /// builder.Services.AddTwoFactorAsAuth();           // bridge ITwoFactorChannel→IAuthFlow
     /// </code>
     ///
-    /// <para>شرط مسبق: <c>AddMockSmsTwoFactor()</c> أو نسخة الإنتاج
-    /// مسجَّلة (يحقن <c>ITwoFactorChannel</c>).</para>
+    /// <para><b>المهم</b>: الـ Kit نفسه لا يسجّل <see cref="IAuthFlow"/> —
+    /// التطبيق يسجّله. بدون تسجيل، تشغيل <c>AuthController</c> يفشل DI ويُفصِح
+    /// عن خطأ التهيئة المبكر، أفضل من سلوك خفيّ.</para>
     /// </summary>
     public static IServiceCollection AddAuthKit<TStore>(
         this IServiceCollection services,
@@ -31,10 +31,7 @@ public static class AuthKitExtensions
     {
         services.AddSingleton(jwt);
         services.AddScoped<IAuthUserStore, TStore>();
-
-        services.AddControllers()
-            .AddApplicationPart(typeof(AuthController).Assembly);
-
+        services.AddControllers().AddApplicationPart(typeof(AuthController).Assembly);
         return services;
     }
 }

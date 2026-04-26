@@ -3,6 +3,8 @@ using ACommerce.Cache.Providers.InMemory.Extensions;
 using ACommerce.Cache.Providers.Redis.Extensions;
 using ACommerce.Chat.Operations;
 using ACommerce.Kits.Auth.Backend;
+using ACommerce.Kits.Auth.Operations;
+using ACommerce.Kits.Auth.TwoFactor.AsAuth;
 using ACommerce.Notification.Providers.Firebase.Extensions;
 using ACommerce.Notification.Providers.InApp.Extensions;
 using ACommerce.OperationEngine.Core;
@@ -132,6 +134,7 @@ try
             Audience:  jwtAudience,
             Role:      "admin",
             PartyKind: "Admin"));
+    builder.Services.AddTwoFactorAsAuth(); // bridge ITwoFactorChannel -> IAuthFlow
 
     // ─── Realtime + Chat + Notifications + Cache ────────────────────────────
     builder.Services.AddSignalRRealtimeTransport();

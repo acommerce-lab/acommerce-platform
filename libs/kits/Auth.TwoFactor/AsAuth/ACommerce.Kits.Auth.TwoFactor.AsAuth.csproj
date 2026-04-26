@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <PackageId>ACommerce.Kits.Auth.TwoFactor.AsAuth</PackageId>
+    <Version>1.0.0</Version>
+    <Description>
+      Glue package. Provides an IAuthFlow that uses an injected
+      ITwoFactorChannel — the common case for OTP-style login.
+
+      This is the ONLY place where Auth and Auth.TwoFactor talk. Apps that
+      want OTP login wire it with one line; apps that want a different flow
+      (email magic-link, WebAuthn) skip this package entirely and register
+      their own IAuthFlow.
+
+      No templates, no controllers, no UI — purely a 30-line bridge.
+    </Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\Auth\ACommerce.Kits.Auth.Operations\ACommerce.Kits.Auth.Operations.csproj" />
+    <ProjectReference Include="..\ACommerce.Kits.Auth.TwoFactor\ACommerce.Kits.Auth.TwoFactor.csproj" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.0" />
+  </ItemGroup>
+</Project>

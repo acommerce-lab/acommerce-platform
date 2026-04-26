@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <PackageId>ACommerce.Kits.Auth.Operations</PackageId>
+    <Version>1.0.0</Version>
+    <Description>
+      Auth feature abstractions. Pure contracts — no provider, no 2FA, no
+      JWT library. Defines:
+        - IAuthFlow         : the verification flow (initiate + complete) that AuthController drives.
+        - IAuthUserStore    : the bridge between auth and the app's user data.
+        - AuthKitJwtConfig  : token issuance settings the AuthController uses on completion.
+        - AuthInitiateResult / AuthCompleteResult : flow result records.
+
+      Auth.TwoFactor is a SEPARATE feature; the bridge that lets a 2FA channel
+      back an auth flow lives in ACommerce.Kits.Auth.TwoFactor.AsAuth — never
+      here, never in Auth.Backend.
+    </Description>
+  </PropertyGroup>
+</Project>

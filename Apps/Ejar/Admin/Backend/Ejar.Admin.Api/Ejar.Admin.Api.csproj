@@ -15,10 +15,14 @@
     <ProjectReference Include="..\..\..\..\..\libs\backend\core\ACommerce.OperationEngine.Wire\ACommerce.OperationEngine.Wire.csproj" />
     <ProjectReference Include="..\..\..\..\..\libs\backend\core\ACommerce.OperationEngine.Interceptors\ACommerce.OperationEngine.Interceptors.csproj" />
 
-    <!-- Auth shell + SMS 2FA provider -->
+    <!-- Auth feature (shell + flow controller — no 2FA knowledge) -->
     <ProjectReference Include="..\..\..\..\..\libs\backend\auth\ACommerce.Authentication.Operations\ACommerce.Authentication.Operations.csproj" />
     <ProjectReference Include="..\..\..\..\..\libs\kits\Auth\ACommerce.Kits.Auth\ACommerce.Kits.Auth.csproj" />
+
+    <!-- Auth.TwoFactor + SMS provider + bridge -->
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Auth.TwoFactor\ACommerce.Kits.Auth.TwoFactor\ACommerce.Kits.Auth.TwoFactor.csproj" />
     <ProjectReference Include="..\..\..\..\..\libs\kits\Auth.TwoFactor\Sms\ACommerce.Kits.Auth.TwoFactor.Sms\ACommerce.Kits.Auth.TwoFactor.Sms.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Auth.TwoFactor\AsAuth\ACommerce.Kits.Auth.TwoFactor.AsAuth.csproj" />
 
     <!-- Realtime + Chat + Notifications + Cache (production-ready stack) -->
     <ProjectReference Include="..\..\..\..\..\libs\backend\messaging\ACommerce.Realtime.Operations\ACommerce.Realtime.Operations.csproj" />

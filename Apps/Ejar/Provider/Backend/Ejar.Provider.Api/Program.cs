@@ -2,6 +2,8 @@ using ACommerce.Authentication.TwoFactor.Providers.Sms.Mock.Extensions;
 using ACommerce.Cache.Providers.InMemory.Extensions;
 using ACommerce.Cache.Providers.Redis.Extensions;
 using ACommerce.Kits.Auth.Backend;
+using ACommerce.Kits.Auth.Operations;
+using ACommerce.Kits.Auth.TwoFactor.AsAuth;
 using ACommerce.Kits.Chat.Backend;
 using ACommerce.Notification.Providers.Firebase.Extensions;
 using ACommerce.Notification.Providers.InApp.Extensions;
@@ -132,6 +134,7 @@ try
             Audience:  jwtAudience,
             Role:      "provider",
             PartyKind: "Provider"));
+    builder.Services.AddTwoFactorAsAuth(); // bridge ITwoFactorChannel -> IAuthFlow
 
     // ─── Realtime + Chat Kit (drop-in /conversations + /chat/{id}/enter|leave) ─
     builder.Services.AddSignalRRealtimeTransport();

@@ -5,11 +5,16 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <PackageId>ACommerce.Kits.Auth.Backend</PackageId>
     <Version>1.0.0</Version>
-    <Description>Drop-in SMS OTP auth: AuthController exposing /auth/otp/{request,verify} + /auth/logout, plus an IAuthUserStore port the app implements to map a phone to a user id and load profile fields. Replaces the ~120-line copy of AuthController duplicated across every backend.</Description>
+    <Description>
+      Drop-in AuthController exposing /auth/otp/{request,verify} + /auth/logout.
+      Depends ONLY on Auth.Operations (IAuthFlow + IAuthUserStore + JwtConfig)
+      — never on 2FA, SMS, or any specific provider. The verification logic
+      (OTP, magic link, WebAuthn) is plugged in by the app via its IAuthFlow
+      registration.
+    </Description>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\..\backend\auth\ACommerce.Authentication.Operations\ACommerce.Authentication.Operations.csproj" />
-    <ProjectReference Include="..\..\..\backend\auth\ACommerce.Authentication.TwoFactor.Operations\ACommerce.Authentication.TwoFactor.Operations.csproj" />
+    <ProjectReference Include="..\ACommerce.Kits.Auth.Operations\ACommerce.Kits.Auth.Operations.csproj" />
     <ProjectReference Include="..\..\..\backend\core\ACommerce.OperationEngine\ACommerce.OperationEngine.csproj" />
     <ProjectReference Include="..\..\..\backend\core\ACommerce.OperationEngine.Wire\ACommerce.OperationEngine.Wire.csproj" />
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.0.1" />

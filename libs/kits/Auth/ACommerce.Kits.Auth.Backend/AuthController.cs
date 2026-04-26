@@ -1,5 +1,4 @@
-using ACommerce.Authentication.Operations;
-using ACommerce.Authentication.TwoFactor.Operations.Abstractions;
+using ACommerce.Kits.Auth.Operations;
 using ACommerce.OperationEngine.Analyzers;
 using ACommerce.OperationEngine.Core;
 using ACommerce.OperationEngine.Patterns;
@@ -14,87 +13,90 @@ using System.Text;
 namespace ACommerce.Kits.Auth.Backend;
 
 /// <summary>
-/// SMS OTP auth controller — drop-in. Apps register an <see cref="IAuthUserStore"/>
-/// + an <see cref="AuthKitJwtConfig"/> via <see cref="AuthKitExtensions.AddAuthKit"/>;
-/// the kit handles request/verify/logout, JWT issuance, OAM operation logging,
-/// and analyzer-based input validation.
-///
-/// <para>التطبيق لا يكتب AuthController بعد الآن — هذه نسخة واحدة لكلّ الأدوار.
-/// الفرق بين Customer/Provider/Admin يكون عبر <c>JwtConfig.Role</c> +
-/// <c>PartyKind</c>.</para>
+/// Drop-in auth controller. Drives an <see cref="IAuthFlow"/> — does NOT
+/// know how the verification works (OTP, magic-link, WebAuthn…). Apps wire
+/// a concrete IAuthFlow via DI:
+/// <list type="bullet">
+///   <item>OTP-via-2FA (most common) → <c>AddTwoFactorAsAuth()</c> from the
+///         <c>Auth.TwoFactor.AsAuth</c> bridge package.</item>
+///   <item>Email magic-link → an app-provided IAuthFlow that emails a token.</item>
+///   <item>Custom flow → any IAuthFlow implementation.</item>
+/// </list>
 /// </summary>
 [ApiController]
 [Route("auth")]
 public class AuthController : ControllerBase
 {
     private readonly OpEngine _engine;
-    private readonly ITwoFactorChannel _otpChannel;
+    private readonly IAuthFlow _flow;
     private readonly IAuthUserStore _users;
     private readonly AuthKitJwtConfig _jwt;
 
     public AuthController(
-        OpEngine engine, ITwoFactorChannel otpChannel,
-        IAuthUserStore users, AuthKitJwtConfig jwt)
+        OpEngine engine, IAuthFlow flow, IAuthUserStore users, AuthKitJwtConfig jwt)
     {
-        _engine = engine; _otpChannel = otpChannel; _users = users; _jwt = jwt;
+        _engine = engine; _flow = flow; _users = users; _jwt = jwt;
     }
 
     [HttpPost("otp/request")]
     public async Task<IActionResult> RequestOtp([FromBody] OtpRequestBody body, CancellationToken ct)
     {
-        var phone = PhoneNormalization.Normalize(body.Phone);
+        var subject = (body.Phone ?? "").Trim();
         var op = Entry.Create("auth.otp.request")
-            .Describe($"OTP requested for {MaskPhone(phone)}")
+            .Describe($"Auth flow initiated for {Mask(subject)}")
             .From("System:Auth", 1, ("role", "issuer"))
-            .To($"Phone:{phone}", 1, ("role", "recipient"))
-            .Tag("phone_masked", MaskPhone(phone))
+            .To($"Subject:{subject}", 1, ("role", "recipient"))
+            .Tag("subject_masked", Mask(subject))
             .Tag("role", _jwt.Role)
-            .Analyze(new RequiredFieldAnalyzer("phone", () => phone))
-            .Analyze(new ConditionAnalyzer("phone_format",
-                _ => phone.Length >= 10 && phone.StartsWith('+') && phone[1..].All(char.IsDigit),
-                "رقم الجوال غير صالح"))
-            .Execute(async ctx => await _otpChannel.InitiateAsync(phone, phone, ctx.CancellationToken))
+            .Analyze(new RequiredFieldAnalyzer("subject", () => subject))
+            .Execute(async ctx =>
+            {
+                var r = await _flow.InitiateAsync(subject, ctx.CancellationToken);
+                if (!r.Ok) throw new InvalidOperationException(r.Reason ?? "initiate_failed");
+                ctx.Set("expiresInSeconds", r.ExpiresInSeconds);
+            })
             .Build();
 
-        var data = new { maskedPhone = MaskPhone(phone), expiresInSeconds = 120 };
-        var env = await _engine.ExecuteEnvelopeAsync(op, data, ct);
+        var env = await _engine.ExecuteEnvelopeAsync(op, new { masked = Mask(subject) }, ct);
         if (env.Operation.Status != "Success")
             return this.BadRequestEnvelope(env.Operation.FailedAnalyzer ?? "otp_request_failed", env.Operation.ErrorMessage);
-        return this.OkEnvelope("auth.otp.request", data);
+        return this.OkEnvelope("auth.otp.request",
+            new { masked = Mask(subject), expiresInSeconds = (int)(env.Operation.GetVariable("expiresInSeconds") ?? 0) });
     }
 
     [HttpPost("otp/verify")]
     public async Task<IActionResult> VerifyOtp([FromBody] OtpVerifyBody body, CancellationToken ct)
     {
-        var phone = PhoneNormalization.Normalize(body.Phone);
-        var code  = body.Code?.Trim() ?? "";
+        var subject = (body.Phone ?? "").Trim();
+        var secret  = body.Code?.Trim() ?? "";
 
-        var userId      = await _users.GetOrCreateUserIdAsync(phone, ct);
-        var displayName = await _users.GetDisplayNameAsync(userId, ct) ?? "";
-        var token       = GenerateToken(userId, phone);
+        string userId = "", displayName = "", token = "";
 
         var op = Entry.Create("auth.otp.verify")
-            .Describe($"OTP verify for {MaskPhone(phone)}")
-            .From($"Phone:{phone}", 1, ("role", "verifier"))
-            .To($"{_jwt.PartyKind}:{userId}", 1, ("role", "authenticated"))
-            .Tag("user_id", userId).Tag("role", _jwt.Role)
-            .Analyze(new RequiredFieldAnalyzer("phone", () => phone))
-            .Analyze(new RequiredFieldAnalyzer("code",  () => code))
-            .Analyze(new ConditionAnalyzer("code_length",
-                _ => code.Length == 6 && code.All(char.IsDigit),
-                "رمز التحقق يجب أن يكون 6 أرقام"))
+            .Describe($"Auth flow completed for {Mask(subject)}")
+            .From($"Subject:{subject}", 1, ("role", "verifier"))
+            .To("System:Auth", 1, ("role", "authenticated"))
+            .Tag("subject_masked", Mask(subject)).Tag("role", _jwt.Role)
+            .Analyze(new RequiredFieldAnalyzer("subject", () => subject))
+            .Analyze(new RequiredFieldAnalyzer("secret",  () => secret))
             .Execute(async ctx =>
             {
-                var r = await _otpChannel.VerifyAsync(phone, code, ctx.CancellationToken);
+                var r = await _flow.CompleteAsync(subject, secret, ctx.CancellationToken);
                 if (!r.Verified) throw new InvalidOperationException(r.Reason ?? "wrong_code");
+
+                var resolvedSubject = string.IsNullOrEmpty(r.Subject) ? subject : r.Subject;
+                userId      = await _users.GetOrCreateUserIdAsync(resolvedSubject, ctx.CancellationToken);
+                displayName = await _users.GetDisplayNameAsync(userId, ctx.CancellationToken) ?? "";
+                token       = GenerateToken(userId, resolvedSubject);
             })
             .Build();
 
-        var data = new { token, userId, name = displayName, phone = MaskPhone(phone), role = _jwt.Role };
-        var env = await _engine.ExecuteEnvelopeAsync(op, data, ct);
+        var env = await _engine.ExecuteEnvelopeAsync(op, new { subject = Mask(subject) }, ct);
         if (env.Operation.Status != "Success")
             return this.BadRequestEnvelope(env.Operation.FailedAnalyzer ?? "otp_verify_failed", env.Operation.ErrorMessage);
-        return this.OkEnvelope("auth.otp.verify", data);
+
+        return this.OkEnvelope("auth.otp.verify",
+            new { token, userId, name = displayName, phone = Mask(subject), role = _jwt.Role });
     }
 
     [HttpPost("logout")]
@@ -106,13 +108,13 @@ public class AuthController : ControllerBase
         return this.OkEnvelope("auth.logout", new { userId });
     }
 
-    private string GenerateToken(string userId, string phone)
+    private string GenerateToken(string userId, string subject)
     {
         var claims = new[]
         {
             new Claim("sub",     userId),
             new Claim("user_id", userId),
-            new Claim("phone",   phone),
+            new Claim("subject", subject),
             new Claim("role",    _jwt.Role),
         };
         var key   = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwt.Secret));
@@ -123,8 +125,8 @@ public class AuthController : ControllerBase
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
 
-    private static string MaskPhone(string p) =>
-        p.Length < 4 ? "****" : new string('*', p.Length - 4) + p[^4..];
+    private static string Mask(string s) =>
+        s.Length < 4 ? "****" : new string('*', s.Length - 4) + s[^4..];
 
     public sealed record OtpRequestBody(string? Phone);
     public sealed record OtpVerifyBody(string? Phone, string? Code);

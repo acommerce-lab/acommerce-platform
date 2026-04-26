@@ -333,6 +333,14 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACommerce.Kits.Notification
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACommerce.Kits.Notifications", "libs\kits\Notifications\ACommerce.Kits.Notifications\ACommerce.Kits.Notifications.csproj", "{8F037009-447C-43C9-8E86-3C6F86A3B1DC}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "AsAuth", "AsAuth", "{F09AA09A-7412-4894-96FB-69F22A10E6CA}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACommerce.Kits.Auth.Operations", "libs\kits\Auth\ACommerce.Kits.Auth.Operations\ACommerce.Kits.Auth.Operations.csproj", "{6F5156B4-ED97-42D2-BA74-F27D8F0C6519}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACommerce.Kits.Auth.TwoFactor", "libs\kits\Auth.TwoFactor\ACommerce.Kits.Auth.TwoFactor\ACommerce.Kits.Auth.TwoFactor.csproj", "{D112D53F-E0A9-4FE6-B842-A130DAC6B285}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACommerce.Kits.Auth.TwoFactor.AsAuth", "libs\kits\Auth.TwoFactor\AsAuth\ACommerce.Kits.Auth.TwoFactor.AsAuth.csproj", "{C698D396-DCB5-4D6E-B38F-F05AFC7447B4}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -343,6 +351,18 @@ Global
 		Release|x86 = Release|x86
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{6F5156B4-ED97-42D2-BA74-F27D8F0C6519}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6F5156B4-ED97-42D2-BA74-F27D8F0C6519}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6F5156B4-ED97-42D2-BA74-F27D8F0C6519}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6F5156B4-ED97-42D2-BA74-F27D8F0C6519}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D112D53F-E0A9-4FE6-B842-A130DAC6B285}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D112D53F-E0A9-4FE6-B842-A130DAC6B285}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D112D53F-E0A9-4FE6-B842-A130DAC6B285}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D112D53F-E0A9-4FE6-B842-A130DAC6B285}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C698D396-DCB5-4D6E-B38F-F05AFC7447B4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C698D396-DCB5-4D6E-B38F-F05AFC7447B4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C698D396-DCB5-4D6E-B38F-F05AFC7447B4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C698D396-DCB5-4D6E-B38F-F05AFC7447B4}.Release|Any CPU.Build.0 = Release|Any CPU
 		{DCA02C79-87F8-45C0-A90E-1A1165510183}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{DCA02C79-87F8-45C0-A90E-1A1165510183}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{DCA02C79-87F8-45C0-A90E-1A1165510183}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -1400,6 +1420,10 @@ Global
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
+		{6F5156B4-ED97-42D2-BA74-F27D8F0C6519} = {9C945675-29D7-4069-99FA-404531DFF93A}
+		{D112D53F-E0A9-4FE6-B842-A130DAC6B285} = {00382864-FF48-43EA-8FF2-9B698F1E3DE5}
+		{C698D396-DCB5-4D6E-B38F-F05AFC7447B4} = {F09AA09A-7412-4894-96FB-69F22A10E6CA}
+		{F09AA09A-7412-4894-96FB-69F22A10E6CA} = {00382864-FF48-43EA-8FF2-9B698F1E3DE5}
 		{39D61EC1-CA7A-426D-8921-B3F0D1C8BA2D} = {1787FE1D-075E-9E68-7218-25F1BD1BBEAB}
 		{6E72741F-E385-44F6-93A6-CADF823DBB07} = {39D61EC1-CA7A-426D-8921-B3F0D1C8BA2D}
 		{DCA02C79-87F8-45C0-A90E-1A1165510183} = {6E72741F-E385-44F6-93A6-CADF823DBB07}

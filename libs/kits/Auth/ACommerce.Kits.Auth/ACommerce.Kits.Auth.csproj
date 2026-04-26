@@ -6,23 +6,20 @@
     <PackageId>ACommerce.Kits.Auth</PackageId>
     <Version>1.0.0</Version>
     <Description>
-      Meta-package — the auth shell. Provider-agnostic on purpose:
-        - ACommerce.Authentication.TwoFactor.Operations  (ITwoFactorChannel contract)
-        - ACommerce.Kits.Auth.Backend                    (drop-in AuthController + IAuthUserStore port)
-        - ACommerce.Kits.Auth.Templates                  (AcLoginPage Razor shell with Verifier slot)
+      Auth feature meta-package — the SHELL only:
+        - ACommerce.Kits.Auth.Operations  (IAuthFlow + IAuthUserStore + JwtConfig)
+        - ACommerce.Kits.Auth.Backend     (AuthController driving an IAuthFlow)
+        - ACommerce.Kits.Auth.Templates   (AcLoginPage Razor + Verifier slot)
 
-      The actual 2FA channel + its UI lives in a SEPARATE provider kit:
-        - ACommerce.Kits.Auth.TwoFactor.Sms              (SMS channel + SmsVerifierUi)
-        - ACommerce.Kits.Auth.TwoFactor.Nafath           (future)
-        - ACommerce.Kits.Auth.TwoFactor.Email            (future)
-
-      An app picks ONE OR MORE provider kits and slots their verifier UIs
-      into AcLoginPage's &lt;Verifier&gt; render fragment. The Auth shell
-      doesn't know which provider is in use.
+      Auth has NO knowledge of 2FA. Apps wire an IAuthFlow themselves:
+        - Most common: install ACommerce.Kits.Auth.TwoFactor + a 2FA provider
+          (e.g. ACommerce.Kits.Auth.TwoFactor.Sms) + ACommerce.Kits.Auth.TwoFactor.AsAuth
+          which provides an IAuthFlow that drives the 2FA channel.
+        - Or install a custom IAuthFlow (email magic-link, WebAuthn).
     </Description>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\..\backend\auth\ACommerce.Authentication.TwoFactor.Operations\ACommerce.Authentication.TwoFactor.Operations.csproj" />
+    <ProjectReference Include="..\ACommerce.Kits.Auth.Operations\ACommerce.Kits.Auth.Operations.csproj" />
     <ProjectReference Include="..\ACommerce.Kits.Auth.Backend\ACommerce.Kits.Auth.Backend.csproj" />
     <ProjectReference Include="..\ACommerce.Kits.Auth.Templates\ACommerce.Kits.Auth.Templates.csproj" />
   </ItemGroup>
