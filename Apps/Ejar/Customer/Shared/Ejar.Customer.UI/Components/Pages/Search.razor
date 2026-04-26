@@ -1,0 +1,122 @@
+@page "/search"
+@using Ejar.Customer.UI.Operations
+@inject AppStore Store
+@inject AppStateApplier Applier
+@inject ApiReader Api
+@inject NavigationManager Nav
+@inject L L
+@implements IDisposable
+
+<PageTitle>@(L["common.search"]) — @(L["app.name"])</PageTitle>
+
+<div class="acs-page acs-search-page">
+    <AcSearchBox Value="@_query" ValueChanged="@(v => _query = v ?? string.Empty)"
+                 Placeholder="ابحث عن إعلان…" OnSubmit="Submit" />
+
+    @if (Store.RecentSearches.Count > 0)
+    {
+        <AcSectionHeader Title="بحث حديث" ActionLabel="مسح" OnAction="@ClearRecent" />
+        <div class="acs-filter-chips">
+            @foreach (var r in Store.RecentSearches)
+            {
+                var rq = r;
+                <span class="acs-recent-chip">
+                    <button type="button" @onclick="@(() => PickRecent(rq))">@rq</button>
+                    <button type="button" class="rm" @onclick="@(() => Remove(rq))" title="حذف">×</button>
+                </span>
+            }
+        </div>
+    }
+
+    @if (_popular.Count > 0)
+    {
+        <AcSectionHeader Title="الأكثر بحثاً" />
+        <div class="acs-filter-chips">
+            @foreach (var p in _popular)
+            {
+                var pq = p;
+                <AcFilterChip Label="@pq" OnClick="@(() => PickRecent(pq))" />
+            }
+        </div>
+    }
+
+    @if (_quickFilters.Count > 0)
+    {
+        <AcSectionHeader Title="فلاتر سريعة" />
+        <div class="acs-filter-chips">
+            @foreach (var qf in _quickFilters)
+            {
+                var f = qf;
+                <AcFilterChip Label="@f.Label"
+                              Active="@Store.ActiveQuickFilterIds.Contains(f.Id)"
+                              OnClick="@(() => ToggleFilter(f.Id))" />
+            }
+        </div>
+    }
+
+    @if (_categories.Count > 0)
+    {
+        <AcSectionHeader Title="تصفّح بالفئات" />
+        <div class="acm-home-grid">
+            @foreach (var c in _categories)
+            {
+                var cat = c;
+                <AcCategoryTile Label="@cat.Label" IconName="@cat.Icon"
+                                OnClick="@(() => Nav.NavigateTo($"/explore?category={cat.Id}"))" />
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private string _query = "";
+    private List<string> _popular = new();
+    private List<QuickFilterDto> _quickFilters = new();
+    private List<CategoryDto> _categories = new();
+
+    protected override void OnInitialized() => Store.OnChanged += OnChange;
+
+    protected override async Task OnAfterRenderAsync(bool first)
+    {
+        if (!first) return;
+        var s = await Api.GetAsync<SuggestionsDto>("/home/search/suggestions");
+        if (s.Data is not null)
+        {
+            _popular      = s.Data.Popular ?? new();
+            _quickFilters = s.Data.QuickFilters ?? new();
+        }
+        var h = await Api.GetAsync<HomeResponse>("/home/view");
+        _categories = h.Data?.Categories ?? new();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task Submit()
+    {
+        if (string.IsNullOrWhiteSpace(_query)) return;
+        await Applier.ApplyLocalAsync(EjarOps.AddRecentSearch(_query));
+        Nav.NavigateTo($"/explore?q={Uri.EscapeDataString(_query)}");
+    }
+
+    private async Task PickRecent(string q)
+    {
+        await Applier.ApplyLocalAsync(EjarOps.AddRecentSearch(q));
+        Nav.NavigateTo($"/explore?q={Uri.EscapeDataString(q)}");
+    }
+
+    private void Remove(string q) => Store.RemoveRecentSearch(q);
+    private void ClearRecent() => Store.ClearRecentSearches();
+
+    private void ToggleFilter(string id)
+    {
+        if (!Store.ActiveQuickFilterIds.Add(id)) Store.ActiveQuickFilterIds.Remove(id);
+        Store.NotifyChanged();
+    }
+
+    private void OnChange() => InvokeAsync(StateHasChanged);
+    public void Dispose() => Store.OnChanged -= OnChange;
+
+    private sealed record SuggestionsDto(List<string> Popular, List<QuickFilterDto> QuickFilters);
+    private sealed record QuickFilterDto(string Id, string Label, string Icon);
+    private sealed record HomeResponse(List<CategoryDto> Categories, object Featured, object New);
+    private sealed record CategoryDto(string Id, string Label, string Icon);
+}
