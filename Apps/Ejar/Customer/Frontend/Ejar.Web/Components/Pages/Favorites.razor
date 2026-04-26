@@ -23,7 +23,7 @@
                              ImageUrl="@l.FirstImage"
                              Location="@($"{l.City} — {l.District}")"
                              Capacity="@(l.BedroomCount == 0 ? null : l.BedroomCount)"
-                             PriceLabel="@($"{l.Price:0} SAR")"
+                             PriceLabel="@($"{l.Price:0} ر.ي")"
                              IsFavorite="true"
                              OnOpen="@(() => Open(lid))"
                              OnToggleFavorite="@(on => Toggle(lid, on))" />

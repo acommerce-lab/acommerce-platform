@@ -18,6 +18,7 @@ public sealed class LibPhoneNumberValidator : IPhoneNumberValidator
     private static readonly Dictionary<string, (int, int)> CountryLen = new()
     {
         ["966"] = (9, 9),   // Saudi Arabia (mobile starts with 5)
+        ["967"] = (9, 9),   // Yemen        (mobile starts with 7)
         ["971"] = (8, 9),   // UAE
         ["20"]  = (10, 10), // Egypt
         ["1"]   = (10, 10), // US/Canada

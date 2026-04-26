@@ -42,7 +42,7 @@ public class UiState
 {
     public UserCulture Culture { get; set; } = UserCulture.Default;
     public string Theme { get; set; } = "light";
-    public string City { get; set; } = "الرياض";
+    public string City { get; set; } = "صنعاء";
 
     public string Language => Culture.Language;
     public bool IsArabic => Culture.Language == "ar";

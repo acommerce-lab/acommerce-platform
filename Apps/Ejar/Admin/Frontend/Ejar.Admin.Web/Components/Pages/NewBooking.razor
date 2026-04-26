@@ -83,12 +83,11 @@
                     <div class="acm-checkout-line"><span>عدد الليالي:</span><strong>@_nights</strong></div>
                     <div class="acm-checkout-line"><span>عدد الأشخاص:</span><strong>@_guests</strong></div>
                     <hr />
-                    <div class="acm-checkout-line"><span>السعر اليومي:</span><strong>@_listing.Price SAR</strong></div>
-                    <div class="acm-checkout-line"><span>الإجماليّ الفرعيّ:</span><strong>@Subtotal SAR</strong></div>
-                    <div class="acm-checkout-line"><span>رسوم الخدمة (5%):</span><strong>@ServiceFee SAR</strong></div>
-                    <div class="acm-checkout-line"><span>ضريبة القيمة المضافة (15%):</span><strong>@Vat SAR</strong></div>
+                    <div class="acm-checkout-line"><span>السعر اليومي:</span><strong>@_listing.Price ر.ي</strong></div>
+                    <div class="acm-checkout-line"><span>الإجماليّ الفرعيّ:</span><strong>@Subtotal ر.ي</strong></div>
+                    <div class="acm-checkout-line"><span>رسوم الخدمة (5%):</span><strong>@ServiceFee ر.ي</strong></div>
                     <hr />
-                    <div class="acm-checkout-line"><span><strong>المجموع:</strong></span><strong>@Total SAR</strong></div>
+                    <div class="acm-checkout-line"><span><strong>المجموع:</strong></span><strong>@Total ر.ي</strong></div>
 
                     <AcField>
                         <label style="display:flex; gap:8px; align-items:center;">
@@ -110,8 +109,8 @@
             <AcCard>
                 <ChildContent>
                     <h3 style="margin-top:0;">الدفع</h3>
-                    <p>المجموع المستحقّ: <strong>@Total SAR</strong></p>
-                    <AcPaymentForm SubmitLabel="@($"ادفع {Total} SAR")"
+                    <p>المجموع المستحقّ: <strong>@Total ر.ي</strong></p>
+                    <AcPaymentForm SubmitLabel="@($"ادفع {Total} ر.ي")"
                                   OnSubmit="OnPay" />
                     @if (!string.IsNullOrEmpty(_alert))
                     {
@@ -143,8 +142,7 @@
 
     private decimal Subtotal    => _listing is null ? 0 : _listing.Price * _nights;
     private decimal ServiceFee  => Math.Round(Subtotal * 0.05m, 2);
-    private decimal Vat         => Math.Round(Subtotal * 0.15m, 2);
-    private decimal Total       => Subtotal + ServiceFee + Vat;
+    private decimal Total       => Subtotal + ServiceFee;
 
     protected override async Task OnAfterRenderAsync(bool first)
     {

@@ -218,7 +218,7 @@
         var ci = await Api.GetAsync<List<string>>("/cities");
         var sub = await Api.GetAsync<SubDto>("/me/subscription");
         _amenities = am.Data ?? new();
-        _cities    = ci.Data ?? new() { "الرياض" };
+        _cities    = ci.Data ?? new() { "صنعاء" };
         if (sub.Data is not null) _maxImages = sub.Data.ImagesPerListing;
         await InvokeAsync(StateHasChanged);
     }

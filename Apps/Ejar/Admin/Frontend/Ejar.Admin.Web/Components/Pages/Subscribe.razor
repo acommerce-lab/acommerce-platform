@@ -34,19 +34,18 @@
             <ChildContent>
                 <h3 style="margin-top:0;">ملخّص الطلب</h3>
                 <div class="acm-checkout-line"><span>البند:</span><strong>@_itemText</strong></div>
-                <div class="acm-checkout-line"><span>السعر الأساسيّ:</span><strong>@BaseAmount SAR</strong></div>
+                <div class="acm-checkout-line"><span>السعر الأساسيّ:</span><strong>@BaseAmount ر.ي</strong></div>
                 @if (CycleDiscount > 0)
                 {
-                    <div class="acm-checkout-line"><span>خصم الدورة:</span><strong>−@CycleDiscount SAR</strong></div>
+                    <div class="acm-checkout-line"><span>خصم الدورة:</span><strong>−@CycleDiscount ر.ي</strong></div>
                 }
                 @if (PromoDiscount > 0)
                 {
-                    <div class="acm-checkout-line"><span>خصم البرومو (@_promoApplied):</span><strong>−@PromoDiscount SAR</strong></div>
+                    <div class="acm-checkout-line"><span>خصم البرومو (@_promoApplied):</span><strong>−@PromoDiscount ر.ي</strong></div>
                 }
-                <div class="acm-checkout-line"><span>المجموع الفرعيّ:</span><strong>@Subtotal SAR</strong></div>
-                <div class="acm-checkout-line"><span>ضريبة القيمة المضافة (15%):</span><strong>@Vat SAR</strong></div>
+                <div class="acm-checkout-line"><span>المجموع الفرعيّ:</span><strong>@Subtotal ر.ي</strong></div>
                 <hr />
-                <div class="acm-checkout-line"><span><strong>المجموع:</strong></span><strong>@Total SAR</strong></div>
+                <div class="acm-checkout-line"><span><strong>المجموع:</strong></span><strong>@Total ر.ي</strong></div>
             </ChildContent>
         </AcCard>
 
@@ -69,7 +68,7 @@
         <AcCard>
             <ChildContent>
                 <h3 style="margin-top:0;">بيانات الدفع</h3>
-                <AcPaymentForm SubmitLabel="@($"ادفع {Total} SAR")"
+                <AcPaymentForm SubmitLabel="@($"ادفع {Total} ر.ي")"
                               OnSubmit="OnPay" />
                 @if (!string.IsNullOrEmpty(_alert))
                 {
@@ -133,8 +132,7 @@
 
     private decimal PromoDiscount => Math.Round((BaseAmount - CycleDiscount) * _promoPct, 2);
     private decimal Subtotal => BaseAmount - CycleDiscount - PromoDiscount;
-    private decimal Vat => Math.Round(Subtotal * 0.15m, 2);
-    private decimal Total => Subtotal + Vat;
+    private decimal Total => Subtotal;
 
     private void SetCycle(string c) => _cycle = c;
 

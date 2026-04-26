@@ -18,8 +18,8 @@ public sealed class CurrentCultureMiddleware
     public async Task Invoke(HttpContext ctx)
     {
         ctx.Items[LanguageKey] = HeaderOr(ctx, "Accept-Language", "ar");
-        ctx.Items[TimeZoneKey] = HeaderOr(ctx, "X-User-Timezone", "Asia/Riyadh");
-        ctx.Items[CurrencyKey] = HeaderOr(ctx, "X-User-Currency",  "SAR");
+        ctx.Items[TimeZoneKey] = HeaderOr(ctx, "X-User-Timezone", "Asia/Aden");
+        ctx.Items[CurrencyKey] = HeaderOr(ctx, "X-User-Currency",  "YER");
         await _next(ctx);
     }
 

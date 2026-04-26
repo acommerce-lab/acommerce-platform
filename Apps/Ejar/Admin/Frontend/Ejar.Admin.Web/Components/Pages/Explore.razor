@@ -102,7 +102,7 @@
     private static ListingRowDto ToRow(ListingDto l) => new()
     {
         Id = l.Id, Title = l.Title,
-        Price = l.Price, Currency = "SAR", TimeUnit = l.TimeUnitLabel,
+        Price = l.Price, Currency = "YER", TimeUnit = l.TimeUnitLabel,
         City = l.City, District = l.District, Status = 1, IsFeatured = l.IsVerified,
         ThumbnailUrl = l.FirstImage,
         Capacity = l.BedroomCount == 0 ? null : l.BedroomCount

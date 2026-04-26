@@ -21,7 +21,7 @@
                 <AcField Label="@(L["auth.phone"])" Required="true">
                     <AcInput Type="tel" Value="@_phone"
                              ValueChanged="@(v => _phone = (Numerals.ToLatin(v) ?? string.Empty).Trim())"
-                             Placeholder="05xxxxxxxx" />
+                             Placeholder="07xxxxxxxx" />
                 </AcField>
 
                 @if (_error is not null)
