@@ -11,11 +11,11 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 
-namespace ACommerce.Kits.Auth.Sms.Backend;
+namespace ACommerce.Kits.Auth.Backend;
 
 /// <summary>
 /// SMS OTP auth controller — drop-in. Apps register an <see cref="IAuthUserStore"/>
-/// + an <see cref="AuthSmsKitJwtConfig"/> via <see cref="AuthSmsKitExtensions.AddSmsAuthKit"/>;
+/// + an <see cref="AuthKitJwtConfig"/> via <see cref="AuthKitExtensions.AddAuthKit"/>;
 /// the kit handles request/verify/logout, JWT issuance, OAM operation logging,
 /// and analyzer-based input validation.
 ///
@@ -30,11 +30,11 @@ public class AuthController : ControllerBase
     private readonly OpEngine _engine;
     private readonly ITwoFactorChannel _otpChannel;
     private readonly IAuthUserStore _users;
-    private readonly AuthSmsKitJwtConfig _jwt;
+    private readonly AuthKitJwtConfig _jwt;
 
     public AuthController(
         OpEngine engine, ITwoFactorChannel otpChannel,
-        IAuthUserStore users, AuthSmsKitJwtConfig jwt)
+        IAuthUserStore users, AuthKitJwtConfig jwt)
     {
         _engine = engine; _otpChannel = otpChannel; _users = users; _jwt = jwt;
     }

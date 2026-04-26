@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <PackageId>ACommerce.Kits.Auth</PackageId>
+    <Version>1.0.0</Version>
+    <Description>
+      Meta-package — the auth shell. Provider-agnostic on purpose:
+        - ACommerce.Authentication.TwoFactor.Operations  (ITwoFactorChannel contract)
+        - ACommerce.Kits.Auth.Backend                    (drop-in AuthController + IAuthUserStore port)
+        - ACommerce.Kits.Auth.Templates                  (AcLoginPage Razor shell with Verifier slot)
+
+      The actual 2FA channel + its UI lives in a SEPARATE provider kit:
+        - ACommerce.Kits.Auth.TwoFactor.Sms              (SMS channel + SmsVerifierUi)
+        - ACommerce.Kits.Auth.TwoFactor.Nafath           (future)
+        - ACommerce.Kits.Auth.TwoFactor.Email            (future)
+
+      An app picks ONE OR MORE provider kits and slots their verifier UIs
+      into AcLoginPage's &lt;Verifier&gt; render fragment. The Auth shell
+      doesn't know which provider is in use.
+    </Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\backend\auth\ACommerce.Authentication.TwoFactor.Operations\ACommerce.Authentication.TwoFactor.Operations.csproj" />
+    <ProjectReference Include="..\ACommerce.Kits.Auth.Backend\ACommerce.Kits.Auth.Backend.csproj" />
+    <ProjectReference Include="..\ACommerce.Kits.Auth.Templates\ACommerce.Kits.Auth.Templates.csproj" />
+  </ItemGroup>
+</Project>

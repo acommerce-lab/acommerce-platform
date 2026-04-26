@@ -8,10 +8,10 @@
     <Description>Drop-in chat backend: ChatController exposing /conversations + /chat/{id}/enter|leave routes, plus an IChatStore port the app implements to bridge to its data layer (in-memory seed, EF, anything). The app wires it with one line and AddApplicationPart so the controller is discovered.</Description>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\backend\messaging\ACommerce.Chat.Operations\ACommerce.Chat.Operations.csproj" />
-    <ProjectReference Include="..\..\backend\messaging\ACommerce.Realtime.Operations\ACommerce.Realtime.Operations.csproj" />
-    <ProjectReference Include="..\..\backend\core\ACommerce.OperationEngine\ACommerce.OperationEngine.csproj" />
-    <ProjectReference Include="..\..\backend\core\ACommerce.OperationEngine.Wire\ACommerce.OperationEngine.Wire.csproj" />
+    <ProjectReference Include="..\..\..\backend\messaging\ACommerce.Chat.Operations\ACommerce.Chat.Operations.csproj" />
+    <ProjectReference Include="..\..\..\backend\messaging\ACommerce.Realtime.Operations\ACommerce.Realtime.Operations.csproj" />
+    <ProjectReference Include="..\..\..\backend\core\ACommerce.OperationEngine\ACommerce.OperationEngine.csproj" />
+    <ProjectReference Include="..\..\..\backend\core\ACommerce.OperationEngine.Wire\ACommerce.OperationEngine.Wire.csproj" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.0" />
   </ItemGroup>
   <ItemGroup>

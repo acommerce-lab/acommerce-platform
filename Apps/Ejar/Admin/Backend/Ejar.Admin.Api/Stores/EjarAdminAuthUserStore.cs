@@ -1,4 +1,4 @@
-using ACommerce.Kits.Auth.Sms.Backend;
+using ACommerce.Kits.Auth.Backend;
 using Ejar.Domain;
 
 namespace Ejar.Admin.Api.Stores;

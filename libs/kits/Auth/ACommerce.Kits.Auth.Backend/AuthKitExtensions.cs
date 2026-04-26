@@ -1,19 +1,19 @@
 using Microsoft.Extensions.DependencyInjection;
 
-namespace ACommerce.Kits.Auth.Sms.Backend;
+namespace ACommerce.Kits.Auth.Backend;
 
-public static class AuthSmsKitExtensions
+public static class AuthKitExtensions
 {
     /// <summary>
     /// يسجّل الـ Auth Kit بالكامل: <see cref="IAuthUserStore"/> ينحلّ إلى
-    /// <typeparamref name="TStore"/>، <see cref="AuthSmsKitJwtConfig"/> يأخذ
+    /// <typeparamref name="TStore"/>، <see cref="AuthKitJwtConfig"/> يأخذ
     /// قيمه عبر <paramref name="jwt"/>، و <see cref="AuthController"/> يُكتشف
     /// عبر <c>AddApplicationPart</c>.
     ///
     /// <para>الاستخدام في <c>Program.cs</c>:</para>
     /// <code>
-    /// builder.Services.AddSmsAuthKit&lt;EjarAuthUserStore&gt;(
-    ///     new AuthSmsKitJwtConfig(
+    /// builder.Services.AddAuthKit&lt;EjarAuthUserStore&gt;(
+    ///     new AuthKitJwtConfig(
     ///         Secret:    cfg["JWT:SecretKey"]!,
     ///         Issuer:    cfg["JWT:Issuer"]!,
     ///         Audience:  cfg["JWT:Audience"]!,
@@ -24,9 +24,9 @@ public static class AuthSmsKitExtensions
     /// <para>شرط مسبق: <c>AddMockSmsTwoFactor()</c> أو نسخة الإنتاج
     /// مسجَّلة (يحقن <c>ITwoFactorChannel</c>).</para>
     /// </summary>
-    public static IServiceCollection AddSmsAuthKit<TStore>(
+    public static IServiceCollection AddAuthKit<TStore>(
         this IServiceCollection services,
-        AuthSmsKitJwtConfig jwt)
+        AuthKitJwtConfig jwt)
         where TStore : class, IAuthUserStore
     {
         services.AddSingleton(jwt);

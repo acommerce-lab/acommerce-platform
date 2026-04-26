@@ -1,4 +1,4 @@
-namespace ACommerce.Kits.Auth.Sms.Backend;
+namespace ACommerce.Kits.Auth.Backend;
 
 /// <summary>
 /// منفذ المستخدمين الذي يربط <see cref="AuthController"/> ببيانات الـ app.
@@ -17,7 +17,7 @@ public interface IAuthUserStore
 /// خيارات الـ JWT التي يقصّها <see cref="AuthController"/> عند إصدار التوكن.
 /// كلّ تطبيق يحقن نسخته بقيم issuer/audience/secret/role الخاصّة به.
 /// </summary>
-public sealed record AuthSmsKitJwtConfig(
+public sealed record AuthKitJwtConfig(
     string Secret,
     string Issuer,
     string Audience,

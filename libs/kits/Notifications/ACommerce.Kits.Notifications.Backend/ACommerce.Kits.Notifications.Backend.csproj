@@ -8,9 +8,9 @@
     <Description>Drop-in notifications inbox: NotificationsController exposing /notifications + mark-read endpoints, plus an INotificationStore port the app implements. Push delivery is handled by the existing Notification.Operations layer (InApp + Firebase channels) — this kit only adds the inbox API.</Description>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\backend\messaging\ACommerce.Notification.Operations\ACommerce.Notification.Operations.csproj" />
-    <ProjectReference Include="..\..\backend\core\ACommerce.OperationEngine\ACommerce.OperationEngine.csproj" />
-    <ProjectReference Include="..\..\backend\core\ACommerce.OperationEngine.Wire\ACommerce.OperationEngine.Wire.csproj" />
+    <ProjectReference Include="..\..\..\backend\messaging\ACommerce.Notification.Operations\ACommerce.Notification.Operations.csproj" />
+    <ProjectReference Include="..\..\..\backend\core\ACommerce.OperationEngine\ACommerce.OperationEngine.csproj" />
+    <ProjectReference Include="..\..\..\backend\core\ACommerce.OperationEngine.Wire\ACommerce.OperationEngine.Wire.csproj" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.0" />
   </ItemGroup>
   <ItemGroup>

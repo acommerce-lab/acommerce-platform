@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <PackageId>ACommerce.Kits.Auth.Templates</PackageId>
+    <Version>1.0.0</Version>
+    <Description>
+      General login shell. The shell handles layout + branding + flow state;
+      the *verifier* (the actual phone/email/Nafath input form) is injected
+      as a RenderFragment so each 2FA provider supplies its own
+      provider-specific UI without forking the shell.
+    </Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\frontend\ACommerce.Widgets\ACommerce.Widgets.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+</Project>

@@ -8,9 +8,9 @@
     <Description>Drop-in Razor components for chat: AcChatRoomPage handles history+realtime+send+leave for one conversation; AcChatListPage renders the inbox. Apps host them in their own /chat/{id} and /chats Razor pages with a single tag.</Description>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\frontend\ACommerce.Chat.Client.Blazor\ACommerce.Chat.Client.Blazor.csproj" />
-    <ProjectReference Include="..\..\backend\messaging\ACommerce.Chat.Operations\ACommerce.Chat.Operations.csproj" />
-    <ProjectReference Include="..\..\frontend\ACommerce.Widgets\ACommerce.Widgets.csproj" />
+    <ProjectReference Include="..\..\..\frontend\ACommerce.Chat.Client.Blazor\ACommerce.Chat.Client.Blazor.csproj" />
+    <ProjectReference Include="..\..\..\backend\messaging\ACommerce.Chat.Operations\ACommerce.Chat.Operations.csproj" />
+    <ProjectReference Include="..\..\..\frontend\ACommerce.Widgets\ACommerce.Widgets.csproj" />
   </ItemGroup>
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />

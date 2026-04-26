@@ -1,54 +1,99 @@
-# Kits — atomic libraries + distribution meta-packages
+# Kits — feature-folder layout, atomic libraries, distribution metas
 
-Each "Kit" packages one cross-cutting concern (chat, catalog, notifications…)
-as **several focused csproj files**, then ships a single meta-package that
-references all of them. Borrowed from Spree (`spree_core` + `spree_api` +
-`spree_backend` + `spree_frontend` → `spree`) and Microsoft.AspNetCore.App
-(meta-package over ~50 libs).
+Each Kit is a **feature folder** containing several focused csproj files
+(Operations / State / Templates / Backend / Providers) plus a meta-package
+that bundles them. Borrowed from Spree's `spree_*` gems and
+`Microsoft.AspNetCore.App` meta-package.
 
-## Anatomy of a Kit
+## Folder layout
 
 ```
-libs/kits/ACommerce.Kits.{Concern}.Backend/      ← ASP.NET Controllers + DI port
-libs/kits/ACommerce.Kits.{Concern}.Templates/    ← Razor class library (drop-in components)
-libs/kits/ACommerce.Kits.{Concern}/              ← meta — references the above + atoms
+libs/kits/{Feature}/                                   ← one folder per feature
+  ├── ACommerce.Kits.{Feature}.Backend/                ← drop-in Controllers + ports
+  ├── ACommerce.Kits.{Feature}.Templates/              ← Razor components
+  ├── ACommerce.Kits.{Feature}.State/                  ← Frontend state extensions (when needed)
+  └── ACommerce.Kits.{Feature}/                        ← meta-package
 ```
 
-The atoms typically already exist as separate libs:
+Some features have **provider-specific** sub-kits with their own templates,
+because the UI differs per provider (SMS phone+OTP ≠ Nafath QR-scan ≠ Email
+magic-link). The shell template provides a slot; each provider kit ships
+the slot fill:
+
 ```
-libs/backend/messaging/ACommerce.{Concern}.Operations    ← interfaces + service impl
-libs/frontend/ACommerce.{Concern}.Client.Blazor          ← frontend client
+libs/kits/{Feature}/                                   ← shell + abstraction
+  └── ACommerce.Kits.{Feature}.Templates/              ← AcLoginPage with <Verifier> slot
+
+libs/kits/{Feature}.{ProviderCategory}/                ← provider category
+  └── {ProviderName}/                                  ← one folder per provider
+      ├── ACommerce.Kits.{Feature}.{Cat}.{Prov}.Templates/   ← provider verifier UI
+      ├── ACommerce.Kits.{Feature}.{Cat}.{Prov}/             ← provider meta
+      └── ...
 ```
 
-## Why split this way
+App combines a shell + chosen provider:
+```razor
+<AcLoginPage>
+    <Verifier><SmsVerifierUi /></Verifier>     @* swap for <NafathVerifierUi/> etc. *@
+</AcLoginPage>
+```
 
-- **Backend** exposes HTTP/RPC routes; controllers get discovered via
-  `AddApplicationPart`. Apps register a `I{Concern}Store` port that bridges
-  to their data layer.
-- **Templates** are Razor only — apps drop them into their pages with one
-  tag. No business logic; UI assembly only.
-- **Operations** holds interfaces + the service implementation that providers
-  (SignalR, Redis, …) plug into. Lowest layer.
-- **Client** holds the frontend abstraction (state, http, realtime bridging).
+## Kits in this repo today
 
-This keeps each csproj **small enough to be replaceable, large enough to be
-useful** (Sam Newman). Apps can take just what they need:
-- Backend-only (microservice that delegates UI elsewhere) → reference Backend + Operations.
-- Frontend-only (thin storefront against a separate chat service) → reference Client + Templates.
-- Full stack → reference the meta-package.
+```
+libs/kits/
+├── Chat/
+│   ├── ACommerce.Kits.Chat.Backend/           ChatController + IChatStore
+│   ├── ACommerce.Kits.Chat.Templates/         AcChatRoomPage Razor
+│   └── ACommerce.Kits.Chat/                   meta (Operations + Client + Backend + Templates)
+│
+├── Auth/                                       ← shell — provider-agnostic
+│   ├── ACommerce.Kits.Auth.Backend/           AuthController + IAuthUserStore + AuthKitJwtConfig
+│   ├── ACommerce.Kits.Auth.Templates/         AcLoginPage with <Verifier> RenderFragment slot
+│   └── ACommerce.Kits.Auth/                   meta (TwoFactor.Operations + Backend + Templates)
+│
+├── Auth.TwoFactor/                             ← 2FA provider category
+│   └── Sms/                                    ← one folder per provider
+│       ├── ACommerce.Kits.Auth.TwoFactor.Sms.Templates/   SmsVerifierUi Razor
+│       └── ACommerce.Kits.Auth.TwoFactor.Sms/            meta (Sms.Mock + Templates)
+│
+└── Notifications/
+    ├── ACommerce.Kits.Notifications.Backend/  NotificationsController + INotificationStore
+    └── ACommerce.Kits.Notifications/          meta (Operations + InApp + Firebase + Backend)
+```
 
-## Existing kits
+Future provider folders (planned but not built):
+- `Auth.TwoFactor/Nafath/` — Nafath provider + `<NafathVerifierUi />` (QR + status polling).
+- `Auth.TwoFactor/Email/` — Email magic-link provider + `<EmailVerifierUi />`.
+- `Files/Local/` and `Files/AliyunOss/` and `Files/GoogleCloud/` — file-storage providers.
+- `Payments/Noon/` and `Payments/Stripe/` — payment providers, each with checkout templates.
 
-| Kit | Status |
-|-----|--------|
-| `ACommerce.Kits.Chat` | ✅ first kit — see this folder |
-| `ACommerce.Kits.Notifications` | ⏳ extract from existing `Notification.*` libs when 3rd consumer appears |
-| `ACommerce.Kits.Catalog` | ⏳ pending — extract from Ejar / Ashare V2 when patterns settle |
-| `ACommerce.Kits.Bookings` | ⏳ |
+## Why feature folders + provider folders
+
+Three reasons the user's instinct is right:
+
+1. **Discoverability** — finding "all SMS-related code" = browse one folder.
+2. **Provider isolation** — the SMS package doesn't drag Nafath into the
+   build graph. Apps that don't need Nafath don't reference it; the SMS
+   atom is small.
+3. **Common-shell + provider-slot pattern** — the login screen layout is
+   identical across providers (header + body + footer), but the actual
+   verification step differs entirely. Shell-with-slot keeps DRY without
+   forcing one shape on every provider.
+
+## Rule for provider kits
+
+A provider kit is justified when **it has its own UI** that the
+shell-template can't anticipate. SMS (phone + numeric pad), Nafath
+(scan-and-wait), Email (magic-link), Apple-Pay (tokenised flow) — all yes.
+
+A provider kit is NOT justified when it's an interchangeable backend impl
+with the same surface (SMS-via-Twilio vs SMS-via-Unifonic — same UI, just
+a different concrete `ITwoFactorChannel`). Those stay as
+`*.Providers.*` libs at the backend layer.
 
 ## Versioning rule
 
-All Kit packages share one version. They evolve together (monorepo monoversion);
-upgrading the meta-package upgrades atoms in lockstep. Avoids the dependency
-hell that hits Spree consumers who pin `spree_core` and `spree_backend` to
-different minor versions.
+All Kit packages share one version, evolve together (monoversion). No
+package can pin to a different minor than its meta — avoids the dependency
+hell that hit Spree consumers.

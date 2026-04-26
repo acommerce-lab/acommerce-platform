@@ -1,7 +1,7 @@
 using ACommerce.Authentication.TwoFactor.Providers.Sms.Mock.Extensions;
 using ACommerce.Cache.Providers.InMemory.Extensions;
 using ACommerce.Cache.Providers.Redis.Extensions;
-using ACommerce.Kits.Auth.Sms.Backend;
+using ACommerce.Kits.Auth.Backend;
 using ACommerce.Kits.Chat.Backend;
 using ACommerce.Notification.Providers.Firebase.Extensions;
 using ACommerce.Notification.Providers.InApp.Extensions;
@@ -87,7 +87,7 @@ try
         Log.Warning("Ejar.Provider: JWT:SecretKey is a development placeholder — set a real secret in production.");
 
     // (EjarProviderJwtConfig record removed — the Auth Kit owns its own
-    //  AuthSmsKitJwtConfig; we hand it the raw values further below.)
+    //  AuthKitJwtConfig; we hand it the raw values further below.)
 
     builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         .AddJwtBearer(opts =>
@@ -125,8 +125,8 @@ try
 
     // ─── Auth Kit (drop-in /auth/otp/{request,verify} + /auth/logout) ──────
     builder.Services.AddMockSmsTwoFactor();
-    builder.Services.AddSmsAuthKit<EjarProviderAuthUserStore>(
-        new AuthSmsKitJwtConfig(
+    builder.Services.AddAuthKit<EjarProviderAuthUserStore>(
+        new AuthKitJwtConfig(
             Secret:    jwtSecret,
             Issuer:    jwtIssuer,
             Audience:  jwtAudience,

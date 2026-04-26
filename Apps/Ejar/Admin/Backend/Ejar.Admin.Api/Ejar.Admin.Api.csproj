@@ -15,10 +15,10 @@
     <ProjectReference Include="..\..\..\..\..\libs\backend\core\ACommerce.OperationEngine.Wire\ACommerce.OperationEngine.Wire.csproj" />
     <ProjectReference Include="..\..\..\..\..\libs\backend\core\ACommerce.OperationEngine.Interceptors\ACommerce.OperationEngine.Interceptors.csproj" />
 
-    <!-- Auth: SMS Mock OTP -->
+    <!-- Auth shell + SMS 2FA provider -->
     <ProjectReference Include="..\..\..\..\..\libs\backend\auth\ACommerce.Authentication.Operations\ACommerce.Authentication.Operations.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\backend\auth\ACommerce.Authentication.TwoFactor.Operations\ACommerce.Authentication.TwoFactor.Operations.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\backend\auth\ACommerce.Authentication.TwoFactor.Providers.Sms.Mock\ACommerce.Authentication.TwoFactor.Providers.Sms.Mock.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Auth\ACommerce.Kits.Auth\ACommerce.Kits.Auth.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Auth.TwoFactor\Sms\ACommerce.Kits.Auth.TwoFactor.Sms\ACommerce.Kits.Auth.TwoFactor.Sms.csproj" />
 
     <!-- Realtime + Chat + Notifications + Cache (production-ready stack) -->
     <ProjectReference Include="..\..\..\..\..\libs\backend\messaging\ACommerce.Realtime.Operations\ACommerce.Realtime.Operations.csproj" />
@@ -40,10 +40,6 @@
     <!-- Domain (entities + seed state) — single source of truth shared with Customer/Provider -->
     <ProjectReference Include="..\..\..\Domain\Ejar.Domain.csproj" />
 
-    <!-- Kit: drop-in SMS Auth (replaces hand-rolled AuthController). Admin keeps
-         its own AdminDashboard / AdminListings / AdminUsers controllers — no kit
-         for moderation tools yet (Rule of Three not met). -->
-    <ProjectReference Include="..\..\..\..\..\libs\kits\ACommerce.Kits.Auth.Sms\ACommerce.Kits.Auth.Sms.csproj" />
   </ItemGroup>
 
   <ItemGroup>

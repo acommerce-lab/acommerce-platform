@@ -1,0 +1,70 @@
+@*
+  General login page shell. Hosts brand + layout + status messages; the
+  verifier (provider-specific UI) is injected by the consuming app.
+
+  Usage in app's Login.razor:
+
+      @page "/login"
+      @using ACommerce.Kits.Auth.Templates
+      @using ACommerce.Kits.Auth.TwoFactor.Sms.Templates
+
+      <AcLoginPage Title="@(L["auth.login.title"])"
+                   BrandName="@(L["app.name"])">
+          <Verifier>
+              <SmsVerifierUi />
+          </Verifier>
+      </AcLoginPage>
+
+  Swap <SmsVerifierUi /> for <NafathVerifierUi /> or <EmailVerifierUi />
+  to change the 2FA channel without touching the shell.
+*@
+
+@using Microsoft.AspNetCore.Components
+
+<div class="ac-login-page">
+    <header class="ac-login-header">
+        @if (Logo is not null) { @Logo }
+        <h1 class="ac-login-title">@Title</h1>
+        @if (!string.IsNullOrEmpty(Subtitle))
+        {
+            <p class="ac-login-subtitle">@Subtitle</p>
+        }
+    </header>
+
+    <main class="ac-login-body">
+        @if (Verifier is not null)
+        {
+            @Verifier
+        }
+        else
+        {
+            <p class="ac-login-empty">No verifier configured.</p>
+        }
+    </main>
+
+    @if (Footer is not null)
+    {
+        <footer class="ac-login-footer">@Footer</footer>
+    }
+</div>
+
+@code {
+    /// <summary>عنوان الشاشة (مثلاً "تسجيل الدخول").</summary>
+    [Parameter] public string? Title { get; set; }
+    [Parameter] public string? Subtitle { get; set; }
+    [Parameter] public string? BrandName { get; set; }
+
+    /// <summary>عنصر الشعار (اختياريّ — تُمرّره الصفحة المستهلِكة).</summary>
+    [Parameter] public RenderFragment? Logo { get; set; }
+
+    /// <summary>
+    /// منطقة المُتحقِّق — الـ provider-specific UI. مثلاً:
+    /// <c>&lt;SmsVerifierUi /&gt;</c> أو <c>&lt;NafathVerifierUi /&gt;</c>.
+    /// كلّ provider يكتب verifier-component خاصّ به في مكتبته الخاصّة
+    /// (مثلاً <c>ACommerce.Kits.Auth.TwoFactor.Sms.Templates</c>).
+    /// </summary>
+    [Parameter, EditorRequired] public RenderFragment? Verifier { get; set; }
+
+    /// <summary>تذييل اختياريّ (روابط Privacy / Terms…).</summary>
+    [Parameter] public RenderFragment? Footer { get; set; }
+}

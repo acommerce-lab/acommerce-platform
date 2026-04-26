@@ -1,5 +1,5 @@
 using ACommerce.Chat.Operations;
-using ACommerce.Kits.Auth.Sms.Backend;
+using ACommerce.Kits.Auth.Backend;
 using ACommerce.Kits.Chat.Backend;
 using Ejar.Domain;
 
