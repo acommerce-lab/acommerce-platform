@@ -21,8 +21,8 @@
 
     <!-- Auth.TwoFactor + SMS provider + bridge -->
     <ProjectReference Include="..\..\..\..\..\libs\kits\Auth.TwoFactor\ACommerce.Kits.Auth.TwoFactor\ACommerce.Kits.Auth.TwoFactor.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\kits\Auth.TwoFactor\Sms\ACommerce.Kits.Auth.TwoFactor.Sms\ACommerce.Kits.Auth.TwoFactor.Sms.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\kits\Auth.TwoFactor\AsAuth\ACommerce.Kits.Auth.TwoFactor.AsAuth.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Auth.TwoFactor\Providers\Sms\ACommerce.Kits.Auth.TwoFactor.Sms\ACommerce.Kits.Auth.TwoFactor.Sms.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Auth.TwoFactor\ACommerce.Kits.Auth.TwoFactor.AsAuth\ACommerce.Kits.Auth.TwoFactor.AsAuth.csproj" />
 
     <!-- Realtime + Chat + Notifications + Cache (production-ready stack) -->
     <ProjectReference Include="..\..\..\..\..\libs\kits\Realtime\ACommerce.Realtime.Operations\ACommerce.Realtime.Operations.csproj" />

@@ -85,7 +85,7 @@ public sealed class InMemoryCache : ICache
         // Local-only "distributed" lock — useful for dev only.
         if (!_locks.TryAdd(key, 0)) return Task.FromResult<IDistributedLock?>(null);
         // Auto-release after TTL.
-        _ = Task.Delay(ttl, ct).ContinueWith(_ => _locks.TryRemove(key, out _), TaskScheduler.Default);
+        _ = Task.Delay(ttl, ct).ContinueWith(t => _locks.TryRemove(key, out _), TaskScheduler.Default);
         return Task.FromResult<IDistributedLock?>(new Handle(key, _locks));
     }
 

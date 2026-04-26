@@ -82,7 +82,7 @@ public sealed class RedisCache : ICache
     {
         if (typeof(T) == typeof(string)) return (T)(object)raw.ToString();
         if (typeof(T) == typeof(byte[])) return (T)(object)(byte[])raw!;
-        return JsonSerializer.Deserialize<T>(raw!);
+        return JsonSerializer.Deserialize<T>((string)raw!);
     }
 
     private sealed class RedisLock : IDistributedLock

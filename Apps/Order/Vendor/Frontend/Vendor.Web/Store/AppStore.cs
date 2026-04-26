@@ -44,5 +44,6 @@ public class UiState
     public string Language { get; set; } = "ar";
     public bool IsDark => Theme == "dark";
     public bool IsArabic => Language == "ar";
+    public bool IsRtl => IsArabic;
     public string Tr(string ar, string en) => IsArabic ? ar : en;
 }

@@ -1,3 +1,4 @@
+using System.Net.Http;
 using System.Net.Http.Json;
 using ACommerce.Chat.Operations;
 using Microsoft.Extensions.Logging;

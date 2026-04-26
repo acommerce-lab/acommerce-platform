@@ -42,6 +42,7 @@ public class AuthController : ControllerBase
     public async Task<IActionResult> RequestOtp([FromBody] OtpRequestBody body, CancellationToken ct)
     {
         var subject = (body.Phone ?? "").Trim();
+        var expiresInSeconds = 0;
         var op = Entry.Create("auth.otp.request")
             .Describe($"Auth flow initiated for {Mask(subject)}")
             .From("System:Auth", 1, ("role", "issuer"))
@@ -53,6 +54,7 @@ public class AuthController : ControllerBase
             {
                 var r = await _flow.InitiateAsync(subject, ctx.CancellationToken);
                 if (!r.Ok) throw new InvalidOperationException(r.Reason ?? "initiate_failed");
+                expiresInSeconds = r.ExpiresInSeconds;
                 ctx.Set("expiresInSeconds", r.ExpiresInSeconds);
             })
             .Build();
@@ -61,7 +63,7 @@ public class AuthController : ControllerBase
         if (env.Operation.Status != "Success")
             return this.BadRequestEnvelope(env.Operation.FailedAnalyzer ?? "otp_request_failed", env.Operation.ErrorMessage);
         return this.OkEnvelope("auth.otp.request",
-            new { masked = Mask(subject), expiresInSeconds = (int)(env.Operation.GetVariable("expiresInSeconds") ?? 0) });
+            new { masked = Mask(subject), expiresInSeconds });
     }
 
     [HttpPost("otp/verify")]
