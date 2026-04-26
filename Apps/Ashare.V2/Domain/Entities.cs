@@ -1,6 +1,6 @@
 using ACommerce.SharedKernel.Abstractions.Entities;
 
-namespace Ashare.V2.Api.Entities;
+namespace Ashare.V2.Domain;
 
 public class Profile : IBaseEntity
 {

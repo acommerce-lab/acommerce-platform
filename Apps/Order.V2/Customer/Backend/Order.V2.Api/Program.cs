@@ -23,7 +23,7 @@ using ACommerce.Notification.Providers.Firebase.Extensions;
 using ACommerce.Chat.Operations;
 using ACommerce.SharedKernel.Abstractions.Entities;
 using ACommerce.SharedKernel.Infrastructure.EFCores.Extensions;
-using Order.V2.Api.Entities;
+using Order.V2.Domain;
 using Order.V2.Api.Services;
 using Serilog;
 using Serilog.Events;

@@ -4,7 +4,7 @@ using ACommerce.OperationEngine.Patterns;
 using ACommerce.SharedKernel.Abstractions.Repositories;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
-using Order.V2.Api.Entities;
+using Order.V2.Domain;
 using Order.V2.Vendor.Api;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;

@@ -14,7 +14,7 @@ using ACommerce.Realtime.Providers.SignalR.Extensions;
 using ACommerce.Realtime.Providers.SignalR.Redis.Extensions;
 using ACommerce.SharedKernel.Abstractions.Entities;
 using ACommerce.SharedKernel.Infrastructure.EFCores.Extensions;
-using Ashare.V2.Api.Entities;
+using Ashare.V2.Domain;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Serilog;

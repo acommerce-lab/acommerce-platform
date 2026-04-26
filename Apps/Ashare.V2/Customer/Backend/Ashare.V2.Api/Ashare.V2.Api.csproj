@@ -49,6 +49,7 @@
     <ProjectReference Include="..\..\..\..\..\libs\backend\messaging\ACommerce.Realtime.Providers.SignalR\ACommerce.Realtime.Providers.SignalR.csproj" />
     <ProjectReference Include="..\..\..\..\..\libs\backend\messaging\ACommerce.Realtime.Providers.InMemory\ACommerce.Realtime.Providers.InMemory.csproj" />
     <ProjectReference Include="..\..\..\..\..\libs\backend\messaging\ACommerce.Chat.Operations\ACommerce.Chat.Operations.csproj" />
+    <ProjectReference Include="..\..\..\Domain\Ashare.V2.Domain.csproj" />
 
     <!-- Production-grade cache + SignalR Redis backplane (opt-in via config) -->
     <ProjectReference Include="..\..\..\..\..\libs\backend\messaging\ACommerce.Cache.Operations\ACommerce.Cache.Operations.csproj" />

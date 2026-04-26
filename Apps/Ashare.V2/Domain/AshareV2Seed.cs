@@ -1,4 +1,4 @@
-namespace Ashare.V2.Api.Services;
+namespace Ashare.V2.Domain;
 
 /// <summary>
 /// بذور Ashare.V2 — تغطية كاملة لصفحات عشير القديم.

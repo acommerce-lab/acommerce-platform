@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>Order.V2.Domain</RootNamespace>
+    <AssemblyName>Order.V2.Domain</AssemblyName>
+    <Description>Order V2 domain entities — Customer/Vendor/Admin all reference this directly. EF mappings stay in the backend services; entities here are POCOs implementing IBaseEntity (for the SharedKernel repo pattern) and IChatMessage / IChatConversation (for the Chat kit).</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- IBaseEntity contract for the repository pattern -->
+    <ProjectReference Include="..\..\..\libs\backend\core\ACommerce.SharedKernel.Abstractions\ACommerce.SharedKernel.Abstractions.csproj" />
+    <!-- Chat interfaces so Conversation / Message implement them directly (Law 6 amended) -->
+    <ProjectReference Include="..\..\..\libs\backend\messaging\ACommerce.Chat.Operations\ACommerce.Chat.Operations.csproj" />
+  </ItemGroup>
+</Project>

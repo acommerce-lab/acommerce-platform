@@ -1,5 +1,5 @@
 using ACommerce.SharedKernel.Abstractions.Repositories;
-using Order.V2.Api.Entities;
+using Order.V2.Domain;
 
 namespace Order.V2.Api.Services;
 

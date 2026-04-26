@@ -6,7 +6,7 @@ using ACommerce.Realtime.Operations.Abstractions;
 using ACommerce.SharedKernel.Abstractions.Repositories;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Order.V2.Api.Entities;
+using Order.V2.Domain;
 
 namespace Order.V2.Vendor.Api.Controllers;
 
@@ -24,7 +24,7 @@ namespace Order.V2.Vendor.Api.Controllers;
 public class VendorMessagesController : ControllerBase
 {
     private readonly IBaseAsyncRepository<Conversation> _convs;
-    private readonly IBaseAsyncRepository<Order.V2.Api.Entities.Message> _msgs;
+    private readonly IBaseAsyncRepository<Order.V2.Domain.Message> _msgs;
     private readonly OpEngine _engine;
     private readonly IChatService? _chat;
     private readonly IConnectionTracker? _connections;
@@ -37,7 +37,7 @@ public class VendorMessagesController : ControllerBase
         IConnectionTracker? connections = null)
     {
         _convs       = f.CreateRepository<Conversation>();
-        _msgs        = f.CreateRepository<Order.V2.Api.Entities.Message>();
+        _msgs        = f.CreateRepository<Order.V2.Domain.Message>();
         _engine      = engine;
         _chat        = chat;
         _connections = connections;
@@ -96,7 +96,7 @@ public class VendorMessagesController : ControllerBase
         if (conv == null) return this.NotFoundEnvelope("conversation_not_found");
         if (conv.VendorId != vendorId) return this.ForbiddenEnvelope("not_a_participant");
 
-        var msg = new Order.V2.Api.Entities.Message
+        var msg = new Order.V2.Domain.Message
         {
             Id = Guid.NewGuid(), CreatedAt = DateTime.UtcNow,
             ConversationId = conv.Id, SenderId = vendorId, Content = req.Content

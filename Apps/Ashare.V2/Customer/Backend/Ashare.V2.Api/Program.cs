@@ -18,7 +18,7 @@ using ACommerce.Realtime.Providers.SignalR;
 using ACommerce.Realtime.Providers.SignalR.Extensions;
 using ACommerce.SharedKernel.Abstractions.Entities;
 using ACommerce.SharedKernel.Infrastructure.EFCores.Extensions;
-using Ashare.V2.Api.Entities;
+using Ashare.V2.Domain;
 using Ashare.V2.Api.Interceptors;
 using Ashare.V2.Api.Middleware;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -268,7 +268,7 @@ try
     app.MapHub<AShareHub>("/hubs/ashare");
 
     // ─── Restore seed snapshot (in-memory mode only) ──────────────────────────
-    await Ashare.V2.Api.Services.JsonSnapshotStore.RestoreAsync();
+    await Ashare.V2.Domain.JsonSnapshotStore.RestoreAsync();
 
     Log.Information("Ashare V2 API ready [{Env}]", env.EnvironmentName);
     app.Run();

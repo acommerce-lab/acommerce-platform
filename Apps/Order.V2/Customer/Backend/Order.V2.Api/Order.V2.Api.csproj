@@ -45,6 +45,7 @@
     <ProjectReference Include="..\..\..\..\..\libs\backend\messaging\ACommerce.Notification.Providers.InApp\ACommerce.Notification.Providers.InApp.csproj" />
     <ProjectReference Include="..\..\..\..\..\libs\backend\messaging\ACommerce.Notification.Providers.Firebase\ACommerce.Notification.Providers.Firebase.csproj" />
     <ProjectReference Include="..\..\..\..\..\libs\backend\messaging\ACommerce.Chat.Operations\ACommerce.Chat.Operations.csproj" />
+    <ProjectReference Include="..\..\..\Domain\Order.V2.Domain.csproj" />
 
     <!-- Production-grade cache + SignalR Redis backplane (opt-in via config) -->
     <ProjectReference Include="..\..\..\..\..\libs\backend\messaging\ACommerce.Cache.Operations\ACommerce.Cache.Operations.csproj" />

@@ -5,7 +5,7 @@ using ACommerce.OperationEngine.Wire;
 using ACommerce.Realtime.Operations.Abstractions;
 using ACommerce.SharedKernel.Abstractions.Repositories;
 using Microsoft.AspNetCore.Mvc;
-using Order.V2.Api.Entities;
+using Order.V2.Domain;
 
 namespace Order.V2.Api.Controllers;
 

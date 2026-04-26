@@ -6,7 +6,7 @@ using ACommerce.SharedKernel.Abstractions.Entities;
 using ACommerce.SharedKernel.Infrastructure.EFCores;
 using ACommerce.SharedKernel.Infrastructure.EFCores.Extensions;
 using Order.V2.Admin.Api;
-using Order.V2.Api.Entities;
+using Order.V2.Domain;
 using Serilog;
 
 // ── Entity registration ────────────────────────────────────────────────────
@@ -17,7 +17,7 @@ EntityDiscoveryRegistry.RegisterEntity(typeof(Offer));
 EntityDiscoveryRegistry.RegisterEntity(typeof(OrderRecord));
 EntityDiscoveryRegistry.RegisterEntity(typeof(OrderItem));
 EntityDiscoveryRegistry.RegisterEntity(typeof(Conversation));
-EntityDiscoveryRegistry.RegisterEntity(typeof(Order.V2.Api.Entities.Message));
+EntityDiscoveryRegistry.RegisterEntity(typeof(Order.V2.Domain.Message));
 EntityDiscoveryRegistry.RegisterEntity(typeof(Notification));
 EntityDiscoveryRegistry.RegisterEntity(typeof(Favorite));
 EntityDiscoveryRegistry.RegisterEntity(typeof(TwoFactorChallengeRecord));

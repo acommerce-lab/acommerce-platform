@@ -1,6 +1,6 @@
 using ACommerce.SharedKernel.Abstractions.Entities;
 
-namespace Order.V2.Api.Entities;
+namespace Order.V2.Domain;
 
 public class Notification : IBaseEntity
 {

@@ -40,6 +40,7 @@
     <ProjectReference Include="..\..\..\..\..\libs\backend\messaging\ACommerce.Realtime.Providers.SignalR\ACommerce.Realtime.Providers.SignalR.csproj" />
     <ProjectReference Include="..\..\..\..\..\libs\backend\messaging\ACommerce.Realtime.Providers.InMemory\ACommerce.Realtime.Providers.InMemory.csproj" />
     <ProjectReference Include="..\..\..\..\..\libs\backend\messaging\ACommerce.Chat.Operations\ACommerce.Chat.Operations.csproj" />
+    <ProjectReference Include="..\..\..\Domain\Ashare.V2.Domain.csproj" />
     <ProjectReference Include="..\..\..\..\..\libs\backend\messaging\ACommerce.Notification.Operations\ACommerce.Notification.Operations.csproj" />
     <ProjectReference Include="..\..\..\..\..\libs\backend\messaging\ACommerce.Notification.Providers.InApp\ACommerce.Notification.Providers.InApp.csproj" />
 
