@@ -22,19 +22,25 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- ─── Auth: SMS Mock (رمز ثابت 123456 — يُستبدَل بمزوّد SMS حقيقي في الإنتاج) ── -->
-    <ProjectReference Include="..\..\..\..\..\libs\kits\Auth.TwoFactor\ACommerce.Authentication.TwoFactor.Operations\ACommerce.Authentication.TwoFactor.Operations.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\kits\Auth.TwoFactor\Providers\Sms\ACommerce.Authentication.TwoFactor.Providers.Sms.Mock\ACommerce.Authentication.TwoFactor.Providers.Sms.Mock.csproj" />
+    <!-- ─── Auth Kit (drop-in /auth/otp/{request,verify} + /auth/logout) ─── -->
+    <!-- meta = ACommerce.Kits.Auth (= Operations + Backend + Templates).
+         Add a TwoFactor channel + AsAuth bridge below to make OTP login work. -->
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Auth\ACommerce.Kits.Auth\ACommerce.Kits.Auth.csproj" />
+
+    <!-- ─── Auth.TwoFactor: SMS Mock (رمز ثابت 123456 — أبدله بمزوّد SMS حقيقي في الإنتاج) ── -->
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Auth.TwoFactor\ACommerce.Kits.Auth.TwoFactor\ACommerce.Kits.Auth.TwoFactor.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Auth.TwoFactor\Providers\Sms\ACommerce.Kits.Auth.TwoFactor.Sms\ACommerce.Kits.Auth.TwoFactor.Sms.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Auth.TwoFactor\ACommerce.Kits.Auth.TwoFactor.AsAuth\ACommerce.Kits.Auth.TwoFactor.AsAuth.csproj" />
   </ItemGroup>
 
   <ItemGroup>
-    <!-- ─── Realtime + Chat + Notifications (InApp + Firebase) ──────────── -->
+    <!-- ─── Realtime + Chat Kit + Notifications (InApp + Firebase) ──────── -->
     <ProjectReference Include="..\..\..\..\..\libs\kits\Realtime\ACommerce.Realtime.Operations\ACommerce.Realtime.Operations.csproj" />
     <ProjectReference Include="..\..\..\..\..\libs\kits\Realtime\Providers\SignalR\ACommerce.Realtime.Providers.SignalR\ACommerce.Realtime.Providers.SignalR.csproj" />
-    <!-- InMemory provider only for the InMemoryConnectionTracker — used by the SignalR
+    <!-- InMemory provider only for InMemoryConnectionTracker — used by the SignalR
          hub to map userId → connectionId; not used as a transport. -->
     <ProjectReference Include="..\..\..\..\..\libs\kits\Realtime\Providers\InMemory\ACommerce.Realtime.Providers.InMemory\ACommerce.Realtime.Providers.InMemory.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\kits\Chat\ACommerce.Chat.Operations\ACommerce.Chat.Operations.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Chat\ACommerce.Kits.Chat\ACommerce.Kits.Chat.csproj" />
     <ProjectReference Include="..\..\..\..\..\libs\kits\Notifications\ACommerce.Notification.Operations\ACommerce.Notification.Operations.csproj" />
     <ProjectReference Include="..\..\..\..\..\libs\kits\Notifications\Providers\InApp\ACommerce.Notification.Providers.InApp\ACommerce.Notification.Providers.InApp.csproj" />
     <ProjectReference Include="..\..\..\..\..\libs\kits\Notifications\Providers\Firebase\ACommerce.Notification.Providers.Firebase\ACommerce.Notification.Providers.Firebase.csproj" />

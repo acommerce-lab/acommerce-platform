@@ -306,7 +306,7 @@ public class CatalogController : ControllerBase
                     newId, "المؤجر", listing.OwnerId, listing.Id, listing.Title,
                     DateTime.UtcNow, 0,
                     new List<EjarSeed.MessageSeed> {
-                        new("M-auto", "me", req.Text, DateTime.UtcNow)
+                        new("M-auto", newId, "me", req.Text, DateTime.UtcNow)
                     });
                 EjarSeed.Conversations.Add(conv);
                 return Task.CompletedTask;
