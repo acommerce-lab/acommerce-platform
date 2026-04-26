@@ -17,6 +17,7 @@ using ACommerce.Realtime.Providers.InMemory;
 using ACommerce.Realtime.Providers.SignalR;
 using ACommerce.Realtime.Providers.SignalR.Extensions;
 using ACommerce.Realtime.Providers.SignalR.Redis.Extensions;
+using Ejar.Api.Data;
 using Ejar.Api.Interceptors;
 using Ejar.Api.Middleware;
 using Ejar.Api.Stores;
@@ -120,6 +121,9 @@ try
         sp => sp.GetRequiredService<OperationLogInterceptor>());
     builder.Services.AddOperationInterceptors();
 
+    // ─── Database (Sqlite في dev، MSSQL في prod — حسب Database:Provider) ───
+    builder.Services.AddEjarDatabase(cfg, env);
+
     // ─── Auth Kit (drop-in /auth/otp/{request,verify} + /auth/logout) ────
     // للإنتاج: أبدل AddMockSmsTwoFactor() بـ AddSmsTwoFactor() مع مزوّد حقيقي.
     builder.Services.AddMockSmsTwoFactor();
@@ -175,6 +179,11 @@ try
 
     // ─── Build ─────────────────────────────────────────────────────────────
     var app = builder.Build();
+
+    // ── DB schema + seed (يجري قبل أيّ طلب HTTP) ─────────────────────────
+    await EjarDbSeeder.EnsureSchemaAndSeedAsync(
+        app.Services,
+        app.Services.GetRequiredService<ILogger<Program>>());
 
     // chat<->notif coupling: open chat:conv:X → mute notif:conv:X لنفس المستخدم.
     app.Services.WireChatNotificationCoupling();

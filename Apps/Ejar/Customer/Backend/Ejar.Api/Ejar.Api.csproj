@@ -12,6 +12,9 @@
   <ItemGroup>
     <!-- Domain (entities + seed state) — single source of truth shared by Customer/Provider/Admin -->
     <ProjectReference Include="..\..\..\Domain\Ejar.Domain.csproj" />
+
+    <!-- SharedKernel EF infra (PlatformDataRoot + SqliteSchemaGuard helpers) -->
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Core\SharedKernel\ACommerce.SharedKernel.Infrastructure.EFCores\ACommerce.SharedKernel.Infrastructure.EFCores.csproj" />
   </ItemGroup>
 
   <ItemGroup>
@@ -54,6 +57,9 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.0" />
     <PackageReference Include="Serilog.AspNetCore" Version="8.0.3" />
     <PackageReference Include="Serilog.Sinks.Console" Version="6.0.0" />
     <PackageReference Include="Serilog.Sinks.File" Version="6.0.0" />
