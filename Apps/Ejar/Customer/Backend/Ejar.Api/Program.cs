@@ -15,7 +15,7 @@ using ACommerce.OperationEngine.Interceptors;
 using ACommerce.OperationEngine.Interceptors.Extensions;
 using Ejar.Api.Interceptors;
 using Ejar.Api.Middleware;
-using Ejar.Api.Services;
+using Ejar.Domain;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Serilog;

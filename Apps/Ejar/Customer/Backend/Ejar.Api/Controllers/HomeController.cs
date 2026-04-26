@@ -1,6 +1,6 @@
 using ACommerce.OperationEngine.Wire;
 using ACommerce.OperationEngine.Wire.Http;
-using Ejar.Api.Services;
+using Ejar.Domain;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Ejar.Api.Controllers;

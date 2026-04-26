@@ -33,10 +33,12 @@
     <ProjectReference Include="..\..\..\..\..\libs\backend\messaging\ACommerce.Cache.Providers.Redis\ACommerce.Cache.Providers.Redis.csproj" />
     <ProjectReference Include="..\..\..\..\..\libs\backend\messaging\ACommerce.Realtime.Providers.SignalR.Redis\ACommerce.Realtime.Providers.SignalR.Redis.csproj" />
 
-    <!-- Customer backend: shared EjarSeed (Listings, Conversations, Messages, Users)
-         + Middleware (CurrentUser, Culture, GlobalException). Both backends mutate the
-         same in-process seed; with Redis enabled, realtime + tracker state spans both. -->
+    <!-- Customer backend: kept for shared Middleware (CurrentUser, Culture, GlobalException).
+         Domain entities + seed state moved to Apps/Ejar/Domain — see direct ref below. -->
     <ProjectReference Include="..\..\..\Customer\Backend\Ejar.Api\Ejar.Api.csproj" />
+
+    <!-- Domain (entities + seed state) — single source of truth shared with Customer/Provider -->
+    <ProjectReference Include="..\..\..\Domain\Ejar.Domain.csproj" />
   </ItemGroup>
 
   <ItemGroup>

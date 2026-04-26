@@ -10,6 +10,11 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- Domain (entities + seed state) — single source of truth shared by Customer/Provider/Admin -->
+    <ProjectReference Include="..\..\..\Domain\Ejar.Domain.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
     <!-- ─── Core OAM engine ──────────────────────────────────────────── -->
     <ProjectReference Include="..\..\..\..\..\libs\backend\core\ACommerce.OperationEngine\ACommerce.OperationEngine.csproj" />
     <ProjectReference Include="..\..\..\..\..\libs\backend\core\ACommerce.OperationEngine.Wire\ACommerce.OperationEngine.Wire.csproj" />

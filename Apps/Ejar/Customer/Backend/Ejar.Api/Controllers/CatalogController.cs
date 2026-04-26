@@ -7,7 +7,7 @@ using ACommerce.OperationEngine.Wire;
 using ACommerce.OperationEngine.Wire.Http;
 using ACommerce.Realtime.Operations;
 using ACommerce.Realtime.Operations.Abstractions;
-using Ejar.Api.Services;
+using Ejar.Domain;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;

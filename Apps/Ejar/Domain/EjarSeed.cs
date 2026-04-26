@@ -1,4 +1,4 @@
-namespace Ejar.Api.Services;
+namespace Ejar.Domain;
 
 /// <summary>
 /// بيانات تجريبية ثابتة لتطبيق إيجار. كل القوائم قابلة للتعديل في الذاكرة
