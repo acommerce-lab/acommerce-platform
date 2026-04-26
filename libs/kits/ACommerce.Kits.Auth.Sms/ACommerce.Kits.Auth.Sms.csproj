@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <PackageId>ACommerce.Kits.Auth.Sms</PackageId>
+    <Version>1.0.0</Version>
+    <Description>
+      Meta-package. Composes the SMS-OTP auth kit:
+        - ACommerce.Authentication.TwoFactor.Operations          (ITwoFactorChannel)
+        - ACommerce.Authentication.TwoFactor.Providers.Sms.Mock  (dev provider, code 123456)
+        - ACommerce.Kits.Auth.Sms.Backend                        (drop-in AuthController + IAuthUserStore port)
+      Apps reference this single project; Program.cs becomes:
+          builder.Services.AddMockSmsTwoFactor();
+          builder.Services.AddSmsAuthKit&lt;MyAuthStore&gt;(jwt);
+      For production, swap the Mock provider package for the real SMS provider.
+    </Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\backend\auth\ACommerce.Authentication.TwoFactor.Operations\ACommerce.Authentication.TwoFactor.Operations.csproj" />
+    <ProjectReference Include="..\..\backend\auth\ACommerce.Authentication.TwoFactor.Providers.Sms.Mock\ACommerce.Authentication.TwoFactor.Providers.Sms.Mock.csproj" />
+    <ProjectReference Include="..\ACommerce.Kits.Auth.Sms.Backend\ACommerce.Kits.Auth.Sms.Backend.csproj" />
+  </ItemGroup>
+</Project>
