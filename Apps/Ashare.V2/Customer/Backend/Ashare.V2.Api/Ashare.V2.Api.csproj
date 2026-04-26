@@ -13,6 +13,7 @@
     <!-- ─── Core OAM engine ──────────────────────────────────────────── -->
     <ProjectReference Include="..\..\..\..\..\libs\kits\Core\OperationEngine\ACommerce.OperationEngine\ACommerce.OperationEngine.csproj" />
     <ProjectReference Include="..\..\..\..\..\libs\kits\Core\OperationEngine\ACommerce.OperationEngine.Wire\ACommerce.OperationEngine.Wire.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Core\OperationEngine\ACommerce.OperationEngine.AspNetCore\ACommerce.OperationEngine.AspNetCore.csproj" />
     <ProjectReference Include="..\..\..\..\..\libs\kits\Core\OperationEngine\ACommerce.OperationEngine.Interceptors\ACommerce.OperationEngine.Interceptors.csproj" />
     <ProjectReference Include="..\..\..\..\..\libs\kits\Core\SharedKernel\ACommerce.SharedKernel.Abstractions\ACommerce.SharedKernel.Abstractions.csproj" />
     <!-- EF Core (SQLite dev / SQL Server prod / PostgreSQL) -->

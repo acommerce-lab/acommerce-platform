@@ -1,0 +1,22 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <PackageId>ACommerce.OperationEngine.AspNetCore</PackageId>
+    <Version>1.0.0</Version>
+    <Description>
+      ControllerBase امتدادات لإطلاق OperationEnvelope كنتيجة HTTP
+      (OkEnvelope/BadRequestEnvelope/الخ). فُصل عن ACommerce.OperationEngine.Wire
+      لأن هذا الكود يحتاج Microsoft.AspNetCore.App framework — وهو غير
+      متاح في WebAssembly. الـ DTOs نفسها تبقى في Wire ويستهلكها كل من
+      السيرفر والعميل (Browser/MAUI).
+    </Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\ACommerce.OperationEngine.Wire\ACommerce.OperationEngine.Wire.csproj" />
+  </ItemGroup>
+</Project>

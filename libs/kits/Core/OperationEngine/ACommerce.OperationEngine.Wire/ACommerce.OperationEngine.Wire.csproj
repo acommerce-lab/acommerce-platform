@@ -6,11 +6,8 @@
     <PackageId>ACommerce.OperationEngine.Wire</PackageId>
     <Version>1.0.0</Version>
     <Authors>ACommerce</Authors>
-    <Description>Wire format types for OperationEngine - serializable DTOs that carry the full accounting structure (parties, tags, analyzers) of an Operation across HTTP boundaries. Shared between server and client.</Description>
+    <Description>Wire format types for OperationEngine — serializable DTOs (OperationEnvelope, OperationDescriptor) that carry an Operation's accounting structure across HTTP boundaries. Shared between server and Blazor WebAssembly/MAUI clients. AspNetCore-only ControllerBase helpers live in ACommerce.OperationEngine.AspNetCore.</Description>
   </PropertyGroup>
-  <ItemGroup>
-    <FrameworkReference Include="Microsoft.AspNetCore.App" />
-  </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\ACommerce.OperationEngine\ACommerce.OperationEngine.csproj" />
   </ItemGroup>

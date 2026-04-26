@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#1d4ed8" />
+    <title>إيجار</title>
+    <base href="/" />
+
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="apple-touch-icon" sizes="192x192" href="icon-192.png" />
+    <link rel="icon" type="image/png" href="icon-192.png" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" />
+
+    <link rel="stylesheet" href="_content/ACommerce.Widgets/widgets.css" />
+    <link rel="stylesheet" href="_content/ACommerce.Templates.Shared/templates-shared.css" />
+    <link rel="stylesheet" href="_content/ACommerce.Templates.Marketplace/templates-marketplace.css" />
+    <link rel="stylesheet" href="_content/Ejar.Customer.UI/app.css" />
+</head>
+
+<body>
+    <div id="app">
+        <div style="display:flex; align-items:center; justify-content:center; min-height:60vh; font-family:Cairo,sans-serif;">
+            جارٍ تحميل إيجار…
+        </div>
+    </div>
+
+    <div id="blazor-error-ui" style="display:none">
+        حدث خطأ غير متوقع.
+        <a href="" class="reload">أعد التحميل</a>
+        <a class="dismiss">🗙</a>
+    </div>
+
+    <script src="_framework/blazor.webassembly.js"></script>
+    <script src="_content/Ejar.Customer.UI/ui-prefs.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.7/signalr.min.js"
+            integrity="sha512-7SRCYIJtR6F8ocwW7UxW6wGKqbSyqREDbfCORCNGarvHiAIzNh7pBnFAw4QcVBSzQMbLp0bOGv7TFfvqBL3qg=="
+            crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
+    <script>
+      // تسجيل service worker لجعل التطبيق PWA قابلاً للتثبيت + يعمل offline.
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('service-worker.js');
+      }
+    </script>
+</body>
+
+</html>

@@ -23,6 +23,7 @@
     <!-- OperationEngine -->
     <ProjectReference Include="..\..\..\..\..\libs\kits\Core\OperationEngine\ACommerce.OperationEngine\ACommerce.OperationEngine.csproj" />
     <ProjectReference Include="..\..\..\..\..\libs\kits\Core\OperationEngine\ACommerce.OperationEngine.Wire\ACommerce.OperationEngine.Wire.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Core\OperationEngine\ACommerce.OperationEngine.AspNetCore\ACommerce.OperationEngine.AspNetCore.csproj" />
 
     <!-- Authentication: JWT + SMS 2FA -->
     <ProjectReference Include="..\..\..\..\..\libs\kits\Auth\ACommerce.Authentication.Operations\ACommerce.Authentication.Operations.csproj" />

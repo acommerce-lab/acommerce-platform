@@ -21,6 +21,7 @@
     <ProjectReference Include="..\..\..\..\..\libs\kits\Core\SharedKernel\ACommerce.SharedKernel.Infrastructure.EFCores\ACommerce.SharedKernel.Infrastructure.EFCores.csproj" />
     <ProjectReference Include="..\..\..\..\..\libs\kits\Core\OperationEngine\ACommerce.OperationEngine\ACommerce.OperationEngine.csproj" />
     <ProjectReference Include="..\..\..\..\..\libs\kits\Core\OperationEngine\ACommerce.OperationEngine.Wire\ACommerce.OperationEngine.Wire.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Core\OperationEngine\ACommerce.OperationEngine.AspNetCore\ACommerce.OperationEngine.AspNetCore.csproj" />
     <ProjectReference Include="..\..\..\..\..\libs\kits\Core\OperationEngine\ACommerce.OperationEngine.Interceptors\ACommerce.OperationEngine.Interceptors.csproj" />
 
     <!-- Authentication + JWT + SMS 2FA -->
