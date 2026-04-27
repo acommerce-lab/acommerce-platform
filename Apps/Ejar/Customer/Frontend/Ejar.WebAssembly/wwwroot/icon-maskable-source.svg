@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Maskable icon: المنطقة الآمنة دائرة قطرها 80% من الحجم. الـ OS قد
+       يقصّ أيّ شكل (دائرة/مربع/قلب)؛ لذا نضع التصميم في وسط 60% فقط
+       من الـ canvas مع خلفية ممتدّة. -->
+  <rect width="512" height="512" fill="#1d4ed8" />
+  <text x="256" y="320" font-family="Cairo, Tajawal, sans-serif"
+        font-size="140" font-weight="700" fill="#ffffff" text-anchor="middle">إيجار</text>
+</svg>

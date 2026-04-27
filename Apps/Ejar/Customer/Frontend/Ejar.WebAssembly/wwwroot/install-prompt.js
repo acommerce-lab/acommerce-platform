@@ -27,32 +27,68 @@
   if (PWA_NOT_SUPPORTED) return;
 
   function buildButton() {
+    const wrap = document.createElement('div');
+    wrap.id = 'ac-install-wrap';
+    Object.assign(wrap.style, {
+      position: 'fixed',
+      insetInlineStart: '12px',
+      // أعلى الصفحة + padding لـ notch — يتجنّب القائمة السفلية تماماً
+      top: 'calc(12px + env(safe-area-inset-top, 0px))',
+      zIndex: '9999',
+      display: 'inline-flex',
+      alignItems: 'center',
+      gap: '4px',
+      background: '#1d4ed8',
+      color: '#ffffff',
+      borderRadius: '999px',
+      boxShadow: '0 6px 20px rgba(29,78,216,0.35)',
+      fontFamily: 'Cairo, sans-serif',
+      fontSize: '13px',
+      fontWeight: '600'
+    });
+
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.id = 'ac-install-btn';
     btn.setAttribute('aria-label', 'تثبيت تطبيق إيجار');
-    btn.innerHTML = '<span style="font-size:18px;line-height:1;">⤓</span>'
+    btn.innerHTML = '<span style="font-size:16px;line-height:1;">⤓</span>'
                   + '<span>تثبيت التطبيق</span>';
     Object.assign(btn.style, {
-      position: 'fixed',
-      insetInlineStart: '16px',
-      bottom: '16px',
-      zIndex: '9999',
-      display: 'inline-flex',
-      alignItems: 'center',
-      gap: '8px',
-      padding: '10px 18px',
-      borderRadius: '999px',
-      border: 'none',
-      background: '#1d4ed8',
-      color: '#ffffff',
-      fontFamily: 'Cairo, sans-serif',
-      fontSize: '14px',
-      fontWeight: '600',
-      boxShadow: '0 6px 20px rgba(29,78,216,0.35)',
-      cursor: 'pointer'
+      display: 'inline-flex', alignItems: 'center', gap: '6px',
+      padding: '8px 14px', border: 'none', background: 'transparent',
+      color: 'inherit', font: 'inherit', cursor: 'pointer',
+      borderRadius: '999px 0 0 999px'
     });
-    return btn;
+
+    // زر إغلاق صغير — يخفي البانر لـ 7 أيام في localStorage
+    const close = document.createElement('button');
+    close.type = 'button';
+    close.id = 'ac-install-close-btn';
+    close.setAttribute('aria-label', 'إخفاء');
+    close.textContent = '×';
+    Object.assign(close.style, {
+      padding: '4px 10px 6px', border: 'none', background: 'transparent',
+      color: 'rgba(255,255,255,0.85)', font: 'inherit', cursor: 'pointer',
+      fontSize: '18px', lineHeight: '1', borderRadius: '0 999px 999px 0'
+    });
+    close.addEventListener('click', (e) => {
+      e.stopPropagation();
+      try { localStorage.setItem('ac.install.dismissed', String(Date.now())); } catch { }
+      wrap.remove();
+    });
+
+    wrap.appendChild(btn);
+    wrap.appendChild(close);
+    wrap.__btn = btn;
+    return wrap;
+  }
+
+  function recentlyDismissed() {
+    try {
+      const t = parseInt(localStorage.getItem('ac.install.dismissed') || '0', 10);
+      const sevenDays = 7 * 24 * 60 * 60 * 1000;
+      return t > 0 && (Date.now() - t) < sevenDays;
+    } catch { return false; }
   }
 
   function showInstructions() {
@@ -122,19 +158,21 @@
     else document.addEventListener('DOMContentLoaded', fn);
   }
   ready(() => {
-    const btn = buildButton();
-    document.body.appendChild(btn);
+    if (recentlyDismissed()) return;
+    const wrap = buildButton();
+    const btn = wrap.__btn;
+    document.body.appendChild(wrap);
     btn.addEventListener('click', async () => {
       if (deferredPrompt) {
         deferredPrompt.prompt();
         const { outcome } = await deferredPrompt.userChoice;
         deferredPrompt = null;
-        if (outcome === 'accepted') btn.remove();
+        if (outcome === 'accepted') wrap.remove();
       } else {
         showInstructions();
       }
     });
-    window.__acInstallBtn = btn;
+    window.__acInstallWrap = wrap;
   });
 
   // ── Capture beforeinstallprompt to enable native flow ────────────────
@@ -144,7 +182,7 @@
   });
 
   window.addEventListener('appinstalled', () => {
-    if (window.__acInstallBtn) window.__acInstallBtn.remove();
+    if (window.__acInstallWrap) window.__acInstallWrap.remove();
     deferredPrompt = null;
   });
 })();
