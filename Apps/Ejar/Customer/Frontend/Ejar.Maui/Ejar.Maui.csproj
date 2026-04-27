@@ -1,9 +1,4 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-  <!-- يستورد StaticWebAssets SDK كأخ لـ Microsoft.NET.Sdk —
-       يحلّ MSB4036 (ComputeStaticWebAssetsTargetPaths) + MSB4057
-       (StaticWebAssetsPrepareForRun) في BlazorWebView.Maui targets.
-       الـ SDK تكتشف أنّ Microsoft.NET.Sdk مستورد بالفعل ولا تكرّر الإستيراد. -->
-  <Sdk Name="Microsoft.NET.Sdk.StaticWebAssets" />
   <PropertyGroup>
     <!-- Linux dev: نضمن Android فقط (الـ workload الوحيد المتاح هنا).
          macOS dev يضيف net10.0-ios + net10.0-maccatalyst؛
@@ -11,6 +6,10 @@
     <TargetFrameworks>net10.0-android</TargetFrameworks>
     <TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('windows'))">$(TargetFrameworks);net10.0-windows10.0.19041.0</TargetFrameworks>
     <TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('osx'))">$(TargetFrameworks);net10.0-ios;net10.0-maccatalyst</TargetFrameworks>
+
+    <!-- صريح: تطبيق MAUI = executable (ليس مكتبة). إستيراد StaticWebAssets
+         SDK يمكن أن يطفئ هذا ضمنياً، فنُجبره هنا. -->
+    <OutputType>Exe</OutputType>
 
     <UseMaui>true</UseMaui>
     <SingleProject>true</SingleProject>
@@ -36,6 +35,11 @@
     <StaticWebAssetsEnabled>true</StaticWebAssetsEnabled>
     <StaticWebAssetProjectMode>Default</StaticWebAssetProjectMode>
   </PropertyGroup>
+
+  <!-- استيراد targets الـ StaticWebAssets مباشرة (بدون SDK كامل ليتجنّب
+       تعديل OutputType). يحلّ MSB4036 (ComputeStaticWebAssetsTargetPaths)
+       + MSB4057 (StaticWebAssetsPrepareForRun) في BlazorWebView.Maui targets. -->
+  <Import Project="$(MSBuildSDKsPath)\Microsoft.NET.Sdk.StaticWebAssets\Sdk\Sdk.targets" />
 
   <ItemGroup>
     <!-- App icon + splash + assets — placeholders (تُولَّد آلياً عند البناء) -->

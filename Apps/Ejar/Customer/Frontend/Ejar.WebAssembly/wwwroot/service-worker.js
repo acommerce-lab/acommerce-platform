@@ -42,7 +42,9 @@ self.addEventListener('fetch', event => {
       || url.pathname === '/api-diagnostics.js'
       || url.pathname === '/version-check.js'
       || url.pathname === '/version.json'
-      || url.pathname === '/manifest.webmanifest') {
+      || url.pathname === '/manifest.webmanifest'
+      || url.pathname === '/diagnose.html'
+      || url.pathname === '/reset.html') {
     event.respondWith(fetch(event.request, { cache: 'no-store' })
       .catch(() => caches.match(event.request)));
     return;
