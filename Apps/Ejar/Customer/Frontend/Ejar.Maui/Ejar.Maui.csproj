@@ -1,4 +1,9 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
+  <!-- يستورد StaticWebAssets SDK كأخ لـ Microsoft.NET.Sdk —
+       يحلّ MSB4036 (ComputeStaticWebAssetsTargetPaths) + MSB4057
+       (StaticWebAssetsPrepareForRun) في BlazorWebView.Maui targets.
+       الـ SDK تكتشف أنّ Microsoft.NET.Sdk مستورد بالفعل ولا تكرّر الإستيراد. -->
+  <Sdk Name="Microsoft.NET.Sdk.StaticWebAssets" />
   <PropertyGroup>
     <!-- Linux dev: نضمن Android فقط (الـ workload الوحيد المتاح هنا).
          macOS dev يضيف net10.0-ios + net10.0-maccatalyst؛
@@ -27,21 +32,10 @@
     <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</SupportedOSPlatformVersion>
     <TargetPlatformMinVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</TargetPlatformMinVersion>
 
-    <!-- يفعّل بنية StaticWebAssets المطلوبة من Microsoft.AspNetCore.Components.WebView.Maui — بدونها MSB4057 -->
+    <!-- يفعّل بنية StaticWebAssets المطلوبة من Microsoft.AspNetCore.Components.WebView.Maui -->
     <StaticWebAssetsEnabled>true</StaticWebAssetsEnabled>
     <StaticWebAssetProjectMode>Default</StaticWebAssetProjectMode>
   </PropertyGroup>
-
-  <!-- Workaround لـ dotnet/maui#22944:
-       BlazorWebView.Maui's ConvertStaticWebAssetsToMauiAssets يطلب targets
-       (StaticWebAssetsPrepareForRun, StaticWebAssetsPrepareForPublish،
-       LoadStaticWebAssetsPublishManifest) موجودة في Microsoft.NET.Sdk.Web
-       فقط، لا في Microsoft.NET.Sdk + UseMaui. نُعرّفها كـ no-op stubs
-       ليكتمل dependency chain. الأصول الحقيقية تنتقل للـ APK عبر
-       MauiAsset في wwwroot/ + ConvertStaticWebAssetsToMauiAssets نفسها. -->
-  <Target Name="StaticWebAssetsPrepareForRun" Condition="'$(UseMaui)' == 'true'" />
-  <Target Name="StaticWebAssetsPrepareForPublish" Condition="'$(UseMaui)' == 'true'" />
-  <Target Name="LoadStaticWebAssetsPublishManifest" Condition="'$(UseMaui)' == 'true'" />
 
   <ItemGroup>
     <!-- App icon + splash + assets — placeholders (تُولَّد آلياً عند البناء) -->

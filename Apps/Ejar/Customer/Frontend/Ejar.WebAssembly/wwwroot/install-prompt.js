@@ -26,6 +26,18 @@
   const PWA_NOT_SUPPORTED = !('serviceWorker' in navigator);
   if (PWA_NOT_SUPPORTED) return;
 
+  // معيار صارم: Chrome Android لا يعرض «تثبيت» إلا على https (أو localhost
+  // للتطوير). إذا الصفحة على http، PWA install مستحيل بصرف النظر عن أيّ
+  // إعداد آخر. اطبع تحذيراً ولا تعرض الزر — لئلّا يحبط المستخدم بعد
+  // الضغط بدون نتيجة.
+  const isLocalhost = /^(localhost|127\.|\[::1\])/.test(location.hostname)
+                    || location.hostname.endsWith('.localhost');
+  if (location.protocol !== 'https:' && !isLocalhost) {
+    console.warn('[Ejar PWA] الصفحة على', location.protocol,
+                 '— Chrome لن يعرض زر التثبيت. يجب نشر الـ PWA على https.');
+    return;
+  }
+
   function buildButton() {
     const wrap = document.createElement('div');
     wrap.id = 'ac-install-wrap';
