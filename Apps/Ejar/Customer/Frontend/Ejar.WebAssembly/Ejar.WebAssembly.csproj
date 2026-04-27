@@ -26,4 +26,16 @@
   <ItemGroup>
     <ServiceWorker Include="wwwroot\service-worker.js" PublishedContent="wwwroot\service-worker.published.js" />
   </ItemGroup>
+
+  <!-- web.config مخصّص — يستبدل القالب الافتراضيّ من Blazor WASM SDK
+       (الذي ينقصه .webmanifest MIME → كان يسبّب 404 على manifest في
+       IIS/runasp.net وبالتالي رفض Chrome تثبيت PWA). نسخه فوق المخرَج
+       بعد كل publish عبر target مباشر. -->
+  <Target Name="_OverrideBlazorWasmWebConfig" AfterTargets="Publish">
+    <Copy SourceFiles="$(MSBuildProjectDirectory)\web.config"
+          DestinationFiles="$(PublishDir)web.config"
+          OverwriteReadOnlyFiles="true"
+          Condition="Exists('$(MSBuildProjectDirectory)\web.config')" />
+    <Message Text="✓ web.config مخصّص (مع .webmanifest MIME) كُتِب في $(PublishDir)" Importance="high" />
+  </Target>
 </Project>

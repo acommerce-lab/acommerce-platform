@@ -31,15 +31,22 @@
     <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</SupportedOSPlatformVersion>
     <TargetPlatformMinVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</TargetPlatformMinVersion>
 
+    <!-- Windows: لا نُغلّف كـ MSIX (لا AppxManifest في المشروع). تشغيل
+         تطبيق MAUI كـ unpackaged Windows EXE. -->
+    <WindowsPackageType Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">None</WindowsPackageType>
+
     <!-- يفعّل بنية StaticWebAssets المطلوبة من Microsoft.AspNetCore.Components.WebView.Maui -->
     <StaticWebAssetsEnabled>true</StaticWebAssetsEnabled>
     <StaticWebAssetProjectMode>Default</StaticWebAssetProjectMode>
   </PropertyGroup>
 
-  <!-- استيراد targets الـ StaticWebAssets مباشرة (بدون SDK كامل ليتجنّب
-       تعديل OutputType). يحلّ MSB4036 (ComputeStaticWebAssetsTargetPaths)
-       + MSB4057 (StaticWebAssetsPrepareForRun) في BlazorWebView.Maui targets. -->
-  <Import Project="$(MSBuildSDKsPath)\Microsoft.NET.Sdk.StaticWebAssets\Sdk\Sdk.targets" />
+  <!-- StaticWebAssets SDK يُحلّ مهمّة ComputeStaticWebAssetsTargetPaths +
+       targets StaticWebAssetsPrepareForRun التي يطلبها BlazorWebView.Maui.
+       <Sdk Name="..." /> أوّل المشروع يستخدم MSBuild SDK Resolver
+       (ليس $(MSBuildSDKsPath) الذي يفشل في VS Insiders) — يجد SDK
+       المثبَّت ضمن dotnet CLI نفسه على كل OS. OutputType=Exe الصريح
+       أعلاه يحمي من قَلْبه إلى Library. -->
+  <Sdk Name="Microsoft.NET.Sdk.StaticWebAssets" />
 
   <ItemGroup>
     <!-- App icon + splash + assets — placeholders (تُولَّد آلياً عند البناء) -->
