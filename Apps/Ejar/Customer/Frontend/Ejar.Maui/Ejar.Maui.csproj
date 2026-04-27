@@ -47,6 +47,33 @@
        الوظيفة بالأسلوب الموثوق على الجوال. -->
   <Target Name="ConvertStaticWebAssetsToMauiAssets" />
 
+  <!-- DependsOnTargets في BlazorWebView.Maui.targets يطلب وجود هذه
+       الـ targets كأسماء (لا مهمّ تنفيذها). nopops تُسكِت MSB4057. -->
+  <Target Name="StaticWebAssetsPrepareForRun" />
+  <Target Name="StaticWebAssetsPrepareForPublish" />
+  <Target Name="LoadStaticWebAssetsPublishManifest" />
+
+  <!-- ConvertStaticWebAssetsToMauiAssets الأصلي في الـ package يستدعي
+       <ComputeStaticWebAssetsTargetPaths> task. لو كان override المسبق
+       تجاوزه، الـ package import (لاحق لـ csproj) قد يستبدله. fallback:
+       نسجّل المهمة كـ no-op عبر RoslynCodeTaskFactory ـ MSBuild ينفّذها
+       ويرجع مصفوفة فارغة، MSB4036 يختفي. -->
+  <UsingTask
+      TaskName="Microsoft.AspNetCore.StaticWebAssets.Tasks.ComputeStaticWebAssetsTargetPaths"
+      TaskFactory="RoslynCodeTaskFactory"
+      AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup>
+      <Assets ParameterType="Microsoft.Build.Framework.ITaskItem[]" />
+      <PathPrefix ParameterType="System.String" />
+      <AssetsWithTargetPath ParameterType="Microsoft.Build.Framework.ITaskItem[]" Output="true" />
+    </ParameterGroup>
+    <Task>
+      <Code Type="Fragment" Language="cs"><![CDATA[
+        AssetsWithTargetPath = new Microsoft.Build.Framework.ITaskItem[0];
+      ]]></Code>
+    </Task>
+  </UsingTask>
+
   <ItemGroup>
     <!-- App icon + splash + assets — placeholders (تُولَّد آلياً عند البناء) -->
     <MauiIcon Include="Resources\AppIcon\appicon.svg" ForegroundFile="Resources\AppIcon\appiconfg.svg" Color="#1d4ed8" />
