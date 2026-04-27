@@ -35,18 +35,17 @@
          تطبيق MAUI كـ unpackaged Windows EXE. -->
     <WindowsPackageType Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">None</WindowsPackageType>
 
-    <!-- يفعّل بنية StaticWebAssets المطلوبة من Microsoft.AspNetCore.Components.WebView.Maui -->
-    <StaticWebAssetsEnabled>true</StaticWebAssetsEnabled>
-    <StaticWebAssetProjectMode>Default</StaticWebAssetProjectMode>
+    <!-- إيقاف بنية StaticWebAssets على هذا المشروع — مشاكلها على MAUI
+         في dotnet 10 معروفة (dotnet/maui#22944، #2609 + variants).
+         نُغلِّف wwwroot للـ RCLs يدوياً عبر MauiAsset أدناه. -->
+    <StaticWebAssetsEnabled>false</StaticWebAssetsEnabled>
   </PropertyGroup>
 
-  <!-- StaticWebAssets SDK يُحلّ مهمّة ComputeStaticWebAssetsTargetPaths +
-       targets StaticWebAssetsPrepareForRun التي يطلبها BlazorWebView.Maui.
-       <Sdk Name="..." /> أوّل المشروع يستخدم MSBuild SDK Resolver
-       (ليس $(MSBuildSDKsPath) الذي يفشل في VS Insiders) — يجد SDK
-       المثبَّت ضمن dotnet CLI نفسه على كل OS. OutputType=Exe الصريح
-       أعلاه يحمي من قَلْبه إلى Library. -->
-  <Sdk Name="Microsoft.NET.Sdk.StaticWebAssets" />
+  <!-- يجبّر MAUI على تخطّي ConvertStaticWebAssetsToMauiAssets الذي يطلب
+       manifest غير مولَّد في مشاريع MAUI (يسبّب: «Manifest file at obj\
+       …\staticwebassets.build.json not found»). الـ MauiAsset أدناه يبدّل
+       الوظيفة بالأسلوب الموثوق على الجوال. -->
+  <Target Name="ConvertStaticWebAssetsToMauiAssets" />
 
   <ItemGroup>
     <!-- App icon + splash + assets — placeholders (تُولَّد آلياً عند البناء) -->
@@ -55,6 +54,21 @@
     <MauiImage Include="Resources\Images\*" />
     <MauiFont Include="Resources\Fonts\*" />
     <MauiAsset Include="Resources\Raw\**" LogicalName="%(RecursiveDir)%(Filename)%(Extension)" />
+  </ItemGroup>
+
+  <!-- بدائل يدويّة لـ ConvertStaticWebAssetsToMauiAssets المعطَّل: نَنسَخ
+       wwwroot من RCLs إلى APK كـ MauiAsset بمسار virtual يطابق ما يتوقّعه
+       index.html (_content/<PackageId>/<file>). أضِف سطراً جديداً لكل
+       RCL إضافي يحتاج أصوله المحلية عند التشغيل في WebView. -->
+  <ItemGroup>
+    <MauiAsset Include="..\..\Shared\Ejar.Customer.UI\wwwroot\**\*.*"
+               LogicalName="_content/Ejar.Customer.UI/%(RecursiveDir)%(Filename)%(Extension)" />
+    <MauiAsset Include="..\..\..\..\..\libs\kits\Widgets\ACommerce.Widgets\wwwroot\**\*.*"
+               LogicalName="_content/ACommerce.Widgets/%(RecursiveDir)%(Filename)%(Extension)" />
+    <MauiAsset Include="..\..\..\..\..\libs\kits\Templates\Shared\ACommerce.Templates.Shared\wwwroot\**\*.*"
+               LogicalName="_content/ACommerce.Templates.Shared/%(RecursiveDir)%(Filename)%(Extension)" />
+    <MauiAsset Include="..\..\..\..\..\libs\kits\Templates\Marketplace\ACommerce.Templates.Marketplace\wwwroot\**\*.*"
+               LogicalName="_content/ACommerce.Templates.Marketplace/%(RecursiveDir)%(Filename)%(Extension)" />
   </ItemGroup>
 
   <ItemGroup>
