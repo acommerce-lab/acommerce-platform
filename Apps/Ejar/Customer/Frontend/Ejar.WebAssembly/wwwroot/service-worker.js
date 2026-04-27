@@ -40,6 +40,8 @@ self.addEventListener('fetch', event => {
   if (url.pathname === '/appsettings.json'
       || url.pathname === '/install-prompt.js'
       || url.pathname === '/api-diagnostics.js'
+      || url.pathname === '/version-check.js'
+      || url.pathname === '/version.json'
       || url.pathname === '/manifest.webmanifest') {
     event.respondWith(fetch(event.request, { cache: 'no-store' })
       .catch(() => caches.match(event.request)));

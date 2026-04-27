@@ -43,7 +43,12 @@
 
     <!-- Cache-busting: ?v=YYYYMMDD يجبر المتصفّح على إعادة الجلب بعد كل
          نشر بدل قراءة نسخة قديمة من cache المتصفّح أو الـ CDN. ارفع
-         الرقم عند تعديل أيّ من السكربتات الثلاثة. -->
+         الرقم عند تعديل أيّ من السكربتات الثلاثة.
+
+         version-check.js أوّلاً ودائماً — يفحص version.json قبل أي شيء
+         آخر، يفرض حذف SW + caches إذا كانت النسخة المحفوظة محلياً قديمة،
+         ثم يعيد التحميل ضارباً عرض الحائط بأي cache على CDN/proxy. -->
+    <script src="version-check.js?v=20260427"></script>
     <script src="api-diagnostics.js?v=20260427"></script>
     <script src="_framework/blazor.webassembly.js"></script>
     <script src="_content/Ejar.Customer.UI/ui-prefs.js"></script>
