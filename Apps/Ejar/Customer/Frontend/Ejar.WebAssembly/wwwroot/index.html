@@ -41,17 +41,45 @@
         <a class="dismiss">🗙</a>
     </div>
 
-    <script src="api-diagnostics.js"></script>
+    <!-- Cache-busting: ?v=YYYYMMDD يجبر المتصفّح على إعادة الجلب بعد كل
+         نشر بدل قراءة نسخة قديمة من cache المتصفّح أو الـ CDN. ارفع
+         الرقم عند تعديل أيّ من السكربتات الثلاثة. -->
+    <script src="api-diagnostics.js?v=20260427"></script>
     <script src="_framework/blazor.webassembly.js"></script>
     <script src="_content/Ejar.Customer.UI/ui-prefs.js"></script>
-    <script src="install-prompt.js"></script>
+    <script src="install-prompt.js?v=20260427"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.7/signalr.min.js"
             integrity="sha512-7SRCYIJtR6F8ocwW7UxW6wGKqbSyqREDbfCORCNGarvHiAIzNh7pBnFAw4QcVBSzQMbLp0bOGv7TFfvqBL3qg=="
             crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 
     <script>
+      // SW registration + auto-update عند نشر إصدار جديد:
+      // إذا تغيّر VERSION داخل service-worker.js → نُجبر تحديث + reload.
       if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('service-worker.js');
+        navigator.serviceWorker.register('service-worker.js')
+          .then(reg => {
+            // افحص التحديثات كل 60 ثانية + عند العودة للتبويب
+            setInterval(() => reg.update(), 60_000);
+            document.addEventListener('visibilitychange', () => {
+              if (!document.hidden) reg.update();
+            });
+            reg.addEventListener('updatefound', () => {
+              const sw = reg.installing;
+              if (!sw) return;
+              sw.addEventListener('statechange', () => {
+                if (sw.state === 'installed' && navigator.serviceWorker.controller) {
+                  // SW جديد جاهز ⟶ خذ السيطرة وأعد التحميل
+                  sw.postMessage('skipWaiting');
+                }
+              });
+            });
+            let reloaded = false;
+            navigator.serviceWorker.addEventListener('controllerchange', () => {
+              if (reloaded) return;
+              reloaded = true;
+              window.location.reload();
+            });
+          });
       }
     </script>
 </body>

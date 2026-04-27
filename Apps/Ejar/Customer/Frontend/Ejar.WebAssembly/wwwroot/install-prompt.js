@@ -29,23 +29,28 @@
   function buildButton() {
     const wrap = document.createElement('div');
     wrap.id = 'ac-install-wrap';
-    Object.assign(wrap.style, {
-      position: 'fixed',
-      insetInlineStart: '12px',
-      // أعلى الصفحة + padding لـ notch — يتجنّب القائمة السفلية تماماً
-      top: 'calc(12px + env(safe-area-inset-top, 0px))',
-      zIndex: '9999',
-      display: 'inline-flex',
-      alignItems: 'center',
-      gap: '4px',
-      background: '#1d4ed8',
-      color: '#ffffff',
-      borderRadius: '999px',
-      boxShadow: '0 6px 20px rgba(29,78,216,0.35)',
-      fontFamily: 'Cairo, sans-serif',
-      fontSize: '13px',
-      fontWeight: '600'
-    });
+    // !important لتعطيل أيّ CSS من الـ RCL أو الـ widgets قد يبطل
+    // الموقع. fixed + top يضع الزر فوق كل المحتوى وبعيداً عن أيّ
+    // قائمة سفلية. z-index عالٍ جداً ليبقى ظاهراً فوق header الـ app.
+    wrap.style.cssText = [
+      'position:fixed!important',
+      'inset-inline-start:12px!important',
+      'top:calc(12px + env(safe-area-inset-top,0px))!important',
+      'bottom:auto!important',
+      'inset-inline-end:auto!important',
+      'z-index:2147483646!important',
+      'display:inline-flex!important',
+      'align-items:center!important',
+      'gap:4px!important',
+      'background:#1d4ed8!important',
+      'color:#ffffff!important',
+      'border-radius:999px!important',
+      'box-shadow:0 6px 20px rgba(29,78,216,0.35)!important',
+      'font-family:Cairo,sans-serif!important',
+      'font-size:13px!important',
+      'font-weight:600!important',
+      'pointer-events:auto!important'
+    ].join(';');
 
     const btn = document.createElement('button');
     btn.type = 'button';
