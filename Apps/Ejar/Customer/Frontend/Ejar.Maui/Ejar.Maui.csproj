@@ -44,35 +44,12 @@
   <!-- يجبّر MAUI على تخطّي ConvertStaticWebAssetsToMauiAssets الذي يطلب
        manifest غير مولَّد في مشاريع MAUI (يسبّب: «Manifest file at obj\
        …\staticwebassets.build.json not found»). الـ MauiAsset أدناه يبدّل
-       الوظيفة بالأسلوب الموثوق على الجوال. -->
-  <Target Name="ConvertStaticWebAssetsToMauiAssets" />
+       الوظيفة بالأسلوب الموثوق على الجوال.
 
-  <!-- DependsOnTargets في BlazorWebView.Maui.targets يطلب وجود هذه
-       الـ targets كأسماء (لا مهمّ تنفيذها). nopops تُسكِت MSB4057. -->
-  <Target Name="StaticWebAssetsPrepareForRun" />
-  <Target Name="StaticWebAssetsPrepareForPublish" />
-  <Target Name="LoadStaticWebAssetsPublishManifest" />
-
-  <!-- ConvertStaticWebAssetsToMauiAssets الأصلي في الـ package يستدعي
-       <ComputeStaticWebAssetsTargetPaths> task. لو كان override المسبق
-       تجاوزه، الـ package import (لاحق لـ csproj) قد يستبدله. fallback:
-       نسجّل المهمة كـ no-op عبر RoslynCodeTaskFactory ـ MSBuild ينفّذها
-       ويرجع مصفوفة فارغة، MSB4036 يختفي. -->
-  <UsingTask
-      TaskName="Microsoft.AspNetCore.StaticWebAssets.Tasks.ComputeStaticWebAssetsTargetPaths"
-      TaskFactory="RoslynCodeTaskFactory"
-      AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
-    <ParameterGroup>
-      <Assets ParameterType="Microsoft.Build.Framework.ITaskItem[]" />
-      <PathPrefix ParameterType="System.String" />
-      <AssetsWithTargetPath ParameterType="Microsoft.Build.Framework.ITaskItem[]" Output="true" />
-    </ParameterGroup>
-    <Task>
-      <Code Type="Fragment" Language="cs"><![CDATA[
-        AssetsWithTargetPath = new Microsoft.Build.Framework.ITaskItem[0];
-      ]]></Code>
-    </Task>
-  </UsingTask>
+       التعريف الفعليّ في Directory.Build.targets المجاور — لأنّ التارجيتس
+       المعرَّفة في csproj يبدّلها استيراد الـ package اللاحق. ملف
+       Directory.Build.targets يُستورد آخر شيء بعد الـ package فينتصر. -->
+  <!-- (placeholder — see Directory.Build.targets) -->
 
   <ItemGroup>
     <!-- App icon + splash + assets — placeholders (تُولَّد آلياً عند البناء) -->
