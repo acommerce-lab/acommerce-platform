@@ -1,4 +1,4 @@
-using ACommerce.SharedKernel.Abstractions.Repositories;
+using ACommerce.SharedKernel.Repositories.Interfaces;
 using System.Text.Json;
 
 namespace ACommerce.OperationEngine.Journal;

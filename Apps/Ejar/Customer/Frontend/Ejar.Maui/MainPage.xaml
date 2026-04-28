@@ -8,6 +8,13 @@
              FlowDirection="RightToLeft"
              BackgroundColor="#f1f5f9">
 
+    <ContentPage.Padding>
+        <OnPlatform x:TypeArguments="Thickness">
+            <On Platform="iOS" Value="0, 44, 0, 0" />
+            <On Platform="Android" Value="0, 24, 0, 0" />
+        </OnPlatform>
+    </ContentPage.Padding>
+
     <b:BlazorWebView x:Name="blazorWebView" HostPage="wwwroot/index.html">
         <b:BlazorWebView.RootComponents>
             <b:RootComponent Selector="#app" ComponentType="{x:Type ui:Routes}" />

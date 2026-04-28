@@ -29,7 +29,7 @@ public static class MauiProgram
         // BaseUrl هنا يكون https://api.ejar.ye للإنتاج. أثناء التطوير على المحاكي:
         // Android emulator يصل للـ host عبر 10.0.2.2 → استخدم
         // appsettings.Development.json أو خصّص EJAR_API_BASE قبل الإقلاع.
-        using var stream = FileSystem.OpenAppPackageFileAsync("appsettings.json").GetAwaiter().GetResult();
+        using var stream = Task.Run(() => FileSystem.OpenAppPackageFileAsync("appsettings.json")).Result;
         var cfg = new ConfigurationBuilder().AddJsonStream(stream).Build();
         var apiBase = cfg["EjarApi:BaseUrl"] ?? "https://api.ejar.ye";
 

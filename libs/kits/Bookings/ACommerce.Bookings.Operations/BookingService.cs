@@ -1,8 +1,8 @@
 using ACommerce.Bookings.Operations.Abstractions;
 using ACommerce.OperationEngine.Core;
 using ACommerce.OperationEngine.Patterns;
-using ACommerce.SharedKernel.Abstractions.Entities;
-using ACommerce.SharedKernel.Abstractions.Repositories;
+using ACommerce.SharedKernel.Domain.Entities;
+using ACommerce.SharedKernel.Repositories.Interfaces;
 
 namespace ACommerce.Bookings.Operations;
 

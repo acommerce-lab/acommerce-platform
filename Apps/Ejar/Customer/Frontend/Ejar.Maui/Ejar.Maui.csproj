@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk.Razor">
   <PropertyGroup>
     <!-- Linux dev: نضمن Android فقط (الـ workload الوحيد المتاح هنا).
          macOS dev يضيف net10.0-ios + net10.0-maccatalyst؛
@@ -35,10 +35,6 @@
          تطبيق MAUI كـ unpackaged Windows EXE. -->
     <WindowsPackageType Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">None</WindowsPackageType>
 
-    <!-- إيقاف بنية StaticWebAssets على هذا المشروع — مشاكلها على MAUI
-         في dotnet 10 معروفة (dotnet/maui#22944، #2609 + variants).
-         نُغلِّف wwwroot للـ RCLs يدوياً عبر MauiAsset أدناه. -->
-    <StaticWebAssetsEnabled>false</StaticWebAssetsEnabled>
   </PropertyGroup>
 
   <!-- يجبّر MAUI على تخطّي ConvertStaticWebAssetsToMauiAssets الذي يطلب
@@ -60,20 +56,6 @@
     <MauiAsset Include="Resources\Raw\**" LogicalName="%(RecursiveDir)%(Filename)%(Extension)" />
   </ItemGroup>
 
-  <!-- بدائل يدويّة لـ ConvertStaticWebAssetsToMauiAssets المعطَّل: نَنسَخ
-       wwwroot من RCLs إلى APK كـ MauiAsset بمسار virtual يطابق ما يتوقّعه
-       index.html (_content/<PackageId>/<file>). أضِف سطراً جديداً لكل
-       RCL إضافي يحتاج أصوله المحلية عند التشغيل في WebView. -->
-  <ItemGroup>
-    <MauiAsset Include="..\..\Shared\Ejar.Customer.UI\wwwroot\**\*.*"
-               LogicalName="_content/Ejar.Customer.UI/%(RecursiveDir)%(Filename)%(Extension)" />
-    <MauiAsset Include="..\..\..\..\..\libs\kits\Widgets\ACommerce.Widgets\wwwroot\**\*.*"
-               LogicalName="_content/ACommerce.Widgets/%(RecursiveDir)%(Filename)%(Extension)" />
-    <MauiAsset Include="..\..\..\..\..\libs\kits\Templates\Shared\ACommerce.Templates.Shared\wwwroot\**\*.*"
-               LogicalName="_content/ACommerce.Templates.Shared/%(RecursiveDir)%(Filename)%(Extension)" />
-    <MauiAsset Include="..\..\..\..\..\libs\kits\Templates\Marketplace\ACommerce.Templates.Marketplace\wwwroot\**\*.*"
-               LogicalName="_content/ACommerce.Templates.Marketplace/%(RecursiveDir)%(Filename)%(Extension)" />
-  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Maui.Controls" Version="10.0.0" />

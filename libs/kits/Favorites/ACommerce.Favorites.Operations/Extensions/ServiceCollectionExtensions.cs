@@ -1,5 +1,5 @@
 using ACommerce.Favorites.Operations.Entities;
-using ACommerce.SharedKernel.Abstractions.Entities;
+using ACommerce.SharedKernel.Domain.Entities;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace ACommerce.Favorites.Operations.Extensions;

@@ -14,6 +14,7 @@ using Ejar.Customer.UI.Services;
 using Ejar.Customer.UI.Store;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.AspNetCore.Components.Authorization;
 
 namespace Ejar.Customer.UI;
 
@@ -36,6 +37,11 @@ public static class EjarCustomerUiExtensions
         // ─── Store + Translations ──────────────────────────────────────
         services.AddScoped<AppStore>();
         services.AddScoped<ITemplateStore>(sp => sp.GetRequiredService<AppStore>());
+        
+        // ─── Authentication ────────────────────────────────────────────
+        services.AddAuthorizationCore();
+        services.AddScoped<AuthenticationStateProvider, EjarAuthenticationStateProvider>();
+
         services.AddSingleton<ITranslationProvider, EmbeddedTranslationProvider>();
         services.AddScoped<L>();
 
