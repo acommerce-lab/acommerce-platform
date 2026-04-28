@@ -1,0 +1,40 @@
+@*
+  Top-level wrapper that gates ChildContent based on the app's
+  AuthenticationState. The pattern mirrors AcAppVersionGate from the
+  Versions Kit:
+    - If unknown / loading: render ChildContent (don't flash a redirect).
+    - If authenticated: render ChildContent.
+    - If not authenticated: navigate to LoginPath (default "/login")
+      and render nothing.
+
+  Apps wrap their MainLayout body (or the protected route subtree) like:
+
+      <AcAuthGate LoginPath="/login">
+          <ChildContent>
+              @Body
+          </ChildContent>
+      </AcAuthGate>
+
+  Public pages (login itself, marketing pages) should sit OUTSIDE the gate.
+*@
+
+@using Microsoft.AspNetCore.Components.Authorization
+
+<AuthorizeView>
+    <Authorized>
+        @ChildContent
+    </Authorized>
+    <NotAuthorized>
+        @{ Nav.NavigateTo(LoginPath, forceLoad: false, replace: true); }
+    </NotAuthorized>
+    <Authorizing>
+        @ChildContent
+    </Authorizing>
+</AuthorizeView>
+
+@code {
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter] public string LoginPath { get; set; } = "/login";
+
+    [Inject] private NavigationManager Nav { get; set; } = default!;
+}

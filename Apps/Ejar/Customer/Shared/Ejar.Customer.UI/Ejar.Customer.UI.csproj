@@ -45,6 +45,12 @@
     <!-- Versions Kit (templates + operations) -->
     <ProjectReference Include="..\..\..\..\..\libs\kits\Versions\ACommerce.Kits.Versions.Operations\ACommerce.Kits.Versions.Operations.csproj" />
     <ProjectReference Include="..\..\..\..\..\libs\kits\Versions\ACommerce.Kits.Versions.Templates\ACommerce.Kits.Versions.Templates.csproj" />
+
+    <!-- Auth Templates (AcAuthGate + AcLoginPage) -->
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Auth\ACommerce.Kits.Auth.Templates\ACommerce.Kits.Auth.Templates.csproj" />
+
+    <!-- Subscriptions Templates (AcSubscriptionGate + SubscriptionState) -->
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Subscriptions\ACommerce.Subscriptions.Templates\ACommerce.Subscriptions.Templates.csproj" />
   </ItemGroup>
 
   <ItemGroup>

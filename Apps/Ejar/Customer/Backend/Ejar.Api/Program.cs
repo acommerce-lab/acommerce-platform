@@ -1,7 +1,9 @@
 using System.Reflection;
 using ACommerce.Kits.Auth;
+using ACommerce.Kits.Auth.Operations.Extensions;
 using ACommerce.Kits.Auth.TwoFactor.AsAuth;
 using ACommerce.Authentication.TwoFactor.Providers.Sms.Mock.Extensions;
+using ACommerce.Subscriptions.Operations.Extensions;
 using ACommerce.Kits.Chat;
 using ACommerce.Kits.Discovery.Backend;
 using ACommerce.Realtime.Providers.InMemory.Extensions;
@@ -64,6 +66,14 @@ builder.Services.AddOperationInterceptors(registry => {
     registry.Register(new CrudActionInterceptor());
 });
 builder.Services.AddSingleton<IOperationInterceptor, OperationLogInterceptor>();
+
+// Cross-cutting gates — كلّها معترضات Pre تتجاوز عمليّاتها الذاتيّة.
+// Versions يُسجَّل من AddVersionsKit أدناه. Auth يُسجَّل هنا.
+// Subscriptions interceptor (لـ requires_subscription) متاح ولكن لم يُفعَّل
+// في Ejar حالياً لأنّه لم يُسجَّل ISubscriptionProvider — يعمل تلقائياً
+// لو أُضيف لاحقاً (المعترض يمرّ بسلام لو لم يُحقن المزوّد).
+builder.Services.AddAuthGateInterceptor();
+builder.Services.AddSubscriptionGateInterceptor();
 
 // 4. MediatR
 builder.Services.AddMediatR(cfg => {

@@ -27,6 +27,18 @@ public static class ServiceCollectionExtensions
     }
 
     /// <summary>
+    /// يسجّل <see cref="SubscriptionGateInterceptor"/> الكونيّ. التطبيق يستدعيه
+    /// مرّة في <c>Program.cs</c>؛ يلتقطه <c>AddOperationInterceptors</c> تلقائياً
+    /// عبر DI. المعترض stateless ويحلّ <see cref="ISubscriptionProvider"/> من
+    /// <c>OperationContext.Services</c> per-call.
+    /// </summary>
+    public static IServiceCollection AddSubscriptionGateInterceptor(this IServiceCollection services)
+    {
+        services.AddSingleton<IOperationInterceptor, SubscriptionGateInterceptor>();
+        return services;
+    }
+
+    /// <summary>
     /// نسخة كاملة: تسجل المعترضات في OperationInterceptorRegistry تلقائياً.
     /// تستخدم هذه إذا كنت تستخدم AddOperationInterceptors أيضاً.
     /// </summary>

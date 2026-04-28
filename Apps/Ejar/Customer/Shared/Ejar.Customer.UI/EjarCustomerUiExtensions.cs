@@ -7,6 +7,7 @@ using ACommerce.Culture.Abstractions;
 using ACommerce.Culture.Defaults;
 using ACommerce.Kits.Versions.Templates;
 using ACommerce.OperationEngine.Core;
+using ACommerce.Subscriptions.Templates.Extensions;
 using ACommerce.Templates.Shared.Models;
 using Ejar.Customer.UI.Interceptors;
 using Ejar.Customer.UI.Interpreters;
@@ -58,6 +59,10 @@ public static class EjarCustomerUiExtensions
         // المضيف يجب أن يسجّل AppVersionInfo singleton قبل استدعاء هذه الدالّة
         // ويضيف AppVersionHeadersHandler على HttpClient "ejar" عبر AddHttpMessageHandler.
         services.AddVersionsTemplates(httpClientName: "ejar");
+
+        // ─── Subscriptions Kit (frontend) ─────────────────────────────
+        // SubscriptionState يُحدَّث من التطبيق بعد التحقّق من الاشتراك.
+        services.AddSubscriptionsTemplates();
 
         // ─── OpEngine للعمليات المحلّية ────────────────────────────────
         services.AddScoped<OpEngine>(sp =>

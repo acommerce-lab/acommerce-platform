@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <PackageId>ACommerce.Subscriptions.Templates</PackageId>
+    <Version>1.0.0</Version>
+    <Description>
+      Subscriptions Kit — Razor templates. Provides:
+        - AcSubscriptionGate: top-level wrapper that hides ChildContent when
+          the active-subscription state is empty, replacing it with a
+          provided "subscribe to continue" block (RenderFragment).
+        - SubscriptionState: simple state holder reflecting whether the
+          current user has any active subscription. Apps push state into
+          it after their auth/subscription bootstrap.
+
+      Mirrors the AcAppVersionGate pattern — same shape, different signal.
+    </Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\ACommerce.Subscriptions.Operations\ACommerce.Subscriptions.Operations.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+</Project>
