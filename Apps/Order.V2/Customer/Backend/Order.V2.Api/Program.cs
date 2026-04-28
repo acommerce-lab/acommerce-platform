@@ -11,10 +11,19 @@ using ACommerce.Notification.Operations.Abstractions;
 using ACommerce.Notification.Providers.InApp.Extensions;
 using ACommerce.OperationEngine.Core;
 using ACommerce.Realtime.Operations.Abstractions;
+using ACommerce.Cache.Operations.Abstractions;
+using ACommerce.Cache.Providers.InMemory.Extensions;
+using ACommerce.Cache.Providers.Redis.Extensions;
+using ACommerce.Realtime.Providers.InMemory;          // InMemoryConnectionTracker (single-instance fallback)
 using ACommerce.Realtime.Providers.InMemory.Extensions;
+using ACommerce.Realtime.Providers.SignalR;
+using ACommerce.Realtime.Providers.SignalR.Extensions;
+using ACommerce.Realtime.Providers.SignalR.Redis.Extensions;
+using ACommerce.Notification.Providers.Firebase.Extensions;
+using ACommerce.Chat.Operations;
 using ACommerce.SharedKernel.Abstractions.Entities;
 using ACommerce.SharedKernel.Infrastructure.EFCores.Extensions;
-using Order.V2.Api.Entities;
+using Order.V2.Domain;
 using Order.V2.Api.Services;
 using Serilog;
 using Serilog.Events;
@@ -132,14 +141,47 @@ builder.Services.AddScoped<OpEngine>(sp =>
     new OpEngine(sp, sp.GetRequiredService<ILogger<OpEngine>>()));
 
 // ─────────────────────────────────────────────────────────
-// Realtime + Notifications (in-memory)
+// Realtime + Notifications + Chat
+// SignalR is the real-world transport (browser push via WebSocket).
+// InMemoryConnectionTracker maps userId → connectionId (swap for Redis at scale).
 // ─────────────────────────────────────────────────────────
-builder.Services.AddInMemoryRealtimeTransport();
+builder.Services.AddSignalRRealtimeTransport();
+
+// ── Cache + cluster-ready realtime (opt-in via config) ─────────────────────
+// REMINDER: set Cache:Redis:ConnectionString in appsettings.{Env}.json
+// (and optionally Realtime:Redis:ConnectionString — falls back to the cache one)
+// before deploying multi-instance. Without it, runs single-instance with
+// in-memory cache + per-process tracker.
+{
+    var cacheRedis = builder.Configuration["Cache:Redis:ConnectionString"];
+    var rtRedis    = builder.Configuration["Realtime:Redis:ConnectionString"] ?? cacheRedis;
+    if (!string.IsNullOrEmpty(cacheRedis))
+    {
+        builder.Services.AddRedisCache(cacheRedis);
+        builder.Services.AddRedisConnectionTracker();
+    }
+    else
+    {
+        builder.Services.AddInMemoryCache();
+        builder.Services.AddSingleton<InMemoryConnectionTracker>();
+        builder.Services.AddSingleton<IConnectionTracker>(sp => sp.GetRequiredService<InMemoryConnectionTracker>());
+    }
+    if (!string.IsNullOrEmpty(rtRedis))
+        builder.Services.AddSignalRRedisBackplane(rtRedis);
+}
 builder.Services.AddInAppNotificationChannel(opt =>
 {
     opt.MethodName = "ReceiveNotification";
     opt.AllowOffline = true;
 });
+
+// Firebase Push (opt-in). Activated only when FIREBASE_SERVICE_ACCOUNT_JSON is set.
+var firebaseJson = Environment.GetEnvironmentVariable("FIREBASE_SERVICE_ACCOUNT_JSON")
+                   ?? builder.Configuration["Notifications:Firebase:ServiceAccountKeyJson"];
+if (!string.IsNullOrEmpty(firebaseJson))
+    builder.Services.AddFirebaseNotificationChannel(builder.Configuration);
+
+builder.Services.AddChat();
 
 builder.Services.AddNotifications(config =>
 {
@@ -185,7 +227,19 @@ builder.Services.AddAuthentication(Microsoft.AspNetCore.Authentication.JwtBearer
             ValidateAudience = true,
             ValidAudience = jwtOptions.Audience,
             ValidateLifetime = true,
-            ClockSkew = TimeSpan.FromSeconds(30)
+            ClockSkew = TimeSpan.FromMinutes(2)
+        };
+        // SignalR WebSocket upgrades can't set HTTP headers, so pass the token
+        // as ?access_token= for requests under /hubs.
+        options.Events = new Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerEvents
+        {
+            OnMessageReceived = ctx =>
+            {
+                var token = ctx.Request.Query["access_token"].ToString();
+                if (!string.IsNullOrEmpty(token) && ctx.HttpContext.Request.Path.StartsWithSegments("/hubs"))
+                    ctx.Token = token;
+                return Task.CompletedTask;
+            }
         };
     });
 builder.Services.AddAuthorization();
@@ -244,6 +298,10 @@ using (var chScope = app.Services.CreateScope())
         notifConfig.AddChannel(ch);
 }
 
+// Chat<->Notifications coupling: opening chat:conv:X closes notif:conv:X
+// for the same user; closing chat (any reason) re-opens notif.
+app.Services.WireChatNotificationCoupling();
+
 app.UseCors();
 app.UseCultureContext();
 app.UseAuthentication();
@@ -256,6 +314,7 @@ if (env.IsDevelopment() || cfg.GetValue<bool>("EnableSwagger"))
 }
 
 app.MapControllers();
+app.MapHub<AShareHub>("/hubs/order-v2");
 
 app.MapGet("/", () => Results.Ok(new
 {

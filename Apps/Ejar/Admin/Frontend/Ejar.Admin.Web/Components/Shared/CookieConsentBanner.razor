@@ -1,0 +1,44 @@
+@namespace Ejar.Admin.Web.Components.Shared
+@inject IJSRuntime JS
+
+@if (_visible)
+{
+    <div class="acm-consent-bar" role="alertdialog" aria-label="موافقة ملفات الارتباط">
+        <p class="acm-consent-text">
+            نستخدم ملفّات ارتباط لتحسين تجربتك. بالاستمرار توافق على
+            <a href="/legal/privacy" class="acm-consent-link">سياسة الخصوصيّة</a>.
+        </p>
+        <div class="acm-consent-actions">
+            <button class="ac-btn ac-btn-sm ac-btn-outline-primary" @onclick="Decline">رفض</button>
+            <button class="ac-btn ac-btn-sm ac-btn-primary" @onclick="Accept">موافق</button>
+        </div>
+    </div>
+}
+
+@code {
+    private bool _visible;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        try
+        {
+            var consent = await JS.InvokeAsync<string?>("localStorage.getItem", "ejar_consent");
+            _visible = string.IsNullOrEmpty(consent);
+            if (_visible) await InvokeAsync(StateHasChanged);
+        }
+        catch { }
+    }
+
+    private async Task Accept()
+    {
+        await JS.InvokeVoidAsync("localStorage.setItem", "ejar_consent", "granted");
+        _visible = false;
+    }
+
+    private async Task Decline()
+    {
+        await JS.InvokeVoidAsync("localStorage.setItem", "ejar_consent", "declined");
+        _visible = false;
+    }
+}

@@ -93,16 +93,39 @@ Brand overrides go in the app's `wwwroot/app.css` on `:root`.
 Load auth-dependent data in `OnAfterRenderAsync(firstRender: true)` after
 `await Auth.EnsureRestoredAsync()`. Not in `OnInitializedAsync`.
 
-### Law 6 — Adapt to real data, never bend it
+### Law 6 — Adapt to real data shape, but enforce contracts via interfaces
 
-When integrating with an existing production system, the NEW platform adapts
-to the shape of production data — not the other way around. If the
-stakeholder's listings use `features` instead of `amenities`, rename the
-template. If the production API returns a plain array instead of
-OperationEnvelope, handle both. Any attribute key not in the template is
-preserved as a raw `DynamicAttribute` entry. We serve the stakeholder's
-existing data exactly as they expect it; the platform is a tool, not an
-authority over business data.
+Two halves; both required.
+
+**Half 1 — adapt to data shape.** When integrating with an existing
+production system, the NEW platform adapts to the shape of production data,
+not the other way around. If the stakeholder's listings use `features`
+instead of `amenities`, rename the template. If the production API returns a
+plain array instead of OperationEnvelope, handle both. Any attribute key
+not in the template is preserved as a raw `DynamicAttribute` entry. We serve
+the stakeholder's existing data exactly as they expect it; the platform is a
+tool, not an authority over business data.
+
+**Half 2 — enforce contracts via interfaces, never DTOs.** Cross-cutting
+libraries (chat, notifications, payments…) need to interact with the app's
+domain entities — but they cannot dictate the entity's storage layout, fields,
+or persistence strategy. The discipline is:
+
+1. The library defines a **C# interface** with the minimal properties it needs
+   (e.g. `IChatMessage` with `Id, ConversationId, SenderPartyId, Body, SentAt,
+   ReadAt?`). Six properties — no more.
+2. The app's domain entity **implements that interface** directly (often via
+   explicit interface implementation when its own field names differ).
+3. The library accepts and returns the interface — never a DTO. The app keeps
+   its own type, with whatever extra fields it needs.
+
+This means: *no DTO bridging in app code, no schema imposed by libraries, and
+no "shadow shape" parallel to the domain entity*. Library-to-library data flow
+travels as the app's own entity, viewed through the interface lens.
+
+Reference impl: `Apps/Ejar/.../Services/EjarSeed.cs` — `MessageSeed`
+implements `IChatMessage` via explicit interface members, so the chat lib
+broadcasts `MessageSeed` instances directly without any conversion layer.
 
 ### Law 7 — Every user-visible string goes through `L["key"]`
 

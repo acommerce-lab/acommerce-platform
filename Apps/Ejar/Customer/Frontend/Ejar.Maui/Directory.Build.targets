@@ -1,0 +1,28 @@
+<Project>
+
+  <!--
+    هذا الملفّ يُستورد آلياً بواسطة Microsoft.Common.targets آخر شيء —
+    بعد كل ProjectReferences وكل package build/.targets. أيّ <Target>
+    هنا ينتصر على نسخة المعرّفة في الـ package.
+
+    Ejar.Maui يحتاج إلغاء جزء من ConvertStaticWebAssetsToMauiAssets
+    الذي يجلبه Microsoft.AspNetCore.Components.WebView.Maui — لا يعمل
+    على MAUI لأن StaticWebAssets pipeline ليست مُجهَّزة للـ Web SDK
+    الذي يفترضه. الـ MauiAsset includes في csproj تُغطّي الوظيفة فعلياً.
+
+    الـ Condition='$(UseMaui)==true' يحصرنا على Ejar.Maui ويبقي
+    Ejar.WebAssembly + Ejar.Web خارج النطاق.
+  -->
+
+  <!-- ① no-op stubs لـ DependsOnTargets في BlazorWebView.Maui.targets
+        (يُسقِط MSB4057 «target X does not exist») -->
+  <Target Name="StaticWebAssetsPrepareForRun"        Condition="'$(UseMaui)' == 'true'" />
+  <Target Name="StaticWebAssetsPrepareForPublish"    Condition="'$(UseMaui)' == 'true'" />
+  <Target Name="LoadStaticWebAssetsPublishManifest"  Condition="'$(UseMaui)' == 'true'" />
+
+  <!-- ② override كامل للجسم — يَسبق فيه Directory.Build.targets الـ package
+        (LAST WINS rule) فلن تُستدعى المهمّة المفقودة ComputeStaticWebAssetsTargetPaths
+        أبداً (يُسقِط MSB4036) ولن يُطلب manifest غير موجود. -->
+  <Target Name="ConvertStaticWebAssetsToMauiAssets" Condition="'$(UseMaui)' == 'true'" />
+
+</Project>

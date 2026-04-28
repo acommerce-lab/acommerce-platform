@@ -11,12 +11,12 @@
 
   <ItemGroup>
     <!-- SharedKernel (DynamicAttribute types used in pages via Widgets) -->
-    <ProjectReference Include="..\..\..\..\..\libs\backend\core\ACommerce.SharedKernel.Abstractions\ACommerce.SharedKernel.Abstractions.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Core\SharedKernel\ACommerce.SharedKernel.Abstractions\ACommerce.SharedKernel.Abstractions.csproj" />
 
     <!-- OperationEngine core + Wire -->
-    <ProjectReference Include="..\..\..\..\..\libs\backend\core\ACommerce.OperationEngine\ACommerce.OperationEngine.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\backend\core\ACommerce.OperationEngine.Wire\ACommerce.OperationEngine.Wire.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\backend\core\ACommerce.OperationEngine.Interceptors\ACommerce.OperationEngine.Interceptors.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Core\OperationEngine\ACommerce.OperationEngine\ACommerce.OperationEngine.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Core\OperationEngine\ACommerce.OperationEngine.Wire\ACommerce.OperationEngine.Wire.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Core\OperationEngine\ACommerce.OperationEngine.Interceptors\ACommerce.OperationEngine.Interceptors.csproj" />
 
     <!-- Client libraries -->
     <ProjectReference Include="..\..\..\..\..\clients\ACommerce.Client.Operations\ACommerce.Client.Operations.csproj" />
@@ -24,9 +24,9 @@
     <ProjectReference Include="..\..\..\..\..\clients\ACommerce.Client.StateBridge\ACommerce.Client.StateBridge.csproj" />
 
     <!-- Widgets + Templates (new styling cascade) -->
-    <ProjectReference Include="..\..\..\..\..\libs\frontend\ACommerce.Widgets\ACommerce.Widgets.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\frontend\ACommerce.Templates.Commerce\ACommerce.Templates.Commerce.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\frontend\ACommerce.Templates.Shared\ACommerce.Templates.Shared.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\frontend\ACommerce.Templates.Marketplace\ACommerce.Templates.Marketplace.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Widgets\ACommerce.Widgets\ACommerce.Widgets.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Templates\Commerce\ACommerce.Templates.Commerce\ACommerce.Templates.Commerce.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Templates\Shared\ACommerce.Templates.Shared\ACommerce.Templates.Shared.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Templates\Marketplace\ACommerce.Templates.Marketplace\ACommerce.Templates.Marketplace.csproj" />
   </ItemGroup>
 </Project>

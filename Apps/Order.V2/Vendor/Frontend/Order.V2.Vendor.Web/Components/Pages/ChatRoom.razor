@@ -1,0 +1,104 @@
+@page "/messages/{Id:guid}"
+@using ACommerce.Chat.Client.Blazor
+@using ACommerce.Chat.Operations
+@using System.Net.Http.Json
+@rendermode InteractiveServer
+@inject AppStore Store
+@inject ApiReader Api
+@inject IChatClient Chat
+@inject IHttpClientFactory HttpFactory
+@inject NavigationManager Nav
+@inject L L
+@implements IAsyncDisposable
+
+<PageTitle>@L["chat.title"] — @L["app.name"]</PageTitle>
+
+<AcAuthGuard IsAuthenticated="@Store.Auth.IsAuthenticated" LoginHref="/login">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+        <h2 class="page-title">@L["chat.title"]</h2>
+        <AcButton Variant="ghost" Text="@L["common.back"]" OnClick="@(() => Nav.NavigateTo(\"/messages\"))" />
+    </div>
+    <div class="acs-chat-messages">
+        @foreach (var m in _messages)
+        {
+            var mine = m.SenderPartyId.StartsWith("Vendor:");
+            <div class="acs-bubble @(mine ? "acs-bubble-mine" : "acs-bubble-other")">
+                <div>@m.Body</div>
+                <small>@m.SentAt.ToLocalTime().ToString("HH:mm")</small>
+            </div>
+        }
+    </div>
+    <div class="acs-chat-composer">
+        <AcInput Value="@_draft" ValueChanged="@(v => _draft = v ?? string.Empty)"
+                 Placeholder="@L["chat.new_message"]" />
+        <AcButton Variant="primary" Text="@L["chat.send"]" OnClick="@Send"
+                  Disabled="@(_sending || string.IsNullOrWhiteSpace(_draft))" />
+    </div>
+</AcAuthGuard>
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+    private readonly List<IChatMessage> _messages = new();
+    private string _draft = "";
+    private bool _sending;
+
+    protected override async Task OnAfterRenderAsync(bool first)
+    {
+        if (!first) return;
+
+        // 1) History from DB.
+        var env = await Api.GetAsync<List<MsgDto>>($"/api/messages/conversations/{Id}/messages");
+        var history = env.Data ?? new();
+        foreach (var m in history)
+        {
+            _messages.Add(new ChatMessage(
+                Id: m.Id.ToString(),
+                ConversationId: Id.ToString(),
+                SenderPartyId: m.SenderId == Store.Auth.VendorId ? $"Vendor:{m.SenderId}" : $"User:{m.SenderId}",
+                Body: m.Content,
+                SentAt: m.CreatedAt));
+        }
+
+        // 2) Open chat channel; backend closes notif for this conversation.
+        Chat.MessageReceived += OnRealtime;
+        await Chat.EnterAsync(Id.ToString());
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void OnRealtime(IChatMessage msg)
+    {
+        if (_messages.Any(m => m.Id == msg.Id)) return;
+        _messages.Add(msg);
+        InvokeAsync(StateHasChanged);
+    }
+
+    private async Task Send()
+    {
+        if (string.IsNullOrWhiteSpace(_draft)) return;
+        _sending = true;
+        try
+        {
+            // Vendor backend's /api/messages expects { conversationId, content }; the
+            // sender is derived from the JWT so there's no SenderId in the body.
+            var http = HttpFactory.CreateClient("order-v2-vendor");
+            var resp = await http.PostAsJsonAsync("/api/messages",
+                new { conversationId = Id, content = _draft });
+            resp.EnsureSuccessStatusCode();
+            _messages.Add(new ChatMessage(
+                Id: $"local-{DateTime.UtcNow.Ticks}",
+                ConversationId: Id.ToString(),
+                SenderPartyId: $"Vendor:{Store.Auth.VendorId}",
+                Body: _draft, SentAt: DateTime.UtcNow));
+            _draft = "";
+        }
+        finally { _sending = false; await InvokeAsync(StateHasChanged); }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        Chat.MessageReceived -= OnRealtime;
+        await Chat.LeaveAsync();
+    }
+
+    private record MsgDto(Guid Id, Guid ConversationId, Guid SenderId, string Content, DateTime CreatedAt);
+}

@@ -1,4 +1,4 @@
-using Ejar.Api.Services;
+using Ejar.Domain;
 
 namespace Ejar.Api.Middleware;
 

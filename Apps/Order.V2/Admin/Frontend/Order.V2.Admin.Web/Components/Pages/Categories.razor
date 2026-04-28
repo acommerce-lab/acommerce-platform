@@ -5,32 +5,32 @@
 @inject ClientOpEngine Engine
 @inject L L
 
-<PageTitle>@L.T("التصنيفات — اوردر V2", "Categories — Order V2")</PageTitle>
+<PageTitle>@L["page.categories.title"]</PageTitle>
 
 <AcAuthGuard IsAuthenticated="@Store.Auth.IsAuthenticated" LoginHref="/login">
-    <h2 class="page-title">@L.T("التصنيفات", "Categories")</h2>
+    <h2 class="page-title">@L["categories.heading"]</h2>
 
     <div class="create-form card mb-4">
-        <h4>@L.T("إضافة تصنيف جديد", "Add new category")</h4>
+        <h4>@L["categories.add_new"]</h4>
         <div class="form-row">
             <div class="ac-field">
-                <label class="ac-label">@L.T("الاسم بالعربية", "Arabic name")</label>
-                <input class="ac-input" placeholder="@L.T("مثال: مشاوي", "e.g. Grills")" @bind="_nameAr" />
+                <label class="ac-label">@L["categories.name_ar"]</label>
+                <input class="ac-input" placeholder="@L["categories.name_ar_placeholder"]" @bind="_nameAr" />
             </div>
             <div class="ac-field">
-                <label class="ac-label">@L.T("الاسم بالإنجليزية", "English name")</label>
+                <label class="ac-label">@L["categories.name_en"]</label>
                 <input class="ac-input" placeholder="e.g. Grills" @bind="_nameEn" />
             </div>
             <div class="ac-field">
-                <label class="ac-label">@L.T("الرابط (slug)", "Slug")</label>
+                <label class="ac-label">@L["categories.slug_field"]</label>
                 <input class="ac-input" placeholder="grills" @bind="_slug" />
             </div>
             <div class="ac-field">
-                <label class="ac-label">@L.T("الأيقونة (emoji)", "Icon (emoji)")</label>
+                <label class="ac-label">@L["categories.icon_field"]</label>
                 <input class="ac-input" placeholder="🍖" @bind="_icon" />
             </div>
         </div>
-        <AcButton Variant="primary" Text="@L.T("إضافة", "Add")" OnClick="Create" />
+        <AcButton Variant="primary" Text="@L["common.add"]" OnClick="Create" />
         @if (!string.IsNullOrEmpty(_createError))
         {
             <p class="error-msg">@_createError</p>
@@ -47,11 +47,11 @@
             <table class="table">
                 <thead>
                     <tr>
-                        <th>@L.T("الأيقونة", "Icon")</th>
-                        <th>@L.T("الاسم العربي", "Arabic name")</th>
-                        <th>@L.T("الاسم الإنجليزي", "English name")</th>
-                        <th>@L.T("الرابط", "Slug")</th>
-                        <th>@L.T("إجراء", "Action")</th>
+                        <th>@L["table.icon"]</th>
+                        <th>@L["table.name_ar"]</th>
+                        <th>@L["table.name_en"]</th>
+                        <th>@L["table.slug"]</th>
+                        <th>@L["table.action"]</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -63,7 +63,7 @@
                             <td>@c.NameEn</td>
                             <td>@c.Slug</td>
                             <td>
-                                <AcButton Variant="danger" Size="sm" Text="@L.T("حذف", "Delete")"
+                                <AcButton Variant="danger" Size="sm" Text="@L["common.delete"]"
                                           OnClick="@(() => Delete(c))" />
                             </td>
                         </tr>
@@ -98,7 +98,7 @@
         _createError = "";
         if (string.IsNullOrWhiteSpace(_nameAr) || string.IsNullOrWhiteSpace(_slug))
         {
-            _createError = L.T("الاسم العربي والرابط مطلوبان", "Arabic name and slug are required");
+            _createError = L["categories.required_error"];
             StateHasChanged(); return;
         }
         var res = await Api.PostAsync<object>("/api/admin/categories",
@@ -108,7 +108,7 @@
             _nameAr = ""; _nameEn = ""; _slug = ""; _icon = "🍽️";
             await Reload();
         }
-        else { _createError = res.Operation?.ErrorMessage ?? L.T("فشل الإنشاء", "Create failed"); StateHasChanged(); }
+        else { _createError = res.Operation?.ErrorMessage ?? L["categories.create_failed"]; StateHasChanged(); }
     }
 
     private async Task Delete(CatRow c)

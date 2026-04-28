@@ -1,3 +1,12 @@
+@*
+  مضيف Blazor Server لعميل إيجار. كل المكوّنات والصفحات تأتي من
+  Ejar.Customer.UI — هذا الملف يضع فقط HTML الخارجي + CSS/JS الخاصة
+  بالاستضافة على الويب + يحدّد @rendermode="InteractiveServer".
+
+  للنسخة WebAssembly (PWA) و MAUI Hybrid: لكلٍّ App.razor خاصّ به بنفس
+  هذا الشكل لكن بـ rendermode مختلف وسكربتات إقلاع مختلفة.
+*@
+@using Ejar.Customer.UI.Components
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 
@@ -13,7 +22,7 @@
     <link rel="stylesheet" href="_content/ACommerce.Widgets/widgets.css" />
     <link rel="stylesheet" href="_content/ACommerce.Templates.Shared/templates-shared.css" />
     <link rel="stylesheet" href="_content/ACommerce.Templates.Marketplace/templates-marketplace.css" />
-    <link rel="stylesheet" href="app.css" />
+    <link rel="stylesheet" href="_content/Ejar.Customer.UI/app.css" />
 
     <HeadOutlet />
 </head>
@@ -21,7 +30,7 @@
 <body>
     <Routes @rendermode="InteractiveServer" />
     <script src="_framework/blazor.web.js"></script>
-    <script src="ui-prefs.js"></script>
+    <script src="_content/Ejar.Customer.UI/ui-prefs.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.7/signalr.min.js"
             integrity="sha512-7SRCYIJtR6F8ocwW7UxW6wGKqbSyqREDbfCORCNGarvHiAIzNh7pBnFAw4QcVBSzQMbLp0bOGv7TFfvqBL3qg=="
             crossorigin="anonymous" referrerpolicy="no-referrer"></script>

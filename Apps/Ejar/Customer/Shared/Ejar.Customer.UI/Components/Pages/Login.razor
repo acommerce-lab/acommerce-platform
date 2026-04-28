@@ -1,0 +1,131 @@
+@page "/login"
+@inject AppStore Store
+@inject ApiReader Api
+@inject NavigationManager Nav
+@inject L L
+@inject INumeralNormalizer Numerals
+@implements IDisposable
+
+<PageTitle>@(L["auth.login.title"]) — @(L["app.name"])</PageTitle>
+
+<div class="acs-page acs-auth-page">
+    <div class="acs-nafath-head">
+        <AcIcon Name="smartphone" Size="48" />
+        <h1 class="acm-wizard-title">إيجار</h1>
+    </div>
+
+    <AcCard>
+        <ChildContent>
+            @if (!_otpSent)
+            {
+                <AcField Label="@(L["auth.phone"])" Required="true">
+                    <AcInput Type="tel" Value="@_phone"
+                             ValueChanged="@(v => _phone = (Numerals.ToLatin(v) ?? string.Empty).Trim())"
+                             Placeholder="+9677XXXXXXXX" />
+                </AcField>
+
+                @if (_error is not null)
+                {
+                    <div class="ac-alert ac-alert-danger mt-2">@_error</div>
+                }
+
+                <AcButton Variant="primary" Size="lg" Class="ac-btn-block mt-2"
+                          Text="@(L["auth.send_otp"])"
+                          OnClick="@RequestOtp"
+                          Disabled="@(_phone.Length < 9 || _busy)" />
+            }
+            else
+            {
+                <p class="acs-nafath-instruction">@(L["auth.otp.hint"])</p>
+
+                <AcField Label="@(L["auth.otp"])" Required="true">
+                    <AcInput Type="tel" Value="@_code"
+                             ValueChanged="@(v => _code = (Numerals.ToLatin(v) ?? string.Empty).Trim())"
+                             Placeholder="123456" />
+                </AcField>
+
+                <div class="acs-nafath-state acs-nafath-state--ok mt-2">
+                    <AcIcon Name="check-circle" Size="16" />
+                    <span>@(L["auth.otp.demo"])</span>
+                </div>
+
+                @if (_error is not null)
+                {
+                    <div class="ac-alert ac-alert-danger mt-2">@_error</div>
+                }
+
+                <AcButton Variant="primary" Size="lg" Class="ac-btn-block mt-2"
+                          Text="@(L["auth.verify"])"
+                          OnClick="@VerifyOtp"
+                          Disabled="@(_code.Length < 6 || _busy)" />
+                <AcButton Variant="ghost" Class="ac-btn-block"
+                          Text="تغيير رقم الجوّال" OnClick="@Reset" />
+            }
+        </ChildContent>
+    </AcCard>
+</div>
+
+@code {
+    private string _phone = "";
+    private string _code = "";
+    private bool _otpSent;
+    private bool _busy;
+    private string? _error;
+
+    protected override void OnInitialized()
+    {
+        Store.OnChanged += OnChange;
+        Store.Ui.HideChrome = true;
+        if (Store.Auth.IsAuthenticated) Nav.NavigateTo("/");
+    }
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (firstRender) Store.Ui.HideChrome = true;
+    }
+
+    private async Task RequestOtp()
+    {
+        _error = null;
+        _busy = true;
+        await InvokeAsync(StateHasChanged);
+        var env = await Api.PostAsync<object>("/auth/otp/request", new { phone = _phone });
+        _busy = false;
+        if (env.Operation.Status == "Success") { _otpSent = true; }
+        else { _error = env.Operation.ErrorMessage ?? "فشل إرسال الرمز"; }
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task VerifyOtp()
+    {
+        _error = null;
+        _busy = true;
+        await InvokeAsync(StateHasChanged);
+        var env = await Api.PostAsync<AuthDto>("/auth/otp/verify", new { phone = _phone, code = _code });
+        _busy = false;
+        if (env.Operation.Status == "Success" && env.Data is not null)
+        {
+            Store.Auth.UserId      = Guid.NewGuid();  // معرّف محلي للعرض
+            Store.Auth.AccessToken = env.Data.Token;
+            Store.Auth.FullName    = env.Data.Name;
+            Store.Auth.Phone       = env.Data.Phone;
+            Store.NotifyChanged();
+            Store.Ui.HideChrome = false;
+            Nav.NavigateTo("/");
+        }
+        else { _error = env.Operation.ErrorMessage ?? "رمز التحقق غير صحيح"; }
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void Reset() { _otpSent = false; _code = ""; _error = null; }
+
+    private void OnChange() => InvokeAsync(StateHasChanged);
+
+    public void Dispose()
+    {
+        Store.OnChanged -= OnChange;
+        Store.Ui.HideChrome = false;
+    }
+
+    private sealed record AuthDto(string Token, string UserId, string Name, string Phone);
+}

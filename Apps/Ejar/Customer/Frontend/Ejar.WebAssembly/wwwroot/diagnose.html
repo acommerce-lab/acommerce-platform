@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#1d4ed8" />
+    <title>تشخيص PWA — إيجار</title>
+    <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" />
+    <style>
+        * { box-sizing: border-box; }
+        body { margin: 0; padding: 16px; background: #f1f5f9;
+               font-family: Cairo, sans-serif; color: #0f172a; line-height: 1.7; }
+        h1 { margin: 0 0 4px; color: #1d4ed8; font-size: 20px; }
+        .sub { color: #64748b; font-size: 13px; margin: 0 0 16px; }
+        .card { background: #fff; border-radius: 12px; padding: 12px 16px;
+                margin-bottom: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.04); }
+        .row { display: flex; align-items: flex-start; gap: 10px;
+               padding: 8px 0; border-bottom: 1px solid #f1f5f9; }
+        .row:last-child { border-bottom: 0; }
+        .name { flex: 1; font-weight: 600; font-size: 14px; }
+        .val { font-size: 13px; color: #475569; word-break: break-word; }
+        .ok { color: #15803d; }
+        .warn { color: #b45309; }
+        .err { color: #b91c1c; }
+        .badge { display: inline-block; padding: 2px 8px; border-radius: 999px;
+                 font-size: 11px; font-weight: 700; margin-inline-end: 6px; }
+        .badge-ok { background: #d1fae5; color: #065f46; }
+        .badge-err { background: #fee2e2; color: #991b1b; }
+        .badge-warn { background: #fef3c7; color: #92400e; }
+        details { margin-top: 4px; font-size: 12px; }
+        summary { cursor: pointer; color: #1d4ed8; }
+        pre { background: #f1f5f9; padding: 8px; border-radius: 6px;
+              overflow: auto; font-size: 11px; margin: 4px 0 0; }
+        button { display: block; margin-top: 14px; padding: 10px 20px;
+                 border: none; border-radius: 999px; background: #1d4ed8;
+                 color: #fff; font: inherit; font-weight: 700; cursor: pointer; }
+        a { color: #1d4ed8; }
+        h2 { font-size: 14px; margin: 0 0 6px; color: #0f172a; }
+    </style>
+</head>
+
+<body>
+    <h1>تشخيص تطبيق إيجار التقدّمي</h1>
+    <p class="sub">يفحص لماذا Chrome قد يرفض تثبيت إيجار. شغّل هذه الصفحة على نفس الجهاز/المتصفّح الذي يفشل عليه التثبيت.</p>
+
+    <div id="output"><p>جارٍ الفحص…</p></div>
+
+    <button onclick="location.reload()">أعد الفحص</button>
+    <p class="sub" style="margin-top:14px"><a href="/reset.html">امسح كل شيء وأعد التحميل</a> · <a href="/">العودة لإيجار</a></p>
+
+<script>
+(async function() {
+  const out = document.getElementById('output');
+  const sections = [];
+
+  function badge(level) {
+    return level === 'ok'   ? '<span class="badge badge-ok">✓ تمّ</span>'
+         : level === 'warn' ? '<span class="badge badge-warn">⚠ تحذير</span>'
+         :                    '<span class="badge badge-err">✗ فشل</span>';
+  }
+
+  function row(name, level, val, detail) {
+    return `<div class="row">
+      <div class="name">${badge(level)}${escapeHtml(name)}</div>
+      <div class="val">${val ?? ''}${detail ? `<details><summary>التفاصيل</summary><pre>${escapeHtml(detail)}</pre></details>` : ''}</div>
+    </div>`;
+  }
+
+  function section(title, html) {
+    sections.push(`<div class="card"><h2>${escapeHtml(title)}</h2>${html}</div>`);
+  }
+
+  function escapeHtml(s) {
+    return String(s ?? '').replace(/[&<>"']/g, c =>
+      ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+  }
+
+  // ① HTTPS / localhost
+  let httpsOk = location.protocol === 'https:'
+             || /^(localhost|127\.|\[::1\])/.test(location.hostname);
+  section('شرط HTTPS', row(
+    'البروتوكول',
+    httpsOk ? 'ok' : 'err',
+    `<code>${escapeHtml(location.protocol)}//${escapeHtml(location.host)}</code>`,
+    httpsOk
+      ? 'Chrome يقبل HTTPS أو localhost للتثبيت كـ PWA.'
+      : 'Chrome Android لن يعرض «تثبيت» على HTTP. يجب نشر الـ PWA على https.'));
+
+  // ② Manifest
+  let mHtml = '';
+  let manifest = null;
+  try {
+    const r = await fetch('manifest.webmanifest', { cache: 'no-store' });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    manifest = await r.json();
+    const ct = r.headers.get('content-type') || '';
+    mHtml += row('الجلب', 'ok', `200 (${escapeHtml(ct)})`);
+    mHtml += row('id',         'ok', `<code>${escapeHtml(manifest.id || '(غير محدّد)')}</code>`);
+    mHtml += row('name',       manifest.name ? 'ok' : 'err', escapeHtml(manifest.name || '(فارغ)'));
+    mHtml += row('start_url',  manifest.start_url ? 'ok' : 'err', `<code>${escapeHtml(manifest.start_url || '(فارغ)')}</code>`);
+    mHtml += row('display',    /^(standalone|fullscreen|minimal-ui)$/.test(manifest.display || '') ? 'ok' : 'err',
+                 escapeHtml(manifest.display || '(فارغ)'),
+                 'Chrome يتطلّب standalone / fullscreen / minimal-ui.');
+    mHtml += row('scope',      manifest.scope ? 'ok' : 'warn', `<code>${escapeHtml(manifest.scope || '(غير محدّد)')}</code>`);
+  } catch (e) {
+    mHtml += row('الجلب', 'err', '', String(e?.message || e));
+  }
+  section('manifest.webmanifest', mHtml);
+
+  // ③ Icons
+  let iHtml = '';
+  if (manifest?.icons?.length) {
+    let any192 = false, any512 = false, mask192 = false, mask512 = false;
+    let allReachable = true;
+    for (const icon of manifest.icons) {
+      const url = new URL(icon.src, location.href).href;
+      let status = '?', size = '?';
+      try {
+        const r = await fetch(url, { cache: 'no-store' });
+        status = String(r.status);
+        size = r.headers.get('content-length') || '?';
+        if (!r.ok) allReachable = false;
+        else {
+          if (icon.sizes === '192x192' && (icon.purpose||'any').includes('any')) any192 = true;
+          if (icon.sizes === '512x512' && (icon.purpose||'any').includes('any')) any512 = true;
+          if (icon.sizes === '192x192' && (icon.purpose||'').includes('maskable')) mask192 = true;
+          if (icon.sizes === '512x512' && (icon.purpose||'').includes('maskable')) mask512 = true;
+        }
+      } catch {
+        allReachable = false;
+        status = 'فشل';
+      }
+      iHtml += row(`${icon.sizes} (${icon.purpose || 'any'})`,
+                   status === '200' ? 'ok' : 'err',
+                   `<code>${escapeHtml(icon.src)}</code> → ${status} (${size} بايت)`);
+    }
+    iHtml += row('تغطية الشروط الدنيا', any192 && any512 ? 'ok' : 'err',
+                 `purpose:any 192×192=${any192?'✓':'✗'} 512×512=${any512?'✓':'✗'}`);
+    iHtml += row('maskable', mask192 || mask512 ? 'ok' : 'warn',
+                 `192=${mask192?'✓':'—'} 512=${mask512?'✓':'—'}`);
+  } else {
+    iHtml += row('الأيقونات', 'err', 'لا أيقونات في manifest');
+  }
+  section('الأيقونات', iHtml);
+
+  // ④ Service Worker
+  let swHtml = '';
+  if ('serviceWorker' in navigator) {
+    try {
+      const reg = await navigator.serviceWorker.getRegistration();
+      if (reg) {
+        swHtml += row('مُسجَّل', 'ok', `scope = <code>${escapeHtml(reg.scope)}</code>`);
+        swHtml += row('active', reg.active ? 'ok' : 'err', reg.active ? reg.active.scriptURL : '—');
+        swHtml += row('waiting', reg.waiting ? 'warn' : 'ok',
+                      reg.waiting ? 'هناك SW منتظر — أعد فتح التبويب لتفعيله' : '—');
+        // فحص fetch handler عبر استدعاء صفحة المرور عبر SW
+        try {
+          const r = await fetch('manifest.webmanifest', { cache: 'no-store' });
+          const fromSw = r.headers.get('x-served-by') || (navigator.serviceWorker.controller ? 'controller موجود' : 'لا controller');
+          swHtml += row('تحت سيطرة SW', navigator.serviceWorker.controller ? 'ok' : 'warn',
+                        navigator.serviceWorker.controller ? 'الصفحة مُسيطر عليها' : 'الصفحة ليست مُسيطر عليها — أعد التحميل');
+        } catch {}
+      } else {
+        swHtml += row('مُسجَّل', 'err', 'لا توجد SW مسجّلة على هذا النطاق');
+      }
+    } catch (e) {
+      swHtml += row('فحص SW', 'err', '', String(e?.message || e));
+    }
+  } else {
+    swHtml += row('دعم المتصفّح', 'err', 'serviceWorker غير مدعوم');
+  }
+  section('Service Worker', swHtml);
+
+  // ⑤ start_url reachable
+  let sHtml = '';
+  if (manifest?.start_url) {
+    try {
+      const url = new URL(manifest.start_url, location.href).href;
+      const r = await fetch(url, { cache: 'no-store' });
+      sHtml += row('start_url 200?', r.ok ? 'ok' : 'err', `<code>${escapeHtml(url)}</code> → ${r.status}`);
+    } catch (e) {
+      sHtml += row('start_url 200?', 'err', '', String(e?.message || e));
+    }
+  }
+  section('start_url قابل للوصول', sHtml);
+
+  // ⑥ Display mode
+  let dHtml = '';
+  const standalone = window.matchMedia('(display-mode: standalone)').matches
+                  || window.navigator.standalone === true;
+  dHtml += row('display-mode: standalone', standalone ? 'ok' : 'warn',
+               standalone ? 'الصفحة تعمل بالفعل كـ PWA مثبَّت' : 'الصفحة في وضع متصفّح عاديّ');
+  section('وضع العرض الحاليّ', dHtml);
+
+  // ⑦ User engagement (Chrome heuristic)
+  let eHtml = '';
+  eHtml += row('تفاعل المستخدم', 'warn',
+               'Chrome يحتاج ~30 ثانية تفاعل قبل عرض زر التثبيت ⊕ في شريط العنوان. ' +
+               'إذا لم يظهر الزر، تفاعل مع الصفحة (مرّر، اضغط) وأعد المحاولة بعد دقيقة.');
+  section('شرط التفاعل (heuristic)', eHtml);
+
+  // ⑧ Render
+  out.innerHTML = sections.join('');
+})();
+</script>
+</body>
+
+</html>

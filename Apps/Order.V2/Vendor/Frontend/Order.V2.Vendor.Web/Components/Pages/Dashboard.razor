@@ -5,7 +5,7 @@
 @inject L L
 @implements IDisposable
 
-<PageTitle>@L.T("لوحة التحكم — اوردر V2 المتجر", "Dashboard — Order V2 Vendor")</PageTitle>
+<PageTitle>@L["page.dashboard.title"]</PageTitle>
 
 @if (!Store.Auth.IsAuthenticated)
 {
@@ -16,9 +16,9 @@ else
     <AcVendorDashboard Stats="@_stats"
                        RecentOrders="@_recentOrders"
                        LoadingOrders="@_loadingOrders"
-                       Title="@($"{L.T("مرحباً", "Welcome")}، {Store.Auth.VendorName ?? Store.Auth.FullName}")"
-                       OrdersTitle="@L.T("آخر الطلبات", "Recent orders")"
-                       EmptyOrdersMessage="@L.T("لا توجد طلبات بعد", "No orders yet")" />
+                       Title="@($"{L["dashboard.welcome"]}، {Store.Auth.VendorName ?? Store.Auth.FullName}")"
+                       OrdersTitle="@L["dashboard.recent_orders"]"
+                       EmptyOrdersMessage="@L["dashboard.no_orders"]" />
 }
 
 @code {
@@ -62,12 +62,12 @@ else
         if (_last is null) return;
         _stats = new List<MerchantStatDto>
         {
-            new() { Label = L.T("الطلبات الكلية", "Total orders"), Value = _last.TotalOrders.ToString(),      IconName = "receipt" },
-            new() { Label = L.T("طلبات معلقة", "Pending"),          Value = _last.PendingOrders.ToString(),    IconName = "clock"   },
-            new() { Label = L.T("طلبات نشطة", "Active"),            Value = _last.ActiveOrders.ToString(),     IconName = "fire"    },
-            new() { Label = L.T("مكتملة", "Completed"),              Value = _last.CompletedOrders.ToString(),  IconName = "check"   },
-            new() { Label = L.T("عروض نشطة", "Active offers"),       Value = _last.ActiveOffers.ToString(),     IconName = "tag"     },
-            new() { Label = L.T("الإيرادات", "Revenue"),             Value = $"{_last.TotalRevenue:0.##} {L.T("ر.س", "SAR")}", IconName = "dollar" },
+            new() { Label = L["metric.total_orders"],  Value = _last.TotalOrders.ToString(),      IconName = "receipt" },
+            new() { Label = L["metric.pending"],       Value = _last.PendingOrders.ToString(),    IconName = "clock"   },
+            new() { Label = L["metric.active_orders"], Value = _last.ActiveOrders.ToString(),     IconName = "fire"    },
+            new() { Label = L["metric.completed"],     Value = _last.CompletedOrders.ToString(),  IconName = "check"   },
+            new() { Label = L["metric.active_offers"], Value = _last.ActiveOffers.ToString(),     IconName = "tag"     },
+            new() { Label = L["metric.revenue"],       Value = $"{_last.TotalRevenue:0.##} {L["common.currency_sar"]}", IconName = "dollar" },
         };
     }
 

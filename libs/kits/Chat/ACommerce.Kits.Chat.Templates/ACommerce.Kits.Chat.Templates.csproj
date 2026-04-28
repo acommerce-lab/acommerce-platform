@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <PackageId>ACommerce.Kits.Chat.Templates</PackageId>
+    <Version>1.0.0</Version>
+    <Description>Drop-in Razor components for chat: AcChatRoomPage handles history+realtime+send+leave for one conversation; AcChatListPage renders the inbox. Apps host them in their own /chat/{id} and /chats Razor pages with a single tag.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\ACommerce.Chat.Client.Blazor\ACommerce.Chat.Client.Blazor.csproj" />
+    <ProjectReference Include="..\ACommerce.Chat.Operations\ACommerce.Chat.Operations.csproj" />
+    <ProjectReference Include="..\..\Widgets\ACommerce.Widgets\ACommerce.Widgets.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+</Project>

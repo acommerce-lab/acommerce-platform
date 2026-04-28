@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <PackageId>ACommerce.Kits.Chat</PackageId>
+    <Version>1.0.0</Version>
+    <Description>
+      Meta-package. Composes the four atomic chat libraries:
+        - ACommerce.Chat.Operations         (interfaces + IChatService impl)
+        - ACommerce.Chat.Client.Blazor      (frontend IChatClient)
+        - ACommerce.Kits.Chat.Backend       (ready ChatController + IChatStore port)
+        - ACommerce.Kits.Chat.Templates     (Razor AcChatRoomPage)
+
+      Apps that want everything ship a single &lt;ProjectReference Include="...Chat.csproj"/&gt;
+      and gain the full chat stack. Apps that want only the frontend client
+      (e.g. a thin storefront calling a separate chat service) reference
+      ACommerce.Chat.Client.Blazor directly and skip the rest.
+    </Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ACommerce.Chat.Operations\ACommerce.Chat.Operations.csproj" />
+    <ProjectReference Include="..\ACommerce.Chat.Client.Blazor\ACommerce.Chat.Client.Blazor.csproj" />
+    <ProjectReference Include="..\ACommerce.Kits.Chat.Backend\ACommerce.Kits.Chat.Backend.csproj" />
+    <ProjectReference Include="..\ACommerce.Kits.Chat.Templates\ACommerce.Kits.Chat.Templates.csproj" />
+  </ItemGroup>
+</Project>

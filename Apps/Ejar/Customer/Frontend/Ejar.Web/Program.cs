@@ -1,16 +1,6 @@
-using ACommerce.Client.Http;
-using ACommerce.Client.Operations;
-using ACommerce.Client.Operations.Interceptors;
-using ACommerce.Client.StateBridge;
-using ACommerce.Culture.Abstractions;
-using ACommerce.Culture.Defaults;
-using ACommerce.OperationEngine.Core;
+using Ejar.Customer.UI;
+using Ejar.Customer.UI.Interceptors;
 using Ejar.Web.Components;
-using Ejar.Web.Interceptors;
-using Ejar.Web.Interpreters;
-using Ejar.Web.Operations;
-using Ejar.Web.Services;
-using Ejar.Web.Store;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -19,24 +9,8 @@ builder.WebHost.UseStaticWebAssets();
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
-// ─── AppStore (ITemplateStore) + L (translations) ────────────────────
-builder.Services.AddScoped<AppStore>();
-builder.Services.AddScoped<ITemplateStore>(sp => sp.GetRequiredService<AppStore>());
-builder.Services.AddSingleton<ITranslationProvider, EmbeddedTranslationProvider>();
-builder.Services.AddScoped<L>();
-
-builder.Services.AddScoped<ITimezoneProvider, JsTimezoneProvider>();
-builder.Services.AddSingleton<INumeralNormalizer, DefaultNumeralNormalizer>();
-
-builder.Services.AddScoped<CultureInterceptor>();
-builder.Services.AddTransient<CultureHeadersHandler>();
-builder.Services.AddScoped<EjarCircuitHttp>();
-
-// ─── OpEngine للعمليات المحلّية ────────────────────────────────────────
-builder.Services.AddScoped<OpEngine>(sp =>
-    new OpEngine(sp, sp.GetRequiredService<ILogger<OpEngine>>()));
-
-// ─── HTTP → Ejar.Api ──────────────────────────────────────────────────
+// HTTP → Ejar.Api. ضع BaseUrl عبر appsettings ({ "EjarApi": { "BaseUrl": ... } })
+// — يبدّل بين localhost للتطوير و https://api.ejar.ye للإنتاج.
 var apiBase = builder.Configuration["EjarApi:BaseUrl"] ?? "http://localhost:5300";
 builder.Services.AddHttpClient("ejar", c =>
 {
@@ -45,51 +19,8 @@ builder.Services.AddHttpClient("ejar", c =>
 })
 .AddHttpMessageHandler<CultureHeadersHandler>();
 
-var routeRegistry = new HttpRouteRegistry();
-EjarRoutes.Register(routeRegistry);
-builder.Services.AddSingleton(routeRegistry);
-
-builder.Services.AddScoped<HttpDispatcher>(sp =>
-{
-    var circuit = sp.GetRequiredService<EjarCircuitHttp>();
-    return new HttpDispatcher(
-        circuit.Client,
-        sp.GetRequiredService<HttpRouteRegistry>(),
-        sp.GetRequiredService<OpEngine>(),
-        sp.GetRequiredService<ILogger<HttpDispatcher>>());
-});
-builder.Services.AddScoped<IOperationDispatcher>(sp => sp.GetRequiredService<HttpDispatcher>());
-
-builder.Services.AddScoped<ApiReader>(sp =>
-{
-    var circuit = sp.GetRequiredService<EjarCircuitHttp>();
-    return new ApiReader(
-        circuit.Client,
-        sp.GetRequiredService<CultureInterceptor>());
-});
-
-builder.Services.AddScoped<ClientOpEngine>(sp =>
-    new ClientOpEngine(
-        sp.GetRequiredService<IOperationDispatcher>(),
-        sp.GetRequiredService<ILogger<ClientOpEngine>>(),
-        sp.GetRequiredService<IStateApplier>()));
-builder.Services.AddScoped<ITemplateEngine>(sp => sp.GetRequiredService<ClientOpEngine>());
-
-// ─── State bridge: interpreters ───────────────────────────────────────
-builder.Services.AddScoped<OperationInterpreterRegistry<AppStore>>(sp =>
-{
-    var registry = new OperationInterpreterRegistry<AppStore>(
-        sp.GetRequiredService<ILogger<OperationInterpreterRegistry<AppStore>>>());
-    registry.Add(new UiInterpreter());
-    registry.Add(new AuthInterpreter());
-    return registry;
-});
-
-builder.Services.AddScoped<AppStateApplier>();
-builder.Services.AddScoped<IStateApplier>(sp => sp.GetRequiredService<AppStateApplier>());
-
-// ─── Realtime client ──────────────────────────────────────────────────
-builder.Services.AddScoped<EjarRealtimeService>();
+// كل خدمات الـ UI المشتركة (AppStore, OpEngine, dispatchers, chat client …)
+builder.Services.AddEjarCustomerUI();
 
 var app = builder.Build();
 
@@ -100,6 +31,7 @@ app.UseStaticFiles();
 app.UseAntiforgery();
 
 app.MapRazorComponents<App>()
-    .AddInteractiveServerRenderMode();
+    .AddInteractiveServerRenderMode()
+    .AddAdditionalAssemblies(typeof(EjarCustomerUiExtensions).Assembly);
 
 app.Run();

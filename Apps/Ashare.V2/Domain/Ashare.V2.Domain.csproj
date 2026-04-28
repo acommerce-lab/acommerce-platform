@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>Ashare.V2.Domain</RootNamespace>
+    <AssemblyName>Ashare.V2.Domain</AssemblyName>
+    <Description>Ashare V2 domain entities + AshareV2Seed (in-memory state until full EF persistence). Customer/Admin (and any future Provider backend) reference this directly. Pure POCOs implementing IBaseEntity (SharedKernel) and IChatMessage / IChatConversation (Chat kit). EF mappings stay in the backend.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\libs\kits\Core\SharedKernel\ACommerce.SharedKernel.Abstractions\ACommerce.SharedKernel.Abstractions.csproj" />
+    <ProjectReference Include="..\..\..\libs\kits\Chat\ACommerce.Chat.Operations\ACommerce.Chat.Operations.csproj" />
+  </ItemGroup>
+</Project>

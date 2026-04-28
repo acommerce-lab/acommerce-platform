@@ -16,6 +16,12 @@ export async function start(hubUrl, token, dotnetRef) {
         dotnetRef.invokeMethodAsync("OnMessage", typeof json === "string" ? json : JSON.stringify(json));
     });
 
+    // chat.message — sent on chat:conv:{id} group when the recipient has the
+    // ChatRoom open. Routed to IChatClient via Ashare2RealtimeService.
+    _connection.on("chat.message", (data) => {
+        dotnetRef.invokeMethodAsync("OnChatMessage", typeof data === "string" ? data : JSON.stringify(data));
+    });
+
     _connection.on("ReceiveNotification", (json) => {
         playBeep(520, 0.2);
         dotnetRef.invokeMethodAsync("OnNotification", typeof json === "string" ? json : JSON.stringify(json));
@@ -37,6 +43,34 @@ export async function stop() {
         await _connection.stop();
         _connection = null;
     }
+}
+
+let _unloadHandler = null;
+export function registerBeforeUnload(ref) {
+    if (_unloadHandler) return;
+    _unloadHandler = () => { ref.invokeMethodAsync('OnBeforeUnload'); };
+    window.addEventListener('beforeunload', _unloadHandler);
+}
+export function unregisterBeforeUnload() {
+    if (_unloadHandler) window.removeEventListener('beforeunload', _unloadHandler);
+    _unloadHandler = null;
+}
+
+// Fire-and-forget HTTP POST that survives page unload. Used to call the
+// backend chat-leave endpoint when the tab closes.
+export function leaveChatBeacon(path, token) {
+    try {
+        if (token) {
+            fetch(path, {
+                method: 'POST', keepalive: true,
+                headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+                body: '{}'
+            }).catch(() => {});
+        } else {
+            const blob = new Blob([JSON.stringify({})], { type: 'application/json' });
+            navigator.sendBeacon(path, blob);
+        }
+    } catch (_) { /* unload — nothing more we can do */ }
 }
 
 function playBeep(frequency, duration) {

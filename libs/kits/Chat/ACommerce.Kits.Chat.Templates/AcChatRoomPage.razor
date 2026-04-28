@@ -1,0 +1,131 @@
+@*
+  Drop-in chat room page. Hosting Razor page reduces to:
+
+      @page "/chat/{Id}"
+      @using ACommerce.Kits.Chat.Templates
+      <AcChatRoomPage ConversationId="@Id" HistoryUrl="@($"/conversations/{Id}/messages")" />
+
+  The component owns: load-history, open chat channel, listen for realtime
+  messages, optimistic-echo on send, leave-on-dispose. Apps that need a
+  custom layout pass children via the Header / Footer RenderFragments.
+*@
+
+@using System.Net.Http
+@using System.Net.Http.Json
+@inject IChatClient Chat
+@inject HttpClient Http
+@implements IAsyncDisposable
+
+@if (Header is not null)
+{
+    @Header
+}
+else
+{
+    <div class="acs-chat-header">
+        <h2 class="acm-wizard-title">@(Title ?? "محادثة")</h2>
+    </div>
+}
+
+<div class="acs-chat-messages">
+    @foreach (var m in _messages)
+    {
+        var mine = MyPartyId is not null && m.SenderPartyId == MyPartyId;
+        <div class="acs-bubble @(mine ? "acs-bubble-mine" : "acs-bubble-other")">
+            @if (!string.IsNullOrEmpty(m.Body))
+            {
+                <div>@m.Body</div>
+            }
+            <small style="display:block; opacity:.6;">@m.SentAt.ToLocalTime().ToString("HH:mm")</small>
+        </div>
+    }
+</div>
+
+<div class="acs-chat-composer">
+    <input class="ac-input" type="text" @bind="_draft" placeholder="@(Placeholder ?? "اكتب رسالة…")" />
+    <button class="ac-btn ac-btn-primary"
+            @onclick="@Send"
+            disabled="@(_sending || string.IsNullOrWhiteSpace(_draft))">
+        @(SendLabel ?? "إرسال")
+    </button>
+</div>
+
+@if (Footer is not null) { @Footer }
+
+@code {
+    /// <summary>معرّف المحادثة. تمرّره صفحة الـ host (مثلاً <c>[Parameter] Id</c>).</summary>
+    [Parameter, EditorRequired] public string ConversationId { get; set; } = default!;
+
+    /// <summary>مسار جلب رسائل المحادثة من الـ Backend. الافتراض:
+    /// <c>/conversations/{ConversationId}/messages</c>.</summary>
+    [Parameter] public string? HistoryUrl { get; set; }
+
+    /// <summary>معرّف الطرف الحاليّ (مثلاً <c>"User:U-1"</c>) — لتمييز فقاعة المُرسِل.</summary>
+    [Parameter] public string? MyPartyId { get; set; }
+
+    /// <summary>عنوان الصفحة. اختياريّ.</summary>
+    [Parameter] public string? Title { get; set; }
+    [Parameter] public string? Placeholder { get; set; }
+    [Parameter] public string? SendLabel { get; set; }
+
+    [Parameter] public RenderFragment? Header { get; set; }
+    [Parameter] public RenderFragment? Footer { get; set; }
+
+    private readonly List<IChatMessage> _messages = new();
+    private string _draft = "";
+    private bool _sending;
+
+    protected override async Task OnAfterRenderAsync(bool first)
+    {
+        if (!first) return;
+
+        // 1) Load history (DB → http → list).
+        var url = HistoryUrl ?? $"/conversations/{ConversationId}/messages";
+        try
+        {
+            var raw = await Http.GetFromJsonAsync<List<ChatMessage>>(url);
+            if (raw is not null) _messages.AddRange(raw.Cast<IChatMessage>());
+        }
+        catch { /* tolerate offline / 404 */ }
+
+        // 2) Open chat channel; backend closes notif:conv:Id for this user.
+        Chat.MessageReceived += OnRealtime;
+        await Chat.EnterAsync(ConversationId);
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void OnRealtime(IChatMessage msg)
+    {
+        if (msg.ConversationId != ConversationId) return;
+        if (_messages.Any(m => m.Id == msg.Id)) return;
+        _messages.Add(msg);
+        InvokeAsync(StateHasChanged);
+    }
+
+    private async Task Send()
+    {
+        if (string.IsNullOrWhiteSpace(_draft)) return;
+        _sending = true;
+        try
+        {
+            await Chat.SendAsync(_draft);
+            // Optimistic echo — broadcast-back will arrive shortly and is
+            // de-duped by id in OnRealtime.
+            _messages.Add(new ChatMessage(
+                Id: $"local-{DateTime.UtcNow.Ticks}",
+                ConversationId: ConversationId,
+                SenderPartyId: MyPartyId ?? "self",
+                Body: _draft,
+                SentAt: DateTime.UtcNow));
+            _draft = "";
+        }
+        finally { _sending = false; await InvokeAsync(StateHasChanged); }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        Chat.MessageReceived -= OnRealtime;
+        await Chat.LeaveAsync();
+    }
+}

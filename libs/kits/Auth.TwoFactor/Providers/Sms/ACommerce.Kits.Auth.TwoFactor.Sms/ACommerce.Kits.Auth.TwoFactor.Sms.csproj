@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <PackageId>ACommerce.Kits.Auth.TwoFactor.Sms</PackageId>
+    <Version>1.0.0</Version>
+    <Description>
+      SMS 2FA provider kit. Bundles:
+        - ACommerce.Authentication.TwoFactor.Operations          (ITwoFactorChannel)
+        - ACommerce.Authentication.TwoFactor.Providers.Sms.Mock  (dev — code 123456)
+        - ACommerce.Kits.Auth.TwoFactor.Sms.Templates            (verifier Razor UI)
+      App registers the channel (e.g. AddMockSmsTwoFactor) and slots
+      &lt;SmsVerifierUi /&gt; into AcLoginPage. For production, swap the Mock
+      provider package for a real SMS provider library.
+    </Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\ACommerce.Authentication.TwoFactor.Operations\ACommerce.Authentication.TwoFactor.Operations.csproj" />
+    <ProjectReference Include="..\ACommerce.Authentication.TwoFactor.Providers.Sms.Mock\ACommerce.Authentication.TwoFactor.Providers.Sms.Mock.csproj" />
+    <ProjectReference Include="..\ACommerce.Kits.Auth.TwoFactor.Sms.Templates\ACommerce.Kits.Auth.TwoFactor.Sms.Templates.csproj" />
+  </ItemGroup>
+</Project>

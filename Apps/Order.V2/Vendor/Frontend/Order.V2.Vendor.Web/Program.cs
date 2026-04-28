@@ -1,3 +1,4 @@
+using ACommerce.Chat.Client.Blazor;
 using ACommerce.Client.Http;
 using ACommerce.Client.Operations;
 using ACommerce.Client.Operations.Interceptors;
@@ -68,6 +69,16 @@ builder.Services.AddScoped<IStateApplier>(sp => sp.GetRequiredService<AppStateAp
 builder.Services.AddScoped<AuthStateService>();
 
 builder.Services.AddEmbeddedL10n<VendorTranslations, AppLangContext>();
+
+// Realtime + Chat client (reuse the existing named HttpClient 'order-v2-vendor')
+builder.Services.AddScoped<Order.V2.Vendor.Web.Services.VendorRealtimeService>();
+builder.Services.AddBlazorChatClient(opts =>
+{
+    opts.HttpClientName    = "order-v2-vendor";
+    opts.EnterPathTemplate = "/chat/{convId}/enter";
+    opts.LeavePathTemplate = "/chat/{convId}/leave";
+    opts.SendPathTemplate  = "/api/messages";
+});
 
 var app = builder.Build();
 if (!app.Environment.IsDevelopment()) app.UseExceptionHandler("/Error");

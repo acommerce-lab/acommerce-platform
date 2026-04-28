@@ -1,3 +1,4 @@
+using ACommerce.Chat.Operations;
 using ACommerce.Notification.Providers.InApp;
 using ACommerce.OperationEngine.Analyzers;
 using ACommerce.OperationEngine.Core;
@@ -5,7 +6,8 @@ using ACommerce.OperationEngine.Patterns;
 using ACommerce.OperationEngine.Wire;
 using ACommerce.OperationEngine.Wire.Http;
 using ACommerce.Realtime.Operations;
-using Ejar.Api.Services;
+using ACommerce.Realtime.Operations.Abstractions;
+using Ejar.Domain;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
@@ -21,19 +23,29 @@ namespace Ejar.Api.Controllers;
 public class CatalogController : ControllerBase
 {
     private readonly OpEngine _engine;
-    private readonly RealtimeService? _realtime;
+    private readonly IChatService? _chat;
+    private readonly IConnectionTracker? _connections;
     private readonly InAppNotificationChannel? _inApp;
     private static readonly List<EjarSeed.ComplaintSeed> _complaints =
         EjarSeed.Complaints.ToList();
 
+    /// <summary>
+    /// Idle timeout for chat channels — after this many seconds without a sent or
+    /// received message, the backend auto-closes the user's chat channel and
+    /// re-opens the notification channel. Apps can wire this to config later.
+    /// </summary>
+    private static readonly TimeSpan ChatIdleTimeout = TimeSpan.FromMinutes(2);
+
     public CatalogController(
         OpEngine engine,
-        RealtimeService? realtime = null,
+        IChatService? chat = null,
+        IConnectionTracker? connections = null,
         InAppNotificationChannel? inApp = null)
     {
-        _engine   = engine;
-        _realtime = realtime;
-        _inApp    = inApp;
+        _engine      = engine;
+        _chat        = chat;
+        _connections = connections;
+        _inApp       = inApp;
     }
 
     private string CurrentUserId =>
@@ -294,7 +306,7 @@ public class CatalogController : ControllerBase
                     newId, "المؤجر", listing.OwnerId, listing.Id, listing.Title,
                     DateTime.UtcNow, 0,
                     new List<EjarSeed.MessageSeed> {
-                        new("M-auto", "me", req.Text, DateTime.UtcNow)
+                        new("M-auto", newId, "me", req.Text, DateTime.UtcNow)
                     });
                 EjarSeed.Conversations.Add(conv);
                 return Task.CompletedTask;
@@ -318,7 +330,7 @@ public class CatalogController : ControllerBase
         if (ix < 0) return this.NotFoundEnvelope("conversation_not_found");
         var conv = EjarSeed.Conversations[ix];
         var msg  = new EjarSeed.MessageSeed(
-            $"M-{conv.Messages.Count + 1}", "me",
+            $"M-{conv.Messages.Count + 1}", id, "me",
             req.Text ?? string.Empty, DateTime.UtcNow);
 
         var op = Entry.Create("message.send")
@@ -336,24 +348,38 @@ public class CatalogController : ControllerBase
             })
             .Build();
 
-        var msgData = new { id = msg.Id, from = msg.From, text = msg.Text, sentAt = msg.SentAt, conversationId = id };
-        var env     = await _engine.ExecuteEnvelopeAsync(op, msgData, ct);
+        var env = await _engine.ExecuteEnvelopeAsync(op, (IChatMessage)msg, ct);
         if (env.Operation.Status != "Success")
             return this.BadRequestEnvelope(env.Operation.FailedAnalyzer ?? "send_failed",
                                            env.Operation.ErrorMessage);
 
-        // Push realtime event to partner (best-effort — no failure if not connected)
-        var partnerId = conv.PartnerId;
-        if (_realtime is not null && !string.IsNullOrEmpty(partnerId))
-        {
-            _ = _realtime.SendToUserAsync(
-                    ACommerce.Realtime.Operations.Abstractions.PartyId.User(partnerId),
-                    "ReceiveMessage",
-                    msgData, ct: CancellationToken.None);
-            _ = _inApp?.SendAsync(partnerId, "رسالة جديدة", msg.Text ?? "", msgData, CancellationToken.None);
-        }
+        // Broadcast on BOTH chat:conv:X and notif:conv:X — each subscriber
+        // (partner) receives whichever they're currently subscribed to:
+        // chat group if their ChatRoom page is open, notif group otherwise.
+        // The chat lib decides nothing about per-recipient suppression.
+        if (_chat is not null) await _chat.BroadcastNewMessageAsync(msg, CancellationToken.None);
 
-        return this.OkEnvelope("message.send", msgData);
+        return this.OkEnvelope("message.send", msg);
+    }
+
+    // ─── Chat channel lifecycle (frontend ChatRoom calls these) ─────────────────
+
+    [HttpPost("/chat/{convId}/enter")]
+    public async Task<IActionResult> EnterChat(string convId, CancellationToken ct)
+    {
+        if (_chat is null) return this.OkEnvelope("chat.enter", new { ok = true }); // no-op when disabled
+        var connId = _connections is null ? null : await _connections.GetConnectionIdAsync(CurrentUserId, ct);
+        if (string.IsNullOrEmpty(connId))
+            return this.OkEnvelope("chat.enter", new { ok = false, reason = "no_connection" });
+        await _chat.EnterConversationAsync(convId, CurrentUserId, connId, ChatIdleTimeout, ct);
+        return this.OkEnvelope("chat.enter", new { ok = true, conversationId = convId });
+    }
+
+    [HttpPost("/chat/{convId}/leave")]
+    public async Task<IActionResult> LeaveChat(string convId, CancellationToken ct)
+    {
+        if (_chat is not null) await _chat.LeaveConversationAsync(convId, CurrentUserId, ct);
+        return this.OkEnvelope("chat.leave", new { ok = true, conversationId = convId });
     }
 
     // ═══════════════════════════════════════════════════════════════════════

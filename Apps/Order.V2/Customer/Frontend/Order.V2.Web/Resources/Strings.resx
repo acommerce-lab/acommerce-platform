@@ -1,0 +1,222 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+
+  <data name="app.name" xml:space="preserve"><value>Order</value></data>
+  <data name="app.tagline" xml:space="preserve"><value>Cafe &amp; restaurant deals</value></data>
+
+  <data name="common.search" xml:space="preserve"><value>Search</value></data>
+  <data name="common.cancel" xml:space="preserve"><value>Cancel</value></data>
+  <data name="common.save" xml:space="preserve"><value>Save</value></data>
+  <data name="common.submit" xml:space="preserve"><value>Submit</value></data>
+  <data name="common.retry" xml:space="preserve"><value>Retry</value></data>
+  <data name="common.close" xml:space="preserve"><value>Close</value></data>
+  <data name="common.loading" xml:space="preserve"><value>Loading…</value></data>
+  <data name="common.empty" xml:space="preserve"><value>No items</value></data>
+  <data name="common.next" xml:space="preserve"><value>Next</value></data>
+  <data name="common.prev" xml:space="preserve"><value>Previous</value></data>
+  <data name="common.confirm" xml:space="preserve"><value>Confirm</value></data>
+  <data name="common.all" xml:space="preserve"><value>All</value></data>
+  <data name="common.saved" xml:space="preserve"><value>Saved successfully</value></data>
+  <data name="common.error" xml:space="preserve"><value>An error occurred</value></data>
+
+  <data name="home.title" xml:space="preserve"><value>Order — Today's offers</value></data>
+  <data name="home.subtitle" xml:space="preserve"><value>Today's deals from local cafes and restaurants</value></data>
+  <data name="home.loading" xml:space="preserve"><value>Loading offers…</value></data>
+  <data name="home.empty" xml:space="preserve"><value>No offers</value></data>
+
+  <data name="nav.home" xml:space="preserve"><value>Home</value></data>
+  <data name="nav.search" xml:space="preserve"><value>Search</value></data>
+  <data name="nav.favorites" xml:space="preserve"><value>Favorites</value></data>
+  <data name="nav.cart" xml:space="preserve"><value>Cart</value></data>
+  <data name="nav.orders" xml:space="preserve"><value>My orders</value></data>
+  <data name="nav.messages" xml:space="preserve"><value>Messages</value></data>
+  <data name="nav.profile" xml:space="preserve"><value>Account</value></data>
+  <data name="nav.notifications" xml:space="preserve"><value>Notifications</value></data>
+
+  <data name="auth.login.title" xml:space="preserve"><value>Sign In</value></data>
+  <data name="auth.welcome" xml:space="preserve"><value>Welcome</value></data>
+  <data name="auth.phone" xml:space="preserve"><value>Phone number</value></data>
+  <data name="auth.phone_subtitle" xml:space="preserve"><value>Enter your phone number to continue</value></data>
+  <data name="auth.send_otp" xml:space="preserve"><value>Send verification code</value></data>
+  <data name="auth.sending" xml:space="preserve"><value>Sending...</value></data>
+  <data name="auth.otp" xml:space="preserve"><value>Verification code (6 digits)</value></data>
+  <data name="auth.otp_subtitle" xml:space="preserve"><value>Enter the code sent to</value></data>
+  <data name="auth.verify" xml:space="preserve"><value>Verify &amp; sign in</value></data>
+  <data name="auth.verifying" xml:space="preserve"><value>Verifying...</value></data>
+  <data name="auth.change_phone" xml:space="preserve"><value>Change phone</value></data>
+  <data name="auth.demo_mode" xml:space="preserve"><value>Demo mode:</value></data>
+  <data name="auth.demo_accounts" xml:space="preserve"><value>Demo accounts:</value></data>
+  <data name="auth.signed_out" xml:space="preserve"><value>Signed out</value></data>
+
+  <data name="cart.title" xml:space="preserve"><value>Cart</value></data>
+  <data name="cart.page_title" xml:space="preserve"><value>Your cart</value></data>
+  <data name="cart.empty_title" xml:space="preserve"><value>Cart is empty</value></data>
+  <data name="cart.empty_message" xml:space="preserve"><value>Browse offers and add your favorites</value></data>
+  <data name="cart.browse" xml:space="preserve"><value>Browse offers</value></data>
+  <data name="cart.pickup_hint" xml:space="preserve"><value>In-store or curbside pickup</value></data>
+  <data name="cart.subtotal" xml:space="preserve"><value>Subtotal</value></data>
+  <data name="cart.total" xml:space="preserve"><value>Total</value></data>
+  <data name="cart.checkout" xml:space="preserve"><value>Continue to checkout</value></data>
+  <data name="cart.clear" xml:space="preserve"><value>Clear cart</value></data>
+
+  <data name="checkout.title" xml:space="preserve"><value>Place order</value></data>
+  <data name="checkout.signin_required" xml:space="preserve"><value>Sign in first</value></data>
+  <data name="checkout.signin" xml:space="preserve"><value>Sign in</value></data>
+  <data name="checkout.empty_cart" xml:space="preserve"><value>Cart is empty</value></data>
+  <data name="checkout.summary" xml:space="preserve"><value>Order summary</value></data>
+  <data name="checkout.total" xml:space="preserve"><value>Total</value></data>
+  <data name="checkout.pickup_method" xml:space="preserve"><value>Pickup method</value></data>
+  <data name="checkout.pickup_instore" xml:space="preserve"><value>In-store</value></data>
+  <data name="checkout.pickup_curbside" xml:space="preserve"><value>Curbside</value></data>
+  <data name="checkout.car_details" xml:space="preserve"><value>Car details</value></data>
+  <data name="checkout.car_model" xml:space="preserve"><value>Model</value></data>
+  <data name="checkout.car_color" xml:space="preserve"><value>Color</value></data>
+  <data name="checkout.car_plate" xml:space="preserve"><value>Plate number (optional)</value></data>
+  <data name="checkout.car_required" xml:space="preserve"><value>Please enter car details</value></data>
+  <data name="checkout.payment" xml:space="preserve"><value>Preferred payment</value></data>
+  <data name="checkout.payment_hint" xml:space="preserve"><value>Payment happens at pickup — no online payment.</value></data>
+  <data name="checkout.payment_cash" xml:space="preserve"><value>Cash</value></data>
+  <data name="checkout.payment_card" xml:space="preserve"><value>Card</value></data>
+  <data name="checkout.payment_amount" xml:space="preserve"><value>Amount (SAR)</value></data>
+  <data name="checkout.payment_change" xml:space="preserve"><value>Expected change</value></data>
+  <data name="checkout.payment_not_enough" xml:space="preserve"><value>Amount must cover the total</value></data>
+  <data name="checkout.payment_insufficient" xml:space="preserve"><value>Cash amount must cover the total</value></data>
+  <data name="checkout.notes" xml:space="preserve"><value>Notes (optional)</value></data>
+  <data name="checkout.submit" xml:space="preserve"><value>Confirm order</value></data>
+  <data name="checkout.submitting" xml:space="preserve"><value>Sending…</value></data>
+  <data name="checkout.back_to_cart" xml:space="preserve"><value>Back to cart</value></data>
+  <data name="checkout.error" xml:space="preserve"><value>Could not create order</value></data>
+
+  <data name="favorites.title" xml:space="preserve"><value>Favorites</value></data>
+  <data name="favorites.signin_required" xml:space="preserve"><value>Sign in to save</value></data>
+  <data name="favorites.empty_title" xml:space="preserve"><value>No favorites yet</value></data>
+  <data name="favorites.empty_message" xml:space="preserve"><value>Tap the heart on any offer to save it</value></data>
+
+  <data name="messages.title" xml:space="preserve"><value>Messages</value></data>
+  <data name="messages.signin_required" xml:space="preserve"><value>Sign in to chat</value></data>
+  <data name="messages.empty_title" xml:space="preserve"><value>No conversations</value></data>
+  <data name="messages.empty_message" xml:space="preserve"><value>Tap "Chat with store" on any offer</value></data>
+  <data name="messages.loading" xml:space="preserve"><value>Loading…</value></data>
+  <data name="messages.placeholder" xml:space="preserve"><value>Type a message...</value></data>
+  <data name="messages.send" xml:space="preserve"><value>Send</value></data>
+
+  <data name="orders.title" xml:space="preserve"><value>Orders</value></data>
+  <data name="orders.page_title" xml:space="preserve"><value>My orders</value></data>
+  <data name="orders.signin_required" xml:space="preserve"><value>Sign in to view orders</value></data>
+  <data name="orders.my_orders" xml:space="preserve"><value>My orders</value></data>
+  <data name="orders.empty_title" xml:space="preserve"><value>No orders yet</value></data>
+  <data name="orders.empty_message" xml:space="preserve"><value>Place your first order</value></data>
+
+  <data name="order.details" xml:space="preserve"><value>Order details</value></data>
+  <data name="order.success_title" xml:space="preserve"><value>Order received</value></data>
+  <data name="order.success_subtitle" xml:space="preserve"><value>The store will confirm shortly</value></data>
+  <data name="order.view_order" xml:space="preserve"><value>View order</value></data>
+  <data name="order.continue_shopping" xml:space="preserve"><value>Continue shopping</value></data>
+  <data name="order.not_found" xml:space="preserve"><value>Order not found</value></data>
+  <data name="order.items" xml:space="preserve"><value>Items</value></data>
+  <data name="order.vendor" xml:space="preserve"><value>Store</value></data>
+  <data name="order.pickup" xml:space="preserve"><value>Pickup</value></data>
+  <data name="order.payment" xml:space="preserve"><value>Payment (at pickup)</value></data>
+  <data name="order.cash_tendered" xml:space="preserve"><value>Cash tendered</value></data>
+  <data name="order.expected_change" xml:space="preserve"><value>Expected change</value></data>
+  <data name="order.notes" xml:space="preserve"><value>Notes</value></data>
+  <data name="order.cancel" xml:space="preserve"><value>Cancel order</value></data>
+
+  <data name="offer.details" xml:space="preserve"><value>Offer details</value></data>
+  <data name="offer.price" xml:space="preserve"><value>Price</value></data>
+  <data name="offer.description" xml:space="preserve"><value>Description</value></data>
+  <data name="offer.vendor" xml:space="preserve"><value>Vendor</value></data>
+  <data name="offer.rating" xml:space="preserve"><value>Rating</value></data>
+  <data name="offer.not_found" xml:space="preserve"><value>Offer not found</value></data>
+  <data name="offer.back_to_home" xml:space="preserve"><value>Back to home</value></data>
+  <data name="offer.add_to_cart" xml:space="preserve"><value>Add to cart</value></data>
+  <data name="offer.chat_with_store" xml:space="preserve"><value>Chat with store</value></data>
+
+  <data name="vendor.profile" xml:space="preserve"><value>Vendor profile</value></data>
+  <data name="vendor.info" xml:space="preserve"><value>Store info</value></data>
+  <data name="vendor.hours" xml:space="preserve"><value>Open hours</value></data>
+  <data name="vendor.phone" xml:space="preserve"><value>Phone</value></data>
+  <data name="vendor.location" xml:space="preserve"><value>Location</value></data>
+  <data name="vendor.offers" xml:space="preserve"><value>Store offers</value></data>
+  <data name="vendor.not_found" xml:space="preserve"><value>Store not found</value></data>
+  <data name="vendor.home" xml:space="preserve"><value>Home</value></data>
+  <data name="vendor.no_offers" xml:space="preserve"><value>No offers right now</value></data>
+
+  <data name="search.title" xml:space="preserve"><value>Search</value></data>
+  <data name="search.placeholder" xml:space="preserve"><value>Search for an offer…</value></data>
+  <data name="search.discover" xml:space="preserve"><value>Discover</value></data>
+  <data name="search.placeholder_advanced" xml:space="preserve"><value>Store, product, district...</value></data>
+  <data name="search.map_view" xml:space="preserve"><value>Map</value></data>
+  <data name="search.list_view" xml:space="preserve"><value>List</value></data>
+  <data name="search.no_results" xml:space="preserve"><value>No results</value></data>
+  <data name="search.no_results_message" xml:space="preserve"><value>Try a different filter or search</value></data>
+  <data name="search.stores" xml:space="preserve"><value>Stores</value></data>
+  <data name="search.offers" xml:space="preserve"><value>Offers</value></data>
+  <data name="search.advanced_filters" xml:space="preserve"><value>Advanced filters</value></data>
+  <data name="search.discounted_only" xml:space="preserve"><value>Discounted only</value></data>
+  <data name="search.min_price" xml:space="preserve"><value>Min price</value></data>
+  <data name="search.max_price" xml:space="preserve"><value>Max price</value></data>
+  <data name="search.min_rating" xml:space="preserve"><value>Min rating</value></data>
+  <data name="search.discount" xml:space="preserve"><value>Discount</value></data>
+  <data name="search.clear_all" xml:space="preserve"><value>Clear all</value></data>
+  <data name="search.view_store_menu" xml:space="preserve"><value>View store menu</value></data>
+  <data name="search.view_details" xml:space="preserve"><value>View details</value></data>
+
+  <data name="settings.title" xml:space="preserve"><value>Settings</value></data>
+  <data name="settings.language" xml:space="preserve"><value>Language</value></data>
+  <data name="settings.theme" xml:space="preserve"><value>Theme</value></data>
+  <data name="settings.theme_light" xml:space="preserve"><value>Light</value></data>
+  <data name="settings.theme_dark" xml:space="preserve"><value>Dark</value></data>
+  <data name="settings.sign_out" xml:space="preserve"><value>Sign out</value></data>
+
+  <data name="profile.title" xml:space="preserve"><value>Account</value></data>
+  <data name="profile.edit" xml:space="preserve"><value>Edit profile</value></data>
+  <data name="profile.account" xml:space="preserve"><value>Account</value></data>
+  <data name="profile.not_signed_in" xml:space="preserve"><value>Not signed in</value></data>
+  <data name="profile.points" xml:space="preserve"><value>Points</value></data>
+
+  <data name="account.title" xml:space="preserve"><value>Edit Account</value></data>
+  <data name="account.subtitle" xml:space="preserve"><value>Update your personal info</value></data>
+  <data name="account.personal_info" xml:space="preserve"><value>Personal Info</value></data>
+  <data name="account.full_name" xml:space="preserve"><value>Full Name</value></data>
+  <data name="account.full_name_placeholder" xml:space="preserve"><value>Enter your full name</value></data>
+  <data name="account.email" xml:space="preserve"><value>Email</value></data>
+  <data name="account.email_placeholder" xml:space="preserve"><value>Enter your email</value></data>
+  <data name="account.car_details" xml:space="preserve"><value>Car Details</value></data>
+  <data name="account.car_details_hint" xml:space="preserve"><value>Used for curbside pickup orders</value></data>
+  <data name="account.car_model_placeholder" xml:space="preserve"><value>e.g. Camry 2024</value></data>
+  <data name="account.car_color_placeholder" xml:space="preserve"><value>e.g. White</value></data>
+  <data name="account.car_plate_placeholder" xml:space="preserve"><value>Optional</value></data>
+  <data name="account.saving" xml:space="preserve"><value>Saving...</value></data>
+  <data name="account.save_changes" xml:space="preserve"><value>Save Changes</value></data>
+  <data name="account.name_required" xml:space="preserve"><value>Name is required</value></data>
+  <data name="account.saved_successfully" xml:space="preserve"><value>Changes saved successfully</value></data>
+  <data name="account.save_failed" xml:space="preserve"><value>Could not save changes</value></data>
+
+  <data name="legal.title" xml:space="preserve"><value>Legal documents</value></data>
+  <data name="legal.privacy" xml:space="preserve"><value>Privacy policy</value></data>
+  <data name="legal.terms" xml:space="preserve"><value>Terms and conditions</value></data>
+  <data name="legal.updated" xml:space="preserve"><value>Last updated: April 2026</value></data>
+  <data name="legal.terms_header" xml:space="preserve"><value>Terms of Use</value></data>
+  <data name="legal.refund_header" xml:space="preserve"><value>Refund Policy</value></data>
+
+  <data name="design.catalog" xml:space="preserve"><value>Design Catalog — Order</value></data>
+  <data name="design.customer" xml:space="preserve"><value>Customer: Orange</value></data>
+
+  <data name="conversation.title" xml:space="preserve"><value>Chat</value></data>
+  <data name="conversation.signin_required" xml:space="preserve"><value>Sign in</value></data>
+  <data name="conversation.loading" xml:space="preserve"><value>Loading…</value></data>
+  <data name="conversation.empty" xml:space="preserve"><value>No messages yet</value></data>
+
+  <data name="notifications.title" xml:space="preserve"><value>Notifications</value></data>
+  <data name="notifications.signin_required" xml:space="preserve"><value>Sign in for notifications</value></data>
+  <data name="notifications.empty_title" xml:space="preserve"><value>All caught up</value></data>
+  <data name="notifications.empty_message" xml:space="preserve"><value>New activity will appear here</value></data>
+  <data name="notifications.mark_all_read" xml:space="preserve"><value>Mark all read</value></data>
+
+  <data name="demo.sara" xml:space="preserve"><value>Sara</value></data>
+</root>

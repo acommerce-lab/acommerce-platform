@@ -1,0 +1,44 @@
+@page "/admin/users"
+@inject AppStore Store
+@inject ApiReader Api
+
+<PageTitle>المستخدمون — إدارة إيجار</PageTitle>
+
+<AcAuthGuard IsAuthenticated="@Store.Auth.IsAuthenticated" LoginHref="/login">
+    <h2 class="page-title">المستخدمون</h2>
+    @if (_rows is null) { <AcLoadingState /> }
+    else if (!_rows.Any()) { <AcEmpty Title="لا مستخدمين" Message="" /> }
+    else
+    {
+        <div class="table-wrap"><table class="table">
+            <thead><tr>
+                <th>الاسم</th><th>الهاتف</th><th>المدينة</th>
+                <th>إعلانات</th><th>محادثات</th>
+            </tr></thead>
+            <tbody>
+                @foreach (var u in _rows)
+                {
+                    <tr>
+                        <td>@u.fullName</td><td>@u.phone</td><td>@u.city</td>
+                        <td>@u.listingsCount</td><td>@u.conversationsCount</td>
+                    </tr>
+                }
+            </tbody>
+        </table></div>
+    }
+</AcAuthGuard>
+
+@code {
+    private List<Row>? _rows;
+
+    protected override async Task OnAfterRenderAsync(bool first)
+    {
+        if (!first || !Store.Auth.IsAuthenticated) return;
+        var env = await Api.GetAsync<List<Row>>("/admin/users");
+        _rows = env.Data ?? new();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private record Row(string id, string fullName, string? phone, string? email, string? city,
+                        int listingsCount, int conversationsCount);
+}

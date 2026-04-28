@@ -2,10 +2,19 @@ using System.Text;
 using ACommerce.Authentication.TwoFactor.Operations;
 using ACommerce.Authentication.TwoFactor.Operations.Abstractions;
 using ACommerce.Authentication.TwoFactor.Providers.Sms.Mock.Extensions;
+using ACommerce.Cache.Providers.InMemory.Extensions;
+using ACommerce.Cache.Providers.Redis.Extensions;
+using ACommerce.Chat.Operations;
+using ACommerce.Notification.Providers.InApp.Extensions;
 using ACommerce.OperationEngine.Core;
+using ACommerce.Realtime.Operations.Abstractions;
+using ACommerce.Realtime.Providers.InMemory;
+using ACommerce.Realtime.Providers.SignalR;
+using ACommerce.Realtime.Providers.SignalR.Extensions;
+using ACommerce.Realtime.Providers.SignalR.Redis.Extensions;
 using ACommerce.SharedKernel.Abstractions.Entities;
 using ACommerce.SharedKernel.Infrastructure.EFCores.Extensions;
-using Ashare.V2.Api.Entities;
+using Ashare.V2.Domain;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Serilog;
@@ -96,6 +105,16 @@ try
                 ValidateLifetime         = true,
                 ClockSkew                = TimeSpan.FromMinutes(2),
             };
+            o.Events = new JwtBearerEvents
+            {
+                OnMessageReceived = ctx =>
+                {
+                    var t = ctx.Request.Query["access_token"].ToString();
+                    if (!string.IsNullOrEmpty(t) && ctx.HttpContext.Request.Path.StartsWithSegments("/hubs"))
+                        ctx.Token = t;
+                    return Task.CompletedTask;
+                }
+            };
         });
 
     builder.Services.AddAuthorization(opts =>
@@ -112,7 +131,37 @@ try
     });
     builder.Services.AddScoped<TwoFactorService>();
 
+    // ─── Realtime + Chat + InApp notifications (abstractions only) ────────
+    builder.Services.AddSignalRRealtimeTransport();
+    builder.Services.AddInAppNotificationChannel(o => o.MethodName = "ReceiveNotification");
+
+    // REMINDER: set Cache:Redis:ConnectionString (and optionally
+    // Realtime:Redis:ConnectionString) in appsettings.{Env}.json before
+    // multi-instance deployment.
+    {
+        var cacheRedis = cfg["Cache:Redis:ConnectionString"];
+        var rtRedis    = cfg["Realtime:Redis:ConnectionString"] ?? cacheRedis;
+        if (!string.IsNullOrEmpty(cacheRedis))
+        {
+            builder.Services.AddRedisCache(cacheRedis);
+            builder.Services.AddRedisConnectionTracker();
+        }
+        else
+        {
+            builder.Services.AddInMemoryCache();
+            builder.Services.AddSingleton<InMemoryConnectionTracker>();
+            builder.Services.AddSingleton<IConnectionTracker>(sp => sp.GetRequiredService<InMemoryConnectionTracker>());
+        }
+        if (!string.IsNullOrEmpty(rtRedis))
+            builder.Services.AddSignalRRedisBackplane(rtRedis);
+    }
+
+    builder.Services.AddChat();
+
     var app = builder.Build();
+
+    // Chat<->Notifications coupling per standard policy.
+    app.Services.WireChatNotificationCoupling();
 
     app.UseCors();
     app.UseAuthentication();
@@ -120,6 +169,7 @@ try
     app.UseSwagger();
     app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "Ashare V2 Admin API v1"));
     app.MapControllers();
+    app.MapHub<AShareHub>("/hubs/ashare-v2-admin");
     app.MapGet("/healthz", () => Results.Ok(new { status = "healthy", service = "Ashare.V2.Admin.Api" }));
 
     // ─── Ensure shared DB schema ──────────────────────────────────────────

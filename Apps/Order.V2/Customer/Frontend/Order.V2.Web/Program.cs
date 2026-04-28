@@ -1,3 +1,4 @@
+using ACommerce.Chat.Client.Blazor;
 using ACommerce.Client.Http;
 using ACommerce.Client.Http.Extensions;
 using ACommerce.Culture.Blazor;
@@ -80,6 +81,16 @@ builder.Services.AddScoped<IStateApplier>(sp => sp.GetRequiredService<AppStateAp
 builder.Services.AddScoped<AuthStateService>();
 
 builder.Services.AddEmbeddedL10n<CustomerTranslations, AppLangContext>();
+
+// Realtime + Chat client — uses the named "order" HttpClient to talk to the API.
+builder.Services.AddScoped<Order.V2.Web.Services.OrderV2RealtimeService>();
+builder.Services.AddBlazorChatClient(opts =>
+{
+    opts.HttpClientName    = "order";
+    opts.EnterPathTemplate = "/chat/{convId}/enter";
+    opts.LeavePathTemplate = "/chat/{convId}/leave";
+    opts.SendPathTemplate  = "/api/messages";
+});
 
 var app = builder.Build();
 

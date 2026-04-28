@@ -1,14 +1,26 @@
 using ACommerce.Authentication.TwoFactor.Providers.Sms.Mock.Extensions;
-using ACommerce.Notification.Providers.InApp;
-using ACommerce.Realtime.Operations;
-using ACommerce.Realtime.Providers.SignalR;
-using ACommerce.Realtime.Providers.SignalR.Extensions;
+using ACommerce.Cache.Providers.InMemory.Extensions;
+using ACommerce.Cache.Providers.Redis.Extensions;
+using ACommerce.Chat.Operations;
+using ACommerce.Kits.Auth.Backend;
+using ACommerce.Kits.Auth.Operations;
+using ACommerce.Kits.Auth.TwoFactor.AsAuth;
+using ACommerce.Kits.Chat.Backend;
+using ACommerce.Notification.Providers.Firebase.Extensions;
+using ACommerce.Notification.Providers.InApp.Extensions;
 using ACommerce.OperationEngine.Core;
 using ACommerce.OperationEngine.Interceptors;
 using ACommerce.OperationEngine.Interceptors.Extensions;
+using ACommerce.Realtime.Operations;
+using ACommerce.Realtime.Operations.Abstractions;
+using ACommerce.Realtime.Providers.InMemory;
+using ACommerce.Realtime.Providers.SignalR;
+using ACommerce.Realtime.Providers.SignalR.Extensions;
+using ACommerce.Realtime.Providers.SignalR.Redis.Extensions;
+using Ejar.Api.Data;
 using Ejar.Api.Interceptors;
 using Ejar.Api.Middleware;
-using Ejar.Api.Services;
+using Ejar.Api.Stores;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Serilog;
@@ -27,11 +39,10 @@ try
 
     var builder = WebApplication.CreateBuilder(args);
     builder.Host.UseSerilog();
-
     var cfg = builder.Configuration;
     var env = builder.Environment;
 
-    // ─── MVC + Swagger ──────────────────────────────────────────────────────────
+    // ─── MVC + Swagger ─────────────────────────────────────────────────────
     builder.Services.AddControllers();
     builder.Services.AddEndpointsApiExplorer();
     builder.Services.AddSwaggerGen(c =>
@@ -39,50 +50,57 @@ try
         c.SwaggerDoc("v1", new() { Title = "Ejar API — إيجار", Version = "v1" });
         c.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
         {
-            Type   = Microsoft.OpenApi.Models.SecuritySchemeType.Http,
+            Type = Microsoft.OpenApi.Models.SecuritySchemeType.Http,
             Scheme = "bearer", BearerFormat = "JWT"
         });
         c.AddSecurityRequirement(new Microsoft.OpenApi.Models.OpenApiSecurityRequirement
         {
-            {
-                new Microsoft.OpenApi.Models.OpenApiSecurityScheme
-                {
-                    Reference = new Microsoft.OpenApi.Models.OpenApiReference
-                        { Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme, Id = "Bearer" }
-                },
-                Array.Empty<string>()
-            }
+            { new Microsoft.OpenApi.Models.OpenApiSecurityScheme {
+                Reference = new Microsoft.OpenApi.Models.OpenApiReference {
+                    Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme, Id = "Bearer" } },
+              Array.Empty<string>() }
         });
     });
 
-    // ─── Health checks + cache ──────────────────────────────────────────────────
     builder.Services.AddHealthChecks();
     builder.Services.AddMemoryCache();
     builder.Services.AddHttpContextAccessor();
 
-    // ─── CORS — AllowCredentials is required for SignalR WebSocket ───────────
+    // ─── CORS ────────────────────────────────────────────────────────────
+    // - Cors:AllowedOrigins  → قائمة origins صريحة.
+    // - Cors:AllowedOriginPatterns → قائمة wildcards (مثلاً
+    //   "https://*.runasp.net") ليُقبَل أيّ subdomain منشور دون تعديل الكود
+    //   عند كل إعادة نشر. AllowCredentials مطلوب لـ SignalR + cookies.
     builder.Services.AddCors(o => o.AddDefaultPolicy(p =>
     {
-        if (env.IsDevelopment())
-            p.WithOrigins("http://localhost:5301", "https://localhost:5301")
-             .AllowAnyHeader().AllowAnyMethod().AllowCredentials();
-        else
+        var origins = cfg.GetSection("Cors:AllowedOrigins").Get<string[]>()
+                      ?? (env.IsDevelopment()
+                            ? new[] { "http://localhost:5301", "http://localhost:5302" }
+                            : new[] { "https://ejar.ye" });
+        p.WithOrigins(origins).AllowAnyHeader().AllowAnyMethod().AllowCredentials();
+
+        var patterns = cfg.GetSection("Cors:AllowedOriginPatterns").Get<string[]>()
+                       ?? Array.Empty<string>();
+        if (patterns.Length > 0)
         {
-            var origins = cfg.GetSection("Cors:AllowedOrigins").Get<string[]>()
-                          ?? ["https://ejar.app"];
-            p.WithOrigins(origins).AllowAnyHeader().AllowAnyMethod().AllowCredentials();
+            // تحويل كل نمط wildcard إلى regex متساهل: "https://*.runasp.net"
+            //  → "^https://[^/]+\.runasp\.net$"
+            var regexes = patterns.Select(pat =>
+                new System.Text.RegularExpressions.Regex(
+                    "^" + System.Text.RegularExpressions.Regex.Escape(pat).Replace("\\*", "[^/]+") + "$",
+                    System.Text.RegularExpressions.RegexOptions.IgnoreCase)
+            ).ToArray();
+            p.SetIsOriginAllowed(origin =>
+                regexes.Any(r => r.IsMatch(origin)));
         }
     }));
 
-    // ─── JWT Bearer ─────────────────────────────────────────────────────────────
+    // ─── JWT ───────────────────────────────────────────────────────────────
     var jwtSecret   = cfg["JWT:SecretKey"]  ?? "Ejar-dev-secret-do-not-use-in-prod-32chars!!!!";
     var jwtIssuer   = cfg["JWT:Issuer"]     ?? "http://localhost:5300";
     var jwtAudience = cfg["JWT:Audience"]   ?? "ejar-api";
-
     if (jwtSecret.Contains("dev-secret"))
         Log.Warning("Ejar: JWT:SecretKey is using a development placeholder — set a real secret in production.");
-
-    builder.Services.AddSingleton(new EjarJwtConfig(jwtSecret, jwtIssuer, jwtAudience));
 
     builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         .AddJwtBearer(opts =>
@@ -94,48 +112,97 @@ try
                 ValidateIssuer    = true, ValidIssuer    = jwtIssuer,
                 ValidateAudience  = true, ValidAudience  = jwtAudience,
                 ValidateLifetime  = true,
-                ClockSkew = TimeSpan.FromSeconds(30)
+                ClockSkew         = TimeSpan.FromMinutes(2)
             };
-            // SignalR WebSocket connections can't set HTTP headers,
-            // so the token is passed as ?access_token= in the query string.
-            opts.Events = new Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerEvents
+            // SignalR WebSocket can't set HTTP headers; token comes as ?access_token=
+            opts.Events = new JwtBearerEvents
             {
                 OnMessageReceived = ctx =>
                 {
-                    var token = ctx.Request.Query["access_token"].ToString();
-                    if (!string.IsNullOrEmpty(token) &&
-                        ctx.HttpContext.Request.Path.StartsWithSegments("/hubs"))
-                        ctx.Token = token;
+                    var t = ctx.Request.Query["access_token"].ToString();
+                    if (!string.IsNullOrEmpty(t) && ctx.HttpContext.Request.Path.StartsWithSegments("/hubs"))
+                        ctx.Token = t;
                     return Task.CompletedTask;
                 }
             };
         });
     builder.Services.AddAuthorization();
 
-    // ─── OAM engine ─────────────────────────────────────────────────────────────
+    // ─── OAM engine + interceptors ─────────────────────────────────────────
     builder.Services.AddScoped<OpEngine>(sp =>
         new OpEngine(sp, sp.GetRequiredService<ILogger<OpEngine>>()));
-
-    // ─── Interceptors ───────────────────────────────────────────────────────────
     builder.Services.AddSingleton<OperationLogInterceptor>();
     builder.Services.AddSingleton<IOperationInterceptor>(
         sp => sp.GetRequiredService<OperationLogInterceptor>());
     builder.Services.AddOperationInterceptors();
 
-    // ─── Auth: Mock SMS 2FA (رمز ثابت 123456) ─────────────────────────────────
-    // للإنتاج: أبدل هذا السطر بـ builder.Services.AddSmsTwoFactor()
-    builder.Services.AddMockSmsTwoFactor();
+    // ─── Database (Sqlite في dev، MSSQL في prod — حسب Database:Provider) ───
+    builder.Services.AddEjarDatabase(cfg, env);
 
-    // ─── Realtime: SignalR + InApp notification channel ────────────────────────
+    // ─── Auth Kit (drop-in /auth/otp/{request,verify} + /auth/logout) ────
+    // للإنتاج: أبدل AddMockSmsTwoFactor() بـ AddSmsTwoFactor() مع مزوّد حقيقي.
+    builder.Services.AddMockSmsTwoFactor();
+    builder.Services.AddAuthKit<EjarCustomerAuthUserStore>(
+        new AuthKitJwtConfig(
+            Secret:    jwtSecret,
+            Issuer:    jwtIssuer,
+            Audience:  jwtAudience,
+            Role:      "customer",
+            PartyKind: "User"));
+    builder.Services.AddTwoFactorAsAuth(); // bridge ITwoFactorChannel -> IAuthFlow
+
+    // ─── Realtime + Chat Kit (drop-in /conversations + /chat/{id}/enter|leave) ─
     builder.Services.AddSignalRRealtimeTransport();
     builder.Services.AddScoped<RealtimeService>();
-    builder.Services.AddSingleton(new InAppOptions { MethodName = "ReceiveNotification" });
-    builder.Services.AddScoped<InAppNotificationChannel>();
+    builder.Services.AddInAppNotificationChannel(o => o.MethodName = "ReceiveNotification");
+    builder.Services.AddChatKit<EjarCustomerChatStore>(o => o.PartyKind = "User");
 
-    // ─── Build ──────────────────────────────────────────────────────────────────
+    // Firebase Push (Android/iOS) — مفعّل فقط لو FIREBASE_SERVICE_ACCOUNT_JSON موجود.
+    var firebaseJson = Environment.GetEnvironmentVariable("FIREBASE_SERVICE_ACCOUNT_JSON")
+                       ?? cfg["Notifications:Firebase:ServiceAccountKeyJson"];
+    if (!string.IsNullOrEmpty(firebaseJson))
+    {
+        builder.Services.AddFirebaseNotificationChannel(cfg);
+        Log.Information("Ejar: Firebase FCM configured");
+    }
+
+    // ── Cache + cluster-ready realtime (opt-in via config) ─────────────────
+    // REMINDER: set Cache:Redis:ConnectionString (and optionally
+    // Realtime:Redis:ConnectionString — falls back to the cache one) قبل النشر
+    // multi-instance. بدونها يعمل single-instance بـ InMemoryCache + InMemoryConnectionTracker.
+    var cacheRedis = cfg["Cache:Redis:ConnectionString"];
+    var rtRedis    = cfg["Realtime:Redis:ConnectionString"] ?? cacheRedis;
+    if (!string.IsNullOrEmpty(cacheRedis))
+    {
+        builder.Services.AddRedisCache(cacheRedis);
+        builder.Services.AddRedisConnectionTracker();
+        Log.Information("Cache: Redis enabled");
+    }
+    else
+    {
+        builder.Services.AddInMemoryCache();
+        builder.Services.AddSingleton<InMemoryConnectionTracker>();
+        builder.Services.AddSingleton<IConnectionTracker>(
+            sp => sp.GetRequiredService<InMemoryConnectionTracker>());
+        Log.Information("Cache: in-memory (single-instance only)");
+    }
+    if (!string.IsNullOrEmpty(rtRedis))
+    {
+        builder.Services.AddSignalRRedisBackplane(rtRedis);
+        Log.Information("Realtime: SignalR Redis backplane enabled");
+    }
+
+    // ─── Build ─────────────────────────────────────────────────────────────
     var app = builder.Build();
 
-    // ─── Middleware pipeline (بنفس ترتيب عشير V2) ─────────────────────────────
+    // ── DB schema + seed (يجري قبل أيّ طلب HTTP) ─────────────────────────
+    await EjarDbSeeder.EnsureSchemaAndSeedAsync(
+        app.Services,
+        app.Services.GetRequiredService<ILogger<Program>>());
+
+    // chat<->notif coupling: open chat:conv:X → mute notif:conv:X لنفس المستخدم.
+    app.Services.WireChatNotificationCoupling();
+
     app.UseGlobalExceptionHandler();
     app.UseCors();
     app.UseAuthentication();
@@ -170,6 +237,3 @@ finally
 {
     Log.CloseAndFlush();
 }
-
-// ─── config record ───────────────────────────────────────────────────────────
-public record EjarJwtConfig(string Secret, string Issuer, string Audience);

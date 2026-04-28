@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <PackageId>ACommerce.Chat.Client.Blazor</PackageId>
+    <Version>1.0.0</Version>
+    <Description>Blazor-side chat client. Tracks ActiveConversationId, fires MessageReceived for the active conversation only (other-conversation messages flow through notifications, not here). Calls backend chat enter/leave HTTP endpoints. Apps wire OnRealtimeMessage from their per-app realtime service so the chat client stays transport-agnostic.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\ACommerce.Chat.Operations\ACommerce.Chat.Operations.csproj" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Options" Version="10.0.0" />
+  </ItemGroup>
+</Project>

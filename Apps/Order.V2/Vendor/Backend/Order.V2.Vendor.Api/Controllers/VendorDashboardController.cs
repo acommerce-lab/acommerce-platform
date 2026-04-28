@@ -1,7 +1,7 @@
 using ACommerce.SharedKernel.Abstractions.Repositories;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Order.V2.Api.Entities;
+using Order.V2.Domain;
 
 namespace Order.V2.Vendor.Api.Controllers;
 

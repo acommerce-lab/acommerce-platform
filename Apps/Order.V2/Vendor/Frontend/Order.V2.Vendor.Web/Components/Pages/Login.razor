@@ -5,7 +5,7 @@
 @inject NavigationManager Nav
 @inject L L
 
-<PageTitle>@L.T("دخول — اوردر V2 المتجر", "Sign in — Order V2 Vendor")</PageTitle>
+<PageTitle>@L["page.login.title"]</PageTitle>
 
 <AcLoginPage Mode="TemplateOperationMode.Operation"
              Engine="Engine"
@@ -14,17 +14,17 @@
              PhonePayload="@(phone => new { phoneNumber = phone })"
              VerifyPayload="@((uid, cid, code) => new { userId = uid, challengeId = cid, code })"
              RedirectUrl="/"
-             BrandName="@L.T("اوردر V2 — لوحة المتجر", "Order V2 — Vendor Panel")"
-             BrandTagline="@L.T("بوابة أصحاب المتاجر والمطاعم", "Portal for store and restaurant owners")"
-             PhoneStepTitle="@L.T("دخول بالهاتف", "Sign in by phone")"
-             PhoneStepSubtitle="@L.T("سنرسل لك رمز تحقق عبر SMS", "We will send you an SMS verification code")"
-             PhoneLabel="@L.T("رقم الهاتف", "Phone number")"
+             BrandName="@L["brand.name"]"
+             BrandTagline="@L["brand.tagline"]"
+             PhoneStepTitle="@L["auth.phone_step.title"]"
+             PhoneStepSubtitle="@L["auth.phone_step.subtitle"]"
+             PhoneLabel="@L["auth.phone_label"]"
              PhonePlaceholder="+966501111111"
-             RequestOtpLabel="@L.T("إرسال رمز التحقق", "Send verification code")"
-             SendingLabel="@L.T("جاري الإرسال...", "Sending...")"
-             OtpStepTitle="@L.T("رمز التحقق", "Verification code")"
-             OtpStepSubtitle="@L.T("أدخل الرمز المرسل إلى", "Enter the code sent to")"
-             OtpLabel="@L.T("رمز التحقق (6 أرقام)", "Verification code (6 digits)")"
-             VerifyOtpLabel="@L.T("تحقق ودخول", "Verify and sign in")"
-             VerifyingLabel="@L.T("جاري التحقق...", "Verifying...")"
-             BackLabel="@L.T("تغيير الرقم", "Change number")" />
+             RequestOtpLabel="@L["auth.request_otp"]"
+             SendingLabel="@L["auth.sending"]"
+             OtpStepTitle="@L["auth.otp_step.title"]"
+             OtpStepSubtitle="@L["auth.otp_step.subtitle"]"
+             OtpLabel="@L["auth.otp_label"]"
+             VerifyOtpLabel="@L["auth.verify_otp"]"
+             VerifyingLabel="@L["auth.verifying"]"
+             BackLabel="@L["auth.change_phone"]" />

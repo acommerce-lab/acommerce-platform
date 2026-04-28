@@ -1,0 +1,53 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Razor">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>Ejar.Customer.UI</RootNamespace>
+    <AssemblyName>Ejar.Customer.UI</AssemblyName>
+    <PackageId>Ejar.Customer.UI</PackageId>
+    <Version>1.0.0</Version>
+    <Description>
+      المكتبة المشتركة لعميل إيجار. تحتوي كل صفحات الـ Razor، AppStore،
+      عمليات الـ OAM، الـ Interpreters، خدمات HTTP/Realtime/Chat. لا
+      تعتمد على بيئة استضافة معيّنة — تشغّلها قشرة Blazor Server (Ejar.Web)،
+      Blazor WebAssembly (Ejar.WebAssembly)، أو MAUI Hybrid (Ejar.Maui).
+    </Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Domain (entities + seed contracts) -->
+    <ProjectReference Include="..\..\..\Domain\Ejar.Domain.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- OperationEngine core + Wire -->
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Core\OperationEngine\ACommerce.OperationEngine\ACommerce.OperationEngine.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Core\OperationEngine\ACommerce.OperationEngine.Wire\ACommerce.OperationEngine.Wire.csproj" />
+
+    <!-- Client libraries: dispatcher + state bridge + interceptors -->
+    <ProjectReference Include="..\..\..\..\..\clients\ACommerce.Client.Operations\ACommerce.Client.Operations.csproj" />
+    <ProjectReference Include="..\..\..\..\..\clients\ACommerce.Client.Http\ACommerce.Client.Http.csproj" />
+    <ProjectReference Include="..\..\..\..\..\clients\ACommerce.Client.StateBridge\ACommerce.Client.StateBridge.csproj" />
+
+    <!-- Culture: numeral + phone normalization -->
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Culture\ACommerce.Culture.Abstractions\ACommerce.Culture.Abstractions.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Culture\ACommerce.Culture.Defaults\ACommerce.Culture.Defaults.csproj" />
+
+    <!-- Widgets + Marketplace templates -->
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Widgets\ACommerce.Widgets\ACommerce.Widgets.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Templates\Shared\ACommerce.Templates.Shared\ACommerce.Templates.Shared.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Templates\Marketplace\ACommerce.Templates.Marketplace\ACommerce.Templates.Marketplace.csproj" />
+
+    <!-- Chat client -->
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Chat\ACommerce.Chat.Client.Blazor\ACommerce.Chat.Client.Blazor.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Embedded translations live as .resx in Resources/ -->
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Options" Version="10.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.0" />
+  </ItemGroup>
+</Project>

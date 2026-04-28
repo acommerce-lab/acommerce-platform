@@ -2,9 +2,13 @@ using System.Text;
 using ACommerce.Authentication.TwoFactor.Providers.Nafath.Mock.Extensions;
 using ACommerce.Files.Storage.AliyunOSS.Extensions;
 using ACommerce.Files.Storage.Local.Extensions;
+using ACommerce.Cache.Providers.InMemory.Extensions;
+using ACommerce.Cache.Providers.Redis.Extensions;
+using ACommerce.Chat.Operations;
 using ACommerce.Notification.Providers.Email.Extensions;
 using ACommerce.Notification.Providers.Firebase.Extensions;
 using ACommerce.Notification.Providers.InApp.Extensions;
+using ACommerce.Realtime.Providers.SignalR.Redis.Extensions;
 using ACommerce.OperationEngine.Core;
 using ACommerce.OperationEngine.Interceptors;
 using ACommerce.OperationEngine.Interceptors.Extensions;
@@ -14,7 +18,7 @@ using ACommerce.Realtime.Providers.SignalR;
 using ACommerce.Realtime.Providers.SignalR.Extensions;
 using ACommerce.SharedKernel.Abstractions.Entities;
 using ACommerce.SharedKernel.Infrastructure.EFCores.Extensions;
-using Ashare.V2.Api.Entities;
+using Ashare.V2.Domain;
 using Ashare.V2.Api.Interceptors;
 using Ashare.V2.Api.Middleware;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -189,9 +193,38 @@ try
         Log.Information("File storage: Local (dev)");
     }
 
-    // ─── Notifications ────────────────────────────────────────────────────────
+    // ─── Notifications + Chat ────────────────────────────────────────────────
     builder.Services.AddSignalRRealtimeTransport();
     builder.Services.AddInAppNotificationChannel();
+
+    // ── Cache + cluster-ready realtime (opt-in via config) ───────────────────
+    // REMINDER: set Cache:Redis:ConnectionString in appsettings.{Env}.json
+    // (and optionally Realtime:Redis:ConnectionString — falls back to the cache one)
+    // before deploying multi-instance.
+    {
+        var cacheRedis = cfg["Cache:Redis:ConnectionString"];
+        var rtRedis    = cfg["Realtime:Redis:ConnectionString"] ?? cacheRedis;
+        if (!string.IsNullOrEmpty(cacheRedis))
+        {
+            builder.Services.AddRedisCache(cacheRedis);
+            builder.Services.AddRedisConnectionTracker();
+            Log.Information("Cache: Redis enabled");
+        }
+        else
+        {
+            builder.Services.AddInMemoryCache();
+            builder.Services.AddSingleton<ACommerce.Realtime.Providers.InMemory.InMemoryConnectionTracker>();
+            builder.Services.AddSingleton<ACommerce.Realtime.Operations.Abstractions.IConnectionTracker>(
+                sp => sp.GetRequiredService<ACommerce.Realtime.Providers.InMemory.InMemoryConnectionTracker>());
+        }
+        if (!string.IsNullOrEmpty(rtRedis))
+        {
+            builder.Services.AddSignalRRedisBackplane(rtRedis);
+            Log.Information("Realtime: SignalR Redis backplane enabled");
+        }
+    }
+
+    builder.Services.AddChat();
 
     var firebaseJson = Environment.GetEnvironmentVariable("FIREBASE_SERVICE_ACCOUNT_JSON")
                        ?? cfg["Notifications:Firebase:ServiceAccountKeyJson"];
@@ -214,6 +247,11 @@ try
     // ─── Build ────────────────────────────────────────────────────────────────
     var app = builder.Build();
 
+    // Bind chat<->notif coupling: open chat:conv:X → close notif:conv:X for
+    // same user; close chat → re-open notif. App-level wiring; the chat lib
+    // never reaches into the notification module.
+    app.Services.WireChatNotificationCoupling();
+
     // ─── Middleware pipeline ──────────────────────────────────────────────────
     app.UseGlobalExceptionHandler();
     app.UseCors();
@@ -230,7 +268,7 @@ try
     app.MapHub<AShareHub>("/hubs/ashare");
 
     // ─── Restore seed snapshot (in-memory mode only) ──────────────────────────
-    await Ashare.V2.Api.Services.JsonSnapshotStore.RestoreAsync();
+    await Ashare.V2.Domain.JsonSnapshotStore.RestoreAsync();
 
     Log.Information("Ashare V2 API ready [{Env}]", env.EnvironmentName);
     app.Run();

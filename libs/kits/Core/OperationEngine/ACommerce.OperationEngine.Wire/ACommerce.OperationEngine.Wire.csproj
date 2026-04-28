@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <PackageId>ACommerce.OperationEngine.Wire</PackageId>
+    <Version>1.0.0</Version>
+    <Authors>ACommerce</Authors>
+    <Description>Wire format types for OperationEngine — serializable DTOs (OperationEnvelope, OperationDescriptor) that carry an Operation's accounting structure across HTTP boundaries. Shared between server and Blazor WebAssembly/MAUI clients. AspNetCore-only ControllerBase helpers live in ACommerce.OperationEngine.AspNetCore.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\ACommerce.OperationEngine\ACommerce.OperationEngine.csproj" />
+  </ItemGroup>
+  <PropertyGroup Condition="'$(Configuration)' == 'Release' AND '$(ACOMMERCE_BUILD_MODE)' != 'CLOUD'">
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+  </PropertyGroup>
+</Project>
