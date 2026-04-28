@@ -1,7 +1,7 @@
 using ACommerce.Favorites.Operations.Entities;
 using ACommerce.Favorites.Operations.Operations;
 using ACommerce.OperationEngine.Core;
-using ACommerce.SharedKernel.Abstractions.Repositories;
+using ACommerce.SharedKernel.Repositories.Interfaces;
 
 namespace ACommerce.Favorites.Operations;
 

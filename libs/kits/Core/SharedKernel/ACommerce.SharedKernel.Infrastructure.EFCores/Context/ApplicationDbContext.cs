@@ -1,5 +1,5 @@
 using Microsoft.EntityFrameworkCore;
-using ACommerce.SharedKernel.Abstractions.Entities;
+using ACommerce.SharedKernel.Domain.Entities;
 using System.Reflection;
 using System.Diagnostics;
 

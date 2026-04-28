@@ -1,6 +1,6 @@
 using ACommerce.OperationEngine.Core;
 using ACommerce.OperationEngine.Interceptors;
-using ACommerce.SharedKernel.Abstractions.Repositories;
+using ACommerce.SharedKernel.Repositories.Interfaces;
 using Microsoft.Extensions.DependencyInjection;
 using System.Text.Json;
 

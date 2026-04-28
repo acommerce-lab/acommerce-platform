@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using ACommerce.SharedKernel.Infrastructure.EFCores.Context;
-using ACommerce.SharedKernel.Abstractions.Repositories;
+using ACommerce.SharedKernel.Repositories.Interfaces;
 using ACommerce.SharedKernel.Infrastructure.EFCore.Factories;
 
 namespace ACommerce.SharedKernel.Infrastructure.EFCores.Extensions;

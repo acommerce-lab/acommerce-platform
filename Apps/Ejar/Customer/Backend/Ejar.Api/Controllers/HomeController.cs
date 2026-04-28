@@ -1,20 +1,26 @@
 using ACommerce.OperationEngine.Wire;
 using ACommerce.OperationEngine.Wire.Http;
+using Ejar.Api.Data;
 using Ejar.Domain;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace Ejar.Api.Controllers;
 
 /// <summary>
 /// نقاط نهاية عامة — لا تتطلب مصادقة:
 /// قائمة الإعلانات مع الفلاتر، التفاصيل، التصنيفات، المدن، المميزات، الإصدار.
+/// كل البيانات تُقرأ من قاعدة البيانات مباشرة عبر EjarDbContext.
 /// </summary>
 [ApiController]
 public class HomeController : ControllerBase
 {
+    private readonly EjarDbContext _db;
+    public HomeController(EjarDbContext db) => _db = db;
+
     // ── GET /listings ────────────────────────────────────────────────────
     [HttpGet("/listings")]
-    public IActionResult Listings(
+    public async Task<IActionResult> Listings(
         [FromQuery] string? city,
         [FromQuery] string? district,
         [FromQuery] string? propertyType,
@@ -29,57 +35,62 @@ public class HomeController : ControllerBase
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20)
     {
-        var results = EjarSeed.Listings
-            .Where(l => l.Status == 1)
-            .Where(l => city         == null || l.City.Contains(city))
-            .Where(l => district     == null || l.District.Contains(district))
-            .Where(l => propertyType == null || l.PropertyType == propertyType)
-            .Where(l => timeUnit     == null || l.TimeUnit == timeUnit)
-            .Where(l => minPrice     == null || l.Price >= minPrice)
-            .Where(l => maxPrice     == null || l.Price <= maxPrice)
-            .Where(l => q            == null ||
-                        l.Title.Contains(q, StringComparison.OrdinalIgnoreCase) ||
-                        l.Description.Contains(q, StringComparison.OrdinalIgnoreCase) ||
-                        l.City.Contains(q, StringComparison.OrdinalIgnoreCase) ||
-                        l.District.Contains(q, StringComparison.OrdinalIgnoreCase))
-            .AsEnumerable();
+        var query = _db.Listings.AsNoTracking().Where(l => l.Status == 1);
 
-        // Map-based filter: within radius km
-        if (lat.HasValue && lng.HasValue && radius.HasValue)
-            results = results.Where(l => HaversineKm(lat.Value, lng.Value, l.Lat, l.Lng) <= radius.Value);
+        if (!string.IsNullOrWhiteSpace(city))         query = query.Where(l => l.City.Contains(city));
+        if (!string.IsNullOrWhiteSpace(district))     query = query.Where(l => l.District.Contains(district));
+        if (!string.IsNullOrWhiteSpace(propertyType)) query = query.Where(l => l.PropertyType == propertyType);
+        if (!string.IsNullOrWhiteSpace(timeUnit))     query = query.Where(l => l.TimeUnit == timeUnit);
+        if (minPrice.HasValue)                        query = query.Where(l => l.Price >= minPrice.Value);
+        if (maxPrice.HasValue)                        query = query.Where(l => l.Price <= maxPrice.Value);
+        if (!string.IsNullOrWhiteSpace(q))
+            query = query.Where(l => l.Title.Contains(q) || l.Description.Contains(q) ||
+                                     l.City.Contains(q) || l.District.Contains(q));
 
-        results = sort switch
+        var total = await query.CountAsync();
+
+        query = sort switch
         {
-            "price_asc"  => results.OrderBy(l => l.Price),
-            "price_desc" => results.OrderByDescending(l => l.Price),
-            "views"      => results.OrderByDescending(l => l.ViewsCount),
-            _            => results.OrderByDescending(l => l.ViewsCount)
+            "price_asc"  => query.OrderBy(l => l.Price),
+            "price_desc" => query.OrderByDescending(l => l.Price),
+            "views"      => query.OrderByDescending(l => l.ViewsCount),
+            _            => query.OrderByDescending(l => l.ViewsCount)
         };
 
-        var list = results.ToList();
-        var total = list.Count;
-        var paged = list.Skip((page - 1) * pageSize).Take(pageSize);
+        var items = await query.Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
+
+        // Geo filter (post-query — SQLite doesn't support spatial)
+        if (lat.HasValue && lng.HasValue && radius.HasValue)
+            items = items.Where(l => HaversineKm(lat.Value, lng.Value, l.Lat, l.Lng) <= radius.Value).ToList();
+
+        var userId = GetCurrentUserId();
+        var favIds = userId.HasValue
+            ? await _db.Favorites.AsNoTracking().Where(f => f.UserId == userId.Value).Select(f => f.ListingId).ToListAsync()
+            : new List<Guid>();
 
         return this.OkEnvelope("listing.list", new
         {
             total, page, pageSize,
-            items = paged.Select(MapSummary)
+            items = items.Select(l => MapSummary(l, favIds))
         });
     }
 
     // ── GET /listings/{id} ───────────────────────────────────────────────
-    [HttpGet("/listings/{id}")]
-    public IActionResult ListingDetails(string id)
+    [HttpGet("/listings/{id:guid}")]
+    public async Task<IActionResult> ListingDetails(Guid id)
     {
-        var l = EjarSeed.Listings.FirstOrDefault(x => x.Id == id);
+        var l = await _db.Listings.FindAsync(id);
         if (l is null) return this.NotFoundEnvelope("listing_not_found");
 
-        // increment views (in-memory)
-        var ix = EjarSeed.Listings.FindIndex(x => x.Id == id);
-        if (ix >= 0)
-            EjarSeed.Listings[ix] = l with { ViewsCount = l.ViewsCount + 1 };
+        // increment views
+        l.ViewsCount++;
+        await _db.SaveChangesAsync();
 
-        var owner = EjarSeed.GetUser(l.OwnerId);
+        var owner = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == l.OwnerId);
+        var userId = GetCurrentUserId();
+        var isFav = userId.HasValue &&
+            await _db.Favorites.AnyAsync(f => f.UserId == userId.Value && f.ListingId == id);
+
         return this.OkEnvelope("listing.details", new
         {
             id = l.Id, title = l.Title, description = l.Description,
@@ -88,49 +99,52 @@ public class HomeController : ControllerBase
             propertyType = l.PropertyType,
             propertyTypeLabel = CategoryLabel(l.PropertyType),
             city = l.City, district = l.District, lat = l.Lat, lng = l.Lng,
-            amenities = l.Amenities.Select(a => new {
-                key   = a,
-                label = EjarSeed.AmenityLabels.GetValueOrDefault(a, a)
+            amenities = SplitCsv(l.AmenitiesCsv).Select(a => new {
+                key = a, label = EjarSeed.AmenityLabels.GetValueOrDefault(a, a)
             }),
             ownerId = l.OwnerId,
             owner = new {
-                name        = owner?.FullName ?? "المؤجر",
-                memberSince = "2024"
+                name = owner?.FullName ?? "المؤجر",
+                memberSince = owner?.MemberSince.Year.ToString() ?? "2024"
             },
             bedroomCount = l.BedroomCount, bathroomCount = l.BathroomCount,
             areaSqm = l.AreaSqm, isVerified = l.IsVerified,
             viewsCount = l.ViewsCount, status = l.Status,
-            isFavorite = EjarSeed.FavoriteIds.Contains(l.Id),
-            images = l.Images ?? Array.Empty<string>()
+            isFavorite = isFav,
+            images = SplitCsv(l.ImagesCsv)
         });
     }
 
     // ── GET /home/view ───────────────────────────────────────────────────
     [HttpGet("/home/view")]
-    public IActionResult HomeView([FromQuery] string? city = null)
+    public async Task<IActionResult> HomeView([FromQuery] string? city = null)
     {
-        IEnumerable<EjarSeed.ListingSeed> q = EjarSeed.Listings.Where(l => l.Status == 1);
+        var query = _db.Listings.AsNoTracking().Where(l => l.Status == 1);
         if (!string.IsNullOrWhiteSpace(city))
-            q = q.Where(l => string.Equals(l.City, city, StringComparison.Ordinal));
+            query = query.Where(l => l.City == city);
 
-        var items = q.ToList();
-        var featured = items.Where(l => l.IsVerified).Select(MapSummary).ToList();
-        var @new     = items.Where(l => !l.IsVerified).Take(6).Select(MapSummary).ToList();
+        var items = await query.ToListAsync();
+
+        var userId = GetCurrentUserId();
+        var favIds = userId.HasValue
+            ? await _db.Favorites.AsNoTracking().Where(f => f.UserId == userId.Value).Select(f => f.ListingId).ToListAsync()
+            : new List<Guid>();
+
+        var featured = items.Where(l => l.IsVerified).Select(l => MapSummary(l, favIds)).ToList();
+        var @new     = items.Where(l => !l.IsVerified).Take(6).Select(l => MapSummary(l, favIds)).ToList();
 
         return this.OkEnvelope("home.view", new
         {
             categories = EjarSeed.Categories.Select(c => new {
                 id = c.Id, label = c.Label, icon = MapEmojiToIcon(c.Emoji)
             }),
-            featured,
-            @new,
-            city
+            featured, @new, city
         });
     }
 
     // ── GET /home/explore ────────────────────────────────────────────────
     [HttpGet("/home/explore")]
-    public IActionResult Explore(
+    public async Task<IActionResult> Explore(
         [FromQuery] string? category,
         [FromQuery] string? city,
         [FromQuery] decimal? priceMin,
@@ -140,44 +154,44 @@ public class HomeController : ControllerBase
         [FromQuery] string? q = null,
         [FromQuery] string? sort = "newest")
     {
-        IEnumerable<EjarSeed.ListingSeed> qs = EjarSeed.Listings.Where(l => l.Status == 1);
+        var query = _db.Listings.AsNoTracking().Where(l => l.Status == 1);
 
-        if (!string.IsNullOrWhiteSpace(city))
-            qs = qs.Where(l => l.City == city);
+        if (!string.IsNullOrWhiteSpace(city))     query = query.Where(l => l.City == city);
+        if (!string.IsNullOrWhiteSpace(category)) query = query.Where(l => l.PropertyType == category);
+        if (priceMin.HasValue)                    query = query.Where(l => l.Price >= priceMin.Value);
+        if (priceMax.HasValue)                    query = query.Where(l => l.Price <= priceMax.Value);
         if (!string.IsNullOrWhiteSpace(q))
-        {
-            var n = q.Trim();
-            qs = qs.Where(l => l.Title.Contains(n) || (l.Description ?? "").Contains(n) || l.District.Contains(n));
-        }
-        if (!string.IsNullOrEmpty(category)) qs = qs.Where(l => l.PropertyType == category);
-        if (priceMin.HasValue) qs = qs.Where(l => l.Price >= priceMin.Value);
-        if (priceMax.HasValue) qs = qs.Where(l => l.Price <= priceMax.Value);
+            query = query.Where(l => l.Title.Contains(q) || l.Description.Contains(q) || l.District.Contains(q));
+
+        // capacity filter — post-query for SQLite compatibility
+        var results = await query.ToListAsync();
         if (capacity.HasValue && capacity.Value > 0)
         {
             var cap = capacity.Value;
-            qs = qs.Where(l =>
+            results = results.Where(l => cap switch
             {
-                var c = l.BedroomCount;
-                return cap switch
-                {
-                    1 => c <= 1,
-                    2 => c == 2,
-                    3 => c == 3,
-                    4 => c >= 4,
-                    _ => true
-                };
-            });
+                1 => l.BedroomCount <= 1,
+                2 => l.BedroomCount == 2,
+                3 => l.BedroomCount == 3,
+                4 => l.BedroomCount >= 4,
+                _ => true
+            }).ToList();
         }
 
-        qs = sort switch
+        results = sort switch
         {
-            "price_low"  => qs.OrderBy(l => l.Price),
-            "price_high" => qs.OrderByDescending(l => l.Price),
-            "rating"     => qs.OrderByDescending(l => l.IsVerified),
-            _            => qs
+            "price_low"  => results.OrderBy(l => l.Price).ToList(),
+            "price_high" => results.OrderByDescending(l => l.Price).ToList(),
+            "rating"     => results.OrderByDescending(l => l.IsVerified).ToList(),
+            _            => results
         };
 
-        return this.OkEnvelope("catalog.list", qs.Select(MapSummary).ToList());
+        var userId = GetCurrentUserId();
+        var favIds = userId.HasValue
+            ? await _db.Favorites.AsNoTracking().Where(f => f.UserId == userId.Value).Select(f => f.ListingId).ToListAsync()
+            : new List<Guid>();
+
+        return this.OkEnvelope("catalog.list", results.Select(l => MapSummary(l, favIds)).ToList());
     }
 
     // ── GET /home/search/suggestions ─────────────────────────────────────
@@ -238,7 +252,13 @@ public class HomeController : ControllerBase
     }
 
     // ── helpers ──────────────────────────────────────────────────────────
-    private static object MapSummary(EjarSeed.ListingSeed l) => new
+    private Guid? GetCurrentUserId()
+    {
+        var claim = User.FindFirst("user_id")?.Value;
+        return Guid.TryParse(claim, out var id) ? id : null;
+    }
+
+    private static object MapSummary(ListingEntity l, List<Guid> favIds) => new
     {
         id = l.Id, title = l.Title,
         price = l.Price, timeUnit = l.TimeUnit,
@@ -248,9 +268,9 @@ public class HomeController : ControllerBase
         city = l.City, district = l.District, lat = l.Lat, lng = l.Lng,
         bedroomCount = l.BedroomCount, areaSqm = l.AreaSqm,
         isVerified = l.IsVerified, viewsCount = l.ViewsCount,
-        isFavorite = EjarSeed.FavoriteIds.Contains(l.Id),
-        amenities = l.Amenities.Take(4),
-        firstImage = l.Images?.FirstOrDefault()
+        isFavorite = favIds.Contains(l.Id),
+        amenities = SplitCsv(l.AmenitiesCsv).Take(4),
+        firstImage = SplitCsv(l.ImagesCsv).FirstOrDefault()
     };
 
     private static string TimeUnitLabel(string u) => u switch
@@ -275,6 +295,11 @@ public class HomeController : ControllerBase
         "🏨" => "hotel",
         _    => "tag"
     };
+
+    private static IReadOnlyList<string> SplitCsv(string? s) =>
+        string.IsNullOrEmpty(s)
+            ? Array.Empty<string>()
+            : s.Split(new[] { ',', '|' }, StringSplitOptions.RemoveEmptyEntries);
 
     private static double HaversineKm(double lat1, double lng1, double lat2, double lng2)
     {

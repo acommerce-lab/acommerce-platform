@@ -1,7 +1,7 @@
 using ACommerce.OperationEngine.Analyzers;
 using ACommerce.OperationEngine.Core;
 using ACommerce.OperationEngine.Patterns;
-using ACommerce.SharedKernel.Abstractions.Repositories;
+using ACommerce.SharedKernel.Repositories.Interfaces;
 using ACommerce.Translations.Operations.Entities;
 
 namespace ACommerce.Translations.Operations.Operations;

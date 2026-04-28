@@ -54,9 +54,14 @@
     <ProjectReference Include="..\..\..\..\..\libs\kits\Cache\Providers\InMemory\ACommerce.Cache.Providers.InMemory\ACommerce.Cache.Providers.InMemory.csproj" />
     <ProjectReference Include="..\..\..\..\..\libs\kits\Cache\Providers\Redis\ACommerce.Cache.Providers.Redis\ACommerce.Cache.Providers.Redis.csproj" />
     <ProjectReference Include="..\..\..\..\..\libs\kits\Realtime\Providers\SignalR.Redis\ACommerce.Realtime.Providers.SignalR.Redis\ACommerce.Realtime.Providers.SignalR.Redis.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Core\OperationEngine\ACommerce.OperationEngine.DataInterceptors\ACommerce.OperationEngine.DataInterceptors.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Core\SharedKernel\ACommerce.SharedKernel.Domain\ACommerce.SharedKernel.Domain.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Core\SharedKernel\ACommerce.SharedKernel.Repositories\ACommerce.SharedKernel.Repositories.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Core\SharedKernel\ACommerce.SharedKernel.Mediators\ACommerce.SharedKernel.Mediators.csproj" />
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="MediatR" Version="14.1.0" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.0" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.0" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.0" />

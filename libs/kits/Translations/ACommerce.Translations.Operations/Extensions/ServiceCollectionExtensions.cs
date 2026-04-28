@@ -1,4 +1,4 @@
-using ACommerce.SharedKernel.Abstractions.Entities;
+using ACommerce.SharedKernel.Domain.Entities;
 using ACommerce.Translations.Operations.Entities;
 using ACommerce.Translations.Operations.Interceptors;
 using Microsoft.AspNetCore.Http;

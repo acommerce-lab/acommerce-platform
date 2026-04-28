@@ -1,14 +1,14 @@
-ï»¿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using ACommerce.SharedKernel.Abstractions.Entities;
-using ACommerce.SharedKernel.Abstractions.Queries;
-using ACommerce.SharedKernel.Abstractions.Repositories;
+using ACommerce.SharedKernel.Domain.Entities;
+using ACommerce.SharedKernel.Repositories.Queries;
+using ACommerce.SharedKernel.Repositories.Interfaces;
 using System.Linq.Expressions;
 
 namespace ACommerce.SharedKernel.Infrastructure.EFCore.Repositories;
 
 /// <summary>
-/// Ø§Ù„Ù…Ø³ØªÙˆØ¯Ø¹ Ø§Ù„Ø£Ø³Ø§Ø³ÙŠ Ø§Ù„Ù…Ø¹ØªÙ…Ø¯ Ø¹Ù„Ù‰ Entity Framework Core
+/// ÇáãÓÊæÏÚ ÇáÃÓÇÓí ÇáãÚÊãÏ Úáì Entity Framework Core
 /// </summary>
 public class BaseAsyncRepository<T> : IBaseAsyncRepository<T>
         where T : class, IBaseEntity
@@ -31,7 +31,7 @@ public class BaseAsyncRepository<T> : IBaseAsyncRepository<T>
         // ====================================================================================
 
         /// <summary>
-        /// ØªØ·Ø¨ÙŠÙ‚ Ø§Ù„ØªØ¶Ù…ÙŠÙ†Ø§Øª (Include) Ø¹Ù„Ù‰ Ø§Ù„Ø§Ø³ØªØ¹Ù„Ø§Ù…
+        /// ÊØÈíŞ ÇáÊÖãíäÇÊ (Include) Úáì ÇáÇÓÊÚáÇã
         /// </summary>
         protected virtual IQueryable<T> ApplyIncludes(
                 IQueryable<T> query,
@@ -46,7 +46,7 @@ public class BaseAsyncRepository<T> : IBaseAsyncRepository<T>
         }
 
         /// <summary>
-        /// ØªØ·Ø¨ÙŠÙ‚ ÙÙ„ØªØ± Ø§Ù„Ø­Ø°Ù Ø§Ù„Ù…Ù†Ø·Ù‚ÙŠ
+        /// ÊØÈíŞ İáÊÑ ÇáÍĞİ ÇáãäØŞí
         /// </summary>
         protected virtual IQueryable<T> ApplySoftDeleteFilter(
                 IQueryable<T> query,
@@ -56,7 +56,7 @@ public class BaseAsyncRepository<T> : IBaseAsyncRepository<T>
         }
 
         // ====================================================================================
-        // Ø§Ù„Ù‚Ø±Ø§Ø¡Ø© Ø§Ù„Ø£Ø³Ø§Ø³ÙŠØ©
+        // ÇáŞÑÇÁÉ ÇáÃÓÇÓíÉ
         // ====================================================================================
 
         public virtual async Task<T?> GetByIdAsync(
@@ -80,7 +80,7 @@ public class BaseAsyncRepository<T> : IBaseAsyncRepository<T>
         }
 
         /// <summary>
-        /// Ø§Ù„Ø­ØµÙˆÙ„ Ø¹Ù„Ù‰ ÙƒÙŠØ§Ù† Ø¨Ù…Ø¹Ø±ÙÙ‡ Ù…Ø¹ Ø§Ù„ØªØªØ¨Ø¹ (Ù„Ù„Ø§Ø³ØªØ®Ø¯Ø§Ù… Ø§Ù„Ø¯Ø§Ø®Ù„ÙŠ ÙÙŠ Ø¹Ù…Ù„ÙŠØ§Øª Ø§Ù„ØªØ­Ø¯ÙŠØ«)
+        /// ÇáÍÕæá Úáì ßíÇä ÈãÚÑİå ãÚ ÇáÊÊÈÚ (ááÇÓÊÎÏÇã ÇáÏÇÎáí İí ÚãáíÇÊ ÇáÊÍÏíË)
         /// </summary>
         protected virtual async Task<T?> GetByIdTrackedAsync(
                 Guid id,
@@ -114,7 +114,7 @@ public class BaseAsyncRepository<T> : IBaseAsyncRepository<T>
         }
 
         // ====================================================================================
-        // Ø§Ù„Ø¨Ø­Ø« ÙˆØ§Ù„ØªØµÙÙŠØ© Ø§Ù„Ù…ØªÙ‚Ø¯Ù…Ø©
+        // ÇáÈÍË æÇáÊÕİíÉ ÇáãÊŞÏãÉ
         // ====================================================================================
 
         public virtual async Task<IReadOnlyList<T>> GetAllWithPredicateAsync(
@@ -195,30 +195,30 @@ public class BaseAsyncRepository<T> : IBaseAsyncRepository<T>
 
                 IQueryable<T> query = _dbSet.AsNoTracking();
 
-                // ØªØ·Ø¨ÙŠÙ‚ Ø§Ù„ØªØ¶Ù…ÙŠÙ†Ø§Øª
+                // ÊØÈíŞ ÇáÊÖãíäÇÊ
                 if (request.IncludeProperties?.Count > 0)
                         query = ApplyIncludes(query, request.IncludeProperties.ToArray());
 
-                // ØªØ·Ø¨ÙŠÙ‚ ÙÙ„ØªØ± Soft Delete
+                // ÊØÈíŞ İáÊÑ Soft Delete
                 query = ApplySoftDeleteFilter(query, request.IncludeDeleted);
 
-                // Ø§Ù„Ø¨Ø­Ø« Ø§Ù„Ø°ÙƒÙŠ ÙÙŠ Ø§Ù„Ù†ØµÙˆØµ
+                // ÇáÈÍË ÇáĞßí İí ÇáäÕæÕ
                 if (!string.IsNullOrWhiteSpace(request.SearchTerm))
                         query = ApplySmartTextSearch(query, request.SearchTerm);
 
-                // ØªØ·Ø¨ÙŠÙ‚ Ø§Ù„ÙÙ„Ø§ØªØ± Ø§Ù„Ù…Ø­Ø¯Ø¯Ø©
+                // ÊØÈíŞ ÇáİáÇÊÑ ÇáãÍÏÏÉ
                 if (request.Filters?.Count > 0)
                         query = ApplyAdvancedFilters(query, request.Filters);
 
                 var totalCount = await query.CountAsync(cancellationToken);
 
-                // ØªØ±ØªÙŠØ¨ Ø§Ù„Ù†ØªØ§Ø¦Ø¬
+                // ÊÑÊíÈ ÇáäÊÇÆÌ
                 if (!string.IsNullOrWhiteSpace(request.OrderBy))
                         query = ApplyOrdering(query, request.OrderBy, request.Ascending);
                 else
                         query = query.OrderByDescending(e => e.CreatedAt);
 
-                // ØªØ·Ø¨ÙŠÙ‚ Ø§Ù„ØªØµÙØ­
+                // ÊØÈíŞ ÇáÊÕİÍ
                 var items = await query
                         .Skip((request.PageNumber - 1) * request.PageSize)
                         .Take(request.PageSize)
@@ -239,7 +239,7 @@ public class BaseAsyncRepository<T> : IBaseAsyncRepository<T>
         }
 
         /// <summary>
-        /// Ø§Ù„Ø¨Ø­Ø« Ø§Ù„Ø°ÙƒÙŠ ÙÙŠ Ø§Ù„Ø®ØµØ§Ø¦Øµ Ø§Ù„Ù†ØµÙŠØ©
+        /// ÇáÈÍË ÇáĞßí İí ÇáÎÕÇÆÕ ÇáäÕíÉ
         /// </summary>
         protected virtual IQueryable<T> ApplySmartTextSearch(
                 IQueryable<T> query,
@@ -285,7 +285,7 @@ public class BaseAsyncRepository<T> : IBaseAsyncRepository<T>
         }
 
         /// <summary>
-        /// ØªØ·Ø¨ÙŠÙ‚ Ø§Ù„ÙÙ„Ø§ØªØ± Ø§Ù„Ù…ØªÙ‚Ø¯Ù…Ø©
+        /// ÊØÈíŞ ÇáİáÇÊÑ ÇáãÊŞÏãÉ
         /// </summary>
         protected virtual IQueryable<T> ApplyAdvancedFilters(
                 IQueryable<T> query,
@@ -413,7 +413,7 @@ public class BaseAsyncRepository<T> : IBaseAsyncRepository<T>
         }
 
         /// <summary>
-        /// ØªØ·Ø¨ÙŠÙ‚ Ø§Ù„ØªØ±ØªÙŠØ¨
+        /// ÊØÈíŞ ÇáÊÑÊíÈ
         /// </summary>
         protected virtual IQueryable<T> ApplyOrdering(
                 IQueryable<T> query,
@@ -446,7 +446,7 @@ public class BaseAsyncRepository<T> : IBaseAsyncRepository<T>
         }
 
         // ====================================================================================
-        // Ø§Ù„Ø¥Ø¶Ø§ÙØ©
+        // ÇáÅÖÇİÉ
         // ====================================================================================
 
         public virtual async Task<T> AddAsync(
@@ -495,7 +495,7 @@ public class BaseAsyncRepository<T> : IBaseAsyncRepository<T>
         }
 
         // ====================================================================================
-        // Ø§Ù„ØªØ­Ø¯ÙŠØ«
+        // ÇáÊÍÏíË
         // ====================================================================================
 
         public virtual async Task UpdateAsync(
@@ -508,7 +508,7 @@ public class BaseAsyncRepository<T> : IBaseAsyncRepository<T>
 
                 _context.Entry(entity).State = EntityState.Modified;
 
-                // ØªØ¬Ø§Ù‡Ù„ Ø¨Ø¹Ø¶ Ø§Ù„Ø®ØµØ§Ø¦Øµ
+                // ÊÌÇåá ÈÚÖ ÇáÎÕÇÆÕ
                 _context.Entry(entity).Property(e => e.Id).IsModified = false;
                 _context.Entry(entity).Property(e => e.CreatedAt).IsModified = false;
                 _context.Entry(entity).Property(e => e.IsDeleted).IsModified = false;
@@ -567,7 +567,7 @@ public class BaseAsyncRepository<T> : IBaseAsyncRepository<T>
         }
 
         // ====================================================================================
-        // Ø§Ù„Ø­Ø°Ù
+        // ÇáÍĞİ
         // ====================================================================================
 
         public virtual async Task DeleteAsync(
@@ -704,7 +704,7 @@ public class BaseAsyncRepository<T> : IBaseAsyncRepository<T>
         }
 
         // ====================================================================================
-        // Ø§Ù„Ø¥Ø­ØµØ§Ø¦ÙŠØ§Øª ÙˆØ§Ù„ÙØ­Øµ
+        // ÇáÅÍÕÇÆíÇÊ æÇáİÍÕ
         // ====================================================================================
 
         public virtual async Task<int> CountAsync(

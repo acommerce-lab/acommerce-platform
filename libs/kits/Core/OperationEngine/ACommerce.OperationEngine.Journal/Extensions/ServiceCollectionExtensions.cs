@@ -1,6 +1,6 @@
 using ACommerce.OperationEngine.Core;
 using ACommerce.OperationEngine.Interceptors;
-using ACommerce.SharedKernel.Abstractions.Entities;
+using ACommerce.SharedKernel.Domain.Entities;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 

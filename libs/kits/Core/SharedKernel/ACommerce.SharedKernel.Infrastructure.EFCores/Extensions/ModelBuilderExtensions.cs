@@ -1,36 +1,36 @@
-ï»¿using Microsoft.EntityFrameworkCore;
-using ACommerce.SharedKernel.Abstractions.Entities;
+using Microsoft.EntityFrameworkCore;
+using ACommerce.SharedKernel.Domain.Entities;
 using System.Linq.Expressions;
 
 namespace ACommerce.SharedKernel.Infrastructure.EFCore.Extensions;
 
 /// <summary>
-/// Ø§Ù…ØªØ¯Ø§Ø¯Ø§Øª ModelBuilder Ù„ØªØ·Ø¨ÙŠÙ‚ ØªÙƒÙˆÙŠÙ†Ø§Øª Ù…Ø´ØªØ±ÙƒØ©
+/// ÇãÊÏÇÏÇÊ ModelBuilder áÊØÈíŞ ÊßæíäÇÊ ãÔÊÑßÉ
 /// </summary>
 public static class ModelBuilderExtensions
 {
 	/// <summary>
-	/// ØªØ·Ø¨ÙŠÙ‚ ØªÙƒÙˆÙŠÙ†Ø§Øª Ù…Ø´ØªØ±ÙƒØ© Ù„Ø¬Ù…ÙŠØ¹ Ø§Ù„ÙƒÙŠØ§Ù†Ø§Øª Ø§Ù„ØªÙŠ ØªØ·Ø¨Ù‚ IBaseEntity
+	/// ÊØÈíŞ ÊßæíäÇÊ ãÔÊÑßÉ áÌãíÚ ÇáßíÇäÇÊ ÇáÊí ÊØÈŞ IBaseEntity
 	/// </summary>
 	public static ModelBuilder ApplyBaseEntityConfiguration(this ModelBuilder modelBuilder)
 	{
 		foreach (var entityType in modelBuilder.Model.GetEntityTypes())
 		{
-			// Ø§Ù„ØªØ­Ù‚Ù‚ Ù…Ù† Ø£Ù† Ø§Ù„ÙƒÙŠØ§Ù† ÙŠØ·Ø¨Ù‚ IBaseEntity
+			// ÇáÊÍŞŞ ãä Ãä ÇáßíÇä íØÈŞ IBaseEntity
 			if (!typeof(IBaseEntity).IsAssignableFrom(entityType.ClrType))
 				continue;
 
-			// Index Ø¹Ù„Ù‰ CreatedAt
+			// Index Úáì CreatedAt
 			modelBuilder.Entity(entityType.ClrType)
 				.HasIndex(nameof(IBaseEntity.CreatedAt))
 				.HasDatabaseName($"IX_{entityType.ClrType.Name}_CreatedAt");
 
-			// Index Ø¹Ù„Ù‰ IsDeleted
+			// Index Úáì IsDeleted
 			modelBuilder.Entity(entityType.ClrType)
 				.HasIndex(nameof(IBaseEntity.IsDeleted))
 				.HasDatabaseName($"IX_{entityType.ClrType.Name}_IsDeleted");
 
-			// Global Query Filter Ù„Ù€ Soft Delete
+			// Global Query Filter áÜ Soft Delete
 			modelBuilder.Entity(entityType.ClrType)
 				.HasQueryFilter(
 					CreateSoftDeleteFilter(entityType.ClrType));
@@ -40,7 +40,7 @@ public static class ModelBuilderExtensions
 	}
 
 	/// <summary>
-	/// Ø¥Ù†Ø´Ø§Ø¡ Query Filter Ù„Ù„Ù€ Soft Delete
+	/// ÅäÔÇÁ Query Filter ááÜ Soft Delete
 	/// </summary>
 	private static LambdaExpression CreateSoftDeleteFilter(Type entityType)
 	{
@@ -56,7 +56,7 @@ public static class ModelBuilderExtensions
 	}
 
 	/// <summary>
-	/// ØªØ·Ø¨ÙŠÙ‚ ØªÙƒÙˆÙŠÙ† Ø§Ù„Ø£Ø¹Ù…Ø¯Ø© Ø§Ù„Ù…Ø´ØªØ±ÙƒØ©
+	/// ÊØÈíŞ Êßæíä ÇáÃÚãÏÉ ÇáãÔÊÑßÉ
 	/// </summary>
 	public static ModelBuilder ApplyBaseEntityColumnConfiguration(this ModelBuilder modelBuilder)
 	{
