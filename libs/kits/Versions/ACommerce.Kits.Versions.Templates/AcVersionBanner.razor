@@ -1,0 +1,50 @@
+@*
+  Soft top banner. Picks message + severity automatically from the result:
+    - NearSunset → warning, "support ends soon"
+    - Deprecated → strong warning, "no longer supported"
+    - Active w/ HasNewer → info, "new version available"
+*@
+
+@using ACommerce.Kits.Versions.Operations
+
+<div class="ac-version-banner ac-version-banner-@Severity" role="status" aria-live="polite">
+    <span class="ac-version-banner-icon">@Icon</span>
+    <span class="ac-version-banner-text">@Text</span>
+    @if (!string.IsNullOrEmpty(Result.DownloadUrl))
+    {
+        <a class="ac-version-banner-cta" href="@Result.DownloadUrl" target="_blank" rel="noopener">
+            @(CtaLabel ?? "تحديث")
+        </a>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public VersionCheckResult Result { get; set; } = default!;
+    [Parameter] public string? CtaLabel { get; set; }
+
+    private string Severity => Result.Status switch
+    {
+        VersionStatus.Deprecated => "danger",
+        VersionStatus.NearSunset => "warning",
+        _                        => "info"
+    };
+
+    private string Icon => Result.Status switch
+    {
+        VersionStatus.Deprecated => "⛔",
+        VersionStatus.NearSunset => "⏳",
+        _                        => "✨"
+    };
+
+    private string Text => Result.Status switch
+    {
+        VersionStatus.Deprecated =>
+            $"إصدارك ({Result.Version}) ملغى الدعم — الرجاء التحديث إلى {Result.Latest ?? "الأحدث"}.",
+        VersionStatus.NearSunset =>
+            $"دعم إصدارك ({Result.Version}) سينتهي قريباً" +
+              (Result.SunsetAt is { } s ? $" ({s:yyyy-MM-dd})" : "") +
+              $". الأحدث: {Result.Latest ?? "—"}.",
+        _ =>
+            $"يتوفّر إصدار أحدث ({Result.Latest})."
+    };
+}

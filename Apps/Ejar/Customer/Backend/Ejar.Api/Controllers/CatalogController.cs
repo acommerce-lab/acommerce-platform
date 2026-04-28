@@ -12,6 +12,7 @@ namespace Ejar.Api.Controllers;
 
 /// <summary>
 /// متحكم الكتالوج الخاص بالمستخدم — يعتمد بالكامل على المعترض العام والتاجات القياسية.
+/// الإشعارات تُقدَّم من Notifications Kit على /notifications، وليست هنا.
 /// </summary>
 [ApiController, Authorize, Route("api/catalog")]
 public class CatalogController : ControllerBase
@@ -32,7 +33,7 @@ public class CatalogController : ControllerBase
             .Tag(OperationTags.DbAction, DataOperationTypes.ReadById)
             .Tag(OperationTags.TargetEntity, nameof(UserEntity))
             .Build();
-        
+
         op.Metadata["id"] = CurrentUserId;
 
         var env = await _engine.ExecuteEnvelopeAsync(op, ctx => {
@@ -65,26 +66,6 @@ public class CatalogController : ControllerBase
                     id = l.Id, title = l.Title, price = l.Price, timeUnit = l.TimeUnit,
                     status = l.Status, viewsCount = l.ViewsCount,
                     firstImage = l.ImagesCsv?.Split(',').FirstOrDefault()
-                });
-        });
-
-        return Ok(env);
-    }
-
-    [HttpGet("notifications")]
-    public async Task<IActionResult> Notifications()
-    {
-        var op = Entry.Create("notification.list")
-            .Tag(OperationTags.DbAction, DataOperationTypes.ReadAll)
-            .Tag(OperationTags.TargetEntity, nameof(NotificationEntity))
-            .Build();
-
-        var env = await _engine.ExecuteEnvelopeAsync(op, ctx => {
-            var items = ctx.Get<IReadOnlyList<NotificationEntity>>("db_result");
-            return items?.Where(n => n.UserId == CurrentUserId)
-                .OrderByDescending(n => n.CreatedAt)
-                .Select(n => new {
-                    id = n.Id, title = n.Title, body = n.Body, createdAt = n.CreatedAt, isRead = n.IsRead, type = n.Type
                 });
         });
 

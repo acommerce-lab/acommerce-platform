@@ -1,0 +1,43 @@
+@*
+  Top-level wrapper that decides what to render based on the version check.
+  Status == Unsupported  -> AcVersionBlockedPage replaces ChildContent.
+  Status == NearSunset / Deprecated -> ChildContent + AcVersionBanner.
+  Status == Active w/ HasNewer -> ChildContent + AcVersionBanner (info).
+  Status == Latest -> ChildContent only.
+*@
+
+@using ACommerce.Kits.Versions.Operations
+@inject VersionState State
+@implements IDisposable
+
+@if (!State.Loaded || State.Last is null)
+{
+    @ChildContent
+}
+else if (State.Last.IsBlocked)
+{
+    <AcVersionBlockedPage Result="@State.Last" />
+}
+else
+{
+    @if (State.Last.ShouldWarn || State.Last.HasNewer)
+    {
+        <AcVersionBanner Result="@State.Last" />
+    }
+    @ChildContent
+}
+
+@code {
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        State.Changed += OnChanged;
+        if (!State.Loaded)
+            await State.RefreshAsync();
+    }
+
+    private void OnChanged() => InvokeAsync(StateHasChanged);
+
+    public void Dispose() => State.Changed -= OnChanged;
+}

@@ -30,6 +30,8 @@ using Ejar.Domain;
 using Ejar.Api.Stores;
 using ACommerce.Kits.Auth.Backend;
 using ACommerce.Kits.Chat.Backend;
+using ACommerce.Kits.Notifications.Backend;
+using ACommerce.Kits.Versions.Backend;
 using ACommerce.Kits.Auth.Operations;
 using ACommerce.SharedKernel.Infrastructure.EFCores.Context;
 using ACommerce.SharedKernel.Infrastructure.EFCore.Factories;
@@ -87,6 +89,8 @@ builder.Services.AddChatKit<EjarCustomerChatStore>();
 builder.Services.AddDiscoveryKit();
 builder.Services.AddSupportKit();
 builder.Services.AddFavoritesKit();
+builder.Services.AddNotificationsKit<EjarCustomerNotificationStore>();
+builder.Services.AddVersionsKit<EjarVersionStore>();
 
 // 6. Controllers & Swagger
 builder.Services.AddControllers();

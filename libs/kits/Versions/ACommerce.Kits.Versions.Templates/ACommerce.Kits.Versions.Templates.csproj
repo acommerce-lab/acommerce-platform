@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <PackageId>ACommerce.Kits.Versions.Templates</PackageId>
+    <Version>1.0.0</Version>
+    <Description>
+      Versions Kit — Razor templates. Provides:
+        - AcAppVersionGate: top-level wrapper that calls /version/check on
+          first render, stores the result, and chooses between Block / Banner
+          / Pass. Auto-wired via VersionState (no manual parameters).
+        - AcVersionBlockedPage: full-screen "please update" panel.
+        - AcVersionBanner: soft top banner for NearSunset / Deprecated.
+        - AcAdminVersionsPage: admin CRUD table for managing versions.
+        - AppVersionHeadersHandler: DelegatingHandler that adds X-App-Version
+          and X-App-Platform to every outgoing HTTP request.
+    </Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\ACommerce.Kits.Versions.Operations\ACommerce.Kits.Versions.Operations.csproj" />
+    <ProjectReference Include="..\..\Widgets\ACommerce.Widgets\ACommerce.Widgets.csproj" />
+    <ProjectReference Include="..\..\Core\OperationEngine\ACommerce.OperationEngine\ACommerce.OperationEngine.csproj" />
+    <ProjectReference Include="..\..\Core\OperationEngine\ACommerce.OperationEngine.Wire\ACommerce.OperationEngine.Wire.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+</Project>

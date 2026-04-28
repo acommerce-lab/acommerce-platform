@@ -41,6 +41,10 @@
 
     <!-- Chat client -->
     <ProjectReference Include="..\..\..\..\..\libs\kits\Chat\ACommerce.Chat.Client.Blazor\ACommerce.Chat.Client.Blazor.csproj" />
+
+    <!-- Versions Kit (templates + operations) -->
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Versions\ACommerce.Kits.Versions.Operations\ACommerce.Kits.Versions.Operations.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Versions\ACommerce.Kits.Versions.Templates\ACommerce.Kits.Versions.Templates.csproj" />
   </ItemGroup>
 
   <ItemGroup>

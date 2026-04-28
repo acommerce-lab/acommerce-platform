@@ -118,12 +118,8 @@ public class HomeController : ControllerBase
         return Ok(env);
     }
 
-    [HttpGet("version/check")]
-    public IActionResult VersionCheck() =>
-        this.OkEnvelope("app.version.check", new {
-            current = "1.0.0", latest = "1.0.0",
-            isBlocked = false, supportEmail = "support@ejar.ye"
-        });
+    // ملاحظة: GET /version/check يُقدَّم من Versions Kit (VersionsController).
+    // أُزيل من هنا تجنّباً للتكرار ولتفعيل آليّة الإصدارات الموحَّدة.
 
     private static object MapSummary(ListingEntity l, List<Guid> favIds, IReadOnlyList<DiscoveryCategory> categories) => new
     {

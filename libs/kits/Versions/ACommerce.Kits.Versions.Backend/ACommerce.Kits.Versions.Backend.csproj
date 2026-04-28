@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <PackageId>ACommerce.Kits.Versions.Backend</PackageId>
+    <Version>1.0.0</Version>
+    <Description>
+      Versions Kit — Backend layer. Provides:
+        - VersionsController: GET /version/check (open) — what the client calls
+          on startup to discover its status.
+        - AdminVersionsController: CRUD endpoints under /admin/versions for
+          ops/admin frontends to register and re-state versions.
+        - IVersionStore: full CRUD port the app implements.
+        - InMemoryAppVersionGate: optional default IAppVersionGate that wraps
+          IVersionStore for the simple case.
+      Drop-in via AddVersionsKit&lt;TStore&gt;() — auto-wires controllers,
+      VersionGateInterceptor, and the gate.
+    </Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\ACommerce.Kits.Versions.Operations\ACommerce.Kits.Versions.Operations.csproj" />
+    <ProjectReference Include="..\..\Core\OperationEngine\ACommerce.OperationEngine\ACommerce.OperationEngine.csproj" />
+    <ProjectReference Include="..\..\Core\OperationEngine\ACommerce.OperationEngine.Wire\ACommerce.OperationEngine.Wire.csproj" />
+    <ProjectReference Include="..\..\Core\OperationEngine\ACommerce.OperationEngine.AspNetCore\ACommerce.OperationEngine.AspNetCore.csproj" />
+    <ProjectReference Include="..\..\Core\OperationEngine\ACommerce.OperationEngine.Interceptors\ACommerce.OperationEngine.Interceptors.csproj" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+</Project>

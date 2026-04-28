@@ -5,6 +5,7 @@ using ACommerce.Client.Operations.Interceptors;
 using ACommerce.Client.StateBridge;
 using ACommerce.Culture.Abstractions;
 using ACommerce.Culture.Defaults;
+using ACommerce.Kits.Versions.Templates;
 using ACommerce.OperationEngine.Core;
 using ACommerce.Templates.Shared.Models;
 using Ejar.Customer.UI.Interceptors;
@@ -52,6 +53,11 @@ public static class EjarCustomerUiExtensions
         services.AddScoped<CultureInterceptor>();
         services.AddTransient<CultureHeadersHandler>();
         services.AddScoped<EjarCircuitHttp>();
+
+        // ─── Versions Kit (frontend) ───────────────────────────────────
+        // المضيف يجب أن يسجّل AppVersionInfo singleton قبل استدعاء هذه الدالّة
+        // ويضيف AppVersionHeadersHandler على HttpClient "ejar" عبر AddHttpMessageHandler.
+        services.AddVersionsTemplates(httpClientName: "ejar");
 
         // ─── OpEngine للعمليات المحلّية ────────────────────────────────
         services.AddScoped<OpEngine>(sp =>

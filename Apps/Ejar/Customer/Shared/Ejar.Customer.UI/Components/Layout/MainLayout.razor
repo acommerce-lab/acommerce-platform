@@ -1,4 +1,5 @@
 @namespace Ejar.Customer.UI.Components.Layout
+@using ACommerce.Kits.Versions.Templates
 @using Ejar.Customer.UI.Operations
 @inherits LayoutComponentBase
 @inject AppStore Store
@@ -12,16 +13,7 @@
 @implements IAsyncDisposable
 
 <div class="@(Store.Ui.HideChrome ? "acm-chrome-hidden" : "")">
-<AcVersionGate IsLoading="@(!_checked)"
-               IsBlocked="@_versionBlocked"
-               RequiredTitle="@(L["version.required"])"
-               RequiredBody="@(L["version.required_body"])"
-               DownloadLabel="@(L["version.download"])"
-               CurrentLabel="@(L["version.current"])"
-               LatestLabel="@(L["version.latest"])"
-               CurrentVersion="@_current"
-               LatestVersion="@_latest"
-               SupportEmail="@_support">
+<AcAppVersionGate>
     <ChildContent>
         <nav class="acm-mobile-nav">
             <div class="acm-mobile-nav-inner">
@@ -64,15 +56,12 @@
 
         <CookieConsentBanner />
     </ChildContent>
-</AcVersionGate>
+</AcAppVersionGate>
 </div>
 
 @code {
-    private bool _checked;
-    private bool _versionBlocked;
-    private string _current = "1.0.0";
-    private string _latest = "1.0.0";
-    private string? _support;
+    // ملاحظة: حالة الإصدار يتولّاها AcAppVersionGate + VersionState تلقائياً.
+    // لم نعد نستدعي /version/check يدوياً.
     private bool _realtimeConnected;
 
     private static readonly IReadOnlyList<BottomNavItemDto> _bottomItems = new[]
@@ -120,18 +109,8 @@
     {
         if (firstRender)
         {
-            var env = await Api.GetAsync<VersionDto>("/version/check");
-            if (env.Data is not null)
-            {
-                _current = env.Data.Current;
-                _latest = env.Data.Latest;
-                _versionBlocked = env.Data.IsBlocked;
-                _support = env.Data.SupportEmail;
-            }
-            _checked = true;
-            await InvokeAsync(StateHasChanged);
-
-            // Connect to realtime hub if already authenticated (page reload case)
+            // Connect to realtime hub if already authenticated (page reload case).
+            // فحص الإصدار مُدار من AcAppVersionGate.
             if (Store.Auth.IsAuthenticated)
                 await ConnectRealtimeAsync();
         }
@@ -173,6 +152,4 @@
         Nav.LocationChanged -= OnLocationChanged;
         await Realtime.DisposeAsync();
     }
-
-    private sealed record VersionDto(string Current, string Latest, bool IsBlocked, string? StoreUrl, string? SupportEmail);
 }

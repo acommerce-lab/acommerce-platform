@@ -46,6 +46,7 @@
     <ProjectReference Include="..\..\..\..\..\libs\kits\Realtime\Providers\InMemory\ACommerce.Realtime.Providers.InMemory\ACommerce.Realtime.Providers.InMemory.csproj" />
     <ProjectReference Include="..\..\..\..\..\libs\kits\Chat\ACommerce.Kits.Chat\ACommerce.Kits.Chat.csproj" />
     <ProjectReference Include="..\..\..\..\..\libs\kits\Notifications\ACommerce.Notification.Operations\ACommerce.Notification.Operations.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Notifications\ACommerce.Kits.Notifications.Backend\ACommerce.Kits.Notifications.Backend.csproj" />
     <ProjectReference Include="..\..\..\..\..\libs\kits\Notifications\Providers\InApp\ACommerce.Notification.Providers.InApp\ACommerce.Notification.Providers.InApp.csproj" />
     <ProjectReference Include="..\..\..\..\..\libs\kits\Notifications\Providers\Firebase\ACommerce.Notification.Providers.Firebase\ACommerce.Notification.Providers.Firebase.csproj" />
 
@@ -62,6 +63,8 @@
     <ProjectReference Include="..\..\..\..\..\libs\kits\Discovery\ACommerce.Kits.Discovery\ACommerce.Kits.Discovery.csproj" />
     <ProjectReference Include="..\..\..\..\..\libs\kits\Favorites\ACommerce.Favorites.Operations\ACommerce.Favorites.Operations.csproj" />
     <ProjectReference Include="..\..\..\..\..\libs\kits\Favorites\ACommerce.Favorites.Backend\ACommerce.Favorites.Backend.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Versions\ACommerce.Kits.Versions.Operations\ACommerce.Kits.Versions.Operations.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Versions\ACommerce.Kits.Versions.Backend\ACommerce.Kits.Versions.Backend.csproj" />
   </ItemGroup>
 
   <ItemGroup>

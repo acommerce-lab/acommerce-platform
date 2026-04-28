@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <PackageId>ACommerce.Kits.Versions.Operations</PackageId>
+    <Version>1.0.0</Version>
+    <Description>
+      Versions Kit — Operations layer. Defines the AppVersion contract,
+      version states (Latest / Active / NearSunset / Deprecated / Unsupported),
+      operation tags, the IAppVersionGate provider port (server-side decision),
+      and the VersionGateInterceptor (Pre interceptor applied to every
+      operation except version.* ops themselves).
+
+      The kit follows the same shape as Auth and Subscriptions: this layer
+      defines the *contract* and the *cross-cutting interceptor*; the Backend
+      layer adds HTTP controllers; an app supplies the IAppVersionGate /
+      IVersionStore implementations.
+    </Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\Core\OperationEngine\ACommerce.OperationEngine\ACommerce.OperationEngine.csproj" />
+    <ProjectReference Include="..\..\Core\OperationEngine\ACommerce.OperationEngine.Interceptors\ACommerce.OperationEngine.Interceptors.csproj" />
+    <PackageReference Include="Microsoft.AspNetCore.Http.Abstractions" Version="2.3.0" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.0" />
+  </ItemGroup>
+</Project>
