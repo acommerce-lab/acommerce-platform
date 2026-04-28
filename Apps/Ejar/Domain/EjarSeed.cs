@@ -9,6 +9,8 @@ public static class EjarSeed
     // ── الحساب التجريبي الحالي ─────────────────────────────────────────
     public const string CurrentUserId = "U-1";
 
+    public static UserSeed? GetUser(string id) => _users.TryGetValue(id, out var u) ? u : null;
+
     // ── سجل المستخدمين (هاتف → معرف) ────────────────────────────────────
     private static readonly Dictionary<string, string> _phoneToUser = new()
     {
@@ -29,74 +31,47 @@ public static class EjarSeed
             if (_phoneToUser.TryGetValue(phone, out var uid)) return uid;
             var newId = $"U-{_phoneToUser.Count + 1}";
             _phoneToUser[phone] = newId;
-            _users[newId] = new(newId, "", phone, true, "", false, "صنعاء", DateTime.UtcNow);
             return newId;
         }
     }
 
-    public static void UpdateUser(string userId, string fullName, string email, string phone, string city)
-    {
-        lock (_phoneToUser)
-        {
-            if (!_users.TryGetValue(userId, out var u)) return;
-            _users[userId] = u with {
-                FullName = fullName, Email = email, Phone = phone, City = city
-            };
-        }
-    }
-    public static UserSeed? GetUser(string userId) =>
-        _users.TryGetValue(userId, out var u) ? u : null;
-
-    // ── تصنيفات العقارات ──────────────────────────────────────────────
+    // ── التصنيفات ────────────────────────────────────────────────────────
     public static readonly IReadOnlyList<CategorySeed> Categories = new[]
     {
-        new CategorySeed("apartment",  "شقة",           "🏢", "residential", new[] { "monthly", "yearly" }),
-        new CategorySeed("villa",      "فيلا",          "🏡", "residential", new[] { "monthly", "yearly" }),
-        new CategorySeed("room",       "غرفة",          "🛏", "residential", new[] { "monthly" }),
-        new CategorySeed("studio",     "استوديو",       "🛋", "residential", new[] { "monthly", "yearly" }),
-        new CategorySeed("shop",       "محل تجاري",     "🏪", "commercial",  new[] { "monthly", "yearly" }),
-        new CategorySeed("office",     "مكتب",          "🏢", "commercial",  new[] { "monthly", "yearly" }),
-        new CategorySeed("warehouse",  "مستودع",        "🏭", "commercial",  new[] { "monthly", "yearly" }),
-        new CategorySeed("retreat",    "استراحة",       "🏕", "short_term",  new[] { "daily", "hourly" }),
-        new CategorySeed("chalet",     "شاليه",         "🌊", "short_term",  new[] { "daily" }),
-        new CategorySeed("hotel_room", "غرفة فندقية",   "🏨", "short_term",  new[] { "daily", "hourly" }),
+        new CategorySeed("apartment", "شقة",     "🏢", "residential", new[] { "monthly", "yearly" }),
+        new CategorySeed("villa",     "فيلا",     "🏡", "residential", new[] { "monthly", "yearly" }),
+        new CategorySeed("office",    "مكتب",    "💼", "commercial",  new[] { "monthly", "yearly" }),
+        new CategorySeed("shop",      "محل",     "🏪", "commercial",  new[] { "monthly", "yearly" }),
+        new CategorySeed("retreat",   "استراحة",  "🌳", "leisure",     new[] { "daily" }),
+        new CategorySeed("chalet",    "شاليه",    "🏖️", "leisure",     new[] { "daily" }),
+        new CategorySeed("studio",    "استوديو",   "🛌", "residential", new[] { "monthly" }),
+        new CategorySeed("room",      "غرفة",     "🚪", "residential", new[] { "monthly" }),
+        new CategorySeed("hotel_room", "فندقية",   "🏨", "leisure",     new[] { "daily" }),
     };
 
-    // ── المدن ────────────────────────────────────────────────────────────
-    public static readonly IReadOnlyList<string> Cities = new[]
+    // ── المزايا (Amenities) ──────────────────────────────────────────────
+    public static readonly dynamic[] Amenities = new dynamic[]
     {
-        "صنعاء", "عدن", "تعز", "الحديدة", "إب",
-        "ذمار", "المكلا", "سيئون", "عمران", "حجة"
+        new { Id = "ac",       Label = "تكييف",      Icon = "wind" },
+        new { Id = "wifi",     Label = "إنترنت",     Icon = "wifi" },
+        new { Id = "kitchen",  Label = "مطبخ",      Icon = "coffee" },
+        new { Id = "parking",  Label = "موقف",      Icon = "truck" },
+        new { Id = "elevator", Label = "مصعد",      Icon = "arrow-up" },
+        new { Id = "garden",   Label = "حديقة",     Icon = "sun" },
+        new { Id = "pool",     Label = "مسبح",      Icon = "droplet" },
+        new { Id = "furnished",Label = "مفروش",     Icon = "archive" },
+        new { Id = "generator",Label = "مولّد",     Icon = "zap" },
+        new { Id = "security", Label = "حراسة",     Icon = "shield" },
+        new { Id = "cctv",     Label = "كاميرات",    Icon = "video" },
+        new { Id = "balcony",  Label = "بلكونة",     Icon = "layout" },
+        new { Id = "laundry",  Label = "غسيل",      Icon = "refresh-cw" },
+        new { Id = "private_bath", Label = "حمام خاص", Icon = "bath" },
     };
-
-    // ── المميزات ──────────────────────────────────────────────────────────
-    public static readonly IReadOnlyDictionary<string, string> AmenityLabels =
-        new Dictionary<string, string>
-        {
-            ["ac"]           = "تكييف",
-            ["wifi"]         = "واي فاي",
-            ["kitchen"]      = "مطبخ",
-            ["parking"]      = "موقف سيارة",
-            ["elevator"]     = "مصعد",
-            ["furnished"]    = "مفروش",
-            ["security"]     = "أمن وحراسة",
-            ["pool"]         = "مسبح",
-            ["gym"]          = "صالة رياضية",
-            ["garden"]       = "حديقة",
-            ["laundry"]      = "غسالة",
-            ["balcony"]      = "شرفة",
-            ["private_bath"] = "حمام خاص",
-            ["cctv"]         = "كاميرات مراقبة",
-            ["generator"]    = "مولد كهربائي",
-        };
-
-    public static IReadOnlyList<string> Amenities => AmenityLabels.Keys.ToList();
 
     // ── الإعلانات ─────────────────────────────────────────────────────────
-    // الأسعار بالريال اليمني (YER). الإحداثيات مدن يمنية حقيقية.
     public static readonly List<ListingSeed> Listings = new()
     {
-        new("L-101", "شقة راقية 3 غرف بحدّة",
+        new("L-101", "شقة فاخرة في حدّة — 3 غرف",
             "شقة واسعة في حي حدّة الراقي بصنعاء، 3 غرف نوم وصالة كبيرة، مطبخ مجهّز، قريبة من الخدمات والمولات.",
             85000m, "monthly", "apartment", "صنعاء", "حدّة",
             15.314, 44.207, new[] { "ac", "wifi", "kitchen", "parking", "elevator", "furnished", "generator" },

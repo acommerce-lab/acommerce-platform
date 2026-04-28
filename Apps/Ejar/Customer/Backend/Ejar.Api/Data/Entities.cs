@@ -20,6 +20,7 @@ public sealed class UserEntity : IBaseEntity
     public bool EmailVerified { get; set; }
     [MaxLength(60)]  public string City { get; set; } = "";
     public DateTime MemberSince { get; set; }
+    [MaxLength(2000)] public string? AvatarUrl { get; set; }
 }
 
 public sealed class ListingEntity : IBaseEntity
@@ -84,6 +85,7 @@ public sealed class NotificationEntity : IBaseEntity
     public DateTime CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }
     public bool IsDeleted { get; set; }
+    public Guid UserId { get; set; }
 
     [MaxLength(200)] public string Title { get; set; } = "";
     public string Body { get; set; } = "";
@@ -92,16 +94,6 @@ public sealed class NotificationEntity : IBaseEntity
     [MaxLength(40)] public string Type { get; set; } = "system";
 }
 
-public sealed class FavoriteEntity : IBaseEntity
-{
-    [Key] public Guid Id { get; set; }
-    public DateTime CreatedAt { get; set; }
-    public DateTime? UpdatedAt { get; set; }
-    public bool IsDeleted { get; set; }
-
-    public Guid UserId { get; set; }
-    public Guid ListingId { get; set; }
-}
 
 public sealed class PlanEntity : IBaseEntity
 {
@@ -121,34 +113,6 @@ public sealed class PlanEntity : IBaseEntity
     [MaxLength(2000)] public string FeaturesCsv { get; set; } = "";
 }
 
-// ─── Complaint entities (لم تكن في DbContext سابقاً) ────────────────────
-public sealed class ComplaintEntity : IBaseEntity
-{
-    [Key] public Guid Id { get; set; }
-    public DateTime CreatedAt { get; set; }
-    public DateTime? UpdatedAt { get; set; }
-    public bool IsDeleted { get; set; }
-
-    [MaxLength(200)] public string Subject { get; set; } = "";
-    public string Body { get; set; } = "";
-    [MaxLength(20)] public string Status { get; set; } = "open";
-    [MaxLength(20)] public string Priority { get; set; } = "عادي";
-    [MaxLength(100)] public string RelatedEntity { get; set; } = "";
-    public Guid UserId { get; set; }
-    public List<ComplaintReplyEntity> Replies { get; set; } = new();
-}
-
-public sealed class ComplaintReplyEntity : IBaseEntity
-{
-    [Key] public Guid Id { get; set; }
-    public DateTime CreatedAt { get; set; }
-    public DateTime? UpdatedAt { get; set; }
-    public bool IsDeleted { get; set; }
-
-    public Guid ComplaintId { get; set; }
-    [MaxLength(20)] public string From { get; set; } = "";
-    public string Message { get; set; } = "";
-}
 
 // ─── Subscription + Invoice entities ─────────────────────────────────────
 public sealed class SubscriptionEntity : IBaseEntity

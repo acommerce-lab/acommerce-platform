@@ -7,4 +7,4 @@ namespace ACommerce.OperationEngine.DataInterceptors;
 /// يمثل أمر وساطة (MediatR Command) يُطلق بواسطة المعترض البياني 
 /// عندما يكتشف أن العملية تحتوي على نية التخزين في قاعدة البيانات.
 /// </summary>
-public record DataOperationCommand(Operation Operation, string DbAction, string TargetEntity) : IRequest<bool>;
+public record DataOperationCommand(OperationContext Context, string DbAction, string TargetEntity) : IRequest<bool>;

@@ -7,8 +7,7 @@ namespace ACommerce.OperationEngine.DataInterceptors;
 
 /// <summary>
 /// معترض عام يلتقط أي عملية تحتوي على Tag <c>db_action</c>.
-/// يُسجَّل كـ Singleton في OperationInterceptorRegistry ويحل ISender
-/// من OperationContext.Services (Scoped per request).
+/// يتبع النهج المعياري باستخدام OperationType المعرّفة في المكتبة.
 /// </summary>
 public class CrudActionInterceptor : IOperationInterceptor
 {
@@ -31,17 +30,21 @@ public class CrudActionInterceptor : IOperationInterceptor
 
         try
         {
-            var command = new DataOperationCommand(context.Operation, action, target);
+            // إرسال الأمر إلى المعالج الفعلي (الذي قد يكون في طبقة الـ API أو البنية التحتية)
+            var command = new DataOperationCommand(context, action, target);
             var success = await mediator.Send(command, context.CancellationToken);
 
             if (!success)
-                return AnalyzerResult.Fail($"فشلت العملية البيانية: {action} على {target}", blocking: false);
+            {
+                // إذا فشل المعالج في تنفيذ العملية، نرجع نتيجة فشل للمشغل
+                return AnalyzerResult.Fail($"فشلت العملية البيانية [{action}] على الكيان [{target}]", blocking: false);
+            }
 
             return AnalyzerResult.Pass();
         }
         catch (Exception ex)
         {
-            return AnalyzerResult.Fail(ex.Message, blocking: false);
+            return AnalyzerResult.Fail($"خطأ استثنائي في معترض البيانات: {ex.Message}", blocking: false);
         }
     }
 }
