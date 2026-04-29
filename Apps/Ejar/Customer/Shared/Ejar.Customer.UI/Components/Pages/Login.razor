@@ -6,6 +6,14 @@
 @inject INumeralNormalizer Numerals
 @implements IDisposable
 
+@code {
+    /// <summary>
+    /// مسار العودة بعد نجاح الدخول. يضعه RedirectToLogin عندما يحاول مستخدم
+    /// غير مصادَق فتح صفحة محميّة، فيُعاد إلى تلك الصفحة بدل الرئيسيّة.
+    /// </summary>
+    [SupplyParameterFromQuery] public string? ReturnUrl { get; set; }
+}
+
 <PageTitle>@(L["auth.login.title"]) — @(L["app.name"])</PageTitle>
 
 <div class="acs-page acs-auth-page">
@@ -114,7 +122,10 @@
             Store.Auth.Phone       = env.Data.Phone;
             Store.NotifyChanged();
             Store.Ui.HideChrome = false;
-            Nav.NavigateTo("/");
+            // ارجع إلى المسار الذي حاول المستخدم زيارته قبل أن يُطلَب منه الدخول
+            // (يضعه RedirectToLogin في returnUrl). الافتراضيّ: الرئيسيّة.
+            var dest = !string.IsNullOrWhiteSpace(ReturnUrl) ? ReturnUrl! : "/";
+            Nav.NavigateTo(dest);
         }
         else { _error = env.Operation.ErrorMessage ?? "رمز التحقق غير صحيح"; }
         await InvokeAsync(StateHasChanged);

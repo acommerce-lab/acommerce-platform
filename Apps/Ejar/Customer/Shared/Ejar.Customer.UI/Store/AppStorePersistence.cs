@@ -35,7 +35,9 @@ public sealed class AppStorePersistence : IAsyncDisposable
     private readonly IJSRuntime _js;
     private bool _restored;
     private bool _suspendSave;
-    private TaskCompletionSource<bool>? _restoreTcs;
+    // eager init — لو اكتملت RestoreAsync قبل أن يطلب أحد RestoreCompleted،
+    // نتيجة TrySetResult تُحفَظ ولا تُفقَد. lazy init كان يُسقطها.
+    private readonly TaskCompletionSource<bool> _restoreTcs = new();
 
     public AppStorePersistence(AppStore store, IJSRuntime js)
     {
@@ -51,7 +53,7 @@ public sealed class AppStorePersistence : IAsyncDisposable
     /// الصفحات المحميّة تُقيَّم قبل الاستعادة وتُعيد التوجيه إلى /login حتى
     /// لو كان الـ JWT محفوظاً.
     /// </summary>
-    public Task RestoreCompleted => (_restoreTcs ??= new()).Task;
+    public Task RestoreCompleted => _restoreTcs.Task;
 
     /// <summary>
     /// يقرأ كلّ المفاتيح من localStorage ويُسقطها على <see cref="AppStore"/>.
@@ -79,7 +81,7 @@ public sealed class AppStorePersistence : IAsyncDisposable
 
         _suspendSave = false;
         _restored = true;
-        _restoreTcs?.TrySetResult(true);
+        _restoreTcs.TrySetResult(true);
         _store.NotifyChanged();
     }
 

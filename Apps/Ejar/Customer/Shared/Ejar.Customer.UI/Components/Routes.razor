@@ -8,6 +8,13 @@
             AdditionalAssemblies="@AdditionalAssemblies">
         <Found Context="routeData">
             <AuthorizeRouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)">
+                <Authorizing>
+                    @* أثناء انتظار AuthenticationStateProvider يُكمل استعادة JWT
+                       من localStorage. بدون هذا الـ slot يُعرض NotAuthorized
+                       افتراضياً → يقفز RedirectToLogin قبل أن تنتهي الاستعادة،
+                       فيخرج المستخدم رغم أنّه لا يزال مصادَقاً عليه. *@
+                    <div class="acs-loading" role="status" aria-busy="true"></div>
+                </Authorizing>
                 <NotAuthorized>
                     <RedirectToLogin />
                 </NotAuthorized>
