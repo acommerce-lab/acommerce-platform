@@ -55,8 +55,10 @@
 
   <ItemGroup>
     <!-- Embedded translations live as .resx in Resources/ -->
+    <!-- Microsoft.AspNetCore.Authorization تجلب FrameworkReference Microsoft.AspNetCore.App
+         الذي يفشل على browser-wasm. لا حاجة لها — Blazor's AuthorizeView ينحلّ
+         عبر Microsoft.AspNetCore.Components.Authorization. -->
     <PackageReference Include="Microsoft.AspNetCore.Components.Authorization" Version="10.0.7" />
-    <PackageReference Include="Microsoft.AspNetCore.Authorization" Version="10.0.7" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.7" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.7" />
     <PackageReference Include="Microsoft.Extensions.Options" Version="10.0.7" />
