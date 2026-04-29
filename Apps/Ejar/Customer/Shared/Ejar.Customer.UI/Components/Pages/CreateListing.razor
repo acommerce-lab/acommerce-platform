@@ -138,7 +138,7 @@
 
                 @if (!string.IsNullOrEmpty(_imgError))
                 {
-                    <AcAlert Variant="danger" Text="@_imgError" />
+                    <AcAlert Variant="danger" Message="@_imgError" />
                 }
 
                 <div style="display:flex; gap:8px; margin-top:12px;">
@@ -178,7 +178,7 @@
 
                 @if (!string.IsNullOrEmpty(_publishError))
                 {
-                    <AcAlert Variant="danger" Text="@_publishError" />
+                    <AcAlert Variant="danger" Message="@_publishError" />
                 }
                 <div style="display:flex; gap:8px; margin-top:12px;">
                     <AcButton Variant="ghost" Text="رجوع" OnClick="@(() => _step = 3)" Disabled="@_publishing" />

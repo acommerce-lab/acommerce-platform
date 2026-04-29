@@ -89,10 +89,23 @@
         return "?" + string.Join("&", parts);
     }
 
-    private async Task OnCategorySelected(string? id)   { _categoryId = id;          await LoadListingsAsync(); StateHasChanged(); }
-    private async Task OnSortChanged    (string? sort)  { _sort = sort ?? "newest";  await LoadListingsAsync(); StateHasChanged(); }
+    private async Task OnCategorySelected(string? id)   { _categoryId = id;          await ApplyAndSyncAsync(); }
+    private async Task OnSortChanged    (string? sort)  { _sort = sort ?? "newest";  await ApplyAndSyncAsync(); }
     private void      OnViewChanged     (string? view)  { _view = view ?? "list";    StateHasChanged(); }
-    private async Task OnFiltersApplied (AcListingExplorePage.ExploreFilters f) { _filters = f; await LoadListingsAsync(); StateHasChanged(); }
+    private async Task OnFiltersApplied (AcListingExplorePage.ExploreFilters f) { _filters = f; await ApplyAndSyncAsync(); }
+
+    /// <summary>
+    /// يحدّث URL ليعكس الـ category/sort/q/filters الحاليّة (replace: true لئلّا
+    /// تتراكم في تاريخ المتصفّح)، ثمّ يعيد تحميل القائمة. بدون هذا كانت الـ URL
+    /// تبقى ثابتة على القيمة الأوليّة، فلا يستطيع المستخدم نسخ/مشاركة الفلاتر.
+    /// </summary>
+    private async Task ApplyAndSyncAsync()
+    {
+        var qs = BuildQueryString();
+        Nav.NavigateTo($"/explore{qs}", replace: true);
+        await LoadListingsAsync();
+        StateHasChanged();
+    }
 
     private void OnListingOpen(ListingRowDto l) => Nav.NavigateTo($"/listings/{Uri.EscapeDataString(l.Id)}");
 

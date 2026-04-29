@@ -187,6 +187,28 @@ public sealed class CatalogController : ControllerBase
         if (string.IsNullOrWhiteSpace(body.Title) || string.IsNullOrWhiteSpace(body.City))
             return this.BadRequestEnvelope("missing_fields", "title و city مطلوبان");
 
+        // فحص الاشتراك: لا يُسمح بإنشاء إعلان بلا اشتراك نشط، ولا تجاوز حصّة
+        // الباقة. السابق كان يسمح للجميع بالنشر — يخالف ميثاق الباقات.
+        var sub = await _db.Subscriptions
+            .Where(s => s.UserId == id && s.Status == "active" && s.EndDate > DateTime.UtcNow)
+            .OrderByDescending(s => s.EndDate)
+            .FirstOrDefaultAsync(ct);
+        if (sub is null)
+            return this.BadRequestEnvelope("no_active_subscription",
+                "لا يوجد اشتراك نشط — اشترك بباقة أوّلاً.");
+
+        var activeCount = await _db.Listings.CountAsync(
+            l => l.OwnerId == id && l.Status == 1 && !l.IsDeleted, ct);
+        if (sub.ListingsLimit > 0 && activeCount >= sub.ListingsLimit)
+            return this.BadRequestEnvelope("listings_quota_exceeded",
+                $"الباقة الحاليّة تسمح بـ {sub.ListingsLimit} إعلان نشط فقط — حدّث الباقة أو احذف إعلاناً.");
+
+        // فحص حصّة الصور لكلّ إعلان حسب الباقة.
+        var imageCount = body.Images?.Count ?? 0;
+        if (sub.ImagesPerListing > 0 && imageCount > sub.ImagesPerListing)
+            return this.BadRequestEnvelope("images_quota_exceeded",
+                $"الباقة الحاليّة تسمح بـ {sub.ImagesPerListing} صور لكلّ إعلان.");
+
         var entity = new ListingEntity
         {
             Id = Guid.NewGuid(),
@@ -202,7 +224,7 @@ public sealed class CatalogController : ControllerBase
             BathroomCount = body.BathroomCount ?? 0,
             AreaSqm = body.AreaSqm ?? 0,
             Status = 1,
-            ImagesCsv = body.Images is null ? "" : string.Join(",", body.Images),
+            ImagesCsv = body.Images is null ? "" : string.Join("|", body.Images),
             AmenitiesCsv = body.Amenities is null ? "" : string.Join(",", body.Amenities),
         };
         _db.Listings.Add(entity);
@@ -251,7 +273,7 @@ public sealed class CatalogController : ControllerBase
                 id = l.Id, title = l.Title, price = l.Price,
                 timeUnit = l.TimeUnit, propertyType = l.PropertyType,
                 city = l.City, district = l.District, isVerified = l.IsVerified,
-                firstImage = l.ImagesCsv?.Split(',').FirstOrDefault()
+                firstImage = l.ImagesCsv?.Split('|').FirstOrDefault()
             }));
     }
 

@@ -47,7 +47,10 @@ public sealed class ListingEntity : IBaseEntity
     public bool IsVerified { get; set; }
     public int ViewsCount { get; set; }
     public int Status { get; set; } = 1;
-    [MaxLength(2000)] public string ImagesCsv { get; set; } = "";
+    // بدون MaxLength → nvarchar(max). الصور data URLs (base64)، صورة واحدة قد
+    // تتجاوز ٢٠٠٠ حرف. التحديد القديم كان يُفجِّر INSERT بـ "String would be
+    // truncated" من SQL Server.
+    public string ImagesCsv { get; set; } = "";
 }
 
 public sealed class ConversationEntity : IBaseEntity

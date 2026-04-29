@@ -130,9 +130,13 @@ public sealed class HomeController : ControllerBase
             lat = l.Lat, lng = l.Lng,
             bedroomCount = l.BedroomCount, bathroomCount = l.BathroomCount, areaSqm = l.AreaSqm,
             isVerified = l.IsVerified, viewsCount = l.ViewsCount,
-            images = l.ImagesCsv?.Split(',', StringSplitOptions.RemoveEmptyEntries) ?? Array.Empty<string>(),
+            images = l.ImagesCsv?.Split('|', StringSplitOptions.RemoveEmptyEntries) ?? Array.Empty<string>(),
+            // ownerId على المستوى العلويّ ليستهلكه ListingDetails مباشرةً ويخفي
+            // زرّ "ابدأ محادثة" عندما المالك = المستخدم الحاليّ.
+            ownerId = l.OwnerId.ToString(),
             owner = owner is null ? null : new {
-                id = owner.Id, fullName = owner.FullName, phone = owner.Phone, city = owner.City,
+                id = owner.Id,
+                name = owner.FullName,
                 memberSince = owner.MemberSince
             }
         });
@@ -197,6 +201,6 @@ public sealed class HomeController : ControllerBase
         city = l.City, district = l.District,
         bedroomCount = l.BedroomCount, areaSqm = l.AreaSqm,
         isVerified = l.IsVerified, viewsCount = l.ViewsCount,
-        firstImage = l.ImagesCsv?.Split(',').FirstOrDefault()
+        firstImage = l.ImagesCsv?.Split('|').FirstOrDefault()
     };
 }
