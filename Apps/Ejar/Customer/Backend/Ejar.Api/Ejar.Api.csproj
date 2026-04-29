@@ -11,6 +11,7 @@
 
   <ItemGroup>
     <!-- Domain (entities + seed state) — single source of truth shared by Customer/Provider/Admin -->
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Auth\ACommerce.Kits.Auth.Backend\ACommerce.Kits.Auth.Backend.csproj" />
     <ProjectReference Include="..\..\..\Domain\Ejar.Domain.csproj" />
 
     <!-- SharedKernel EF infra (PlatformDataRoot + SqliteSchemaGuard helpers) -->
@@ -26,11 +27,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- ─── Auth Kit — atomic refs (Operations + Backend; no Razor Templates).
-         Avoid the .Server meta indirection because preview SDKs occasionally
-         skip transitive flow through empty meta projects. -->
-    <ProjectReference Include="..\..\..\..\..\libs\kits\Auth\ACommerce.Kits.Auth.Operations\ACommerce.Kits.Auth.Operations.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\kits\Auth\ACommerce.Kits.Auth.Backend\ACommerce.Kits.Auth.Backend.csproj" />
+    <!-- ─── Auth Kit (drop-in /auth/otp/{request,verify} + /auth/logout) ─── -->
+    <!-- meta = ACommerce.Kits.Auth (= Operations + Backend + Templates).
+         Add a TwoFactor channel + AsAuth bridge below to make OTP login work. -->
 
     <!-- ─── Auth.TwoFactor: SMS Mock (رمز ثابت 123456 — أبدله بمزوّد SMS حقيقي في الإنتاج) ── -->
     <ProjectReference Include="..\..\..\..\..\libs\kits\Auth.TwoFactor\ACommerce.Kits.Auth.TwoFactor\ACommerce.Kits.Auth.TwoFactor.csproj" />
@@ -64,7 +63,6 @@
     <ProjectReference Include="..\..\..\..\..\libs\kits\Discovery\ACommerce.Kits.Discovery\ACommerce.Kits.Discovery.csproj" />
     <ProjectReference Include="..\..\..\..\..\libs\kits\Favorites\ACommerce.Favorites.Operations\ACommerce.Favorites.Operations.csproj" />
     <ProjectReference Include="..\..\..\..\..\libs\kits\Favorites\ACommerce.Favorites.Backend\ACommerce.Favorites.Backend.csproj" />
-    <!-- Versions Kit — atomic refs (Operations + Backend; no Razor Templates) -->
     <ProjectReference Include="..\..\..\..\..\libs\kits\Versions\ACommerce.Kits.Versions.Operations\ACommerce.Kits.Versions.Operations.csproj" />
     <ProjectReference Include="..\..\..\..\..\libs\kits\Versions\ACommerce.Kits.Versions.Backend\ACommerce.Kits.Versions.Backend.csproj" />
     <ProjectReference Include="..\..\..\..\..\libs\kits\Subscriptions\ACommerce.Subscriptions.Operations\ACommerce.Subscriptions.Operations.csproj" />

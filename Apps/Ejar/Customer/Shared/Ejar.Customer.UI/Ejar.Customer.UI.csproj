@@ -17,6 +17,7 @@
 
   <ItemGroup>
     <!-- Domain (entities + seed contracts) -->
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Versions\ACommerce.Kits.Versions.Client\ACommerce.Kits.Versions.Client.csproj" />
     <ProjectReference Include="..\..\..\Domain\Ejar.Domain.csproj" />
   </ItemGroup>
 
@@ -42,28 +43,18 @@
     <!-- Chat client -->
     <ProjectReference Include="..\..\..\..\..\libs\kits\Chat\ACommerce.Chat.Client.Blazor\ACommerce.Chat.Client.Blazor.csproj" />
 
-    <!-- Versions Kit — atomic refs (Operations + Templates; no server Backend).
-         Avoid the .Client meta indirection because preview SDKs occasionally
-         skip transitive flow through empty meta projects. -->
-    <ProjectReference Include="..\..\..\..\..\libs\kits\Versions\ACommerce.Kits.Versions.Operations\ACommerce.Kits.Versions.Operations.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\kits\Versions\ACommerce.Kits.Versions.Templates\ACommerce.Kits.Versions.Templates.csproj" />
+    <!-- Versions Kit (templates + operations) -->
 
-    <!-- Auth Kit — atomic refs (Operations + Templates; no server Backend) -->
-    <ProjectReference Include="..\..\..\..\..\libs\kits\Auth\ACommerce.Kits.Auth.Operations\ACommerce.Kits.Auth.Operations.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\kits\Auth\ACommerce.Kits.Auth.Templates\ACommerce.Kits.Auth.Templates.csproj" />
+    <!-- Auth Templates (AcAuthGate + AcLoginPage) -->
 
-    <!-- Subscriptions Templates (AcSubscriptionGate + SubscriptionState).
-         Subscriptions has no separate Backend project yet; Operations is browser-safe
-         (no HttpContext deps), Templates pulls Operations transitively. -->
+    <!-- Subscriptions Templates (AcSubscriptionGate + SubscriptionState) -->
     <ProjectReference Include="..\..\..\..\..\libs\kits\Subscriptions\ACommerce.Subscriptions.Templates\ACommerce.Subscriptions.Templates.csproj" />
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Authorization metadata (AuthorizeAttribute used by @attribute [Authorize]
-         on Razor pages) + Components.Authorization for AuthorizeView/AuthorizationStateProvider.
-         Both are WASM-safe (netstandard / browser-supported). -->
-    <PackageReference Include="Microsoft.AspNetCore.Authorization" Version="10.0.7" />
+    <!-- Embedded translations live as .resx in Resources/ -->
     <PackageReference Include="Microsoft.AspNetCore.Components.Authorization" Version="10.0.7" />
+    <PackageReference Include="Microsoft.AspNetCore.Authorization" Version="10.0.7" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.7" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.7" />
     <PackageReference Include="Microsoft.Extensions.Options" Version="10.0.7" />
