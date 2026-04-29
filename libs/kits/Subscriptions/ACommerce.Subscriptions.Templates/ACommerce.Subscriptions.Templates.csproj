@@ -16,12 +16,13 @@
 
       Mirrors the AcAppVersionGate pattern — same shape, different signal.
     </Description>
+    <NoWarn>$(NoWarn);NU1510</NoWarn>
   </PropertyGroup>
   <ItemGroup>
     <SupportedPlatform Include="browser" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="10.0.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="10.0.7" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\ACommerce.Subscriptions.Operations\ACommerce.Subscriptions.Operations.csproj" />

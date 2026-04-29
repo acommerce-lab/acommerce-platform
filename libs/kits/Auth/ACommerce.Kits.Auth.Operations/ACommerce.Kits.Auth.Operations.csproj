@@ -19,9 +19,11 @@
     </Description>
   </PropertyGroup>
   <ItemGroup>
+    <!-- Pure contracts only (IAuthFlow, IAuthUserStore, AuthTagKeys constants).
+         The interceptor + DI extensions live in Auth.Backend; no Microsoft.Extensions.*
+         dependencies are needed here. Operation/IOperationInterceptor types come
+         from the OperationEngine project references. -->
     <ProjectReference Include="..\..\Core\OperationEngine\ACommerce.OperationEngine\ACommerce.OperationEngine.csproj" />
     <ProjectReference Include="..\..\Core\OperationEngine\ACommerce.OperationEngine.Interceptors\ACommerce.OperationEngine.Interceptors.csproj" />
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.0" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.0" />
   </ItemGroup>
 </Project>
