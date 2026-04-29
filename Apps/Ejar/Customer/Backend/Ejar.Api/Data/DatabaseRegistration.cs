@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -38,6 +39,14 @@ public static class DatabaseRegistration
 
         services.AddDbContext<EjarDbContext>(options =>
         {
+            // EF Core 10 يرفع PendingModelChangesWarning كـ exception افتراضياً
+            // عندما لا يطابق snapshot الـ migration حالة النموذج تماماً (مثل أعمدة
+            // decimal بدون precision صريح). نُخفّضه إلى log تحذير فقط حتى لا يمنع
+            // Migrate() من العمل في الإنتاج. الحلّ المثاليّ: ضبط precision لكلّ
+            // decimal property في OnModelCreating ثمّ توليد migration جديد.
+            options.ConfigureWarnings(w =>
+                w.Ignore(RelationalEventId.PendingModelChangesWarning));
+
             switch (provider)
             {
                 case "sqlite":

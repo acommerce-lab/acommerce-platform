@@ -53,6 +53,12 @@ public sealed class EjarDbContext : DbContext
         b.Entity<AppVersionEntity>().HasIndex(v => new { v.Platform, v.Version }).IsUnique();
         b.Entity<AppVersionEntity>().HasQueryFilter(e => !e.IsDeleted);
 
+        // Decimal precision: SQL Server يستخدم decimal(18,2) افتراضياً مع تحذير.
+        // نُحدّده صراحةً (10 منازل + 2 كسر) ليكفي ريال/دولار حتى ٩٩٬٩٩٩٬٩٩٩.٩٩.
+        b.Entity<ListingEntity>().Property(l => l.Price).HasPrecision(12, 2);
+        b.Entity<PlanEntity>()   .Property(p => p.Price).HasPrecision(12, 2);
+        b.Entity<InvoiceEntity>().Property(i => i.Amount).HasPrecision(12, 2);
+
         // Global query filter: لا تُرجع الكيانات المحذوفة افتراضياً
         b.Entity<UserEntity>().HasQueryFilter(e => !e.IsDeleted);
         b.Entity<ListingEntity>().HasQueryFilter(e => !e.IsDeleted);
