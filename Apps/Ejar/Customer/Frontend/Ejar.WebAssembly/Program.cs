@@ -2,6 +2,7 @@ using ACommerce.Kits.Versions.Templates;
 using Ejar.Customer.UI;
 using Ejar.Customer.UI.Components.Layout;
 using Ejar.Customer.UI.Interceptors;
+using Ejar.Customer.UI.Store;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 
@@ -38,4 +39,10 @@ builder.Services.AddScoped(sp =>
 
 builder.Services.AddEjarCustomerUI();
 
-await builder.Build().RunAsync();
+// استعِد الحالة من localStorage قبل أيّ render — يضمن أنّ JWT والمفضّلات تكون
+// جاهزة قبل أن يقيّم Router سمات [Authorize] على الصفحات. وإلّا تظهر صفحة
+// Login لحظات ثمّ تختفي، أو يُعاد توجيه المستخدم إلى الرئيسيّة من صفحة محميّة
+// رغم أنّ التوكن محفوظ.
+var host = builder.Build();
+await host.Services.GetRequiredService<AppStorePersistence>().RestoreAsync();
+await host.RunAsync();

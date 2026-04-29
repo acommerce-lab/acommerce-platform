@@ -35,6 +35,7 @@ public sealed class AppStorePersistence : IAsyncDisposable
     private readonly IJSRuntime _js;
     private bool _restored;
     private bool _suspendSave;
+    private TaskCompletionSource<bool>? _restoreTcs;
 
     public AppStorePersistence(AppStore store, IJSRuntime js)
     {
@@ -42,6 +43,15 @@ public sealed class AppStorePersistence : IAsyncDisposable
         _js    = js;
         _store.OnChanged += OnStoreChanged;
     }
+
+    /// <summary>
+    /// مهمّة تكتمل عندما يتمّ استعادة الحالة (نجاحاً أو إخفاقاً) لأوّل مرّة.
+    /// تستخدمها <c>EjarAuthenticationStateProvider</c> لتأخير قرار
+    /// <c>IsAuthenticated</c> حتى تُستعاد القيم من localStorage — وإلّا
+    /// الصفحات المحميّة تُقيَّم قبل الاستعادة وتُعيد التوجيه إلى /login حتى
+    /// لو كان الـ JWT محفوظاً.
+    /// </summary>
+    public Task RestoreCompleted => (_restoreTcs ??= new()).Task;
 
     /// <summary>
     /// يقرأ كلّ المفاتيح من localStorage ويُسقطها على <see cref="AppStore"/>.
@@ -61,12 +71,15 @@ public sealed class AppStorePersistence : IAsyncDisposable
         catch
         {
             // فشل JSInterop (مثلاً قبل اكتمال render في Blazor Server) — نتجاهل،
-            // المُستدعي يستطيع المحاولة مرّة أخرى.
+            // المُستدعي يستطيع المحاولة مرّة أخرى. لا نُعلِم RestoreCompleted
+            // حتى يتمكّن AuthenticationStateProvider من إعادة المحاولة لاحقاً.
+            _suspendSave = false;
             return;
         }
-        finally { _suspendSave = false; }
 
+        _suspendSave = false;
         _restored = true;
+        _restoreTcs?.TrySetResult(true);
         _store.NotifyChanged();
     }
 
