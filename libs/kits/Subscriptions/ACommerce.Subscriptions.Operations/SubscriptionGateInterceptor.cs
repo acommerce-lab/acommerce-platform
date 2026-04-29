@@ -1,7 +1,6 @@
 using ACommerce.OperationEngine.Core;
 using ACommerce.OperationEngine.Interceptors;
 using ACommerce.Subscriptions.Operations.Abstractions;
-using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -10,23 +9,26 @@ namespace ACommerce.Subscriptions.Operations;
 /// <summary>
 /// معترض بوّابة الاشتراكات الكونيّ — Pre، يحجب أيّ عمليّة تحمل تاج
 /// <see cref="SubscriptionTagKeys.RequiresActiveSubscription"/> إذا لم يكن للمستخدم
-/// أيّ اشتراك نشط على الإطلاق (بصرف النظر عن الحصص الفرديّة).
+/// أيّ اشتراك نشط على الإطلاق.
 ///
 /// <para>الفرق عن <see cref="QuotaInterceptor"/>:
-///   - <c>QuotaInterceptor</c> يربط القيد بحصّة محدّدة في باقة محدّدة (مثلاً
-///     <c>listings.create &lt; max</c>) ويستهلك العدّاد.
+///   - <c>QuotaInterceptor</c> يربط القيد بحصّة محدّدة في باقة محدّدة.
 ///   - <c>SubscriptionGateInterceptor</c> ببساطة يفشل القيد لو ليس للمستخدم أيّ
-///     اشتراك نشط — مفيد لعمليّات لا تتعلّق بحصّة (مثل قراءة dashboard أو
-///     إرسال رسالة) لكنّها مقصورة على المشتركين.
+///     اشتراك نشط — مفيد لعمليّات لا تتعلّق بحصّة لكنّها مقصورة على المشتركين.
 /// </para>
 ///
 /// <para>التطبيق يفعّله بإضافة التاج صراحةً:
 /// <code>
 ///   Entry.Create("vendor.dashboard.read")
 ///       .Tag(SubscriptionTagKeys.RequiresActiveSubscription, "true")
+///       .Tag(QuotaTagKeys.UserId.Name, userId.ToString())
 ///       ...
 /// </code>
-/// أو يطبّقه عالميّاً عبر TaggedInterceptor جانبيّ.</para>
+/// </para>
+///
+/// <para>يعتمد فقط على تاجات/أطراف العمليّة (لا <c>HttpContext</c>) ليعمل في WASM
+/// وفي background jobs بنفس السلوك. إن لم نتمكّن من تحديد المستخدم، نمرّر بسلام
+/// (يتولّى معترض المصادقة الرفض).</para>
 /// </summary>
 public sealed class SubscriptionGateInterceptor : IOperationInterceptor
 {
@@ -42,24 +44,16 @@ public sealed class SubscriptionGateInterceptor : IOperationInterceptor
 
     public async Task<AnalyzerResult> InterceptAsync(OperationContext context, OperationResult? result = null)
     {
-        var userId = ResolveUserId(context);
+        var userId = ResolveUserId(context.Operation);
         if (userId == Guid.Empty)
-        {
-            // لا نعرف المستخدم — نتركه لمعترض المصادقة، لا نضع قيداً مزدوجاً.
             return AnalyzerResult.Pass();
-        }
 
         var provider = context.Services.GetService<ISubscriptionProvider>();
         if (provider is null)
-        {
-            // المكتبة غير مفعّلة في هذا الـ host — نمرّر.
             return AnalyzerResult.Pass();
-        }
 
         var subs = await provider.GetActiveSubscriptionsAsync(userId, context.CancellationToken);
-        var hasActive = subs.Any(s => s.IsCurrentlyActive);
-
-        if (hasActive)
+        if (subs.Any(s => s.IsCurrentlyActive))
             return AnalyzerResult.Pass();
 
         var logger = context.Services.GetService<ILogger<SubscriptionGateInterceptor>>();
@@ -79,31 +73,26 @@ public sealed class SubscriptionGateInterceptor : IOperationInterceptor
         };
     }
 
-    private static Guid ResolveUserId(OperationContext context)
+    /// <summary>
+    /// نفس استراتيجية <see cref="QuotaInterceptor"/>: تاج صريح أوّلاً، ثمّ طرف
+    /// بدور owner/subject/subscriber/customer/sender. لا اعتماد على HttpContext
+    /// — يحفظ التوافق مع WASM والـ background jobs.
+    /// </summary>
+    private static Guid ResolveUserId(Operation op)
     {
-        // 1) من رأس HTTP أو claim للمصادَق عليه
-        var http = context.Services.GetService<IHttpContextAccessor>()?.HttpContext;
-        var claim = http?.User?.FindFirst("user_id")?.Value
-                 ?? http?.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-        if (!string.IsNullOrEmpty(claim) && Guid.TryParse(claim, out var fromClaim))
-            return fromClaim;
-
-        // 2) من تاج صريح
-        var explicitId = context.Operation.GetTagValue(QuotaTagKeys.UserId.Name);
+        var explicitId = op.GetTagValue(QuotaTagKeys.UserId.Name);
         if (!string.IsNullOrEmpty(explicitId) && Guid.TryParse(explicitId, out var fromTag))
             return fromTag;
 
-        // 3) من طرف صاحب الدور
-        var roles = new[] { "owner", "subject", "subscriber", "customer" };
+        var roles = new[] { "owner", "subject", "subscriber", "customer", "sender" };
         foreach (var role in roles)
         {
-            var party = context.Operation.GetPartiesByTag("role", role).FirstOrDefault();
+            var party = op.GetPartiesByTag("role", role).FirstOrDefault();
             if (party is null) continue;
             var ix = party.Identity.IndexOf(':');
             if (ix > 0 && Guid.TryParse(party.Identity[(ix + 1)..], out var fromParty))
                 return fromParty;
         }
-
         return Guid.Empty;
     }
 }

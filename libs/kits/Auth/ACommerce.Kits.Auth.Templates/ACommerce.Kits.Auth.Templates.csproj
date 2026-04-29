@@ -13,10 +13,13 @@
     </Description>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\Widgets\ACommerce.Widgets\ACommerce.Widgets.csproj" />
+    <SupportedPlatform Include="browser" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="10.0.0" />
     <PackageReference Include="Microsoft.AspNetCore.Components.Authorization" Version="10.0.0" />
   </ItemGroup>
   <ItemGroup>
-    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <ProjectReference Include="..\..\Widgets\ACommerce.Widgets\ACommerce.Widgets.csproj" />
   </ItemGroup>
 </Project>
