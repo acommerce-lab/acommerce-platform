@@ -179,6 +179,26 @@ public sealed class EjarVersionStore : IVersionStore
 
     public async Task<AppVersion> UpsertAsync(AppVersion version, CancellationToken ct)
     {
+        // قاعدة الكيت: حالة Latest فريدة لكلّ منصّة. عند Upsert لإصدار جديد
+        // كـ Latest نُخفّض أيّ "Latest" سابق في نفس المنصّة إلى Active تلقائياً
+        // — حتى لا يبقى DB بإصدارَين Latest فيختار GetLatestAsync أحدهما عشوائياً
+        // ويظهر للعميل بانر "هناك أحدث: 1.0.0" بعد أن نشرنا 2026.04.29.1 فعلاً.
+        if (version.Status == VersionStatus.Latest)
+        {
+            var priorLatestStatus = (int)VersionStatus.Latest;
+            var activeStatus      = (int)VersionStatus.Active;
+            var priors = await _db.AppVersions
+                .Where(v => v.Platform == version.Platform
+                         && v.Status   == priorLatestStatus
+                         && v.Version  != version.Version)
+                .ToListAsync(ct);
+            foreach (var p in priors)
+            {
+                p.Status    = activeStatus;
+                p.UpdatedAt = DateTime.UtcNow;
+            }
+        }
+
         var existing = await _db.AppVersions
             .FirstOrDefaultAsync(v => v.Platform == version.Platform && v.Version == version.Version, ct);
         if (existing is null)
@@ -208,6 +228,20 @@ public sealed class EjarVersionStore : IVersionStore
         var row = await _db.AppVersions
             .FirstOrDefaultAsync(v => v.Platform == platform && v.Version == version, ct);
         if (row is null) return false;
+
+        // نفس قاعدة UpsertAsync — لو رفعنا هذا الصفّ إلى Latest نُخفِّض السابق.
+        if (status == VersionStatus.Latest)
+        {
+            var latestStatus = (int)VersionStatus.Latest;
+            var activeStatus = (int)VersionStatus.Active;
+            var priors = await _db.AppVersions
+                .Where(v => v.Platform == platform
+                         && v.Status   == latestStatus
+                         && v.Version  != version)
+                .ToListAsync(ct);
+            foreach (var p in priors) { p.Status = activeStatus; p.UpdatedAt = DateTime.UtcNow; }
+        }
+
         row.Status    = (int)status;
         row.SunsetAt  = sunsetAt;
         row.UpdatedAt = DateTime.UtcNow;

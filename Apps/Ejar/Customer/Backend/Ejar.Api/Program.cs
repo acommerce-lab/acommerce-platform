@@ -171,6 +171,12 @@ using (var scope = app.Services.CreateScope())
         Log.Information("Ejar.Db: seeding complete");
     }
     DbInitializer.SeedAppVersionsIfMissing(db);
+
+    // Promote-from-config: يقرأ Versions:Latest:{platform} من appsettings ويُسجّل
+    // كلّ منها كـ Latest عبر IVersionStore. EjarVersionStore.UpsertAsync يُخفّض
+    // أيّ Latest سابق في نفس المنصّة إلى Active تلقائياً، فالنشر يكفي وحده
+    // ليصبح الإصدار الجديد هو الـ Latest بلا أيّ تدخّل إداريّ يدويّ.
+    await VersionsBootstrap.PromoteFromConfigAsync(scope.ServiceProvider, builder.Configuration);
 }
 
 // 9. Middleware Pipeline

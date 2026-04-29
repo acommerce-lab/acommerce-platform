@@ -110,6 +110,10 @@
         {
             <AcAlert Variant="danger" Message="@_chatError" />
         }
+        @if (!string.IsNullOrEmpty(Favorites.LastError))
+        {
+            <AcAlert Variant="danger" Message="@Favorites.LastError" />
+        }
 
         <AcStickyActionBar>
             <AcButton Variant="ghost" Text="رجوع" OnClick="@GoBack" />
@@ -149,7 +153,11 @@
         _listing is null ? Array.Empty<AcMapSim.MapPin>()
                          : new[] { new AcMapSim.MapPin("loc", _listing.Title, _listing.Lat, _listing.Lng) };
 
-    protected override void OnInitialized() => Store.OnChanged += OnChange;
+    protected override void OnInitialized()
+    {
+        Store.OnChanged += OnChange;
+        Favorites.Changed += OnChange;
+    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -211,7 +219,11 @@
     private void GoBack() => Nav.NavigateTo("/search");
 
     private void OnChange() => InvokeAsync(StateHasChanged);
-    public void Dispose() => Store.OnChanged -= OnChange;
+    public void Dispose()
+    {
+        Store.OnChanged -= OnChange;
+        Favorites.Changed -= OnChange;
+    }
 
     private sealed record AmenityDto(string Key, string Label);
     private sealed record OwnerDto(string Name, string? MemberSince);

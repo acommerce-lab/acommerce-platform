@@ -28,6 +28,17 @@ public sealed class FavoritesSync
     }
 
     /// <summary>
+    /// آخر خطأ شبكيّ/خادم عند آخر نداء toggle. تُمسح في كلّ نداء جديد ناجح.
+    /// تستهلكها صفحات الواجهة لإظهار toast/alert يبيّن للمستخدم أنّ المفضّلة
+    /// لم تُحفظ في الخادم — قبل ذلك كان revert الصامت يجعل القلب يقفز ويعود
+    /// بلا أيّ إشعار، فيظنّ المستخدم أنّ كلّ شيء سليم بينما DB لا يحوي شيئاً.
+    /// </summary>
+    public string? LastError { get; private set; }
+
+    /// <summary>يُطلَق عند تغيّر <see cref="LastError"/> ليُجدِّد العرض.</summary>
+    public event Action? Changed;
+
+    /// <summary>
     /// يُحمّل قائمة المفضّلات من الخادم ويستبدل بها <see cref="AppStore.FavoriteListingIds"/>.
     /// يُستدعى مرّة بعد استعادة الجلسة وبعد تسجيل الدخول. لا يفعل شيئاً لو
     /// المستخدم غير مصادَق.
@@ -70,15 +81,30 @@ public sealed class FavoritesSync
         if (!optimisticOn) _store.FavoriteListingIds.Remove(listingId);
         _store.NotifyChanged();
 
-        var env = await _api.PostAsync<FavoriteToggleResult>(
+        SetError(null);
+
+        var env = await _api.PostAsync<ToggleResult>(
             $"/listings/{Uri.EscapeDataString(listingId)}/favorite", body: null, ct: ct);
 
         if (env.Operation.Status != "Success" || env.Data is null)
         {
-            // فشل الخادم — تراجع: أعِد الحالة كما كانت قبل النقر.
+            // فشل الخادم — تراجع: أعِد الحالة كما كانت قبل النقر، وأعلن الخطأ
+            // ليُظهره الـ UI (revert صامت كان يربك المستخدم: القلب يومض ويعود
+            // كأنّ شيئاً لم يحدث، بينما DB فارغ).
             if (optimisticOn) _store.FavoriteListingIds.Remove(listingId);
             else              _store.FavoriteListingIds.Add(listingId);
             _store.NotifyChanged();
+
+            var code = env.Error?.Code ?? env.Operation?.FailedAnalyzer;
+            var msg  = env.Error?.Message ?? env.Operation?.ErrorMessage;
+            SetError((code, msg) switch
+            {
+                ("network_error",     var m) when m is not null => $"تعذّر الاتصال بالخادم: {m}",
+                ("listing_not_found", _)                        => "الإعلان لم يعد متوفّراً.",
+                (_, var m) when !string.IsNullOrWhiteSpace(m)   => m!,
+                (var c, _) when !string.IsNullOrWhiteSpace(c)   => $"تعذّر حفظ المفضّلة ({c}).",
+                _                                                => "تعذّر حفظ المفضّلة على الخادم — حاول مجدّداً."
+            });
             return !optimisticOn;
         }
 
@@ -91,6 +117,13 @@ public sealed class FavoritesSync
         return env.Data.IsFavorite;
     }
 
+    private void SetError(string? msg)
+    {
+        if (LastError == msg) return;
+        LastError = msg;
+        Changed?.Invoke();
+    }
+
     private sealed record FavoriteRow(string Id);
-    private sealed record FavoriteToggleResult(string Id, bool IsFavorite);
+    private sealed record ToggleResult(string Id, bool IsFavorite);
 }

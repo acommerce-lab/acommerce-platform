@@ -60,6 +60,11 @@ public sealed class ConversationEntity : IBaseEntity
     public DateTime? UpdatedAt { get; set; }
     public bool IsDeleted { get; set; }
 
+    // OwnerId = من بدأ المحادثة. PartnerId = الطرف الآخر. كلا الطرفَين يجب
+    // أن يجدا المحادثة في /conversations عبر OwnerId == me OR PartnerId == me.
+    // قبل إضافة OwnerId كان الباحث الذي يبدأ المحادثة لا يجدها في قائمته
+    // (لأنّ معرّفه غير مخزَّن أصلاً)، والمالك يجدها فقط لأنّ معرّفه = PartnerId.
+    public Guid OwnerId { get; set; }
     [MaxLength(120)] public string PartnerName { get; set; } = "";
     public Guid PartnerId { get; set; }
     public Guid ListingId { get; set; }

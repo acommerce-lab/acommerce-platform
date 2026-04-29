@@ -50,6 +50,8 @@ public sealed class EjarDbContext : DbContext
         b.Entity<UserEntity>().HasIndex(u => u.Phone).IsUnique();
         b.Entity<Favorite>().HasIndex(f => new { f.UserId, f.EntityType, f.EntityId }).IsUnique();
         b.Entity<MessageEntity>().HasIndex(m => m.ConversationId);
+        b.Entity<ConversationEntity>().HasIndex(c => c.OwnerId);
+        b.Entity<ConversationEntity>().HasIndex(c => c.PartnerId);
         b.Entity<AppVersionEntity>().HasIndex(v => new { v.Platform, v.Version }).IsUnique();
         b.Entity<AppVersionEntity>().HasQueryFilter(e => !e.IsDeleted);
 
