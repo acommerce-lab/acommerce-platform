@@ -38,6 +38,13 @@ Legend for **Owner**:
 | POST   | `/auth/otp/verify`    | `{ phone, code }`           | Returns `{ token, userId, name, phone, role }`. |
 | POST   | `/auth/logout`        | —                           | Bearer required. Returns `{ userId }`. |
 
+### Health (App:Ejar.Api)
+
+| Method | Path        | Notes |
+|--------|-------------|-------|
+| GET    | `/healthz`  | Liveness + DB reachability probe used by `api-diagnostics.js` on every page load. Returns `{ status, db, time, service, provider }`. |
+| GET    | `/health`   | Backwards-compat alias for `/healthz` (older clients). |
+
 ### Versions (Kit:Versions)
 
 | Method | Path                  | Notes |

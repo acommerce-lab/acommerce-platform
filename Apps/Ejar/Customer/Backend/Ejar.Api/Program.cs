@@ -153,5 +153,25 @@ app.UseAuthorization();
 app.MapControllers();
 app.MapHub<AShareHub>("/realtime");
 
+// نقطة الفحص الحيّ التي يستدعيها سكربت api-diagnostics.js في الواجهات
+// (Web/WASM/MAUI) عند بدء كلّ جلسة لاختبار الوصول إلى الخدمة وقاعدة البيانات.
+// نُعرّفها بمسارَين: /healthz هو القياسيّ في k8s/Azure، /health للتوافق
+// الخلفيّ مع أيّ عميل قديم استخدم الاسم بلا الـ z.
+var healthHandler = (EjarDbContext db) =>
+{
+    var dbOk = false;
+    try { dbOk = db.Database.CanConnect(); }
+    catch { /* dbOk = false */ }
+    return Results.Ok(new {
+        status   = dbOk ? "healthy" : "degraded",
+        db       = dbOk ? "ok" : "unreachable",
+        time     = DateTime.UtcNow,
+        service  = "Ejar.Api",
+        provider = db.Database.ProviderName
+    });
+};
+app.MapGet("/healthz", healthHandler).AllowAnonymous();
+app.MapGet("/health",  healthHandler).AllowAnonymous();
+
 Log.Information("Ejar API ready [{Env}]", app.Environment.EnvironmentName);
 app.Run();
