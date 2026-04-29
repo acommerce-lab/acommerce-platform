@@ -50,21 +50,10 @@ Log.Logger = new LoggerConfiguration()
 
 builder.Host.UseSerilog();
 
-// 2. Database (SQLite for dev)
-// المسار يأتي إمّا من ConnectionStrings:Default (لإنتاج SQL Server / مسار مطلق
-// لـ SQLite)، أو fallback إلى ملفّ بجوار الـ binary نفسه. الـ fallback يعمل في
-// التطوير وفي النشر دون تكوين إضافيّ — العامل المشترك أنّ ContentRootPath
-// متاح دائماً ويُنتج مساراً مطلقاً.
-var conn = builder.Configuration.GetConnectionString("Default");
-if (string.IsNullOrWhiteSpace(conn))
-{
-    var dataDir = Path.Combine(builder.Environment.ContentRootPath, "data");
-    Directory.CreateDirectory(dataDir);
-    conn = $"Data Source={Path.Combine(dataDir, "ejar-customer-dev.db")}";
-}
-
-// تسجيل EjarDbContext مباشرة
-builder.Services.AddDbContext<EjarDbContext>(options => options.UseSqlite(conn));
+// 2. Database — provider يُختار حسب Database:Provider (sqlite/mssql)
+// والـ connection string من Database:ConnectionString. الـ extension يحلّ
+// مسار SQLite الافتراضي إلى <repo>/data أو ContentRoot عبر PlatformDataRoot.
+builder.Services.AddEjarDatabase(builder.Configuration, builder.Environment);
 // تسجيله كـ DbContext عام للمستودعات
 builder.Services.AddScoped<DbContext>(sp => sp.GetRequiredService<EjarDbContext>());
 builder.Services.AddScoped<IRepositoryFactory, RepositoryFactory>();
