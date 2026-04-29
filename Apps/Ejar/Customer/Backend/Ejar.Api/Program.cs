@@ -127,14 +127,35 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<EjarDbContext>();
-    if (db.Database.EnsureCreated())
+
+    // نستخدم Migrate() بدل EnsureCreated() ليصبح schema drift قابلاً للإدارة:
+    // أيّ تعديل في الكيانات → dotnet ef migrations add <Name> → النشر يطبّقها.
+    // لـ DB جديدة: ينشئها ويطبّق كلّ migrations الموجودة.
+    // لـ DB قديمة فيها __EFMigrationsHistory: يطبّق المتبقّي فقط.
+    // لـ DB قديمة أُنشئت بـ EnsureCreated (لا history): يفشل Migrate لأنّ الجداول
+    // موجودة — في هذه الحالة فرّغها مرّة واحدة (drop + create) وأعد التشغيل.
+    var pending = db.Database.GetPendingMigrations().ToList();
+    if (pending.Count > 0)
     {
-        Log.Information("Ejar.Db: schema ensured ({Provider})", db.Database.ProviderName);
+        Log.Information("Ejar.Db: applying {Count} migration(s): {Names}",
+            pending.Count, string.Join(", ", pending));
+        db.Database.Migrate();
+    }
+    else
+    {
+        // قاعدة بيانات تُحسَب up-to-date. لو أُنشئت يدوياً أو بـ EnsureCreated
+        // قد ينقصها جدول AppVersions الذي لم يُسجَّل في __EFMigrationsHistory.
+        // helper idempotent يضمن وجوده.
+        DbInitializer.EnsureAppVersionsTable(db);
+    }
+
+    // البذور: تعمل عند كلّ بدء تشغيل، تتفقّد بنفسها قبل الإدراج.
+    if (!db.Users.Any())
+    {
+        Log.Information("Ejar.Db: seeding initial data");
         DbInitializer.Seed(db);
         Log.Information("Ejar.Db: seeding complete");
     }
-    // البذرة الإضافيّة لإصدارات التطبيق idempotent — تعمل في كلّ بدء تشغيل
-    // فتغطّي قواعد البيانات القديمة التي وُلِدت قبل إضافة AppVersionEntity.
     DbInitializer.SeedAppVersionsIfMissing(db);
 }
 

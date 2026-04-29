@@ -75,9 +75,12 @@ public static class DbInitializer
     /// <summary>
     /// بذرة إضافيّة idempotent لإصدارات التطبيق. تعمل عند كلّ بدء تشغيل لتغطّي
     /// قواعد البيانات القديمة. تضيف فقط <c>(platform, "1.0.0")</c> غير الموجودة.
+    /// تستدعي <see cref="EnsureAppVersionsTable"/> أوّلاً لضمان وجود الجدول
+    /// (DBs قديمة أُنشئت بـ EnsureCreated قبل إضافة AppVersionEntity لا تحتويه).
     /// </summary>
     public static void SeedAppVersionsIfMissing(EjarDbContext db)
     {
+        EnsureAppVersionsTable(db);
         // 6. Seed App Versions
         // الإصدار الحاليّ "1.0.0" يُسجَّل بحالة Latest لكلّ منصّة. لا نسجّل
         // إصدارات قديمة هنا — السياسة الافتراضيّة في StoreBackedAppVersionGate
@@ -109,4 +112,66 @@ public static class DbInitializer
         }
         if (addedAny) db.SaveChanges();
     }
+
+    /// <summary>
+    /// يضمن وجود جدول <c>AppVersions</c> في قاعدة البيانات. حلّ سريع للقواعد
+    /// التي أُنشئت بـ <c>EnsureCreated()</c> قبل إضافة <see cref="AppVersionEntity"/>
+    /// — لا تحوي <c>__EFMigrationsHistory</c> فلا تستفيد من <c>Migrate()</c>
+    /// (الذي سيحاول إنشاء كلّ الجداول ويفشل لأنّها موجودة).
+    ///
+    /// <para>الحلّ المثاليّ مستقبلاً: bootstrap لـ <c>__EFMigrationsHistory</c> ثمّ
+    /// <c>Migrate()</c> للجديد فقط. هذا الـ helper الحاليّ يُكتفى به لتشغيل
+    /// الإنتاج الآن.</para>
+    /// </summary>
+    public static void EnsureAppVersionsTable(EjarDbContext db)
+    {
+        var provider = db.Database.ProviderName ?? "";
+        var sql = provider.Contains("Sqlite", StringComparison.OrdinalIgnoreCase)
+            ? SqliteCreateTable
+            : SqlServerCreateTable;
+        try
+        {
+            db.Database.ExecuteSqlRaw(sql);
+        }
+        catch (Exception)
+        {
+            // فشل غير قاتل — قد يفشل DDL على بعض الإعدادات. لو الجدول لم يُنشأ
+            // فعلاً، الاستعلام التالي سيرمي خطأً واضحاً للـ caller.
+        }
+    }
+
+    private const string SqliteCreateTable = @"
+CREATE TABLE IF NOT EXISTS ""AppVersions"" (
+    ""Id""          TEXT    NOT NULL CONSTRAINT ""PK_AppVersions"" PRIMARY KEY,
+    ""CreatedAt""   TEXT    NOT NULL,
+    ""UpdatedAt""   TEXT    NULL,
+    ""IsDeleted""   INTEGER NOT NULL DEFAULT 0,
+    ""Platform""    TEXT    NOT NULL,
+    ""Version""     TEXT    NOT NULL,
+    ""Status""      INTEGER NOT NULL,
+    ""SunsetAt""    TEXT    NULL,
+    ""Notes""       TEXT    NULL,
+    ""DownloadUrl"" TEXT    NULL
+);
+CREATE UNIQUE INDEX IF NOT EXISTS ""IX_AppVersions_Platform_Version""
+    ON ""AppVersions"" (""Platform"", ""Version"");";
+
+    private const string SqlServerCreateTable = @"
+IF OBJECT_ID(N'[AppVersions]', N'U') IS NULL
+BEGIN
+    CREATE TABLE [AppVersions] (
+        [Id]          UNIQUEIDENTIFIER NOT NULL CONSTRAINT [PK_AppVersions] PRIMARY KEY,
+        [CreatedAt]   DATETIME2        NOT NULL,
+        [UpdatedAt]   DATETIME2        NULL,
+        [IsDeleted]   BIT              NOT NULL DEFAULT 0,
+        [Platform]    NVARCHAR(20)     NOT NULL,
+        [Version]     NVARCHAR(40)     NOT NULL,
+        [Status]      INT              NOT NULL,
+        [SunsetAt]    DATETIME2        NULL,
+        [Notes]       NVARCHAR(MAX)    NULL,
+        [DownloadUrl] NVARCHAR(MAX)    NULL
+    );
+    CREATE UNIQUE INDEX [IX_AppVersions_Platform_Version]
+        ON [AppVersions] ([Platform], [Version]);
+END";
 }
