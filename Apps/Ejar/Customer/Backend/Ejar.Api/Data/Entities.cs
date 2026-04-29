@@ -146,3 +146,19 @@ public sealed class InvoiceEntity : IBaseEntity
     public DateTime Date { get; set; }
     [MaxLength(20)] public string Status { get; set; } = "paid";
 }
+
+
+public sealed class AppVersionEntity : IBaseEntity
+{
+    [Key] public Guid Id { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public DateTime? UpdatedAt { get; set; }
+    public bool IsDeleted { get; set; }
+
+    [MaxLength(20)] public string Platform { get; set; } = "";   // web | wasm | mobile | admin
+    [MaxLength(40)] public string Version  { get; set; } = "";   // semver-lite, e.g. "1.0.0"
+    public int Status { get; set; }                              // VersionStatus enum
+    public DateTime? SunsetAt { get; set; }
+    public string? Notes { get; set; }
+    public string? DownloadUrl { get; set; }
+}

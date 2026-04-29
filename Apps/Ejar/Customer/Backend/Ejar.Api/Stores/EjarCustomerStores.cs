@@ -4,7 +4,9 @@ using ACommerce.Kits.Chat.Backend;
 using ACommerce.Kits.Notifications.Backend;
 using ACommerce.Kits.Versions.Backend;
 using ACommerce.Kits.Versions.Operations;
+using Ejar.Api.Data;
 using Ejar.Domain;
+using Microsoft.EntityFrameworkCore;
 
 namespace Ejar.Api.Stores;
 
@@ -108,92 +110,91 @@ public sealed class EjarCustomerNotificationStore : INotificationStore
 }
 
 /// <summary>
-/// مخزن إصدارات إيجار — in-memory ابتدائيّ (يستبدله التطبيق بمخزن DB قبل الإنتاج).
-/// يجزّئ الإصدارات حسب المنصّة ويحدّد الأحدث ضمن الحالة <see cref="VersionStatus.Latest"/>.
+/// مخزن إصدارات إيجار — مدعوم بـ EF Core. يقرأ ويكتب جدول <c>AppVersions</c>
+/// ويُسلِّم العقد <see cref="AppVersion"/> الذي يفهمه Versions Kit.
+/// المسؤول عن الإدارة الإداريّة (إضافة/تحديث الحالة/حذف) عبر
+/// <c>AdminVersionsController</c> الذي يستدعي هذا الـ store.
 /// </summary>
 public sealed class EjarVersionStore : IVersionStore
 {
-    private static readonly object _lock = new();
-    private static readonly List<AppVersion> _rows = new()
-    {
-        new AppVersion("web",    "1.0.0", VersionStatus.Latest,
-            DownloadUrl: "https://ejar.ye/download"),
-        new AppVersion("mobile", "1.0.0", VersionStatus.Latest,
-            DownloadUrl: "https://ejar.ye/download/mobile"),
-        new AppVersion("admin",  "1.0.0", VersionStatus.Latest,
-            DownloadUrl: "https://ejar.ye/download/admin"),
-    };
+    private readonly EjarDbContext _db;
+    public EjarVersionStore(EjarDbContext db) => _db = db;
 
-    public Task<IReadOnlyList<AppVersion>> ListAsync(string? platform, CancellationToken ct)
+    public async Task<IReadOnlyList<AppVersion>> ListAsync(string? platform, CancellationToken ct)
     {
-        lock (_lock)
-        {
-            IReadOnlyList<AppVersion> rows = string.IsNullOrEmpty(platform)
-                ? _rows.ToList()
-                : _rows.Where(r => r.Platform.Equals(platform, StringComparison.OrdinalIgnoreCase)).ToList();
-            return Task.FromResult(rows);
-        }
+        var q = _db.AppVersions.AsNoTracking();
+        if (!string.IsNullOrEmpty(platform))
+            q = q.Where(v => v.Platform == platform);
+        var rows = await q.ToListAsync(ct);
+        return rows.Select(ToContract).ToList();
     }
 
-    public Task<AppVersion?> GetAsync(string platform, string version, CancellationToken ct)
+    public async Task<AppVersion?> GetAsync(string platform, string version, CancellationToken ct)
     {
-        lock (_lock)
-        {
-            var row = _rows.FirstOrDefault(r =>
-                r.Platform.Equals(platform, StringComparison.OrdinalIgnoreCase) &&
-                r.Version.Equals(version,   StringComparison.OrdinalIgnoreCase));
-            return Task.FromResult<AppVersion?>(row);
-        }
+        var row = await _db.AppVersions.AsNoTracking()
+            .FirstOrDefaultAsync(v => v.Platform == platform && v.Version == version, ct);
+        return row is null ? null : ToContract(row);
     }
 
-    public Task<AppVersion?> GetLatestAsync(string platform, CancellationToken ct)
+    public async Task<AppVersion?> GetLatestAsync(string platform, CancellationToken ct)
     {
-        lock (_lock)
-        {
-            var row = _rows
-                .Where(r => r.Platform.Equals(platform, StringComparison.OrdinalIgnoreCase) &&
-                            r.Status == VersionStatus.Latest)
-                .OrderByDescending(r => r.Version, StringComparer.Ordinal)
-                .FirstOrDefault();
-            return Task.FromResult<AppVersion?>(row);
-        }
+        var latestStatus = (int)VersionStatus.Latest;
+        var row = await _db.AppVersions.AsNoTracking()
+            .Where(v => v.Platform == platform && v.Status == latestStatus)
+            .OrderByDescending(v => v.Version)
+            .FirstOrDefaultAsync(ct);
+        return row is null ? null : ToContract(row);
     }
 
-    public Task<AppVersion> UpsertAsync(AppVersion version, CancellationToken ct)
+    public async Task<AppVersion> UpsertAsync(AppVersion version, CancellationToken ct)
     {
-        lock (_lock)
+        var existing = await _db.AppVersions
+            .FirstOrDefaultAsync(v => v.Platform == version.Platform && v.Version == version.Version, ct);
+        if (existing is null)
         {
-            var ix = _rows.FindIndex(r =>
-                r.Platform.Equals(version.Platform, StringComparison.OrdinalIgnoreCase) &&
-                r.Version.Equals(version.Version,   StringComparison.OrdinalIgnoreCase));
-            if (ix >= 0) _rows[ix] = version;
-            else _rows.Add(version);
-            return Task.FromResult(version);
+            _db.AppVersions.Add(new AppVersionEntity {
+                Id = Guid.NewGuid(), CreatedAt = DateTime.UtcNow,
+                Platform = version.Platform, Version = version.Version,
+                Status = (int)version.Status, SunsetAt = version.SunsetAt,
+                Notes  = version.Notes,      DownloadUrl = version.DownloadUrl,
+            });
         }
+        else
+        {
+            existing.Status      = (int)version.Status;
+            existing.SunsetAt    = version.SunsetAt;
+            existing.Notes       = version.Notes;
+            existing.DownloadUrl = version.DownloadUrl;
+            existing.UpdatedAt   = DateTime.UtcNow;
+        }
+        await _db.SaveChangesAsync(ct);
+        return version;
     }
 
-    public Task<bool> SetStatusAsync(
+    public async Task<bool> SetStatusAsync(
         string platform, string version, VersionStatus status, DateTime? sunsetAt, CancellationToken ct)
     {
-        lock (_lock)
-        {
-            var ix = _rows.FindIndex(r =>
-                r.Platform.Equals(platform, StringComparison.OrdinalIgnoreCase) &&
-                r.Version.Equals(version,   StringComparison.OrdinalIgnoreCase));
-            if (ix < 0) return Task.FromResult(false);
-            _rows[ix] = _rows[ix] with { Status = status, SunsetAt = sunsetAt };
-            return Task.FromResult(true);
-        }
+        var row = await _db.AppVersions
+            .FirstOrDefaultAsync(v => v.Platform == platform && v.Version == version, ct);
+        if (row is null) return false;
+        row.Status    = (int)status;
+        row.SunsetAt  = sunsetAt;
+        row.UpdatedAt = DateTime.UtcNow;
+        await _db.SaveChangesAsync(ct);
+        return true;
     }
 
-    public Task<bool> DeleteAsync(string platform, string version, CancellationToken ct)
+    public async Task<bool> DeleteAsync(string platform, string version, CancellationToken ct)
     {
-        lock (_lock)
-        {
-            var n = _rows.RemoveAll(r =>
-                r.Platform.Equals(platform, StringComparison.OrdinalIgnoreCase) &&
-                r.Version.Equals(version,   StringComparison.OrdinalIgnoreCase));
-            return Task.FromResult(n > 0);
-        }
+        var row = await _db.AppVersions
+            .FirstOrDefaultAsync(v => v.Platform == platform && v.Version == version, ct);
+        if (row is null) return false;
+        row.IsDeleted = true;
+        row.UpdatedAt = DateTime.UtcNow;
+        await _db.SaveChangesAsync(ct);
+        return true;
     }
+
+    private static AppVersion ToContract(AppVersionEntity e) =>
+        new(e.Platform, e.Version, (VersionStatus)e.Status, e.SunsetAt, e.Notes, e.DownloadUrl);
 }

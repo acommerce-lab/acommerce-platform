@@ -133,6 +133,9 @@ using (var scope = app.Services.CreateScope())
         DbInitializer.Seed(db);
         Log.Information("Ejar.Db: seeding complete");
     }
+    // البذرة الإضافيّة لإصدارات التطبيق idempotent — تعمل في كلّ بدء تشغيل
+    // فتغطّي قواعد البيانات القديمة التي وُلِدت قبل إضافة AppVersionEntity.
+    DbInitializer.SeedAppVersionsIfMissing(db);
 }
 
 // 9. Middleware Pipeline

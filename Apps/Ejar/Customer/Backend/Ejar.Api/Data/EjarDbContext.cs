@@ -23,6 +23,7 @@ public sealed class EjarDbContext : DbContext
     public DbSet<SupportReply>        ComplaintReplies => Set<SupportReply>();
     public DbSet<SubscriptionEntity>  Subscriptions  => Set<SubscriptionEntity>();
     public DbSet<InvoiceEntity>       Invoices       => Set<InvoiceEntity>();
+    public DbSet<AppVersionEntity>    AppVersions    => Set<AppVersionEntity>();
     
     // Discovery Kit
     public DbSet<DiscoveryCategory>   DiscoveryCategories => Set<DiscoveryCategory>();
@@ -49,6 +50,8 @@ public sealed class EjarDbContext : DbContext
         b.Entity<UserEntity>().HasIndex(u => u.Phone).IsUnique();
         b.Entity<Favorite>().HasIndex(f => new { f.UserId, f.EntityType, f.EntityId }).IsUnique();
         b.Entity<MessageEntity>().HasIndex(m => m.ConversationId);
+        b.Entity<AppVersionEntity>().HasIndex(v => new { v.Platform, v.Version }).IsUnique();
+        b.Entity<AppVersionEntity>().HasQueryFilter(e => !e.IsDeleted);
 
         // Global query filter: لا تُرجع الكيانات المحذوفة افتراضياً
         b.Entity<UserEntity>().HasQueryFilter(e => !e.IsDeleted);

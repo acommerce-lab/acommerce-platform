@@ -17,10 +17,13 @@ public static class VersionsKitExtensions
     /// إن أراد التطبيق تطبيقاً مخصّصاً للـ gate (مع cache مثلاً) فليسجّله قبل
     /// استدعاء هذا الـ extension — التسجيل المسبق يفوز.
     /// </summary>
-    public static IServiceCollection AddVersionsKit<TStore>(this IServiceCollection services)
+    public static IServiceCollection AddVersionsKit<TStore>(
+        this IServiceCollection services,
+        VersionGateOptions? options = null)
         where TStore : class, IVersionStore
     {
         services.AddScoped<IVersionStore, TStore>();
+        services.AddSingleton(options ?? new VersionGateOptions());
         services.TryAddDefaultGate();
         services.AddHttpContextAccessor();
         services.AddVersionGateInterceptor();

@@ -69,5 +69,44 @@ public static class DbInitializer
         }
 
         db.SaveChanges();
+        SeedAppVersionsIfMissing(db);
+    }
+
+    /// <summary>
+    /// بذرة إضافيّة idempotent لإصدارات التطبيق. تعمل عند كلّ بدء تشغيل لتغطّي
+    /// قواعد البيانات القديمة. تضيف فقط <c>(platform, "1.0.0")</c> غير الموجودة.
+    /// </summary>
+    public static void SeedAppVersionsIfMissing(EjarDbContext db)
+    {
+        // 6. Seed App Versions
+        // الإصدار الحاليّ "1.0.0" يُسجَّل بحالة Latest لكلّ منصّة. لا نسجّل
+        // إصدارات قديمة هنا — السياسة الافتراضيّة في StoreBackedAppVersionGate
+        // هي Lenient: أيّ إصدار غير مسجَّل يُعامَل كـ Active (يُسمح به). عند
+        // نضوج النظام: سجّل كلّ إصدار قديم بحالته الفعليّة (Deprecated/
+        // Unsupported) ثمّ بدّل السياسة إلى Strict عبر خيارات AddVersionsKit.
+        const string downloadBase = "https://ejar.ye/download";
+        var versionStatusLatest = (int)ACommerce.Kits.Versions.Operations.VersionStatus.Latest;
+        var addedAny = false;
+        foreach (var (platform, suffix) in new[] {
+            ("web",    ""),
+            ("wasm",   ""),
+            ("mobile", "/mobile"),
+            ("admin",  "/admin"),
+        })
+        {
+            var exists = db.AppVersions.Any(v => v.Platform == platform && v.Version == "1.0.0");
+            if (exists) continue;
+            db.AppVersions.Add(new AppVersionEntity
+            {
+                Id          = Guid.NewGuid(),
+                CreatedAt   = DateTime.UtcNow,
+                Platform    = platform,
+                Version     = "1.0.0",
+                Status      = versionStatusLatest,
+                DownloadUrl = downloadBase + suffix,
+            });
+            addedAny = true;
+        }
+        if (addedAny) db.SaveChanges();
     }
 }
