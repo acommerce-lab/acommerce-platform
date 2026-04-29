@@ -11,8 +11,8 @@
     <ProjectReference Include="..\..\..\ACommerce.Realtime.Operations\ACommerce.Realtime.Operations.csproj" />
     <ProjectReference Include="..\..\SignalR\ACommerce.Realtime.Providers.SignalR\ACommerce.Realtime.Providers.SignalR.csproj" />
     <ProjectReference Include="..\..\..\..\Cache\ACommerce.Cache.Operations\ACommerce.Cache.Operations.csproj" />
-    <PackageReference Include="Microsoft.AspNetCore.SignalR.StackExchangeRedis" Version="10.0.0" />
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.0" />
+    <PackageReference Include="Microsoft.AspNetCore.SignalR.StackExchangeRedis" Version="10.0.7" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.7" />
   </ItemGroup>
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />

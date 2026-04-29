@@ -158,7 +158,7 @@
     public async ValueTask DisposeAsync()
     {
         Store.OnChanged -= OnChange;
-        Nav.LocationChanged -= OnLocationChanged;
+        //Nav.LocationChanged -= OnLocationChanged;
         await Realtime.DisposeAsync();
     }
 

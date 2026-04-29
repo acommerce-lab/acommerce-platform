@@ -9,8 +9,8 @@
   </PropertyGroup>
   <ItemGroup>
     <!-- IBaseEntity contract for the repository pattern -->
-    <ProjectReference Include="..\..\..\libs\kits\Core\SharedKernel\ACommerce.SharedKernel.Abstractions\ACommerce.SharedKernel.Abstractions.csproj" />
     <!-- Chat interfaces so Conversation / Message implement them directly (Law 6 amended) -->
     <ProjectReference Include="..\..\..\libs\kits\Chat\ACommerce.Chat.Operations\ACommerce.Chat.Operations.csproj" />
+    <ProjectReference Include="..\..\..\libs\kits\Core\SharedKernel\ACommerce.SharedKernel.Domain\ACommerce.SharedKernel.Domain.csproj" />
   </ItemGroup>
 </Project>

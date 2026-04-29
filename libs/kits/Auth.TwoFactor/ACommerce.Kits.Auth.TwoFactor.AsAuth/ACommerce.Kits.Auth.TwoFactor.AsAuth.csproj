@@ -20,6 +20,6 @@
   <ItemGroup>
     <ProjectReference Include="..\..\Auth\ACommerce.Kits.Auth.Operations\ACommerce.Kits.Auth.Operations.csproj" />
     <ProjectReference Include="..\ACommerce.Kits.Auth.TwoFactor\ACommerce.Kits.Auth.TwoFactor.csproj" />
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.0" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.7" />
   </ItemGroup>
 </Project>

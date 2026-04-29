@@ -19,10 +19,12 @@
     </Description>
   </PropertyGroup>
   <ItemGroup>
-    <!-- Pure contracts only (AppVersion, IAppVersionGate, VersionTagKeys constants).
-         The interceptor + DI extensions live in Versions.Backend; no Microsoft.Extensions.*
-         dependencies are needed here. -->
     <ProjectReference Include="..\..\Core\OperationEngine\ACommerce.OperationEngine\ACommerce.OperationEngine.csproj" />
     <ProjectReference Include="..\..\Core\OperationEngine\ACommerce.OperationEngine.Interceptors\ACommerce.OperationEngine.Interceptors.csproj" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.7" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.7" />
+  </ItemGroup>
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
 </Project>
