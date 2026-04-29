@@ -60,8 +60,11 @@
     <script>
       // SW registration + auto-update عند نشر إصدار جديد:
       // إذا تغيّر VERSION داخل service-worker.js → نُجبر تحديث + reload.
+      // updateViaCache: 'none' يمنع متصفّحات Chrome/Edge من خدمة الـ SW القديم
+      // من HTTP cache — يُجبر استعلام الشبكة كلّ مرّة، فلا يبقى SW مكسور
+      // عالقاً عبر النشرات.
       if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('service-worker.js')
+        navigator.serviceWorker.register('service-worker.js', { updateViaCache: 'none' })
           .then(reg => {
             // افحص التحديثات كل 60 ثانية + عند العودة للتبويب
             setInterval(() => reg.update(), 60_000);
