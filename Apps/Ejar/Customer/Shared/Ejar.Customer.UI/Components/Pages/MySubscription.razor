@@ -7,9 +7,30 @@
 <PageTitle>اشتراكي — @(L["app.name"])</PageTitle>
 
 <div class="acs-page acs-my-subscription">
-    <h1 class="acm-wizard-title">اشتراكي النشط</h1>
+    <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
+        <h1 class="acm-wizard-title" style="margin:0;">اشتراكي النشط</h1>
+        @* اختصار دائم إلى الخطط — كان مدفوناً تحت بطاقات الفواتير، الآن
+           ظاهر فوراً سواء وُجد اشتراك أم لا. *@
+        <AcButton Variant="outline-primary" Text="تصفّح الباقات"
+                  OnClick="@(() => Nav.NavigateTo("/plans"))" />
+    </div>
     @if (_loading) { <AcLoadingState /> }
-    else if (_sub is null) { <AcEmptyState IconName="package" Message="لا يوجد اشتراك نشط" /> }
+    else if (_sub is null)
+    {
+        <AcCard>
+            <ChildContent>
+                <div style="text-align:center; padding:16px 0;">
+                    <AcIcon Name="package" Size="48" />
+                    <h3 style="margin:12px 0 4px;">لا يوجد اشتراك نشط</h3>
+                    <p style="color:var(--ac-text-muted); margin:0 0 16px;">
+                        اشترك بباقة لتتمكّن من نشر الإعلانات والوصول إلى المزيد من الميزات.
+                    </p>
+                    <AcButton Variant="primary" Class="ac-btn-block" Text="اختر باقة"
+                              OnClick="@(() => Nav.NavigateTo("/plans"))" />
+                </div>
+            </ChildContent>
+        </AcCard>
+    }
     else
     {
         <AcCard>

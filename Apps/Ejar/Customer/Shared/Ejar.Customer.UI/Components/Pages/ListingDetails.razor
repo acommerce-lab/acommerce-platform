@@ -106,6 +106,11 @@
             </AcCard>
         }
 
+        @if (!string.IsNullOrEmpty(_chatError))
+        {
+            <AcAlert Variant="danger" Message="@_chatError" />
+        }
+
         <AcStickyActionBar>
             <AcButton Variant="ghost" Text="رجوع" OnClick="@GoBack" />
             @if (IsMine)
@@ -133,6 +138,7 @@
     private ListingDetailDto? _listing;
     private bool _loading = true;
     private bool _startingChat;
+    private string? _chatError;
     private bool _isFav => _listing is not null && Store.FavoriteListingIds.Contains(_listing.Id);
     private bool IsMine => _listing is not null && Store.Auth.IsAuthenticated
                            && _listing.OwnerId == Store.Auth.UserId?.ToString();
@@ -167,20 +173,37 @@
     {
         if (_listing is null) return;
         if (!Store.Auth.IsAuthenticated) { Nav.NavigateTo("/login?returnUrl=" + Uri.EscapeDataString($"/listings/{_listing.Id}")); return; }
-        _startingChat = true;
+        _startingChat = true; _chatError = null;
         try
         {
             // استدعاء مباشر بدل الذهاب عبر OpEngine — أبسط، ويضمن أنّ env.Data
-            // يحوي {Id, Created} الذي يُرجعه /conversations/start فعلاً. السابق
-            // كان يُسقط Data أحياناً فينتهي المستخدم في /chats بدل /chat/{id}.
+            // يحوي {Id, Created} الذي يُرجعه /conversations/start فعلاً.
             var text = $"مرحباً، أنا مهتمّ بـ \"{_listing.Title}\".";
             var env = await Api.PostAsync<StartChatData>(
                 "/conversations/start",
                 new { ListingId = _listing.Id, Text = text });
+
             if (env?.Data is not null && !string.IsNullOrEmpty(env.Data.Id))
+            {
                 Nav.NavigateTo($"/chat/{env.Data.Id}");
-            else
-                Nav.NavigateTo("/chats");
+                return;
+            }
+
+            // فشل /conversations/start — لا تنقل المستخدم بصمت إلى /chats، اعرض
+            // السبب الحقيقيّ من الـ envelope (cannot_chat_with_self / listing_not_found
+            // / network_error / 500…). السابق كان يخفي الخطأ والمستخدم يحتار.
+            var code = env?.Error?.Code ?? env?.Operation?.FailedAnalyzer;
+            var msg  = env?.Error?.Message ?? env?.Operation?.ErrorMessage;
+            _chatError = (code, msg) switch
+            {
+                ("cannot_chat_with_self",          _) => "لا يمكنك بدء محادثة مع نفسك.",
+                ("listing_not_found",              _) => "الإعلان لم يعد متوفّراً.",
+                ("missing_or_invalid_listing_id",  _) => "بيانات الإعلان غير صالحة.",
+                ("network_error",                  var m) when m is not null => $"تعذّر الاتصال بالخادم: {m}",
+                (_, var m) when !string.IsNullOrWhiteSpace(m) => m!,
+                (var c, _) when !string.IsNullOrWhiteSpace(c) => $"تعذّر بدء المحادثة ({c}).",
+                _                                              => "تعذّر بدء المحادثة — حاول لاحقاً."
+            };
         }
         finally { _startingChat = false; }
     }

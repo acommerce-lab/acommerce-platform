@@ -11,6 +11,33 @@
 <div class="acs-page acs-create-listing">
     <h1 class="acm-wizard-title">@(L["listing.create.title"])</h1>
 
+    @if (_subLoading)
+    {
+        <AcLoadingState />
+    }
+    else if (_subscription is null)
+    {
+        @* لا يوجد اشتراك نشط — أوقف عند البوابة بدل السماح بإكمال المعالج
+           ثمّ رفض الخادم. السابق كان يسمح بكلّ الخطوات والمستخدم يكتشف الفشل
+           فقط عند زرّ "نشر". *@
+        <AcCard>
+            <ChildContent>
+                <div style="text-align:center; padding:16px 0;">
+                    <AcIcon Name="package" Size="48" />
+                    <h3 style="margin:12px 0 4px;">يلزمك اشتراك نشط لنشر الإعلانات</h3>
+                    <p style="color:var(--ac-text-muted); margin:0 0 16px;">
+                        اختر باقة تناسبك وابدأ بنشر إعلاناتك خلال دقائق.
+                    </p>
+                    <AcButton Variant="primary" Class="ac-btn-block" Text="تصفّح الباقات"
+                              OnClick="@(() => Nav.NavigateTo("/plans"))" />
+                    <AcButton Variant="ghost" Class="ac-btn-block" Text="رجوع"
+                              OnClick="@(() => Nav.NavigateTo("/me"))" />
+                </div>
+            </ChildContent>
+        </AcCard>
+    }
+    else
+    {
     <div class="acs-step-indicator">
         <span class="@(_step >= 1 ? "active" : "")">١ الفئة</span>
         <span class="@(_step >= 2 ? "active" : "")">٢ التفاصيل</span>
@@ -190,12 +217,15 @@
             </ChildContent>
         </AcCard>
     }
+    } @* end: _subscription is not null *@
 </div>
 
 @code {
     private int _step = 1;
     private int _maxImages = 10;
     private bool _publishing;
+    private bool _subLoading = true;
+    private SubDto? _subscription;
     private string? _publishError;
     private string? _imgError;
     private List<PickedImage> _images = new();
@@ -213,14 +243,27 @@
     {
         if (!first) return;
         if (string.IsNullOrEmpty(Store.Draft.City)) Store.Draft.City = Store.Ui.City;
+
+        // افحص الاشتراك أولاً — لو لم يوجد، نعرض بوّابة "اشترك بباقة" بدل
+        // المعالج. هذا يطابق تحقّق الخادم في POST /my-listings ويمنع
+        // المستخدم من إكمال أربع خطوات ليُفاجأ بـ no_active_subscription
+        // عند الضغط على "نشر".
+        var sub = await Api.GetAsync<SubDto>("/me/subscription");
+        _subscription = sub.Data;
+        _subLoading = false;
+        if (_subscription is null)
+        {
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+        _maxImages = _subscription.ImagesPerListing > 0 ? _subscription.ImagesPerListing : 10;
+
         var home = await Api.GetAsync<HomeResponse>("/home/view");
         _categories = home.Data?.Categories ?? new();
         var am = await Api.GetAsync<List<AmenityDto>>("/amenities");
         var ci = await Api.GetAsync<List<string>>("/cities");
-        var sub = await Api.GetAsync<SubDto>("/me/subscription");
         _amenities = am.Data ?? new();
         _cities    = ci.Data ?? new() { "صنعاء" };
-        if (sub.Data is not null) _maxImages = sub.Data.ImagesPerListing;
         await InvokeAsync(StateHasChanged);
     }
 

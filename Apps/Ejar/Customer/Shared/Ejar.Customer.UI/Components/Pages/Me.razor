@@ -48,16 +48,18 @@
     }
 
     <div class="acm-home-actions" style="margin-top:12px;">
+        @* "الخطط" بطاقة بارزة في الأعلى — كانت زرّاً صغيراً مدفوناً تحت
+           كلّ شيء، الآن في صفّ البطاقات الأمامي حتّى لا تضيع. *@
+        <AcActionCard Label="الباقات والخطط"        IconName="package"     Variant="primary" OnClick="@GoPlans" />
         <AcActionCard Label="إعلاناتي"             IconName="building"    Variant="surface" OnClick="@GoMyListings" />
         <AcActionCard Label="@(L["nav.favorites"])" IconName="heart"      Variant="surface" OnClick="@GoFavorites" />
-        <AcActionCard Label="اشتراكي"              IconName="package"     Variant="surface" OnClick="@GoMySub" />
+        <AcActionCard Label="اشتراكي"              IconName="check-circle" Variant="surface" OnClick="@GoMySub" />
         <AcActionCard Label="@(L["complaint.title"])" IconName="alert-circle" Variant="surface" OnClick="@GoComplaints" />
         <AcActionCard Label="الرسائل"              IconName="message"     Variant="surface" OnClick="@GoChats" />
         <AcActionCard Label="@(L["settings.title"])" IconName="settings" Variant="surface" OnClick="@GoSettings" />
     </div>
 
     <div style="margin-top:12px; display:flex; gap:8px;">
-        <AcButton Variant="outline-primary" Text="الخطط" OnClick="@GoPlans" />
         <AcButton Variant="ghost" Text="@(L["settings.sign_out"])" OnClick="@SignOut" />
     </div>
 </div>
