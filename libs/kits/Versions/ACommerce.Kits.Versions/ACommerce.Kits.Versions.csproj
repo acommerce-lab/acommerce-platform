@@ -6,19 +6,14 @@
     <PackageId>ACommerce.Kits.Versions</PackageId>
     <Version>1.0.0</Version>
     <Description>
-      Versions feature meta-package — the SHELL only:
-        - ACommerce.Kits.Versions.Operations (states + IAppVersionGate + interceptor + tags)
-        - ACommerce.Kits.Versions.Backend    (controllers + IVersionStore + DI ext)
-        - ACommerce.Kits.Versions.Templates  (AcVersionGate + AcVersionBlockedPage + AcVersionBanner + admin page)
-
-      Same shape as ACommerce.Kits.Auth: install this single package on either side
-      and pull the relevant layer per app. Backend apps install Backend; frontends
-      install Templates; both inherit Operations transitively.
+      Versions feature — top-level meta package: Versions.Server + Versions.Client.
+      For hybrid hosts that need both. Use the side-specific meta otherwise:
+        - Backend services → ACommerce.Kits.Versions.Server
+        - Frontend hosts   → ACommerce.Kits.Versions.Client
     </Description>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="..\ACommerce.Kits.Versions.Operations\ACommerce.Kits.Versions.Operations.csproj" />
-    <ProjectReference Include="..\ACommerce.Kits.Versions.Backend\ACommerce.Kits.Versions.Backend.csproj" />
-    <ProjectReference Include="..\ACommerce.Kits.Versions.Templates\ACommerce.Kits.Versions.Templates.csproj" />
+    <ProjectReference Include="..\ACommerce.Kits.Versions.Server\ACommerce.Kits.Versions.Server.csproj" />
+    <ProjectReference Include="..\ACommerce.Kits.Versions.Client\ACommerce.Kits.Versions.Client.csproj" />
   </ItemGroup>
 </Project>

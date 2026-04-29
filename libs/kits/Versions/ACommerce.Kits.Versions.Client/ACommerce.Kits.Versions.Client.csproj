@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <PackageId>ACommerce.Kits.Versions.Client</PackageId>
+    <Version>1.0.0</Version>
+    <Description>
+      Versions — client-side meta package: Operations + Templates.
+      For Blazor frontends (Server / WebAssembly / MAUI) that host AcAppVersionGate +
+      AcVersionBlockedPage + AcVersionBanner + the AppVersionHeadersHandler. Does NOT
+      pull Versions.Backend (which has FrameworkReference Microsoft.AspNetCore.App and
+      would propagate that into WASM).
+    </Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\ACommerce.Kits.Versions.Operations\ACommerce.Kits.Versions.Operations.csproj" />
+    <ProjectReference Include="..\ACommerce.Kits.Versions.Templates\ACommerce.Kits.Versions.Templates.csproj" />
+  </ItemGroup>
+</Project>

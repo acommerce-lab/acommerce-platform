@@ -6,10 +6,11 @@
     <PackageId>ACommerce.Kits.Auth</PackageId>
     <Version>1.0.0</Version>
     <Description>
-      Auth feature meta-package — the SHELL only:
-        - ACommerce.Kits.Auth.Operations  (IAuthFlow + IAuthUserStore + JwtConfig)
-        - ACommerce.Kits.Auth.Backend     (AuthController driving an IAuthFlow)
-        - ACommerce.Kits.Auth.Templates   (AcLoginPage Razor + Verifier slot)
+      Auth feature — top-level meta package: Auth.Server + Auth.Client.
+      Use this only for hybrid hosts that legitimately need BOTH the server controllers
+      AND the Razor templates (rare). For everything else pick the side-specific meta:
+        - Backend services (Ejar.Api, Order.Api …)  → ACommerce.Kits.Auth.Server
+        - Frontend hosts   (Ejar.Web, Ejar.WebAssembly, Ejar.Maui …) → ACommerce.Kits.Auth.Client
 
       Auth has NO knowledge of 2FA. Apps wire an IAuthFlow themselves:
         - Most common: install ACommerce.Kits.Auth.TwoFactor + a 2FA provider
@@ -19,8 +20,7 @@
     </Description>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="..\ACommerce.Kits.Auth.Operations\ACommerce.Kits.Auth.Operations.csproj" />
-    <ProjectReference Include="..\ACommerce.Kits.Auth.Backend\ACommerce.Kits.Auth.Backend.csproj" />
-    <ProjectReference Include="..\ACommerce.Kits.Auth.Templates\ACommerce.Kits.Auth.Templates.csproj" />
+    <ProjectReference Include="..\ACommerce.Kits.Auth.Server\ACommerce.Kits.Auth.Server.csproj" />
+    <ProjectReference Include="..\ACommerce.Kits.Auth.Client\ACommerce.Kits.Auth.Client.csproj" />
   </ItemGroup>
 </Project>

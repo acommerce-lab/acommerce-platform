@@ -42,14 +42,18 @@
     <!-- Chat client -->
     <ProjectReference Include="..\..\..\..\..\libs\kits\Chat\ACommerce.Chat.Client.Blazor\ACommerce.Chat.Client.Blazor.csproj" />
 
-    <!-- Versions Kit (templates + operations) -->
-    <ProjectReference Include="..\..\..\..\..\libs\kits\Versions\ACommerce.Kits.Versions.Operations\ACommerce.Kits.Versions.Operations.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\kits\Versions\ACommerce.Kits.Versions.Templates\ACommerce.Kits.Versions.Templates.csproj" />
+    <!-- Versions Kit — client side (Operations + Templates, no server Backend).
+         Drops the FrameworkReference that the server Backend project carries,
+         keeps WASM publish clean of NETSDK1082. -->
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Versions\ACommerce.Kits.Versions.Client\ACommerce.Kits.Versions.Client.csproj" />
 
-    <!-- Auth Templates (AcAuthGate + AcLoginPage) -->
-    <ProjectReference Include="..\..\..\..\..\libs\kits\Auth\ACommerce.Kits.Auth.Templates\ACommerce.Kits.Auth.Templates.csproj" />
+    <!-- Auth Kit — client side (Operations + Templates, no server Backend).
+         Same WASM-safety motivation as Versions.Client. -->
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Auth\ACommerce.Kits.Auth.Client\ACommerce.Kits.Auth.Client.csproj" />
 
-    <!-- Subscriptions Templates (AcSubscriptionGate + SubscriptionState) -->
+    <!-- Subscriptions Templates (AcSubscriptionGate + SubscriptionState).
+         Subscriptions has no separate Backend project yet; Operations is browser-safe
+         (no HttpContext deps), Templates pulls Operations transitively. -->
     <ProjectReference Include="..\..\..\..\..\libs\kits\Subscriptions\ACommerce.Subscriptions.Templates\ACommerce.Subscriptions.Templates.csproj" />
   </ItemGroup>
 

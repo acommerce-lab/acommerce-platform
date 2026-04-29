@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <PackageId>ACommerce.Kits.Auth.Client</PackageId>
+    <Version>1.0.0</Version>
+    <Description>
+      Auth — client-side meta package: Operations + Templates.
+      For Blazor frontends (Server / WebAssembly / MAUI) that need the AcLoginPage shell
+      + AcAuthGate wrapper + IAuthFlow contracts. Does NOT pull Auth.Backend (which has
+      FrameworkReference Microsoft.AspNetCore.App and would propagate that into WASM,
+      causing NETSDK1082 on browser-wasm where there is no AspNetCore runtime pack).
+    </Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\ACommerce.Kits.Auth.Operations\ACommerce.Kits.Auth.Operations.csproj" />
+    <ProjectReference Include="..\ACommerce.Kits.Auth.Templates\ACommerce.Kits.Auth.Templates.csproj" />
+  </ItemGroup>
+</Project>

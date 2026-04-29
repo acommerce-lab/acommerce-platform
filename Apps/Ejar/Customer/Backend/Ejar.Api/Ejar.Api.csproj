@@ -26,10 +26,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- ─── Auth Kit (drop-in /auth/otp/{request,verify} + /auth/logout) ─── -->
-    <!-- meta = ACommerce.Kits.Auth (= Operations + Backend + Templates).
-         Add a TwoFactor channel + AsAuth bridge below to make OTP login work. -->
-    <ProjectReference Include="..\..\..\..\..\libs\kits\Auth\ACommerce.Kits.Auth\ACommerce.Kits.Auth.csproj" />
+    <!-- ─── Auth Kit — server side only (Operations + Backend, no Razor Templates).
+         Avoids dragging the Razor Templates compilation into the pure backend project
+         and keeps the build clean of frontend-specific FrameworkReferences. -->
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Auth\ACommerce.Kits.Auth.Server\ACommerce.Kits.Auth.Server.csproj" />
 
     <!-- ─── Auth.TwoFactor: SMS Mock (رمز ثابت 123456 — أبدله بمزوّد SMS حقيقي في الإنتاج) ── -->
     <ProjectReference Include="..\..\..\..\..\libs\kits\Auth.TwoFactor\ACommerce.Kits.Auth.TwoFactor\ACommerce.Kits.Auth.TwoFactor.csproj" />
@@ -63,8 +63,8 @@
     <ProjectReference Include="..\..\..\..\..\libs\kits\Discovery\ACommerce.Kits.Discovery\ACommerce.Kits.Discovery.csproj" />
     <ProjectReference Include="..\..\..\..\..\libs\kits\Favorites\ACommerce.Favorites.Operations\ACommerce.Favorites.Operations.csproj" />
     <ProjectReference Include="..\..\..\..\..\libs\kits\Favorites\ACommerce.Favorites.Backend\ACommerce.Favorites.Backend.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\kits\Versions\ACommerce.Kits.Versions.Operations\ACommerce.Kits.Versions.Operations.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\kits\Versions\ACommerce.Kits.Versions.Backend\ACommerce.Kits.Versions.Backend.csproj" />
+    <!-- Versions Kit — server side (Operations + Backend, no Razor Templates) -->
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Versions\ACommerce.Kits.Versions.Server\ACommerce.Kits.Versions.Server.csproj" />
     <ProjectReference Include="..\..\..\..\..\libs\kits\Subscriptions\ACommerce.Subscriptions.Operations\ACommerce.Subscriptions.Operations.csproj" />
   </ItemGroup>
 
