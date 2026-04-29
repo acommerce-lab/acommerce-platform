@@ -163,7 +163,16 @@
         _saving = true;
         try
         {
-            var req = new { FullName = _data.FullName, Email = _data.Email, Phone = _data.Phone, City = _data.City };
+            // أدرِج صورة البروفايل (إن اختيرت) كـ data URL في طلب الحفظ. الخادم
+            // يخزّنها في UserEntity.AvatarUrl. بدون هذا الحقل تُمسح الصورة كلّ
+            // مرّة يُعاد تحميل الصفحة لأنّها تبقى محلّياً فقط.
+            var req = new {
+                FullName = _data.FullName,
+                Email    = _data.Email,
+                Phone    = _data.Phone,
+                City     = _data.City,
+                AvatarUrl = _avatarDataUrl ?? _data.AvatarUrl,
+            };
             var env = await Engine.ExecuteAsync<object>(
                 EjarOps.UpdateProfile(_data.FullName, _data.Email, _data.Phone, _data.City),
                 payload: req);

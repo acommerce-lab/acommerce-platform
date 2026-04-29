@@ -45,7 +45,8 @@ public sealed class CatalogController : ControllerBase
         return this.UnauthorizedEnvelope("user_not_found");
     }
 
-    public sealed record UpdateProfileBody(string? FullName, string? Phone, string? Email, string? City);
+    public sealed record UpdateProfileBody(
+        string? FullName, string? Phone, string? Email, string? City, string? AvatarUrl);
 
     [HttpPut("/me/profile")]
     public async Task<IActionResult> UpdateProfile([FromBody] UpdateProfileBody body, CancellationToken ct)
@@ -55,13 +56,15 @@ public sealed class CatalogController : ControllerBase
         if (u is null) return this.UnauthorizedEnvelope("user_not_found");
 
         if (!string.IsNullOrWhiteSpace(body.FullName)) u.FullName = body.FullName!;
-        if (body.Phone is not null) u.Phone = body.Phone;
-        if (body.Email is not null) u.Email = body.Email;
-        if (body.City  is not null) u.City  = body.City;
+        if (body.Phone     is not null) u.Phone     = body.Phone;
+        if (body.Email     is not null) u.Email     = body.Email;
+        if (body.City      is not null) u.City      = body.City;
+        if (body.AvatarUrl is not null) u.AvatarUrl = body.AvatarUrl;
         u.UpdatedAt = DateTime.UtcNow;
         await _db.SaveChangesAsync(ct);
 
-        return this.OkEnvelope("profile.update", new { id = u.Id, fullName = u.FullName });
+        return this.OkEnvelope("profile.update",
+            new { id = u.Id, fullName = u.FullName, avatar = u.AvatarUrl });
     }
 
     // ═══ Subscription / Invoices ═════════════════════════════════════════
@@ -91,6 +94,64 @@ public sealed class CatalogController : ControllerBase
             .Select(x => new { id = x.Id, planId = x.PlanId, amount = x.Amount, date = x.Date, status = x.Status })
             .ToListAsync(ct);
         return this.OkEnvelope("me.invoices", rows);
+    }
+
+    // ═══ Subscription activation ═════════════════════════════════════════
+    public sealed record ActivateSubscriptionBody(string? PlanId);
+
+    [HttpPost("/subscriptions/activate")]
+    public async Task<IActionResult> ActivateSubscription([FromBody] ActivateSubscriptionBody body, CancellationToken ct)
+    {
+        if (CurrentUserGuid is not { } uid) return this.UnauthorizedEnvelope();
+        if (string.IsNullOrWhiteSpace(body.PlanId) || !Guid.TryParse(body.PlanId, out var planId))
+            return this.BadRequestEnvelope("invalid_plan_id");
+
+        var plan = await _db.Plans.AsNoTracking().FirstOrDefaultAsync(p => p.Id == planId, ct);
+        if (plan is null) return this.NotFoundEnvelope("plan_not_found");
+
+        // إنهاء أيّ اشتراك سابق نشط للمستخدم (subscription واحد فعّال في كلّ وقت).
+        var prior = await _db.Subscriptions
+            .Where(s => s.UserId == uid && s.Status == "active")
+            .ToListAsync(ct);
+        foreach (var p in prior)
+        {
+            p.Status = "expired";
+            p.UpdatedAt = DateTime.UtcNow;
+        }
+
+        var sub = new SubscriptionEntity
+        {
+            Id = Guid.NewGuid(),
+            CreatedAt = DateTime.UtcNow,
+            UserId = uid,
+            PlanId = plan.Id,
+            PlanName = plan.Label,
+            Status = "active",
+            StartDate = DateTime.UtcNow,
+            EndDate = DateTime.UtcNow.AddMonths(1),
+            ListingsLimit = plan.MaxActiveListings,
+            FeaturedLimit = plan.MaxFeaturedListings,
+            ImagesPerListing = plan.MaxImagesPerListing,
+        };
+        _db.Subscriptions.Add(sub);
+
+        // فاتورة مرافقة (mock — ندوّن خصماً ناجحاً).
+        _db.Invoices.Add(new InvoiceEntity
+        {
+            Id = Guid.NewGuid(),
+            CreatedAt = DateTime.UtcNow,
+            UserId = uid,
+            PlanId = plan.Id,
+            Amount = plan.Price,
+            Date = DateTime.UtcNow,
+            Status = "paid",
+        });
+
+        await _db.SaveChangesAsync(ct);
+        return this.OkEnvelope("subscription.activate", new {
+            id = sub.Id, planId = sub.PlanId, planName = sub.PlanName,
+            status = sub.Status, startDate = sub.StartDate, endDate = sub.EndDate
+        });
     }
 
     // ═══ My Listings ═════════════════════════════════════════════════════

@@ -2,6 +2,7 @@
 @attribute [Authorize]
 @inject NavigationManager Nav
 @inject L L
+@inject ApiReader Api
 
 <PageTitle>نتيجة الدفع — @(L["app.name"])</PageTitle>
 
@@ -52,9 +53,17 @@
 
     private string _txnId = "";
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
         _txnId = $"TXN-{Random.Shared.Next(100000, 999999)}";
+        // فعّل الاشتراك فعلاً على الخادم — قبل هذا التغيير كانت الصفحة تكتفي
+        // بعرض "تمّ الدفع" دون كتابة أيّ شيء في DB، فـ /me/subscription يرجع
+        // فارغاً حتى للذي "اشترى". الآن نضرب /subscriptions/activate لإنشاء
+        // SubscriptionEntity + InvoiceEntity فعليّاً.
+        if (Status == "success" && Type == "plan" && !string.IsNullOrEmpty(Id))
+        {
+            await Api.PostAsync<object>("/subscriptions/activate", new { PlanId = Id });
+        }
     }
 
     private void GoMySub() => Nav.NavigateTo("/my-subscription");

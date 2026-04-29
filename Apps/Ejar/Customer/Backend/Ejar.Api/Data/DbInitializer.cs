@@ -52,7 +52,28 @@ public static class DbInitializer
             db.DiscoveryAmenities.Add(new DiscoveryAmenity { Slug = a.Id, Label = a.Label, CreatedAt = DateTime.UtcNow });
         }
 
-        // 5. Seed Listings
+        // 5. Seed Plans (subscription catalog) — تظهر في صفحة /plans
+        var plans = new[]
+        {
+            new PlanEntity { Id = Guid.NewGuid(), CreatedAt = DateTime.UtcNow,
+                Label = "مجاني",   Price = 0,     CycleLabel = "شهري",
+                MaxActiveListings = 1,  MaxFeaturedListings = 0, MaxImagesPerListing = 3,
+                IsRecommended = false, Description = "للمعاينة. إعلان واحد، صور أساسيّة.",
+                FeaturesCsv = "إعلان واحد,٣ صور,بحث أساسي" },
+            new PlanEntity { Id = Guid.NewGuid(), CreatedAt = DateTime.UtcNow,
+                Label = "أساسي",   Price = 5000,  CycleLabel = "شهري",
+                MaxActiveListings = 5,  MaxFeaturedListings = 1, MaxImagesPerListing = 8,
+                IsRecommended = true,  Description = "لأصحاب الإعلانات الفرديّة.",
+                FeaturesCsv = "٥ إعلانات,إعلان مميّز واحد,٨ صور لكل إعلان,دعم سريع" },
+            new PlanEntity { Id = Guid.NewGuid(), CreatedAt = DateTime.UtcNow,
+                Label = "احترافي", Price = 15000, CycleLabel = "شهري",
+                MaxActiveListings = 20, MaxFeaturedListings = 5, MaxImagesPerListing = 15,
+                IsRecommended = false, Description = "للوكالات والمكاتب العقاريّة.",
+                FeaturesCsv = "٢٠ إعلان,٥ إعلانات مميّزة,١٥ صورة,أولويّة في النتائج,تحليلات" },
+        };
+        foreach (var p in plans) db.Plans.Add(p);
+
+        // 6. Seed Listings
         foreach (var l in EjarSeed.Listings)
         {
             var ownerId = userMap.TryGetValue(l.OwnerId, out var o) ? o : user2Id;

@@ -263,16 +263,22 @@
         {
             var req = new
             {
-                title        = Store.Draft.Title,
-                description  = Store.Draft.Description,
-                price        = Store.Draft.Price,
-                timeUnit     = Store.Draft.TimeUnit,
-                propertyType = Store.Draft.CategoryId,
-                city         = Store.Draft.City,
-                district     = Store.Draft.District,
-                lat          = _lat,
-                lng          = _lng,
-                amenities    = Store.Draft.Amenities.ToList()
+                title         = Store.Draft.Title,
+                description   = Store.Draft.Description,
+                price         = Store.Draft.Price,
+                timeUnit      = Store.Draft.TimeUnit,
+                propertyType  = Store.Draft.CategoryId,
+                city          = Store.Draft.City,
+                district      = Store.Draft.District,
+                lat           = _lat,
+                lng           = _lng,
+                bedroomCount  = Store.Draft.BedroomCount,
+                bathroomCount = 0,
+                areaSqm       = 0,
+                amenities     = Store.Draft.Amenities.ToList(),
+                // الصور تُرسَل كقائمة data: URLs (base64). الخادم يحفظها CSV
+                // داخل ListingEntity.ImagesCsv وتعرضها صفحة التفاصيل عبر splitting.
+                images        = _images.Select(i => i.DataUrl).ToList(),
             };
             var env = await Api.PostAsync<object>("/my-listings", req);
             if (env.Data is not null || env.Operation?.Status == "Success")
