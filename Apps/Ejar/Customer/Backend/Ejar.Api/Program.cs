@@ -128,12 +128,26 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<EjarDbContext>();
 
+    // مفتاح إعادة تهيئة لمرّة واحدة: اضبط متغيّر البيئة EJAR_DB_RESET=true قبل
+    // النشر لإسقاط قاعدة البيانات بالكامل وإعادة بنائها من migrations + seed.
+    // مفيد للقواعد القديمة المُنشأة بـ EnsureCreated() التي لا تستطيع Migrate()
+    // إصلاحها. بعد نجاح النشرة الأولى، أزل المتغيّر فوراً وإلّا تُمسح البيانات
+    // في كلّ بدء تشغيل.
+    var resetRequested = string.Equals(
+        Environment.GetEnvironmentVariable("EJAR_DB_RESET"),
+        "true", StringComparison.OrdinalIgnoreCase);
+    if (resetRequested)
+    {
+        Log.Warning("Ejar.Db: EJAR_DB_RESET=true — dropping database before migrate");
+        db.Database.EnsureDeleted();
+    }
+
     // نستخدم Migrate() بدل EnsureCreated() ليصبح schema drift قابلاً للإدارة:
     // أيّ تعديل في الكيانات → dotnet ef migrations add <Name> → النشر يطبّقها.
     // لـ DB جديدة: ينشئها ويطبّق كلّ migrations الموجودة.
     // لـ DB قديمة فيها __EFMigrationsHistory: يطبّق المتبقّي فقط.
     // لـ DB قديمة أُنشئت بـ EnsureCreated (لا history): يفشل Migrate لأنّ الجداول
-    // موجودة — في هذه الحالة فرّغها مرّة واحدة (drop + create) وأعد التشغيل.
+    // موجودة — في هذه الحالة استخدم EJAR_DB_RESET=true لمرّة واحدة.
     var pending = db.Database.GetPendingMigrations().ToList();
     if (pending.Count > 0)
     {
