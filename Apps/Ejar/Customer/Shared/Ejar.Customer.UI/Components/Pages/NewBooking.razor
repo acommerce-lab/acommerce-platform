@@ -160,7 +160,9 @@
         if (char.IsDigit(lastDigit) && (lastDigit - '0') % 2 == 0)
         {
             var bookingId = $"B-{Random.Shared.Next(100, 999)}";
-            Nav.NavigateTo($"/payment/callback?status=success&type=booking&id={bookingId}&amount={Total}");
+            Nav.NavigateTo(
+                $"/payment/callback?status=success&type=booking&id={bookingId}" +
+                $"&amount={Total.ToString(System.Globalization.CultureInfo.InvariantCulture)}");
         }
         else
         {

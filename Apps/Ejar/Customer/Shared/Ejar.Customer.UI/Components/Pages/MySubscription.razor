@@ -137,7 +137,8 @@
 
     private static int Pct(int used, int limit) => limit > 0 ? Math.Min(100, used * 100 / limit) : 0;
 
-    private void Renew()     => Nav.NavigateTo($"/subscribe?type=plan&id={_sub!.PlanId}&amount={_sub.Price}");
+    private void Renew()     => Nav.NavigateTo(
+        $"/subscribe?type=plan&id={_sub!.PlanId}&amount={_sub.Price.ToString(System.Globalization.CultureInfo.InvariantCulture)}");
     private void ChangePlan() => Nav.NavigateTo("/plans");
     private void CancelSub() { }
 

@@ -28,48 +28,55 @@
         <ChildContent>
             @if (!_otpSent)
             {
-                <AcField Label="@(L["auth.phone"])" Required="true">
-                    <AcInput Type="tel" Value="@_phone"
-                             ValueChanged="@(v => _phone = (Numerals.ToLatin(v) ?? string.Empty).Trim())"
-                             Placeholder="7XXXXXXXX" />
-                </AcField>
+                @* @onkeydown على الـ wrapper يلتقط Enter من داخل أيّ <input>
+                   وُلِد عبر AcInput ويُشغّل زرّ الإرسال — كان زرّ Enter لا يفعل
+                   شيئاً، فيضطرّ المستخدم لرفع يده من المفاتيح والنقر بالماوس. *@
+                <div @onkeydown="OnPhoneKey">
+                    <AcField Label="@(L["auth.phone"])" Required="true">
+                        <AcInput Type="tel" Value="@_phone"
+                                 ValueChanged="@(v => _phone = (Numerals.ToLatin(v) ?? string.Empty).Trim())"
+                                 Placeholder="7XXXXXXXX" />
+                    </AcField>
 
-                @if (_error is not null)
-                {
-                    <div class="ac-alert ac-alert-danger mt-2">@_error</div>
-                }
+                    @if (_error is not null)
+                    {
+                        <div class="ac-alert ac-alert-danger mt-2">@_error</div>
+                    }
 
-                <AcButton Variant="primary" Size="lg" Class="ac-btn-block mt-2"
-                          Text="@(L["auth.send_otp"])"
-                          OnClick="@RequestOtp"
-                          Disabled="@(_phone.Length < 9 || _busy)" />
+                    <AcButton Variant="primary" Size="lg" Class="ac-btn-block mt-2"
+                              Text="@(L["auth.send_otp"])"
+                              OnClick="@RequestOtp"
+                              Disabled="@(_phone.Length < 9 || _busy)" />
+                </div>
             }
             else
             {
-                <p class="acs-nafath-instruction">@(L["auth.otp.hint"])</p>
+                <div @onkeydown="OnCodeKey">
+                    <p class="acs-nafath-instruction">@(L["auth.otp.hint"])</p>
 
-                <AcField Label="@(L["auth.otp"])" Required="true">
-                    <AcInput Type="tel" Value="@_code"
-                             ValueChanged="@(v => _code = (Numerals.ToLatin(v) ?? string.Empty).Trim())"
-                             Placeholder="123456" />
-                </AcField>
+                    <AcField Label="@(L["auth.otp"])" Required="true">
+                        <AcInput Type="tel" Value="@_code"
+                                 ValueChanged="@(v => _code = (Numerals.ToLatin(v) ?? string.Empty).Trim())"
+                                 Placeholder="123456" />
+                    </AcField>
 
-                <div class="acs-nafath-state acs-nafath-state--ok mt-2">
-                    <AcIcon Name="check-circle" Size="16" />
-                    <span>@(L["auth.otp.demo"])</span>
+                    <div class="acs-nafath-state acs-nafath-state--ok mt-2">
+                        <AcIcon Name="check-circle" Size="16" />
+                        <span>@(L["auth.otp.demo"])</span>
+                    </div>
+
+                    @if (_error is not null)
+                    {
+                        <div class="ac-alert ac-alert-danger mt-2">@_error</div>
+                    }
+
+                    <AcButton Variant="primary" Size="lg" Class="ac-btn-block mt-2"
+                              Text="@(L["auth.verify"])"
+                              OnClick="@VerifyOtp"
+                              Disabled="@(_code.Length < 6 || _busy)" />
+                    <AcButton Variant="ghost" Class="ac-btn-block"
+                              Text="تغيير رقم الجوّال" OnClick="@Reset" />
                 </div>
-
-                @if (_error is not null)
-                {
-                    <div class="ac-alert ac-alert-danger mt-2">@_error</div>
-                }
-
-                <AcButton Variant="primary" Size="lg" Class="ac-btn-block mt-2"
-                          Text="@(L["auth.verify"])"
-                          OnClick="@VerifyOtp"
-                          Disabled="@(_code.Length < 6 || _busy)" />
-                <AcButton Variant="ghost" Class="ac-btn-block"
-                          Text="تغيير رقم الجوّال" OnClick="@Reset" />
             }
         </ChildContent>
     </AcCard>
@@ -137,6 +144,18 @@
     }
 
     private void Reset() { _otpSent = false; _code = ""; _error = null; }
+
+    private async Task OnPhoneKey(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !_busy && _phone.Length >= 9)
+            await RequestOtp();
+    }
+
+    private async Task OnCodeKey(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !_busy && _code.Length >= 6)
+            await VerifyOtp();
+    }
 
     private void OnChange() => InvokeAsync(StateHasChanged);
 

@@ -155,7 +155,9 @@
         var lastDigit = dto.CardNumber.LastOrDefault(char.IsDigit);
         if (char.IsDigit(lastDigit) && (lastDigit - '0') % 2 == 0)
         {
-            Nav.NavigateTo($"/payment/callback?status=success&type={Type ?? "plan"}&id={Id}&amount={Total}");
+            Nav.NavigateTo(
+                $"/payment/callback?status=success&type={Type ?? "plan"}&id={Id}" +
+                $"&amount={Total.ToString(System.Globalization.CultureInfo.InvariantCulture)}");
         }
         else
         {

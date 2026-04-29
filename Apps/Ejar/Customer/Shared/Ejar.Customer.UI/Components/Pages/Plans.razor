@@ -96,7 +96,10 @@
         await InvokeAsync(StateHasChanged);
     }
 
-    private void Subscribe(PlanDto p) => Nav.NavigateTo($"/subscribe?type=plan&id={p.Id}&amount={p.Price}");
+    // ToString(InvariantCulture) ضروريّ — فاصل العربيّة "٫" يكسر
+    // [SupplyParameterFromQuery] decimal في الصفحة الهدف، ينتج crash كامل.
+    private void Subscribe(PlanDto p) => Nav.NavigateTo(
+        $"/subscribe?type=plan&id={p.Id}&amount={p.Price.ToString(System.Globalization.CultureInfo.InvariantCulture)}");
 
     private static string SupportLevel(string id) => id switch
     {

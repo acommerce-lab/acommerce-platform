@@ -43,26 +43,45 @@
 
     protected override async Task OnAfterRenderAsync(bool first) { if (first) { await FavoritesSvc.LoadFromServerAsync(); await Load(); } }
 
+    /// <summary>
+    /// تحميل المفضّلات مباشرةً من <c>GET /favorites</c> — الخادم هو الحقيقة.
+    /// كان السابق يجلب <c>/home/explore?sort=newest</c> ويُفلتر بـ
+    /// FavoriteListingIds المحلّيّة، وذلك يفشل عندما يكون الإعلان المفضّل
+    /// خارج أوّل ٦٠ نتيجة، أو بعد signout عندما تكون الـ Set فارغة لكنّ DB
+    /// ما زال يحوي الصفوف.
+    /// </summary>
     private async Task Load()
     {
-        if (Store.FavoriteListingIds.Count == 0) { _items = new(); _loading = false; await InvokeAsync(StateHasChanged); return; }
-        var env = await Api.GetAsync<List<ListingDto>>("/home/explore?sort=newest");
-        var all = env.Data ?? new();
-        _items = all.Where(l => Store.FavoriteListingIds.Contains(l.Id)).ToList();
+        var env = await Api.GetAsync<List<ListingDto>>("/favorites");
+        _items = env.Data ?? new();
         _loading = false;
         await InvokeAsync(StateHasChanged);
     }
 
     private void Open(string id) => Nav.NavigateTo($"/listings/{id}");
 
-    private Task Toggle(string id, bool on) => FavoritesSvc.ToggleAsync(id);
+    /// <summary>
+    /// إلغاء تفضيل من هذه الصفحة: نُحدّث الخادم ثمّ نُزيل العنصر محلّياً
+    /// فوراً بدل انتظار reload كامل (يبقى ما بقي بدون فلاش).
+    /// </summary>
+    private async Task Toggle(string id, bool on)
+    {
+        await FavoritesSvc.ToggleAsync(id);
+        // الـ Set أصبحت لا تحتوي id (لو إلغاء)؛ أزل الكرت من القائمة بدون
+        // إعادة الجلب الكامل.
+        if (!Store.FavoriteListingIds.Contains(id))
+            _items = _items.Where(x => x.Id != id).ToList();
+        await InvokeAsync(StateHasChanged);
+    }
 
-    private async void OnChange() { await Load(); }
+    private void OnChange() => InvokeAsync(StateHasChanged);
     public void Dispose() => Store.OnChanged -= OnChange;
 
+    // شكل الـ row من /favorites — أعمدة المختصرة فقط (كافية لـ AcSpaceCard).
+    // لا حاجة للـ Lat/Lng/Amenities/Views… التي يُرجعها /home/explore.
     private sealed record ListingDto(
-        string Id, string Title, decimal Price, string TimeUnit, string TimeUnitLabel,
-        string PropertyType, string PropertyTypeLabel, string City, string District,
-        double Lat, double Lng, int BedroomCount, double AreaSqm, bool IsVerified,
-        int ViewsCount, bool IsFavorite, List<string>? Amenities, string? FirstImage);
+        string Id, string Title, decimal Price, string TimeUnit,
+        string PropertyType, string City, string District,
+        bool IsVerified, string? FirstImage,
+        int BedroomCount = 0);
 }

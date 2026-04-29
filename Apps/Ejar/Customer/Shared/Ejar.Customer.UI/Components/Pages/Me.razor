@@ -96,10 +96,19 @@
 
     private void SignOut()
     {
+        // امسح كلّ ما يخصّ المستخدم الحاليّ — وإلّا يرى المستخدم التالي على
+        // نفس المتصفّح المفضّلات والبحث الحديث والمسوّدة الخاصّة بصاحبه السابق.
+        // كان هذا يحدث بالفعل: تسجيل الخروج يخرج المستخدم لكنّ القلوب تبقى
+        // مضاءة على الإعلانات. AuthInterpreter.SignOut يفعل ذلك للعمليّة عبر
+        // OpEngine، لكنّ هذا الزرّ يعدّل Auth مباشرةً فيتجاوز المعترض.
         Store.Auth.UserId = null;
         Store.Auth.AccessToken = null;
         Store.Auth.FullName = null;
         Store.Auth.Phone = null;
+        Store.FavoriteListingIds.Clear();
+        Store.RecentSearches.Clear();
+        Store.ActiveQuickFilterIds.Clear();
+        Store.Draft.Clear();
         Store.NotifyChanged();
         Nav.NavigateTo("/login");
     }

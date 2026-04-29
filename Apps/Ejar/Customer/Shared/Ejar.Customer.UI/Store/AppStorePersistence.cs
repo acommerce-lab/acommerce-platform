@@ -4,30 +4,39 @@ using Microsoft.JSInterop;
 namespace Ejar.Customer.UI.Store;
 
 /// <summary>
-/// يحفظ ويستعيد حالة <see cref="AppStore"/> القابلة للديمومة (Auth + Favorites
-/// + Recent Searches + Ui prefs) عبر localStorage. بدونه:
-/// <list type="bullet">
-///   <item>يُمسح JWT عند refresh → المستخدم يخرج تلقائياً.</item>
-///   <item>تُنسى المفضّلات بعد إعادة التحميل.</item>
-///   <item>يفقد التطبيق المسوّدة (DraftListing).</item>
-/// </list>
+/// يحفظ ويستعيد حالة <see cref="AppStore"/> القابلة للديمومة عبر localStorage.
 ///
-/// <para>الاستخدام:
-/// <list type="number">
-///   <item>تُحقن خدمة الـ persistence في DI (scoped).</item>
-///   <item>تُستدعى <see cref="RestoreAsync"/> مرّة عند بدء التطبيق (في
-///         <c>MainLayout.OnAfterRenderAsync(firstRender: true)</c>).</item>
-///   <item>تشترك في <c>store.OnChanged</c> لتحفظ تلقائياً عند كلّ تغيير.</item>
+/// <para>ما يُحفَظ محلّياً ولماذا:
+/// <list type="bullet">
+///   <item><b>Auth (JWT + UserId + الاسم + الهاتف)</b> — حتّى لا يُطلَب من المستخدم
+///         إعادة تسجيل الدخول مع كلّ refresh. تنتهي صلاحيّته من الخادم.</item>
+///   <item><b>RecentSearches</b> — مساعدة UX خفيفة (سلسلة نصوص قصيرة).</item>
+///   <item><b>Ui prefs (Theme + Language + City)</b> — تجربة مستخدم متّسقة بين الجلسات.</item>
 /// </list></para>
 ///
-/// <para>WASM: يستخدم <c>localStorage</c> مباشرةً (يعمل قبل تحميل Blazor كاملاً).
-/// Blazor Server: يستخدم <c>IJSRuntime</c> بعد أوّل render — لذلك المسؤوليّة
-/// على <c>MainLayout</c> أن يستدعي <see cref="RestoreAsync"/> في firstRender.</para>
+/// <para>ما لا يُحفَظ محلّياً عمداً:
+/// <list type="bullet">
+///   <item><b>المفضّلات</b> — الخادم هو الحقيقة الوحيدة (مزامنة عبر الأجهزة).
+///         <see cref="FavoritesSync.LoadFromServerAsync"/> يُحضرها بعد الاستعادة.
+///         تخزينها محلّياً كان يُنتج بقايا تظلّ بعد تسجيل الخروج، أو نسخاً
+///         قديمة على جهاز ينافس بيانات الخادم.</item>
+///   <item><b>محتوى الإعلانات/الفئات/المدن</b> — تُجلَب عند الحاجة (online-first).
+///         إدارة cache invalidation للمحتوى الديناميّ يستدعي بنية أكبر بكثير
+///         (ETags، إبطال خادميّ…) لا نملكها الآن، فالأبسط أن نعتمد على الاتصال
+///         دائماً ونستخدم HTTP cache من المتصفّح فقط.</item>
+/// </list></para>
+///
+/// <para><b>إبطال الكاش</b>: عند تسجيل الخروج <c>AuthInterpreter</c> أو
+/// <c>Me.razor.SignOut</c> يمسحان كلّ شيء (Favorites/Recent/Draft/Auth) من
+/// AppStore، فيلتقط <c>OnStoreChanged</c> القيم الجديدة (الفارغة) ويكتبها
+/// إلى localStorage فوراً.</para>
 /// </summary>
 public sealed class AppStorePersistence : IAsyncDisposable
 {
     private const string KeyAuth        = "ejar.auth";
-    private const string KeyFavorites   = "ejar.favorites";
+    // KeyFavorites أُسقط — الخادم هو الحقيقة الوحيدة. كان مفتاح "ejar.favorites"
+    // يُنشئ بقايا (heart مضاء بعد signout، مزامنة فاشلة بين الأجهزة).
+    private const string KeyFavoritesLegacy = "ejar.favorites";
     private const string KeyRecent      = "ejar.recent";
     private const string KeyUi          = "ejar.ui";
 
@@ -66,7 +75,7 @@ public sealed class AppStorePersistence : IAsyncDisposable
         try
         {
             await TryRestoreAuth();
-            await TryRestoreFavorites();
+            await PurgeLegacyFavoritesAsync();
             await TryRestoreRecent();
             await TryRestoreUi();
         }
@@ -99,7 +108,8 @@ public sealed class AppStorePersistence : IAsyncDisposable
             await SetItem(KeyAuth, new AuthSnapshot(
                 _store.Auth.UserId, _store.Auth.FullName,
                 _store.Auth.Phone,  _store.Auth.AccessToken));
-            await SetItem(KeyFavorites, _store.FavoriteListingIds.ToArray());
+            // المفضّلات لم تعد تُحفَظ — الخادم هو المصدر، يُحضرها FavoritesSync
+            // بعد كلّ تسجيل دخول و كلّ بدء جلسة.
             await SetItem(KeyRecent,    _store.RecentSearches.ToArray());
             await SetItem(KeyUi, new UiSnapshot(
                 _store.Ui.Theme, _store.Ui.Culture.Language, _store.Ui.City));
@@ -120,12 +130,15 @@ public sealed class AppStorePersistence : IAsyncDisposable
         _store.Auth.AccessToken = s.AccessToken;
     }
 
-    private async Task TryRestoreFavorites()
+    /// <summary>
+    /// يمسح مفتاح <c>ejar.favorites</c> القديم من localStorage إن وُجد.
+    /// المستخدمون الذين يحدّثون من نسخة قديمة قد يكون لديهم بقايا تظلّ بعد
+    /// signout. لا نستعيدها — FavoritesSync يجلبها من الخادم.
+    /// </summary>
+    private async Task PurgeLegacyFavoritesAsync()
     {
-        var ids = await GetItem<string[]>(KeyFavorites);
-        if (ids is null) return;
-        _store.FavoriteListingIds.Clear();
-        foreach (var id in ids) _store.FavoriteListingIds.Add(id);
+        try { await _js.InvokeVoidAsync("localStorage.removeItem", KeyFavoritesLegacy); }
+        catch { /* JSInterop غير متاح — ضرر يسيطر */ }
     }
 
     private async Task TryRestoreRecent()

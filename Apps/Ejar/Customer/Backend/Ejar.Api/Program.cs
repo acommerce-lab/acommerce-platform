@@ -176,7 +176,10 @@ using (var scope = app.Services.CreateScope())
     // كلّ منها كـ Latest عبر IVersionStore. EjarVersionStore.UpsertAsync يُخفّض
     // أيّ Latest سابق في نفس المنصّة إلى Active تلقائياً، فالنشر يكفي وحده
     // ليصبح الإصدار الجديد هو الـ Latest بلا أيّ تدخّل إداريّ يدويّ.
-    await VersionsBootstrap.PromoteFromConfigAsync(scope.ServiceProvider, builder.Configuration);
+    // try/catch لئلّا يمنع فشل الـ bootstrap (DB غير متاح، إلخ.) بقيّة التشغيل
+    // — نسجّل ونمضي.
+    try { await VersionsBootstrap.PromoteFromConfigAsync(scope.ServiceProvider, builder.Configuration); }
+    catch (Exception ex) { Log.Warning(ex, "Ejar.Versions: bootstrap from config failed"); }
 }
 
 // 9. Middleware Pipeline
@@ -216,6 +219,49 @@ var healthHandler = (EjarDbContext db) =>
 };
 app.MapGet("/healthz", healthHandler).AllowAnonymous();
 app.MapGet("/health",  healthHandler).AllowAnonymous();
+
+// Diagnostic endpoint — يُظهر حالة الـ schema الفعليّة على الإنتاج. مفيد عندما
+// تعود كلّ مسارات [Authorize] بـ 500: نفحص هل الجداول موجودة، هل الأعمدة الجديدة
+// (ConversationEntity.OwnerId مثلاً) مطبَّقة، وأيّ migrations ناقصة. لا يكشف
+// أيّ بيانات حسّاسة — فقط أسماء/أعمدة/migrations.
+app.MapGet("/diag/schema", async (EjarDbContext db) =>
+{
+    object Try(Func<object> f) { try { return f(); } catch (Exception ex) { return new { error = ex.GetType().Name, message = ex.Message }; } }
+
+    var applied = new List<string>();
+    var pending = new List<string>();
+    try
+    {
+        applied.AddRange(await db.Database.GetAppliedMigrationsAsync());
+        pending.AddRange(await db.Database.GetPendingMigrationsAsync());
+    }
+    catch (Exception ex)
+    {
+        return Results.Json(new {
+            ok = false,
+            error = "migrations_history_unreadable",
+            message = ex.Message,
+            hint = "DB may have been created with EnsureCreated() — set EJAR_DB_RESET=true once and restart to wipe & re-migrate."
+        });
+    }
+
+    return Results.Json(new {
+        ok        = true,
+        provider  = db.Database.ProviderName,
+        canConnect = Try(() => (object)db.Database.CanConnect()),
+        applied,
+        pending,
+        counts = new {
+            users          = Try(() => (object)db.Users.Count()),
+            listings       = Try(() => (object)db.Listings.Count()),
+            conversations  = Try(() => (object)db.Conversations.Count()),
+            favorites      = Try(() => (object)db.Favorites.Count()),
+            plans          = Try(() => (object)db.Plans.Count()),
+            subscriptions  = Try(() => (object)db.Subscriptions.Count()),
+            appVersions    = Try(() => (object)db.AppVersions.Count())
+        }
+    });
+}).AllowAnonymous();
 
 Log.Information("Ejar API ready [{Env}]", app.Environment.EnvironmentName);
 app.Run();

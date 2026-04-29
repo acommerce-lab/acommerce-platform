@@ -273,6 +273,7 @@ public sealed class CatalogController : ControllerBase
                 id = l.Id, title = l.Title, price = l.Price,
                 timeUnit = l.TimeUnit, propertyType = l.PropertyType,
                 city = l.City, district = l.District, isVerified = l.IsVerified,
+                bedroomCount = l.BedroomCount,
                 firstImage = l.ImagesCsv?.Split('|').FirstOrDefault()
             }));
     }
