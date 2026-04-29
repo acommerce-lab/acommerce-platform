@@ -289,10 +289,24 @@
             }
             else
             {
-                _publishError = env.Operation?.ErrorMessage ?? "فشل نشر الإعلان";
+                // اعرض السبب الحقيقيّ من الـ envelope: قد يكون
+                // no_active_subscription, listings_quota_exceeded, images_quota_exceeded,
+                // missing_fields، أو نصّ الخطأ الخام من الخادم.
+                var code   = env.Error?.Code ?? env.Operation?.FailedAnalyzer;
+                var msg    = env.Error?.Message ?? env.Operation?.ErrorMessage;
+                _publishError = (code, msg) switch
+                {
+                    ("no_active_subscription",    _)              => "لا يوجد اشتراك نشط — اشترك بباقة قبل نشر إعلان.",
+                    ("listings_quota_exceeded",   var m) when m is not null => m,
+                    ("images_quota_exceeded",     var m) when m is not null => m,
+                    ("missing_fields",            _)              => "الحقول المطلوبة (العنوان والمدينة) ناقصة.",
+                    (_, var m) when !string.IsNullOrWhiteSpace(m) => m!,
+                    (var c, _) when !string.IsNullOrWhiteSpace(c) => $"فشل النشر ({c}).",
+                    _                                             => "فشل نشر الإعلان — تحقّق من اشتراكك ثمّ حاول مجدّداً."
+                };
             }
         }
-        catch { _publishError = "حدث خطأ أثناء النشر — حاول مجدّداً"; }
+        catch (Exception ex) { _publishError = $"حدث خطأ أثناء النشر: {ex.Message}"; }
         finally { _publishing = false; }
     }
 

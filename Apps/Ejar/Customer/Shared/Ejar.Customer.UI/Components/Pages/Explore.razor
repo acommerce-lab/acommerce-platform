@@ -9,6 +9,13 @@
 
 <PageTitle>استكشف - @Store.Auth?.FullName</PageTitle>
 
+@if (HasAnyFilter)
+{
+    <div class="acs-clear-filters-bar" style="display:flex; justify-content:flex-end; padding:8px 12px;">
+        <AcButton Variant="ghost" Text="إلغاء كلّ الفلاتر" OnClick="@ClearAllFilters" />
+    </div>
+}
+
 <AcListingExplorePage Title="استكشف"
                       Data="_listings"
                       MapListings="_mapListings"
@@ -89,10 +96,37 @@
         return "?" + string.Join("&", parts);
     }
 
-    private async Task OnCategorySelected(string? id)   { _categoryId = id;          await ApplyAndSyncAsync(); }
+    private bool HasAnyFilter =>
+        !string.IsNullOrEmpty(_categoryId)
+        || !string.IsNullOrEmpty(_query)
+        || _filters.MinPrice.HasValue || _filters.MaxPrice.HasValue
+        || _filters.Capacity > 0 || _filters.MinRating > 0
+        || _sort != "newest";
+
+    private async Task OnCategorySelected(string? id)
+    {
+        _categoryId = id;
+        // اختيار "الكل" (id == null) يمسح الفلاتر المرتبطة بنوع الإعلان
+        // (السعة وعدد الغرف والحدّ الأدنى للتقييم)، ويُبقي البحث النصّيّ والترتيب.
+        // قبل هذا الإصلاح كانت الفلاتر تبقى عالقة فيُرجع التطبيق نتائج فارغة
+        // أو متناقضة مع اختيار المستخدم.
+        if (id is null)
+            _filters = new(null, null, 0, 0);
+        await ApplyAndSyncAsync();
+    }
+
     private async Task OnSortChanged    (string? sort)  { _sort = sort ?? "newest";  await ApplyAndSyncAsync(); }
     private void      OnViewChanged     (string? view)  { _view = view ?? "list";    StateHasChanged(); }
     private async Task OnFiltersApplied (AcListingExplorePage.ExploreFilters f) { _filters = f; await ApplyAndSyncAsync(); }
+
+    private async Task ClearAllFilters()
+    {
+        _categoryId = null;
+        _query      = null;
+        _sort       = "newest";
+        _filters    = new(null, null, 0, 0);
+        await ApplyAndSyncAsync();
+    }
 
     /// <summary>
     /// يحدّث URL ليعكس الـ category/sort/q/filters الحاليّة (replace: true لئلّا

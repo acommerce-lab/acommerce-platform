@@ -61,7 +61,7 @@
             @foreach (var c in _categories)
             {
                 var cat = c;
-                <AcCategoryTile Label="@cat.Label" IconName="@cat.Icon"
+                <AcCategoryTile Label="@cat.Label" Icon="@cat.Icon"
                                 OnClick="@(() => Nav.NavigateTo($"/explore?category={cat.Id}"))" />
             }
         </div>

@@ -97,11 +97,8 @@
                                 <span>عضو منذ @_listing.Owner.MemberSince</span>
                             }
                         </div>
-                        @if (Store.Auth.IsAuthenticated)
-                        {
-                            <AcButton Variant="outline-primary" Text="مراسلة"
-                                      OnClick="@StartChat" Disabled="@_startingChat" />
-                        }
+                        @* زرّ المراسلة الموحَّد موجود في AcStickyActionBar أسفل
+                           الصفحة — لا حاجة لتكراره داخل بطاقة المالك. *@
                     </div>
                 </ChildContent>
             </AcCard>
@@ -165,15 +162,21 @@
     private async Task StartChat()
     {
         if (_listing is null) return;
+        if (!Store.Auth.IsAuthenticated) { Nav.NavigateTo("/login?returnUrl=" + Uri.EscapeDataString($"/listings/{_listing.Id}")); return; }
         _startingChat = true;
         try
         {
+            // استدعاء مباشر بدل الذهاب عبر OpEngine — أبسط، ويضمن أنّ env.Data
+            // يحوي {Id, Created} الذي يُرجعه /conversations/start فعلاً. السابق
+            // كان يُسقط Data أحياناً فينتهي المستخدم في /chats بدل /chat/{id}.
             var text = $"مرحباً، أنا مهتمّ بـ \"{_listing.Title}\".";
-            var env = await Engine.ExecuteAsync<StartChatData>(
-                EjarOps.StartConversation(_listing.Id, text),
-                payload: new { ListingId = _listing.Id, Text = text });
-            if (env?.Data is not null) Nav.NavigateTo($"/chat/{env.Data.Id}");
-            else                       Nav.NavigateTo("/chats");
+            var env = await Api.PostAsync<StartChatData>(
+                "/conversations/start",
+                new { ListingId = _listing.Id, Text = text });
+            if (env?.Data is not null && !string.IsNullOrEmpty(env.Data.Id))
+                Nav.NavigateTo($"/chat/{env.Data.Id}");
+            else
+                Nav.NavigateTo("/chats");
         }
         finally { _startingChat = false; }
     }
