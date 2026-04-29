@@ -13,10 +13,14 @@
     </Description>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\Widgets\ACommerce.Widgets\ACommerce.Widgets.csproj" />
-    <PackageReference Include="Microsoft.AspNetCore.Components.Authorization" Version="10.0.7" />
+    <SupportedPlatform Include="browser" />
   </ItemGroup>
   <ItemGroup>
-    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <!-- Razor templates only use Components/Components.Authorization (Blazor side).
+         No server-side ASP.NET Core types touched here, so NO FrameworkReference
+         Microsoft.AspNetCore.App — that would cascade into WASM and trigger NETSDK1082. -->
+    <ProjectReference Include="..\..\Widgets\ACommerce.Widgets\ACommerce.Widgets.csproj" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="10.0.7" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.Authorization" Version="10.0.7" />
   </ItemGroup>
 </Project>

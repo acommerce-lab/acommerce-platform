@@ -19,12 +19,11 @@
     </Description>
   </PropertyGroup>
   <ItemGroup>
+    <!-- Pure contracts: IAuthFlow + IAuthUserStore + AuthTagKeys.
+         No Microsoft.AspNetCore.App needed (interceptor + DI extensions live
+         in Auth.Backend). FrameworkReference would propagate into WASM
+         consumers (Customer.UI → WebAssembly) and trigger NETSDK1082. -->
     <ProjectReference Include="..\..\Core\OperationEngine\ACommerce.OperationEngine\ACommerce.OperationEngine.csproj" />
     <ProjectReference Include="..\..\Core\OperationEngine\ACommerce.OperationEngine.Interceptors\ACommerce.OperationEngine.Interceptors.csproj" />
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.7" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.7" />
-  </ItemGroup>
-  <ItemGroup>
-    <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
 </Project>

@@ -35,7 +35,10 @@ public sealed class RedisCache : ICache
     public Task SetAsync<T>(string key, T value, CacheEntryOptions? options = null, CancellationToken ct = default)
     {
         var ttl = ResolveTtl(options);
-        return _db.StringSetAsync(key, Serialize(value), expiry: ttl);
+        // when: When.Always يميّز overload القديم (TimeSpan?) عن overload الجديد
+        // (Expiration) في StackExchange.Redis ≥ 2.12. بدون when:، التحليل يختار
+        // overload الـ Expiration ويفشل النوع.
+        return _db.StringSetAsync(key, Serialize(value), expiry: ttl, when: When.Always);
     }
 
     public Task<bool> RemoveAsync(string key, CancellationToken ct = default) => _db.KeyDeleteAsync(key);
@@ -53,7 +56,7 @@ public sealed class RedisCache : ICache
         if (!raw.IsNullOrEmpty) return Deserialize<T>(raw!)!;
 
         var value = await factory().ConfigureAwait(false);
-        await _db.StringSetAsync(key, Serialize(value), expiry: ResolveTtl(options));
+        await _db.StringSetAsync(key, Serialize(value), expiry: ResolveTtl(options), when: When.Always);
         return value;
     }
 

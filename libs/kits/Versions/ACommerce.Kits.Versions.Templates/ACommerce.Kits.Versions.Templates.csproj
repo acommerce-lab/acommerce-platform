@@ -18,15 +18,18 @@
     </Description>
   </PropertyGroup>
   <ItemGroup>
+    <SupportedPlatform Include="browser" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\ACommerce.Kits.Versions.Operations\ACommerce.Kits.Versions.Operations.csproj" />
     <ProjectReference Include="..\..\Widgets\ACommerce.Widgets\ACommerce.Widgets.csproj" />
     <ProjectReference Include="..\..\Core\OperationEngine\ACommerce.OperationEngine\ACommerce.OperationEngine.csproj" />
     <ProjectReference Include="..\..\Core\OperationEngine\ACommerce.OperationEngine.Wire\ACommerce.OperationEngine.Wire.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <FrameworkReference Include="Microsoft.AspNetCore.App" />
-  </ItemGroup>
-  <ItemGroup>
+    <!-- Razor templates only use Components.Web (Blazor side) + Extensions.Http
+         (IHttpClientFactory in VersionState). NO FrameworkReference
+         Microsoft.AspNetCore.App — that would cascade into WASM and trigger NETSDK1082. -->
     <PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="10.0.7" />
     <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.7" />
   </ItemGroup>

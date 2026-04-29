@@ -9,11 +9,13 @@
     <Description>General-purpose subscriptions/plans library on top of OperationEngine.Interceptors. Defines IPlan + ISubscription interfaces (no concrete entities), and provides QuotaInterceptor + QuotaConsumptionInterceptor that auto-inject into ANY operation marked with a quota_check tag - regardless of which library built that operation.</Description>
   </PropertyGroup>
   <ItemGroup>
+    <!-- Microsoft.Extensions.* are needed for ILogger<T> + IServiceCollection
+         (used by QuotaInterceptor + SubscriptionGateInterceptor). FrameworkReference
+         Microsoft.AspNetCore.App is NOT needed — neither interceptor touches HttpContext
+         (SubscriptionGate resolves user from operation tags/parties). Adding it would
+         propagate into WASM via Subscriptions.Templates → Customer.UI → WebAssembly. -->
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.7" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.7" />
-  </ItemGroup>
-  <ItemGroup>
-    <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\Core\OperationEngine\ACommerce.OperationEngine\ACommerce.OperationEngine.csproj" />
