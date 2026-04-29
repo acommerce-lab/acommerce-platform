@@ -11,16 +11,47 @@ using Microsoft.EntityFrameworkCore;
 namespace Ejar.Api.Stores;
 
 /// <summary>
-/// جسر بين Auth Kit و EjarSeed على جانب المستأجر (Customer).
-/// كامل سطح "ابحث عن الجوال، أنشئ مستخدماً إن لم يوجد، أعد الاسم" → دالّتان.
+/// جسر بين Auth Kit وقاعدة البيانات الفعليّة. كامل سطح "ابحث عن الجوال،
+/// أنشئ مستخدماً إن لم يوجد، أعد الاسم" → دالّتان مدعومتان بـ EF Core.
+///
+/// <para>السابق كان يستخدم EjarSeed.GetOrCreateUserId الذي يُرجع <c>"U-1"</c>
+/// كنصّ بدل Guid. العميل يستهلكه عبر <c>Guid.TryParse</c> فيفشل ويبقى
+/// <c>Store.Auth.UserId = null</c> فيحسبه التطبيق غير مصادَق رغم وجود التوكن
+/// — حلقة redirect لا نهائيّة بين /favorites و /login.</para>
 /// </summary>
 public sealed class EjarCustomerAuthUserStore : IAuthUserStore
 {
-    public Task<string> GetOrCreateUserIdAsync(string phone, CancellationToken ct)
-        => Task.FromResult(EjarSeed.GetOrCreateUserId(phone));
+    private readonly EjarDbContext _db;
+    public EjarCustomerAuthUserStore(EjarDbContext db) => _db = db;
 
-    public Task<string?> GetDisplayNameAsync(string userId, CancellationToken ct)
-        => Task.FromResult(EjarSeed.GetUser(userId)?.FullName);
+    public async Task<string> GetOrCreateUserIdAsync(string phone, CancellationToken ct)
+    {
+        var existing = await _db.Users.FirstOrDefaultAsync(u => u.Phone == phone, ct);
+        if (existing is not null) return existing.Id.ToString();
+
+        var newUser = new UserEntity
+        {
+            Id            = Guid.NewGuid(),
+            CreatedAt     = DateTime.UtcNow,
+            FullName      = "مستخدم جديد",
+            Phone         = phone,
+            PhoneVerified = true,
+            Email         = "",
+            EmailVerified = false,
+            City          = "صنعاء",
+            MemberSince   = DateTime.UtcNow,
+        };
+        _db.Users.Add(newUser);
+        await _db.SaveChangesAsync(ct);
+        return newUser.Id.ToString();
+    }
+
+    public async Task<string?> GetDisplayNameAsync(string userId, CancellationToken ct)
+    {
+        if (!Guid.TryParse(userId, out var id)) return null;
+        var u = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id, ct);
+        return u?.FullName;
+    }
 }
 
 /// <summary>
