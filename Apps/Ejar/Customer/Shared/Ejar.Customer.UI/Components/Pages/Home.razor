@@ -81,8 +81,17 @@
                 Featured = env.Data.Featured.Select(ToRow).ToList(),
                 New = env.Data.New.Select(ToRow).ToList()
             };
-            await InvokeAsync(StateHasChanged);
         }
+        else
+        {
+            _data = new MarketplaceHomeDto
+            {
+                Categories = Array.Empty<CategoryTileDto>(),
+                Featured = Array.Empty<ListingRowDto>(),
+                New = Array.Empty<ListingRowDto>()
+            };
+        }
+        await InvokeAsync(StateHasChanged);
     }
 
     private void OnSearch(string? q)
