@@ -1,11 +1,13 @@
 @page "/listings/{Id}"
 @using ACommerce.Client.Operations
 @using Ejar.Customer.UI.Operations
+@using Ejar.Customer.UI.Services
 @inject AppStore Store
 @inject AppStateApplier Applier
 @inject ApiReader Api
 @inject NavigationManager Nav
 @inject ClientOpEngine Engine
+@inject FavoritesSync Favorites
 @inject L L
 @implements IDisposable
 
@@ -156,7 +158,9 @@
     {
         if (_listing is null) return;
         if (!Store.Auth.IsAuthenticated) { Nav.NavigateTo("/login"); return; }
-        await Applier.ApplyLocalAsync(EjarOps.ToggleFavorite(_listing.Id));
+        // FavoritesSync يُحدّث المحلّيّ تفاؤليّاً ثمّ يُزامن مع الخادم.
+        // بدونه كانت المفضّلات تبقى في localStorage فقط ولا تظهر على أجهزة أخرى.
+        await Favorites.ToggleAsync(_listing.Id);
     }
 
     private async Task StartChat()

@@ -1,10 +1,12 @@
 @page "/explore"
 @using Ejar.Customer.UI.Operations
+@using Ejar.Customer.UI.Services
 @inject AppStore Store
 @inject AppStateApplier Applier
 @inject ApiReader Api
 @inject ITemplateEngine Engine
 @inject NavigationManager Nav
+@inject FavoritesSync Favorites
 @implements IDisposable
 
 <PageTitle>استكشف - @Store.Auth?.FullName</PageTitle>
@@ -144,7 +146,10 @@
     private void OnListingOpen(ListingRowDto l) => Nav.NavigateTo($"/listings/{Uri.EscapeDataString(l.Id)}");
 
     private Task OnFavoriteToggled((ListingRowDto Listing, bool On) e)
-        => Applier.ApplyLocalAsync(EjarOps.ToggleFavorite(e.Listing.Id));
+    {
+        if (!Store.Auth.IsAuthenticated) { Nav.NavigateTo("/login"); return Task.CompletedTask; }
+        return Favorites.ToggleAsync(e.Listing.Id);
+    }
 
     private static ListingRowDto ToRow(ListingDto l) => new()
     {

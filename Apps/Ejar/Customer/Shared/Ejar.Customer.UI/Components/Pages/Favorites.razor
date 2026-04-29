@@ -1,10 +1,12 @@
 @page "/favorites"
 @attribute [Authorize]
 @using Ejar.Customer.UI.Operations
+@using Ejar.Customer.UI.Services
 @inject AppStore Store
 @inject AppStateApplier Applier
 @inject ApiReader Api
 @inject NavigationManager Nav
+@inject FavoritesSync FavoritesSvc
 @inject L L
 @implements IDisposable
 
@@ -39,7 +41,7 @@
 
     protected override void OnInitialized() => Store.OnChanged += OnChange;
 
-    protected override async Task OnAfterRenderAsync(bool first) { if (first) await Load(); }
+    protected override async Task OnAfterRenderAsync(bool first) { if (first) { await FavoritesSvc.LoadFromServerAsync(); await Load(); } }
 
     private async Task Load()
     {
@@ -53,7 +55,7 @@
 
     private void Open(string id) => Nav.NavigateTo($"/listings/{id}");
 
-    private Task Toggle(string id, bool on) => Applier.ApplyLocalAsync(EjarOps.ToggleFavorite(id));
+    private Task Toggle(string id, bool on) => FavoritesSvc.ToggleAsync(id);
 
     private async void OnChange() { await Load(); }
     public void Dispose() => Store.OnChanged -= OnChange;

@@ -92,6 +92,8 @@ public static class EjarCustomerUiExtensions
             return new ApiReader(circuit.Client, sp.GetRequiredService<CultureInterceptor>());
         });
 
+        services.AddScoped<FavoritesSync>();
+
         services.AddScoped<ClientOpEngine>(sp =>
             new ClientOpEngine(
                 sp.GetRequiredService<IOperationDispatcher>(),

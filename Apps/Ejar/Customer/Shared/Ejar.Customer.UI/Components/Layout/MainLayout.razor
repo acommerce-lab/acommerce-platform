@@ -1,6 +1,7 @@
 @namespace Ejar.Customer.UI.Components.Layout
 @using ACommerce.Kits.Versions.Templates
 @using Ejar.Customer.UI.Operations
+@using Ejar.Customer.UI.Services
 @using Ejar.Customer.UI.Store
 @inherits LayoutComponentBase
 @inject AppStore Store
@@ -11,6 +12,7 @@
 @inject IJSRuntime JS
 @inject NavigationManager Nav
 @inject EjarRealtimeService Realtime
+@inject FavoritesSync Favorites
 @inject IConfiguration Config
 @implements IAsyncDisposable
 
@@ -65,6 +67,7 @@
     // ملاحظة: حالة الإصدار يتولّاها AcAppVersionGate + VersionState تلقائياً.
     // لم نعد نستدعي /version/check يدوياً.
     private bool _realtimeConnected;
+    private bool _favoritesLoaded;
 
     private static readonly IReadOnlyList<BottomNavItemDto> _bottomItems = new[]
     {
@@ -124,6 +127,14 @@
         // Connect after login (OnAfterRenderAsync fires after Store.NotifyChanged)
         if (Store.Auth.IsAuthenticated && !_realtimeConnected)
             await ConnectRealtimeAsync();
+
+        // حمِّل المفضّلات من الخادم بعد المصادقة لتظهر على كلّ الأجهزة. مرّة
+        // واحدة لكلّ جلسة — Login.razor يتولّى التحميل بعد تسجيل الدخول الجديد.
+        if (Store.Auth.IsAuthenticated && !_favoritesLoaded)
+        {
+            _favoritesLoaded = true;
+            await Favorites.LoadFromServerAsync();
+        }
 
         if (_appliedTheme != Store.Ui.Theme || _appliedLang != Store.Ui.Language)
         {

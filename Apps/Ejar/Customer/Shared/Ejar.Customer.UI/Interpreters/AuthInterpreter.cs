@@ -18,6 +18,10 @@ public sealed class AuthInterpreter : IOperationInterpreter<AppStore>
                 store.Auth.AccessToken = null;
                 store.Auth.FullName = null;
                 store.Auth.Phone = null;
+                // امسح المفضّلات أيضاً — وإلّا تظهر مفضّلات المستخدم السابق
+                // للمستخدم التالي على نفس المتصفّح. يُعاد تحميلها من الخادم
+                // فور تسجيل الدخول.
+                store.FavoriteListingIds.Clear();
                 store.NotifyChanged();
                 break;
 
