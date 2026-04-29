@@ -4,7 +4,7 @@
 //
 // VERSION هنا — كلّما تغيّر نُجبر المتصفّح على تحديث الـ SW وحذف cache
 // القديم. ارفعه يدوياً عند كل تغيير في PWA shell (manifest/icons/SW).
-const VERSION = 'ejar-pwa-v4-2026-04-27';
+const VERSION = 'ejar-pwa-v5-2026-04-29';
 const SHELL_CACHE = `shell-${VERSION}`;
 
 // عند التثبيت: skipWaiting → الـ SW الجديد يأخذ السيطرة فوراً بدل أن
@@ -24,6 +24,25 @@ self.addEventListener('activate', e => {
   })());
 });
 
+// تخزين آمن: caches.put يرفض على responses معيّنة (206 range, opaque cross-origin,
+// status != 200..299) وعلى مخططات غير http/https. نتحقّق أوّلاً ثمّ نلتقط أيّ خطأ
+// متبقّي حتى لا يظهر unhandledrejection في الكونسول.
+async function safePut(cacheName, request, response) {
+  try {
+    if (!request || !response) return;
+    if (request.method !== 'GET') return;
+    const url = new URL(request.url);
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') return;
+    if (!response.ok) return;          // يستثني opaque (status=0) و 5xx/4xx
+    if (response.status === 206) return; // partial content غير قابل للتخزين
+    const cache = await caches.open(cacheName);
+    await cache.put(request, response);
+  } catch (e) {
+    // فشل غير قاتل — نمرّ بصمت (chrome-extension، quota exceeded، …).
+    console.debug('[sw] cache.put skipped:', e && e.message);
+  }
+}
+
 // fetch handler ضرورة لتمرير معايير تثبيت Chrome PWA. الإستراتيجية:
 //   - GET فقط (POST/PATCH تتجاوز SW)
 //   - navigation request → network-first، fallback لـ index.html من cache
@@ -34,7 +53,11 @@ self.addEventListener('activate', e => {
 // المستخدم آخر إعدادات البيئة وآخر نسخة من سكربت التثبيت بعد كل نشر.
 self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET') return;
-  const url = new URL(event.request.url);
+  let url;
+  try { url = new URL(event.request.url); }
+  catch { return; }
+  // نتجاوز كلّ ما ليس http(s) (chrome-extension://، blob://، …)
+  if (url.protocol !== 'http:' && url.protocol !== 'https:') return;
 
   // ① ملفات تتبدّل مع كل نشر — لا تُخزّن أبداً
   if (url.pathname === '/appsettings.json'
@@ -46,7 +69,8 @@ self.addEventListener('fetch', event => {
       || url.pathname === '/diagnose.html'
       || url.pathname === '/reset.html') {
     event.respondWith(fetch(event.request, { cache: 'no-store' })
-      .catch(() => caches.match(event.request)));
+      .catch(() => caches.match(event.request)
+        .then(cached => cached || new Response('', { status: 504 }))));
     return;
   }
 
@@ -55,8 +79,7 @@ self.addEventListener('fetch', event => {
     event.respondWith((async () => {
       try {
         const fresh = await fetch(event.request);
-        const cache = await caches.open(SHELL_CACHE);
-        cache.put('/', fresh.clone());
+        await safePut(SHELL_CACHE, new Request('/'), fresh.clone());
         return fresh;
       } catch {
         return (await caches.match('/')) || new Response(
@@ -73,9 +96,8 @@ self.addEventListener('fetch', event => {
     event.respondWith((async () => {
       const cached = await caches.match(event.request);
       const fetchPromise = fetch(event.request).then(r => {
-        if (r.ok) {
-          caches.open(SHELL_CACHE).then(c => c.put(event.request, r.clone()));
-        }
+        // fire-and-forget مع safePut يلتقط الأخطاء داخلياً
+        safePut(SHELL_CACHE, event.request, r.clone());
         return r;
       }).catch(() => cached);
       return cached || fetchPromise;
@@ -84,10 +106,13 @@ self.addEventListener('fetch', event => {
   }
 
   // ④ غير ذلك (e.g. icons، favicon) → network-first
-  event.respondWith(
-    fetch(event.request).catch(() => caches.match(event.request)
-      || new Response('', { status: 504 }))
-  );
+  event.respondWith((async () => {
+    try { return await fetch(event.request); }
+    catch {
+      return (await caches.match(event.request))
+        || new Response('', { status: 504 });
+    }
+  })());
 });
 
 // رسالة من الصفحة لإجبار SW على skipWaiting (لو نسخة جديدة تنتظر)
