@@ -105,7 +105,10 @@
         _busy = false;
         if (env.Operation.Status == "Success" && env.Data is not null)
         {
-            Store.Auth.UserId      = Guid.NewGuid();  // معرّف محلي للعرض
+            // استخدم userId الفعليّ الذي يُرجعه الخادم — كنا نولّد Guid عشوائياً،
+            // فيختلف في كلّ تسجيل دخول ولا يربط بالكيانات الحقيقيّة في DB.
+            Store.Auth.UserId = Guid.TryParse(env.Data.UserId, out var uid)
+                ? uid : null;
             Store.Auth.AccessToken = env.Data.Token;
             Store.Auth.FullName    = env.Data.Name;
             Store.Auth.Phone       = env.Data.Phone;

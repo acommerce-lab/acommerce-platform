@@ -29,7 +29,8 @@ builder.Services.AddHttpClient("ejar", c =>
     c.Timeout = TimeSpan.FromSeconds(30);
 })
 .AddHttpMessageHandler<CultureHeadersHandler>()
-.AddHttpMessageHandler<AppVersionHeadersHandler>();
+.AddHttpMessageHandler<AppVersionHeadersHandler>()
+.AddHttpMessageHandler<AuthHeadersHandler>();
 
 // HttpClient الافتراضي (للمكوّنات التي تحقن HttpClient بدون اسم)
 builder.Services.AddScoped(sp =>

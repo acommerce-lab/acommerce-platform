@@ -25,7 +25,8 @@ builder.Services.AddHttpClient("ejar", c =>
     c.Timeout = TimeSpan.FromSeconds(30);
 })
 .AddHttpMessageHandler<CultureHeadersHandler>()
-.AddHttpMessageHandler<AppVersionHeadersHandler>();
+.AddHttpMessageHandler<AppVersionHeadersHandler>()
+.AddHttpMessageHandler<AuthHeadersHandler>();
 
 // كل خدمات الـ UI المشتركة (AppStore, OpEngine, dispatchers, chat client …)
 builder.Services.AddEjarCustomerUI();

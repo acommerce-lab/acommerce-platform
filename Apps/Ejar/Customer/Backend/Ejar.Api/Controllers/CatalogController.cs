@@ -301,21 +301,38 @@ public sealed class CatalogController : ControllerBase
     }
 
     // ═══ Conversations / Chat (start a new conversation) ═════════════════
-    public sealed record StartConversationBody(string? ListingId, string? PartnerId);
+    // العميل يرسل ListingId فقط (+ نصّ ابتدائيّ اختياريّ). الخادم يستنبط مالك
+    // الإعلان من جدول Listings ويستعمله partner. PartnerId يُقبل لو أُرسل صراحةً
+    // (override للحالات الإداريّة) لكنّه ليس مطلوباً.
+    public sealed record StartConversationBody(string? ListingId, string? PartnerId, string? Text);
 
     [HttpPost("/conversations/start")]
     public async Task<IActionResult> StartConversation([FromBody] StartConversationBody body, CancellationToken ct)
     {
         if (CurrentUserGuid is not { } uid) return this.UnauthorizedEnvelope();
-        if (string.IsNullOrWhiteSpace(body.ListingId) || string.IsNullOrWhiteSpace(body.PartnerId))
-            return this.BadRequestEnvelope("missing_fields");
-        if (!Guid.TryParse(body.ListingId, out var listingId) || !Guid.TryParse(body.PartnerId, out var partnerId))
-            return this.BadRequestEnvelope("invalid_ids");
+        if (string.IsNullOrWhiteSpace(body.ListingId) || !Guid.TryParse(body.ListingId, out var listingId))
+            return this.BadRequestEnvelope("missing_or_invalid_listing_id");
+
+        var listing = await _db.Listings.AsNoTracking()
+            .FirstOrDefaultAsync(l => l.Id == listingId, ct);
+        if (listing is null) return this.NotFoundEnvelope("listing_not_found");
+
+        // partnerId: explicit override من body، أو مالك الإعلان (الافتراضيّ).
+        var partnerId = !string.IsNullOrWhiteSpace(body.PartnerId)
+            && Guid.TryParse(body.PartnerId, out var explicitPartner)
+            ? explicitPartner
+            : listing.OwnerId;
+
+        // لا يُسمح بمحادثة الذات.
+        if (partnerId == uid) return this.BadRequestEnvelope("cannot_chat_with_self");
 
         var existing = await _db.Conversations.FirstOrDefaultAsync(
             c => c.ListingId == listingId && c.PartnerId == partnerId, ct);
         if (existing is not null)
-            return this.OkEnvelope("conversation.start", new { id = existing.Id });
+        {
+            await AppendInitialMessageIfAny(existing.Id, uid, body.Text, ct);
+            return this.OkEnvelope("conversation.start", new { id = existing.Id, created = false });
+        }
 
         var partner = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == partnerId, ct);
         var conv = new ConversationEntity {
@@ -323,12 +340,35 @@ public sealed class CatalogController : ControllerBase
             CreatedAt = DateTime.UtcNow,
             PartnerId = partnerId, ListingId = listingId,
             PartnerName = partner?.FullName ?? "—",
-            Subject = "محادثة جديدة",
+            Subject = listing.Title,
             LastAt = DateTime.UtcNow,
             UnreadCount = 0
         };
         _db.Conversations.Add(conv);
         await _db.SaveChangesAsync(ct);
-        return this.OkEnvelope("conversation.start", new { id = conv.Id });
+
+        await AppendInitialMessageIfAny(conv.Id, uid, body.Text, ct);
+        return this.OkEnvelope("conversation.start", new { id = conv.Id, created = true });
+    }
+
+    private async Task AppendInitialMessageIfAny(Guid conversationId, Guid senderId, string? text, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return;
+        _db.Messages.Add(new MessageEntity
+        {
+            Id = Guid.NewGuid(),
+            CreatedAt = DateTime.UtcNow,
+            ConversationId = conversationId,
+            From = senderId.ToString(),
+            Text = text!,
+            SentAt = DateTime.UtcNow,
+        });
+        var conv = await _db.Conversations.FirstOrDefaultAsync(c => c.Id == conversationId, ct);
+        if (conv is not null)
+        {
+            conv.LastAt = DateTime.UtcNow;
+            conv.UnreadCount += 1;
+        }
+        await _db.SaveChangesAsync(ct);
     }
 }

@@ -1,8 +1,10 @@
 @namespace Ejar.Customer.UI.Components.Layout
 @using ACommerce.Kits.Versions.Templates
 @using Ejar.Customer.UI.Operations
+@using Ejar.Customer.UI.Store
 @inherits LayoutComponentBase
 @inject AppStore Store
+@inject AppStorePersistence Persistence
 @inject AppStateApplier Applier
 @inject ApiReader Api
 @inject L L
@@ -109,8 +111,12 @@
     {
         if (firstRender)
         {
+            // استعادة حالة المستخدم من localStorage قبل أيّ شيء آخر — يُعيد JWT
+            // والمفضّلات والمسوّدة بعد إعادة تحميل الصفحة. لا يفعل شيئاً لو
+            // قد استُعيد سابقاً.
+            await Persistence.RestoreAsync();
+
             // Connect to realtime hub if already authenticated (page reload case).
-            // فحص الإصدار مُدار من AcAppVersionGate.
             if (Store.Auth.IsAuthenticated)
                 await ConnectRealtimeAsync();
         }

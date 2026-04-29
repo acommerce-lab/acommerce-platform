@@ -38,6 +38,7 @@ public static class EjarCustomerUiExtensions
     {
         // ─── Store + Translations ──────────────────────────────────────
         services.AddScoped<AppStore>();
+        services.AddScoped<AppStorePersistence>();
         services.AddScoped<ITemplateStore>(sp => sp.GetRequiredService<AppStore>());
         
         // ─── Authentication ────────────────────────────────────────────
@@ -53,6 +54,7 @@ public static class EjarCustomerUiExtensions
         // ─── HTTP interceptors ─────────────────────────────────────────
         services.AddScoped<CultureInterceptor>();
         services.AddTransient<CultureHeadersHandler>();
+        services.AddTransient<AuthHeadersHandler>();
         services.AddScoped<EjarCircuitHttp>();
 
         // ─── Versions Kit (frontend) ───────────────────────────────────
