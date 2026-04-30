@@ -184,8 +184,28 @@ builder.Services.AddVersionsKit<EjarVersionStore>();
 {
     var fbCfg = builder.Configuration.GetSection(
         ACommerce.Notification.Providers.Firebase.Options.FirebaseOptions.SectionName);
+    var credPath = fbCfg["CredentialsFilePath"];
+    // حلّ المسار النسبيّ على ContentRoot — على IIS/runasp الـ CWD يكون
+    // C:\windows\system32 لا مجلّد التطبيق، فـ GoogleCredential.FromFile
+    // يفشل بـ FileNotFound لو تركناه نسبياً. ملف الاعتماد يُنشَر مع الـ
+    // assemblies تحت ContentRootPath/Secrets/firebase-service-account.json.
+    if (!string.IsNullOrWhiteSpace(credPath) && !Path.IsPathRooted(credPath))
+    {
+        var abs = Path.Combine(builder.Environment.ContentRootPath, credPath);
+        if (File.Exists(abs))
+        {
+            fbCfg["CredentialsFilePath"] = abs;
+            credPath = abs;
+        }
+        else
+        {
+            Log.Warning("Ejar.Firebase: CredentialsFilePath {Path} not found relative to {Root}", credPath, builder.Environment.ContentRootPath);
+            credPath = null;
+        }
+    }
+
     var hasCreds = !string.IsNullOrWhiteSpace(fbCfg["CredentialsJson"])
-                || !string.IsNullOrWhiteSpace(fbCfg["CredentialsFilePath"]);
+                || !string.IsNullOrWhiteSpace(credPath);
     if (hasCreds)
     {
         // مخزن الرموز DB-backed قبل تسجيل الكيت — TryAdd داخل الكيت يحترم التسجيل
@@ -194,11 +214,12 @@ builder.Services.AddVersionsKit<EjarVersionStore>();
             ACommerce.Notification.Providers.Firebase.Storage.IDeviceTokenStore,
             EjarDeviceTokenStore>();
         builder.Services.AddFirebaseNotificationChannel(builder.Configuration);
-        Log.Information("Ejar.Firebase: registered FCM channel + EjarDeviceTokenStore");
+        Log.Information("Ejar.Firebase: registered FCM channel + EjarDeviceTokenStore (creds={Source})",
+            !string.IsNullOrWhiteSpace(fbCfg["CredentialsJson"]) ? "Json" : credPath);
     }
     else
     {
-        Log.Information("Ejar.Firebase: skipped — set Notifications:Firebase:CredentialsJson to enable");
+        Log.Information("Ejar.Firebase: skipped — set Notifications:Firebase:CredentialsJson or :CredentialsFilePath to enable");
     }
 }
 

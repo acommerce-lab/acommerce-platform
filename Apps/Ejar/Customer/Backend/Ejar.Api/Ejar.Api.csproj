@@ -18,6 +18,18 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
     </None>
+    <!-- ملف اعتماد Firebase Admin SDK — موجود محلّياً فقط (gitignored لأنّه
+         يحوي مفتاحاً خاصّاً). Update يُحدّث metadata لـ item موجود؛ إن لم
+         يكن الملف موجوداً في الـ working tree فلا يُنشأ item ولا يفشل البناء.
+         راجع Secrets/README.md للنشر. -->
+    <None Update="Secrets\firebase-service-account.json" Condition="Exists('Secrets\firebase-service-account.json')">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </None>
+    <None Update="Secrets\firebase-service-account.example.json">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+      <CopyToPublishDirectory>Never</CopyToPublishDirectory>
+    </None>
   </ItemGroup>
 
   <ItemGroup>
