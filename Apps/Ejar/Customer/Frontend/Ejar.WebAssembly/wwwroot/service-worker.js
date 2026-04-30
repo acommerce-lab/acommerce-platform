@@ -4,7 +4,7 @@
 //
 // VERSION هنا — كلّما تغيّر نُجبر المتصفّح على تحديث الـ SW وحذف cache
 // القديم. ارفعه يدوياً عند كل تغيير في PWA shell (manifest/icons/SW).
-const VERSION = 'ejar-pwa-v26-2026-04-30';
+const VERSION = 'ejar-pwa-v27-2026-04-30';
 const SHELL_CACHE = `shell-${VERSION}`;
 
 // عند التثبيت: skipWaiting → الـ SW الجديد يأخذ السيطرة فوراً بدل أن
@@ -58,6 +58,14 @@ self.addEventListener('fetch', event => {
   catch { return; }
   // نتجاوز كلّ ما ليس http(s) (chrome-extension://، blob://، …)
   if (url.protocol !== 'http:' && url.protocol !== 'https:') return;
+
+  // ⚠️ تجاوز كلّ طلبات cross-origin بالكامل — لا يلمسها الـ SW. بدون هذا
+  // SignalR negotiate إلى ejarapi.runasp.net (cross-origin مع credentials)
+  // يمرّ خلال SW ويفقد بعض الـ CORS metadata في عدد من المتصفّحات، فيظهر
+  // "No Access-Control-Allow-Origin header" رغم أنّ الباك مكوَّن CORS بشكل
+  // سليم. الطلبات مباشرةً من الـ page تذهب إلى API بدون وساطة وتعمل تماماً.
+  // SW يعتني فقط بـ same-origin (الـ shell + الأصول الثابتة).
+  if (url.origin !== self.location.origin) return;
 
   // ① ملفات تتبدّل مع كل نشر — لا تُخزّن أبداً
   if (url.pathname === '/appsettings.json'

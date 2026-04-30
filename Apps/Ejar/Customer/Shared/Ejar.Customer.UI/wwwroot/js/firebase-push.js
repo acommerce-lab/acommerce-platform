@@ -117,5 +117,21 @@ window.ejarFirebase = (function () {
     };
   }
 
-  return { init, requestToken, onMessage };
+  // قراءة الإعداد من same-origin مباشرةً عبر window.fetch — نتجنّب
+  // HttpClient في .NET الذي عنده BaseAddress = API على origin مختلف،
+  // فيطلب /firebase-config.json من ejarapi بدل ejarpwa فيرجع 404.
+  async function initFromUrl(url) {
+    try {
+      const res = await fetch(url || '/firebase-config.json', { cache: 'no-store' });
+      if (!res.ok) return false;
+      const cfg = await res.json();
+      const ok = await init(cfg);
+      return ok ? cfg : false;
+    } catch (e) {
+      console.warn('[ejarFirebase] initFromUrl فشل:', e);
+      return false;
+    }
+  }
+
+  return { init, initFromUrl, requestToken, onMessage };
 })();

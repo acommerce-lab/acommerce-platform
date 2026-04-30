@@ -30,6 +30,7 @@ public sealed class FirebasePushService
     private readonly AppStore _store;
     private readonly ILogger<FirebasePushService> _log;
     private bool _initialized;
+    private FirebaseClientConfig? _cachedCfg;
 
     public FirebasePushService(
         IJSRuntime js,
@@ -54,27 +55,30 @@ public sealed class FirebasePushService
         {
             if (string.IsNullOrEmpty(_store.Auth.AccessToken)) return;
 
-            // اقرأ الإعداد من الجذر — إن لم يوجد نتجاهل بصمت.
+            // اقرأ الإعداد + هيّئ SDK كلّه من JS على same-origin. الـ HttpClient
+            // المحقون "ejar" BaseAddress = ejarapi.runasp.net، فلو طلبنا منه
+            // /firebase-config.json يطلبه من الـ API بدل origin الواجهة (404).
+            // ejarFirebase.initFromUrl يستخدم window.fetch فيلتزم same-origin.
             FirebaseClientConfig? cfg = null;
-            try
-            {
-                var json = await _http.Client.GetStringAsync("/firebase-config.json", ct);
-                cfg = JsonSerializer.Deserialize<FirebaseClientConfig>(json,
-                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-            }
-            catch { /* لا يوجد ملف → لا fcm */ return; }
-
-            if (cfg is null || string.IsNullOrWhiteSpace(cfg.ApiKey)
-                            || string.IsNullOrWhiteSpace(cfg.AppId)
-                            || string.IsNullOrWhiteSpace(cfg.MessagingSenderId))
-                return;
-
             if (!_initialized)
             {
-                var ok = await _js.InvokeAsync<bool>("ejarFirebase.init", ct, cfg);
-                if (!ok) { _log.LogInformation("FCM init returned false; skipping."); return; }
+                var raw = await _js.InvokeAsync<JsonElement>("ejarFirebase.initFromUrl", ct, "/firebase-config.json");
+                if (raw.ValueKind != JsonValueKind.Object)
+                {
+                    _log.LogInformation("FCM: تجاهل — initFromUrl أرجع false (ملف الإعداد غير موجود أو غير مدعوم).");
+                    return;
+                }
+                cfg = raw.Deserialize<FirebaseClientConfig>(
+                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                if (cfg is null) return;
+                _cachedCfg = cfg;
                 _initialized = true;
             }
+            else
+            {
+                cfg = _cachedCfg;
+            }
+            if (cfg is null) return;
 
             // VAPID public key — مطلوب للـ web push. لو فارغ نُسجِّل التهيئة
             // لاستلام foreground messages فقط (لا background subscription).
