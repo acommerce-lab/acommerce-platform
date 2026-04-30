@@ -115,7 +115,7 @@
                                   OnSubmit="OnPay" />
                     @if (!string.IsNullOrEmpty(_alert))
                     {
-                        <AcAlert Variant="@_alertVariant" Text="@_alert" />
+                        <AcAlert Variant="@_alertVariant" Message="@_alert" />
                     }
                     <AcButton Variant="ghost" Text="رجوع للمراجعة" OnClick="@(() => _step = 3)" />
                 </ChildContent>

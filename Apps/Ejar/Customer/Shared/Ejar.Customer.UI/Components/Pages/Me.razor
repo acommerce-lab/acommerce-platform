@@ -1,8 +1,10 @@
 @page "/me"
 @attribute [Authorize]
+@using ACommerce.Kits.Versions.Templates
 @inject AppStore Store
 @inject ApiReader Api
 @inject NavigationManager Nav
+@inject AppVersionInfo AppVersion
 @inject L L
 
 <PageTitle>@(L["nav.profile"]) - @(L["app.name"])</PageTitle>
@@ -61,6 +63,11 @@
 
     <div style="margin-top:12px; display:flex; gap:8px;">
         <AcButton Variant="ghost" Text="@(L["settings.sign_out"])" OnClick="@SignOut" />
+    </div>
+
+    @* رقم الإصدار في القاعدة — مفيد لتشخيص "هل وصل التحديث الجديد؟" *@
+    <div style="margin-top:24px; text-align:center; color:var(--ac-text-muted); font-size:12px;">
+        إصدار التطبيق: @AppVersion.Version (@AppVersion.Platform)
     </div>
 </div>
 

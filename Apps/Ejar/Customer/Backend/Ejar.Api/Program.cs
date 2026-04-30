@@ -1,4 +1,5 @@
 using System.Reflection;
+using System.Text;
 using ACommerce.Kits.Auth;
 using ACommerce.Kits.Auth.Operations.Extensions;
 using ACommerce.Kits.Auth.TwoFactor.AsAuth;
@@ -89,6 +90,49 @@ builder.Services.AddAuthKit<EjarCustomerAuthUserStore>(new AuthKitJwtConfig(
 ))
     .AddMockSmsTwoFactor()
     .AddTwoFactorAsAuth();
+
+// JWT Bearer scheme — لازم لتفعيل [Authorize] على المتحكّمات. AuthKit يُصدر
+// التوكن لكنّه لا يُسجّل scheme التحقّق؛ بدون هذا كلّ مسار [Authorize] يُلقي
+// "No authentication scheme was configured" → GlobalExceptionMiddleware يحوّله
+// إلى 500 (لاحظنا في الـ console: /me/profile, /my-listings, /favorites,
+// /conversations/start, /me/subscription كلّها 500). نستخدم نفس السرّ/المُصدِر
+// /الجمهور من AuthKitJwtConfig أعلاه ليتطابقا. MapInboundClaims=false يُبقي
+// "user_id" كما هو بدل ترجمته إلى ClaimTypes.NameIdentifier فيستهلكه
+// CurrentUserGuid مباشرةً.
+const string ejarJwtSecret = "ejar_secret_key_12345678901234567890";
+const string ejarJwtIssuer = "ejar.api";
+const string ejarJwtAudience = "ejar.mobile";
+builder.Services.AddAuthentication(Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(o =>
+    {
+        o.MapInboundClaims = false;
+        o.TokenValidationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters
+        {
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey         = new Microsoft.IdentityModel.Tokens.SymmetricSecurityKey(
+                                          Encoding.UTF8.GetBytes(ejarJwtSecret)),
+            ValidateIssuer           = true,
+            ValidIssuer              = ejarJwtIssuer,
+            ValidateAudience         = true,
+            ValidAudience            = ejarJwtAudience,
+            ValidateLifetime         = true,
+            ClockSkew                = TimeSpan.FromMinutes(2),
+        };
+        // SignalR WebSocket لا يستطيع إرسال Authorization header، يمرّر التوكن
+        // كـ ?access_token=… عند الاتصال بـ /realtime.
+        o.Events = new Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerEvents
+        {
+            OnMessageReceived = ctx =>
+            {
+                var token = ctx.Request.Query["access_token"];
+                if (!string.IsNullOrEmpty(token) &&
+                    ctx.Request.Path.StartsWithSegments("/realtime"))
+                    ctx.Token = token;
+                return Task.CompletedTask;
+            }
+        };
+    });
+builder.Services.AddAuthorization();
 
 builder.Services.AddSignalRRealtimeTransport()
     .AddInMemoryRealtimeTransport();

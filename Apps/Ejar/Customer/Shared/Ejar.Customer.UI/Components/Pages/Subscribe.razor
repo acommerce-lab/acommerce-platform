@@ -61,7 +61,7 @@
                 </AcField>
                 @if (!string.IsNullOrEmpty(_promoAlert))
                 {
-                    <AcAlert Variant="@_promoAlertVariant" Text="@_promoAlert" />
+                    <AcAlert Variant="@_promoAlertVariant" Message="@_promoAlert" />
                 }
             </ChildContent>
         </AcCard>
@@ -73,7 +73,7 @@
                               OnSubmit="OnPay" />
                 @if (!string.IsNullOrEmpty(_alert))
                 {
-                    <AcAlert Variant="@_alertVariant" Text="@_alert" />
+                    <AcAlert Variant="@_alertVariant" Message="@_alert" />
                 }
             </ChildContent>
         </AcCard>
