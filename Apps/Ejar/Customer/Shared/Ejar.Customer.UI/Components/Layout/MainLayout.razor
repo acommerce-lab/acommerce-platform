@@ -88,7 +88,6 @@
 @code {
     // ملاحظة: حالة الإصدار يتولّاها AcAppVersionGate + VersionState تلقائياً.
     // لم نعد نستدعي /version/check يدوياً.
-    private bool _realtimeConnected;
     private bool _favoritesLoaded;
 
     private static readonly IReadOnlyList<BottomNavItemDto> _bottomItems = new[]
@@ -152,7 +151,7 @@
         }
 
         // Connect after login (OnAfterRenderAsync fires after Store.NotifyChanged)
-        if (Store.Auth.IsAuthenticated && !_realtimeConnected)
+        if (Store.Auth.IsAuthenticated && !Realtime.IsConnected)
             await ConnectRealtimeAsync();
 
         // حمِّل المفضّلات من الخادم بعد المصادقة لتظهر على كلّ الأجهزة. مرّة
@@ -175,7 +174,6 @@
 
     private async Task ConnectRealtimeAsync()
     {
-        _realtimeConnected = true;
         var apiBase = Config["EjarApi:BaseUrl"]?.TrimEnd('/') ?? "http://localhost:5300";
         // الـ hub في الباك مُركَّب على /realtime (راجع Program.cs MapHub).
         // كان هنا "/hubs/ejar" خطأً — مسار غير موجود فيفشل negotiation
@@ -221,7 +219,7 @@
         InvokeAsync(async () =>
         {
             StateHasChanged();
-            if (Store.Auth.IsAuthenticated && !_realtimeConnected)
+            if (Store.Auth.IsAuthenticated && !Realtime.IsConnected)
                 await ConnectRealtimeAsync();
         });
     }

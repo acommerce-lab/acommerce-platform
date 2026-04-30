@@ -29,6 +29,13 @@ public sealed class EjarRealtimeService : IAsyncDisposable
     public event Action<string>? MessageReceived;
     public event Action<string>? NotificationReceived;
 
+    /// <summary>
+    /// هل القناة الحاليّة قائمة. يستعمله <c>MainLayout</c> ليقرّر إعادة
+    /// الاتّصال بعد logout/login على نفس الـ tab — العَلَم المحلّي عنده
+    /// يبقى true بعد logout بينما هذا يعكس حالة الـ JS connection فعلاً.
+    /// </summary>
+    public bool IsConnected => _connected;
+
     public EjarRealtimeService(IJSRuntime js, AppStore store, IChatClient chat)
     {
         _js    = js;
@@ -67,13 +74,38 @@ public sealed class EjarRealtimeService : IAsyncDisposable
 
     /// <summary>Bridges chat.message payloads to the chat client.</summary>
     [JSInvokable]
-    public void OnChatMessage(string json)
+    public async Task OnChatMessage(string json)
     {
         try
         {
             var msg = JsonSerializer.Deserialize<ChatMessage>(json,
                 new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-            if (msg is not null) _chat.OnRealtimeMessage(msg);
+            if (msg is null) return;
+            _chat.OnRealtimeMessage(msg);
+
+            // إذا المستخدم خارج المحادثة المعنيّة (في صفحة أخرى أو محادثة
+            // أخرى)، أظهر toast إشعار نظام التشغيل + نغمة تنبيه. هذه هي
+            // الإشعارات داخل التطبيق التي طلبها المستخدم — تصل دون أن يحتاج
+            // المستلم فتح المحادثة. خارج التطبيق تماماً (تبويب مغلق): يأتي
+            // FCM إن كان مكوَّناً.
+            if (_chat.ActiveConversationId != msg.ConversationId)
+            {
+                var preview = string.IsNullOrEmpty(msg.Body) ? "رسالة جديدة"
+                            : (msg.Body.Length > 80 ? msg.Body[..80] + "…" : msg.Body);
+                try
+                {
+                    await _js.InvokeVoidAsync("ejarNotify.show",
+                        "رسالة جديدة",
+                        preview,
+                        new {
+                            url = $"/chat/{msg.ConversationId}",
+                            tag = $"chat:{msg.ConversationId}",
+                            alwaysShow = true,
+                            renotify = true
+                        });
+                }
+                catch { /* غير قاتل */ }
+            }
         }
         catch (Exception ex)
         {
