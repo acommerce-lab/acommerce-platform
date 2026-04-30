@@ -476,13 +476,17 @@ public sealed class CatalogController : ControllerBase
     {
         if (_chat is null || _connections is null) return;
         var convStr = convId.ToString();
+        // الـ tracker وقنوات الـ Chat Kit تستعمل partyId ("User:{guid}") لا
+        // raw guid (مطابق لـ EjarRealtimeHub.OnConnectedAsync و
+        // ChatController.CallerPartyId). الاستعلام بدون البادئة لا يجد شيئاً.
         foreach (var uid in new[] { a, b })
         {
             try
             {
-                var connId = await _connections.GetConnectionIdAsync(uid.ToString(), ct);
-                if (string.IsNullOrEmpty(connId)) continue; // هذا المستخدم غير متّصل الآن
-                await _chat.SubscribeUserAsync(convStr, uid.ToString(), connId, ct);
+                var partyId = $"User:{uid}";
+                var connId = await _connections.GetConnectionIdAsync(partyId, ct);
+                if (string.IsNullOrEmpty(connId)) continue; // غير متّصل الآن
+                await _chat.SubscribeUserAsync(convStr, partyId, connId, ct);
             }
             catch { /* لا نكسر إنشاء المحادثة لو فشل اشتراك واحد */ }
         }

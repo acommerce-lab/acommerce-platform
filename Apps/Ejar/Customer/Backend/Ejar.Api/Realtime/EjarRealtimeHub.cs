@@ -9,24 +9,29 @@ namespace Ejar.Api.Realtime;
 /// <summary>
 /// Hub خاصّ بإيجار يرث AShareHub. على كلّ اتصال جديد يشترك المستخدم تلقائياً
 /// بقنوات <c>notif:conv:{X}</c> لكلّ المحادثات التي يشارك فيها (Owner أو
-/// Partner). بدون هذا الاشتراك، <see cref="IChatService.BroadcastNewMessageAsync"/>
-/// يبثّ على قناة لا يستمع إليها أحد فلا يصل أيّ إشعار للطرف الآخر.
+/// Partner). بدونه <see cref="IChatService.BroadcastNewMessageAsync"/>
+/// يبثّ على قناة لا يستمع إليها أحد.
 ///
-/// <para><b>دورة الحياة الصحيحة:</b>
-/// <list type="number">
-///   <item>المستخدم يفتح التطبيق → SignalR connect → <c>OnConnectedAsync</c></item>
-///   <item>هنا نُسجّله في <c>notif:conv:X</c> لكلّ محادثة يشارك فيها.</item>
-///   <item>عند فتحه ChatRoom → POST /chat/{id}/enter → يفتح <c>chat:conv:X</c>،
-///         <see cref="ChatExtensions.WireChatNotificationCoupling"/> يقفل
-///         <c>notif:conv:X</c> له لتلك المحادثة.</item>
-///   <item>عند مغادرته ChatRoom → POST /chat/{id}/leave → يقفل <c>chat:conv:X</c>،
-///         الـ Coupling يعيد فتح <c>notif:conv:X</c>.</item>
-/// </list></para>
+/// <para><b>تنسيق المعرّف</b>: AShareHub يخزّن في <see cref="IConnectionTracker"/>
+/// بـ <c>Context.UserIdentifier</c> = الـ guid الخامّ. لكن
+/// <c>ChatController</c> في الـ kit يبحث بـ <c>"User:{guid}"</c> (PartyKind +
+/// id). فلا يجد connId، وَ <c>POST /chat/{id}/enter</c> يردّ
+/// <c>{ ok: false, reason: "no_connection" }</c> بصمت — وَ chat:conv:X لا
+/// يُفتح، فالطرف يبقى يعتمد على notif:conv:X فقط (لا توجد رسالة حيّة في غرفة
+/// الدردشة).
+///
+/// لتوحيد السلوك: نتجاوز <c>base.OnConnectedAsync</c> ونتتبّع ونشترك بـ
+/// <c>"User:{guid}"</c> صراحةً، فيتطابق مع <c>CallerPartyId</c> في الـ kit.
+/// كذلك نُغلق كلّ القنوات لـ partyId عند الانفصال.</para>
 /// </summary>
 public sealed class EjarRealtimeHub : AShareHub
 {
+    private const string PartyKind = "User";
+
     private readonly EjarDbContext _db;
     private readonly IChatService _chat;
+    private readonly IRealtimeChannelManager? _channels;
+    private readonly IConnectionTracker? _tracker;
 
     public EjarRealtimeHub(
         EjarDbContext db,
@@ -35,19 +40,31 @@ public sealed class EjarRealtimeHub : AShareHub
         IConnectionTracker? tracker = null)
         : base(channels, tracker)
     {
-        _db   = db;
-        _chat = chat;
+        _db       = db;
+        _chat     = chat;
+        _channels = channels;
+        _tracker  = tracker;
     }
+
+    private static string PartyOf(string userId) => $"{PartyKind}:{userId}";
 
     public override async Task OnConnectedAsync()
     {
-        await base.OnConnectedAsync();
+        // لا نستدعي base — يخزّن tracker بـ raw userId. نخزّنه بـ partyId
+        // ليتطابق مع ما يبحث عنه ChatController.Enter في الـ kit.
+        if (Context.UserIdentifier is not { } userId)
+        {
+            await base.OnConnectedAsync();
+            return;
+        }
 
-        if (Context.UserIdentifier is not { } userId) return;
-        if (!Guid.TryParse(userId, out var uid))      return;
+        if (_tracker is not null)
+            await _tracker.TrackConnectionAsync(PartyOf(userId), Context.ConnectionId);
 
-        // اشترك في كلّ notif:conv:X لمحادثات هذا المستخدم. مكلفة فقط مرّة لكلّ
-        // اتصال — على هاتف عاديّ بعشرات المحادثات لا يتجاوز ميلّيثانية.
+        if (!Guid.TryParse(userId, out var uid)) return;
+
+        // اشترك في كلّ notif:conv:X لمحادثات هذا المستخدم — بمفتاح partyId
+        // ليتسق مع ChatController.EnterConversationAsync الذي يستعمل partyId.
         var convIds = await _db.Conversations.AsNoTracking()
             .Where(c => c.OwnerId == uid || c.PartnerId == uid)
             .Select(c => c.Id)
@@ -58,12 +75,25 @@ public sealed class EjarRealtimeHub : AShareHub
             try
             {
                 await _chat.SubscribeUserAsync(
-                    convId.ToString(), userId, Context.ConnectionId);
+                    convId.ToString(), PartyOf(userId), Context.ConnectionId);
             }
             catch
             {
                 // لا تكسر الاتصال لو فشل اشتراك واحد — حاول الباقي.
             }
         }
+    }
+
+    public override async Task OnDisconnectedAsync(Exception? exception)
+    {
+        if (Context.UserIdentifier is { } userId)
+        {
+            // نظّف بـ partyId (نفس مفتاح OnConnectedAsync).
+            if (_channels is not null)
+                await _channels.CloseAllForConnectionAsync(PartyOf(userId), Context.ConnectionId);
+            if (_tracker is not null)
+                await _tracker.RemoveConnectionAsync(PartyOf(userId));
+        }
+        // لا نستدعي base — الذي ينظّف بـ raw userId، يكرّر العمل بدون نتيجة.
     }
 }

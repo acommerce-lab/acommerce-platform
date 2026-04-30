@@ -154,8 +154,26 @@
 
     private void OnRealtimeMessage(IChatMessage msg)
     {
-        // Skip our own echo (already added optimistically below) and de-dup by id.
+        // De-dup by id (server echo of remote message) — لا نُضيف نفس المعرّف مرّتَين.
         if (_messages.Any(m => m.Id == msg.Id)) return;
+
+        // عند أرسال "أنا"، أضفنا echo محلّيّ بمعرّف "local-{ticks}". الـ server
+        // echo يأتي بمعرّف Guid حقيقيّ من نفس body+sender خلال ثوانٍ. لو وجدنا
+        // محلّيّ بنفس body من نفس sender خلال ٥ ثوانٍ، استبدله بدل التكرار.
+        if (msg.SenderPartyId == MyPartyId)
+        {
+            for (int i = 0; i < _messages.Count; i++)
+            {
+                var existing = _messages[i];
+                if (!existing.Id.StartsWith("local-")) continue;
+                if (existing.Body != msg.Body) continue;
+                if ((msg.SentAt - existing.SentAt).Duration() > TimeSpan.FromSeconds(10)) continue;
+                _messages[i] = msg; // نُبدّل local بالحقيقيّ
+                InvokeAsync(StateHasChanged);
+                return;
+            }
+        }
+
         _messages.Add(msg);
         InvokeAsync(StateHasChanged);
     }
