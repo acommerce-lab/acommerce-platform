@@ -137,6 +137,12 @@ builder.Services.AddAuthorization();
 builder.Services.AddSignalRRealtimeTransport()
     .AddInMemoryRealtimeTransport();
 builder.Services.AddChatKit<EjarCustomerChatStore>();
+// AddChatKit يسجّل IChatStore كـ Singleton، لكن EjarCustomerChatStore يستهلك
+// EjarDbContext (Scoped) → ValidateOnBuild يفشل بـ "Cannot consume scoped
+// from singleton". نُزيل تسجيل الـ Singleton ثمّ نُسجّل Scoped.
+Microsoft.Extensions.DependencyInjection.Extensions.ServiceCollectionDescriptorExtensions
+    .RemoveAll<ACommerce.Kits.Chat.Backend.IChatStore>(builder.Services);
+builder.Services.AddScoped<ACommerce.Kits.Chat.Backend.IChatStore, EjarCustomerChatStore>();
 
 builder.Services.AddDiscoveryKit();
 builder.Services.AddSupportKit();

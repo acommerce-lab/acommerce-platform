@@ -2,6 +2,8 @@
 @attribute [Authorize]
 @using ACommerce.Chat.Client.Blazor
 @using ACommerce.Chat.Operations
+@using Ejar.Customer.UI.Store
+@inject AppStore Store
 @inject ApiReader Api
 @inject NavigationManager Nav
 @inject IChatClient Chat
@@ -32,8 +34,8 @@
     {
         <div style="display:flex; justify-content:space-between; align-items:center;">
             <div>
-                <h1 class="acm-wizard-title" style="margin-bottom:4px;">@_conv.PartnerName</h1>
-                <small style="color:var(--ac-text-muted);">@_conv.Subject</small>
+                <h1 class="acm-wizard-title" style="margin-bottom:4px;">@OtherName</h1>
+                <small style="color:var(--ac-text-muted);">@(_conv.Subject ?? "")</small>
             </div>
             <AcButton Variant="ghost" Text="رجوع" OnClick="@GoBack" />
         </div>
@@ -41,7 +43,7 @@
         <div class="acs-chat-messages">
             @foreach (var m in _messages)
             {
-                var mine = m.SenderPartyId == "me";
+                var mine = IsMine(m);
                 <div class="acs-bubble @(mine ? "acs-bubble-mine" : "acs-bubble-other")">
                     @if (!string.IsNullOrEmpty(m.Body))
                     {
@@ -52,6 +54,10 @@
             }
         </div>
 
+        @if (!string.IsNullOrEmpty(_sendError))
+        {
+            <AcAlert Variant="danger" Message="@_sendError" />
+        }
         <div class="acs-chat-composer" @onkeydown="OnComposerKey">
             <AcInput Value="@_draft" ValueChanged="@(v => _draft = v ?? string.Empty)"
                      Placeholder="@(L["chat.new_message"])" />
@@ -63,7 +69,7 @@
 
 @code {
     [Parameter] public string Id { get; set; } = "";
-    private Payload? _conv;
+    private ConvDto? _conv;
     private bool _loading = true;
     private string? _loadError;
     private readonly List<IChatMessage> _messages = new();
@@ -74,10 +80,18 @@
     {
         if (!first) return;
 
-        // 1) Load message history from the DB. لو فشل (500/404) نعرض خطأ بدل
-        //    إبقاء المؤشّر يدور.
+        // GET /conversations/{id} يردّه ChatController في Chat Kit الآن
+        // (بعد إزالة التضارب من CatalogController). الشكل:
+        //   { conversation: { id, ownerId, ownerName, partnerId, partnerName,
+        //                     subject, listingId, lastAt, unreadCount, ... },
+        //     messages: [ { id, conversationId, senderPartyId (User:GUID),
+        //                   body, sentAt, readAt } ] }
         var env = await Api.GetAsync<Payload>($"/conversations/{Id}", localize: true);
-        _conv = env.Data;
+        _conv = env.Data?.Conversation;
+        if (env.Data?.Messages is { } msgs)
+        {
+            _messages.AddRange(msgs.Select(m => (IChatMessage)m));
+        }
         if (_conv is null)
         {
             var code = env.Error?.Code ?? env.Operation?.FailedAnalyzer;
@@ -85,6 +99,7 @@
             _loadError = (code, msg) switch
             {
                 ("conversation_not_found", _) => "المحادثة غير موجودة أو ليست لك.",
+                ("not_a_participant",      _) => "لست مشاركاً في هذه المحادثة.",
                 ("network_error", var m) when m is not null => $"تعذّر الاتصال: {m}",
                 (_, var m) when !string.IsNullOrWhiteSpace(m) => m!,
                 (var c, _) when !string.IsNullOrWhiteSpace(c) => $"تعذّر تحميل المحادثة ({c}).",
@@ -93,17 +108,35 @@
         }
         else
         {
-            _messages.AddRange(_conv.Messages.Select(m => (IChatMessage)
-                new ChatMessage(m.Id, Id, m.From, m.Text, m.SentAt)));
-
-            // 2) Open the chat channel for this conversation.
+            // Open the chat channel for this conversation. فشل realtime ليس
+            // حرجاً — الرسائل تستمرّ عبر HTTP send + reload عند الفتح.
             Chat.MessageReceived += OnRealtimeMessage;
             try { await Chat.EnterAsync(Id); }
-            catch { /* فشل realtime ليس حرجاً — الرسائل تستمرّ عبر HTTP polling إن لزم */ }
+            catch { /* ignore — realtime معطّل في الإنتاج حالياً */ }
         }
 
         _loading = false;
         await InvokeAsync(StateHasChanged);
+    }
+
+    private string MyPartyId => Store.Auth.UserId is { } g ? $"User:{g}" : "User:?";
+    private bool IsMine(IChatMessage m) =>
+        string.Equals(m.SenderPartyId, MyPartyId, StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// اسم "الطرف الآخر" حسب من يعرض المحادثة. لو أنا الـ Owner أعرض اسم
+    /// Partner، والعكس. الـ backend يرسل الاسمَين معاً، الواجهة تختار.
+    /// </summary>
+    private string OtherName
+    {
+        get
+        {
+            if (_conv is null) return "";
+            var myId = Store.Auth.UserId?.ToString();
+            return string.Equals(_conv.OwnerId, myId, StringComparison.OrdinalIgnoreCase)
+                ? _conv.PartnerName ?? "—"
+                : _conv.OwnerName ?? "—";
+        }
     }
 
     private void OnRealtimeMessage(IChatMessage msg)
@@ -114,22 +147,35 @@
         InvokeAsync(StateHasChanged);
     }
 
+    private string? _sendError;
+
     private async Task Send()
     {
         if (string.IsNullOrWhiteSpace(_draft)) return;
-        _sending = true;
+        _sending = true; _sendError = null;
+        var pending = _draft;
         try
         {
-            await Chat.SendAsync(_draft);
-            // Optimistic local echo — the broadcast-back through chat:conv:X will
-            // arrive shortly; OnRealtimeMessage de-dups by id when it lands.
+            // Optimistic local echo بمعرف pending قبل الإرسال — لو نجح،
+            // الـ broadcast سيصل بنفس النصّ من معرّف الخادم؛ لو فشل نُزيل
+            // الـ echo ونعرض خطأ.
+            var localId = $"local-{DateTime.UtcNow.Ticks}";
             _messages.Add(new ChatMessage(
-                Id: $"local-{DateTime.UtcNow.Ticks}",
+                Id: localId,
                 ConversationId: Id,
-                SenderPartyId: "me",
-                Body: _draft,
+                SenderPartyId: MyPartyId,
+                Body: pending,
                 SentAt: DateTime.UtcNow));
             _draft = "";
+            await InvokeAsync(StateHasChanged);
+
+            await Chat.SendAsync(pending);
+        }
+        catch (Exception ex)
+        {
+            _messages.RemoveAll(m => m.Body == pending && m.Id.StartsWith("local-"));
+            _sendError = $"تعذّر إرسال الرسالة: {ex.Message}";
+            _draft = pending;
         }
         finally { _sending = false; await InvokeAsync(StateHasChanged); }
     }
@@ -151,8 +197,19 @@
         await Chat.LeaveAsync();
     }
 
-    private sealed record Payload(string Id, string PartnerName, string Subject,
-        string? PartnerId, string? ListingId, List<MessageDto> Messages);
-    private sealed record MessageDto(string Id, string From, string Text, DateTime SentAt,
-        string? Attachment = null);
+    // Chat Kit shape: { conversation: ConvDto, messages: MessageDto[] }
+    // ConvDto حقول إضافيّة فوق IChatConversation (OwnerId/PartnerId/Subject/...)
+    // يضيفها EjarCustomerChatStore.ConversationView.
+    private sealed record Payload(ConvDto? Conversation, List<MessageDto>? Messages);
+    private sealed record ConvDto(
+        string Id,
+        string? OwnerId, string? OwnerName,
+        string? PartnerId, string? PartnerName,
+        string? Subject, string? ListingId,
+        DateTime LastAt, int UnreadCount,
+        string? LastMessage);
+
+    private sealed record MessageDto(
+        string Id, string ConversationId, string SenderPartyId,
+        string Body, DateTime SentAt, DateTime? ReadAt) : IChatMessage;
 }

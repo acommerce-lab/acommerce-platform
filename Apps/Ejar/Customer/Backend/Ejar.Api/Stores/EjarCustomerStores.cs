@@ -55,51 +55,164 @@ public sealed class EjarCustomerAuthUserStore : IAuthUserStore
 }
 
 /// <summary>
-/// جسر بين Chat Kit و EjarSeed على جانب المستأجر. في الـ seed كل محادثة بين
-/// "me" (المستأجر) و PartnerId (المالك). يرى المستأجر كل محادثاته.
-/// مرآة لـ EjarProviderChatStore لكن بمنظور العميل.
+/// جسر بين Chat Kit و EF. كانت النسخة السابقة تقرأ من <c>EjarSeed.Conversations</c>
+/// (قائمة بذور in-memory)، بينما <c>POST /conversations/start</c> في
+/// CatalogController يكتب في <c>_db.Conversations</c>. النتيجة: كلّ محادثة
+/// يُنشئها المستخدم لا يجدها هذا المخزن، فـ <c>CanParticipateAsync</c> يردّ
+/// false و <c>POST /chat/{id}/enter</c> يردّ <b>403 not_a_participant</b>.
+/// كلّ الرسائل تفشل بـ "No active conversation".
+///
+/// <para>هذا التطبيق يقرأ من <see cref="EjarDbContext"/> مباشرةً ويُسلّم
+/// adaptors تفي بـ <see cref="IChatConversation"/> و <see cref="IChatMessage"/>.
+/// المشاركون = OwnerId و PartnerId (الـ Customer Kit يستعمل بادئة "User:"
+/// كـ PartyKind في <c>ChatKitOptions</c>، نطابقها هنا).</para>
 /// </summary>
 public sealed class EjarCustomerChatStore : IChatStore
 {
-    public Task<bool> CanParticipateAsync(string conversationId, string userId, CancellationToken ct)
+    private readonly EjarDbContext _db;
+    public EjarCustomerChatStore(EjarDbContext db) => _db = db;
+
+    public async Task<bool> CanParticipateAsync(string conversationId, string userId, CancellationToken ct)
     {
-        var c = EjarSeed.Conversations.FirstOrDefault(x => x.Id == conversationId);
-        return Task.FromResult(c is not null);
+        if (!Guid.TryParse(conversationId, out var cid)) return false;
+        if (!Guid.TryParse(userId, out var uid))         return false;
+        return await _db.Conversations.AsNoTracking()
+            .AnyAsync(c => c.Id == cid && (c.OwnerId == uid || c.PartnerId == uid), ct);
     }
 
-    public Task<IChatMessage> AppendMessageAsync(string conversationId, string senderId, string body, CancellationToken ct)
+    public async Task<IChatMessage> AppendMessageAsync(
+        string conversationId, string senderId, string body, CancellationToken ct)
     {
-        var ix = EjarSeed.Conversations.FindIndex(c => c.Id == conversationId);
-        if (ix < 0) throw new InvalidOperationException("conversation_not_found");
-        var conv = EjarSeed.Conversations[ix];
-        var msg  = new EjarSeed.MessageSeed(
-            $"M-{conv.Messages.Count + 1}", conversationId, senderId, body, DateTime.UtcNow);
-        conv.Messages.Add(msg);
-        EjarSeed.Conversations[ix] = conv with { LastAt = msg.SentAt, UnreadCount = 0 };
-        return Task.FromResult<IChatMessage>(msg);
+        if (!Guid.TryParse(conversationId, out var cid))
+            throw new InvalidOperationException("invalid_conversation_id");
+
+        var conv = await _db.Conversations.FirstOrDefaultAsync(c => c.Id == cid, ct);
+        if (conv is null) throw new InvalidOperationException("conversation_not_found");
+
+        var msg = new MessageEntity
+        {
+            Id             = Guid.NewGuid(),
+            CreatedAt      = DateTime.UtcNow,
+            ConversationId = cid,
+            From           = senderId,
+            Text           = body,
+            SentAt         = DateTime.UtcNow,
+        };
+        _db.Messages.Add(msg);
+        conv.LastAt = msg.SentAt;
+        conv.UnreadCount += 1;
+        await _db.SaveChangesAsync(ct);
+
+        return new MessageView(msg);
     }
 
-    public Task<IReadOnlyList<IChatMessage>> GetMessagesAsync(string conversationId, CancellationToken ct)
+    public async Task<IReadOnlyList<IChatMessage>> GetMessagesAsync(
+        string conversationId, CancellationToken ct)
     {
-        var c = EjarSeed.Conversations.FirstOrDefault(x => x.Id == conversationId);
-        IReadOnlyList<IChatMessage> rows = c is null
-            ? Array.Empty<IChatMessage>()
-            : c.Messages.Cast<IChatMessage>().ToList();
-        return Task.FromResult(rows);
+        if (!Guid.TryParse(conversationId, out var cid))
+            return Array.Empty<IChatMessage>();
+        var rows = await _db.Messages.AsNoTracking()
+            .Where(m => m.ConversationId == cid)
+            .OrderBy(m => m.SentAt)
+            .ToListAsync(ct);
+        return rows.Select(m => (IChatMessage)new MessageView(m)).ToList();
     }
 
-    public Task<IChatConversation?> GetConversationAsync(string conversationId, CancellationToken ct)
+    public async Task<IChatConversation?> GetConversationAsync(
+        string conversationId, CancellationToken ct)
     {
-        var c = EjarSeed.Conversations.FirstOrDefault(x => x.Id == conversationId);
-        return Task.FromResult<IChatConversation?>(c);
+        if (!Guid.TryParse(conversationId, out var cid)) return null;
+        var c = await _db.Conversations.AsNoTracking().FirstOrDefaultAsync(x => x.Id == cid, ct);
+        if (c is null) return null;
+        return await BuildViewAsync(c, ct);
     }
 
-    public Task<IReadOnlyList<IChatConversation>> ListForUserAsync(string userId, CancellationToken ct)
+    public async Task<IReadOnlyList<IChatConversation>> ListForUserAsync(
+        string userId, CancellationToken ct)
     {
-        IReadOnlyList<IChatConversation> rows = EjarSeed.Conversations
-            .Cast<IChatConversation>()
-            .ToList();
-        return Task.FromResult(rows);
+        if (!Guid.TryParse(userId, out var uid)) return Array.Empty<IChatConversation>();
+        var rows = await _db.Conversations.AsNoTracking()
+            .Where(c => c.OwnerId == uid || c.PartnerId == uid)
+            .OrderByDescending(c => c.LastAt)
+            .ToListAsync(ct);
+        if (rows.Count == 0) return Array.Empty<IChatConversation>();
+
+        // ابحث عن أسماء الـ Owner و Partner في طلب واحد بدل n+1.
+        var partyIds = rows.Select(c => c.OwnerId).Concat(rows.Select(c => c.PartnerId))
+                           .Distinct().ToList();
+        var users = await _db.Users.AsNoTracking()
+            .Where(u => partyIds.Contains(u.Id))
+            .ToDictionaryAsync(u => u.Id, u => u.FullName, ct);
+
+        // آخر رسالة في كلّ محادثة (للـ inbox preview).
+        var convIds = rows.Select(c => c.Id).ToList();
+        var lastMsgs = await _db.Messages.AsNoTracking()
+            .Where(m => convIds.Contains(m.ConversationId))
+            .GroupBy(m => m.ConversationId)
+            .Select(g => g.OrderByDescending(m => m.SentAt).First())
+            .ToDictionaryAsync(m => m.ConversationId, m => m.Text, ct);
+
+        return rows.Select(c => (IChatConversation)new ConversationView(
+            c,
+            users.TryGetValue(c.OwnerId,   out var on) ? on : null,
+            users.TryGetValue(c.PartnerId, out var pn) ? pn : c.PartnerName,
+            lastMsgs.TryGetValue(c.Id, out var last) ? last : null
+        )).ToList();
+    }
+
+    private async Task<ConversationView> BuildViewAsync(ConversationEntity c, CancellationToken ct)
+    {
+        var owner   = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == c.OwnerId, ct);
+        var partner = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == c.PartnerId, ct);
+        return new ConversationView(c, owner?.FullName, partner?.FullName ?? c.PartnerName, lastMessage: null);
+    }
+
+    // ── views ──────────────────────────────────────────────────────────────
+    // PartyKind بادئة "User:" تطابق ChatKitOptions في AddChatKit؛ بدونها
+    // BroadcastNewMessageAsync يبثّ إلى partyId خاطئ والمستلم لا يستلم شيء.
+    //
+    // الـ ConversationView يحوي حقولاً عامّة (OwnerId/OwnerName/PartnerId/
+    // PartnerName/Subject/ListingId/LastAt/UnreadCount/LastMessage) إضافةً
+    // للحقول من IChatConversation. JSON يُصدّر كل الخصائص العامّة من النوع
+    // الفعليّ، فالواجهة الأماميّة تستلمها كلّها وتختار "الطرف الآخر" حسب
+    // userId الحاليّ.
+    private sealed class MessageView : IChatMessage
+    {
+        private readonly MessageEntity _e;
+        public MessageView(MessageEntity e) => _e = e;
+        public string    Id             => _e.Id.ToString();
+        public string    ConversationId => _e.ConversationId.ToString();
+        public string    SenderPartyId  => $"User:{_e.From}";
+        public string    Body           => _e.Text;
+        public DateTime  SentAt         => _e.SentAt;
+        public DateTime? ReadAt         => null;
+    }
+
+    private sealed class ConversationView : IChatConversation
+    {
+        private readonly ConversationEntity _e;
+        public ConversationView(ConversationEntity e, string? ownerName, string? partnerName, string? lastMessage)
+        {
+            _e = e;
+            OwnerName   = ownerName ?? "—";
+            PartnerName = partnerName ?? "—";
+            LastMessage = lastMessage;
+        }
+        public string Id => _e.Id.ToString();
+        public IReadOnlyList<string> ParticipantPartyIds => new[]
+        {
+            $"User:{_e.OwnerId}", $"User:{_e.PartnerId}"
+        };
+
+        public string OwnerId     => _e.OwnerId.ToString();
+        public string OwnerName   { get; }
+        public string PartnerId   => _e.PartnerId.ToString();
+        public string PartnerName { get; }
+        public string Subject     => _e.Subject;
+        public string ListingId   => _e.ListingId.ToString();
+        public DateTime LastAt    => _e.LastAt;
+        public int UnreadCount    => _e.UnreadCount;
+        public string? LastMessage { get; }
     }
 }
 

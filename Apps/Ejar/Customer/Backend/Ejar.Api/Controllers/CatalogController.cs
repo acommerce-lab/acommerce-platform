@@ -453,81 +453,11 @@ public sealed class CatalogController : ControllerBase
         return this.OkEnvelope("conversation.start", new { id = conv.Id, created = true });
     }
 
-    // ═══ Conversations: list + details ═══════════════════════════════════
-    // بدون هذين الـ endpoints كان زرّ "تواصل" يُنشئ محادثة (POST /conversations/start
-    // يعمل) لكنّ ChatRoom.razor تستدعي GET /conversations/{id} فيُرجع 404،
-    // فتبقى الصفحة على Loading دائماً ويظنّ المستخدم أنّ الزرّ مكسور.
-    [HttpGet("/conversations")]
-    public async Task<IActionResult> Conversations(CancellationToken ct)
-    {
-        if (CurrentUserGuid is not { } uid) return this.UnauthorizedEnvelope();
-
-        // جمع محادثات الطرفَين معاً — Owner أو Partner. نُسمّي "PartnerName" من
-        // منظور المستخدم الحاليّ: لو هو Owner نُظهر اسم Partner؛ لو هو Partner
-        // نُظهر اسم Owner (نقرأها من جدول Users).
-        var convs = await _db.Conversations.AsNoTracking()
-            .Where(c => c.OwnerId == uid || c.PartnerId == uid)
-            .OrderByDescending(c => c.LastAt)
-            .ToListAsync(ct);
-        if (convs.Count == 0)
-            return this.OkEnvelope("conversation.list", Array.Empty<object>());
-
-        var otherIds = convs
-            .Select(c => c.OwnerId == uid ? c.PartnerId : c.OwnerId)
-            .Distinct().ToList();
-        var users = await _db.Users.AsNoTracking()
-            .Where(u => otherIds.Contains(u.Id))
-            .ToDictionaryAsync(u => u.Id, u => u.FullName, ct);
-
-        var convIds = convs.Select(c => c.Id).ToList();
-        var lastMessages = await _db.Messages.AsNoTracking()
-            .Where(m => convIds.Contains(m.ConversationId))
-            .GroupBy(m => m.ConversationId)
-            .Select(g => g.OrderByDescending(m => m.SentAt).First())
-            .ToListAsync(ct);
-        var lastByConv = lastMessages.ToDictionary(m => m.ConversationId, m => m);
-
-        var rows = convs.Select(c =>
-        {
-            var otherId = c.OwnerId == uid ? c.PartnerId : c.OwnerId;
-            var name = users.TryGetValue(otherId, out var n) ? n :
-                       (c.OwnerId == uid ? c.PartnerName : "—");
-            lastByConv.TryGetValue(c.Id, out var last);
-            return new {
-                id = c.Id, partnerName = name, subject = c.Subject,
-                lastAt = c.LastAt, unreadCount = c.UnreadCount,
-                lastMessage = last?.Text
-            };
-        }).ToList();
-        return this.OkEnvelope("conversation.list", rows);
-    }
-
-    [HttpGet("/conversations/{id:guid}")]
-    public async Task<IActionResult> ConversationDetail(Guid id, CancellationToken ct)
-    {
-        if (CurrentUserGuid is not { } uid) return this.UnauthorizedEnvelope();
-        var c = await _db.Conversations.AsNoTracking()
-            .FirstOrDefaultAsync(x => x.Id == id && (x.OwnerId == uid || x.PartnerId == uid), ct);
-        if (c is null) return this.NotFoundEnvelope("conversation_not_found");
-
-        var otherId = c.OwnerId == uid ? c.PartnerId : c.OwnerId;
-        var partner = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == otherId, ct);
-
-        var messages = await _db.Messages.AsNoTracking()
-            .Where(m => m.ConversationId == id)
-            .OrderBy(m => m.SentAt)
-            .Select(m => new { id = m.Id, from = m.From, text = m.Text, sentAt = m.SentAt })
-            .ToListAsync(ct);
-
-        return this.OkEnvelope("conversation.details", new {
-            id = c.Id,
-            partnerName = partner?.FullName ?? c.PartnerName,
-            subject = c.Subject,
-            partnerId = otherId.ToString(),
-            listingId = c.ListingId.ToString(),
-            messages
-        });
-    }
+    // ملاحظة: GET /conversations و GET /conversations/{id} يعرّفهما
+    // ACommerce.Kits.Chat.Backend.ChatController. كنّا نُعرّفهما أيضاً هنا
+    // فحدث route conflict (AmbiguousMatchException) فيعطي ASP.NET 504/500
+    // للـ inbox والتفاصيل. الآن EjarCustomerChatStore يقرأ من EF فيُغذّيهما
+    // بنفس البيانات + حقول إضافيّة (Owner/Partner/Subject/ListingId).
 
     private async Task AppendInitialMessageIfAny(Guid conversationId, Guid senderId, string? text, CancellationToken ct)
     {

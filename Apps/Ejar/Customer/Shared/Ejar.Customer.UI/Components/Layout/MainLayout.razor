@@ -151,6 +151,38 @@
         _realtimeConnected = true;
         var apiBase = Config["EjarApi:BaseUrl"]?.TrimEnd('/') ?? "http://localhost:5300";
         await Realtime.ConnectAsync($"{apiBase}/hubs/ejar");
+
+        // اشترك مرّة واحدة في إشعارات realtime لإظهار toast OS-level. لا
+        // نحتاج Firebase لهذا — Notification API الأصليّ يعمل ما دام التبويب
+        // مفتوحاً (حتى لو غير مرئيّ). لإشعارات يصل مع تبويب مغلق نحتاج Web
+        // Push (راجع notifications.js للخطوات).
+        if (!_notifWired)
+        {
+            _notifWired = true;
+            Realtime.NotificationReceived += OnRemoteNotification;
+            try { await JS.InvokeVoidAsync("ejarNotify.requestPermission"); } catch { }
+        }
+    }
+
+    private bool _notifWired;
+    private void OnRemoteNotification(string json)
+    {
+        // payload شكل عامّ: { title, body, url? }. لو لم يُرسله الخادم بهذا
+        // الشكل نُحاول استخراج الحقول المعتادة.
+        try
+        {
+            using var doc = System.Text.Json.JsonDocument.Parse(json);
+            var root = doc.RootElement;
+            string title = TryGet(root, "title") ?? "إيجار";
+            string body  = TryGet(root, "body")  ?? TryGet(root, "text") ?? "";
+            string? url  = TryGet(root, "url");
+            _ = JS.InvokeVoidAsync("ejarNotify.show", title, body, new { url });
+        }
+        catch { /* ignore — لا نُريد أن يكسر إشعار غير متوقّع layout */ }
+
+        static string? TryGet(System.Text.Json.JsonElement el, string name)
+            => el.TryGetProperty(name, out var p) && p.ValueKind == System.Text.Json.JsonValueKind.String
+               ? p.GetString() : null;
     }
 
     private void OnChange()

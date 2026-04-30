@@ -1,5 +1,7 @@
 @page "/chats"
 @attribute [Authorize]
+@using Ejar.Customer.UI.Store
+@inject AppStore Store
 @inject ApiReader Api
 @inject NavigationManager Nav
 @inject ITimezoneProvider Tz
@@ -18,7 +20,7 @@
     {
         var list = _items.Where(c =>
             string.IsNullOrWhiteSpace(_search) ||
-            c.PartnerName.Contains(_search, StringComparison.OrdinalIgnoreCase) ||
+            (OtherName(c).Contains(_search, StringComparison.OrdinalIgnoreCase)) ||
             (c.Subject?.Contains(_search, StringComparison.OrdinalIgnoreCase) ?? false) ||
             (c.LastMessage?.Contains(_search, StringComparison.OrdinalIgnoreCase) ?? false)).ToList();
 
@@ -33,7 +35,7 @@
                         <ChildContent>
                             <button type="button" class="acm-complaint-btn" @onclick="@(() => Open(cid))">
                                 <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
-                                    <strong>@c.PartnerName</strong>
+                                    <strong>@OtherName(c)</strong>
                                     <div style="display:flex; gap:6px; align-items:center;">
                                         <small>@Tz.FormatRelative(c.LastAt)</small>
                                         @if (c.UnreadCount > 0) { <AcBadge Variant="primary" Text="@c.UnreadCount.ToString()" /> }
@@ -67,6 +69,23 @@
 
     private void Open(string id) => Nav.NavigateTo($"/chat/{id}");
 
-    private sealed record ConvDto(string Id, string PartnerName, string Subject,
-                                  DateTime LastAt, int UnreadCount, string? LastMessage);
+    /// <summary>
+    /// "الطرف الآخر" حسب من يعرض inbox. الـ backend يُرسل OwnerName و
+    /// PartnerName معاً، الواجهة تختار حسب userId الحاليّ.
+    /// </summary>
+    private string OtherName(ConvDto c)
+    {
+        var myId = Store.Auth.UserId?.ToString();
+        return string.Equals(c.OwnerId, myId, StringComparison.OrdinalIgnoreCase)
+            ? c.PartnerName ?? "—"
+            : c.OwnerName ?? "—";
+    }
+
+    // الشكل الذي يُصدّره EjarCustomerChatStore.ConversationView (حقول إضافيّة
+    // فوق IChatConversation). Subject/LastMessage/UnreadCount يأتون كحقول.
+    private sealed record ConvDto(string Id,
+        string? OwnerId, string? OwnerName,
+        string? PartnerId, string? PartnerName,
+        string? Subject, string? ListingId,
+        DateTime LastAt, int UnreadCount, string? LastMessage);
 }
