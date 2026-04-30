@@ -52,7 +52,7 @@
             }
         </div>
 
-        <div class="acs-chat-composer">
+        <div class="acs-chat-composer" @onkeydown="OnComposerKey">
             <AcInput Value="@_draft" ValueChanged="@(v => _draft = v ?? string.Empty)"
                      Placeholder="@(L["chat.new_message"])" />
             <AcButton Variant="primary" Text="@(L["chat.send"])" OnClick="@Send"
@@ -132,6 +132,13 @@
             _draft = "";
         }
         finally { _sending = false; await InvokeAsync(StateHasChanged); }
+    }
+
+    private async Task OnComposerKey(KeyboardEventArgs e)
+    {
+        // Enter يُرسل، Shift+Enter يُدخل سطراً جديداً (سلوك معتاد في الدردشة).
+        if (e.Key == "Enter" && !e.ShiftKey && !_sending && !string.IsNullOrWhiteSpace(_draft))
+            await Send();
     }
 
     private void GoBack() => Nav.NavigateTo("/chats");

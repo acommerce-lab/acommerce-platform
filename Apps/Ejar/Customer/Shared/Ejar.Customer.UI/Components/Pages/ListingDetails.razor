@@ -115,12 +115,26 @@
             <AcAlert Variant="danger" Message="@Favorites.LastError" />
         }
 
+        @if (IsMine)
+        {
+            @* لا زرّ تعديل الآن — التحرير غير مدعوم في الـ backend بعد. نُظهر
+               فقط ملصقاً يبيّن للمستخدم أنّ الإعلان له حتى لا يظنّ أنّ الزرّ
+               مفقود. زرّ "إدارة" يصل إلى /my-listings للتحكّم العامّ. *@
+            <AcCard>
+                <ChildContent>
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <AcIcon Name="check-circle" Size="20" />
+                        <strong>هذا إعلانك</strong>
+                    </div>
+                </ChildContent>
+            </AcCard>
+        }
         <AcStickyActionBar>
             <AcButton Variant="ghost" Text="رجوع" OnClick="@GoBack" />
             @if (IsMine)
             {
-                <AcButton Variant="outline-primary" Class="ac-btn-block" Text="تعديل الإعلان"
-                          OnClick="@EditListing" />
+                <AcButton Variant="outline-primary" Class="ac-btn-block" Text="إدارة إعلاناتي"
+                          OnClick="@(() => Nav.NavigateTo("/my-listings"))" />
             }
             else if (Store.Auth.IsAuthenticated)
             {

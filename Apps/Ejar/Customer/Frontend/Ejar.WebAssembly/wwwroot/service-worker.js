@@ -4,7 +4,7 @@
 //
 // VERSION هنا — كلّما تغيّر نُجبر المتصفّح على تحديث الـ SW وحذف cache
 // القديم. ارفعه يدوياً عند كل تغيير في PWA shell (manifest/icons/SW).
-const VERSION = 'ejar-pwa-v11-2026-04-30';
+const VERSION = 'ejar-pwa-v12-2026-04-30';
 const SHELL_CACHE = `shell-${VERSION}`;
 
 // عند التثبيت: skipWaiting → الـ SW الجديد يأخذ السيطرة فوراً بدل أن

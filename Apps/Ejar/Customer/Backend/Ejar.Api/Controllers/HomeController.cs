@@ -208,6 +208,8 @@ public sealed class HomeController : ControllerBase
         city = l.City, district = l.District,
         bedroomCount = l.BedroomCount, areaSqm = l.AreaSqm,
         isVerified = l.IsVerified, viewsCount = l.ViewsCount,
-        firstImage = l.ImagesCsv?.Split('|').FirstOrDefault()
+        // المُصغّر للبطاقات (~30KB)؛ fallback على أوّل صورة في ImagesCsv
+        // للإعلانات القديمة قبل إضافة ThumbnailUrl.
+        firstImage = l.ThumbnailUrl ?? l.ImagesCsv?.Split('|').FirstOrDefault()
     };
 }

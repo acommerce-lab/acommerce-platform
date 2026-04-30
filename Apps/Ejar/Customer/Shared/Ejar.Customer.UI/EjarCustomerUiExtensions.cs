@@ -117,13 +117,11 @@ public static class EjarCustomerUiExtensions
         // ─── Realtime + Chat client ────────────────────────────────────
         services.AddScoped<EjarRealtimeService>();
 
-        services.AddBlazorChatClient(opts =>
-        {
-            opts.HttpClientName    = "ejar";
-            opts.EnterPathTemplate = "/chat/{convId}/enter";
-            opts.LeavePathTemplate = "/chat/{convId}/leave";
-            opts.SendPathTemplate  = "/conversations/{convId}/messages";
-        });
+        // EjarChatClient يستخدم EjarCircuitHttp مباشرةً — يضمن أنّ Bearer token
+        // مرفق على /chat/{id}/enter و /conversations/{id}/messages. الكلاس
+        // الأصليّ ChatClient يطلب HttpClient من factory ويعتمد على
+        // AuthHeadersHandler الذي يفقد رؤية AppStore في WASM فيخرج بـ 401.
+        services.AddScoped<IChatClient, EjarChatClient>();
 
         return services;
     }

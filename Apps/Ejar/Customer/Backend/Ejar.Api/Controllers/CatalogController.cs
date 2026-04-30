@@ -159,13 +159,17 @@ public sealed class CatalogController : ControllerBase
     public async Task<IActionResult> MyListings(CancellationToken ct)
     {
         if (CurrentUserGuid is not { } id) return this.UnauthorizedEnvelope();
+        // مُصغّر الصورة (ThumbnailUrl) ~30KB بدل الصورة الكاملة في ImagesCsv
+        // (~250KB لكلّ إعلان). الـ Substring القديم كان buggy: يقتطع من
+        // ImagesCsv حتى أوّل ',' لكنّ السواتر هو '|'.
         var rows = await _db.Listings.AsNoTracking()
             .Where(l => l.OwnerId == id).OrderByDescending(l => l.CreatedAt)
             .Select(l => new {
                 id = l.Id, title = l.Title, price = l.Price, timeUnit = l.TimeUnit,
                 propertyType = l.PropertyType, city = l.City, district = l.District,
                 status = l.Status, viewsCount = l.ViewsCount, isVerified = l.IsVerified,
-                firstImage = l.ImagesCsv == null ? null : l.ImagesCsv.Substring(0, Math.Max(0, l.ImagesCsv.IndexOf(',') < 0 ? l.ImagesCsv.Length : l.ImagesCsv.IndexOf(',')))
+                bedroomCount = l.BedroomCount,
+                firstImage = l.ThumbnailUrl
             })
             .ToListAsync(ct);
         return this.OkEnvelope("listing.my", rows);
@@ -178,7 +182,10 @@ public sealed class CatalogController : ControllerBase
         double? Lat, double? Lng,
         int? BedroomCount, int? BathroomCount, int? AreaSqm,
         IReadOnlyList<string>? Amenities,
-        IReadOnlyList<string>? Images);
+        IReadOnlyList<string>? Images,
+        // مُصغّر الصورة الرئيسيّة (data:image/jpeg;base64,...). اختياريّ —
+        // لو فاضي (لا صور)، نُخزّنه null والبطاقات لن تظهر صورة.
+        string? Thumbnail);
 
     [HttpPost("/my-listings")]
     public async Task<IActionResult> CreateListing([FromBody] CreateListingBody body, CancellationToken ct)
@@ -225,6 +232,7 @@ public sealed class CatalogController : ControllerBase
             AreaSqm = body.AreaSqm ?? 0,
             Status = 1,
             ImagesCsv = body.Images is null ? "" : string.Join("|", body.Images),
+            ThumbnailUrl = string.IsNullOrEmpty(body.Thumbnail) ? null : body.Thumbnail,
             AmenitiesCsv = body.Amenities is null ? "" : string.Join(",", body.Amenities),
         };
         _db.Listings.Add(entity);
@@ -274,7 +282,10 @@ public sealed class CatalogController : ControllerBase
                 timeUnit = l.TimeUnit, propertyType = l.PropertyType,
                 city = l.City, district = l.District, isVerified = l.IsVerified,
                 bedroomCount = l.BedroomCount,
-                firstImage = l.ImagesCsv?.Split('|').FirstOrDefault()
+                // فضّل المُصغّر للبطاقات (~30KB) على الصورة الكاملة (~250KB).
+                // fallback على أوّل صورة في ImagesCsv للإعلانات القديمة قبل
+                // إضافة ThumbnailUrl.
+                firstImage = l.ThumbnailUrl ?? l.ImagesCsv?.Split('|').FirstOrDefault()
             }));
     }
 

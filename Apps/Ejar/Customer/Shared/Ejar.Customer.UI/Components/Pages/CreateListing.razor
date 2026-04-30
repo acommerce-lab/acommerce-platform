@@ -3,6 +3,7 @@
 @inject AppStore Store
 @inject ApiReader Api
 @inject NavigationManager Nav
+@inject IJSRuntime JS
 @inject L L
 @inject INumeralNormalizer Numerals
 
@@ -124,16 +125,17 @@
     {
         <AcCard>
             <ChildContent>
-                <h3 style="margin-top:0;">صور الإعلان</h3>
+                <h3 style="margin-top:0;">صور الإعلان <small style="color:var(--ac-text-muted); font-weight:normal;">(اختياريّ)</small></h3>
                 <p style="color:var(--ac-text-muted); font-size:13px;">
-                    حتّى @_maxImages صور • كل صورة أقصى 5MB • الصورة الأولى هي الرئيسيّة.
+                    حتّى @_maxImages صور • نضغط الصور تلقائياً قبل الرفع لتقليل الباندويث • الصورة الأولى هي الرئيسيّة.
                 </p>
 
                 <label class="ac-btn ac-btn-outline-primary ac-btn-block"
                        style="cursor:pointer; display:inline-flex; align-items:center; gap:8px; justify-content:center;">
                     <AcIcon Name="camera" Size="16" />
-                    <span>إضافة صور</span>
-                    <InputFile OnChange="OnImagesPicked" accept="image/*" multiple style="display:none;" />
+                    <span>@(_compressing ? "جارٍ الضغط…" : "إضافة صور")</span>
+                    <InputFile OnChange="OnImagesPicked" accept="image/*" multiple style="display:none;"
+                               disabled="@_compressing" />
                 </label>
 
                 @if (_images.Count > 0)
@@ -144,7 +146,7 @@
                             var idx = i;
                             var img = _images[idx];
                             <div class="acs-image-thumb @(idx == 0 ? "main" : "")">
-                                <img src="@img.DataUrl" alt="img-@idx" />
+                                <img src="@img.ThumbUrl" alt="img-@idx" />
                                 @if (idx == 0) { <span class="acs-image-badge">رئيسيّة</span> }
                                 <div class="acs-image-actions">
                                     @if (idx > 0)
@@ -170,8 +172,11 @@
 
                 <div style="display:flex; gap:8px; margin-top:12px;">
                     <AcButton Variant="ghost" Text="رجوع" OnClick="@(() => _step = 2)" />
-                    <AcButton Variant="primary" Class="ac-btn-block" Text="التالي"
-                              OnClick="@(() => _step = 4)" Disabled="@(_images.Count == 0)" />
+                    @* الصور أصبحت اختياريّة — زرّ "التالي" مفتوح حتّى بصفر صور.
+                       نُظهر "تخطّي الصور" عند صفر للوضوح. *@
+                    <AcButton Variant="primary" Class="ac-btn-block"
+                              Text="@(_images.Count == 0 ? "متابعة بدون صور" : "التالي")"
+                              OnClick="@(() => _step = 4)" Disabled="@_compressing" />
                 </div>
             </ChildContent>
         </AcCard>
@@ -224,6 +229,7 @@
     private int _step = 1;
     private int _maxImages = 10;
     private bool _publishing;
+    private bool _compressing;
     private bool _subLoading = true;
     private SubDto? _subscription;
     private string? _publishError;
@@ -275,18 +281,49 @@
     private async Task OnImagesPicked(InputFileChangeEventArgs e)
     {
         _imgError = null;
-        foreach (var f in e.GetMultipleFiles(_maxImages - _images.Count))
+        _compressing = true;
+        await InvokeAsync(StateHasChanged);
+        try
         {
-            if (f.Size > 5 * 1024 * 1024)
+            // الضغط في المتصفّح عبر Canvas: نُمرّر JSObjectReference للـ Browser
+            // File، ضغط JPEG على بُعد أقصى 1600 وجودة 0.8 للصورة الكاملة، و400
+            // وجودة 0.7 للمصغّر. النتيجة: data URL واحد للكاملة و آخر للمصغّر.
+            // قبل هذا كنّا نُرسل الملفّ الخامّ (5MB+ على هاتف حديث) في
+            // ImagesCsv، فيتعطّل /my-listings وتفجّر صفحات القائمة الباندويث.
+            foreach (var f in e.GetMultipleFiles(_maxImages - _images.Count))
             {
-                _imgError = $"الصورة {f.Name} أكبر من 5MB — تُخطَّى.";
-                continue;
+                if (f.Size > 20 * 1024 * 1024)
+                {
+                    _imgError = $"الصورة {f.Name} أكبر من 20MB — تُخطَّى.";
+                    continue;
+                }
+                try
+                {
+                    // اقرأ الملفّ الخامّ مرّة واحدة → base64 dataURL → مرّره
+                    // إلى JS الذي يفكّ ترميزه عبر <img>، يضغطه على Canvas،
+                    // ويُرجع نسختين (كاملة + مُصغّر). كانت الواجهة سابقاً تُرسل
+                    // الملفّ الخامّ مباشرةً.
+                    using var s  = f.OpenReadStream(maxAllowedSize: 20 * 1024 * 1024);
+                    using var ms = new MemoryStream();
+                    await s.CopyToAsync(ms);
+                    var rawDataUrl = $"data:{f.ContentType};base64,{Convert.ToBase64String(ms.ToArray())}";
+
+                    var bundle = await JS.InvokeAsync<CompressResult?>(
+                        "ejarImg.compressDataUrl", rawDataUrl, 1600, 0.8, 400, 0.7);
+                    if (bundle is null || string.IsNullOrEmpty(bundle.Full))
+                    {
+                        _imgError = $"تعذّر معالجة {f.Name} — تخطّيها.";
+                        continue;
+                    }
+                    _images.Add(new PickedImage(bundle.Full, bundle.Thumb ?? bundle.Full, f.Name));
+                }
+                catch (Exception ex)
+                {
+                    _imgError = $"خطأ في معالجة {f.Name}: {ex.Message}";
+                }
             }
-            using var s  = f.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024);
-            using var ms = new MemoryStream();
-            await s.CopyToAsync(ms);
-            _images.Add(new PickedImage($"data:{f.ContentType};base64,{Convert.ToBase64String(ms.ToArray())}", f.Name));
         }
+        finally { _compressing = false; await InvokeAsync(StateHasChanged); }
     }
 
     private void MakeMain(int idx)
@@ -319,9 +356,12 @@
                 bathroomCount = 0,
                 areaSqm       = 0,
                 amenities     = Store.Draft.Amenities.ToList(),
-                // الصور تُرسَل كقائمة data: URLs (base64). الخادم يحفظها CSV
-                // داخل ListingEntity.ImagesCsv وتعرضها صفحة التفاصيل عبر splitting.
+                // الصور تُرسَل كقائمة data URLs (base64) مضغوطة بـ Canvas.
+                // الخادم يحفظها CSV داخل ListingEntity.ImagesCsv. مُصغّر الصورة
+                // الرئيسيّة يُرسَل منفصلاً ليُخزَّن في ThumbnailUrl ويُرجَع في
+                // البطاقات بدل تنزيل الصورة الكاملة في كلّ مرّة.
                 images        = _images.Select(i => i.DataUrl).ToList(),
+                thumbnail     = _images.Count > 0 ? _images[0].ThumbUrl : null,
             };
             var env = await Api.PostAsync<object>("/my-listings", req);
             if (env.Data is not null || env.Operation?.Status == "Success")
@@ -358,5 +398,11 @@
         DateTime StartDate, DateTime EndDate, int DaysRemaining,
         int ListingsUsed, int ListingsLimit, int FeaturedUsed, int FeaturedLimit, int ImagesPerListing);
     private sealed record AmenityDto(string Key, string Label);
-    private sealed record PickedImage(string DataUrl, string Name);
+    /// <summary>
+    /// صورة مختارة بعد ضغطها: <see cref="DataUrl"/> هي الكاملة المخزّنة في
+    /// ImagesCsv و<see cref="ThumbUrl"/> هي المُصغّر الصغير لعرضها في
+    /// البطاقات. الاسم للأخطاء فقط.
+    /// </summary>
+    private sealed record PickedImage(string DataUrl, string ThumbUrl, string Name);
+    private sealed record CompressResult(string Full, string? Thumb);
 }

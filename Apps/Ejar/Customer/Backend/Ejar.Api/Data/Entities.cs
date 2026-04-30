@@ -51,6 +51,12 @@ public sealed class ListingEntity : IBaseEntity
     // تتجاوز ٢٠٠٠ حرف. التحديد القديم كان يُفجِّر INSERT بـ "String would be
     // truncated" من SQL Server.
     public string ImagesCsv { get; set; } = "";
+
+    // مُصغّر الصورة الرئيسيّة (~30KB JPEG، 400×400 max). يُولِّده الواجهة قبل
+    // الرفع عبر canvas في image-compressor.js. تستهلكه استجابات /home/explore
+    // و /favorites و /my-listings كحقل firstImage بدل حشو الصورة الكاملة في
+    // قائمة بـ 60 إعلاناً (وفّر ~50MB لكلّ تحميل قائمة على هاتف).
+    public string? ThumbnailUrl { get; set; }
 }
 
 public sealed class ConversationEntity : IBaseEntity
