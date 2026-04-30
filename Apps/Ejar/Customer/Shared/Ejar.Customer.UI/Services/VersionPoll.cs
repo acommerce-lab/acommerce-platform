@@ -64,9 +64,13 @@ public sealed class VersionPoll : IAsyncDisposable
 
     private async Task CheckOnceAsync(CancellationToken ct)
     {
-        // مسار نسبيّ — IHttpClientFactory.CreateClient() يحلّ على origin
-        // الواجهة (للـ WASM = أصل التطبيق، لـ Server = host). bust=now
-        // يكسر أيّ HTTP cache من المتصفّح/CDN.
+        // إذا كان _info.Version لا يزال على الـ fallback "1.0.0" فهذا يعني
+        // أنّ appsettings.json لم تُحمَّل بعد (تكون الـ Configuration ما زالت
+        // تُجلَب أو الـ Service Worker قدّم نسخة مكسورة). بدل أن نُطلِق إنذاراً
+        // كاذباً ("نسخة جديدة!" بينما الواقع أنّ AppVersionInfo فاسد) نتخطّى
+        // الفحص ونحاول لاحقاً.
+        if (_info.Version is null or "" or "1.0.0") return;
+
         var url = $"version.json?bust={DateTime.UtcNow.Ticks}";
         try
         {

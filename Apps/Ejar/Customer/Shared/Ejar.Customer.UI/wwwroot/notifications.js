@@ -56,3 +56,20 @@ window.ejarNotify = (function () {
 
   return { permission, requestPermission, show };
 })();
+
+// أدوات DOM صغيرة. ejarChatUi.scrollToBottom(selector) يدفع الـ container
+// إلى آخر الرسائل (smooth إن كان already near bottom). يُستدعى من ChatRoom
+// عند فتح المحادثة وعند كل رسالة جديدة.
+window.ejarChatUi = (function () {
+  function scrollToBottom(selector, behavior) {
+    try {
+      const el = document.querySelector(selector);
+      if (!el) return;
+      // double rAF: قبل الرسم لنجبر القيمة بعد ما يُحدّث Blazor الـ DOM.
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        el.scrollTo({ top: el.scrollHeight, behavior: behavior || 'auto' });
+      }));
+    } catch (_) { /* noop */ }
+  }
+  return { scrollToBottom };
+})();

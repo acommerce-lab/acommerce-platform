@@ -7,6 +7,7 @@
 @inject ApiReader Api
 @inject NavigationManager Nav
 @inject IChatClient Chat
+@inject IJSRuntime JS
 @inject L L
 @implements IAsyncDisposable
 
@@ -32,7 +33,7 @@
     }
     else
     {
-        <div style="display:flex; justify-content:space-between; align-items:center;">
+        <div class="acs-chat-header" style="display:flex; justify-content:space-between; align-items:center;">
             <div>
                 <h1 class="acm-wizard-title" style="margin-bottom:4px;">@OtherName</h1>
                 <small style="color:var(--ac-text-muted);">@(_conv.Subject ?? "")</small>
@@ -40,7 +41,7 @@
             <AcButton Variant="ghost" Text="رجوع" OnClick="@GoBack" />
         </div>
 
-        <div class="acs-chat-messages">
+        <div class="acs-chat-messages" id="acs-chat-msgs">
             @foreach (var m in _messages)
             {
                 var mine = IsMine(m);
@@ -76,8 +77,20 @@
     private string _draft = "";
     private bool _sending;
 
+    private int _lastSeenCount;
+
     protected override async Task OnAfterRenderAsync(bool first)
     {
+        // أنزل التمرير إلى الأسفل عند أوّل render بعد تحميل الرسائل، وعند
+        // كلّ زيادة في عدد الرسائل (إرسال أو استلام). لا نُمرّر في كلّ render
+        // لأنّ ذلك يقفز التمرير على كلّ keystroke في خانة النصّ.
+        if (_conv is not null && _messages.Count != _lastSeenCount)
+        {
+            _lastSeenCount = _messages.Count;
+            try { await JS.InvokeVoidAsync("ejarChatUi.scrollToBottom", "#acs-chat-msgs"); }
+            catch { /* JSInterop غير جاهز قبل أوّل render */ }
+        }
+
         if (!first) return;
 
         // GET /conversations/{id} يردّه ChatController في Chat Kit الآن
