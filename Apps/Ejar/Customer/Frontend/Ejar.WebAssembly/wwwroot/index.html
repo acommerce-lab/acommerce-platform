@@ -50,6 +50,25 @@
          ثم يعيد التحميل ضارباً عرض الحائط بأي cache على CDN/proxy. -->
     <script src="version-check.js?v=20260430n"></script>
     <script src="api-diagnostics.js?v=20260430n"></script>
+    <!-- Eruda mobile console — تُحمَّل فقط لو ?debug=1 في الـ URL أو
+         ejarDebug=1 في localStorage. تُعطي console + network + DOM
+         inspector على الهاتف بدون كابل USB. لا تُحمَّل للمستخدمين
+         العاديّين فلا تأثير على الأداء. -->
+    <script>
+      (function () {
+        try {
+          var qs = new URLSearchParams(location.search);
+          var on = qs.get('debug') === '1' || localStorage.getItem('ejarDebug') === '1';
+          if (qs.get('debug') === '1') localStorage.setItem('ejarDebug', '1');
+          if (qs.get('debug') === '0') { localStorage.removeItem('ejarDebug'); on = false; }
+          if (!on) return;
+          var s = document.createElement('script');
+          s.src = 'https://cdn.jsdelivr.net/npm/eruda';
+          s.onload = function () { try { eruda.init(); } catch (_) {} };
+          document.head.appendChild(s);
+        } catch (_) { /* noop */ }
+      })();
+    </script>
     <script src="_framework/blazor.webassembly.js"></script>
     <script src="_content/Ejar.Customer.UI/ui-prefs.js"></script>
     <script src="_content/Ejar.Customer.UI/image-compressor.js"></script>
