@@ -414,6 +414,40 @@ public sealed class CatalogController : ControllerBase
     // (override للحالات الإداريّة) لكنّه ليس مطلوباً.
     public sealed record StartConversationBody(string? ListingId, string? PartnerId, string? Text);
 
+    /// <summary>
+    /// Polling fallback لـ realtime: يُرجع الرسائل الجديدة بعد timestamp مُعطى.
+    /// ChatRoom يستدعيها كلّ ٥ ثوانٍ كمسار احتياطيّ بجانب SignalR. لو الجوّال
+    /// قطع SSE/LongPolling في الخلفيّة، الـ polling يلتقط الرسائل الفائتة عند
+    /// عودة الصفحة للواجهة. الـ payload صغير (only delta) فلا يكلف باندويث.
+    /// </summary>
+    [HttpGet("/conversations/{id:guid}/messages")]
+    public async Task<IActionResult> ListMessagesSince(
+        Guid id,
+        [FromQuery(Name = "since")] DateTime? since,
+        CancellationToken ct)
+    {
+        if (CurrentUserGuid is not { } uid) return this.UnauthorizedEnvelope();
+        var convExists = await _db.Conversations.AsNoTracking()
+            .AnyAsync(c => c.Id == id && (c.OwnerId == uid || c.PartnerId == uid), ct);
+        if (!convExists) return this.NotFoundEnvelope("conversation_not_found");
+
+        var threshold = since?.ToUniversalTime() ?? DateTime.MinValue;
+        var rows = await _db.Messages.AsNoTracking()
+            .Where(m => m.ConversationId == id && m.SentAt > threshold)
+            .OrderBy(m => m.SentAt)
+            .Select(m => new {
+                id             = m.Id.ToString(),
+                conversationId = m.ConversationId.ToString(),
+                senderPartyId  = "User:" + m.From,
+                body           = m.Text,
+                sentAt         = m.SentAt,
+                readAt         = (DateTime?)null
+            })
+            .ToListAsync(ct);
+
+        return this.OkEnvelope("message.list", rows);
+    }
+
     [HttpPost("/conversations/start")]
     public async Task<IActionResult> StartConversation([FromBody] StartConversationBody body, CancellationToken ct)
     {

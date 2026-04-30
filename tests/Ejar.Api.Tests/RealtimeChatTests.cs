@@ -80,6 +80,42 @@ public class RealtimeChatTests : IClassFixture<EjarFactory>
     }
 
     [Fact(Timeout = 30_000)]
+    public async Task Polling_fallback_returns_messages_since_timestamp()
+    {
+        // يحاكي ما يحدث على الجوّال عندما SignalR ينقطع: ChatRoom يستدعي
+        // GET /conversations/{id}/messages?since=ISO ويجلب الجديد فقط.
+        var http = _factory.CreateClient();
+        var (tokenA, _)        = await LoginAsync(http, "775555555");
+        var (tokenB, _)        = await LoginAsync(http, "776666666");
+        await ActivatePlanAsync(http, tokenA);
+        var listingId = await CreateListingAsync(http, tokenA);
+        var convId    = await StartConversationAsync(http, tokenB, listingId, "بدء");
+
+        // ١) snapshot timestamp قبل أيّ رسالة جديدة.
+        var before = DateTime.UtcNow.AddSeconds(-1);
+        await PostJsonAsync(http, tokenA, $"/conversations/{convId}/messages",
+            new { text = "hello-from-A" });
+
+        // ٢) B يستفسر بـ since=before — يجب أن تكون hello-from-A الجديدة.
+        var sinceIso = before.ToString("o");
+        var resp = await GetAsync(http, tokenB,
+            $"/conversations/{convId}/messages?since={Uri.EscapeDataString(sinceIso)}");
+        Assert.True(resp.IsSuccessStatusCode);
+        var body = await resp.Content.ReadAsStringAsync();
+        using var doc = JsonDocument.Parse(body);
+        var rows = doc.RootElement.GetProperty("data").EnumerateArray().ToList();
+        Assert.Contains(rows, r => r.GetProperty("body").GetString() == "hello-from-A");
+
+        // ٣) استفسار آخر بـ since=الآن: لا توجد رسائل جديدة بعد آخر إرسال.
+        var futureIso = DateTime.UtcNow.AddSeconds(5).ToString("o");
+        var resp2 = await GetAsync(http, tokenB,
+            $"/conversations/{convId}/messages?since={Uri.EscapeDataString(futureIso)}");
+        var body2 = await resp2.Content.ReadAsStringAsync();
+        using var doc2 = JsonDocument.Parse(body2);
+        Assert.Empty(doc2.RootElement.GetProperty("data").EnumerateArray());
+    }
+
+    [Fact(Timeout = 30_000)]
     public async Task Recipient_gets_persistent_notification_in_db()
     {
         // اختبار التزامن مع جدول الإشعارات: أيّ رسالة تُكتَب → سطر إشعار للطرف الآخر.
