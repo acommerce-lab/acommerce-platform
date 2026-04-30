@@ -4,6 +4,21 @@
 let connection = null;
 let dotnetRef = null;
 
+// انتظر تحميل signalR العالميّ — على شبكة الهاتف البطيئة قد يبدأ Blazor
+// تنفيذ start() قبل ما ينتهي تحميل signalr.min.js من CDN، فيخرج
+// "signalR is not defined". ننتظر حتى ١٠ ثوانٍ بفحص كلّ ١٠٠ms.
+function waitForSignalR(timeoutMs) {
+    return new Promise((resolve, reject) => {
+        const t0 = Date.now();
+        (function check() {
+            if (typeof signalR !== 'undefined') return resolve();
+            if (Date.now() - t0 >= (timeoutMs || 10000))
+                return reject(new Error('signalR script load timeout'));
+            setTimeout(check, 100);
+        })();
+    });
+}
+
 // Tiny notification sound (short beep) using Web Audio API — no file needed.
 function playBeep() {
     try {
@@ -21,9 +36,15 @@ function playBeep() {
     } catch (_) { /* AudioContext blocked — silent fail */ }
 }
 
-export function start(hubUrl, token, ref) {
+export async function start(hubUrl, token, ref) {
     if (connection) return;
     dotnetRef = ref;
+
+    try { await waitForSignalR(10000); }
+    catch (e) {
+        console.warn("[Ejar Realtime] signalR لم يُحمَّل في الوقت المناسب:", e.message);
+        return;
+    }
 
     const builder = new signalR.HubConnectionBuilder()
         .withUrl(hubUrl, {
