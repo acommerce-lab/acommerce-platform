@@ -28,12 +28,15 @@ export function start(hubUrl, token, ref) {
     const builder = new signalR.HubConnectionBuilder()
         .withUrl(hubUrl, {
             accessTokenFactory: () => token,
-            transport: signalR.HttpTransportType.WebSockets |
-                       signalR.HttpTransportType.ServerSentEvents |
+            // نُسقط WebSockets — runasp.net (IIS مشترك) لا يدعمها بشكل موثوق
+            // ولو أعلنها الخادم متاحة، client signalr 8.x يحاولها أوّلاً ويفشل
+            // بلا fallback تلقائيّ. SSE + LongPolling كلاهما HTTP عاديّ يعمل
+            // على أيّ مستضيف. عندما ننقل إلى Linux/Kestrel نُعيد WebSockets.
+            transport: signalR.HttpTransportType.ServerSentEvents |
                        signalR.HttpTransportType.LongPolling
         })
         .withAutomaticReconnect()
-        .configureLogging(signalR.LogLevel.Warning)
+        .configureLogging(signalR.LogLevel.Information)
         .build();
 
     builder.on("ReceiveMessage", (data) => {
@@ -58,7 +61,11 @@ export function start(hubUrl, token, ref) {
     });
 
     builder.start()
-        .then(() => dotnetRef.invokeMethodAsync("OnConnected"))
+        .then(() => {
+            console.info("[Ejar Realtime] connected via",
+                builder.connection?.transport?.constructor?.name || "unknown transport");
+            dotnetRef.invokeMethodAsync("OnConnected");
+        })
         .catch(err => console.warn("[Ejar Realtime] connect error:", err));
 
     connection = builder;

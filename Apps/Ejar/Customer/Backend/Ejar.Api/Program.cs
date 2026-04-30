@@ -273,7 +273,17 @@ app.MapControllers();
 // EjarRealtimeHub يُضيف اشتراك المستخدم بـ notif:conv:X لكلّ محادثة عند
 // كلّ اتصال SignalR جديد. AShareHub الخامّ لا يفعل ذلك، فالطرف الآخر
 // لا يصله شيء حتى يفتح ChatRoom على المحادثة المحدّدة.
-app.MapHub<EjarRealtimeHub>("/realtime");
+//
+// runasp.net (IIS مشترك) لا يُفعّل WebSocket module افتراضياً، فلو أعلن
+// الخادم WS متاحاً، الـ JS client يحاول WS أوّلاً ويفشل بدون fallback
+// تلقائيّ إلى LongPolling. الحلّ: إعلان ServerSentEvents + LongPolling
+// فقط — كلاهما HTTP عاديّ يعمل على أيّ مستضيف. WS ممكن إعادته لاحقاً
+// لو نقلنا لـ Linux/Kestrel أو فعّلناه على IIS عبر web.config.
+app.MapHub<EjarRealtimeHub>("/realtime", options =>
+{
+    options.Transports = Microsoft.AspNetCore.Http.Connections.HttpTransportType.ServerSentEvents
+                       | Microsoft.AspNetCore.Http.Connections.HttpTransportType.LongPolling;
+});
 
 // قاعدة الـ chat ↔ notif coupling: عند فتح chat:conv:X يُقفَل notif:conv:X
 // (لئلّا تتكرّر الإشعارات + الرسالة الحيّة)، وعند الإغلاق يُعاد فتحه.
