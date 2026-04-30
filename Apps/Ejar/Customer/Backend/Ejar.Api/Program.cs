@@ -213,25 +213,31 @@ using (var scope = app.Services.CreateScope())
         db.Database.EnsureDeleted();
     }
 
-    // نستخدم Migrate() بدل EnsureCreated() ليصبح schema drift قابلاً للإدارة:
-    // أيّ تعديل في الكيانات → dotnet ef migrations add <Name> → النشر يطبّقها.
-    // لـ DB جديدة: ينشئها ويطبّق كلّ migrations الموجودة.
-    // لـ DB قديمة فيها __EFMigrationsHistory: يطبّق المتبقّي فقط.
-    // لـ DB قديمة أُنشئت بـ EnsureCreated (لا history): يفشل Migrate لأنّ الجداول
-    // موجودة — في هذه الحالة استخدم EJAR_DB_RESET=true لمرّة واحدة.
-    var pending = db.Database.GetPendingMigrations().ToList();
-    if (pending.Count > 0)
+    // نستخدم Migrate() بدل EnsureCreated() ليصبح schema drift قابلاً للإدارة.
+    // استثناء: SQLite ليس له migrations في هذا المشروع (الـ migrations
+    // مكتوبة لـ SQL Server: nvarchar(max), uniqueidentifier...). للـ tests
+    // و dev المحلّيّ على SQLite نقع على EnsureCreated الذي يُولّد schema
+    // متوافقاً تلقائياً من النموذج.
+    var isSqlite = db.Database.ProviderName?.Contains("Sqlite", StringComparison.OrdinalIgnoreCase) == true;
+    if (isSqlite)
     {
-        Log.Information("Ejar.Db: applying {Count} migration(s): {Names}",
-            pending.Count, string.Join(", ", pending));
-        db.Database.Migrate();
+        db.Database.EnsureCreated();
     }
     else
     {
-        // قاعدة بيانات تُحسَب up-to-date. لو أُنشئت يدوياً أو بـ EnsureCreated
-        // قد ينقصها جدول AppVersions الذي لم يُسجَّل في __EFMigrationsHistory.
-        // helper idempotent يضمن وجوده.
-        DbInitializer.EnsureAppVersionsTable(db);
+        var pending = db.Database.GetPendingMigrations().ToList();
+        if (pending.Count > 0)
+        {
+            Log.Information("Ejar.Db: applying {Count} migration(s): {Names}",
+                pending.Count, string.Join(", ", pending));
+            db.Database.Migrate();
+        }
+        else
+        {
+            // قاعدة بيانات تُحسَب up-to-date. لو أُنشئت يدوياً أو بـ EnsureCreated
+            // قد ينقصها جدول AppVersions الذي لم يُسجَّل في __EFMigrationsHistory.
+            DbInitializer.EnsureAppVersionsTable(db);
+        }
     }
 
     // البذور: تعمل عند كلّ بدء تشغيل، تتفقّد بنفسها قبل الإدراج.

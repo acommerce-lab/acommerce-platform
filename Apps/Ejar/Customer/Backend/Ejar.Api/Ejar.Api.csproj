@@ -7,7 +7,18 @@
     <RootNamespace>Ejar.Api</RootNamespace>
     <AssemblyName>Ejar.Api</AssemblyName>
     <UserSecretsId>ejar-api</UserSecretsId>
+    <!-- نُبقي web.config كما كتبناه (تفعيل WebSocket + responseBufferLimit=0).
+         بدون هذا الإعداد الـ SDK يُولّد web.config افتراضيّ بدون تلك الإعدادات
+         فيعطّل realtime على IIS/runasp.net. -->
+    <IsTransformWebConfigDisabled>true</IsTransformWebConfigDisabled>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Update="web.config">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </None>
+  </ItemGroup>
 
   <ItemGroup>
     <!-- Domain (entities + seed state) — single source of truth shared by Customer/Provider/Admin -->
