@@ -32,7 +32,7 @@ public sealed class VersionPoll : IAsyncDisposable
         _http = httpFactory.CreateClient();
     }
 
-    public TimeSpan PollInterval { get; set; } = TimeSpan.FromMinutes(2);
+    public TimeSpan PollInterval { get; set; } = TimeSpan.FromSeconds(60);
 
     public bool UpdateAvailable { get; private set; }
     public string? AvailableVersion { get; private set; }
@@ -48,9 +48,10 @@ public sealed class VersionPoll : IAsyncDisposable
 
     private async Task LoopAsync(CancellationToken ct)
     {
-        // فحص أوّل بعد ٣٠ ثانية من الإقلاع (لتجنّب race مع version-check.js
-        // الأوّليّ على نفس التحميل)، ثمّ كلّ PollInterval.
-        try { await Task.Delay(TimeSpan.FromSeconds(30), ct); }
+        // فحص فوريّ بعد ٥ ثوانٍ (يكفي ليأخذ Configuration وقته للوصول إلى
+        // AppVersionInfo)، ثمّ كلّ PollInterval. كنّا ننتظر ٣٠ ثانية فيُربك
+        // المستخدم: ينشر تحديثاً ولا يرى البانر.
+        try { await Task.Delay(TimeSpan.FromSeconds(5), ct); }
         catch (OperationCanceledException) { return; }
 
         while (!ct.IsCancellationRequested)

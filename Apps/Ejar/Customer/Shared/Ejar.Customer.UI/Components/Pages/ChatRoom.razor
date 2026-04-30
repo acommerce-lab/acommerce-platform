@@ -60,7 +60,8 @@
             <AcAlert Variant="danger" Message="@_sendError" />
         }
         <div class="acs-chat-composer" @onkeydown="OnComposerKey">
-            <AcInput Value="@_draft" ValueChanged="@(v => _draft = v ?? string.Empty)"
+            <AcInput Value="@_draft" id="chat-composer"
+                     ValueChanged="@(v => _draft = v ?? string.Empty)"
                      Placeholder="@(L["chat.new_message"])" />
             <AcButton Variant="primary" Text="@(L["chat.send"])" OnClick="@Send"
                       Disabled="@(_sending || string.IsNullOrWhiteSpace(_draft))" />
@@ -126,6 +127,9 @@
             Chat.MessageReceived += OnRealtimeMessage;
             try { await Chat.EnterAsync(Id); }
             catch { /* ignore — realtime معطّل في الإنتاج حالياً */ }
+
+            // ركّز على خانة الرسالة بعد ما يُرسَم الـ DOM.
+            try { await JS.InvokeVoidAsync("ejarChatUi.focus", "#chat-composer"); } catch { }
         }
 
         _loading = false;

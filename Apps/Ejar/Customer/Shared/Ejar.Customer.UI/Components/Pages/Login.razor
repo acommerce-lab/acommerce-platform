@@ -4,6 +4,7 @@
 @inject ApiReader Api
 @inject NavigationManager Nav
 @inject FavoritesSync Favorites
+@inject IJSRuntime JS
 @inject L L
 @inject INumeralNormalizer Numerals
 @implements IDisposable
@@ -33,7 +34,7 @@
                    شيئاً، فيضطرّ المستخدم لرفع يده من المفاتيح والنقر بالماوس. *@
                 <div @onkeydown="OnPhoneKey">
                     <AcField Label="@(L["auth.phone"])" Required="true">
-                        <AcInput Type="tel" Value="@_phone"
+                        <AcInput Type="tel" Value="@_phone" id="login-phone"
                                  ValueChanged="@(v => _phone = (Numerals.ToLatin(v) ?? string.Empty).Trim())"
                                  Placeholder="7XXXXXXXX" />
                     </AcField>
@@ -55,7 +56,7 @@
                     <p class="acs-nafath-instruction">@(L["auth.otp.hint"])</p>
 
                     <AcField Label="@(L["auth.otp"])" Required="true">
-                        <AcInput Type="tel" Value="@_code"
+                        <AcInput Type="tel" Value="@_code" id="login-code"
                                  ValueChanged="@(v => _code = (Numerals.ToLatin(v) ?? string.Empty).Trim())"
                                  Placeholder="123456" />
                     </AcField>
@@ -96,9 +97,20 @@
         if (Store.Auth.IsAuthenticated) Nav.NavigateTo("/");
     }
 
-    protected override void OnAfterRender(bool firstRender)
+    private bool _wasOtpSent;
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender) Store.Ui.HideChrome = true;
+
+        // ركّز على الحقل المفتوح: phone في الخطوة الأولى، code بعد إرسال OTP.
+        // _wasOtpSent يضمن أن نُركّز على code فور الانتقال للخطوة الثانية مرّة
+        // واحدة فقط (لا في كل re-render).
+        var target = !_otpSent ? "#login-phone" : "#login-code";
+        if (firstRender || _wasOtpSent != _otpSent)
+        {
+            _wasOtpSent = _otpSent;
+            try { await JS.InvokeVoidAsync("ejarChatUi.focus", target); } catch { }
+        }
     }
 
     private async Task RequestOtp()

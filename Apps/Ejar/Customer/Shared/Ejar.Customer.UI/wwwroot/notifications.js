@@ -71,5 +71,16 @@ window.ejarChatUi = (function () {
       }));
     } catch (_) { /* noop */ }
   }
-  return { scrollToBottom };
+
+  function focus(selector) {
+    try {
+      // double rAF لينتظر Blazor ما يُنهي إنشاء الـ DOM قبل focus.
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        const el = document.querySelector(selector);
+        if (el && typeof el.focus === 'function') el.focus({ preventScroll: false });
+      }));
+    } catch (_) { /* noop */ }
+  }
+
+  return { scrollToBottom, focus };
 })();

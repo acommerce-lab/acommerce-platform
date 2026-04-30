@@ -4,6 +4,7 @@ using ACommerce.Kits.Chat.Backend;
 using ACommerce.Kits.Notifications.Backend;
 using ACommerce.Kits.Versions.Backend;
 using ACommerce.Kits.Versions.Operations;
+using ACommerce.Realtime.Operations.Abstractions;
 using Ejar.Api.Data;
 using Ejar.Domain;
 using Microsoft.EntityFrameworkCore;
@@ -70,7 +71,13 @@ public sealed class EjarCustomerAuthUserStore : IAuthUserStore
 public sealed class EjarCustomerChatStore : IChatStore
 {
     private readonly EjarDbContext _db;
-    public EjarCustomerChatStore(EjarDbContext db) => _db = db;
+    private readonly IRealtimeTransport? _transport;
+
+    public EjarCustomerChatStore(EjarDbContext db, IRealtimeTransport? transport = null)
+    {
+        _db = db;
+        _transport = transport;
+    }
 
     public async Task<bool> CanParticipateAsync(string conversationId, string userId, CancellationToken ct)
     {
@@ -126,7 +133,26 @@ public sealed class EjarCustomerChatStore : IChatStore
 
         await _db.SaveChangesAsync(ct);
 
-        return new MessageView(msg);
+        var view = new MessageView(msg);
+
+        // Fallback broadcast مباشر عبر Clients.User(rawGuid). يضمن وصول
+        // الرسالة لكلّ الأجهزة المتّصلة لكلّ من المُرسِل والمستلِم بصرف النظر
+        // عن حالة عضوية الـ groups (chat:conv:X / notif:conv:X). هذا يُكمل
+        // الـ broadcast الذي يجريه ChatService على القنوات لاحقاً، فلو فشلت
+        // قناة لسبب ما — مثلاً الطرف الآخر لم يدخل الغرفة بعد فلم يدخل
+        // chat:conv:X، أو خلل في الـ coupling — تصل عبر هذا المسار.
+        if (_transport is not null)
+        {
+            try
+            {
+                await _transport.SendToUserAsync(senderId, "chat.message", view, ct);
+                if (recipientId != Guid.Empty && recipientId != senderGuid)
+                    await _transport.SendToUserAsync(recipientId.ToString(), "chat.message", view, ct);
+            }
+            catch { /* البثّ على القناة سيغطّي لو فشل user-pin */ }
+        }
+
+        return view;
     }
 
     public async Task<IReadOnlyList<IChatMessage>> GetMessagesAsync(
