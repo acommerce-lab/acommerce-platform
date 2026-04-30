@@ -13,10 +13,32 @@
 @inject NavigationManager Nav
 @inject EjarRealtimeService Realtime
 @inject FavoritesSync Favorites
+@inject VersionPoll VersionPoll
 @inject IConfiguration Config
 @implements IAsyncDisposable
 
 <div class="@(Store.Ui.HideChrome ? "acm-chrome-hidden" : "")">
+@if (VersionPoll.UpdateAvailable)
+{
+    @* بانر التحديث — يظهر فوق كلّ شيء عندما يُكتشف إصدار جديد على الخادم.
+       الزرّ "تحديث الآن" يُنظّف SW + caches ثمّ يُعيد التحميل. الـ
+       version-check.js الأوّليّ ما زال يعمل عند بدء التحميل، لكن هذا
+       الـ banner يُعالج الحالة "مستخدم يفتح التطبيق ساعات بينما نشرنا
+       إصدارين". *@
+    <div role="alert" style="position:sticky; top:0; z-index:1000;
+                             background:#1d4ed8; color:#fff; padding:10px 14px;
+                             display:flex; gap:12px; align-items:center;
+                             justify-content:center; flex-wrap:wrap;
+                             font-family:Cairo,sans-serif;">
+        <span>إصدار جديد متاح (@VersionPoll.AvailableVersion). أعد التحميل لتثبيته.</span>
+        <button type="button"
+                style="background:#fff; color:#1d4ed8; border:0; padding:6px 14px;
+                       border-radius:6px; font-weight:700; cursor:pointer;"
+                @onclick="ApplyAppUpdate">
+            تحديث الآن
+        </button>
+    </div>
+}
 <AcAppVersionGate>
     <ChildContent>
         <nav class="acm-mobile-nav">
@@ -95,8 +117,13 @@
     {
         Store.OnChanged += OnChange;
         Nav.LocationChanged += OnLocationChanged;
+        VersionPoll.Changed += OnVersionPollChanged;
+        _ = VersionPoll.StartAsync();
         UpdateChrome(Nav.Uri);
     }
+
+    private void OnVersionPollChanged() => InvokeAsync(StateHasChanged);
+    private async Task ApplyAppUpdate() => await VersionPoll.ApplyUpdateAsync();
 
     private void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
     {
@@ -150,7 +177,11 @@
     {
         _realtimeConnected = true;
         var apiBase = Config["EjarApi:BaseUrl"]?.TrimEnd('/') ?? "http://localhost:5300";
-        await Realtime.ConnectAsync($"{apiBase}/hubs/ejar");
+        // الـ hub في الباك مُركَّب على /realtime (راجع Program.cs MapHub).
+        // كان هنا "/hubs/ejar" خطأً — مسار غير موجود فيفشل negotiation
+        // ولا تصل أيّ رسالة حيّة. هذا سبب أنّ الإشعارات والدردشة الحيّة لم
+        // تعملا أبداً رغم أنّ كلّ القنوات والأكواد سليمة.
+        await Realtime.ConnectAsync($"{apiBase}/realtime");
 
         // اشترك مرّة واحدة في إشعارات realtime لإظهار toast OS-level. لا
         // نحتاج Firebase لهذا — Notification API الأصليّ يعمل ما دام التبويب
@@ -199,6 +230,8 @@
     {
         Store.OnChanged -= OnChange;
         Nav.LocationChanged -= OnLocationChanged;
+        VersionPoll.Changed -= OnVersionPollChanged;
+        await VersionPoll.DisposeAsync();
         await Realtime.DisposeAsync();
     }
 }

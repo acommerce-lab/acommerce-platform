@@ -1,6 +1,8 @@
+using ACommerce.Chat.Operations;
 using ACommerce.Favorites.Operations.Entities;
 using ACommerce.Kits.Support.Domain;
 using ACommerce.OperationEngine.Wire.Http;
+using ACommerce.Realtime.Operations.Abstractions;
 using Ejar.Api.Data;
 using Ejar.Domain;
 using Microsoft.AspNetCore.Authorization;
@@ -21,7 +23,18 @@ namespace Ejar.Api.Controllers;
 public sealed class CatalogController : ControllerBase
 {
     private readonly EjarDbContext _db;
-    public CatalogController(EjarDbContext db) => _db = db;
+    private readonly IChatService? _chat;
+    private readonly IConnectionTracker? _connections;
+
+    public CatalogController(
+        EjarDbContext db,
+        IChatService? chat = null,
+        IConnectionTracker? connections = null)
+    {
+        _db = db;
+        _chat = chat;
+        _connections = connections;
+    }
 
     private Guid? CurrentUserGuid =>
         Guid.TryParse(User.FindFirstValue("user_id"), out var g) ? g : null;
@@ -449,8 +462,30 @@ public sealed class CatalogController : ControllerBase
         _db.Conversations.Add(conv);
         await _db.SaveChangesAsync(ct);
 
+        // اشترك الطرفَين في notif:conv:X الآن لو هما متّصلَين بـ realtime —
+        // الـ Hub يفعل ذلك على اتصال جديد، لكن لو الطرف الآخر متّصل بالفعل
+        // بدون أن تكن المحادثة موجودة وقت اتصاله، لن يكون مشتركاً. هذا
+        // الاشتراك هنا يُغلق الفجوة فورَ الإنشاء.
+        await SubscribeBothPartiesAsync(conv.Id, uid, partnerId, ct);
+
         await AppendInitialMessageIfAny(conv.Id, uid, body.Text, ct);
         return this.OkEnvelope("conversation.start", new { id = conv.Id, created = true });
+    }
+
+    private async Task SubscribeBothPartiesAsync(Guid convId, Guid a, Guid b, CancellationToken ct)
+    {
+        if (_chat is null || _connections is null) return;
+        var convStr = convId.ToString();
+        foreach (var uid in new[] { a, b })
+        {
+            try
+            {
+                var connId = await _connections.GetConnectionIdAsync(uid.ToString(), ct);
+                if (string.IsNullOrEmpty(connId)) continue; // هذا المستخدم غير متّصل الآن
+                await _chat.SubscribeUserAsync(convStr, uid.ToString(), connId, ct);
+            }
+            catch { /* لا نكسر إنشاء المحادثة لو فشل اشتراك واحد */ }
+        }
     }
 
     // ملاحظة: GET /conversations و GET /conversations/{id} يعرّفهما

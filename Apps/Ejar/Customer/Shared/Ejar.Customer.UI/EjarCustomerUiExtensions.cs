@@ -117,6 +117,11 @@ public static class EjarCustomerUiExtensions
         // ─── Realtime + Chat client ────────────────────────────────────
         services.AddScoped<EjarRealtimeService>();
 
+        // VersionPoll يفحص /version.json دورياً ويُعلِم الواجهة بإصدار جديد
+        // مع زرّ تحديث ضمن التطبيق (بدلاً من إجبار auto-reload الذي قد يُربك
+        // المستخدم في وسط مهمّة).
+        services.AddScoped<VersionPoll>();
+
         // EjarChatClient يستخدم EjarCircuitHttp مباشرةً — يضمن أنّ Bearer token
         // مرفق على /chat/{id}/enter و /conversations/{id}/messages. الكلاس
         // الأصليّ ChatClient يطلب HttpClient من factory ويعتمد على

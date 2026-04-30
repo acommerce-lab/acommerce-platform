@@ -6,6 +6,7 @@ using ACommerce.Kits.Auth.TwoFactor.AsAuth;
 using ACommerce.Authentication.TwoFactor.Providers.Sms.Mock.Extensions;
 using ACommerce.Subscriptions.Operations.Extensions;
 using ACommerce.Kits.Chat;
+using ACommerce.Chat.Operations;
 using ACommerce.Kits.Discovery.Backend;
 using ACommerce.Realtime.Providers.InMemory.Extensions;
 using ACommerce.Realtime.Providers.SignalR.Extensions;
@@ -22,6 +23,7 @@ using ACommerce.Favorites.Operations.Entities;
 using Ejar.Api.Data;
 using Ejar.Api.Interceptors;
 using Ejar.Api.Middleware;
+using Ejar.Api.Realtime;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
 using ACommerce.Kits.Support.Backend;
@@ -136,6 +138,11 @@ builder.Services.AddAuthorization();
 
 builder.Services.AddSignalRRealtimeTransport()
     .AddInMemoryRealtimeTransport();
+// IUserIdProvider مخصّص لقراءة "user_id" من JWT (MapInboundClaims=false
+// يُلغي تحويل sub→NameIdentifier الافتراضيّ). بدونه IConnectionTracker
+// لا يربط user→connection، فأيّ SendToUserAsync أو SendToGroupAsync لا
+// يصل أحداً → كلّ realtime "زينة".
+builder.Services.AddSingleton<Microsoft.AspNetCore.SignalR.IUserIdProvider, EjarUserIdProvider>();
 builder.Services.AddChatKit<EjarCustomerChatStore>();
 // AddChatKit يسجّل IChatStore كـ Singleton، لكن EjarCustomerChatStore يستهلك
 // EjarDbContext (Scoped) → ValidateOnBuild يفشل بـ "Cannot consume scoped
@@ -248,7 +255,14 @@ app.UseMiddleware<CurrentCultureMiddleware>();
 app.UseAuthorization();
 
 app.MapControllers();
-app.MapHub<AShareHub>("/realtime");
+// EjarRealtimeHub يُضيف اشتراك المستخدم بـ notif:conv:X لكلّ محادثة عند
+// كلّ اتصال SignalR جديد. AShareHub الخامّ لا يفعل ذلك، فالطرف الآخر
+// لا يصله شيء حتى يفتح ChatRoom على المحادثة المحدّدة.
+app.MapHub<EjarRealtimeHub>("/realtime");
+
+// قاعدة الـ chat ↔ notif coupling: عند فتح chat:conv:X يُقفَل notif:conv:X
+// (لئلّا تتكرّر الإشعارات + الرسالة الحيّة)، وعند الإغلاق يُعاد فتحه.
+app.Services.WireChatNotificationCoupling();
 
 // نقطة الفحص الحيّ التي يستدعيها سكربت api-diagnostics.js في الواجهات
 // (Web/WASM/MAUI) عند بدء كلّ جلسة لاختبار الوصول إلى الخدمة وقاعدة البيانات.
