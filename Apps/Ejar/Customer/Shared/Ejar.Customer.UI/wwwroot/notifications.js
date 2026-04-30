@@ -28,24 +28,44 @@ window.ejarNotify = (function () {
     } catch { return 'denied'; }
   }
 
-  function show(title, body, opts) {
+  async function show(title, body, opts) {
     if (!('Notification' in window) || Notification.permission !== 'granted') return false;
     // لا تظهر الإشعار لو التبويب مرئيّ (المستخدم يرى الرسالة بالفعل).
     if (document.visibilityState === 'visible' && !(opts && opts.alwaysShow)) return false;
     try {
-      const n = new Notification(title || 'إيجار', {
+      const url = (opts && opts.url) || null;
+      const options = {
         body: body || '',
         icon: (opts && opts.icon) || '/icon-192.png',
+        badge: '/icon-192.png',
         tag:  (opts && opts.tag)  || 'ejar',
         renotify: !!(opts && opts.renotify),
-      });
-      const url = opts && opts.url;
+        data: { url },
+      };
+
+      // Chrome/Edge على Android يمنع `new Notification(...)` المباشر:
+      //   "Failed to construct 'Notification': Illegal constructor.
+      //    Use ServiceWorkerRegistration.showNotification()"
+      // المسار الموحَّد: ServiceWorkerRegistration.showNotification يعمل
+      // على الموبايل والكمبيوتر معاً. النقر يُعالَج في service-worker.js
+      // عبر event 'notificationclick' (يفتح data.url).
+      if ('serviceWorker' in navigator) {
+        try {
+          const reg = await navigator.serviceWorker.ready;
+          if (reg && typeof reg.showNotification === 'function') {
+            await reg.showNotification(title || 'إيجار', options);
+            return true;
+          }
+        } catch (e) {
+          // فشل SW path → نُحاول constructor كـ fallback (desktop قديم).
+          console.debug('[ejarNotify] SW.showNotification فشل، نحاول constructor:', e && e.message);
+        }
+      }
+
+      // fallback: desktop بدون SW (نادر).
+      const n = new Notification(title || 'إيجار', options);
       if (url) {
-        n.onclick = () => {
-          window.focus();
-          window.location.href = url;
-          n.close();
-        };
+        n.onclick = () => { window.focus(); window.location.href = url; n.close(); };
       }
       return true;
     } catch (e) {

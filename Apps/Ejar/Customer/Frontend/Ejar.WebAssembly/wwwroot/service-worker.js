@@ -4,7 +4,7 @@
 //
 // VERSION هنا — كلّما تغيّر نُجبر المتصفّح على تحديث الـ SW وحذف cache
 // القديم. ارفعه يدوياً عند كل تغيير في PWA shell (manifest/icons/SW).
-const VERSION = 'ejar-pwa-v31-2026-04-30';
+const VERSION = 'ejar-pwa-v32-2026-04-30';
 const SHELL_CACHE = `shell-${VERSION}`;
 
 // عند التثبيت: skipWaiting → الـ SW الجديد يأخذ السيطرة فوراً بدل أن
@@ -126,4 +126,28 @@ self.addEventListener('fetch', event => {
 // رسالة من الصفحة لإجبار SW على skipWaiting (لو نسخة جديدة تنتظر)
 self.addEventListener('message', e => {
   if (e.data === 'skipWaiting') self.skipWaiting();
+});
+
+// النقر على إشعار صادر عن ejarNotify.show (الذي يستخدم
+// ServiceWorkerRegistration.showNotification بدل new Notification،
+// لأنّ Chrome/Edge على Android يمنع الـ constructor المباشر). نفتح
+// التبويب الموجود إن كان مطابقاً للـ url، وإلا نفتح نافذة جديدة.
+self.addEventListener('notificationclick', event => {
+  event.notification.close();
+  const url = (event.notification.data && event.notification.data.url) || '/';
+  event.waitUntil((async () => {
+    try {
+      const all = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+      // ابحث عن تبويب على نفس origin — أعطه focus وانقله إلى الـ url.
+      for (const c of all) {
+        if (c.url && c.url.includes(self.location.origin)) {
+          if ('focus' in c) await c.focus();
+          if ('navigate' in c && url) { try { await c.navigate(url); } catch (_) {} }
+          return;
+        }
+      }
+      // لا تبويب مفتوح → افتح واحداً جديداً.
+      if (self.clients.openWindow) await self.clients.openWindow(url);
+    } catch (e) { /* noop */ }
+  })());
 });
