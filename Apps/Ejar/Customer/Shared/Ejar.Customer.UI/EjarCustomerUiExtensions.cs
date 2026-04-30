@@ -93,6 +93,7 @@ public static class EjarCustomerUiExtensions
         });
 
         services.AddScoped<FavoritesSync>();
+        services.AddScoped<FirebasePushService>();
 
         services.AddScoped<ClientOpEngine>(sp =>
             new ClientOpEngine(

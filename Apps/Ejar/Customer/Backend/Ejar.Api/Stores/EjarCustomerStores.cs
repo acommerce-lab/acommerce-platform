@@ -4,6 +4,7 @@ using ACommerce.Kits.Chat.Backend;
 using ACommerce.Kits.Notifications.Backend;
 using ACommerce.Kits.Versions.Backend;
 using ACommerce.Kits.Versions.Operations;
+using ACommerce.Notification.Operations.Abstractions;
 using ACommerce.Realtime.Operations.Abstractions;
 using Ejar.Api.Data;
 using Ejar.Domain;
@@ -72,11 +73,16 @@ public sealed class EjarCustomerChatStore : IChatStore
 {
     private readonly EjarDbContext _db;
     private readonly IRealtimeTransport? _transport;
+    private readonly INotificationChannel? _pushChannel;
 
-    public EjarCustomerChatStore(EjarDbContext db, IRealtimeTransport? transport = null)
+    public EjarCustomerChatStore(
+        EjarDbContext db,
+        IRealtimeTransport? transport = null,
+        INotificationChannel? pushChannel = null)
     {
         _db = db;
         _transport = transport;
+        _pushChannel = pushChannel;
     }
 
     public async Task<bool> CanParticipateAsync(string conversationId, string userId, CancellationToken ct)
@@ -150,6 +156,28 @@ public sealed class EjarCustomerChatStore : IChatStore
                     await _transport.SendToUserAsync(recipientId.ToString(), "chat.message", view, ct);
             }
             catch { /* البثّ على القناة سيغطّي لو فشل user-pin */ }
+        }
+
+        // Firebase Cloud Messaging — يصل للمستلم حتى وهو خارج التبويب/التطبيق
+        // (background push عبر service worker على الويب، system notification
+        // على المحمول). _pushChannel يكون null لو لم تُسجَّل بيانات الاعتماد
+        // في appsettings (Notifications:Firebase:CredentialsJson) — في تلك
+        // الحالة realtime + DB notification يكفيان.
+        if (_pushChannel is not null && recipientId != Guid.Empty && recipientId != senderGuid)
+        {
+            try
+            {
+                var senderName = (await _db.Users.AsNoTracking()
+                    .FirstOrDefaultAsync(u => u.Id == senderGuid, ct))?.FullName ?? "—";
+                var preview = body.Length > 80 ? body[..80] + "…" : body;
+                await _pushChannel.SendAsync(
+                    recipientId.ToString(),
+                    title:   $"رسالة جديدة من {senderName}",
+                    message: preview,
+                    data:    new { conversationId = cid.ToString(), type = "chat.message" },
+                    ct);
+            }
+            catch { /* فشل FCM غير قاتل — realtime + DB notification أساس الوصول */ }
         }
 
         return view;

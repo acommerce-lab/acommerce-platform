@@ -4,6 +4,7 @@
 @inject ApiReader Api
 @inject NavigationManager Nav
 @inject FavoritesSync Favorites
+@inject FirebasePushService FirebasePush
 @inject IJSRuntime JS
 @inject L L
 @inject INumeralNormalizer Numerals
@@ -146,6 +147,9 @@
             // اسحب المفضّلات من الخادم بعد تسجيل دخول جديد — حتّى تظهر مفضّلات
             // الجهاز الآخر فوراً دون الحاجة للذهاب إلى صفحة المفضّلة.
             try { await Favorites.LoadFromServerAsync(); } catch { /* غير قاتل */ }
+            // سجِّل رمز الجهاز في FCM ليصلَ المستخدم إشعارات الدفع حتى وهو
+            // خارج التبويب/التطبيق. آمن للاستدعاء حتى عند غياب الإعداد.
+            try { await FirebasePush.TryRegisterAsync(); } catch { /* غير قاتل */ }
             // ارجع إلى المسار الذي حاول المستخدم زيارته قبل أن يُطلَب منه الدخول
             // (يضعه RedirectToLogin في returnUrl). الافتراضيّ: الرئيسيّة.
             var dest = !string.IsNullOrWhiteSpace(ReturnUrl) ? ReturnUrl! : "/";

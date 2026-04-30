@@ -1,6 +1,7 @@
 using ACommerce.Chat.Operations;
 using ACommerce.Favorites.Operations.Entities;
 using ACommerce.Kits.Support.Domain;
+using ACommerce.Notification.Providers.Firebase.Storage;
 using ACommerce.OperationEngine.Wire.Http;
 using ACommerce.Realtime.Operations.Abstractions;
 using Ejar.Api.Data;
@@ -25,15 +26,50 @@ public sealed class CatalogController : ControllerBase
     private readonly EjarDbContext _db;
     private readonly IChatService? _chat;
     private readonly IConnectionTracker? _connections;
+    private readonly IDeviceTokenStore? _pushTokens;
 
     public CatalogController(
         EjarDbContext db,
         IChatService? chat = null,
-        IConnectionTracker? connections = null)
+        IConnectionTracker? connections = null,
+        IDeviceTokenStore? pushTokens = null)
     {
         _db = db;
         _chat = chat;
         _connections = connections;
+        _pushTokens = pushTokens;
+    }
+
+    // ═══ Push subscription ═══════════════════════════════════════════════
+    public sealed record PushSubscribeBody(string? Token, string? Platform);
+
+    /// <summary>
+    /// تسجيل رمز جهاز لـ Firebase Cloud Messaging. الواجهة تستدعيها بعد ما
+    /// يحصل المتصفّح/التطبيق على الـ token من Firebase SDK
+    /// (<c>getToken({vapidKey})</c>). الرموز تُحفَظ في جدول
+    /// <c>UserPushTokens</c> ويستهلكها <c>FirebaseNotificationChannel</c>
+    /// عند البثّ. لو الـ FCM غير مهيّأ على الخادم، نُرجع 200 ok بصمت ليبقى
+    /// الفرونت غير مرتبط بحالة التهيئة.
+    /// </summary>
+    [HttpPost("/me/push-subscription")]
+    public async Task<IActionResult> RegisterPushToken([FromBody] PushSubscribeBody body, CancellationToken ct)
+    {
+        if (CurrentUserGuid is not { } uid) return this.UnauthorizedEnvelope();
+        if (string.IsNullOrWhiteSpace(body.Token))
+            return this.BadRequestEnvelope("missing_token");
+        if (_pushTokens is null)
+            return this.OkEnvelope("push.subscribe", new { ok = true, fcmConfigured = false });
+
+        await _pushTokens.RegisterAsync(uid.ToString(), body.Token!, body.Platform, ct);
+        return this.OkEnvelope("push.subscribe", new { ok = true, fcmConfigured = true });
+    }
+
+    [HttpDelete("/me/push-subscription/{token}")]
+    public async Task<IActionResult> UnregisterPushToken(string token, CancellationToken ct)
+    {
+        if (CurrentUserGuid is not { } _) return this.UnauthorizedEnvelope();
+        if (_pushTokens is not null) await _pushTokens.UnregisterAsync(token, ct);
+        return this.OkEnvelope("push.unsubscribe", new { ok = true });
     }
 
     private Guid? CurrentUserGuid =>
@@ -413,40 +449,6 @@ public sealed class CatalogController : ControllerBase
     // الإعلان من جدول Listings ويستعمله partner. PartnerId يُقبل لو أُرسل صراحةً
     // (override للحالات الإداريّة) لكنّه ليس مطلوباً.
     public sealed record StartConversationBody(string? ListingId, string? PartnerId, string? Text);
-
-    /// <summary>
-    /// Polling fallback لـ realtime: يُرجع الرسائل الجديدة بعد timestamp مُعطى.
-    /// ChatRoom يستدعيها كلّ ٥ ثوانٍ كمسار احتياطيّ بجانب SignalR. لو الجوّال
-    /// قطع SSE/LongPolling في الخلفيّة، الـ polling يلتقط الرسائل الفائتة عند
-    /// عودة الصفحة للواجهة. الـ payload صغير (only delta) فلا يكلف باندويث.
-    /// </summary>
-    [HttpGet("/conversations/{id:guid}/messages")]
-    public async Task<IActionResult> ListMessagesSince(
-        Guid id,
-        [FromQuery(Name = "since")] DateTime? since,
-        CancellationToken ct)
-    {
-        if (CurrentUserGuid is not { } uid) return this.UnauthorizedEnvelope();
-        var convExists = await _db.Conversations.AsNoTracking()
-            .AnyAsync(c => c.Id == id && (c.OwnerId == uid || c.PartnerId == uid), ct);
-        if (!convExists) return this.NotFoundEnvelope("conversation_not_found");
-
-        var threshold = since?.ToUniversalTime() ?? DateTime.MinValue;
-        var rows = await _db.Messages.AsNoTracking()
-            .Where(m => m.ConversationId == id && m.SentAt > threshold)
-            .OrderBy(m => m.SentAt)
-            .Select(m => new {
-                id             = m.Id.ToString(),
-                conversationId = m.ConversationId.ToString(),
-                senderPartyId  = "User:" + m.From,
-                body           = m.Text,
-                sentAt         = m.SentAt,
-                readAt         = (DateTime?)null
-            })
-            .ToListAsync(ct);
-
-        return this.OkEnvelope("message.list", rows);
-    }
 
     [HttpPost("/conversations/start")]
     public async Task<IActionResult> StartConversation([FromBody] StartConversationBody body, CancellationToken ct)

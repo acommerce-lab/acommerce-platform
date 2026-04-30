@@ -108,6 +108,32 @@ public sealed class NotificationEntity : IBaseEntity
     [MaxLength(40)] public string Type { get; set; } = "system";
 }
 
+/// <summary>
+/// رمز جهاز للـ Firebase Cloud Messaging (web push / mobile). يُسجَّل من
+/// الواجهة عبر <c>POST /me/push-subscription</c> بعد ما يحصل المتصفّح/التطبيق
+/// على الرمز من Firebase SDK. الباك يبثّ إشعارات للمستخدم على كلّ الرموز
+/// المسجّلة لأجهزته (web + Android + iOS).
+///
+/// <para>تُستهلك من <see cref="ACommerce.Notification.Providers.Firebase.Storage.IDeviceTokenStore"/>
+/// عبر <c>EjarDeviceTokenStore</c>. الرموز قد تنتهي صلاحيّتها — Firebase
+/// Admin SDK تُرجع <c>NotRegistered</c> فيُحذف الصفّ المعنيّ تلقائياً.</para>
+/// </summary>
+public sealed class UserPushTokenEntity : IBaseEntity
+{
+    [Key] public Guid Id { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public DateTime? UpdatedAt { get; set; }
+    public bool IsDeleted { get; set; }
+
+    public Guid UserId { get; set; }
+
+    /// <summary>رمز FCM الفريد للجهاز. حتى ٤ آلاف حرف نظرياً، نتركه nvarchar(max).</summary>
+    public string Token { get; set; } = "";
+
+    /// <summary>"web" / "android" / "ios" — لتشخيص أيّ منصّة فقط.</summary>
+    [MaxLength(20)] public string? Platform { get; set; }
+}
+
 
 public sealed class PlanEntity : IBaseEntity
 {

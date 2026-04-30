@@ -17,6 +17,7 @@ public sealed class EjarDbContext : DbContext
     public DbSet<ConversationEntity>  Conversations  => Set<ConversationEntity>();
     public DbSet<MessageEntity>       Messages       => Set<MessageEntity>();
     public DbSet<NotificationEntity>  Notifications  => Set<NotificationEntity>();
+    public DbSet<UserPushTokenEntity> UserPushTokens => Set<UserPushTokenEntity>();
     public DbSet<Favorite>            Favorites      => Set<Favorite>();
     public DbSet<PlanEntity>          Plans          => Set<PlanEntity>();
     public DbSet<SupportTicket>       Complaints     => Set<SupportTicket>();
@@ -54,6 +55,12 @@ public sealed class EjarDbContext : DbContext
         b.Entity<ConversationEntity>().HasIndex(c => c.PartnerId);
         b.Entity<AppVersionEntity>().HasIndex(v => new { v.Platform, v.Version }).IsUnique();
         b.Entity<AppVersionEntity>().HasQueryFilter(e => !e.IsDeleted);
+
+        // Push tokens — index على UserId للبحث السريع، unique على Token وحده
+        // (نفس رمز قد يصدُر لمستخدم بعد re-login على نفس الجهاز فنُحدّث UserId).
+        b.Entity<UserPushTokenEntity>().HasIndex(t => t.UserId);
+        b.Entity<UserPushTokenEntity>().HasIndex(t => t.Token).IsUnique();
+        b.Entity<UserPushTokenEntity>().HasQueryFilter(e => !e.IsDeleted);
 
         // Decimal precision: SQL Server يستخدم decimal(18,2) افتراضياً مع تحذير.
         // نُحدّده صراحةً (10 منازل + 2 كسر) ليكفي ريال/دولار حتى ٩٩٬٩٩٩٬٩٩٩.٩٩.

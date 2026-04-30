@@ -36,16 +36,7 @@
         <div class="acs-chat-header" style="display:flex; justify-content:space-between; align-items:center;">
             <div>
                 <h1 class="acm-wizard-title" style="margin-bottom:4px;">@OtherName</h1>
-                <small style="color:var(--ac-text-muted);">
-                    @(_conv.Subject ?? "")
-                    @* مؤشّر حالة realtime — يساعد على تشخيص متى التسليم حيّ
-                       ومتى يعتمد على الـ polling الاحتياطيّ. *@
-                    <span style="margin-inline-start:8px; font-size:11px;">
-                        <span style="display:inline-block; width:8px; height:8px; border-radius:50%; vertical-align:middle;
-                                     background:@(_realtimeAlive ? "#16a34a" : "#f59e0b");"></span>
-                        @(_realtimeAlive ? "حيّ" : "تحقّق دوريّ")
-                    </span>
-                </small>
+                <small style="color:var(--ac-text-muted);">@(_conv.Subject ?? "")</small>
             </div>
             <AcButton Variant="ghost" Text="رجوع" OnClick="@GoBack" />
         </div>
@@ -89,16 +80,6 @@
 
     private int _lastSeenCount;
 
-    // Polling state. الـ realtime عبر SignalR قد يتعطّل على الجوّال (الـ tab
-    // في الخلفيّة، الشاشة مقفولة، شبكة الجوّال متقطّعة). نُشغّل polling
-    // كلّ ٥ ثوانٍ على /conversations/{id}/messages?since=ISO يجلب فقط ما
-    // وصل بعد آخر رسالة رأيناها. الـ dedup عبر Id يضمن عدم التكرار. الـ
-    // realtime يبقى الأسرع، الـ polling يضمن الوصول.
-    private System.Threading.Timer? _pollTimer;
-    private DateTime _lastSeenAt = DateTime.MinValue;
-    private bool _realtimeAlive;
-    private DateTime _lastRealtimeAt = DateTime.MinValue;
-
     protected override async Task OnAfterRenderAsync(bool first)
     {
         // أنزل التمرير إلى الأسفل عند أوّل render بعد تحميل الرسائل، وعند
@@ -141,26 +122,15 @@
         }
         else
         {
-            // ابدأ من timestamp آخر رسالة محمَّلة، ليبدأ polling من النقطة
-            // الصحيحة (وإلّا يجلب كلّ الرسائل في كلّ tick).
-            if (_messages.Count > 0)
-                _lastSeenAt = _messages[^1].SentAt;
-
-            // Open the chat channel for this conversation. لو فشل realtime،
-            // polling سيعمل وحده.
+            // افتح قناة الدردشة. التسليم الحيّ عبر SignalR للـ foreground،
+            // والإشعارات في الخلفيّة عبر Firebase Cloud Messaging (راجع
+            // FirebasePushService) فلا حاجة لـ polling.
             Chat.MessageReceived += OnRealtimeMessage;
             try { await Chat.EnterAsync(Id); }
             catch { /* ignore */ }
 
             // ركّز على خانة الرسالة بعد ما يُرسَم الـ DOM.
             try { await JS.InvokeVoidAsync("ejarChatUi.focus", "#chat-composer"); } catch { }
-
-            // فلتر polling: كلّ ٥s يفحص رسائل جديدة. خفيف الباندويث (delta only).
-            _pollTimer = new System.Threading.Timer(
-                _ => _ = PollOnceAsync(),
-                state: null,
-                dueTime:  TimeSpan.FromSeconds(5),
-                period:   TimeSpan.FromSeconds(5));
         }
 
         _loading = false;
@@ -189,10 +159,6 @@
 
     private void OnRealtimeMessage(IChatMessage msg)
     {
-        // أيّ رسالة من realtime = الاتّصال حيّ. نُحدّث المؤشّر للعرض.
-        _lastRealtimeAt = DateTime.UtcNow;
-        _realtimeAlive = true;
-
         // De-dup by id (server echo of remote message) — لا نُضيف نفس المعرّف مرّتَين.
         if (_messages.Any(m => m.Id == msg.Id)) return;
 
@@ -257,65 +223,10 @@
             await Send();
     }
 
-    /// <summary>
-    /// يجلب الرسائل التي وصلت بعد <see cref="_lastSeenAt"/> ويُضيف الجديد.
-    /// يُستدعى دورياً (٥s) من الـ Timer. realtime يُعتبر "حيّ" لو وصلت رسالة
-    /// عبره خلال آخر ١٢ ثانية؛ بعدها نعتمد على polling فقط.
-    /// </summary>
-    private async Task PollOnceAsync()
-    {
-        try
-        {
-            var sinceIso = _lastSeenAt == DateTime.MinValue
-                ? "0001-01-01T00:00:00Z"
-                : _lastSeenAt.ToUniversalTime().ToString("o");
-            var path = $"/conversations/{Uri.EscapeDataString(Id)}/messages" +
-                       $"?since={Uri.EscapeDataString(sinceIso)}";
-            var env = await Api.GetAsync<List<MessageDto>>(path);
-            if (env.Operation.Status != "Success" || env.Data is null) return;
-
-            var added = false;
-            foreach (var dto in env.Data)
-            {
-                if (_messages.Any(m => m.Id == dto.Id)) continue;
-
-                // استبدل local-* بـ id الحقيقيّ لو body+sender متطابقَين خلال
-                // ١٠s — يطابق ما يفعله OnRealtimeMessage فلا نكرّر رسالة المُرسِل.
-                if (dto.SenderPartyId == MyPartyId)
-                {
-                    var local = _messages.FirstOrDefault(m =>
-                        m.Id.StartsWith("local-") && m.Body == dto.Body
-                        && (dto.SentAt - m.SentAt).Duration() <= TimeSpan.FromSeconds(10));
-                    if (local is not null)
-                    {
-                        var idx = _messages.IndexOf(local);
-                        _messages[idx] = dto;
-                        if (dto.SentAt > _lastSeenAt) _lastSeenAt = dto.SentAt;
-                        added = true;
-                        continue;
-                    }
-                }
-
-                _messages.Add(dto);
-                if (dto.SentAt > _lastSeenAt) _lastSeenAt = dto.SentAt;
-                added = true;
-            }
-
-            // realtime يُعتبر حيّاً لو سُمع آخر ١٢ ثانية؛ غير ذلك نُظهر "تحقّق دوريّ".
-            var alive = (DateTime.UtcNow - _lastRealtimeAt) < TimeSpan.FromSeconds(12);
-            if (alive != _realtimeAlive) { _realtimeAlive = alive; added = true; }
-
-            if (added) await InvokeAsync(StateHasChanged);
-        }
-        catch { /* تجاهل خطأ شبكيّ — المحاولة التالية بعد ٥s */ }
-    }
-
     private void GoBack() => Nav.NavigateTo("/chats");
 
     public async ValueTask DisposeAsync()
     {
-        _pollTimer?.Dispose();
-        _pollTimer = null;
         Chat.MessageReceived -= OnRealtimeMessage;
         // Closing the chat channel re-opens the notif channel for this
         // conversation, so future messages reach the user as notifications.

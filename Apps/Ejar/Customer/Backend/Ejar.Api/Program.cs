@@ -37,6 +37,7 @@ using ACommerce.Kits.Auth.Backend;
 using ACommerce.Kits.Chat.Backend;
 using ACommerce.Kits.Notifications.Backend;
 using ACommerce.Kits.Versions.Backend;
+using ACommerce.Notification.Providers.Firebase.Extensions;
 using ACommerce.Kits.Auth.Operations;
 using ACommerce.SharedKernel.Infrastructure.EFCores.Context;
 using ACommerce.SharedKernel.Infrastructure.EFCore.Factories;
@@ -170,6 +171,36 @@ builder.Services.AddSupportKit();
 builder.Services.AddFavoritesKit();
 builder.Services.AddNotificationsKit<EjarCustomerNotificationStore>();
 builder.Services.AddVersionsKit<EjarVersionStore>();
+
+// Firebase Cloud Messaging — تسليم إشعارات للأجهزة (web push + Android/iOS)
+// عبر FCM Admin SDK. ينعم بحياة لمّا الـ tab في الخلفيّة أو الجوّال مقفول
+// (SignalR لا يُسلّم في تلك الحالات). شغّال فقط لو الـ config يحوي ServiceAccount
+// JSON — وإلّا نتخطّى ولا نفجّر startup.
+//
+// ServiceAccount يُحضَر من: Firebase Console → Project Settings → Service
+// accounts → Generate new private key. يُحفَظ كـ ملف على الخادم ويُشار إليه
+// بـ Notifications:Firebase:CredentialsFilePath، أو يُلصَق محتواه في
+// Notifications:Firebase:CredentialsJson (مفيد لـ secrets vault / env var).
+{
+    var fbCfg = builder.Configuration.GetSection(
+        ACommerce.Notification.Providers.Firebase.Options.FirebaseOptions.SectionName);
+    var hasCreds = !string.IsNullOrWhiteSpace(fbCfg["CredentialsJson"])
+                || !string.IsNullOrWhiteSpace(fbCfg["CredentialsFilePath"]);
+    if (hasCreds)
+    {
+        // مخزن الرموز DB-backed قبل تسجيل الكيت — TryAdd داخل الكيت يحترم التسجيل
+        // الموجود فلا يستبدله بـ InMemoryDeviceTokenStore.
+        builder.Services.AddSingleton<
+            ACommerce.Notification.Providers.Firebase.Storage.IDeviceTokenStore,
+            EjarDeviceTokenStore>();
+        builder.Services.AddFirebaseNotificationChannel(builder.Configuration);
+        Log.Information("Ejar.Firebase: registered FCM channel + EjarDeviceTokenStore");
+    }
+    else
+    {
+        Log.Information("Ejar.Firebase: skipped — set Notifications:Firebase:CredentialsJson to enable");
+    }
+}
 
 // 6. Controllers & Swagger
 builder.Services.AddControllers();
