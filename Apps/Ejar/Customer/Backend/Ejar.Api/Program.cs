@@ -136,8 +136,17 @@ builder.Services.AddAuthentication(Microsoft.AspNetCore.Authentication.JwtBearer
     });
 builder.Services.AddAuthorization();
 
-builder.Services.AddSignalRRealtimeTransport()
-    .AddInMemoryRealtimeTransport();
+// SignalR transport هو الـ IRealtimeTransport الحقيقيّ — يبثّ عبر الشبكة.
+// InMemoryConnectionTracker لتتبّع userId↔connectionId في عمليّة واحدة
+// (لا نحتاج Redis ما لم نتوسّع لعدّة instances). كنّا نسجّل
+// AddInMemoryRealtimeTransport بعد SignalR، فيُلغي تسجيل IRealtimeTransport
+// إلى InMemory الذي لا يبعث شيئاً عبر الشبكة → SSE connection يفتح لكن
+// أيّ SendToGroupAsync يصبّ داخل العمليّة فقط ولا يصل أحداً. هذا سبب أنّ
+// الرسائل والإشعارات لم تكن تصل في الزمن الحقيقيّ.
+builder.Services.AddSignalRRealtimeTransport();
+builder.Services.AddSingleton<ACommerce.Realtime.Providers.InMemory.InMemoryConnectionTracker>();
+builder.Services.AddSingleton<ACommerce.Realtime.Operations.Abstractions.IConnectionTracker>(
+    sp => sp.GetRequiredService<ACommerce.Realtime.Providers.InMemory.InMemoryConnectionTracker>());
 // IUserIdProvider مخصّص لقراءة "user_id" من JWT (MapInboundClaims=false
 // يُلغي تحويل sub→NameIdentifier الافتراضيّ). بدونه IConnectionTracker
 // لا يربط user→connection، فأيّ SendToUserAsync أو SendToGroupAsync لا
