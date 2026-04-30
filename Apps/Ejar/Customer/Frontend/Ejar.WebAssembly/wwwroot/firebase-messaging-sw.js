@@ -3,8 +3,12 @@
 // (/firebase-cloud-messaging-push-scope) فلا يتعارض مع service-worker.js
 // المسؤول عن PWA shell.
 //
-// تنبيه: قراءة firebase-config.json تتمّ هنا (لا نزرع الإعداد مرّتين).
-// لو الملف غير منشور (المضيف ما عدّ FCM)، نتجاهل بصمت.
+// مهمّ: تسجيل firebase + onBackgroundMessage + push handlers يجب أن
+// يكون **synchronous على مستوى أعلى** من السكربت — ليس داخل async/await.
+// Chrome يرفض إضافة push event listener بعد initial evaluation:
+//   "Event handler of 'push' event must be added on the initial evaluation
+//    of worker script."
+// لذلك نُضمّن الإعداد inline (الـ web config كلّه عامّ، آمن للزرع هنا).
 
 importScripts('https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/10.13.2/firebase-messaging-compat.js');
@@ -12,35 +16,35 @@ importScripts('https://www.gstatic.com/firebasejs/10.13.2/firebase-messaging-com
 self.addEventListener('install', e => self.skipWaiting());
 self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));
 
-(async () => {
-  try {
-    const res = await fetch('/firebase-config.json', { cache: 'no-store' });
-    if (!res.ok) return;
-    const cfg = await res.json();
-    if (!cfg || !cfg.apiKey || !cfg.messagingSenderId || !cfg.appId) return;
-    firebase.initializeApp(cfg);
-    const messaging = firebase.messaging();
+// تكوين Firebase web (مفاتيح عامّة فقط — لا تحوي service account).
+// مزامن لكي يسجِّل SDK push handlers قبل أن ينتهي السكربت.
+firebase.initializeApp({
+  apiKey: "AIzaSyD1Xe6QeXtt5Vj3Df89gP6GqcgLS8sXo_0",
+  authDomain: "ejar-7adcb.firebaseapp.com",
+  projectId: "ejar-7adcb",
+  storageBucket: "ejar-7adcb.firebasestorage.app",
+  messagingSenderId: "300907085870",
+  appId: "1:300907085870:web:61fb88a0b2043006f49fbf",
+  measurementId: "G-YBTW61LV96"
+});
 
-    // background message handler — نظهر إشعار نظام التشغيل.
-    messaging.onBackgroundMessage(payload => {
-      const title = (payload && payload.notification && payload.notification.title) || 'إيجار';
-      const body  = (payload && payload.notification && payload.notification.body)  || '';
-      const data  = (payload && payload.data) || {};
-      const url   = data.url || (data.conversationId ? `/chat/${data.conversationId}` : '/');
+const messaging = firebase.messaging();
 
-      self.registration.showNotification(title, {
-        body,
-        icon: '/icon-192.png',
-        badge: '/icon-192.png',
-        tag:   data.conversationId ? `chat:${data.conversationId}` : 'ejar',
-        data:  { url },
-      });
-    });
-  } catch (e) {
-    // غير قاتل — يعني ببساطة FCM غير مفعَّل في هذا الإصدار.
-    console.debug('[firebase-sw] skipped:', e && e.message);
-  }
-})();
+// background message handler — نُظهر إشعار نظام التشغيل.
+messaging.onBackgroundMessage(payload => {
+  const title = (payload && payload.notification && payload.notification.title) || 'إيجار';
+  const body  = (payload && payload.notification && payload.notification.body)  || '';
+  const data  = (payload && payload.data) || {};
+  const url   = data.url || (data.conversationId ? `/chat/${data.conversationId}` : '/');
+
+  self.registration.showNotification(title, {
+    body,
+    icon: '/icon-192.png',
+    badge: '/icon-192.png',
+    tag:   data.conversationId ? `chat:${data.conversationId}` : 'ejar',
+    data:  { url },
+  });
+});
 
 // النقر على الإشعار يفتح المحادثة المعنيّة (أو الجذر).
 self.addEventListener('notificationclick', event => {
