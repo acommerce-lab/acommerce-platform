@@ -136,14 +136,19 @@ builder.Services.AddAuthentication(Microsoft.AspNetCore.Authentication.JwtBearer
     });
 builder.Services.AddAuthorization();
 
-// SignalR transport هو الـ IRealtimeTransport الحقيقيّ — يبثّ عبر الشبكة.
-// InMemoryConnectionTracker لتتبّع userId↔connectionId في عمليّة واحدة
-// (لا نحتاج Redis ما لم نتوسّع لعدّة instances). كنّا نسجّل
-// AddInMemoryRealtimeTransport بعد SignalR، فيُلغي تسجيل IRealtimeTransport
-// إلى InMemory الذي لا يبعث شيئاً عبر الشبكة → SSE connection يفتح لكن
-// أيّ SendToGroupAsync يصبّ داخل العمليّة فقط ولا يصل أحداً. هذا سبب أنّ
-// الرسائل والإشعارات لم تكن تصل في الزمن الحقيقيّ.
-builder.Services.AddSignalRRealtimeTransport();
+// SignalR transport — يستعمل EjarSignalRTransport (IHubContext<EjarRealtimeHub>)
+// بدل SignalRRealtimeTransport في الكيت الذي يربط ثابتاً بـ AShareHub.
+// SignalR يفرز groups لكلّ Hub type على حدة، فلو استعملنا الكيت كما هو
+// يُضاف connId إلى group على AShareHub بينما الاتصال على EjarRealtimeHub —
+// الـ broadcast يبثّ إلى group فارغة ولا يصل أحد. هذا هو السبب الجذريّ
+// لـ "كلّ شيء حيّ ما عدا التسليم".
+//
+// AddSignalR + AddRealtimeChannels نضيفهما يدوياً (بدل AddSignalRRealtimeTransport
+// الذي يسجّل الـ transport الخاطئ).
+builder.Services.AddSignalR();
+builder.Services.AddSingleton<ACommerce.Realtime.Operations.Abstractions.IRealtimeTransport, EjarSignalRTransport>();
+ACommerce.Realtime.Operations.RealtimeExtensions.AddRealtimeChannels(builder.Services);
+
 builder.Services.AddSingleton<ACommerce.Realtime.Providers.InMemory.InMemoryConnectionTracker>();
 builder.Services.AddSingleton<ACommerce.Realtime.Operations.Abstractions.IConnectionTracker>(
     sp => sp.GetRequiredService<ACommerce.Realtime.Providers.InMemory.InMemoryConnectionTracker>());
