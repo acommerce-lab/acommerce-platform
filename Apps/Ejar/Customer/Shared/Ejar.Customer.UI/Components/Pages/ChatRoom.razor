@@ -11,7 +11,23 @@
 <PageTitle>@(L["chat.title"]) — @(L["app.name"])</PageTitle>
 
 <div class="acs-page acs-chat-page">
-    @if (_conv is null) { <AcLoadingState /> }
+    @if (_loading) { <AcLoadingState /> }
+    else if (_loadError is not null)
+    {
+        @* لا تُبقي المؤشّر يدور للأبد لو فشل /conversations/{id} (500/404). كان
+           الكود السابق يضع AcLoadingState متى كان _conv == null، فعند فشل
+           الجلب يبقى المستخدم محدّقاً في عجلة لا تتوقّف. الآن نعرض الخطأ
+           وزرّ رجوع. *@
+        <AcEmptyState IconName="alert-circle" Message="@_loadError" />
+        <AcButton Variant="ghost" Class="ac-btn-block" Text="رجوع للمحادثات"
+                  OnClick="@(() => Nav.NavigateTo("/chats"))" />
+    }
+    else if (_conv is null)
+    {
+        <AcEmptyState IconName="info" Message="المحادثة غير متوفّرة." />
+        <AcButton Variant="ghost" Class="ac-btn-block" Text="رجوع للمحادثات"
+                  OnClick="@(() => Nav.NavigateTo("/chats"))" />
+    }
     else
     {
         <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -48,6 +64,8 @@
 @code {
     [Parameter] public string Id { get; set; } = "";
     private Payload? _conv;
+    private bool _loading = true;
+    private string? _loadError;
     private readonly List<IChatMessage> _messages = new();
     private string _draft = "";
     private bool _sending;
@@ -56,19 +74,35 @@
     {
         if (!first) return;
 
-        // 1) Load message history from the DB (HTTP) — these are messages already persisted.
+        // 1) Load message history from the DB. لو فشل (500/404) نعرض خطأ بدل
+        //    إبقاء المؤشّر يدور.
         var env = await Api.GetAsync<Payload>($"/conversations/{Id}", localize: true);
         _conv = env.Data;
-        if (_conv is not null)
+        if (_conv is null)
+        {
+            var code = env.Error?.Code ?? env.Operation?.FailedAnalyzer;
+            var msg  = env.Error?.Message ?? env.Operation?.ErrorMessage;
+            _loadError = (code, msg) switch
+            {
+                ("conversation_not_found", _) => "المحادثة غير موجودة أو ليست لك.",
+                ("network_error", var m) when m is not null => $"تعذّر الاتصال: {m}",
+                (_, var m) when !string.IsNullOrWhiteSpace(m) => m!,
+                (var c, _) when !string.IsNullOrWhiteSpace(c) => $"تعذّر تحميل المحادثة ({c}).",
+                _ => "تعذّر تحميل المحادثة. حاول لاحقاً."
+            };
+        }
+        else
+        {
             _messages.AddRange(_conv.Messages.Select(m => (IChatMessage)
                 new ChatMessage(m.Id, Id, m.From, m.Text, m.SentAt)));
 
-        // 2) Open the chat channel for this conversation.
-        // Backend will close the user's notif channel for the same conversation,
-        // so future messages flow into MessageReceived (below) — not as notifications.
-        Chat.MessageReceived += OnRealtimeMessage;
-        await Chat.EnterAsync(Id);
+            // 2) Open the chat channel for this conversation.
+            Chat.MessageReceived += OnRealtimeMessage;
+            try { await Chat.EnterAsync(Id); }
+            catch { /* فشل realtime ليس حرجاً — الرسائل تستمرّ عبر HTTP polling إن لزم */ }
+        }
 
+        _loading = false;
         await InvokeAsync(StateHasChanged);
     }
 

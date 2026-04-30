@@ -163,18 +163,25 @@ public sealed class HomeController : ControllerBase
                 .ToListAsync(ct));
 
     // ── /plans (subscription catalog) ──────────────────────────────────────
+    // أسماء الحقول مُحاذاة لـ PlanDto على العميل (Plans.razor + Subscribe.razor):
+    // name (≡ Label), unit (≡ CycleLabel), listingQuota (≡ MaxActiveListings)،
+    // featuredQuota (≡ MaxFeaturedListings)، popular (≡ IsRecommended). كانت
+    // قديماً تُرجَع بأسماء قاعدة البيانات الخام فيظهر اسم الخطّة فارغاً والصفّ
+    // مُربكاً بلا حقول مفهومة.
     [HttpGet("/plans")]
     public async Task<IActionResult> Plans(CancellationToken ct) =>
         this.OkEnvelope("plan.list",
             await _db.Plans.AsNoTracking()
                 .Select(p => new {
-                    id = p.Id, label = p.Label, price = p.Price,
-                    cycleLabel = p.CycleLabel,
-                    maxActiveListings = p.MaxActiveListings,
-                    maxFeaturedListings = p.MaxFeaturedListings,
-                    maxImagesPerListing = p.MaxImagesPerListing,
-                    isRecommended = p.IsRecommended,
-                    description = p.Description,
+                    id               = p.Id,
+                    name             = p.Label,
+                    description      = p.Description,
+                    price            = p.Price,
+                    unit             = p.CycleLabel,
+                    listingQuota     = p.MaxActiveListings,
+                    featuredQuota    = p.MaxFeaturedListings,
+                    imagesPerListing = p.MaxImagesPerListing,
+                    popular          = p.IsRecommended,
                     features = string.IsNullOrEmpty(p.FeaturesCsv)
                         ? Array.Empty<string>()
                         : p.FeaturesCsv.Split(',', StringSplitOptions.RemoveEmptyEntries)

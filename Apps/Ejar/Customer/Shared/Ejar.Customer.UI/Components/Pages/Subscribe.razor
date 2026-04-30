@@ -5,78 +5,73 @@
 @inject NavigationManager Nav
 @inject L L
 
-<PageTitle>الدفع — @(L["app.name"])</PageTitle>
+@*
+  تفعيل الاشتراك — بدون بطاقة دفع. اليمن لا يملك بنية تحتيّة لبطاقات الائتمان
+  منتشرة، فحلّ "اضغط ادفع بالبطاقة" غير عمليّ. الحلّ الحاليّ:
+
+  1. خطّة مجانيّة (المجموع = 0) → زرّ "تفعيل" واحد يستدعي مباشرةً
+     /subscriptions/activate ويُحوّل إلى /me/subscription.
+
+  2. خطّة مدفوعة → نفس زرّ "تفعيل"، مع ملاحظة بأنّ تفاصيل السداد ستُرسَل
+     لاحقاً (تكامل Floosak / OneCash / تحصيل ميدانيّ يأتي لاحقاً).
+     لا نطلب بطاقة، ولا نُظهر نموذجاً للبطاقة، فالشاشة لن تخدع المستخدم.
+
+  هذا يبدّل صفحة /subscribe القديمة التي كانت تعرض AcPaymentForm وفشلها
+  في "ادفع 0 ر.ي" بلا توضيح.
+*@
+
+<PageTitle>تفعيل الاشتراك — @(L["app.name"])</PageTitle>
 
 <div class="acs-page acs-subscribe-page">
-    <h1 class="acm-wizard-title">إتمام الدفع</h1>
+    <h1 class="acm-wizard-title">تفعيل الاشتراك</h1>
 
     @if (_loading) { <AcLoadingState /> }
+    else if (_done)
+    {
+        <AcCard>
+            <ChildContent>
+                <div style="text-align:center; padding:16px 0;">
+                    <AcIcon Name="check-circle" Size="48" />
+                    <h3 style="margin:12px 0 4px;">تمّ تفعيل اشتراكك</h3>
+                    <p style="color:var(--ac-text-muted); margin:0 0 16px;">
+                        تستطيع الآن نشر إعلاناتك حسب حدود الباقة.
+                    </p>
+                    <AcButton Variant="primary" Class="ac-btn-block" Text="انتقل إلى اشتراكي"
+                              OnClick="@(() => Nav.NavigateTo("/my-subscription"))" />
+                </div>
+            </ChildContent>
+        </AcCard>
+    }
     else
     {
-        @if (Type == "plan")
-        {
-            <AcCard>
-                <ChildContent>
-                    <h3 style="margin-top:0;">خطّة @(_plan?.Name)</h3>
-                    <p>@(_plan?.Description)</p>
+        <AcCard>
+            <ChildContent>
+                <h3 style="margin-top:0;">@(_plan?.Name ?? "الخطّة")</h3>
+                @if (_plan is not null && !string.IsNullOrWhiteSpace(_plan.Description))
+                {
+                    <p style="color:var(--ac-text-muted);">@_plan.Description</p>
+                }
+                <div class="acm-checkout-line"><span>المجموع:</span>
+                    <strong>@(IsFree ? "مجّاناً" : $"{_baseAmount:0} ر.ي")</strong></div>
+                @if (!IsFree)
+                {
+                    <AcAlert Variant="info"
+                             Message="السداد للباقات المدفوعة يتمّ يدوياً عبر التواصل مع الإدارة. سيُفعَّل اشتراكك مباشرةً، وسنرسل تعليمات السداد لاحقاً." />
+                }
+            </ChildContent>
+        </AcCard>
 
-                    <AcField Label="دورة الفوترة">
-                        <div style="display:flex; gap:8px; flex-wrap:wrap;">
-                            <AcFilterChip Label="شهريّ"               Active="@(_cycle == "month")"   OnClick="@(() => SetCycle("month"))" />
-                            <AcFilterChip Label="ربع سنويّ (خصم 5%)" Active="@(_cycle == "quarter")" OnClick="@(() => SetCycle("quarter"))" />
-                            <AcFilterChip Label="سنويّ (خصم 20%)"    Active="@(_cycle == "year")"    OnClick="@(() => SetCycle("year"))" />
-                        </div>
-                    </AcField>
-                </ChildContent>
-            </AcCard>
+        @if (!string.IsNullOrEmpty(_error))
+        {
+            <AcAlert Variant="danger" Message="@_error" />
         }
 
-        <AcCard>
-            <ChildContent>
-                <h3 style="margin-top:0;">ملخّص الطلب</h3>
-                <div class="acm-checkout-line"><span>البند:</span><strong>@_itemText</strong></div>
-                <div class="acm-checkout-line"><span>السعر الأساسيّ:</span><strong>@BaseAmount ر.ي</strong></div>
-                @if (CycleDiscount > 0)
-                {
-                    <div class="acm-checkout-line"><span>خصم الدورة:</span><strong>−@CycleDiscount ر.ي</strong></div>
-                }
-                @if (PromoDiscount > 0)
-                {
-                    <div class="acm-checkout-line"><span>خصم البرومو (@_promoApplied):</span><strong>−@PromoDiscount ر.ي</strong></div>
-                }
-                <div class="acm-checkout-line"><span>المجموع الفرعيّ:</span><strong>@Subtotal ر.ي</strong></div>
-                <hr />
-                <div class="acm-checkout-line"><span><strong>المجموع:</strong></span><strong>@Total ر.ي</strong></div>
-            </ChildContent>
-        </AcCard>
-
-        <AcCard>
-            <ChildContent>
-                <AcField Label="رمز خصم (اختياريّ)">
-                    <div style="display:flex; gap:8px;">
-                        <AcInput Value="@_promo" ValueChanged="@(v => _promo = (v ?? string.Empty).Trim().ToUpperInvariant())"
-                                 Placeholder="EJAR10" />
-                        <AcButton Variant="outline-primary" Text="تطبيق" OnClick="@ApplyPromo" />
-                    </div>
-                </AcField>
-                @if (!string.IsNullOrEmpty(_promoAlert))
-                {
-                    <AcAlert Variant="@_promoAlertVariant" Message="@_promoAlert" />
-                }
-            </ChildContent>
-        </AcCard>
-
-        <AcCard>
-            <ChildContent>
-                <h3 style="margin-top:0;">بيانات الدفع</h3>
-                <AcPaymentForm SubmitLabel="@($"ادفع {Total} ر.ي")"
-                              OnSubmit="OnPay" />
-                @if (!string.IsNullOrEmpty(_alert))
-                {
-                    <AcAlert Variant="@_alertVariant" Message="@_alert" />
-                }
-            </ChildContent>
-        </AcCard>
+        <AcStickyActionBar>
+            <AcButton Variant="ghost" Text="رجوع" OnClick="@(() => Nav.NavigateTo("/plans"))" Disabled="@_busy" />
+            <AcButton Variant="primary" Class="ac-btn-block"
+                      Text="@(_busy ? "جارٍ التفعيل…" : "تفعيل الاشتراك")"
+                      OnClick="@Activate" Disabled="@_busy" />
+        </AcStickyActionBar>
     }
 </div>
 
@@ -86,17 +81,13 @@
     [SupplyParameterFromQuery] public decimal Amount { get; set; }
 
     private PlanDto? _plan;
-    private string _itemText = "";
     private decimal _baseAmount;
-    private string _cycle = "month";
-    private string _promo = "";
-    private string? _promoApplied;
-    private decimal _promoPct;
-    private string? _promoAlert;
-    private string _promoAlertVariant = "success";
-    private string? _alert;
-    private string _alertVariant = "success";
     private bool _loading = true;
+    private bool _busy;
+    private bool _done;
+    private string? _error;
+
+    private bool IsFree => _baseAmount <= 0;
 
     protected override async Task OnAfterRenderAsync(bool first)
     {
@@ -106,64 +97,42 @@
             var env = await Api.GetAsync<List<PlanDto>>("/plans");
             _plan = env.Data?.FirstOrDefault(p => p.Id == Id);
             _baseAmount = _plan?.Price ?? Amount;
-            _itemText = _plan is null ? $"خطّة {Id}" : $"اشتراك خطّة {_plan.Name}";
         }
         else
         {
-            _baseAmount = Amount > 0 ? Amount : 99m;
-            _itemText = $"إعلان #{Id ?? "—"}";
+            _baseAmount = Amount;
         }
         _loading = false;
         await InvokeAsync(StateHasChanged);
     }
 
-    private decimal BaseAmount => _cycle switch
+    private async Task Activate()
     {
-        "quarter" => _baseAmount * 3,
-        "year"    => _baseAmount * 12,
-        _         => _baseAmount
-    };
-
-    private decimal CycleDiscount => _cycle switch
-    {
-        "quarter" => Math.Round(BaseAmount * 0.05m, 2),
-        "year"    => Math.Round(BaseAmount * 0.20m, 2),
-        _         => 0m
-    };
-
-    private decimal PromoDiscount => Math.Round((BaseAmount - CycleDiscount) * _promoPct, 2);
-    private decimal Subtotal => BaseAmount - CycleDiscount - PromoDiscount;
-    private decimal Total => Subtotal;
-
-    private void SetCycle(string c) => _cycle = c;
-
-    private void ApplyPromo()
-    {
-        switch (_promo)
+        if (string.IsNullOrEmpty(Id)) { _error = "خطّة غير محدّدة."; return; }
+        _busy = true; _error = null;
+        try
         {
-            case "EJAR10": _promoApplied = _promo; _promoPct = 0.10m;
-                _promoAlert = "تمّ تطبيق خصم 10%"; _promoAlertVariant = "success"; break;
-            case "WELCOME20": _promoApplied = _promo; _promoPct = 0.20m;
-                _promoAlert = "تمّ تطبيق خصم 20%"; _promoAlertVariant = "success"; break;
-            default: _promoPct = 0; _promoApplied = null;
-                _promoAlert = "الرمز غير صالح"; _promoAlertVariant = "danger"; break;
+            var env = await Api.PostAsync<object>("/subscriptions/activate", new { planId = Id });
+            if (env.Operation.Status == "Success")
+            {
+                _done = true;
+            }
+            else
+            {
+                var code = env.Error?.Code ?? env.Operation?.FailedAnalyzer;
+                var msg  = env.Error?.Message ?? env.Operation?.ErrorMessage;
+                _error = (code, msg) switch
+                {
+                    ("invalid_plan_id", _) => "معرّف الخطّة غير صالح.",
+                    ("plan_not_found",  _) => "الخطّة غير موجودة.",
+                    (_, var m) when !string.IsNullOrWhiteSpace(m) => m!,
+                    (var c, _) when !string.IsNullOrWhiteSpace(c) => $"تعذّر التفعيل ({c}).",
+                    _ => "تعذّر تفعيل الاشتراك. حاول مجدّداً."
+                };
+            }
         }
-    }
-
-    private void OnPay(AcPaymentForm.PaymentFormValues dto)
-    {
-        var lastDigit = dto.CardNumber.LastOrDefault(char.IsDigit);
-        if (char.IsDigit(lastDigit) && (lastDigit - '0') % 2 == 0)
-        {
-            Nav.NavigateTo(
-                $"/payment/callback?status=success&type={Type ?? "plan"}&id={Id}" +
-                $"&amount={Total.ToString(System.Globalization.CultureInfo.InvariantCulture)}");
-        }
-        else
-        {
-            _alert = "فشلت عمليّة الدفع — حاول ببطاقة أخرى";
-            _alertVariant = "danger";
-        }
+        catch (Exception ex) { _error = $"خطأ غير متوقّع: {ex.Message}"; }
+        finally { _busy = false; await InvokeAsync(StateHasChanged); }
     }
 
     private sealed record PlanDto(string Id, string Name, string Description,
