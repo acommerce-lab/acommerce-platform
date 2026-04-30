@@ -248,7 +248,37 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseCors(opt => opt.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod());
+// CORS — لا بدّ أن نسمح بـ AllowCredentials لكي ينجح SignalR negotiate
+// (الـ JS client يضع withCredentials=true افتراضياً). AllowAnyOrigin مع
+// AllowCredentials ممنوع من الـ spec، لذا نقرأ origins صريحة من الإعدادات،
+// مع fallback يعكس Origin الطلب وقت التشغيل (نفس أثر * مع credentials).
+{
+    var origins  = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? Array.Empty<string>();
+    var patterns = builder.Configuration.GetSection("Cors:AllowedOriginPatterns").Get<string[]>() ?? Array.Empty<string>();
+    app.UseCors(opt =>
+    {
+        if (origins.Length == 0 && patterns.Length == 0)
+        {
+            // السماح بأيّ Origin يعكسه ديناميّاً + AllowCredentials. هذا يجعل
+            // SignalR يعمل في dev/local + runasp.net بلا قائمة بيضاء صريحة.
+            opt.SetIsOriginAllowed(_ => true)
+               .AllowAnyHeader().AllowAnyMethod().AllowCredentials();
+        }
+        else
+        {
+            if (origins.Length > 0) opt.WithOrigins(origins);
+            if (patterns.Length > 0)
+                opt.SetIsOriginAllowed(o => patterns.Any(p => MatchesWildcard(o, p)));
+            opt.AllowAnyHeader().AllowAnyMethod().AllowCredentials();
+        }
+    });
+}
+static bool MatchesWildcard(string origin, string pattern)
+{
+    // pattern مثل "https://*.runasp.net" — نطابقه على origin الطلب الخامّ.
+    var rx = "^" + System.Text.RegularExpressions.Regex.Escape(pattern).Replace("\\*", ".*") + "$";
+    return System.Text.RegularExpressions.Regex.IsMatch(origin, rx);
+}
 app.UseAuthentication();
 app.UseMiddleware<CurrentUserMiddleware>();
 app.UseMiddleware<CurrentCultureMiddleware>();

@@ -101,6 +101,29 @@ public sealed class EjarCustomerChatStore : IChatStore
         _db.Messages.Add(msg);
         conv.LastAt = msg.SentAt;
         conv.UnreadCount += 1;
+
+        // أنشئ Notification persisted في DB للمستلِم (الطرف الآخر) — هذا ما
+        // يجعل صفحة /notifications تعرض رسالة جديدة حتى لو كان الـ realtime
+        // معطّلاً وقت الإرسال أو المستلم غير متّصل. الإشعار يبقى لحين قراءته
+        // من المستلِم.
+        Guid.TryParse(senderId, out var senderGuid);
+        var recipientId = conv.OwnerId == senderGuid ? conv.PartnerId : conv.OwnerId;
+        if (recipientId != Guid.Empty && recipientId != senderGuid)
+        {
+            var preview = body.Length > 80 ? body[..80] + "…" : body;
+            _db.Notifications.Add(new NotificationEntity
+            {
+                Id        = Guid.NewGuid(),
+                CreatedAt = DateTime.UtcNow,
+                UserId    = recipientId,
+                Title     = $"رسالة جديدة في \"{conv.Subject}\"",
+                Body      = preview,
+                Type      = "chat.message",
+                RelatedId = cid.ToString(),
+                IsRead    = false,
+            });
+        }
+
         await _db.SaveChangesAsync(ct);
 
         return new MessageView(msg);
@@ -217,39 +240,53 @@ public sealed class EjarCustomerChatStore : IChatStore
 }
 
 /// <summary>
-/// مخزن إشعارات المستأجر — يقرأ من EjarSeed (مرآة لـ EjarCustomerChatStore).
-/// المستأجر يرى كلّ إشعارات الـ seed (لا تمييز per-user حالياً).
+/// مخزن إشعارات إيجار — مدعوم بـ EF (جدول <c>Notifications</c> per-user).
+/// كان السابق يقرأ من <c>EjarSeed.Notifications</c> (قائمة بذور in-memory
+/// مشتركة بين كل المستخدمين)، فيرى كل مستخدم نفس البذرة بدون أيّ ربط بحسابه
+/// الفعليّ ولا تُحفَظ الإشعارات الجديدة في DB. الآن:
+/// <list type="bullet">
+///   <item><see cref="ListAsync"/> ↦ <c>WHERE UserId = @uid</c>.</item>
+///   <item><see cref="MarkReadAsync"/> / <see cref="MarkAllReadAsync"/> ↦ تحديثات على الصفّ الصحيح.</item>
+///   <item>إنشاء الإشعار يحدث في <c>EjarCustomerChatStore.AppendMessageAsync</c>
+///         عند كل رسالة جديدة (مرفقة بـ realtime broadcast على نفس الـ
+///         conversation channel).</item>
+/// </list>
 /// </summary>
 public sealed class EjarCustomerNotificationStore : INotificationStore
 {
-    public Task<IReadOnlyList<NotificationItem>> ListAsync(string userId, CancellationToken ct)
+    private readonly EjarDbContext _db;
+    public EjarCustomerNotificationStore(EjarDbContext db) => _db = db;
+
+    public async Task<IReadOnlyList<NotificationItem>> ListAsync(string userId, CancellationToken ct)
     {
-        IReadOnlyList<NotificationItem> rows = EjarSeed.Notifications
+        if (!Guid.TryParse(userId, out var uid)) return Array.Empty<NotificationItem>();
+        var rows = await _db.Notifications.AsNoTracking()
+            .Where(n => n.UserId == uid)
             .OrderByDescending(n => n.CreatedAt)
-            .Select(n => new NotificationItem(
-                n.Id, n.Type, n.Title, n.Body, n.CreatedAt, n.IsRead, n.RelatedId))
-            .ToList();
-        return Task.FromResult(rows);
+            .ToListAsync(ct);
+        return rows.Select(n => new NotificationItem(
+            n.Id.ToString(), n.Type, n.Title, n.Body, n.CreatedAt, n.IsRead, n.RelatedId)).ToList();
     }
 
-    public Task<bool> MarkReadAsync(string userId, string notificationId, CancellationToken ct)
+    public async Task<bool> MarkReadAsync(string userId, string notificationId, CancellationToken ct)
     {
-        var ix = EjarSeed.Notifications.FindIndex(n => n.Id == notificationId);
-        if (ix < 0) return Task.FromResult(false);
-        EjarSeed.Notifications[ix] = EjarSeed.Notifications[ix] with { IsRead = true };
-        return Task.FromResult(true);
+        if (!Guid.TryParse(userId, out var uid))     return false;
+        if (!Guid.TryParse(notificationId, out var nid)) return false;
+        var n = await _db.Notifications.FirstOrDefaultAsync(x => x.Id == nid && x.UserId == uid, ct);
+        if (n is null) return false;
+        n.IsRead = true; n.UpdatedAt = DateTime.UtcNow;
+        await _db.SaveChangesAsync(ct);
+        return true;
     }
 
-    public Task<int> MarkAllReadAsync(string userId, CancellationToken ct)
+    public async Task<int> MarkAllReadAsync(string userId, CancellationToken ct)
     {
-        var count = 0;
-        for (var i = 0; i < EjarSeed.Notifications.Count; i++)
-        {
-            if (EjarSeed.Notifications[i].IsRead) continue;
-            EjarSeed.Notifications[i] = EjarSeed.Notifications[i] with { IsRead = true };
-            count++;
-        }
-        return Task.FromResult(count);
+        if (!Guid.TryParse(userId, out var uid)) return 0;
+        var rows = await _db.Notifications
+            .Where(n => n.UserId == uid && !n.IsRead).ToListAsync(ct);
+        foreach (var n in rows) { n.IsRead = true; n.UpdatedAt = DateTime.UtcNow; }
+        await _db.SaveChangesAsync(ct);
+        return rows.Count;
     }
 }
 

@@ -600,14 +600,28 @@ main {
     }
 }
 
-/* ── Chat room: full-screen with bubbles ───────────────────────────── */
+/* ── Chat room: full-screen with bubbles ─────────────────────────────
+   على الموبايل: نريد ChatRoom تحتلّ كامل المساحة بين الـ navs العلويّة
+   والسفليّة. كانت تستخدم 100dvh مع نقصان تقديريّ (56+64+12) فيُنتج فجوة
+   فارغة كبيرة في الأسفل لأنّ .acs-page نفسها فيها padding 24px ما يُحسَب
+   ضمن الـ height. الإصلاح: جعل .acs-chat-page تستخدم 100% من المُتاح في
+   <main> بدل الحساب اليدويّ، مع padding=0 لإلغاء حشو acs-page.
+   ─────────────────────────────────────────────────────────── */
 .acs-chat-page {
     display: flex;
     flex-direction: column;
-    height: calc(100dvh - var(--acm-mobile-nav-h, 56px) - var(--acm-bottom-nav-h, 64px) - 12px);
+    /* fixed positioning بين top-nav الموبايل و bottom-nav: يضمن ملء كامل
+       المساحة ولا يحسب أيّ padding داخل .acs-page. على الديسكتوب نُلغيه
+       لاحقاً عبر media query لأنّ bottom-nav غير ظاهر. */
+    position: fixed;
+    inset-block-start: var(--acm-mobile-nav-h, 56px);
+    inset-block-end:   var(--acm-bottom-nav-h, 64px);
+    inset-inline:      0;
     overflow: hidden;
+    background: var(--ac-bg);
+    z-index: 5;
 }
-.acs-chat-page.acs-page { padding: 0; }
+.acs-chat-page.acs-page { padding: 8px 12px; }
 .acs-chat-messages {
     flex: 1 1 0;
     min-height: 0;
@@ -616,6 +630,14 @@ main {
     gap: 8px;
     overflow-y: auto;
     padding: 12px 4px;
+}
+@media (min-width: 768px) {
+    /* على الديسكتوب: bottom-nav مخفيّ، نخليّها بالطريقة العاديّة flow في الـ <main>. */
+    .acs-chat-page {
+        position: static;
+        inset: auto;
+        height: calc(100dvh - var(--acm-topnav-h, 64px) - 24px);
+    }
 }
 .acs-bubble {
     max-width: 78%;
