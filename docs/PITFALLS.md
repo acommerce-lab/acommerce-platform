@@ -465,6 +465,54 @@ diff <(find libs Apps -name "*.csproj" -not -path "*/bin/*" -not -path "*/obj/*"
 
 ---
 
+## P14 — الطبقات الست لا تحمي من زرّ خام بكلاس "ضعيف"
+
+**المظهر.** زرّ يظهر بدون أيّ تنسيقات في الإنتاج (border افتراضيّ، بدون
+padding، بدون background)، رغم أنّ الـ٦ طبقات تعبر بدون انتهاكات.
+
+**الجذر.** نمط الـ "raw button + ad-hoc class" يسلكه عبر الفجوات:
+
+- **Layer 1** (`verify-page-structure.sh` — no-raw-button): يسمح بـ
+  `<button class="acs-*">` لأنّ المشروع يستخدم prefix `.acs-` كـ widget
+  دلاليّ شرعيّ (مثلاً `.acs-fav-btn` المعرَّف بكامله في app.css).
+- **Layer 2** (`verify-css.sh`): الكلاس **معرَّف** في CSS فيمرّ. لا يفحص
+  هل التعريف يحوي خصائص بصريّة كافية.
+- **Layer 5** (`verify-widget-contracts.sh`): يفحص فقط الكلاسات المسجَّلة
+  في `widget-contracts.json`. كلاس جديد بـ ad-hoc properties غير مسجَّل
+  → لا يُفحَص.
+- **Layer 6** (Playwright): لو الكلاس معرَّف بـ `background: transparent`،
+  Playwright لا يميِّزه عن "كلاس بلا styling" — كلاهما computed صحيح.
+- يضاف لذلك: لو CSS الجديد لم يصل للـ bundle المنشور (cache CDN، نشر
+  جزئيّ) فالطبقات لا ترى ما يحدث في الإنتاج.
+
+**الحلّ.** القاعدة: **لا** كلاس CSS ad-hoc لـ button. استخدم `<AcButton>`
+دائماً مع `Variant` المناسب (`primary` / `ghost` / `outline-primary` /
+`secondary` / `danger` / إلخ). هذه widgets معتمَدة في
+`scripts/widget-contracts.json` فيُفرَض contract بصريّ كامل.
+
+```razor
+<!-- ❌ -->
+<button type="button" class="acs-report-link" @onclick="OpenReport">إبلاغ</button>
+
+<!-- ✅ -->
+<AcButton Variant="ghost" Size="sm" Icon="flag"
+          Text="إبلاغ" OnClick="@OpenReport" />
+```
+
+استثناءات: عناصر تفاعليّة فيها interactivity داخليّة معقّدة (مثل
+`acs-fav-btn` التي تُشغّل قلباً متحرّكاً). تلك تُسجَّل صراحةً في
+`widget-contracts.json` بـ MIN-PROPERTIES وتمرّ Layer 5.
+
+**الكشف.** عند مراجعة PR قبل النشر، اسأل: هل أيّ ملف Razor جديد يستخدم
+`<button>` خام؟ لو نعم، تحقّق من وجود الـ class في contracts، وإلاّ
+استبدل بـ `<AcButton>`.
+
+> **توصية**: تطوير لاحق على Layer 1: راقب `<button class="acs-*">` وتحقّق
+> أنّ الكلاس المُستخدَم له entry في `widget-contracts.json`. لو لا → ✗.
+> هذا يقلّل الاعتماد على المراجعة البشريّة. *Out of scope في هذه الجلسة.*
+
+---
+
 ## ملاحظة — قواعد العمل (T1-T6)
 
 `CLAUDE.md` يحوي قواعد T1-T6 المتعلّقة بانضباط استخدام الأدوات (Read قبل

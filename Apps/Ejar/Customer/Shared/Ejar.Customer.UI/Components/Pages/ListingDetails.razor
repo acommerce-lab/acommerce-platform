@@ -132,14 +132,13 @@
                 </ChildContent>
             </AcCard>
         }
-        @* زرّ "إبلاغ عن الإعلان" — للزائرين المسجَّلين، مخفيّ على إعلان المستخدم نفسه. *@
+        @* زرّ "إبلاغ عن الإعلان" — يستخدم AcButton widget بدل raw button،
+           فيرث styling مفروض من contract (Layer 5) وأيقونة flag معيار. *@
         @if (!IsMine && Store.Auth.IsAuthenticated && _listing is not null)
         {
-            <div style="margin-top:8px; text-align:center;">
-                <button type="button" class="acs-report-link" @onclick="OpenReport">
-                    <AcIcon Name="flag" Size="14" />
-                    إبلاغ عن هذا الإعلان
-                </button>
+            <div class="acs-report-link-wrap">
+                <AcButton Variant="ghost" Size="sm" Icon="flag"
+                          Text="إبلاغ عن هذا الإعلان" OnClick="@OpenReport" />
             </div>
         }
 
