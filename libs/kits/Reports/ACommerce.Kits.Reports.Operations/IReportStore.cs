@@ -10,13 +10,6 @@ public static class ReportOps
     public static readonly OperationType SetStatus = new("report.set_status");
 }
 
-/// <summary>توافق خلفيّ.</summary>
-public static class ReportOperationTypes
-{
-    public static readonly OperationType Submit    = ReportOps.Submit;
-    public static readonly OperationType SetStatus = ReportOps.SetStatus;
-}
-
 /// <summary>مفاتيح وسوم البلاغات.</summary>
 public static class ReportTagKeys
 {
@@ -38,17 +31,6 @@ public static class ReportMarkers
     public static readonly Marker IsReport = new(ReportTagKeys.Kind, ReportTagValues.Report);
 }
 
-/// <summary>توافق خلفيّ — مهجور.</summary>
-public static class ReportTags
-{
-    public const string Kind       = "kind";
-    public const string KindReport = "report";
-    public const string EntityType = "entity_type";
-    public const string EntityId   = "entity_id";
-    public const string Reason     = "reason";
-    public const string FromStatus = "from_status";
-    public const string ToStatus   = "to_status";
-}
 
 /// <summary>
 /// عقد التخزين. التطبيق يُنفِّذه (مثل <c>EjarReportStore</c>) ويعرف شكل

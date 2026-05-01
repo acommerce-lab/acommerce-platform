@@ -81,11 +81,11 @@ public sealed class SupportController : ControllerBase
     public async Task<IActionResult> Open([FromBody] OpenRequest req, CancellationToken ct)
     {
         ISupportTicket? created = null;
-        var op = Entry.Create(SupportOperationTypes.TicketOpen)
+        var op = Entry.Create(SupportOps.TicketOpen)
             .Describe($"User {CallerId} opens a support ticket")
             .From(CallerPartyId, 1, ("role", "complainant"))
             .To("Ticket:NEW",   1, ("role", "created"))
-            .Tag(SupportTags.Kind, SupportTags.KindSupport)
+            .Mark(SupportMarkers.IsTicketReply)
             .Tag("subject",   req.Subject ?? "")
             .Tag("priority",  req.Priority ?? "normal")
             .Analyze(new RequiredFieldAnalyzer("subject", () => req.Subject))
@@ -107,7 +107,7 @@ public sealed class SupportController : ControllerBase
         var env = await _engine.ExecuteEnvelopeAsync(op, (object?)created ?? new { }, ct);
         if (env.Operation.Status != "Success" || created is null)
             return this.BadRequestEnvelope(env.Operation.FailedAnalyzer ?? "open_failed", env.Operation.ErrorMessage);
-        return this.OkEnvelope(SupportOperationTypes.TicketOpen, created);
+        return this.OkEnvelope(SupportOps.TicketOpen, created);
     }
 
     // ─── POST /support/tickets/{id}/replies ────────────────────────────
@@ -124,15 +124,15 @@ public sealed class SupportController : ControllerBase
 
         // OAM Type = "message.send" (نفس Chat kit) — الردّ يُورِّث أيّ
         // interceptor مسجَّل على رسائل الدردشة (realtime، FCM، …) دون
-        // كود إضافيّ. التمييز للـ Support interceptors عبر tag(kind).
+        // كود إضافيّ. التمييز للـ Support interceptors عبر marker.
         IChatMessage? msg = null;
-        var op = Entry.Create(SupportOperationTypes.TicketReply)
+        var op = Entry.Create(SupportOps.TicketReply)
             .Describe($"User {CallerId} replies on ticket {id}")
             .From(CallerPartyId, 1, ("role", "sender"))
             .To($"Conversation:{ticket.ConversationId}", 1, ("role", "appended"))
             .Tag("conversation_id",   ticket.ConversationId)
-            .Tag(SupportTags.Kind,    SupportTags.KindSupport)
-            .Tag(SupportTags.TicketId, id)
+            .Mark(SupportMarkers.IsTicketReply)
+            .Tag(SupportTagKeys.TicketId, id)
             .Analyze(new RequiredFieldAnalyzer("text", () => req.Text))
             .Analyze(new MaxLengthAnalyzer ("text", () => req.Text, _options.MaxBodyLength))
             .Execute(async ctx =>
@@ -145,7 +145,7 @@ public sealed class SupportController : ControllerBase
         var env = await _engine.ExecuteEnvelopeAsync(op, (object?)msg ?? new { }, ct);
         if (env.Operation.Status != "Success" || msg is null)
             return this.BadRequestEnvelope(env.Operation.FailedAnalyzer ?? "reply_failed", env.Operation.ErrorMessage);
-        return this.OkEnvelope(SupportOperationTypes.TicketReply, msg);
+        return this.OkEnvelope(SupportOps.TicketReply, msg);
     }
 
     // ─── PATCH /support/tickets/{id}/status ────────────────────────────
@@ -167,14 +167,14 @@ public sealed class SupportController : ControllerBase
         if (newStatus is not ("open" or "in_progress" or "resolved" or "closed"))
             return this.BadRequestEnvelope("invalid_status");
 
-        var op = Entry.Create(SupportOperationTypes.TicketStatusChange)
+        var op = Entry.Create(SupportOps.TicketStatusChange)
             .Describe($"Ticket {id} status: {ticket.Status} → {newStatus}")
             .From(CallerPartyId, 1, ("role", "actor"))
             .To($"Ticket:{id}", 1, ("role", "status_updated"))
-            .Tag(SupportTags.Kind,       SupportTags.KindSupport)
-            .Tag(SupportTags.TicketId,   id)
-            .Tag(SupportTags.FromStatus, ticket.Status)
-            .Tag(SupportTags.ToStatus,   newStatus)
+            .Mark(SupportMarkers.IsTicketReply)
+            .Tag(SupportTagKeys.TicketId,   id)
+            .Tag(SupportTagKeys.FromStatus, ticket.Status)
+            .Tag(SupportTagKeys.ToStatus,   newStatus)
             .Execute(async ctx =>
             {
                 await _store.SetStatusAsync(id, newStatus, ctx.CancellationToken);
@@ -184,6 +184,6 @@ public sealed class SupportController : ControllerBase
         var env = await _engine.ExecuteEnvelopeAsync(op, new { id, status = newStatus }, ct);
         if (env.Operation.Status != "Success")
             return this.BadRequestEnvelope(env.Operation.FailedAnalyzer ?? "status_failed", env.Operation.ErrorMessage);
-        return this.OkEnvelope(SupportOperationTypes.TicketStatusChange, new { id, status = newStatus });
+        return this.OkEnvelope(SupportOps.TicketStatusChange, new { id, status = newStatus });
     }
 }

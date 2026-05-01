@@ -56,14 +56,14 @@ public sealed class ReportsController : ControllerBase
     public async Task<IActionResult> Submit([FromBody] SubmitRequest req, CancellationToken ct)
     {
         IReport? created = null;
-        var op = Entry.Create(ReportOperationTypes.Submit)
+        var op = Entry.Create(ReportOps.Submit)
             .Describe($"User {CallerId} reports {req.EntityType}:{req.EntityId}")
             .From(CallerPartyId, 1, ("role", "reporter"))
             .To($"{req.EntityType}:{req.EntityId}", 1, ("role", "reported"))
-            .Tag(ReportTags.Kind,       ReportTags.KindReport)
-            .Tag(ReportTags.EntityType, req.EntityType ?? "")
-            .Tag(ReportTags.EntityId,   req.EntityId ?? "")
-            .Tag(ReportTags.Reason,     req.Reason ?? "")
+            .Mark(ReportMarkers.IsReport)
+            .Tag(ReportTagKeys.EntityType, req.EntityType ?? "")
+            .Tag(ReportTagKeys.EntityId,   req.EntityId ?? "")
+            .Tag(ReportTagKeys.Reason,     req.Reason ?? "")
             .Analyze(new RequiredFieldAnalyzer("entity_type", () => req.EntityType))
             .Analyze(new RequiredFieldAnalyzer("entity_id",   () => req.EntityId))
             .Analyze(new RequiredFieldAnalyzer("reason",      () => req.Reason))
@@ -88,7 +88,7 @@ public sealed class ReportsController : ControllerBase
         var env = await _engine.ExecuteEnvelopeAsync(op, (object?)created ?? new { }, ct);
         if (env.Operation.Status != "Success" || created is null)
             return this.BadRequestEnvelope(env.Operation.FailedAnalyzer ?? "submit_failed", env.Operation.ErrorMessage);
-        return this.OkEnvelope(ReportOperationTypes.Submit, created);
+        return this.OkEnvelope(ReportOps.Submit, created);
     }
 
     // ─── GET /reports/me ───────────────────────────────────────────────
@@ -119,12 +119,12 @@ public sealed class ReportsController : ControllerBase
         if (newStatus is not ("open" or "reviewing" or "resolved" or "dismissed"))
             return this.BadRequestEnvelope("invalid_status");
 
-        var op = Entry.Create(ReportOperationTypes.SetStatus)
+        var op = Entry.Create(ReportOps.SetStatus)
             .Describe($"Report {id} → {newStatus}")
             .From(CallerPartyId, 1, ("role", "actor"))
             .To($"Report:{id}",  1, ("role", "status_updated"))
-            .Tag(ReportTags.Kind,     ReportTags.KindReport)
-            .Tag(ReportTags.ToStatus, newStatus)
+            .Mark(ReportMarkers.IsReport)
+            .Tag(ReportTagKeys.ToStatus, newStatus)
             .Execute(async ctx =>
             {
                 await _store.SetStatusAsync(id, newStatus, ctx.CancellationToken);
@@ -134,7 +134,7 @@ public sealed class ReportsController : ControllerBase
         var env = await _engine.ExecuteEnvelopeAsync(op, new { id, status = newStatus }, ct);
         if (env.Operation.Status != "Success")
             return this.BadRequestEnvelope(env.Operation.FailedAnalyzer ?? "status_failed", env.Operation.ErrorMessage);
-        return this.OkEnvelope(ReportOperationTypes.SetStatus, new { id, status = newStatus });
+        return this.OkEnvelope(ReportOps.SetStatus, new { id, status = newStatus });
     }
 
     // ─── GET /reports/reasons ──────────────────────────────────────────

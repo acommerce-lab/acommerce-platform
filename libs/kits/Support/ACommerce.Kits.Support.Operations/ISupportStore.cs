@@ -24,15 +24,6 @@ public static class SupportOps
     public static readonly OperationType TicketReply        = new("message.send");
 }
 
-/// <summary>توافق خلفيّ — ثوابت السلاسل ما زالت متاحة عبر implicit conversion.</summary>
-public static class SupportOperationTypes
-{
-    public static readonly OperationType TicketOpen         = SupportOps.TicketOpen;
-    public static readonly OperationType TicketStatusChange = SupportOps.TicketStatusChange;
-    public static readonly OperationType TicketAssignAgent  = SupportOps.TicketAssignAgent;
-    public static readonly OperationType TicketReply        = SupportOps.TicketReply;
-}
-
 /// <summary>
 /// مفاتيح أوسمة Support kit المُكتَّبة. التركيب الخارجيّ (composition) يطابق
 /// عبرها بدل سلاسل، فيُكشَف أيّ خطأ كتابيّ وقت compile-time.
@@ -62,15 +53,6 @@ public static class SupportMarkers
     public static readonly Marker IsTicketReply = new(SupportTagKeys.Kind, SupportTagValues.Support);
 }
 
-/// <summary>توافق خلفيّ — ثوابت السلاسل القديمة (مهجورة، استعمل SupportTagKeys/SupportMarkers).</summary>
-public static class SupportTags
-{
-    public const string Kind        = "kind";
-    public const string KindSupport = "support";
-    public const string TicketId    = "ticket_id";
-    public const string FromStatus  = "from_status";
-    public const string ToStatus    = "to_status";
-}
 
 /// <summary>
 /// عقد التخزين — الـ kit لا يفترض أيّ شكل DB. التطبيق يُنفِّذه في
