@@ -15,6 +15,14 @@ public interface INotificationStore
 
     /// <summary>يضع <c>IsRead=true</c> على كلّ عناصر المستخدم. يرجع عدد المتأثّرين.</summary>
     Task<int> MarkAllReadAsync(string userId, CancellationToken ct);
+
+    /// <summary>
+    /// ينشئ سجلّ إشعار جديد للمستخدم. يُستهلك من معترضات composition (مثل
+    /// Chat.WithNotifications) فيُلصِق سجلّ إشعار على كلّ رسالة دردشة، دون
+    /// أن يضع Chat kit أصلاً يداً في DB إشعارات.
+    /// </summary>
+    Task<NotificationItem> CreateAsync(string userId, string type, string title, string body,
+        string? relatedId = null, CancellationToken ct = default);
 }
 
 /// <summary>

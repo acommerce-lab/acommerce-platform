@@ -4,8 +4,8 @@ using ACommerce.Kits.Chat.Backend;
 using ACommerce.Kits.Notifications.Backend;
 using ACommerce.Kits.Versions.Backend;
 using ACommerce.Kits.Versions.Operations;
-using ACommerce.Notification.Operations.Abstractions;
-using ACommerce.Realtime.Operations.Abstractions;
+// Phase F3: لا حاجة لـ INotificationChannel أو IRealtimeTransport هنا —
+// السلوكان يعيشان في compositions خارجيّة.
 using Ejar.Api.Data;
 using Ejar.Domain;
 using Microsoft.EntityFrameworkCore;
@@ -71,19 +71,11 @@ public sealed class EjarCustomerAuthUserStore : IAuthUserStore
 /// </summary>
 public sealed class EjarCustomerChatStore : IChatStore
 {
+    // Phase F3: الـ store الآن نقيّ — لا realtime، لا notifications، لا FCM.
+    // كلّ هذه side effects تأتي من compositions خارجيّة (Chat.Realtime،
+    // Chat.WithNotifications) عبر interceptors على message.send.
     private readonly EjarDbContext _db;
-    private readonly IRealtimeTransport? _transport;
-    private readonly INotificationChannel? _pushChannel;
-
-    public EjarCustomerChatStore(
-        EjarDbContext db,
-        IRealtimeTransport? transport = null,
-        INotificationChannel? pushChannel = null)
-    {
-        _db = db;
-        _transport = transport;
-        _pushChannel = pushChannel;
-    }
+    public EjarCustomerChatStore(EjarDbContext db) => _db = db;
 
     public async Task<bool> CanParticipateAsync(string conversationId, string userId, CancellationToken ct)
     {
@@ -119,23 +111,12 @@ public sealed class EjarCustomerChatStore : IChatStore
         // يجعل صفحة /notifications تعرض رسالة جديدة حتى لو كان الـ realtime
         // معطّلاً وقت الإرسال أو المستلم غير متّصل. الإشعار يبقى لحين قراءته
         // من المستلِم.
-        Guid.TryParse(senderId, out var senderGuid);
-        var recipientId = conv.OwnerId == senderGuid ? conv.PartnerId : conv.OwnerId;
-        if (recipientId != Guid.Empty && recipientId != senderGuid)
-        {
-            var preview = body.Length > 80 ? body[..80] + "…" : body;
-            _db.Notifications.Add(new NotificationEntity
-            {
-                Id        = Guid.NewGuid(),
-                CreatedAt = DateTime.UtcNow,
-                UserId    = recipientId,
-                Title     = $"رسالة جديدة في \"{conv.Subject}\"",
-                Body      = preview,
-                Type      = "chat.message",
-                RelatedId = cid.ToString(),
-                IsRead    = false,
-            });
-        }
+        // ملاحظة Phase F3: إنشاء سجلّ الإشعار + إرسال FCM نُقلا إلى:
+        //   libs/compositions/Chat.WithNotifications/...
+        //     ChatPersistentNotificationBundle  (DB record عبر INotificationStore)
+        //     ChatPushNotificationBundle        (FCM عبر INotificationChannel)
+        // الـ Chat-store الآن يحفظ الرسالة فقط؛ Notifications kit نقيّ؛
+        // Realtime نقيّ؛ التركيب الخارجيّ يربط الثلاثة.
 
         await _db.SaveChangesAsync(ct);
 
@@ -146,28 +127,8 @@ public sealed class EjarCustomerChatStore : IChatStore
         // كمعترض على message.send. الـ store الآن يحفظ فقط، Chat kit
         // يبقى نقيّاً (لا يعرف Realtime)، التركيب الخارجيّ يُلصِق البثّ.
 
-        // Firebase Cloud Messaging — يصل للمستلم حتى وهو خارج التبويب/التطبيق
-        // (background push عبر service worker على الويب، system notification
-        // على المحمول). _pushChannel يكون null لو لم تُسجَّل بيانات الاعتماد
-        // في appsettings (Notifications:Firebase:CredentialsJson) — في تلك
-        // الحالة realtime + DB notification يكفيان.
-        if (_pushChannel is not null && recipientId != Guid.Empty && recipientId != senderGuid)
-        {
-            try
-            {
-                var senderName = (await _db.Users.AsNoTracking()
-                    .FirstOrDefaultAsync(u => u.Id == senderGuid, ct))?.FullName ?? "—";
-                var preview = body.Length > 80 ? body[..80] + "…" : body;
-                await _pushChannel.SendAsync(
-                    recipientId.ToString(),
-                    title:   $"رسالة جديدة من {senderName}",
-                    message: preview,
-                    data:    new { conversationId = cid.ToString(), type = "chat.message" },
-                    ct);
-            }
-            catch { /* فشل FCM غير قاتل — realtime + DB notification أساس الوصول */ }
-        }
-
+        // Phase F3: FCM push نُقل إلى ChatPushNotificationBundle في
+        // libs/compositions/Chat.WithNotifications. الـ store يحفظ فقط.
         return view;
     }
 
@@ -329,6 +290,29 @@ public sealed class EjarCustomerNotificationStore : INotificationStore
         foreach (var n in rows) { n.IsRead = true; n.UpdatedAt = DateTime.UtcNow; }
         await _db.SaveChangesAsync(ct);
         return rows.Count;
+    }
+
+    public async Task<NotificationItem> CreateAsync(string userId, string type, string title,
+        string body, string? relatedId = null, CancellationToken ct = default)
+    {
+        if (!Guid.TryParse(userId, out var uid))
+            throw new InvalidOperationException("invalid_user_id");
+        var entity = new NotificationEntity
+        {
+            Id        = Guid.NewGuid(),
+            CreatedAt = DateTime.UtcNow,
+            UserId    = uid,
+            Title     = title.Length > 200 ? title[..200] : title,
+            Body      = body,
+            Type      = type.Length > 40 ? type[..40] : type,
+            RelatedId = relatedId is { Length: > 64 } ? relatedId[..64] : relatedId,
+            IsRead    = false,
+        };
+        _db.Notifications.Add(entity);
+        await _db.SaveChangesAsync(ct);
+        return new NotificationItem(
+            entity.Id.ToString(), entity.Type, entity.Title, entity.Body,
+            entity.CreatedAt, entity.IsRead, entity.RelatedId);
     }
 }
 

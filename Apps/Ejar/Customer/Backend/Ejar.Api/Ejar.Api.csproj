@@ -90,6 +90,7 @@
     <ProjectReference Include="..\..\..\..\..\libs\compositions\Chat.Realtime\ACommerce.Compositions.Chat.Realtime\ACommerce.Compositions.Chat.Realtime.csproj" />
     <ProjectReference Include="..\..\..\..\..\libs\compositions\Auth.WithSmsOtp\ACommerce.Compositions.Auth.WithSmsOtp\ACommerce.Compositions.Auth.WithSmsOtp.csproj" />
     <ProjectReference Include="..\..\..\..\..\libs\compositions\Support\ACommerce.Compositions.Support\ACommerce.Compositions.Support.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\compositions\Chat.WithNotifications\ACommerce.Compositions.Chat.WithNotifications\ACommerce.Compositions.Chat.WithNotifications.csproj" />
     <ProjectReference Include="..\..\..\..\..\libs\kits\Discovery\ACommerce.Kits.Discovery\ACommerce.Kits.Discovery.csproj" />
     <ProjectReference Include="..\..\..\..\..\libs\kits\Favorites\ACommerce.Favorites.Operations\ACommerce.Favorites.Operations.csproj" />
     <ProjectReference Include="..\..\..\..\..\libs\kits\Favorites\ACommerce.Favorites.Backend\ACommerce.Favorites.Backend.csproj" />

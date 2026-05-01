@@ -189,6 +189,9 @@ builder.Services.AddReportsKit<EjarReportStore>(opts => opts.PartyKind = "User")
 // Support → Chat.Realtime → (Chat + Realtime kits). راجع
 // docs/COMPOSITION-MODEL.md §٧.
 builder.Services.AddComposition<ACommerce.Compositions.Support.SupportComposition>();
+// Phase F3: Chat.WithNotifications — DB notification + FCM push
+// كمعترضات، خارج Chat kit و Notifications kit. يكفي تسجيله مرّة.
+builder.Services.AddComposition<ACommerce.Compositions.Chat.WithNotifications.ChatNotificationsComposition>();
 // AuthSmsOtpComposition يفرض وجود IAuthUserStore + ITwoFactorChannel ويُلصِق
 // تدقيقاً على auth.signin (سطر log منظَّم لكلّ محاولة). أيّ سلوك lattice
 // آخر (rate-limit، إخطار إداريّ) يُضاف bundles داخل التركيب نفسه.
