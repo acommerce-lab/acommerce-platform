@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <PackageId>ACommerce.Compositions.Chat.Realtime</PackageId>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\ACommerce.Compositions.Core\ACommerce.Compositions.Core.csproj" />
+    <ProjectReference Include="..\..\..\kits\Core\OperationEngine\ACommerce.OperationEngine\ACommerce.OperationEngine.csproj" />
+    <ProjectReference Include="..\..\..\kits\Core\OperationEngine\ACommerce.OperationEngine.Interceptors\ACommerce.OperationEngine.Interceptors.csproj" />
+    <ProjectReference Include="..\..\..\kits\Chat\ACommerce.Kits.Chat.Backend\ACommerce.Kits.Chat.Backend.csproj" />
+    <ProjectReference Include="..\..\..\kits\Chat\ACommerce.Chat.Operations\ACommerce.Chat.Operations.csproj" />
+    <ProjectReference Include="..\..\..\kits\Realtime\ACommerce.Realtime.Operations\ACommerce.Realtime.Operations.csproj" />
+  </ItemGroup>
+</Project>

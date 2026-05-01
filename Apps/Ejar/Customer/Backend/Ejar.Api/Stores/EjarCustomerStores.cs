@@ -141,22 +141,10 @@ public sealed class EjarCustomerChatStore : IChatStore
 
         var view = new MessageView(msg);
 
-        // Fallback broadcast مباشر عبر Clients.User(rawGuid). يضمن وصول
-        // الرسالة لكلّ الأجهزة المتّصلة لكلّ من المُرسِل والمستلِم بصرف النظر
-        // عن حالة عضوية الـ groups (chat:conv:X / notif:conv:X). هذا يُكمل
-        // الـ broadcast الذي يجريه ChatService على القنوات لاحقاً، فلو فشلت
-        // قناة لسبب ما — مثلاً الطرف الآخر لم يدخل الغرفة بعد فلم يدخل
-        // chat:conv:X، أو خلل في الـ coupling — تصل عبر هذا المسار.
-        if (_transport is not null)
-        {
-            try
-            {
-                await _transport.SendToUserAsync(senderId, "chat.message", view, ct);
-                if (recipientId != Guid.Empty && recipientId != senderGuid)
-                    await _transport.SendToUserAsync(recipientId.ToString(), "chat.message", view, ct);
-            }
-            catch { /* البثّ على القناة سيغطّي لو فشل user-pin */ }
-        }
+        // ملاحظة Phase B: البثّ user-pinned كان هنا، نُقل إلى
+        // ACommerce.Compositions.Chat.Realtime.RealtimeBroadcastBundle
+        // كمعترض على message.send. الـ store الآن يحفظ فقط، Chat kit
+        // يبقى نقيّاً (لا يعرف Realtime)، التركيب الخارجيّ يُلصِق البثّ.
 
         // Firebase Cloud Messaging — يصل للمستلم حتى وهو خارج التبويب/التطبيق
         // (background push عبر service worker على الويب، system notification

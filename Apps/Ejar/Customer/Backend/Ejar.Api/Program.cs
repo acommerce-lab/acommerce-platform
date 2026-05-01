@@ -20,6 +20,7 @@ using ACommerce.SharedKernel.Domain.Entities;
 using ACommerce.Kits.Support.Domain;
 using ACommerce.Kits.Reports.Backend;
 using ACommerce.Kits.Reports.Domain;
+using ACommerce.Compositions.Core;
 using ACommerce.Kits.Discovery.Domain;
 using ACommerce.Favorites.Operations.Entities;
 using Ejar.Api.Data;
@@ -181,6 +182,13 @@ builder.Services.AddSupportKit<EjarSupportStore>(opts =>
 // Reports kit: بلاغات "أبلِغ-وانسَ" بدون ردود — راجع
 // libs/kits/Reports/ACommerce.Kits.Reports.Backend/ReportsController.cs.
 builder.Services.AddReportsKit<EjarReportStore>(opts => opts.PartyKind = "User");
+
+// ─── التراكيب الخارجيّة (compositions) ─────────────────────────────
+// ChatRealtimeComposition يحقن interceptor على message.send يبثّ user-
+// pinned للمرسل والمستلم عبر IRealtimeTransport. Chat kit يبقى نقيّاً
+// (لا يعرف Realtime). راجع docs/COMPOSITION-MODEL.md.
+builder.Services.AddComposition<ACommerce.Compositions.Chat.Realtime.ChatRealtimeComposition>();
+
 builder.Services.AddFavoritesKit();
 builder.Services.AddNotificationsKit<EjarCustomerNotificationStore>();
 builder.Services.AddVersionsKit<EjarVersionStore>();
