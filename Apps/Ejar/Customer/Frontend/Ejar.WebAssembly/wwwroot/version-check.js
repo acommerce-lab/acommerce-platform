@@ -40,21 +40,34 @@
     catch { return null; }
   })();
 
-  if (localVersion === serverVersion) {
+  // اقرأ نسخة appsettings.json أيضاً — هذه النسخة "المُجمَّعة" مع البناء.
+  // لو كانت أقدم من server's version.json، فالـ shell الذي يحمله المتصفّح
+  // قديم (cache HTTP أو SW) ويجب فرض إعادة التحميل حتى لو localStorage
+  // فاضي (أوّل زيارة على جهاز كان يحمل نسخة قديمة في cache المتصفّح).
+  let bundledVersion = null;
+  try {
+    const r2 = await fetch('appsettings.json', { cache: 'no-store' });
+    if (r2.ok) {
+      const j2 = await r2.json();
+      bundledVersion = j2 && j2.App && j2.App.Version;
+    }
+  } catch { /* غير قاتل */ }
+
+  if (localVersion === serverVersion && bundledVersion === serverVersion) {
     console.info('[Ejar update] نسخة محدّثة:', serverVersion);
     return;
   }
 
-  // أوّل زيارة → احفظ النسخة فقط، لا تُجبر تنظيفاً (تجربة المستخدم
-  // الأولى تكون نظيفة بالأصل).
-  if (localVersion === null) {
+  // أوّل زيارة + bundle مطابق للسيرفر → سجّل واخرج (حالة نظيفة).
+  if (localVersion === null && bundledVersion === serverVersion) {
     try { localStorage.setItem(STORAGE_KEY, serverVersion); } catch { }
     console.info('[Ejar update] تسجيل أولي:', serverVersion);
     return;
   }
 
-  // نسخة قديمة على الجهاز → حدّثها بالقوّة
-  console.warn('[Ejar update] تحديث:', localVersion, '→', serverVersion);
+  // إمّا localStorage قديم، أو bundle المخزَّن في cache قديم → فرض تحديث.
+  console.warn('[Ejar update] تحديث:',
+    'local=' + localVersion, 'bundled=' + bundledVersion, '→ server=' + serverVersion);
   showUpdatingBanner(serverVersion);
 
   await wipeStaleData();
