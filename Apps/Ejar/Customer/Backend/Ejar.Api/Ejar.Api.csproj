@@ -88,6 +88,7 @@
     <!-- ─── Compositions: تراكيب خارجيّة توصِّل kits دون أن يعرف بعضها ─── -->
     <ProjectReference Include="..\..\..\..\..\libs\compositions\ACommerce.Compositions.Core\ACommerce.Compositions.Core.csproj" />
     <ProjectReference Include="..\..\..\..\..\libs\compositions\Chat.Realtime\ACommerce.Compositions.Chat.Realtime\ACommerce.Compositions.Chat.Realtime.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\compositions\Auth.WithSmsOtp\ACommerce.Compositions.Auth.WithSmsOtp\ACommerce.Compositions.Auth.WithSmsOtp.csproj" />
     <ProjectReference Include="..\..\..\..\..\libs\kits\Discovery\ACommerce.Kits.Discovery\ACommerce.Kits.Discovery.csproj" />
     <ProjectReference Include="..\..\..\..\..\libs\kits\Favorites\ACommerce.Favorites.Operations\ACommerce.Favorites.Operations.csproj" />
     <ProjectReference Include="..\..\..\..\..\libs\kits\Favorites\ACommerce.Favorites.Backend\ACommerce.Favorites.Backend.csproj" />

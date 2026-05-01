@@ -188,6 +188,10 @@ builder.Services.AddReportsKit<EjarReportStore>(opts => opts.PartyKind = "User")
 // pinned للمرسل والمستلم عبر IRealtimeTransport. Chat kit يبقى نقيّاً
 // (لا يعرف Realtime). راجع docs/COMPOSITION-MODEL.md.
 builder.Services.AddComposition<ACommerce.Compositions.Chat.Realtime.ChatRealtimeComposition>();
+// AuthSmsOtpComposition يفرض وجود IAuthUserStore + ITwoFactorChannel ويُلصِق
+// تدقيقاً على auth.signin (سطر log منظَّم لكلّ محاولة). أيّ سلوك lattice
+// آخر (rate-limit، إخطار إداريّ) يُضاف bundles داخل التركيب نفسه.
+builder.Services.AddComposition<ACommerce.Compositions.Auth.WithSmsOtp.AuthSmsOtpComposition>();
 
 builder.Services.AddFavoritesKit();
 builder.Services.AddNotificationsKit<EjarCustomerNotificationStore>();
