@@ -183,7 +183,16 @@ builder.Services.AddSupportKit<EjarSupportStore>(opts =>
 // libs/kits/Reports/ACommerce.Kits.Reports.Backend/ReportsController.cs.
 builder.Services.AddReportsKit<EjarReportStore>(opts => opts.PartyKind = "User");
 
-// ─── التراكيب الخارجيّة (compositions) ─────────────────────────────
+// Phase F4: probe presence — المستلم "حاضر في المحادثة" لو قناة chat:conv:X
+// مفتوحة له. تركيبات Chat.WithNotifications تستهلكه لتقمع الإشعار/FCM.
+builder.Services.AddScoped<ACommerce.Kits.Chat.Backend.IPresenceProbe, EjarChatPresenceProbe>();
+
+builder.Services.AddFavoritesKit();
+builder.Services.AddNotificationsKit<EjarCustomerNotificationStore>();
+builder.Services.AddVersionsKit<EjarVersionStore>();
+
+// ─── التراكيب الخارجيّة (compositions) — بعد كلّ kits لأنّ
+// AddComposition.RequiredKits يفحص حضورها في DI ───────────────────
 // SupportComposition يضمّ ChatRealtimeComposition كـ subcomposition تلقائياً
 // — لا حاجة لتسجيل ChatRealtime مستقلّاً. هذا يبيّن "تركيب فوق تركيب":
 // Support → Chat.Realtime → (Chat + Realtime kits). راجع
@@ -196,10 +205,6 @@ builder.Services.AddComposition<ACommerce.Compositions.Chat.WithNotifications.Ch
 // تدقيقاً على auth.signin (سطر log منظَّم لكلّ محاولة). أيّ سلوك lattice
 // آخر (rate-limit، إخطار إداريّ) يُضاف bundles داخل التركيب نفسه.
 builder.Services.AddComposition<ACommerce.Compositions.Auth.WithSmsOtp.AuthSmsOtpComposition>();
-
-builder.Services.AddFavoritesKit();
-builder.Services.AddNotificationsKit<EjarCustomerNotificationStore>();
-builder.Services.AddVersionsKit<EjarVersionStore>();
 
 // Firebase Cloud Messaging — تسليم إشعارات للأجهزة (web push + Android/iOS)
 // عبر FCM Admin SDK. ينعم بحياة لمّا الـ tab في الخلفيّة أو الجوّال مقفول

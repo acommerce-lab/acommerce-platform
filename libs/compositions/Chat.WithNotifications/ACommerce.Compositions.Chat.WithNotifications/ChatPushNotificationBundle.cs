@@ -65,6 +65,15 @@ public sealed class ChatPushNotificationInterceptor : IOperationInterceptor
             if (string.IsNullOrEmpty(recipientId) || recipientId == senderId)
                 return AnalyzerResult.Pass();
 
+            // F4: presence-aware — مستلم حاضر في المحادثة لا يحتاج FCM
+            // (الرسالة تصل مباشرةً عبر SignalR). إشعار النظام مزعج وفجّ.
+            var probe = scope.ServiceProvider.GetService<ACommerce.Kits.Chat.Backend.IPresenceProbe>();
+            if (probe is not null && await probe.IsUserActiveInConversationAsync(recipientId, convId, ctx.CancellationToken))
+            {
+                _log.LogDebug("Chat.PushNotification: مستلم {Rid} حاضر في {Conv} — تجاوز", recipientId, convId);
+                return AnalyzerResult.Pass();
+            }
+
             var msg = ctx.Entity<ACommerce.Chat.Operations.IChatMessage>();
             var bodyTag = ctx.Operation.Tags.FirstOrDefault(t => t.Key == "text");
             var body = msg?.Body ?? (string.IsNullOrEmpty(bodyTag.Key) ? "رسالة جديدة" : bodyTag.Value);

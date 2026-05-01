@@ -62,6 +62,17 @@ public sealed class ChatPersistentNotificationInterceptor : IOperationIntercepto
             }
             if (string.IsNullOrEmpty(recipientId)) return AnalyzerResult.Pass();
 
+            // F4: presence-aware — لو المستلم حاضر في هذه المحادثة الآن
+            // (ChatRoom مفتوحة + /enter مستدعى)، لا نُنشئ سجلّ إشعار في
+            // الـ inbox. الرسالة تظهر له مباشرةً عبر realtime — الإشعار
+            // مكرَّر مزعج. الـ probe اختياريّ — null = سلوك F3 الكامل.
+            var probe = scope.ServiceProvider.GetService<ACommerce.Kits.Chat.Backend.IPresenceProbe>();
+            if (probe is not null && await probe.IsUserActiveInConversationAsync(recipientId, convId, ctx.CancellationToken))
+            {
+                _log.LogDebug("Chat.PersistentNotification: مستلم {Rid} حاضر في {Conv} — تجاوز", recipientId, convId);
+                return AnalyzerResult.Pass();
+            }
+
             // الجسم: نأخذ النصّ من ctx.Entity<IChatMessage>() لو أتى عبر F1،
             // وإلاّ نقبل tag(text) إن وُجد. الـ subject من Conversation.
             var msg = ctx.Entity<ACommerce.Chat.Operations.IChatMessage>();
