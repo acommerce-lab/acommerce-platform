@@ -99,14 +99,15 @@ public class DataOperationHandler(IRepositoryFactory repositoryFactory, ILogger<
 
     private async Task<bool> HandleCreate(ACommerce.OperationEngine.Core.OperationContext ctx, Type entityType, object repository, CancellationToken ct)
     {
-        if (!ctx.Operation.Metadata.TryGetValue("entity", out var entity) || entity == null) return false;
+        var entity = ResolveEntity(ctx, entityType);
+        if (entity is null) return false;
 
         var addMethod = repository.GetType().GetMethod("AddAsync", [entityType, typeof(CancellationToken)]);
         if (addMethod == null) return false;
 
         var task = (Task)addMethod.Invoke(repository, [entity, ct])!;
         await task;
-        
+
         var result = task.GetType().GetProperty("Result")?.GetValue(task);
         ctx.Set("db_result", result);
         return true;
@@ -114,7 +115,8 @@ public class DataOperationHandler(IRepositoryFactory repositoryFactory, ILogger<
 
     private async Task<bool> HandleUpdate(ACommerce.OperationEngine.Core.OperationContext ctx, Type entityType, object repository, CancellationToken ct)
     {
-        if (!ctx.Operation.Metadata.TryGetValue("entity", out var entity) || entity == null) return false;
+        var entity = ResolveEntity(ctx, entityType);
+        if (entity is null) return false;
 
         var updateMethod = repository.GetType().GetMethod("UpdateAsync", [entityType, typeof(CancellationToken)]);
         if (updateMethod == null) return false;
@@ -126,7 +128,8 @@ public class DataOperationHandler(IRepositoryFactory repositoryFactory, ILogger<
 
     private async Task<bool> HandleDelete(ACommerce.OperationEngine.Core.OperationContext ctx, Type entityType, object repository, CancellationToken ct)
     {
-        if (!ctx.Operation.Metadata.TryGetValue("entity", out var entity) || entity == null) return false;
+        var entity = ResolveEntity(ctx, entityType);
+        if (entity is null) return false;
 
         var deleteMethod = repository.GetType().GetMethod("DeleteAsync", [entityType, typeof(CancellationToken)]);
         if (deleteMethod == null) return false;
@@ -134,5 +137,28 @@ public class DataOperationHandler(IRepositoryFactory repositoryFactory, ILogger<
         var task = (Task)deleteMethod.Invoke(repository, [entity, ct])!;
         await task;
         return true;
+    }
+
+    /// <summary>
+    /// يبحث عن الـ entity في عدّة مواضع، بترتيب الأولويّة:
+    ///   ١. <c>ctx.Entity&lt;TEntity&gt;()</c> (F1 — typed، مفضَّل).
+    ///   ٢. <c>op.Metadata["entity"]</c> (المسار القديم، يبقى للتوافق).
+    /// إن لم يُعثَر، يُرجع null والمعالج يُهمل العمليّة.
+    /// </summary>
+    private static object? ResolveEntity(ACommerce.OperationEngine.Core.OperationContext ctx, Type entityType)
+    {
+        // ① مسار F1 الجديد: ctx.Entity<TEntity>() — يبحث في items عبر key
+        // "_entity:" + typeName. يدعم كلّ من concrete entity أو واجهة.
+        var key = "_entity:" + entityType.FullName;
+        if (ctx.Items.TryGetValue(key, out var byType) && byType is not null
+            && entityType.IsInstanceOfType(byType))
+            return byType;
+
+        // ②  مسار قديم: op.Metadata["entity"] — يقبل أيّ object يُطابق نوعاً.
+        if (ctx.Operation.Metadata.TryGetValue("entity", out var legacy) && legacy is not null
+            && entityType.IsInstanceOfType(legacy))
+            return legacy;
+
+        return null;
     }
 }
