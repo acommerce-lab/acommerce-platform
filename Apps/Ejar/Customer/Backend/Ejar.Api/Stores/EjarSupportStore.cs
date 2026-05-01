@@ -93,13 +93,9 @@ public sealed class EjarSupportStore : ISupportStore
         };
         _db.SupportTickets.Add(ticket);
 
-        await _db.SaveChangesAsync(ct);
-
-        // ③ الرسالة الأولى — تمرّ على Chat kit فيرث البثّ + الإشعارات.
-        // ملاحظة: AppendMessageAsync داخلياً يحفظ + يبثّ لـ realtime + يُنشئ
-        // notification entity للمستلم + FCM push. إذا فشلت لاحقاً (مثلاً
-        // realtime down)، التذكرة + المحادثة محفوظتان فعلاً، فيظهر للمستخدم
-        // أنّه أنشأ تذكرة بدون رسالة أولى — حالة شاذّة لكن غير مدمّرة.
+        // (F6) لا SaveChangesAsync هنا — القيد على SupportController.Open
+        // يستدعي .SaveAtEnd() الذي يَحفظ Conversation + Ticket + الرسالة
+        // الأولى ذرّيّاً. AppendMessageAsync أيضاً لا يحفظ (راجع F6 على chat).
         await _chat.AppendMessageAsync(convId.ToString(), userId, initialMessage, ct);
 
         return ticket;
@@ -114,7 +110,7 @@ public sealed class EjarSupportStore : ISupportStore
         var oldStatus = t.Status;
         t.Status    = newStatus;
         t.UpdatedAt = DateTime.UtcNow;
-        await _db.SaveChangesAsync(ct);
+        // (F6) modify in-memory tracked entity. SaveAtEnd على القيد يحفظه.
 
         // رسالة "نظام" داخل المحادثة — تُسلَّم للطرفَين عبر مسار chat.message
         // المعتاد فيظهر لها toast + notification في DB + FCM. <System> هو
@@ -148,7 +144,7 @@ public sealed class EjarSupportStore : ISupportStore
             conv.PartnerName = agentDisplayName;
             conv.UpdatedAt   = DateTime.UtcNow;
         }
-        await _db.SaveChangesAsync(ct);
+        // (F6) modifications tracked in-memory. SaveAtEnd على القيد يحفظ.
         return true;
     }
 

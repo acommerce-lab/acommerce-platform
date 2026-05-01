@@ -102,6 +102,7 @@ public sealed class SupportController : ControllerBase
                     relatedEntityId: req.RelatedEntityId,
                     ct: ctx.CancellationToken);
             })
+            .SaveAtEnd()  // F6: Conversation + Ticket + initial-message ذرّيّاً
             .Build();
 
         var env = await _engine.ExecuteEnvelopeAsync(op, (object?)created ?? new { }, ct);
@@ -140,6 +141,7 @@ public sealed class SupportController : ControllerBase
                 msg = await _chat.AppendMessageAsync(
                     ticket.ConversationId, CallerId, req.Text ?? "", ctx.CancellationToken);
             })
+            .SaveAtEnd()  // F6: حفظ ذرّيّ للرسالة + Conversation update
             .Build();
 
         var env = await _engine.ExecuteEnvelopeAsync(op, (object?)msg ?? new { }, ct);
@@ -179,6 +181,7 @@ public sealed class SupportController : ControllerBase
             {
                 await _store.SetStatusAsync(id, newStatus, ctx.CancellationToken);
             })
+            .SaveAtEnd()  // F6: تحديث Ticket.Status + رسالة النظام في حفظ واحد
             .Build();
 
         var env = await _engine.ExecuteEnvelopeAsync(op, new { id, status = newStatus }, ct);
