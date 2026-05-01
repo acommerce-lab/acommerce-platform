@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using ACommerce.Kits.Support.Domain;
+using ACommerce.Kits.Reports.Domain;
 using ACommerce.Kits.Discovery.Domain;
 using ACommerce.Favorites.Operations.Entities;
 
@@ -24,6 +25,7 @@ public sealed class EjarDbContext : DbContext
     // كلّ تذكرة مرتبطة بـ ConversationEntity في Chat kit وكلّ الردود رسائل
     // فيها. راجع libs/kits/Support/.../Domain/Entities.cs للتفاصيل.
     public DbSet<SupportTicket>       SupportTickets => Set<SupportTicket>();
+    public DbSet<ReportEntity>        Reports        => Set<ReportEntity>();
     public DbSet<SubscriptionEntity>  Subscriptions  => Set<SubscriptionEntity>();
     public DbSet<InvoiceEntity>       Invoices       => Set<InvoiceEntity>();
     public DbSet<AppVersionEntity>    AppVersions    => Set<AppVersionEntity>();
@@ -45,6 +47,12 @@ public sealed class EjarDbContext : DbContext
         // (للـ JOIN مع Conversations عند جلب آخر رسالة/unread).
         b.Entity<SupportTicket>().HasIndex(t => t.UserId);
         b.Entity<SupportTicket>().HasIndex(t => t.ConversationId).IsUnique();
+
+        // Reports kit: index على ReporterId (للقائمة الشخصيّة) + EntityType+EntityId
+        // (للبحث "كم بلاغاً على هذا الإعلان"). filter لاستبعاد المحذوفة.
+        b.Entity<ReportEntity>().HasIndex(r => r.ReporterId);
+        b.Entity<ReportEntity>().HasIndex(r => new { r.EntityType, r.EntityId });
+        b.Entity<ReportEntity>().HasQueryFilter(e => !e.IsDeleted);
 
         b.Entity<ListingEntity>().HasIndex(l => l.City);
         b.Entity<ListingEntity>().HasIndex(l => l.PropertyType);

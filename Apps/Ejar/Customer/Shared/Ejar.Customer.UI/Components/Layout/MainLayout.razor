@@ -17,7 +17,7 @@
 @inject IConfiguration Config
 @implements IAsyncDisposable
 
-<div class="@(Store.Ui.HideChrome ? "acm-chrome-hidden" : "")">
+<div class="acs-page @(Store.Ui.HideChrome ? "acm-chrome-hidden" : "")">
 @if (VersionPoll.UpdateAvailable)
 {
     @* بانر التحديث — يظهر فوق كلّ شيء عندما يُكتشف إصدار جديد على الخادم.

@@ -576,6 +576,17 @@ main {
 .acs-category-row__label { flex: 1; font-weight: 600; color: var(--ac-text, #111827); }
 .acs-category-row__chev  { color: var(--ac-text-muted, #6b7280); }
 
+/* ── Report-listing link — discreet flag link under listing actions */
+.acs-report-link {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: transparent; border: 0; cursor: pointer;
+  color: var(--ac-text-muted, #6b7280); font-size: 13px; padding: 4px 8px;
+  text-decoration: underline dotted; text-underline-offset: 2px;
+}
+.acs-report-link:hover, .acs-report-link:focus-visible {
+  color: var(--ac-danger, #b91c1c); outline: none;
+}
+
 /* ── Page wrapper marker classes (hooks for page-scoped overrides) ── */
 .acs-booking-wizard    { }
 .acs-bookings-page     { }

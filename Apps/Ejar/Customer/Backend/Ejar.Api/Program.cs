@@ -18,6 +18,8 @@ using ACommerce.SharedKernel.Infrastructure.EFCores.Extensions;
 using ACommerce.SharedKernel.Repositories.Interfaces;
 using ACommerce.SharedKernel.Domain.Entities;
 using ACommerce.Kits.Support.Domain;
+using ACommerce.Kits.Reports.Backend;
+using ACommerce.Kits.Reports.Domain;
 using ACommerce.Kits.Discovery.Domain;
 using ACommerce.Favorites.Operations.Entities;
 using Ejar.Api.Data;
@@ -176,6 +178,9 @@ builder.Services.AddSupportKit<EjarSupportStore>(opts =>
     var poolStr = builder.Configuration["Support:AgentPoolId"];
     if (Guid.TryParse(poolStr, out var poolGuid)) opts.AgentPoolPartyId = poolGuid;
 });
+// Reports kit: بلاغات "أبلِغ-وانسَ" بدون ردود — راجع
+// libs/kits/Reports/ACommerce.Kits.Reports.Backend/ReportsController.cs.
+builder.Services.AddReportsKit<EjarReportStore>(opts => opts.PartyKind = "User");
 builder.Services.AddFavoritesKit();
 builder.Services.AddNotificationsKit<EjarCustomerNotificationStore>();
 builder.Services.AddVersionsKit<EjarVersionStore>();
@@ -250,6 +255,7 @@ EntityDiscoveryRegistry.RegisterEntity<DiscoveryRegion>();
 EntityDiscoveryRegistry.RegisterEntity<DiscoveryAmenity>();
 EntityDiscoveryRegistry.RegisterEntity<Favorite>();
 EntityDiscoveryRegistry.RegisterEntity<SupportTicket>();
+EntityDiscoveryRegistry.RegisterEntity<ReportEntity>();
 
 var app = builder.Build();
 

@@ -2,12 +2,15 @@
 @using ACommerce.Client.Operations
 @using Ejar.Customer.UI.Operations
 @using Ejar.Customer.UI.Services
+@using Ejar.Customer.UI.Interceptors
+@using System.Net.Http.Json
 @inject AppStore Store
 @inject AppStateApplier Applier
 @inject ApiReader Api
 @inject NavigationManager Nav
 @inject ClientOpEngine Engine
 @inject FavoritesSync Favorites
+@inject EjarCircuitHttp Http
 @inject L L
 @implements IDisposable
 
@@ -129,6 +132,51 @@
                 </ChildContent>
             </AcCard>
         }
+        @* زرّ "إبلاغ عن الإعلان" — للزائرين المسجَّلين، مخفيّ على إعلان المستخدم نفسه. *@
+        @if (!IsMine && Store.Auth.IsAuthenticated && _listing is not null)
+        {
+            <div style="margin-top:8px; text-align:center;">
+                <button type="button" class="acs-report-link" @onclick="OpenReport">
+                    <AcIcon Name="flag" Size="14" />
+                    إبلاغ عن هذا الإعلان
+                </button>
+            </div>
+        }
+
+        @if (_showReport)
+        {
+            <AcCard>
+                <ChildContent>
+                    <h3 style="margin-top:0;">إبلاغ عن إعلان</h3>
+                    <AcField Label="السبب" Required="true">
+                        <select class="ac-input" @bind="_reportReason">
+                            <option value="">— اختر سبباً —</option>
+                            <option value="spam">إعلان مزعج / spam</option>
+                            <option value="scam">احتيال</option>
+                            <option value="inappropriate_images">صور غير لائقة</option>
+                            <option value="wrong_info">معلومات خاطئة</option>
+                            <option value="duplicate">إعلان مكرَّر</option>
+                            <option value="offensive">محتوى مسيء</option>
+                            <option value="other">سبب آخر</option>
+                        </select>
+                    </AcField>
+                    <AcField Label="تفاصيل (اختياريّ)">
+                        <textarea class="ac-input" rows="3" @bind="_reportBody"
+                                  @bind:event="oninput" placeholder="أضف تفاصيل…"></textarea>
+                    </AcField>
+                    @if (!string.IsNullOrEmpty(_reportAlert))
+                    {
+                        <AcAlert Variant="@_reportAlertVariant" Message="@_reportAlert" />
+                    }
+                    <div style="display:flex; gap:8px;">
+                        <AcButton Variant="primary" Text="إرسال البلاغ" OnClick="@SubmitReport"
+                                  Disabled="@(string.IsNullOrEmpty(_reportReason) || _reportSending)" />
+                        <AcButton Variant="ghost" Text="إلغاء" OnClick="@(() => _showReport = false)" />
+                    </div>
+                </ChildContent>
+            </AcCard>
+        }
+
         <AcStickyActionBar>
             <AcButton Variant="ghost" Text="رجوع" OnClick="@GoBack" />
             @if (IsMine)
@@ -157,6 +205,59 @@
     private bool _loading = true;
     private bool _startingChat;
     private string? _chatError;
+
+    // Report state
+    private bool   _showReport;
+    private string _reportReason = "";
+    private string _reportBody = "";
+    private bool   _reportSending;
+    private string? _reportAlert;
+    private string  _reportAlertVariant = "success";
+
+    private void OpenReport()
+    {
+        _showReport = true;
+        _reportReason = "";
+        _reportBody = "";
+        _reportAlert = null;
+    }
+
+    private async Task SubmitReport()
+    {
+        if (string.IsNullOrEmpty(_reportReason) || _listing is null) return;
+        _reportSending = true;
+        _reportAlert = null;
+        try
+        {
+            var resp = await Http.Client.PostAsJsonAsync("/reports", new
+            {
+                EntityType = "listing",
+                EntityId   = _listing.Id,
+                Reason     = _reportReason,
+                Body       = string.IsNullOrWhiteSpace(_reportBody) ? null : _reportBody,
+            });
+            if (resp.IsSuccessStatusCode)
+            {
+                _reportAlert = "تمّ إرسال البلاغ. شكراً لمساعدتك في المحافظة على المنصّة.";
+                _reportAlertVariant = "success";
+                _reportReason = "";
+                _reportBody = "";
+                // أغلق النموذج بعد ٣ ثوانٍ.
+                _ = Task.Delay(3000).ContinueWith(_ => InvokeAsync(() => { _showReport = false; StateHasChanged(); }));
+            }
+            else
+            {
+                _reportAlert = $"فشل إرسال البلاغ ({(int)resp.StatusCode}).";
+                _reportAlertVariant = "danger";
+            }
+        }
+        catch (Exception ex)
+        {
+            _reportAlert = "خطأ شبكيّ: " + ex.Message;
+            _reportAlertVariant = "danger";
+        }
+        finally { _reportSending = false; }
+    }
     private bool _isFav => _listing is not null && Store.FavoriteListingIds.Contains(_listing.Id);
     private bool IsMine => _listing is not null && Store.Auth.IsAuthenticated
                            && _listing.OwnerId == Store.Auth.UserId?.ToString();
