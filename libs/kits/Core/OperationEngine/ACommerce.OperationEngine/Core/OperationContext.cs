@@ -49,6 +49,40 @@ public class OperationContext
         value = default; return false;
     }
 
+    // ─── Entity carriers (F1 — typed entity flow through the operation) ──
+    // الكيان (مثل IChatMessage، IReport، IBookingDraft) يُمرَّر داخل القيد
+    // كـ instance يُحقّق interface المكتبة المعنيّة. interceptors تستهلكه
+    // typed بدل أن تجمع tags وتعيد تركيب الـ entity. القانون السادس في
+    // CLAUDE.md (واجهات لا DTOs) — هذا هو التطبيق العمليّ على مستوى القيد.
+    //
+    // المفتاح يستخدم اسم النوع الكامل، فالـ entity من نوع I سيُجلَب لاحقاً
+    // عبر <I>؛ يستطيع interceptor وضع entity أساسيّ والمستهلك أن يطلبه
+    // عبر interface فرعيّ — يعمل ما دامت العلاقة <T : IBase> صحيحة.
+    /// <summary>يضع entity مكتَّبة على القيد. أيّ interceptor لاحق يستطيع
+    /// طلبها عبر <see cref="Entity{TEntity}"/>.</summary>
+    public OperationContext WithEntity<TEntity>(TEntity entity) where TEntity : class
+    {
+        Items[EntityKey<TEntity>()] = entity;
+        return this;
+    }
+
+    /// <summary>يجلب الـ entity المسجَّلة مسبقاً، أو null لو لم تُسجَّل.</summary>
+    public TEntity? Entity<TEntity>() where TEntity : class
+    {
+        return Items.TryGetValue(EntityKey<TEntity>(), out var obj) ? obj as TEntity : null;
+    }
+
+    /// <summary>يجلب الـ entity أو يرمي — لمعترضات تشترط وجودها.</summary>
+    public TEntity RequireEntity<TEntity>() where TEntity : class
+    {
+        return Entity<TEntity>()
+            ?? throw new InvalidOperationException(
+                $"Operation '{Operation.Type}' لا يحمل entity من نوع {typeof(TEntity).FullName}. " +
+                $"تأكّد أنّ الـ builder استدعى .WithEntity<{typeof(TEntity).Name}>(...) أو أنّ Execute body وضعها عبر ctx.WithEntity(...).");
+    }
+
+    private static string EntityKey<T>() => "_entity:" + typeof(T).FullName;
+
     public void AddValidationError(string error)
     {
         if (!Items.ContainsKey("_errors")) Items["_errors"] = new List<string>();

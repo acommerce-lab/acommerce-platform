@@ -196,6 +196,26 @@ public class AccountingBuilder
     public AccountingBuilder Mark(Marker marker) => Tag(marker.Key, marker.Value);
 
     /// <summary>
+    /// يُلصِق entity مكتَّبة على القيد قبل التنفيذ. الواجهة تأتي من مكتبة
+    /// kit (مثل <c>IChatMessage</c> من Chat) فيُحقّق المنادي ضمنيّاً عقد
+    /// المكتبة. interceptors لاحقاً تطلبها عبر <c>ctx.Entity&lt;IChatMessage&gt;()</c>
+    /// مكتَّبةً، فلا تتعامل مع سلاسل ولا تركّب الـ entity من tags.
+    ///
+    /// <para>القيمة الفعليّة (Phase F1):
+    /// <list type="bullet">
+    ///   <item>تبادل المعرّفات الموضعيّ مستحيل — الواجهة بحقول مسمّاة.</item>
+    ///   <item>interceptor يعرف وقت compile ما يستهلكه.</item>
+    ///   <item>التركيب أعلى يعتمد على نوع الـ entity ليقرّر هل يطابق.</item>
+    /// </list></para>
+    /// </summary>
+    public AccountingBuilder WithEntity<TEntity>(TEntity entity) where TEntity : class
+    {
+        // BeforeExecute hook يضع الـ entity في ctx قبل أيّ analyzer أو interceptor.
+        _inner.OnBeforeExecute(ctx => { ctx.WithEntity(entity); return Task.CompletedTask; });
+        return this;
+    }
+
+    /// <summary>
     /// يختم القيد - يمنع كل المعترضات العامة من الحقن.
     /// مفيد للقيود الحساسة التي يجب ألا تتأثر بأي طبقة cross-cutting.
     /// </summary>
