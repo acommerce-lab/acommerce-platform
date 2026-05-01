@@ -9,6 +9,7 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\Realtime\ACommerce.Realtime.Operations\ACommerce.Realtime.Operations.csproj" />
+    <ProjectReference Include="..\..\Core\OperationEngine\ACommerce.OperationEngine.DataInterceptors\ACommerce.OperationEngine.DataInterceptors.csproj" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.7" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.7" />
   </ItemGroup>

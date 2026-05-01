@@ -35,6 +35,9 @@ public sealed class ChatPersistentNotificationInterceptor : IOperationIntercepto
 
     public async Task<AnalyzerResult> InterceptAsync(OperationContext ctx, OperationResult? result = null)
     {
+        // F5: لا إشعار على عمليّة فاشلة — رسالة لم تُحفظ ≠ حدث للإبلاغ عنه.
+        if (result is null || !result.Success) return AnalyzerResult.Pass();
+
         try
         {
             using var scope = _root.CreateScope();

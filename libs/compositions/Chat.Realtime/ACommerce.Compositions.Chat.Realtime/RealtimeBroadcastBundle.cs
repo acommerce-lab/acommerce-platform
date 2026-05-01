@@ -41,6 +41,10 @@ public sealed class RealtimeBroadcastInterceptor : IOperationInterceptor
 
     public async Task<AnalyzerResult> InterceptAsync(OperationContext ctx, OperationResult? result = null)
     {
+        // F5: لا بثّ على عمليّة فاشلة. نجاح Execute body شرط ضروريّ —
+        // فلا نُرسل رسالة لم تُحفظ في DB.
+        if (result is null || !result.Success) return AnalyzerResult.Pass();
+
         try
         {
             // scope per-call ليصل لـ Scoped services (IChatStore, DbContext).

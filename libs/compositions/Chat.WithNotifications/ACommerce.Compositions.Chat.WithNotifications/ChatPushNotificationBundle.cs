@@ -35,6 +35,9 @@ public sealed class ChatPushNotificationInterceptor : IOperationInterceptor
 
     public async Task<AnalyzerResult> InterceptAsync(OperationContext ctx, OperationResult? result = null)
     {
+        // F5: لا FCM على عمليّة فاشلة.
+        if (result is null || !result.Success) return AnalyzerResult.Pass();
+
         try
         {
             using var scope = _root.CreateScope();

@@ -1,6 +1,7 @@
 using ACommerce.Chat.Operations;
 using ACommerce.OperationEngine.Analyzers;
 using ACommerce.OperationEngine.Core;
+using ACommerce.OperationEngine.DataInterceptors;
 using ACommerce.OperationEngine.Patterns;
 using ACommerce.OperationEngine.Wire;
 using ACommerce.OperationEngine.Wire.Http;
@@ -79,30 +80,46 @@ public class ChatController : ControllerBase
         if (!await _store.CanParticipateAsync(id, CallerId, ct))
             return this.ForbiddenEnvelope("not_a_participant");
 
-        // البثّ داخل Execute body (لا خارج الـ envelope) — هكذا أيّ
-        // IOperationInterceptor مسجَّل لاحقاً (audit، rate-limit، ...) يلتقط
-        // البثّ والإستمرار معاً كعمليّة واحدة. أيضاً يعمل صحّ مع Support
-        // kit الذي يُعيد استخدام Type=message.send لردود التذاكر فيرث نفس
-        // المسار ودون تكرار broadcast logic.
+        // F5: القيد المحاسبيّ — استبدال السلاسل بـ typed values:
+        //   - Type = "message.send" (دلالة عمل، يطابقه interceptors).
+        //   - ChatTagKeys.ConversationId + ChatEntityKinds.Message على
+        //     TargetEntity tag للـ observability + ربط الكيان.
+        //   - Mark(IsChatMessageCreate) → interceptors البثّ/الإشعار يطابقون
+        //     عبر marker لا سلاسل.
+        //   - WithEntity<IChatMessage>(msg) — F1: typed entity على ctx؛
+        //     interceptors تستهلكها مكتَّبة بدل بناء tags وتركيبها.
+        //
+        // ملاحظة الذرّيّة: <c>IChatStore.AppendMessageAsync</c> يُتَرَك
+        // مسؤولاً عن SaveChanges واحد يحفظ الرسالة + تعديلات Conversation
+        // معاً ذرّيّاً. لذا لا نضيف <c>DbAction=Create</c> tag — الـ
+        // CrudActionInterceptor يخلق سيناريو حفظ مزدوج. كيتس بعمليّات
+        // أحاديّة-الكيان (Reports.Submit مثلاً) تستعمل المسار الكامل مع
+        // DbAction tag بدلاً من store يدويّ.
         IChatMessage? msg = null;
         var op = Entry.Create("message.send")
             .Describe($"User {CallerId} sends message in conversation {id}")
             .From(CallerPartyId, 1, ("role", "sender"))
             .To($"Conversation:{id}", 1, ("role", "appended"))
-            .Tag("conversation_id", id)
+            .Tag(ChatTagKeys.ConversationId, id)
+            .Tag(OperationTags.TargetEntity, ChatEntityKinds.Message)
+            .Mark(ChatMarkers.IsChatMessageCreate)
             .Analyze(new RequiredFieldAnalyzer("text", () => req.Text))
             .Analyze(new MaxLengthAnalyzer("text",    () => req.Text, _options.MaxMessageLength))
             .Execute(async ctx =>
             {
                 msg = await _store.AppendMessageAsync(id, CallerId, req.Text ?? "", ctx.CancellationToken);
-                if (_chat is not null && msg is not null)
-                    await _chat.BroadcastNewMessageAsync(msg, ctx.CancellationToken);
+                if (msg is not null) ctx.WithEntity(msg);
             })
             .Build();
 
         var env = await _engine.ExecuteEnvelopeAsync(op, (object?)msg ?? new { }, ct);
         if (env.Operation.Status != "Success" || msg is null)
             return this.BadRequestEnvelope(env.Operation.FailedAnalyzer ?? "send_failed", env.Operation.ErrorMessage);
+
+        // البثّ على group chat:conv:X — ChatService مسؤول عنه (لا يلامس
+        // كيان البيانات). Realtime user-pin + DB notification + FCM ينطلقون
+        // كـ post-interceptors تلقائياً عبر مسار composition.
+        if (_chat is not null) await _chat.BroadcastNewMessageAsync(msg, ct);
         return this.OkEnvelope("message.send", msg);
     }
 
