@@ -93,7 +93,7 @@
     private static readonly IReadOnlyList<BottomNavItemDto> _bottomItems = new[]
     {
         new BottomNavItemDto { Href = "/",              Label = "الرئيسية", IconName = "home",    Exact = true },
-        new BottomNavItemDto { Href = "/search",        Label = "بحث",      IconName = "search" },
+        new BottomNavItemDto { Href = "/explore",       Label = "استكشاف",  IconName = "compass" },
         new BottomNavItemDto { Href = "/favorites",     Label = "المفضلة",  IconName = "heart" },
         new BottomNavItemDto { Href = "/chats",         Label = "الرسائل",  IconName = "message" },
         new BottomNavItemDto { Href = "/me",            Label = "حسابي",    IconName = "user" }
@@ -102,7 +102,7 @@
     private static readonly IReadOnlyList<AcTopNav.TopNavItem> _topItems = new[]
     {
         new AcTopNav.TopNavItem("/",              "الرئيسية",  "home",    null, true),
-        new AcTopNav.TopNavItem("/search",        "بحث",       "search"),
+        new AcTopNav.TopNavItem("/explore",       "استكشاف",   "compass"),
         new AcTopNav.TopNavItem("/favorites",     "المفضلة",   "heart"),
         new AcTopNav.TopNavItem("/chats",         "الرسائل",   "message"),
         new AcTopNav.TopNavItem("/notifications", "الإشعارات", "bell"),

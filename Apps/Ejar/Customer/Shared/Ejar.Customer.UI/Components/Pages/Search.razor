@@ -57,12 +57,18 @@
     @if (_categories.Count > 0)
     {
         <AcSectionHeader Title="تصفّح بالفئات" />
-        <div class="acm-home-grid">
+        @* قائمة طوليّة (rows) — كلّ فئة سطر كامل بأيقونة + نصّ + سهم. أوضح
+           من شبكة على الموبايل ويمنح الفئات الأطول عنواناً عرضاً أوسع. *@
+        <div class="acs-category-list">
             @foreach (var c in _categories)
             {
                 var cat = c;
-                <AcCategoryTile Label="@cat.Label" Icon="@cat.Icon"
-                                OnClick="@(() => Nav.NavigateTo($"/explore?category={cat.Id}"))" />
+                <button type="button" class="acs-category-row"
+                        @onclick="@(() => Nav.NavigateTo($"/explore?category={cat.Id}"))">
+                    <span class="acs-category-row__icon"><AcIcon Name="@cat.Icon" Size="22" /></span>
+                    <span class="acs-category-row__label">@cat.Label</span>
+                    <span class="acs-category-row__chev"><AcIcon Name="chevron-left" Size="18" /></span>
+                </button>
             }
         </div>
     }
