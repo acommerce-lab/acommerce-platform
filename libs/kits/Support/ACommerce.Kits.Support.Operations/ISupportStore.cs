@@ -1,42 +1,75 @@
 using ACommerce.Kits.Support.Domain;
+using ACommerce.OperationEngine.Core;
 
 namespace ACommerce.Kits.Support.Operations;
 
 /// <summary>
-/// أنواع عمليّات Support kit (OAM Type strings). كلّ مكان يبني <c>Entry.Create(...)</c>
-/// يجب أن يستخدم هذه الثوابت بدل سلاسل سحريّة، ليتمكّن أيّ interceptor من
-/// المطابقة مركزياً عبر <c>op.Type</c>.
+/// أنواع عمليّات Support kit (typed). كلّ <c>Entry.Create(...)</c> يجب أن
+/// يستخدم هذه الأنواع بدل سلاسل، ليتمكّن أيّ interceptor من المطابقة
+/// المتطابقة عبر <c>op.Type == SupportOps.X</c>.
 ///
-/// <para>ملاحظة OAM: عند الردّ على تذكرة، Type = <c>message.send</c> (نفس
-/// Chat kit) لا <c>ticket.reply</c> — ذلك ليُورِّث الردّ كلّ المعترضات
-/// المسجَّلة على رسائل الدردشة (realtime، DB notification، FCM push) بلا
-/// تكرار كود. للتمييز يضاف tag <c>kind=support</c> + <c>ticket_id</c>.</para>
+/// <para>ملاحظة OAM: عند الردّ على تذكرة، Type = <c>MessageOps.Send</c>
+/// (نفس Chat kit) لا op خاصّ — لتُورِّث المعترضات المسجَّلة على رسائل
+/// الدردشة. للتمييز يضاف <see cref="SupportMarkers.IsTicketReply"/>.</para>
 /// </summary>
-public static class SupportOperationTypes
+public static class SupportOps
 {
     /// <summary>إنشاء تذكرة جديدة + محادثة + رسالة أولى.</summary>
-    public const string TicketOpen        = "ticket.open";
+    public static readonly OperationType TicketOpen         = new("ticket.open");
     /// <summary>تغيير حالة (open → in_progress → resolved → closed).</summary>
-    public const string TicketStatusChange = "ticket.status_change";
+    public static readonly OperationType TicketStatusChange = new("ticket.status_change");
     /// <summary>تخصيص وكيل (يُحدِّث PartnerId على المحادثة المرتبطة).</summary>
-    public const string TicketAssignAgent  = "ticket.assign_agent";
-
+    public static readonly OperationType TicketAssignAgent  = new("ticket.assign_agent");
     /// <summary>الردّ على تذكرة = نفس النوع المُستخدم في Chat kit.</summary>
-    public const string TicketReply = "message.send";
+    public static readonly OperationType TicketReply        = new("message.send");
+}
+
+/// <summary>توافق خلفيّ — ثوابت السلاسل ما زالت متاحة عبر implicit conversion.</summary>
+public static class SupportOperationTypes
+{
+    public static readonly OperationType TicketOpen         = SupportOps.TicketOpen;
+    public static readonly OperationType TicketStatusChange = SupportOps.TicketStatusChange;
+    public static readonly OperationType TicketAssignAgent  = SupportOps.TicketAssignAgent;
+    public static readonly OperationType TicketReply        = SupportOps.TicketReply;
 }
 
 /// <summary>
-/// أوسمة OAM المعياريّة لعمليّات Support kit. مفتاحيّة للـ interceptors:
-/// المعترض يطابق على <c>tag(kind, support)</c> ليفصل تذاكر الدعم عن
-/// رسائل الدردشة العاديّة.
+/// مفاتيح أوسمة Support kit المُكتَّبة. التركيب الخارجيّ (composition) يطابق
+/// عبرها بدل سلاسل، فيُكشَف أيّ خطأ كتابيّ وقت compile-time.
 /// </summary>
+public static class SupportTagKeys
+{
+    public static readonly TagKey Kind       = new("kind");
+    public static readonly TagKey TicketId   = new("ticket_id");
+    public static readonly TagKey FromStatus = new("from_status");
+    public static readonly TagKey ToStatus   = new("to_status");
+}
+
+/// <summary>قيم الأوسمة الثابتة المعتبَرة.</summary>
+public static class SupportTagValues
+{
+    public static readonly TagValue Support = new("support");
+}
+
+/// <summary>
+/// Markers مُعلَّبة (key+value) — لا فرصة لتفكيك خطأ، يُكتب marker واحد
+/// أينما لزم.
+/// </summary>
+public static class SupportMarkers
+{
+    /// <summary>"هذه العمليّة جزء من تذكرة دعم" — يضعها السطر الواحد على
+    /// أيّ message.send يخصّ تذكرة، فيلتقطه SupportTicketBumpBundle.</summary>
+    public static readonly Marker IsTicketReply = new(SupportTagKeys.Kind, SupportTagValues.Support);
+}
+
+/// <summary>توافق خلفيّ — ثوابت السلاسل القديمة (مهجورة، استعمل SupportTagKeys/SupportMarkers).</summary>
 public static class SupportTags
 {
-    public const string Kind     = "kind";
+    public const string Kind        = "kind";
     public const string KindSupport = "support";
-    public const string TicketId = "ticket_id";
-    public const string FromStatus = "from_status";
-    public const string ToStatus   = "to_status";
+    public const string TicketId    = "ticket_id";
+    public const string FromStatus  = "from_status";
+    public const string ToStatus    = "to_status";
 }
 
 /// <summary>

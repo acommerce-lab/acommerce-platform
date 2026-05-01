@@ -185,6 +185,16 @@ public class AccountingBuilder
     /// <summary>Type-safe overload: TagKey + Guid</summary>
     public AccountingBuilder Tag(TagKey key, Guid value) => Tag(key.Name, value.ToString());
 
+    /// <summary>Type-safe overload: TagKey + bool</summary>
+    public AccountingBuilder Tag(TagKey key, bool value) => Tag(key.Name, value ? "true" : "false");
+
+    /// <summary>
+    /// وسم مُعلَّب: زوج (مفتاح، قيمة) ثابت — يضمن أنّ المرسل والمستقبل
+    /// يتفقان على القيمة الكاملة، فلا فرصة لـ typo "support" vs "Support".
+    /// مثال: <c>.Mark(SupportMarkers.IsTicketReply)</c>.
+    /// </summary>
+    public AccountingBuilder Mark(Marker marker) => Tag(marker.Key, marker.Value);
+
     /// <summary>
     /// يختم القيد - يمنع كل المعترضات العامة من الحقن.
     /// مفيد للقيود الحساسة التي يجب ألا تتأثر بأي طبقة cross-cutting.

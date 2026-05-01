@@ -1,13 +1,12 @@
-// Legacy shim — Operations.cs الأصلي كان يحوي ثوابت OAM ثلاثة بسلاسل
-// مختلفة عن النمط الموحَّد. الآن المرجع الأحاديّ هو ISupportStore.cs الذي
-// يعرّف SupportOperationTypes + SupportTags. نتركه فارغاً للتوافق مع
-// مَن يُحيل إلى المسار القديم.
+// Legacy shim — استعمل ‍SupportOps المُكتَّب في ISupportStore.cs.
+using ACommerce.OperationEngine.Core;
+
 namespace ACommerce.Kits.Support.Operations;
 
-/// <summary>توافق خلفيّ — استخدم <see cref="SupportOperationTypes"/>.</summary>
+/// <summary>توافق خلفيّ — استخدم <see cref="SupportOps"/>.</summary>
 public static class SupportOperations
 {
-    public const string FileTicket    = SupportOperationTypes.TicketOpen;
-    public const string ReplyTicket   = SupportOperationTypes.TicketReply;
-    public const string ResolveTicket = SupportOperationTypes.TicketStatusChange;
+    public static readonly OperationType FileTicket    = SupportOps.TicketOpen;
+    public static readonly OperationType ReplyTicket   = SupportOps.TicketReply;
+    public static readonly OperationType ResolveTicket = SupportOps.TicketStatusChange;
 }

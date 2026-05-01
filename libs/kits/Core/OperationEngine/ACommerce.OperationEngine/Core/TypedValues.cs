@@ -120,3 +120,101 @@ public sealed class PartyRole : IEquatable<PartyRole>
     public static bool operator ==(PartyRole? a, PartyRole? b) => Equals(a, b);
     public static bool operator !=(PartyRole? a, PartyRole? b) => !Equals(a, b);
 }
+
+/// <summary>
+/// زوج (مفتاح، قيمة) ثابت — يحمل tag كاملاً معلَّباً. مفيد للـ markers
+/// التي يتشارك بها kit وcompositions: تَعريف واحد محصور في مكان واحد بدل
+/// نشر سلسلتَين منفصلتَين.
+///
+/// مثال:
+///   public static class SupportMarkers {
+///       public static readonly Marker IsTicketReply = new("kind", "support");
+///   }
+///
+///   Entry.Create(MessageOps.Send)
+///        .Mark(SupportMarkers.IsTicketReply);
+/// </summary>
+public sealed class Marker : IEquatable<Marker>
+{
+    public string Key { get; }
+    public string Value { get; }
+
+    public Marker(string key, string value)
+    {
+        if (string.IsNullOrWhiteSpace(key))   throw new ArgumentException("Marker.Key cannot be empty", nameof(key));
+        if (value is null)                     throw new ArgumentNullException(nameof(value));
+        Key = key; Value = value;
+    }
+
+    public Marker(TagKey key, string value)         : this(key.Name, value) { }
+    public Marker(TagKey key, TagValue value)       : this(key.Name, value.Value) { }
+    public Marker(string key, TagValue value)       : this(key, value.Value) { }
+
+    public override string ToString() => $"{Key}={Value}";
+    public override int GetHashCode() => HashCode.Combine(Key, Value);
+    public override bool Equals(object? obj) => Equals(obj as Marker);
+    public bool Equals(Marker? other) => other is not null && Key == other.Key && Value == other.Value;
+
+    public static bool operator ==(Marker? a, Marker? b) => Equals(a, b);
+    public static bool operator !=(Marker? a, Marker? b) => !Equals(a, b);
+}
+
+/// <summary>
+/// كنية طرف (party prefix) — يفصل نوع الكيان عن الـ id. مثال: "User",
+/// "Agent", "Service". يُستعمل لتركيب <see cref="PartyRef"/>.
+/// </summary>
+public sealed class PartyKind : IEquatable<PartyKind>
+{
+    public string Value { get; }
+
+    public PartyKind(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            throw new ArgumentException("PartyKind value cannot be empty", nameof(value));
+        Value = value;
+    }
+
+    public static readonly PartyKind User    = new("User");
+    public static readonly PartyKind Agent   = new("Agent");
+    public static readonly PartyKind System  = new("System");
+    public static readonly PartyKind Service = new("Service");
+    public static readonly PartyKind Listing = new("Listing");
+    public static readonly PartyKind Ticket  = new("Ticket");
+    public static readonly PartyKind Conversation = new("Conversation");
+    public static readonly PartyKind Report  = new("Report");
+
+    public override string ToString() => Value;
+    public override int GetHashCode() => Value.GetHashCode(StringComparison.Ordinal);
+    public override bool Equals(object? obj) => Equals(obj as PartyKind);
+    public bool Equals(PartyKind? other) => other is not null && Value == other.Value;
+
+    public static implicit operator string(PartyKind k) => k.Value;
+    public static bool operator ==(PartyKind? a, PartyKind? b) => Equals(a, b);
+    public static bool operator !=(PartyKind? a, PartyKind? b) => !Equals(a, b);
+}
+
+/// <summary>
+/// مرجع طرف كامل: نوع + معرّف. ينتج "Kind:Id" stringified — متطابق مع
+/// المنتظَر في operations الحاليّة فيُستعمل كبديل آمن نوعاً.
+/// </summary>
+public sealed class PartyRef : IEquatable<PartyRef>
+{
+    public PartyKind Kind { get; }
+    public string Id { get; }
+
+    public PartyRef(PartyKind kind, string id)
+    {
+        Kind = kind ?? throw new ArgumentNullException(nameof(kind));
+        if (id is null) throw new ArgumentNullException(nameof(id));
+        Id = id;
+    }
+
+    public override string ToString() => $"{Kind.Value}:{Id}";
+    public override int GetHashCode() => HashCode.Combine(Kind, Id);
+    public override bool Equals(object? obj) => Equals(obj as PartyRef);
+    public bool Equals(PartyRef? other) => other is not null && Kind == other.Kind && Id == other.Id;
+
+    public static implicit operator string(PartyRef r) => r.ToString();
+    public static bool operator ==(PartyRef? a, PartyRef? b) => Equals(a, b);
+    public static bool operator !=(PartyRef? a, PartyRef? b) => !Equals(a, b);
+}

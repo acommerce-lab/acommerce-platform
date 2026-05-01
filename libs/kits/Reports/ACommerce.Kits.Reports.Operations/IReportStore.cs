@@ -1,25 +1,47 @@
 using ACommerce.Kits.Reports.Domain;
+using ACommerce.OperationEngine.Core;
 
 namespace ACommerce.Kits.Reports.Operations;
 
-/// <summary>
-/// أنواع عمليّات Reports kit (OAM Type strings).
-/// </summary>
-public static class ReportOperationTypes
+/// <summary>أنواع عمليّات Reports kit — typed.</summary>
+public static class ReportOps
 {
-    /// <summary>إنشاء بلاغ جديد.</summary>
-    public const string Submit = "report.submit";
-
-    /// <summary>تغيير حالة البلاغ (للإدارة).</summary>
-    public const string SetStatus = "report.set_status";
+    public static readonly OperationType Submit    = new("report.submit");
+    public static readonly OperationType SetStatus = new("report.set_status");
 }
 
-/// <summary>
-/// أوسمة OAM المعياريّة لعمليّات البلاغات.
-/// </summary>
+/// <summary>توافق خلفيّ.</summary>
+public static class ReportOperationTypes
+{
+    public static readonly OperationType Submit    = ReportOps.Submit;
+    public static readonly OperationType SetStatus = ReportOps.SetStatus;
+}
+
+/// <summary>مفاتيح وسوم البلاغات.</summary>
+public static class ReportTagKeys
+{
+    public static readonly TagKey Kind       = new("kind");
+    public static readonly TagKey EntityType = new("entity_type");
+    public static readonly TagKey EntityId   = new("entity_id");
+    public static readonly TagKey Reason     = new("reason");
+    public static readonly TagKey FromStatus = new("from_status");
+    public static readonly TagKey ToStatus   = new("to_status");
+}
+
+public static class ReportTagValues
+{
+    public static readonly TagValue Report = new("report");
+}
+
+public static class ReportMarkers
+{
+    public static readonly Marker IsReport = new(ReportTagKeys.Kind, ReportTagValues.Report);
+}
+
+/// <summary>توافق خلفيّ — مهجور.</summary>
 public static class ReportTags
 {
-    public const string Kind = "kind";
+    public const string Kind       = "kind";
     public const string KindReport = "report";
     public const string EntityType = "entity_type";
     public const string EntityId   = "entity_id";
