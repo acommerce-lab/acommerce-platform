@@ -167,7 +167,15 @@ Microsoft.Extensions.DependencyInjection.Extensions.ServiceCollectionDescriptorE
 builder.Services.AddScoped<ACommerce.Kits.Chat.Backend.IChatStore, EjarCustomerChatStore>();
 
 builder.Services.AddDiscoveryKit();
-builder.Services.AddSupportKit();
+// Support kit بعد Chat kit لأنّ EjarSupportStore يحقن IChatStore.
+// الـ AgentPoolPartyId ثابت قابل للضبط في appsettings (Support:AgentPoolId).
+builder.Services.AddSupportKit<EjarSupportStore>(opts =>
+{
+    opts.PartyKind = "User";
+    opts.AgentPoolDisplayName = "فريق دعم إيجار";
+    var poolStr = builder.Configuration["Support:AgentPoolId"];
+    if (Guid.TryParse(poolStr, out var poolGuid)) opts.AgentPoolPartyId = poolGuid;
+});
 builder.Services.AddFavoritesKit();
 builder.Services.AddNotificationsKit<EjarCustomerNotificationStore>();
 builder.Services.AddVersionsKit<EjarVersionStore>();
@@ -242,7 +250,6 @@ EntityDiscoveryRegistry.RegisterEntity<DiscoveryRegion>();
 EntityDiscoveryRegistry.RegisterEntity<DiscoveryAmenity>();
 EntityDiscoveryRegistry.RegisterEntity<Favorite>();
 EntityDiscoveryRegistry.RegisterEntity<SupportTicket>();
-EntityDiscoveryRegistry.RegisterEntity<SupportReply>();
 
 var app = builder.Build();
 

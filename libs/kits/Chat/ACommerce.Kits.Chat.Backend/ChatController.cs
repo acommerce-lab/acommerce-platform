@@ -79,6 +79,11 @@ public class ChatController : ControllerBase
         if (!await _store.CanParticipateAsync(id, CallerId, ct))
             return this.ForbiddenEnvelope("not_a_participant");
 
+        // البثّ داخل Execute body (لا خارج الـ envelope) — هكذا أيّ
+        // IOperationInterceptor مسجَّل لاحقاً (audit، rate-limit، ...) يلتقط
+        // البثّ والإستمرار معاً كعمليّة واحدة. أيضاً يعمل صحّ مع Support
+        // kit الذي يُعيد استخدام Type=message.send لردود التذاكر فيرث نفس
+        // المسار ودون تكرار broadcast logic.
         IChatMessage? msg = null;
         var op = Entry.Create("message.send")
             .Describe($"User {CallerId} sends message in conversation {id}")
@@ -90,14 +95,14 @@ public class ChatController : ControllerBase
             .Execute(async ctx =>
             {
                 msg = await _store.AppendMessageAsync(id, CallerId, req.Text ?? "", ctx.CancellationToken);
+                if (_chat is not null && msg is not null)
+                    await _chat.BroadcastNewMessageAsync(msg, ctx.CancellationToken);
             })
             .Build();
 
         var env = await _engine.ExecuteEnvelopeAsync(op, (object?)msg ?? new { }, ct);
         if (env.Operation.Status != "Success" || msg is null)
             return this.BadRequestEnvelope(env.Operation.FailedAnalyzer ?? "send_failed", env.Operation.ErrorMessage);
-
-        if (_chat is not null) await _chat.BroadcastNewMessageAsync(msg, CancellationToken.None);
         return this.OkEnvelope("message.send", msg);
     }
 

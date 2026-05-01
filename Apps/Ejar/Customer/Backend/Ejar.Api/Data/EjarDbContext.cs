@@ -20,8 +20,10 @@ public sealed class EjarDbContext : DbContext
     public DbSet<UserPushTokenEntity> UserPushTokens => Set<UserPushTokenEntity>();
     public DbSet<Favorite>            Favorites      => Set<Favorite>();
     public DbSet<PlanEntity>          Plans          => Set<PlanEntity>();
-    public DbSet<SupportTicket>       Complaints     => Set<SupportTicket>();
-    public DbSet<SupportReply>        ComplaintReplies => Set<SupportReply>();
+    // تذاكر الدعم (Support kit). الردود لا تعيش في جدول منفصل بعد الآن —
+    // كلّ تذكرة مرتبطة بـ ConversationEntity في Chat kit وكلّ الردود رسائل
+    // فيها. راجع libs/kits/Support/.../Domain/Entities.cs للتفاصيل.
+    public DbSet<SupportTicket>       SupportTickets => Set<SupportTicket>();
     public DbSet<SubscriptionEntity>  Subscriptions  => Set<SubscriptionEntity>();
     public DbSet<InvoiceEntity>       Invoices       => Set<InvoiceEntity>();
     public DbSet<AppVersionEntity>    AppVersions    => Set<AppVersionEntity>();
@@ -39,11 +41,10 @@ public sealed class EjarDbContext : DbContext
             .HasForeignKey(m => m.ConversationId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        b.Entity<SupportTicket>()
-            .HasMany(c => c.Replies)
-            .WithOne()
-            .HasForeignKey(r => r.TicketId)
-            .OnDelete(DeleteBehavior.Cascade);
+        // SupportTicket: index على UserId (للقائمة per-user) + ConversationId
+        // (للـ JOIN مع Conversations عند جلب آخر رسالة/unread).
+        b.Entity<SupportTicket>().HasIndex(t => t.UserId);
+        b.Entity<SupportTicket>().HasIndex(t => t.ConversationId).IsUnique();
 
         b.Entity<ListingEntity>().HasIndex(l => l.City);
         b.Entity<ListingEntity>().HasIndex(l => l.PropertyType);

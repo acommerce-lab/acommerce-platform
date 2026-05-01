@@ -62,8 +62,7 @@
                                 <strong>@c.Subject</strong>
                                 <AcBadge Variant="@StatusVariant(c.Status)" Text="@StatusLabel(c.Status)" />
                             </div>
-                            <div class="acm-complaint-body">@Truncate(c.Body, 120)</div>
-                            <small>@c.CreatedAt.ToString("yyyy-MM-dd HH:mm") — @c.RepliesCount رسالة — الأولويّة: @c.Priority</small>
+                            <small>@c.CreatedAt.ToString("yyyy-MM-dd HH:mm") — الأولويّة: @c.Priority</small>
                         </button>
                     </ChildContent>
                 </AcCard>
@@ -92,7 +91,9 @@
 
     private async Task Reload()
     {
-        var env = await Api.GetAsync<List<ComplaintDto>>("/complaints");
+        // Support kit يُعيد قائمة ISupportTicket — حقول id/subject/status/priority/createdAt
+        // متطابقة مع ComplaintDto الحاليّ، فما زال الـ DTO يعمل بدون تعديل.
+        var env = await Api.GetAsync<List<ComplaintDto>>("/support/tickets");
         _items = env.Data ?? new();
         _loading = false;
         await InvokeAsync(StateHasChanged);
@@ -108,8 +109,8 @@
         try
         {
             var env = await Engine.ExecuteAsync<object>(
-                EjarOps.FileComplaint(_subject, _body, _priority, _related),
-                payload: new { Subject = _subject, Body = _body, Priority = _priority, RelatedEntity = _related });
+                EjarOps.OpenTicket(_subject, _body, _priority, _related),
+                payload: new { Subject = _subject, Body = _body, Priority = _priority, RelatedEntityId = _related });
             if (env?.Operation.Status == "Success")
             {
                 _alert = "تمّ إرسال الشكوى"; _alertVariant = "success";
@@ -141,6 +142,6 @@
 
     private static string Truncate(string s, int n) => s.Length <= n ? s : s[..n] + "…";
 
-    private sealed record ComplaintDto(string Id, string Subject, string Body, DateTime CreatedAt,
-        string Status, string Priority, string? RelatedEntity, int RepliesCount);
+    private sealed record ComplaintDto(string Id, string Subject, DateTime CreatedAt,
+        string Status, string Priority, string? RelatedEntityId);
 }

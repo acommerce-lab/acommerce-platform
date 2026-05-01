@@ -375,74 +375,16 @@ public sealed class CatalogController : ControllerBase
     public IActionResult BookingDetails(string id) =>
         this.NotFoundEnvelope("booking_not_found");
 
-    // ═══ Complaints (bridge for the frontend's /complaints.* endpoints) ══
-    [HttpGet("/complaints")]
-    public async Task<IActionResult> Complaints(CancellationToken ct)
-    {
-        if (CurrentUserGuid is not { } uid) return this.UnauthorizedEnvelope();
-        var rows = await _db.Complaints.AsNoTracking()
-            .Where(t => t.UserId == uid).OrderByDescending(t => t.CreatedAt)
-            .Select(t => new {
-                id = t.Id, subject = t.Subject, status = t.Status, priority = t.Priority,
-                createdAt = t.CreatedAt
-            }).ToListAsync(ct);
-        return this.OkEnvelope("complaint.list", rows);
-    }
-
-    [HttpGet("/complaints/{id:guid}")]
-    public async Task<IActionResult> ComplaintDetail(Guid id, CancellationToken ct)
-    {
-        if (CurrentUserGuid is not { } uid) return this.UnauthorizedEnvelope();
-        var t = await _db.Complaints.AsNoTracking()
-            .Include(x => x.Replies).FirstOrDefaultAsync(x => x.Id == id && x.UserId == uid, ct);
-        if (t is null) return this.NotFoundEnvelope("complaint_not_found");
-        return this.OkEnvelope("complaint.details", new {
-            id = t.Id, subject = t.Subject, body = t.Body,
-            status = t.Status, priority = t.Priority, createdAt = t.CreatedAt,
-            replies = t.Replies.OrderBy(r => r.CreatedAt).Select(r => new {
-                id = r.Id, from = r.FromRole, message = r.Message, createdAt = r.CreatedAt
-            })
-        });
-    }
-
-    public sealed record FileComplaintBody(string? Subject, string? Body, string? Priority);
-
-    [HttpPost("/complaints")]
-    public async Task<IActionResult> FileComplaint([FromBody] FileComplaintBody body, CancellationToken ct)
-    {
-        if (CurrentUserGuid is not { } uid) return this.UnauthorizedEnvelope();
-        if (string.IsNullOrWhiteSpace(body.Subject) || string.IsNullOrWhiteSpace(body.Body))
-            return this.BadRequestEnvelope("missing_fields", "subject و body مطلوبان");
-        var t = new SupportTicket {
-            Id = Guid.NewGuid(), UserId = uid,
-            Subject = body.Subject!, Body = body.Body!,
-            Status = "open", Priority = body.Priority ?? "عادي",
-            CreatedAt = DateTime.UtcNow
-        };
-        _db.Complaints.Add(t);
-        await _db.SaveChangesAsync(ct);
-        return this.OkEnvelope("complaint.file", new { id = t.Id, status = t.Status });
-    }
-
-    public sealed record ReplyBody(string? Message);
-
-    [HttpPost("/complaints/{id:guid}/replies")]
-    public async Task<IActionResult> ReplyComplaint(Guid id, [FromBody] ReplyBody body, CancellationToken ct)
-    {
-        if (CurrentUserGuid is not { } uid) return this.UnauthorizedEnvelope();
-        if (string.IsNullOrWhiteSpace(body.Message))
-            return this.BadRequestEnvelope("missing_message");
-        var t = await _db.Complaints.FirstOrDefaultAsync(x => x.Id == id && x.UserId == uid, ct);
-        if (t is null) return this.NotFoundEnvelope("complaint_not_found");
-        var r = new SupportReply {
-            Id = Guid.NewGuid(), TicketId = t.Id,
-            FromRole = "user", AuthorId = uid, Message = body.Message!,
-            CreatedAt = DateTime.UtcNow
-        };
-        _db.ComplaintReplies.Add(r);
-        await _db.SaveChangesAsync(ct);
-        return this.OkEnvelope("complaint.reply", new { id = r.Id });
-    }
+    // ═══ الشكاوى انتقلت إلى Support kit ═══════════════════════════════
+    // المسارات الجديدة (راجع libs/kits/Support/.../SupportController.cs):
+    //   GET    /support/tickets
+    //   GET    /support/tickets/{id}    ← يُرجع التذكرة + رسائل المحادثة
+    //   POST   /support/tickets
+    //   POST   /support/tickets/{id}/replies
+    //   PATCH  /support/tickets/{id}/status
+    // الـ controller الجديد يستهلك ISupportStore (EjarSupportStore) +
+    // IChatStore، فيرث realtime + DB notification + FCM push من مسار
+    // chat.message تلقائياً، ضمن envelope OAM واحد لكل عمليّة.
 
     // ═══ Conversations / Chat (start a new conversation) ═════════════════
     // العميل يرسل ListingId فقط (+ نصّ ابتدائيّ اختياريّ). الخادم يستنبط مالك

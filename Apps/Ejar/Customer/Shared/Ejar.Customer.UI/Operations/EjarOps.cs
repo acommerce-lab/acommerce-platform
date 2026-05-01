@@ -109,27 +109,33 @@ public static class EjarOps
             .Tag("client_dispatch", "true")
             .Build();
 
-    // ── Complaints ────────────────────────────────────────────────────
-    public static Operation FileComplaint(string subject, string body,
+    // ── Support Tickets ───────────────────────────────────────────────
+    // Type يطابق Support kit (SupportOperationTypes.TicketOpen / TicketReply)
+    // ليلتقطه أيّ interceptor مسجَّل على نفس الـ Type في الـ engine.
+    public static Operation OpenTicket(string subject, string body,
         string? priority = null, string? relatedEntity = null) =>
-        Entry.Create("complaint.file")
-            .Describe($"File complaint: {subject}")
+        Entry.Create("ticket.open")
+            .Describe($"Open ticket: {subject}")
             .From("User:self", 1, ("role", "complainant"))
-            .To("System:complaints", 1, ("role", "tracker"))
+            .To("Ticket:NEW", 1, ("role", "created"))
+            .Tag("kind", "support")
             .Tag("client_dispatch", "true")
             .Analyze(new RequiredFieldAnalyzer("subject", () => subject))
             .Analyze(new RequiredFieldAnalyzer("body", () => body))
             .Analyze(new MaxLengthAnalyzer("subject", () => subject, 200))
-            .Analyze(new MaxLengthAnalyzer("body", () => body, 2000))
+            .Analyze(new MaxLengthAnalyzer("body", () => body, 4000))
             .Build();
 
-    public static Operation ReplyComplaint(string complaintId, string message) =>
-        Entry.Create("complaint.reply")
-            .From("User:self", 1, ("role", "replier"))
-            .To($"Complaint:{complaintId}", 1, ("role", "replied"))
+    public static Operation ReplyTicket(string ticketId, string text) =>
+        // اسم dispatch (لتوجيه HTTP) فقط — الباك يُعيد بناء العمليّة بـ
+        // Type="message.send" داخلياً ليرث interceptors البثّ.
+        Entry.Create("ticket.reply")
+            .From("User:self", 1, ("role", "sender"))
+            .To($"Ticket:{ticketId}", 1, ("role", "replied"))
+            .Tag("kind", "support")
+            .Tag("ticket_id", ticketId)
             .Tag("client_dispatch", "true")
-            .Tag("complaint_id", complaintId)
-            .Analyze(new RequiredFieldAnalyzer("message", () => message))
+            .Analyze(new RequiredFieldAnalyzer("text", () => text))
             .Build();
 
     // ── Profile ───────────────────────────────────────────────────────

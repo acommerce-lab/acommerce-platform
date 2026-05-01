@@ -27,9 +27,11 @@ public static class EjarRoutes
         r.Map("notification.read",       HttpMethod.Post,   "/notifications/{notification_id}/read");
         r.Map("notification.read.all",   HttpMethod.Post,   "/notifications/read-all");
 
-        // Complaints
-        r.Map("complaint.file",          HttpMethod.Post,   "/complaints");
-        r.Map("complaint.reply",         HttpMethod.Post,   "/complaints/{complaint_id}/replies");
+        // Support tickets — على الباك، الردّ يستخدم Type="message.send"
+        // داخلياً (ليرث interceptors البثّ). على العميل نستعمل اسم
+        // dispatch مميَّز "ticket.reply" لتوجيه HTTP للمسار الصحيح.
+        r.Map("ticket.open",             HttpMethod.Post,   "/support/tickets");
+        r.Map("ticket.reply",            HttpMethod.Post,   "/support/tickets/{ticket_id}/replies");
 
         // Profile
         r.Map("profile.update",          HttpMethod.Put,    "/me/profile");

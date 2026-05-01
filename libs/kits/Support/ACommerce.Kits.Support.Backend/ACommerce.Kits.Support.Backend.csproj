@@ -11,6 +11,12 @@
     <ProjectReference Include="..\..\Core\OperationEngine\ACommerce.OperationEngine.Wire\ACommerce.OperationEngine.Wire.csproj" />
     <ProjectReference Include="..\..\Core\OperationEngine\ACommerce.OperationEngine.AspNetCore\ACommerce.OperationEngine.AspNetCore.csproj" />
     <ProjectReference Include="..\..\Core\OperationEngine\ACommerce.OperationEngine.DataInterceptors\ACommerce.OperationEngine.DataInterceptors.csproj" />
+    <!-- Chat kit — Support's reply uses IChatStore.AppendMessageAsync inside
+         its Execute body so realtime / FCM / DB notification side effects
+         travel as one envelope. Conversation listing for ticket details
+         also goes through IChatStore.GetMessagesAsync. -->
+    <ProjectReference Include="..\..\Chat\ACommerce.Kits.Chat.Backend\ACommerce.Kits.Chat.Backend.csproj" />
+    <ProjectReference Include="..\..\Chat\ACommerce.Chat.Operations\ACommerce.Chat.Operations.csproj" />
   </ItemGroup>
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
