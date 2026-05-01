@@ -288,6 +288,47 @@ If the ports diverge (e.g. backend starts on 5000 instead of the expected port),
 the cause is almost always a missing `"Urls"` in `appsettings.Development.json`.
 Fix it there — do NOT rely on `.env.Development` alone.
 
+### Rule T7 — Register every new .csproj in ACommerce.Platform.sln
+
+`dotnet new classlib` and writing a `.csproj` directly do NOT add the project
+to the solution file. `dotnet build` on the CLI still works (it follows
+`<ProjectReference>` regardless of the .sln), so the omission is invisible
+to anyone using the CLI. But Visual Studio on Windows fails immediately:
+
+```
+NU1105: Unable to find project information for 'C:\...\<NewProject>.csproj'.
+The project may be unloaded or not part of the current solution.
+```
+
+**Always run `dotnet sln add` immediately after creating a new csproj**,
+before adding `<ProjectReference>` consumers.
+
+```bash
+dotnet sln ACommerce.Platform.sln add \
+  libs/kits/<NewKit>/<Project1>/<Project1>.csproj \
+  libs/kits/<NewKit>/<Project2>/<Project2>.csproj \
+  --solution-folder "libs/kits/<NewKit>"
+```
+
+`--solution-folder` groups them under a Solution Folder so VS shows them
+nested correctly; without it they pile in the root.
+
+**Verification** (run before any commit that adds projects):
+
+```bash
+diff <(find . -name "*.csproj" -not -path "./bin/*" -not -path "*/bin/*" \
+              -not -path "*/obj/*" -not -path "./.git/*" \
+       | sed 's|^\./||' | sort) \
+     <(grep -oP '(?<=, ")[^"]+\.csproj' ACommerce.Platform.sln | tr '\\' '/' | sort)
+```
+
+Lines prefixed `<` = csproj on disk but NOT in the .sln (you forgot
+`dotnet sln add`). Lines prefixed `>` = csproj in the .sln but file
+deleted (you forgot `dotnet sln remove`). Both indicate broken state;
+fix before committing.
+
+This is documented in detail in **`docs/PITFALLS.md` → P13**.
+
 ## Boundaries
 
 **Do freely**: read any file; add entities/controllers/services/pages/tests/docs;

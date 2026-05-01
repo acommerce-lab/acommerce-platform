@@ -413,6 +413,58 @@ if (!string.IsNullOrWhiteSpace(credPath) && !Path.IsPathRooted(credPath))
 
 ---
 
+## P13 — أضِف المشروع الجديد إلى .sln فور إنشائه
+
+**المظهر.** بعد إنشاء كيت جديد (Reports مثلاً) و إضافة `<ProjectReference>`
+من `Ejar.Api.csproj` إليه، Visual Studio على Windows يفشل بـ:
+
+```
+NU1105: Unable to find project information for
+'C:\...\libs\kits\Reports\ACommerce.Kits.Reports\ACommerce.Kits.Reports.csproj'.
+The project may be unloaded or not part of the current solution.
+```
+
+`dotnet build` على CLI يعمل (يبني المشاريع المرجعيّة عبر `<ProjectReference>`
+بصرف النظر عن الـ .sln)، فيظنّ المطوِّر الذي يستعمل CLI أنّ كلّ شيء سليم.
+لكنّ Visual Studio يعتمد على .sln للـ restore/IntelliSense ويرفض المشروع
+الذي يُحال إليه ولم يُسجَّل.
+
+**الجذر.** `dotnet new classlib` لا يُضيف المشروع للـ .sln تلقائياً (بخلاف
+ما يفعله `Add → New Project` من Visual Studio). كذلك إنشاء csproj يدوياً
+عبر `Write` لا يحدّث الـ .sln. الكود يبني، لكنّ بعض المسارات تنكسر.
+
+**الحلّ.** بعد كلّ مشروع جديد، **مباشرةً**:
+
+```bash
+# مرَّ كلّ مسارات الـ csproj الجديدة دفعة واحدة
+dotnet sln ACommerce.Platform.sln add \
+  libs/kits/Reports/ACommerce.Kits.Reports.Operations/ACommerce.Kits.Reports.Operations.csproj \
+  libs/kits/Reports/ACommerce.Kits.Reports.Backend/ACommerce.Kits.Reports.Backend.csproj \
+  libs/kits/Reports/ACommerce.Kits.Reports/ACommerce.Kits.Reports.csproj \
+  --solution-folder "libs/kits/Reports"
+```
+
+`--solution-folder` ينظّمها تحت مجلَّد افتراضيّ (Solution Folder) في
+Visual Studio بدل أن تتعلّق في الجذر.
+
+**الكشف**:
+```bash
+# قبل الـ commit، تحقّق من تطابق الـ csproj مع الـ sln:
+diff <(find libs Apps -name "*.csproj" -not -path "*/bin/*" -not -path "*/obj/*" | sort) \
+     <(grep -oP '(?<=, ")[^"]+\.csproj' ACommerce.Platform.sln | sort) | head
+```
+لو ظهر فرق → هناك مشروع غير مسجَّل. أصلِح قبل الالتزام.
+
+**خصِّص خانة في checklist**: عند إنشاء أيّ kit جديد، الخطوات بالترتيب
+هي:
+1. `mkdir -p libs/kits/<NewKit>/...` لكلّ مشروع.
+2. اكتب csproj + الكود.
+3. `dotnet sln add ...` ← **خطوة لا تُنسى**.
+4. أضف `<ProjectReference>` من المستهلكين (Ejar.Api مثلاً).
+5. `dotnet build` للحلّ كاملاً للتأكّد.
+
+---
+
 ## ملاحظة — قواعد العمل (T1-T6)
 
 `CLAUDE.md` يحوي قواعد T1-T6 المتعلّقة بانضباط استخدام الأدوات (Read قبل
