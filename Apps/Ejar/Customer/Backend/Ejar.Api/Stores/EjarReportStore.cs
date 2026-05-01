@@ -15,7 +15,7 @@ public sealed class EjarReportStore : IReportStore
     private readonly EjarDbContext _db;
     public EjarReportStore(EjarDbContext db) => _db = db;
 
-    public async Task<IReport> SubmitAsync(
+    public Task<IReport> SubmitAsync(
         string reporterId, string entityType, string entityId,
         string reason, string? body, CancellationToken ct)
     {
@@ -33,8 +33,8 @@ public sealed class EjarReportStore : IReportStore
             Status      = "open",
         };
         _db.Reports.Add(r);
-        await _db.SaveChangesAsync(ct);
-        return r;
+        // (F6) لا SaveChanges — ReportsController.Submit يضع .SaveAtEnd().
+        return Task.FromResult<IReport>(r);
     }
 
     public async Task<IReadOnlyList<IReport>> ListMineAsync(string userId, CancellationToken ct)
@@ -63,7 +63,7 @@ public sealed class EjarReportStore : IReportStore
         if (r is null) return false;
         r.Status    = newStatus;
         r.UpdatedAt = DateTime.UtcNow;
-        await _db.SaveChangesAsync(ct);
+        // (F6) tracked mutation only. ReportsController.SetStatus يحفظ.
         return true;
     }
 }

@@ -83,6 +83,7 @@ public sealed class ReportsController : ControllerBase
                     body:       req.Body,
                     ct:         ctx.CancellationToken);
             })
+            .SaveAtEnd()  // F6
             .Build();
 
         var env = await _engine.ExecuteEnvelopeAsync(op, (object?)created ?? new { }, ct);
@@ -129,6 +130,7 @@ public sealed class ReportsController : ControllerBase
             {
                 await _store.SetStatusAsync(id, newStatus, ctx.CancellationToken);
             })
+            .SaveAtEnd()  // F6
             .Build();
 
         var env = await _engine.ExecuteEnvelopeAsync(op, new { id, status = newStatus }, ct);
