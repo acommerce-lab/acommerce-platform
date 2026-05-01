@@ -54,7 +54,11 @@ loading procedure (includes the dotnet install prerequisite).
    mismatches, SW breaking CORS, BaseAddress traps, mobile-only
    Notification API restrictions, version-bump checklist. Read before
    any task touching DI, realtime, or PWA shell.
-8. **`docs/ROADMAP.md`** — what's done, what's next, modification plan.
+8. **`docs/COMPOSITION-MODEL.md`** — the target architecture: pure-OAM
+   kits + external compositions via interceptor bundles + strongly typed
+   OAM (no string magic). Required reading before refactoring any kit
+   or wiring kits together. Roadmap with phases A-E.
+9. **`docs/ROADMAP.md`** — what's done, what's next, modification plan.
 
 Reference apps (read the smallest first):
 - `Apps/Order.Api` + `Apps/Order.Web` — cafe deals, cleanest example.

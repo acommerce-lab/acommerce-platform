@@ -132,13 +132,17 @@
                 </ChildContent>
             </AcCard>
         }
-        @* زرّ "إبلاغ عن الإعلان" — يستخدم AcButton widget بدل raw button،
-           فيرث styling مفروض من contract (Layer 5) وأيقونة flag معيار. *@
+        @* زرّ "إبلاغ عن الإعلان" — AcButton(ghost) widget. AcButton.Icon
+           يرسم النصّ خام لذا نستخدم ChildContent مع AcIcon. *@
         @if (!IsMine && Store.Auth.IsAuthenticated && _listing is not null)
         {
             <div class="acs-report-link-wrap">
-                <AcButton Variant="ghost" Size="sm" Icon="flag"
-                          Text="إبلاغ عن هذا الإعلان" OnClick="@OpenReport" />
+                <AcButton Variant="ghost" Size="sm" OnClick="@OpenReport">
+                    <ChildContent>
+                        <AcIcon Name="flag" Size="16" />
+                        <span style="margin-inline-start:6px;">إبلاغ عن هذا الإعلان</span>
+                    </ChildContent>
+                </AcButton>
             </div>
         }
 
