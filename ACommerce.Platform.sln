@@ -497,6 +497,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Auth.WithSmsOtp", "Auth.Wit
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACommerce.Compositions.Auth.WithSmsOtp", "libs\compositions\Auth.WithSmsOtp\ACommerce.Compositions.Auth.WithSmsOtp\ACommerce.Compositions.Auth.WithSmsOtp.csproj", "{148E67D4-8464-45D4-A5F5-34201290BA75}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Support", "Support", "{1FCFFD88-4B11-B794-54EC-6DE7A61B47F7}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACommerce.Compositions.Support", "libs\compositions\Support\ACommerce.Compositions.Support\ACommerce.Compositions.Support.csproj", "{9D3D36B1-A5AF-4C33-9FF8-6FD75A80602D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -2103,6 +2107,18 @@ Global
 		{148E67D4-8464-45D4-A5F5-34201290BA75}.Release|x64.Build.0 = Release|Any CPU
 		{148E67D4-8464-45D4-A5F5-34201290BA75}.Release|x86.ActiveCfg = Release|Any CPU
 		{148E67D4-8464-45D4-A5F5-34201290BA75}.Release|x86.Build.0 = Release|Any CPU
+		{9D3D36B1-A5AF-4C33-9FF8-6FD75A80602D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9D3D36B1-A5AF-4C33-9FF8-6FD75A80602D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9D3D36B1-A5AF-4C33-9FF8-6FD75A80602D}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{9D3D36B1-A5AF-4C33-9FF8-6FD75A80602D}.Debug|x64.Build.0 = Debug|Any CPU
+		{9D3D36B1-A5AF-4C33-9FF8-6FD75A80602D}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{9D3D36B1-A5AF-4C33-9FF8-6FD75A80602D}.Debug|x86.Build.0 = Debug|Any CPU
+		{9D3D36B1-A5AF-4C33-9FF8-6FD75A80602D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9D3D36B1-A5AF-4C33-9FF8-6FD75A80602D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9D3D36B1-A5AF-4C33-9FF8-6FD75A80602D}.Release|x64.ActiveCfg = Release|Any CPU
+		{9D3D36B1-A5AF-4C33-9FF8-6FD75A80602D}.Release|x64.Build.0 = Release|Any CPU
+		{9D3D36B1-A5AF-4C33-9FF8-6FD75A80602D}.Release|x86.ActiveCfg = Release|Any CPU
+		{9D3D36B1-A5AF-4C33-9FF8-6FD75A80602D}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -2350,6 +2366,8 @@ Global
 		{667EF360-C056-4042-9128-37BECFEFE19B} = {4A66A7D3-33B6-2F62-C72D-38ADF10B858A}
 		{E9AC7F19-1098-D869-5027-E331C7451C35} = {7BFCF2B6-4240-6566-704B-BEA297B2DE71}
 		{148E67D4-8464-45D4-A5F5-34201290BA75} = {E9AC7F19-1098-D869-5027-E331C7451C35}
+		{1FCFFD88-4B11-B794-54EC-6DE7A61B47F7} = {7BFCF2B6-4240-6566-704B-BEA297B2DE71}
+		{9D3D36B1-A5AF-4C33-9FF8-6FD75A80602D} = {1FCFFD88-4B11-B794-54EC-6DE7A61B47F7}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {F51764D1-82DA-4F44-B331-BCE0EC74DAE1}

@@ -184,10 +184,11 @@ builder.Services.AddSupportKit<EjarSupportStore>(opts =>
 builder.Services.AddReportsKit<EjarReportStore>(opts => opts.PartyKind = "User");
 
 // ─── التراكيب الخارجيّة (compositions) ─────────────────────────────
-// ChatRealtimeComposition يحقن interceptor على message.send يبثّ user-
-// pinned للمرسل والمستلم عبر IRealtimeTransport. Chat kit يبقى نقيّاً
-// (لا يعرف Realtime). راجع docs/COMPOSITION-MODEL.md.
-builder.Services.AddComposition<ACommerce.Compositions.Chat.Realtime.ChatRealtimeComposition>();
+// SupportComposition يضمّ ChatRealtimeComposition كـ subcomposition تلقائياً
+// — لا حاجة لتسجيل ChatRealtime مستقلّاً. هذا يبيّن "تركيب فوق تركيب":
+// Support → Chat.Realtime → (Chat + Realtime kits). راجع
+// docs/COMPOSITION-MODEL.md §٧.
+builder.Services.AddComposition<ACommerce.Compositions.Support.SupportComposition>();
 // AuthSmsOtpComposition يفرض وجود IAuthUserStore + ITwoFactorChannel ويُلصِق
 // تدقيقاً على auth.signin (سطر log منظَّم لكلّ محاولة). أيّ سلوك lattice
 // آخر (rate-limit، إخطار إداريّ) يُضاف bundles داخل التركيب نفسه.
