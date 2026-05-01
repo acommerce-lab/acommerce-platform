@@ -44,7 +44,9 @@ public sealed class EjarCustomerAuthUserStore : IAuthUserStore
             MemberSince   = DateTime.UtcNow,
         };
         _db.Users.Add(newUser);
-        await _db.SaveChangesAsync(ct);
+        // (F6) لا SaveChangesAsync — AuthController.VerifyOtp يضع .SaveAtEnd().
+        // الذرّيّة هنا تُهمّ لو سُجِّل interceptor للـ audit يضيف صفّاً عند
+        // تسجيل دخول جديد: المستخدم + الـ audit يُحفظان معاً، لا أحدهما بدون الآخر.
         return newUser.Id.ToString();
     }
 
@@ -388,7 +390,9 @@ public sealed class EjarVersionStore : IVersionStore
             existing.DownloadUrl = version.DownloadUrl;
             existing.UpdatedAt   = DateTime.UtcNow;
         }
-        await _db.SaveChangesAsync(ct);
+        // (F6) لا SaveChangesAsync — AdminVersionsController.Upsert يضع .SaveAtEnd().
+        // الذرّيّة هنا حرجة: demote-prior-Latest + insert/update الجديد يجب أن
+        // يحدثا في معاملة واحدة وإلّا قد تظهر فترة فيها إصداران Latest.
         return version;
     }
 
@@ -415,7 +419,7 @@ public sealed class EjarVersionStore : IVersionStore
         row.Status    = (int)status;
         row.SunsetAt  = sunsetAt;
         row.UpdatedAt = DateTime.UtcNow;
-        await _db.SaveChangesAsync(ct);
+        // (F6) لا SaveChangesAsync — AdminVersionsController.SetStatus يضع .SaveAtEnd().
         return true;
     }
 
@@ -426,7 +430,7 @@ public sealed class EjarVersionStore : IVersionStore
         if (row is null) return false;
         row.IsDeleted = true;
         row.UpdatedAt = DateTime.UtcNow;
-        await _db.SaveChangesAsync(ct);
+        // (F6) لا SaveChangesAsync — AdminVersionsController.Delete يضع .SaveAtEnd().
         return true;
     }
 

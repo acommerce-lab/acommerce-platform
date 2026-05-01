@@ -1,5 +1,6 @@
 using ACommerce.Kits.Versions.Backend;
 using ACommerce.Kits.Versions.Operations;
+using ACommerce.SharedKernel.Repositories.Interfaces;
 
 namespace Ejar.Api.Stores;
 
@@ -45,5 +46,11 @@ public static class VersionsBootstrap
                 new AppVersion(platform, version!, VersionStatus.Latest),
                 ct);
         }
+
+        // (F6) UpsertAsync الآن tracker-only — البـوّابة الإداريّة تحفظ عبر
+        // OperationBuilder.SaveAtEnd. هذا startup path لا يمرّ بـ OpEngine،
+        // فنحفظ مباشرةً عبر IUnitOfWork (نفس الـ scoped DbContext).
+        var uow = sp.GetService<IUnitOfWork>();
+        if (uow is not null) await uow.SaveChangesAsync(ct);
     }
 }

@@ -65,6 +65,7 @@ public sealed class AdminVersionsController : ControllerBase
                         body.SunsetAt, body.Notes, body.DownloadUrl),
                     ctx.CancellationToken);
             })
+            .SaveAtEnd()  // F6: demote-prior-Latest + insert/update الجديد ذرّيّاً
             .Build();
 
         var env = await _engine.ExecuteEnvelopeAsync(op, (object?)saved ?? new { }, ct);
@@ -80,7 +81,25 @@ public sealed class AdminVersionsController : ControllerBase
         string platform, string version,
         [FromBody] SetStatusBody body, CancellationToken ct)
     {
-        var ok = await _store.SetStatusAsync(platform, version, body.Status, body.SunsetAt, ct);
+        var ok = false;
+        var op = Entry.Create("version.set_status")
+            .Describe($"Set status {platform}/{version} → {body.Status}")
+            .Tag(VersionTagKeys.SkipVersionGate, "true")
+            .Tag("platform", platform).Tag("version", version)
+            .Tag("status", body.Status.ToString())
+            .Execute(async ctx =>
+            {
+                ok = await _store.SetStatusAsync(platform, version, body.Status, body.SunsetAt, ctx.CancellationToken);
+            })
+            .SaveAtEnd()  // F6: demote-prior-Latest + status update ذرّيّاً
+            .Build();
+
+        var env = await _engine.ExecuteEnvelopeAsync(op,
+            new { platform, version, status = body.Status, sunsetAt = body.SunsetAt }, ct);
+        if (env.Operation.Status != "Success")
+            return this.BadRequestEnvelope(
+                env.Operation.FailedAnalyzer ?? "version_set_status_failed",
+                env.Operation.ErrorMessage);
         if (!ok) return this.NotFoundEnvelope("version_not_found");
         return this.OkEnvelope("version.set_status",
             new { platform, version, status = body.Status, sunsetAt = body.SunsetAt });
@@ -89,7 +108,23 @@ public sealed class AdminVersionsController : ControllerBase
     [HttpDelete("{platform}/{version}")]
     public async Task<IActionResult> Delete(string platform, string version, CancellationToken ct)
     {
-        var ok = await _store.DeleteAsync(platform, version, ct);
+        var ok = false;
+        var op = Entry.Create("version.delete")
+            .Describe($"Delete version {platform}/{version}")
+            .Tag(VersionTagKeys.SkipVersionGate, "true")
+            .Tag("platform", platform).Tag("version", version)
+            .Execute(async ctx =>
+            {
+                ok = await _store.DeleteAsync(platform, version, ctx.CancellationToken);
+            })
+            .SaveAtEnd()  // F6: soft-delete tracked-mutation يحفظ ذرّيّاً
+            .Build();
+
+        var env = await _engine.ExecuteEnvelopeAsync(op, new { platform, version }, ct);
+        if (env.Operation.Status != "Success")
+            return this.BadRequestEnvelope(
+                env.Operation.FailedAnalyzer ?? "version_delete_failed",
+                env.Operation.ErrorMessage);
         if (!ok) return this.NotFoundEnvelope("version_not_found");
         return this.OkEnvelope("version.delete", new { platform, version });
     }
