@@ -49,7 +49,12 @@ loading procedure (includes the dotnet install prerequisite).
 6. **`docs/I18N.md`** — the bilingual (Arabic/English) translation system
    used across all V2 frontends. Read before writing any user-facing text
    in a Razor page.
-7. **`docs/ROADMAP.md`** — what's done, what's next, modification plan.
+7. **`docs/PITFALLS.md`** — concrete mistakes we hit in this codebase
+   and how to avoid them: provider lock-in, Singleton↔Scoped lifetime
+   mismatches, SW breaking CORS, BaseAddress traps, mobile-only
+   Notification API restrictions, version-bump checklist. Read before
+   any task touching DI, realtime, or PWA shell.
+8. **`docs/ROADMAP.md`** — what's done, what's next, modification plan.
 
 Reference apps (read the smallest first):
 - `Apps/Order.Api` + `Apps/Order.Web` — cafe deals, cleanest example.
