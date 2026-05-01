@@ -110,6 +110,7 @@ public class ChatController : ControllerBase
                 msg = await _store.AppendMessageAsync(id, CallerId, req.Text ?? "", ctx.CancellationToken);
                 if (msg is not null) ctx.WithEntity(msg);
             })
+            .SaveAtEnd()  // F6: SaveChanges واحد ذرّيّ (Message + Conversation) في hook AfterExecute
             .Build();
 
         var env = await _engine.ExecuteEnvelopeAsync(op, (object?)msg ?? new { }, ct);

@@ -103,22 +103,16 @@ public sealed class EjarCustomerChatStore : IChatStore
             Text           = body,
             SentAt         = DateTime.UtcNow,
         };
-        _db.Messages.Add(msg);
+        _db.Messages.Add(msg);          // tracked, لا save هنا
         conv.LastAt = msg.SentAt;
         conv.UnreadCount += 1;
 
-        // أنشئ Notification persisted في DB للمستلِم (الطرف الآخر) — هذا ما
-        // يجعل صفحة /notifications تعرض رسالة جديدة حتى لو كان الـ realtime
-        // معطّلاً وقت الإرسال أو المستلم غير متّصل. الإشعار يبقى لحين قراءته
-        // من المستلِم.
-        // ملاحظة Phase F3: إنشاء سجلّ الإشعار + إرسال FCM نُقلا إلى:
-        //   libs/compositions/Chat.WithNotifications/...
-        //     ChatPersistentNotificationBundle  (DB record عبر INotificationStore)
-        //     ChatPushNotificationBundle        (FCM عبر INotificationChannel)
-        // الـ Chat-store الآن يحفظ الرسالة فقط؛ Notifications kit نقيّ؛
-        // Realtime نقيّ؛ التركيب الخارجيّ يربط الثلاثة.
-
-        await _db.SaveChangesAsync(ct);
+        // (F6) لا SaveChanges هنا — القيد يستدعي IUnitOfWork.SaveChangesAsync
+        // عبر OperationBuilder.SaveAtEnd() في hook OnAfterExecute. هذا يضمن:
+        //   • معاملة واحدة لـ Message + Conversation update.
+        //   • Post-interceptors (Broadcast/Notification/FCM) ترى result.Success
+        //     الحقيقيّ — لا تنطلق عند فشل الحفظ.
+        // ChatController.Send في الـ kit يضع .SaveAtEnd() على القيد فيكفي.
 
         var view = new MessageView(msg);
 
