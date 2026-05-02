@@ -1,0 +1,45 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>Ejar.Api.Data</RootNamespace>
+    <AssemblyName>Ejar.Domain.Data</AssemblyName>
+    <Description>Ejar persistence layer: EF Core DbContext, EF-shaped entities, migrations, seeders, kit-store implementations, and startup bootstrappers. Backend-only — kept out of Ejar.Domain (the pure POCO library shared with WASM/MAUI/Web frontends) so frontends do not haul in EF Core.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Domain\Ejar.Domain.csproj" />
+
+    <!-- core EF + repositories -->
+    <ProjectReference Include="..\..\..\libs\kits\Core\SharedKernel\ACommerce.SharedKernel.Domain\ACommerce.SharedKernel.Domain.csproj" />
+    <ProjectReference Include="..\..\..\libs\kits\Core\SharedKernel\ACommerce.SharedKernel.Repositories\ACommerce.SharedKernel.Repositories.csproj" />
+    <ProjectReference Include="..\..\..\libs\kits\Core\SharedKernel\ACommerce.SharedKernel.Infrastructure.EFCores\ACommerce.SharedKernel.Infrastructure.EFCores.csproj" />
+
+    <!-- kits whose store interfaces we implement -->
+    <ProjectReference Include="..\..\..\libs\kits\Auth\ACommerce.Kits.Auth.Backend\ACommerce.Kits.Auth.Backend.csproj" />
+    <ProjectReference Include="..\..\..\libs\kits\Chat\ACommerce.Kits.Chat.Backend\ACommerce.Kits.Chat.Backend.csproj" />
+    <ProjectReference Include="..\..\..\libs\kits\Discovery\ACommerce.Kits.Discovery.Backend\ACommerce.Kits.Discovery.Backend.csproj" />
+    <ProjectReference Include="..\..\..\libs\kits\Favorites\ACommerce.Favorites.Backend\ACommerce.Favorites.Backend.csproj" />
+    <ProjectReference Include="..\..\..\libs\kits\Listings\ACommerce.Kits.Listings.Backend\ACommerce.Kits.Listings.Backend.csproj" />
+    <ProjectReference Include="..\..\..\libs\kits\Notifications\ACommerce.Kits.Notifications.Backend\ACommerce.Kits.Notifications.Backend.csproj" />
+    <ProjectReference Include="..\..\..\libs\kits\Notifications\Providers\Firebase\ACommerce.Notification.Providers.Firebase\ACommerce.Notification.Providers.Firebase.csproj" />
+    <ProjectReference Include="..\..\..\libs\kits\Profiles\ACommerce.Kits.Profiles.Backend\ACommerce.Kits.Profiles.Backend.csproj" />
+    <ProjectReference Include="..\..\..\libs\kits\Reports\ACommerce.Kits.Reports.Backend\ACommerce.Kits.Reports.Backend.csproj" />
+    <ProjectReference Include="..\..\..\libs\kits\Subscriptions\ACommerce.Kits.Subscriptions.Backend\ACommerce.Kits.Subscriptions.Backend.csproj" />
+    <ProjectReference Include="..\..\..\libs\kits\Support\ACommerce.Kits.Support.Backend\ACommerce.Kits.Support.Backend.csproj" />
+    <ProjectReference Include="..\..\..\libs\kits\Versions\ACommerce.Kits.Versions.Backend\ACommerce.Kits.Versions.Backend.csproj" />
+    <ProjectReference Include="..\..\..\libs\kits\Notifications\ACommerce.Notification.Operations\ACommerce.Notification.Operations.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.7" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.7" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.7" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="10.0.7" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="10.0.7" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.7" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.7">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+  </ItemGroup>
+</Project>

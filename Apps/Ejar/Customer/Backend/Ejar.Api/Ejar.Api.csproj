@@ -37,6 +37,7 @@
     <ProjectReference Include="..\..\..\..\..\libs\kits\Auth\ACommerce.Kits.Auth.Backend\ACommerce.Kits.Auth.Backend.csproj" />
     <ProjectReference Include="..\..\..\..\..\libs\kits\Versions\ACommerce.Kits.Versions\ACommerce.Kits.Versions.csproj" />
     <ProjectReference Include="..\..\..\Domain\Ejar.Domain.csproj" />
+    <ProjectReference Include="..\..\..\Domain.Data\Ejar.Domain.Data.csproj" />
 
     <!-- SharedKernel EF infra (PlatformDataRoot + SqliteSchemaGuard helpers) -->
     <ProjectReference Include="..\..\..\..\..\libs\kits\Core\SharedKernel\ACommerce.SharedKernel.Infrastructure.EFCores\ACommerce.SharedKernel.Infrastructure.EFCores.csproj" />

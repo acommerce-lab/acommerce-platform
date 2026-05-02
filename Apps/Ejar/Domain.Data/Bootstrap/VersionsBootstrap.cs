@@ -1,6 +1,8 @@
 using ACommerce.Kits.Versions.Backend;
 using ACommerce.Kits.Versions.Operations;
 using ACommerce.SharedKernel.Repositories.Interfaces;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Ejar.Api.Stores;
 
