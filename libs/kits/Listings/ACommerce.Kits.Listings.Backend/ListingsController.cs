@@ -113,7 +113,7 @@ public sealed class ListingsController : ControllerBase
 
     // ─── GET /my-listings ────────────────────────────────────────────────
     [HttpGet("/my-listings")]
-    [Authorize]
+    [Authorize(Policy = ListingsKitPolicies.AuthenticatedWriter)]
     public async Task<IActionResult> Mine(CancellationToken ct)
     {
         if (CallerId is null) return this.UnauthorizedEnvelope();
@@ -133,7 +133,7 @@ public sealed class ListingsController : ControllerBase
         string? Thumbnail);
 
     [HttpPost("/my-listings")]
-    [Authorize]
+    [Authorize(Policy = ListingsKitPolicies.AuthenticatedWriter)]
     public async Task<IActionResult> Create([FromBody] CreateBody req, CancellationToken ct)
     {
         if (CallerId is null) return this.UnauthorizedEnvelope();
@@ -201,7 +201,7 @@ public sealed class ListingsController : ControllerBase
         string? Thumbnail);
 
     [HttpPatch("/my-listings/{id}")]
-    [Authorize]
+    [Authorize(Policy = ListingsKitPolicies.AuthenticatedWriter)]
     public async Task<IActionResult> Edit(string id, [FromBody] EditBody req, CancellationToken ct)
     {
         if (CallerId is null) return this.UnauthorizedEnvelope();
@@ -239,7 +239,7 @@ public sealed class ListingsController : ControllerBase
 
     // ─── POST /my-listings/{id}/toggle ───────────────────────────────────
     [HttpPost("/my-listings/{id}/toggle")]
-    [Authorize]
+    [Authorize(Policy = ListingsKitPolicies.AuthenticatedWriter)]
     public async Task<IActionResult> Toggle(string id, CancellationToken ct)
     {
         if (CallerId is null) return this.UnauthorizedEnvelope();
@@ -269,7 +269,7 @@ public sealed class ListingsController : ControllerBase
 
     // ─── DELETE /my-listings/{id} ────────────────────────────────────────
     [HttpDelete("/my-listings/{id}")]
-    [Authorize]
+    [Authorize(Policy = ListingsKitPolicies.AuthenticatedWriter)]
     public async Task<IActionResult> Delete(string id, CancellationToken ct)
     {
         if (CallerId is null) return this.UnauthorizedEnvelope();

@@ -19,6 +19,8 @@ public static class ListingsKitExtensions
         services.AddSingleton(opts);
         services.AddScoped<IListingStore, TStore>();
         services.AddControllers().AddApplicationPart(typeof(ListingsController).Assembly);
+        // السياسات الافتراضيّة — التطبيق يَستطيع override بعد هذه الدالّة.
+        services.AddListingsKitPolicies();
         return services;
     }
 }

@@ -35,20 +35,32 @@ public sealed class KitBuilder
         Services = services; Configuration = configuration;
     }
 
-    // ── Auth + 2FA ───────────────────────────────────────────────────────
-    public KitBuilder AddAuth<TStore>(AuthKitJwtConfig jwt) where TStore : class, IAuthUserStore
+    // ── Auth + 2FA (هرميّ) ────────────────────────────────────────────────
+    /// <summary>
+    /// يُسجِّل Auth kit + JWT scheme. <paramref name="configure"/> اختياريّ
+    /// لإضافة 2FA + provider مختار:
+    /// <code>
+    /// kits.AddAuth&lt;EjarStore&gt;(jwt, auth =&gt; auth
+    ///     .AddTwoFactor(tf =&gt; tf.UseMockSmsProvider()));
+    /// </code>
+    /// التركيب الهرميّ يجعل التبعيّات صريحة: 2FA مُلصَقة بـ Auth، الـ provider
+    /// مُلصَق بـ 2FA. لا يمكن تسجيل provider بدون TwoFactor.
+    /// </summary>
+    public KitBuilder AddAuth<TStore>(AuthKitJwtConfig jwt, Action<AuthBuilder>? configure = null)
+        where TStore : class, IAuthUserStore
     {
         Services.AddAuthKit<TStore>(jwt);
+        if (configure is not null)
+        {
+            var auth = new AuthBuilder(Services);
+            configure(auth);
+        }
         return this;
     }
 
-    /// <summary>
-    /// تسجيل Auth + JWT من section في <c>appsettings.json</c>:
-    /// <code>
-    /// "JWT": { "SecretKey": "…", "Issuer": "…", "Audience": "…", "Role": "user", "PartyKind": "User", "AccessTokenLifetimeDays": 30 }
-    /// </code>
-    /// </summary>
-    public KitBuilder AddAuth<TStore>(string sectionName = "JWT") where TStore : class, IAuthUserStore
+    /// <summary>تسجيل Auth + JWT من <c>appsettings:JWT</c> section.</summary>
+    public KitBuilder AddAuth<TStore>(string sectionName = "JWT", Action<AuthBuilder>? configure = null)
+        where TStore : class, IAuthUserStore
     {
         var s = Configuration.GetSection(sectionName);
         var jwt = new AuthKitJwtConfig(
@@ -59,14 +71,7 @@ public sealed class KitBuilder
             PartyKind:               s["PartyKind"] ?? "User",
             AccessTokenLifetimeDays: s.GetValue<int?>("AccessTokenLifetimeDays") ?? 30
         );
-        return AddAuth<TStore>(jwt);
-    }
-
-    public KitBuilder AddTwoFactorMockSms()
-    {
-        Services.AddMockSmsTwoFactor();
-        Services.AddTwoFactorAsAuth();
-        return this;
+        return AddAuth<TStore>(jwt, configure);
     }
 
     // ── Chat ──────────────────────────────────────────────────────────────

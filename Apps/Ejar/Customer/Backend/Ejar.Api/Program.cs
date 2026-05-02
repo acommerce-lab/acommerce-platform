@@ -3,6 +3,7 @@ using ACommerce.Kits.Auth.Operations;
 using ACommerce.OperationEngine.Interceptors;
 using ACommerce.ServiceHost;
 using Ejar.Api.Data;
+using Ejar.Api.Diagnostics;
 using Ejar.Api.Interceptors;
 using Ejar.Api.Middleware;
 using Ejar.Api.Realtime;
@@ -34,9 +35,9 @@ builder.AddACommerceServiceHost(host => host
 
     // ── الكيتس ──────────────────────────────────────────────────────────
     .AddKits(kits => kits
-        .AddAuth<EjarCustomerAuthUserStore>(new AuthKitJwtConfig(
-            JwtSecret, "ejar.api", "ejar.mobile", "user", "User", AccessTokenLifetimeDays: 30))
-        .AddTwoFactorMockSms()
+        .AddAuth<EjarCustomerAuthUserStore>(
+            new AuthKitJwtConfig(JwtSecret, "ejar.api", "ejar.mobile", "user", "User", AccessTokenLifetimeDays: 30),
+            auth => auth.AddTwoFactor(tf => tf.UseMockSmsProvider()))
         .AddChat<EjarCustomerChatStore>()
         .AddChatPresenceProbe<EjarChatPresenceProbe>()
         .AddDiscovery()
@@ -73,30 +74,7 @@ var app = builder.Build();
 
 // ─── DB Migrate + Seed + Versions promotion ─────────────────────────────
 using (var scope = app.Services.CreateScope())
-{
-    var db = scope.ServiceProvider.GetRequiredService<EjarDbContext>();
-
-    if (string.Equals(Environment.GetEnvironmentVariable("EJAR_DB_RESET"), "true", StringComparison.OrdinalIgnoreCase))
-    {
-        Log.Warning("Ejar.Db: EJAR_DB_RESET=true — dropping database");
-        db.Database.EnsureDeleted();
-    }
-
-    var isSqlite = db.Database.ProviderName?.Contains("Sqlite", StringComparison.OrdinalIgnoreCase) == true;
-    if (isSqlite) db.Database.EnsureCreated();
-    else
-    {
-        var pending = db.Database.GetPendingMigrations().ToList();
-        if (pending.Count > 0) { Log.Information("Ejar.Db: applying {N} migration(s)", pending.Count); db.Database.Migrate(); }
-        else                    DbInitializer.EnsureAppVersionsTable(db);
-    }
-
-    if (!db.Users.Any()) DbInitializer.Seed(db);
-    DbInitializer.SeedAppVersionsIfMissing(db);
-
-    try { await VersionsBootstrap.PromoteFromConfigAsync(scope.ServiceProvider, builder.Configuration); }
-    catch (Exception ex) { Log.Warning(ex, "Ejar.Versions bootstrap failed"); }
-}
+    await Ejar.Api.Bootstrap.EjarBootstrap.MigrateAndSeedAsync(scope.ServiceProvider, builder.Configuration);
 
 // ─── Pipeline ────────────────────────────────────────────────────────────
 app.UseMiddleware<GlobalExceptionMiddleware>();
@@ -114,51 +92,8 @@ app.MapHub<EjarRealtimeHub>("/realtime", options =>
 
 app.Services.WireChatNotificationCoupling();
 
-// ─── Health + Diagnostic endpoints ───────────────────────────────────────
-var healthHandler = (EjarDbContext db) =>
-{
-    var dbOk = false;
-    try { dbOk = db.Database.CanConnect(); } catch { }
-    return Results.Ok(new {
-        status   = dbOk ? "healthy" : "degraded",
-        db       = dbOk ? "ok" : "unreachable",
-        time     = DateTime.UtcNow,
-        service  = "Ejar.Api",
-        provider = db.Database.ProviderName
-    });
-};
-app.MapGet("/healthz", healthHandler).AllowAnonymous();
-app.MapGet("/health",  healthHandler).AllowAnonymous();
-
-app.MapGet("/diag/schema", async (EjarDbContext db) =>
-{
-    object Try(Func<object> f) { try { return f(); } catch (Exception ex) { return new { error = ex.GetType().Name, message = ex.Message }; } }
-    var applied = new List<string>(); var pending = new List<string>();
-    try
-    {
-        applied.AddRange(await db.Database.GetAppliedMigrationsAsync());
-        pending.AddRange(await db.Database.GetPendingMigrationsAsync());
-    }
-    catch (Exception ex)
-    {
-        return Results.Json(new { ok = false, error = "migrations_history_unreadable", message = ex.Message });
-    }
-    return Results.Json(new {
-        ok        = true,
-        provider  = db.Database.ProviderName,
-        canConnect = Try(() => (object)db.Database.CanConnect()),
-        applied, pending,
-        counts = new {
-            users          = Try(() => (object)db.Users.Count()),
-            listings       = Try(() => (object)db.Listings.Count()),
-            conversations  = Try(() => (object)db.Conversations.Count()),
-            favorites      = Try(() => (object)db.Favorites.Count()),
-            plans          = Try(() => (object)db.Plans.Count()),
-            subscriptions  = Try(() => (object)db.Subscriptions.Count()),
-            appVersions    = Try(() => (object)db.AppVersions.Count())
-        }
-    });
-}).AllowAnonymous();
+app.MapHealthEndpoints<EjarDbContext>("Ejar.Api");
+app.MapEjarDiagnostics();
 
 Log.Information("Ejar API ready [{Env}]", app.Environment.EnvironmentName);
 app.Run();
