@@ -164,25 +164,8 @@ public sealed class HomeController : ControllerBase
         });
     }
 
-    // ── /cities ─ /amenities ─ /categories (bridges over Discovery Kit) ────
-    [HttpGet("/cities")]
-    public async Task<IActionResult> Cities(CancellationToken ct) =>
-        this.OkEnvelope("city.list",
-            await _db.DiscoveryRegions.AsNoTracking().Where(r => r.Level == 1)
-                .Select(r => r.Name).ToListAsync(ct));
-
-    [HttpGet("/amenities")]
-    public async Task<IActionResult> Amenities(CancellationToken ct) =>
-        this.OkEnvelope("amenity.list",
-            await _db.DiscoveryAmenities.AsNoTracking()
-                .Select(a => new { key = a.Slug, label = a.Label }).ToListAsync(ct));
-
-    [HttpGet("/categories")]
-    public async Task<IActionResult> Categories(CancellationToken ct) =>
-        this.OkEnvelope("category.list",
-            await _db.DiscoveryCategories.AsNoTracking()
-                .Select(c => new { id = c.Slug, label = c.Label, icon = c.Icon, kind = c.Kind })
-                .ToListAsync(ct));
+    // /cities ─ /amenities ─ /categories  → نُقلت لـ Discovery.Backend kit
+    // (بلا prefix). لا حاجة لـ bridge هنا — الكيت يكشفها مباشرةً.
 
     // ── /plans (subscription catalog) ──────────────────────────────────────
     // أسماء الحقول مُحاذاة لـ PlanDto على العميل (Plans.razor + Subscribe.razor):
