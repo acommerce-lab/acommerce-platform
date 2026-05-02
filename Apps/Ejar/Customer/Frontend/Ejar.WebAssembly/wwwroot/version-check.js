@@ -53,17 +53,40 @@
     }
   } catch { /* غير قاتل */ }
 
-  if (localVersion === serverVersion && bundledVersion === serverVersion) {
+  // bundledVersion قد يكون null لو appsettings.json ما يحتوي App.Version
+  // (إعداد قديم، أو frontend بدون الحقل أصلاً). في هذه الحالة لا نستطيع
+  // الحكم على cache المتصفّح مقابل النشر، فنُسقط المقارنة الثانية بدل
+  // فرض إعادة تحميل أبديّة (lesson learned من حلقة 2026.05.02 — كان
+  // App.Version في appsettings.json متخلّفاً عن version.json فيُعتبر
+  // bundle "قديم" دائماً ويُعيد التحميل بلا نهاية).
+  const bundleOK = (bundledVersion === null) || (bundledVersion === serverVersion);
+
+  if (localVersion === serverVersion && bundleOK) {
     console.info('[Ejar update] نسخة محدّثة:', serverVersion);
     return;
   }
 
-  // أوّل زيارة + bundle مطابق للسيرفر → سجّل واخرج (حالة نظيفة).
-  if (localVersion === null && bundledVersion === serverVersion) {
+  // أوّل زيارة + bundle مطابق (أو غير متاح) → سجّل واخرج (حالة نظيفة).
+  if (localVersion === null && bundleOK) {
     try { localStorage.setItem(STORAGE_KEY, serverVersion); } catch { }
     console.info('[Ejar update] تسجيل أولي:', serverVersion);
     return;
   }
+
+  // حماية من حلقة إعادة التحميل: لو فُرض تحديث خلال آخر ٢٠ ثانية، لا
+  // نُكرّر — بدلاً من ذلك نُسجّل النسخة محلياً ونخرج. حلقة لا نهائيّة
+  // ضارّة جدّاً (بطّاريّة + بيانات + تجربة) فالأفضل ترك الـ shell الحاليّ
+  // يعمل حتّى يحلّ المشكلة دفع/نشر لاحق.
+  try {
+    const last = parseInt(sessionStorage.getItem('ac.pwa.last_force') || '0', 10);
+    const now  = Date.now();
+    if (last && (now - last) < 20000) {
+      console.warn('[Ejar update] منع حلقة إعادة تحميل — تخطّي force reload');
+      try { localStorage.setItem(STORAGE_KEY, serverVersion); } catch { }
+      return;
+    }
+    sessionStorage.setItem('ac.pwa.last_force', String(now));
+  } catch { /* sessionStorage معطّل — استمر */ }
 
   // إمّا localStorage قديم، أو bundle المخزَّن في cache قديم → فرض تحديث.
   console.warn('[Ejar update] تحديث:',
