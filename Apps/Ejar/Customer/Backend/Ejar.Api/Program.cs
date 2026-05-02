@@ -41,6 +41,7 @@ using ACommerce.Kits.Chat.Backend;
 using ACommerce.Kits.Notifications.Backend;
 using ACommerce.Kits.Versions.Backend;
 using ACommerce.Kits.Subscriptions.Backend;
+using ACommerce.Kits.Listings.Backend;
 using ACommerce.Notification.Providers.Firebase.Extensions;
 using ACommerce.Kits.Auth.Operations;
 using ACommerce.SharedKernel.Infrastructure.EFCores.Context;
@@ -204,6 +205,10 @@ builder.Services.AddVersionsKit<EjarVersionStore>();
 // التحوّل لنموذج الباقات المدفوع.
 builder.Services.AddSubscriptionsKit<EjarSubscriptionStore, EjarPlanStore, EjarInvoiceStore>(
     opts => opts.OpenAccess = builder.Configuration.GetValue("Trial:OpenAccess", true));
+
+// Listings kit — كلّ مسارات /listings* و /my-listings* و /home/explore.
+// EjarListingStore يترجم بين IListing و ListingEntity (F6: tracker-only).
+builder.Services.AddListingsKit<EjarListingStore>();
 
 // ─── التراكيب الخارجيّة (compositions) — بعد كلّ kits لأنّ
 // AddComposition.RequiredKits يفحص حضورها في DI ───────────────────

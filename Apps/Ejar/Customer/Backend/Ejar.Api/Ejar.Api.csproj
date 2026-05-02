@@ -96,6 +96,8 @@
     <ProjectReference Include="..\..\..\..\..\libs\kits\Favorites\ACommerce.Favorites.Backend\ACommerce.Favorites.Backend.csproj" />
     <ProjectReference Include="..\..\..\..\..\libs\kits\Subscriptions\ACommerce.Subscriptions.Operations\ACommerce.Subscriptions.Operations.csproj" />
     <ProjectReference Include="..\..\..\..\..\libs\kits\Subscriptions\ACommerce.Kits.Subscriptions.Backend\ACommerce.Kits.Subscriptions.Backend.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Listings\ACommerce.Kits.Listings.Operations\ACommerce.Kits.Listings.Operations.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Listings\ACommerce.Kits.Listings.Backend\ACommerce.Kits.Listings.Backend.csproj" />
   </ItemGroup>
 
   <ItemGroup>
