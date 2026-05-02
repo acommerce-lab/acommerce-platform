@@ -42,6 +42,26 @@ public sealed class KitBuilder
         return this;
     }
 
+    /// <summary>
+    /// تسجيل Auth + JWT من section في <c>appsettings.json</c>:
+    /// <code>
+    /// "JWT": { "SecretKey": "…", "Issuer": "…", "Audience": "…", "Role": "user", "PartyKind": "User", "AccessTokenLifetimeDays": 30 }
+    /// </code>
+    /// </summary>
+    public KitBuilder AddAuth<TStore>(string sectionName = "JWT") where TStore : class, IAuthUserStore
+    {
+        var s = Configuration.GetSection(sectionName);
+        var jwt = new AuthKitJwtConfig(
+            Secret:                  s["SecretKey"] ?? throw new InvalidOperationException($"{sectionName}:SecretKey is required"),
+            Issuer:                  s["Issuer"]    ?? "",
+            Audience:                s["Audience"]  ?? "",
+            Role:                    s["Role"]      ?? "user",
+            PartyKind:               s["PartyKind"] ?? "User",
+            AccessTokenLifetimeDays: s.GetValue<int?>("AccessTokenLifetimeDays") ?? 30
+        );
+        return AddAuth<TStore>(jwt);
+    }
+
     public KitBuilder AddTwoFactorMockSms()
     {
         Services.AddMockSmsTwoFactor();
