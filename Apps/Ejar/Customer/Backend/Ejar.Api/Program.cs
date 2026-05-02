@@ -115,6 +115,7 @@ builder.Services.AddProfilesKit<EjarProfileStore>();
 builder.Services.AddComposition<ACommerce.Compositions.Support.SupportComposition>();
 builder.Services.AddComposition<ACommerce.Compositions.Chat.WithNotifications.ChatNotificationsComposition>();
 builder.Services.AddComposition<ACommerce.Compositions.Auth.WithSmsOtp.AuthSmsOtpComposition>();
+builder.Services.AddComposition<ACommerce.Compositions.Marketplace.MarketplaceComposition>();
 
 // ═══════════════════════════════════════════════════════════════════════
 // ⑤ Firebase FCM — يُسجَّل فقط لو الـ creds موجودة. هذا الـ block يبقى في
