@@ -86,6 +86,31 @@
          Title="@FiltersLabel">
     <ChildContent>
         <div class="acm-explore-filtersec">
+            <h4 class="acm-explore-filtersec-title">@LocationLabel</h4>
+            <div class="acm-explore-location">
+                @if (Cities is { Count: > 0 })
+                {
+                    <select class="ac-input" @bind="_pendingCity">
+                        <option value="">@AnyCityLabel</option>
+                        @foreach (var c in Cities)
+                        {
+                            <option value="@c">@c</option>
+                        }
+                    </select>
+                }
+                else
+                {
+                    <AcInput Placeholder="@CityLabel"
+                             Value="@(_pendingCity ?? string.Empty)"
+                             ValueChanged="v => _pendingCity = v" />
+                }
+                <AcInput Placeholder="@DistrictLabel"
+                         Value="@(_pendingDistrict ?? string.Empty)"
+                         ValueChanged="v => _pendingDistrict = v" />
+            </div>
+        </div>
+
+        <div class="acm-explore-filtersec">
             <h4 class="acm-explore-filtersec-title">@PriceRangeLabel</h4>
             <div class="acm-explore-pricerange">
                 <AcInput Type="number" Placeholder="@MinLabel"
@@ -152,8 +177,16 @@
     [Parameter] public string MaxLabel { get; set; } = "إلى";
     [Parameter] public string CapacityLabel { get; set; } = "السعة";
     [Parameter] public string RatingLabel { get; set; } = "الحد الأدنى للتقييم";
+    [Parameter] public string LocationLabel { get; set; } = "الموقع";
+    [Parameter] public string CityLabel { get; set; } = "المدينة";
+    [Parameter] public string DistrictLabel { get; set; } = "الحيّ";
+    [Parameter] public string AnyCityLabel { get; set; } = "كلّ المدن";
     [Parameter] public string ResetLabel { get; set; } = "إعادة تعيين";
     [Parameter] public string ApplyLabel { get; set; } = "تطبيق";
+
+    /// <summary>قائمة المدن المتاحة — تُعرَض كـ dropdown في فلتر الموقع.
+    /// لو فارغة، نستعمل text input بدلاً منها.</summary>
+    [Parameter] public IReadOnlyList<string> Cities { get; set; } = Array.Empty<string>();
 
     [Parameter] public IReadOnlyDictionary<string, string> SortOptions { get; set; } =
         new Dictionary<string, string>
@@ -195,6 +228,8 @@
     ];
 
     private bool _filtersOpen;
+    private string? _pendingCity;
+    private string? _pendingDistrict;
     private decimal? _pendingMinPrice;
     private decimal? _pendingMaxPrice;
     private int _pendingCapacity;
@@ -204,6 +239,8 @@
     {
         if (Filters is not null)
         {
+            _pendingCity      = Filters.City;
+            _pendingDistrict  = Filters.District;
             _pendingMinPrice  = Filters.MinPrice;
             _pendingMaxPrice  = Filters.MaxPrice;
             _pendingCapacity  = Filters.Capacity;
@@ -309,22 +346,30 @@
 
     private void ResetFilters()
     {
-        _pendingMinPrice = null;
-        _pendingMaxPrice = null;
-        _pendingCapacity = 0;
+        _pendingCity      = null;
+        _pendingDistrict  = null;
+        _pendingMinPrice  = null;
+        _pendingMaxPrice  = null;
+        _pendingCapacity  = 0;
         _pendingMinRating = 0;
     }
 
     private async Task ApplyFilters()
     {
         _filtersOpen = false;
-        var f = new ExploreFilters(_pendingMinPrice, _pendingMaxPrice, _pendingCapacity, _pendingMinRating);
+        var f = new ExploreFilters(
+            string.IsNullOrWhiteSpace(_pendingCity) ? null : _pendingCity?.Trim(),
+            string.IsNullOrWhiteSpace(_pendingDistrict) ? null : _pendingDistrict?.Trim(),
+            _pendingMinPrice, _pendingMaxPrice,
+            _pendingCapacity, _pendingMinRating);
 
         if (Engine is not null)
         {
             var op = Entry.Create("catalog.filter")
                 .From($"User:{Store?.UserId?.ToString() ?? "anon"}", 1, ("role", "filterer"))
                 .To("Catalog:listings", 1, ("role", "target"))
+                .Tag("city",      f.City ?? "")
+                .Tag("district",  f.District ?? "")
                 .Tag("price_min", f.MinPrice?.ToString() ?? "")
                 .Tag("price_max", f.MaxPrice?.ToString() ?? "")
                 .Tag("capacity",  f.Capacity.ToString())
@@ -336,5 +381,8 @@
     }
 
     public record CapacityOption(int Value, string Label);
-    public record ExploreFilters(decimal? MinPrice, decimal? MaxPrice, int Capacity, int MinRating);
+    public record ExploreFilters(
+        string? City, string? District,
+        decimal? MinPrice, decimal? MaxPrice,
+        int Capacity, int MinRating);
 }

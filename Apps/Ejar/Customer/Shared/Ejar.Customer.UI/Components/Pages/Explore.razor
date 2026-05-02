@@ -22,6 +22,7 @@
                       Data="_listings"
                       MapListings="_mapListings"
                       Categories="_categories"
+                      Cities="_cities"
                       SelectedCategoryId="@_categoryId"
                       Sort="@_sort"
                       View="@_view"
@@ -40,31 +41,51 @@
     private IReadOnlyList<ListingRowDto>? _listings;
     private IReadOnlyList<AcListingMapPage.MapListingDto> _mapListings = Array.Empty<AcListingMapPage.MapListingDto>();
     private IReadOnlyList<CategoryTileDto> _categories = Array.Empty<CategoryTileDto>();
+    private IReadOnlyList<string> _cities = Array.Empty<string>();
     private string? _categoryId;
     private string? _query;
     private string _sort = "newest";
     private string _view = "list";
-    private AcListingExplorePage.ExploreFilters _filters = new(null, null, 0, 0);
+    // يُهيَّأ في OnInitialized بمدينة الصفحة الرئيسيّة (طلب صاحب المصلحة).
+    // C# لا يسمح لمُهيِّئ الحقل باستدعاء method instance، فنبدأ فاضياً.
+    private AcListingExplorePage.ExploreFilters _filters = new(null, null, null, null, 0, 0);
+
+    /// <summary>
+    /// قيم الفلتر الافتراضيّة: المدينة = اختيار المستخدم على الصفحة الرئيسيّة
+    /// (Store.Ui.City) — طلب صاحب المصلحة. لو غيّرها المستخدم في الـ modal،
+    /// تُحفَظ في _filters مباشرةً. زرّ "إلغاء كلّ الفلاتر" يعيدنا لهذه القيم.
+    /// </summary>
+    private AcListingExplorePage.ExploreFilters NewDefaultFilters() =>
+        new(string.IsNullOrWhiteSpace(Store.Ui.City) ? null : Store.Ui.City,
+            null, null, null, 0, 0);
 
     protected override void OnInitialized()
     {
         Store.OnChanged += OnChange;
         var qs = System.Web.HttpUtility.ParseQueryString(new Uri(Nav.Uri).Query);
 
-        // ?reset=1 من Home.OnViewAll → حالة نظيفة (لا فلتر، لا فئة، لا بحث،
-        // الترتيب الافتراضيّ). نُزيل المعامل من الـ URL فلا يُلوِّث المشاركة.
+        // ?reset=1 من Home.OnViewAll → حالة نظيفة. مدينة الصفحة الرئيسيّة
+        // تبقى الافتراضيّة (طلب صاحب المصلحة).
         if (qs.Get("reset") == "1")
         {
             _categoryId = null;
             _query      = null;
             _sort       = "newest";
-            _filters    = new(null, null, 0, 0);
+            _filters    = NewDefaultFilters();
             Nav.NavigateTo("/explore", replace: true);
             return;
         }
 
         _categoryId = qs.Get("category");
         _query      = qs.Get("q");
+
+        // المدينة + الحيّ من URL إن وُجدا (للمشاركة/الـ deep linking)،
+        // وإلّا المدينة من الصفحة الرئيسيّة كافتراضيّ.
+        var urlCity     = qs.Get("city");
+        var urlDistrict = qs.Get("district");
+        var defaultCity = string.IsNullOrWhiteSpace(Store.Ui.City) ? null : Store.Ui.City;
+        var initialCity = !string.IsNullOrEmpty(urlCity) ? urlCity : defaultCity;
+        _filters = _filters with { City = initialCity, District = urlDistrict };
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -85,6 +106,9 @@
             _categories = env.Data.Categories.Select(c =>
                 new CategoryTileDto { Id = c.Id, Label = c.Label, Icon = c.Icon }).ToList();
         }
+        // قائمة المدن للـ city dropdown داخل modal الفلتر.
+        var citiesEnv = await Api.GetAsync<List<string>>("/cities");
+        _cities = citiesEnv.Data ?? new();
     }
 
     private async Task LoadListingsAsync()
@@ -101,12 +125,14 @@
     private string BuildQueryString()
     {
         var parts = new List<string>();
-        if (!string.IsNullOrEmpty(_categoryId)) parts.Add($"category={Uri.EscapeDataString(_categoryId)}");
-        if (!string.IsNullOrEmpty(_query))      parts.Add($"q={Uri.EscapeDataString(_query)}");
-        if (_filters.MinPrice.HasValue)         parts.Add($"priceMin={_filters.MinPrice}");
-        if (_filters.MaxPrice.HasValue)         parts.Add($"priceMax={_filters.MaxPrice}");
-        if (_filters.Capacity > 0)              parts.Add($"capacity={_filters.Capacity}");
-        if (_filters.MinRating > 0)             parts.Add($"minRating={_filters.MinRating}");
+        if (!string.IsNullOrEmpty(_categoryId))      parts.Add($"category={Uri.EscapeDataString(_categoryId)}");
+        if (!string.IsNullOrEmpty(_query))           parts.Add($"q={Uri.EscapeDataString(_query)}");
+        if (!string.IsNullOrEmpty(_filters.City))    parts.Add($"city={Uri.EscapeDataString(_filters.City)}");
+        if (!string.IsNullOrEmpty(_filters.District)) parts.Add($"district={Uri.EscapeDataString(_filters.District)}");
+        if (_filters.MinPrice.HasValue)              parts.Add($"priceMin={_filters.MinPrice}");
+        if (_filters.MaxPrice.HasValue)              parts.Add($"priceMax={_filters.MaxPrice}");
+        if (_filters.Capacity > 0)                   parts.Add($"capacity={_filters.Capacity}");
+        if (_filters.MinRating > 0)                  parts.Add($"minRating={_filters.MinRating}");
         parts.Add($"sort={_sort}");
         return "?" + string.Join("&", parts);
     }
@@ -114,6 +140,8 @@
     private bool HasAnyFilter =>
         !string.IsNullOrEmpty(_categoryId)
         || !string.IsNullOrEmpty(_query)
+        || !string.IsNullOrEmpty(_filters.District)
+        || (!string.IsNullOrEmpty(_filters.City) && _filters.City != Store.Ui.City)
         || _filters.MinPrice.HasValue || _filters.MaxPrice.HasValue
         || _filters.Capacity > 0 || _filters.MinRating > 0
         || _sort != "newest";
@@ -122,15 +150,13 @@
     {
         _categoryId = id;
         // اختيار "الكل" (id == null) يمسح <i>كلّ</i> الفلاتر — البحث النصّيّ
-        // والترتيب أيضاً، ليطابق سلوك ClearAllFilters. هذا طلب صاحب
-        // المصلحة (#5 الجولة الأولى): "عند الضغط على الكل يتم تنظيف
-        // كل الفلاتر". قبل هذا الإصلاح كان _query و _sort يبقيان فيُرجع
-        // التطبيق نتائج لا تطابق توقّع المستخدم.
+        // والترتيب أيضاً، ليطابق سلوك ClearAllFilters. مدينة الصفحة الرئيسيّة
+        // تبقى الافتراضيّة (طلب صاحب المصلحة).
         if (id is null)
         {
             _query   = null;
             _sort    = "newest";
-            _filters = new(null, null, 0, 0);
+            _filters = NewDefaultFilters();
         }
         await ApplyAndSyncAsync();
     }
@@ -144,7 +170,7 @@
         _categoryId = null;
         _query      = null;
         _sort       = "newest";
-        _filters    = new(null, null, 0, 0);
+        _filters    = NewDefaultFilters();
         await ApplyAndSyncAsync();
     }
 
