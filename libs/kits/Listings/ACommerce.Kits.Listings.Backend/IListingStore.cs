@@ -50,6 +50,21 @@ public interface IListingStore
 }
 
 /// <summary>
+/// نقطة توسعة اختياريّة. لو سجّلها التطبيق، الـ <c>GET /listings/{id}</c>
+/// يستدعيها فيُغني الـ <see cref="IListing"/> بحقول إضافيّة (labels من
+/// Discovery، owner من Users، إلخ.). لو غير مسجَّلة، تُرجَع IListing كما هو.
+///
+/// <para>التطبيق يُنفّذها على Scoped service يستهلك DbContext + أيّ
+/// store آخر. Listings kit لا يَفرض على التطبيق join مع Discovery أو
+/// Profiles — ذلك خيار للـ App.</para>
+/// </summary>
+public interface IListingDetailEnricher
+{
+    /// <summary>يُرجع DTO للعميل. النوع object حتى يضع التطبيق أيّ شكل يلائم واجهته.</summary>
+    Task<object> EnrichAsync(IListing listing, CancellationToken ct);
+}
+
+/// <summary>
 /// رزمة تعديل الإعلان (PATCH). كلّ حقل null = "لا تغيِّر". الـ store يُطبِّق
 /// فقط الـ non-null.
 /// </summary>

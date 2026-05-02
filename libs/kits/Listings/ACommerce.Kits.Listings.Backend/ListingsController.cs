@@ -7,6 +7,7 @@ using ACommerce.OperationEngine.Wire;
 using ACommerce.OperationEngine.Wire.Http;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.DependencyInjection;
 using System.Security.Claims;
 
 namespace ACommerce.Kits.Listings.Backend;
@@ -103,7 +104,11 @@ public sealed class ListingsController : ControllerBase
         // قراءة عابر، ليس حدثاً محاسبيّاً يستحقّ envelope كاملاً).
         try { await _store.IncrementViewCountNoSaveAsync(id, ct); } catch { }
 
-        return this.OkEnvelope("listing.details", l);
+        // لو التطبيق سجّل enricher (مثل EjarListingDetailEnricher)، نُغني
+        // الكيان بحقول إضافيّة (labels، owner، …). وإلّا نُرجع IListing كما هو.
+        var enricher = HttpContext.RequestServices.GetService<IListingDetailEnricher>();
+        var payload  = enricher is null ? (object)l : await enricher.EnrichAsync(l, ct);
+        return this.OkEnvelope("listing.details", payload);
     }
 
     // ─── GET /my-listings ────────────────────────────────────────────────

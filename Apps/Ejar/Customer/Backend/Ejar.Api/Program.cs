@@ -106,6 +106,10 @@ builder.Services.AddVersionsKit<EjarVersionStore>();
 builder.Services.AddSubscriptionsKit<EjarSubscriptionStore, EjarPlanStore, EjarInvoiceStore>(
     opts => opts.OpenAccess = builder.Configuration.GetValue("Trial:OpenAccess", true));
 builder.Services.AddListingsKit<EjarListingStore>();
+// enricher يُغني GET /listings/{id} بـ labels (TimeUnit/PropertyType) +
+// owner من Users + amenities كـ DTOs ({key, label}). الواجهة تتوقّع هذه
+// الحقول؛ بدون الـ enricher صفحة تفاصيل الإعلان تنكسر.
+builder.Services.AddScoped<ACommerce.Kits.Listings.Backend.IListingDetailEnricher, EjarListingDetailEnricher>();
 builder.Services.AddProfilesKit<EjarProfileStore>();
 
 // ═══════════════════════════════════════════════════════════════════════
