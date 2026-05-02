@@ -100,6 +100,7 @@
     <ProjectReference Include="..\..\..\..\..\libs\kits\Listings\ACommerce.Kits.Listings.Backend\ACommerce.Kits.Listings.Backend.csproj" />
     <ProjectReference Include="..\..\..\..\..\libs\kits\Profiles\ACommerce.Kits.Profiles.Operations\ACommerce.Kits.Profiles.Operations.csproj" />
     <ProjectReference Include="..\..\..\..\..\libs\kits\Profiles\ACommerce.Kits.Profiles.Backend\ACommerce.Kits.Profiles.Backend.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\host\ACommerce.ServiceHost\ACommerce.ServiceHost.csproj" />
   </ItemGroup>
 
   <ItemGroup>
