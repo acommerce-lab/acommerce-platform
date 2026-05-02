@@ -40,6 +40,7 @@ using ACommerce.Kits.Auth.Backend;
 using ACommerce.Kits.Chat.Backend;
 using ACommerce.Kits.Notifications.Backend;
 using ACommerce.Kits.Versions.Backend;
+using ACommerce.Kits.Subscriptions.Backend;
 using ACommerce.Notification.Providers.Firebase.Extensions;
 using ACommerce.Kits.Auth.Operations;
 using ACommerce.SharedKernel.Infrastructure.EFCores.Context;
@@ -196,6 +197,13 @@ builder.Services.AddScoped<ACommerce.Kits.Chat.Backend.IPresenceProbe, EjarChatP
 builder.Services.AddFavoritesKit();
 builder.Services.AddNotificationsKit<EjarCustomerNotificationStore>();
 builder.Services.AddVersionsKit<EjarVersionStore>();
+
+// Subscriptions kit — endpoints /me/subscription، /me/invoices، /plans،
+// /subscriptions/activate. Trial.OpenAccess خيار داخل الكيت: مفعَّل
+// افتراضيّاً في فترة الإطلاق التجريبيّ، يُسقط بسطر appsettings عند
+// التحوّل لنموذج الباقات المدفوع.
+builder.Services.AddSubscriptionsKit<EjarSubscriptionStore, EjarPlanStore, EjarInvoiceStore>(
+    opts => opts.OpenAccess = builder.Configuration.GetValue("Trial:OpenAccess", true));
 
 // ─── التراكيب الخارجيّة (compositions) — بعد كلّ kits لأنّ
 // AddComposition.RequiredKits يفحص حضورها في DI ───────────────────

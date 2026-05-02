@@ -127,119 +127,12 @@ public sealed class CatalogController : ControllerBase
             new { id = u.Id, fullName = u.FullName, avatar = u.AvatarUrl });
     }
 
-    // ═══ Subscription / Invoices ═════════════════════════════════════════
-    [HttpGet("/me/subscription")]
-    public async Task<IActionResult> MySubscription(CancellationToken ct)
-    {
-        if (CurrentUserGuid is not { } id) return this.UnauthorizedEnvelope();
-
-        // فترة التجربة المفتوحة: نُرجع اشتراكاً اصطناعيّاً نشطاً بحصص بلا
-        // حدود (-1 = unlimited عُرفاً). هذا يَمنع الواجهة من إظهار شريط
-        // "اشترك بباقة" + يُسلِّم القيود على CreateListing التي تتجاوزها كذلك.
-        if (TrialOpenAccess)
-        {
-            // ردّ اشتراكاً اصطناعيّاً متّسقاً مع SubDto على الواجهة
-            // (CreateListing.razor) — كلّ الحقول non-null لئلّا تفشل الـ
-            // deserialization. الحدّ ٠ = unlimited (تطابق دلالة الـ gate
-            // في CreateListing). DaysRemaining كبير ليُخفي تحذيرات الانتهاء.
-            return this.OkEnvelope("me.subscription", new {
-                id               = Guid.Empty,
-                planId           = Guid.Empty,
-                planName         = "تجربة مفتوحة",
-                status           = "active",
-                startDate        = DateTime.UtcNow.Date,
-                endDate          = DateTime.UtcNow.Date.AddYears(10),
-                daysRemaining    = 3650,
-                listingsUsed     = 0,
-                listingsLimit    = 0,    // 0 = unlimited
-                featuredUsed     = 0,
-                featuredLimit    = 0,
-                imagesPerListing = 0,
-                price            = 0m
-            });
-        }
-
-        var s = await _db.Subscriptions.AsNoTracking()
-            .Where(x => x.UserId == id && x.Status == "active")
-            .OrderByDescending(x => x.EndDate).FirstOrDefaultAsync(ct);
-        if (s is null) return this.OkEnvelope<object?>("me.subscription", null);
-        return this.OkEnvelope("me.subscription", new {
-            id = s.Id, planId = s.PlanId, planName = s.PlanName, status = s.Status,
-            startDate = s.StartDate, endDate = s.EndDate,
-            listingsLimit = s.ListingsLimit, featuredLimit = s.FeaturedLimit,
-            imagesPerListing = s.ImagesPerListing,
-            price = 0m
-        });
-    }
-
-    [HttpGet("/me/invoices")]
-    public async Task<IActionResult> MyInvoices(CancellationToken ct)
-    {
-        if (CurrentUserGuid is not { } id) return this.UnauthorizedEnvelope();
-        var rows = await _db.Invoices.AsNoTracking()
-            .Where(x => x.UserId == id).OrderByDescending(x => x.Date)
-            .Select(x => new { id = x.Id, planId = x.PlanId, amount = x.Amount, date = x.Date, status = x.Status })
-            .ToListAsync(ct);
-        return this.OkEnvelope("me.invoices", rows);
-    }
-
-    // ═══ Subscription activation ═════════════════════════════════════════
-    public sealed record ActivateSubscriptionBody(string? PlanId);
-
-    [HttpPost("/subscriptions/activate")]
-    public async Task<IActionResult> ActivateSubscription([FromBody] ActivateSubscriptionBody body, CancellationToken ct)
-    {
-        if (CurrentUserGuid is not { } uid) return this.UnauthorizedEnvelope();
-        if (string.IsNullOrWhiteSpace(body.PlanId) || !Guid.TryParse(body.PlanId, out var planId))
-            return this.BadRequestEnvelope("invalid_plan_id");
-
-        var plan = await _db.Plans.AsNoTracking().FirstOrDefaultAsync(p => p.Id == planId, ct);
-        if (plan is null) return this.NotFoundEnvelope("plan_not_found");
-
-        // إنهاء أيّ اشتراك سابق نشط للمستخدم (subscription واحد فعّال في كلّ وقت).
-        var prior = await _db.Subscriptions
-            .Where(s => s.UserId == uid && s.Status == "active")
-            .ToListAsync(ct);
-        foreach (var p in prior)
-        {
-            p.Status = "expired";
-            p.UpdatedAt = DateTime.UtcNow;
-        }
-
-        var sub = new SubscriptionEntity
-        {
-            Id = Guid.NewGuid(),
-            CreatedAt = DateTime.UtcNow,
-            UserId = uid,
-            PlanId = plan.Id,
-            PlanName = plan.Label,
-            Status = "active",
-            StartDate = DateTime.UtcNow,
-            EndDate = DateTime.UtcNow.AddMonths(1),
-            ListingsLimit = plan.MaxActiveListings,
-            FeaturedLimit = plan.MaxFeaturedListings,
-            ImagesPerListing = plan.MaxImagesPerListing,
-        };
-        _db.Subscriptions.Add(sub);
-
-        // فاتورة مرافقة (mock — ندوّن خصماً ناجحاً).
-        _db.Invoices.Add(new InvoiceEntity
-        {
-            Id = Guid.NewGuid(),
-            CreatedAt = DateTime.UtcNow,
-            UserId = uid,
-            PlanId = plan.Id,
-            Amount = plan.Price,
-            Date = DateTime.UtcNow,
-            Status = "paid",
-        });
-
-        await _db.SaveChangesAsync(ct);
-        return this.OkEnvelope("subscription.activate", new {
-            id = sub.Id, planId = sub.PlanId, planName = sub.PlanName,
-            status = sub.Status, startDate = sub.StartDate, endDate = sub.EndDate
-        });
-    }
+    // ═══ Subscription / Invoices / Activation ═══════════════════════════
+    // نُقلت لـ Subscriptions.Backend kit (SubscriptionsController،
+    // PlansController، InvoicesController). Trial.OpenAccess صار خياراً
+    // داخل الكيت — يُمرَّر من Program.cs عبر AddSubscriptionsKit(opts).
+    // EjarSubscriptionStore + EjarPlanStore + EjarInvoiceStore تترجم
+    // الـ EF entities للـ views التي يُسلِّمها الكيت.
 
     // ═══ My Listings ═════════════════════════════════════════════════════
     [HttpGet("/my-listings")]
