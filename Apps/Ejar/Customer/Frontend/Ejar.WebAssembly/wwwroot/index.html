@@ -7,6 +7,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#1d4ed8" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="إيجار" />
     <meta name="application-name" content="إيجار" />
@@ -48,8 +49,8 @@
          version-check.js أوّلاً ودائماً — يفحص version.json قبل أي شيء
          آخر، يفرض حذف SW + caches إذا كانت النسخة المحفوظة محلياً قديمة،
          ثم يعيد التحميل ضارباً عرض الحائط بأي cache على CDN/proxy. -->
-    <script src="version-check.js?v=20260502a"></script>
-    <script src="api-diagnostics.js?v=20260502a"></script>
+    <script src="version-check.js?v=20260502c"></script>
+    <script src="api-diagnostics.js?v=20260502c"></script>
     <!-- signalr.min.js قبل blazor.webassembly.js: على الهاتف الشبكة أبطأ
          فيبدأ Blazor تنفيذ EjarRealtimeService.start قبل ما ينتهي تحميل
          signalr من cloudflare CDN، فيخرج "signalR is not defined".
