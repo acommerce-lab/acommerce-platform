@@ -40,7 +40,7 @@ public sealed class EjarCustomerAuthUserStore : IAuthUserStore
             PhoneVerified = true,
             Email         = "",
             EmailVerified = false,
-            City          = "صنعاء",
+            City          = "إب",
             MemberSince   = DateTime.UtcNow,
         };
         _db.Users.Add(newUser);

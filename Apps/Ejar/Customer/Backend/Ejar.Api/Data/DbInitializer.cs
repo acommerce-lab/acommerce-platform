@@ -40,8 +40,8 @@ public static class DbInitializer
             });
         }
 
-        // 3. Seed Regions
-        foreach (var city in new[] { "صنعاء", "عدن", "تعز", "إب", "الحديدة", "المكلا" })
+        // 3. Seed Regions — إب أوّلاً (السوق الافتراضيّ للإطلاق التجريبيّ).
+        foreach (var city in new[] { "إب", "صنعاء", "عدن", "تعز", "الحديدة", "المكلا" })
         {
             db.DiscoveryRegions.Add(new DiscoveryRegion { Name = city, Level = 1, CreatedAt = DateTime.UtcNow });
         }

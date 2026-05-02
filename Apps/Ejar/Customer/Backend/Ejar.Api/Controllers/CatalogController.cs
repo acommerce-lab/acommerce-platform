@@ -138,14 +138,21 @@ public sealed class CatalogController : ControllerBase
         // "اشترك بباقة" + يُسلِّم القيود على CreateListing التي تتجاوزها كذلك.
         if (TrialOpenAccess)
         {
+            // ردّ اشتراكاً اصطناعيّاً متّسقاً مع SubDto على الواجهة
+            // (CreateListing.razor) — كلّ الحقول non-null لئلّا تفشل الـ
+            // deserialization. الحدّ ٠ = unlimited (تطابق دلالة الـ gate
+            // في CreateListing). DaysRemaining كبير ليُخفي تحذيرات الانتهاء.
             return this.OkEnvelope("me.subscription", new {
                 id               = Guid.Empty,
-                planId           = (Guid?)null,
+                planId           = Guid.Empty,
                 planName         = "تجربة مفتوحة",
                 status           = "active",
                 startDate        = DateTime.UtcNow.Date,
                 endDate          = DateTime.UtcNow.Date.AddYears(10),
-                listingsLimit    = 0,    // 0 = unlimited (يطابق دلالة الـ gate في CreateListing)
+                daysRemaining    = 3650,
+                listingsUsed     = 0,
+                listingsLimit    = 0,    // 0 = unlimited
+                featuredUsed     = 0,
                 featuredLimit    = 0,
                 imagesPerListing = 0,
                 price            = 0m

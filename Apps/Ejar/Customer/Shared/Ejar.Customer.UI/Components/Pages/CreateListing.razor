@@ -76,7 +76,7 @@
                 <AcField Label="@(L["listing.create.field.title"])" Required="true">
                     <AcInput Value="@Store.Draft.Title"
                              ValueChanged="@(v => Store.Draft.Title = v ?? string.Empty)"
-                             Placeholder="مثلاً: شقة مفروشة في حيّ النرجس" />
+                             Placeholder="مثلاً: شقة مفروشة في حيّ السبل" />
                 </AcField>
                 <AcField Label="@(L["listing.create.field.description"])" Required="true">
                     <textarea class="ac-input" rows="4" @bind="Store.Draft.Description"
@@ -194,7 +194,7 @@
                 <AcField Label="@(L["listing.create.field.district"])" Required="true">
                     <AcInput Value="@Store.Draft.District"
                              ValueChanged="@(v => Store.Draft.District = v ?? string.Empty)"
-                             Placeholder="مثلاً: الحوبان" />
+                             Placeholder="مثلاً: السبل" />
                 </AcField>
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
                     <AcField Label="خط العرض (اختياريّ)">

@@ -92,7 +92,7 @@ public sealed class HomeController : ControllerBase
     public IActionResult Suggestions() =>
         this.OkEnvelope("home.search.suggestions", new {
             recent  = Array.Empty<string>(),
-            popular = new[] { "صنعاء", "فيلا", "شقة مفروشة", "مكتب", "استراحة" }
+            popular = new[] { "إب", "فيلا", "شقة مفروشة", "مكتب", "استراحة" }
         });
 
     // ── /listings ──────────────────────────────────────────────────────────

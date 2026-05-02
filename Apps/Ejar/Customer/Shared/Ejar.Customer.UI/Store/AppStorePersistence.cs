@@ -154,7 +154,11 @@ public sealed class AppStorePersistence : IAsyncDisposable
         var s = await GetItem<UiSnapshot>(KeyUi);
         if (s is null) return;
         _store.Ui.Theme      = s.Theme ?? _store.Ui.Theme;
-        if (s.City is not null) _store.Ui.City = s.City;
+        // ترحيل لمرّة واحدة: المستخدمون القدامى الذين خزّن لهم localStorage
+        // "صنعاء" بوصفها المدينة الافتراضيّة (قبل تحوّل التطبيق لسوق إب)
+        // يُنقَلون لـ "إب" تلقائياً. لو كان قد غيّرها المستخدم يدويّاً لمدينة
+        // أخرى تُحترَم. للعودة لصنعاء (لو رغب) → AcCityPicker على الـ home.
+        if (s.City is not null && s.City != "صنعاء") _store.Ui.City = s.City;
         if (s.Language is not null && s.Language != _store.Ui.Culture.Language)
             _store.Ui.Culture = _store.Ui.Culture with { Language = s.Language };
     }
