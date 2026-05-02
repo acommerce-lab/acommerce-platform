@@ -88,44 +88,9 @@ public sealed class CatalogController : ControllerBase
     private string CurrentUserSeedId =>
         User.FindFirstValue("user_id") ?? EjarSeed.CurrentUserId;
 
-    // ═══ Profile ═════════════════════════════════════════════════════════
-    [HttpGet("/me/profile")]
-    public async Task<IActionResult> Me(CancellationToken ct)
-    {
-        if (CurrentUserGuid is { } id)
-        {
-            var u = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id, ct);
-            if (u is null) return this.UnauthorizedEnvelope("user_not_found");
-            return this.OkEnvelope("profile.get", new {
-                id = u.Id, fullName = u.FullName, phone = u.Phone, email = u.Email,
-                city = u.City, memberSince = u.MemberSince, avatar = u.AvatarUrl,
-                stats = new { listingsCount = 0, bookingsCount = 0 }
-            });
-        }
-        return this.UnauthorizedEnvelope("user_not_found");
-    }
-
-    public sealed record UpdateProfileBody(
-        string? FullName, string? Phone, string? Email, string? City, string? AvatarUrl);
-
-    [HttpPut("/me/profile")]
-    public async Task<IActionResult> UpdateProfile([FromBody] UpdateProfileBody body, CancellationToken ct)
-    {
-        if (CurrentUserGuid is not { } id) return this.UnauthorizedEnvelope();
-        var u = await _db.Users.FirstOrDefaultAsync(x => x.Id == id, ct);
-        if (u is null) return this.UnauthorizedEnvelope("user_not_found");
-
-        if (!string.IsNullOrWhiteSpace(body.FullName)) u.FullName = body.FullName!;
-        if (body.Phone     is not null) u.Phone     = body.Phone;
-        if (body.Email     is not null) u.Email     = body.Email;
-        if (body.City      is not null) u.City      = body.City;
-        if (body.AvatarUrl is not null) u.AvatarUrl = body.AvatarUrl;
-        u.UpdatedAt = DateTime.UtcNow;
-        await _db.SaveChangesAsync(ct);
-
-        return this.OkEnvelope("profile.update",
-            new { id = u.Id, fullName = u.FullName, avatar = u.AvatarUrl });
-    }
+    // ═══ Profile  →  نُقل لـ Profiles.Backend kit (ProfilesController).
+    //   GET/PUT /me/profile. EjarProfileStore يترجم بين IUserProfile و
+    //   UserEntity.
 
     // ═══ Subscription / Invoices / Activation ═══════════════════════════
     // نُقلت لـ Subscriptions.Backend kit (SubscriptionsController،

@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <PackageId>ACommerce.Kits.Profiles.Operations</PackageId>
+    <Version>1.0.0</Version>
+    <Description>Profiles primitives: IUserProfile interface (apps' user entity implements it), InMemoryUserProfile POCO, ProfileOps + tag keys.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\Core\OperationEngine\ACommerce.OperationEngine\ACommerce.OperationEngine.csproj" />
+  </ItemGroup>
+</Project>
