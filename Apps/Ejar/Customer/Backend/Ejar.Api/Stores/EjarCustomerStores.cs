@@ -291,6 +291,17 @@ public sealed class EjarCustomerNotificationStore : INotificationStore
     public async Task<NotificationItem> CreateAsync(string userId, string type, string title,
         string body, string? relatedId = null, CancellationToken ct = default)
     {
+        // مسار قديم — يحفظ مباشرةً. متروك للتوافق مع أيّ متّصل خارجيّ
+        // غير مرحَّل لـ INotificationDispatcher بعد. المسار المفضّل الآن
+        // يمرّ بـ AddNoSaveAsync داخل OAM envelope مع SaveAtEnd.
+        var item = await AddNoSaveAsync(userId, type, title, body, relatedId, ct);
+        await _db.SaveChangesAsync(ct);
+        return item;
+    }
+
+    public Task<NotificationItem> AddNoSaveAsync(string userId, string type, string title,
+        string body, string? relatedId = null, CancellationToken ct = default)
+    {
         if (!Guid.TryParse(userId, out var uid))
             throw new InvalidOperationException("invalid_user_id");
         var entity = new NotificationEntity
@@ -305,10 +316,10 @@ public sealed class EjarCustomerNotificationStore : INotificationStore
             IsRead    = false,
         };
         _db.Notifications.Add(entity);
-        await _db.SaveChangesAsync(ct);
-        return new NotificationItem(
+        // (F6) لا SaveChangesAsync — INotificationDispatcher يضع .SaveAtEnd().
+        return Task.FromResult(new NotificationItem(
             entity.Id.ToString(), entity.Type, entity.Title, entity.Body,
-            entity.CreatedAt, entity.IsRead, entity.RelatedId);
+            entity.CreatedAt, entity.IsRead, entity.RelatedId));
     }
 }
 

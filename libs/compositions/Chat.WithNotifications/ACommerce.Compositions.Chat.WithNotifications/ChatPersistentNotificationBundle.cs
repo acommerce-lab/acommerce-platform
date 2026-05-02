@@ -9,9 +9,24 @@ using Microsoft.Extensions.Logging;
 namespace ACommerce.Compositions.Chat.WithNotifications;
 
 /// <summary>
-/// Bundle: عند نجاح <c>message.send</c>، أنشئ سجلّ إشعار في الـ inbox
-/// للمستلم عبر <see cref="INotificationStore.CreateAsync"/>. لا Chat kit
-/// ولا Notifications kit يعرف الآخر — التركيب الخارجيّ يربطهما.
+/// Bundle: عند نجاح <c>message.send</c>، يُرسل عمليّة <b>بنت</b>
+/// <c>notification.create</c> عبر <see cref="INotificationDispatcher"/>.
+///
+/// <para>الـ interceptor <b>لا يلمس</b> <c>INotificationStore</c> ولا DB
+/// إطلاقاً. تتدفّق الرسالة في OAM بطريقة محاسبيّة سليمة:</para>
+/// <list type="number">
+///   <item><c>message.send</c> ينجح (Chat kit).</item>
+///   <item>Post-interceptor هنا يبني وصفاً للإشعار.</item>
+///   <item>يُمرّره لـ <c>INotificationDispatcher</c> الذي يفتح
+///         <c>notification.create</c> envelope جديداً (parent =
+///         <c>message.send</c>) فيمرّ بكامل دورة OAM للإشعار:
+///         analyzers + interceptors + SaveAtEnd.</item>
+/// </list>
+///
+/// <para>الفائدة: عمليّة الإشعار صارت حدثاً مرئيّاً للـ audit log،
+/// قابلاً للعكس، يمرّ بكلّ interceptor مسجَّل على
+/// <c>notification.create</c> (مثلاً rate-limit، spam-detection،
+/// quiet-hours)، ولا تتسرّب يد كيت الدردشة إلى DB الإشعارات.</para>
 /// </summary>
 public sealed class ChatPersistentNotificationBundle : IInterceptorBundle
 {
@@ -35,15 +50,18 @@ public sealed class ChatPersistentNotificationInterceptor : IOperationIntercepto
 
     public async Task<AnalyzerResult> InterceptAsync(OperationContext ctx, OperationResult? result = null)
     {
-        // F5: لا إشعار على عمليّة فاشلة — رسالة لم تُحفظ ≠ حدث للإبلاغ عنه.
-        if (result is null || !result.Success) return AnalyzerResult.Pass();
-
+        // ملاحظة عن نجاح العمليّة: مرحلة Post في OpEngine تعمل فقط حين تنجح
+        // Execute + AfterExecute hooks (بما فيها SaveAtEnd). لو أيّهما رمى،
+        // الكود يقفز لـ catch وينتقل لـ Error hooks لا Post-analyzers
+        // (راجع OperationEngine.ExecuteAsync). إذاً مجرّد أنّ هذا الكود
+        // يجري = الرسالة حُفظت ذرّيّاً. لا حاجة لفحص result.Success
+        // (والـ adapter يُمرّر result=null دوماً، فالفحص كان دائماً يكسر التدفّق).
         try
         {
             using var scope = _root.CreateScope();
-            var notifStore = scope.ServiceProvider.GetService<INotificationStore>();
+            var dispatcher = scope.ServiceProvider.GetService<INotificationDispatcher>();
             var chatStore  = scope.ServiceProvider.GetService<IChatStore>();
-            if (notifStore is null || chatStore is null) return AnalyzerResult.Pass();
+            if (dispatcher is null || chatStore is null) return AnalyzerResult.Pass();
 
             var convTag = ctx.Operation.Tags.FirstOrDefault(t => t.Key == "conversation_id");
             var convId = string.IsNullOrEmpty(convTag.Key) ? null : convTag.Value;
@@ -66,9 +84,8 @@ public sealed class ChatPersistentNotificationInterceptor : IOperationIntercepto
             if (string.IsNullOrEmpty(recipientId)) return AnalyzerResult.Pass();
 
             // F4: presence-aware — لو المستلم حاضر في هذه المحادثة الآن
-            // (ChatRoom مفتوحة + /enter مستدعى)، لا نُنشئ سجلّ إشعار في
-            // الـ inbox. الرسالة تظهر له مباشرةً عبر realtime — الإشعار
-            // مكرَّر مزعج. الـ probe اختياريّ — null = سلوك F3 الكامل.
+            // (ChatRoom مفتوحة + /enter مستدعى)، لا نُنشئ سجلّ إشعار.
+            // الرسالة تظهر له مباشرةً عبر realtime — الإشعار مكرَّر مزعج.
             var probe = scope.ServiceProvider.GetService<ACommerce.Kits.Chat.Backend.IPresenceProbe>();
             if (probe is not null && await probe.IsUserActiveInConversationAsync(recipientId, convId, ctx.CancellationToken))
             {
@@ -77,21 +94,23 @@ public sealed class ChatPersistentNotificationInterceptor : IOperationIntercepto
             }
 
             // الجسم: نأخذ النصّ من ctx.Entity<IChatMessage>() لو أتى عبر F1،
-            // وإلاّ نقبل tag(text) إن وُجد. الـ subject من Conversation.
+            // وإلاّ نقبل tag(text) إن وُجد.
             var msg = ctx.Entity<ACommerce.Chat.Operations.IChatMessage>();
             var bodyTag = ctx.Operation.Tags.FirstOrDefault(t => t.Key == "text");
             var body = msg?.Body ?? (string.IsNullOrEmpty(bodyTag.Key) ? "رسالة جديدة" : bodyTag.Value);
             var preview = body.Length > 80 ? body[..80] + "…" : body;
-            var subject = conv is ACommerce.Chat.Operations.IChatConversation c
-                ? c.Id : "محادثة";
 
-            await notifStore.CreateAsync(
-                userId: recipientId,
-                type:   "chat.message",
-                title:  "رسالة جديدة",
-                body:   preview,
+            // الفعل المحاسبيّ: عمليّة بنت notification.create. لا نلمس
+            // INotificationStore هنا — الـ dispatcher يبني envelope كامل
+            // مع analyzers + SaveAtEnd. parent = message.send op.
+            await dispatcher.DispatchCreateAsync(
+                userId:    recipientId,
+                type:      "chat.message",
+                title:     "رسالة جديدة",
+                body:      preview,
                 relatedId: convId,
-                ct: ctx.CancellationToken);
+                parent:    ctx.Operation,
+                ct:        ctx.CancellationToken);
         }
         catch (Exception ex)
         {
