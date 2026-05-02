@@ -42,7 +42,10 @@ public class UiState
 {
     public UserCulture Culture { get; set; } = UserCulture.Default;
     public string Theme { get; set; } = "light";
-    public string City { get; set; } = "صنعاء";
+    // افتراضيّ المدينة لإيجار = إب (طلب صاحب المصلحة). يطابق سوق الإطلاق
+    // الأوّل. يبقى persistable في AppStorePersistence فلو غيّره المستخدم
+    // لمدينة أخرى يُحفَظ في localStorage على المستوى الـ device.
+    public string City { get; set; } = "إب";
 
     public string Language => Culture.Language;
     public bool IsArabic => Culture.Language == "ar";

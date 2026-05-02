@@ -194,7 +194,7 @@
                 <AcField Label="@(L["listing.create.field.district"])" Required="true">
                     <AcInput Value="@Store.Draft.District"
                              ValueChanged="@(v => Store.Draft.District = v ?? string.Empty)"
-                             Placeholder="مثلاً: النرجس" />
+                             Placeholder="مثلاً: الحوبان" />
                 </AcField>
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
                     <AcField Label="خط العرض (اختياريّ)">
@@ -269,7 +269,7 @@
         var am = await Api.GetAsync<List<AmenityDto>>("/amenities");
         var ci = await Api.GetAsync<List<string>>("/cities");
         _amenities = am.Data ?? new();
-        _cities    = ci.Data ?? new() { "صنعاء" };
+        _cities    = ci.Data ?? new() { "إب" };
         await InvokeAsync(StateHasChanged);
     }
 

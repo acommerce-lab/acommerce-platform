@@ -94,14 +94,19 @@
         await InvokeAsync(StateHasChanged);
     }
 
+    // البحث المُمتلِك نصّاً → صفحة الاقتراحات (recent + popular). البحث
+    // الفارغ يفتحها للتصفّح. الاقتراحات بدورها تنقل لـ /explore عند
+    // اختيار قائمة (انظر Search.razor).
     private void OnSearch(string? q)
     {
         if (string.IsNullOrWhiteSpace(q)) { Nav.NavigateTo("/search"); return; }
         Nav.NavigateTo($"/search?q={Uri.EscapeDataString(q)}");
     }
 
+    // اختيار فئة من Home → نتائج /explore فلتر بالفئة (لا /search لأنّها
+    // اقتراحات لا نتائج). هذا أيضاً يضمن أنّ الفلاتر القديمة لا تتراكم.
     private void OnCategorySelected(CategoryTileDto c)
-        => Nav.NavigateTo($"/search?category={Uri.EscapeDataString(c.Id)}");
+        => Nav.NavigateTo($"/explore?category={Uri.EscapeDataString(c.Id)}");
 
     private void OnListingOpen(ListingRowDto l)
         => Nav.NavigateTo($"/listings/{Uri.EscapeDataString(l.Id)}");
@@ -115,7 +120,12 @@
         _             => "/"
     });
 
-    private void OnViewAll(string section) => Nav.NavigateTo("/search");
+    // "مشاهدة الكل" من قسم المميَّزة/الجديدة على Home → /explore بفلاتر
+    // نظيفة (طلب صاحب المصلحة). نُمرِّر ?reset=1 ليتأكّد Explore من إعادة
+    // ضبط حالته حتى لو كانت المكوّنة محفوظة في cache (Blazor router
+    // يُعيد إنشاء المكوّن لكن الاحتياط أرخص من المفاجأة). فلتر القسم
+    // (مميّز/جديد) لا يصل للـ backend حالياً — نتركه لمستقبل قريب.
+    private void OnViewAll(string section) => Nav.NavigateTo("/explore?reset=1");
 
     private async Task OnCityChanged(string city)
     {
