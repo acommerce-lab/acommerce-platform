@@ -57,48 +57,70 @@ public sealed class EjarSupportStore : ISupportStore
         string userId, string subject, string initialMessage, string priority,
         string? relatedEntityId, CancellationToken ct)
     {
-        if (!Guid.TryParse(userId, out var uid))
-            throw new InvalidOperationException("invalid_user_id");
+        // مسار قديم — يبني POCO ثمّ يُمرّره لـ AddNoSaveAsync (المسار الجديد).
+        var ticket = new InMemorySupportTicket(
+            Id:              Guid.NewGuid().ToString(),
+            UserId:          userId,
+            ConversationId:  Guid.NewGuid().ToString(),
+            Subject:         subject,
+            Status:          "open",
+            Priority:        priority,
+            RelatedEntityId: relatedEntityId,
+            AssignedAgentId: null,
+            CreatedAt:       DateTime.UtcNow);
+        await AddNoSaveAsync(ticket, initialMessage, ct);
+        return ticket;
+    }
 
-        var convId    = Guid.NewGuid();
-        var ticketId  = Guid.NewGuid();
+    public async Task AddNoSaveAsync(ISupportTicket ticket, string initialMessageBody, CancellationToken ct)
+    {
+        if (!Guid.TryParse(ticket.UserId, out var uid))
+            throw new InvalidOperationException("invalid_user_id");
+        if (!Guid.TryParse(ticket.ConversationId, out var convId))
+            throw new InvalidOperationException("invalid_conversation_id");
+        var ticketId = Guid.TryParse(ticket.Id, out var tid) ? tid : Guid.NewGuid();
         var agentPool = ResolveAgentPoolId();
 
         // ① Conversation: مالكها = الشاكي، شريكها = pool الدعم.
         var conv = new ConversationEntity
         {
             Id          = convId,
-            CreatedAt   = DateTime.UtcNow,
+            CreatedAt   = ticket.CreatedAt,
             OwnerId     = uid,
             PartnerId   = agentPool,
             ListingId   = Guid.Empty,             // لا تُربط بإعلان
             PartnerName = _options.AgentPoolDisplayName,
-            Subject     = subject.Length > 200 ? subject[..200] : subject,
-            LastAt      = DateTime.UtcNow,
+            Subject     = ticket.Subject.Length > 200 ? ticket.Subject[..200] : ticket.Subject,
+            LastAt      = ticket.CreatedAt,
             UnreadCount = 0,
         };
         _db.Conversations.Add(conv);
 
         // ② SupportTicket — يربط نفسه بالـ Conversation.
-        var ticket = new SupportTicket
+        var entity = new SupportTicket
         {
             Id              = ticketId,
-            CreatedAt       = DateTime.UtcNow,
+            CreatedAt       = ticket.CreatedAt,
             UserId          = uid,
             ConversationId  = convId,
-            Subject         = subject.Length > 200 ? subject[..200] : subject,
-            Status          = "open",
-            Priority        = priority,
-            RelatedEntityId = relatedEntityId,
+            Subject         = ticket.Subject.Length > 200 ? ticket.Subject[..200] : ticket.Subject,
+            Status          = ticket.Status,
+            Priority        = ticket.Priority,
+            RelatedEntityId = ticket.RelatedEntityId,
         };
-        _db.SupportTickets.Add(ticket);
+        _db.SupportTickets.Add(entity);
 
-        // (F6) لا SaveChangesAsync هنا — القيد على SupportController.Open
-        // يستدعي .SaveAtEnd() الذي يَحفظ Conversation + Ticket + الرسالة
-        // الأولى ذرّيّاً. AppendMessageAsync أيضاً لا يحفظ (راجع F6 على chat).
-        await _chat.AppendMessageAsync(convId.ToString(), userId, initialMessage, ct);
-
-        return ticket;
+        // ③ الرسالة الأولى كحدث OAM أصيل (POCO) — تُمرَّر لـ Chat store
+        // tracker-only، نفس مسار ChatController.Send.
+        var initialMsg = new ACommerce.Chat.Operations.InMemoryChatMessage(
+            Id:             Guid.NewGuid().ToString(),
+            ConversationId: convId.ToString(),
+            SenderPartyId:  $"User:{uid}",
+            Body:           initialMessageBody,
+            SentAt:         ticket.CreatedAt);
+        await _chat.AppendNoSaveAsync(initialMsg, ct);
+        // (F6) لا SaveChangesAsync — SupportController.Open يضع .SaveAtEnd()
+        // يَحفظ Conversation + Ticket + الرسالة الأولى ذرّيّاً.
     }
 
     public async Task<bool> SetStatusAsync(string ticketId, string newStatus, CancellationToken ct)
@@ -118,8 +140,13 @@ public sealed class EjarSupportStore : ISupportStore
         var systemBody = $"[تغيّرت الحالة: {LabelStatus(oldStatus)} → {LabelStatus(newStatus)}]";
         try
         {
-            await _chat.AppendMessageAsync(t.ConversationId.ToString(), "00000000-0000-0000-0000-000000000000",
-                systemBody, ct);
+            var systemMsg = new ACommerce.Chat.Operations.InMemoryChatMessage(
+                Id:             Guid.NewGuid().ToString(),
+                ConversationId: t.ConversationId.ToString(),
+                SenderPartyId:  "User:00000000-0000-0000-0000-000000000000",
+                Body:           systemBody,
+                SentAt:         DateTime.UtcNow);
+            await _chat.AppendNoSaveAsync(systemMsg, ct);
         }
         catch { /* فشل بثّ الرسالة النظاميّة غير قاتل — التذكرة محفوظة. */ }
 

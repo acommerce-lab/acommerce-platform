@@ -109,7 +109,12 @@ public sealed class EjarCustomerChatStore : IChatStore
         if (!Guid.TryParse(message.ConversationId, out var cid))
             throw new InvalidOperationException("invalid_conversation_id");
 
-        var conv = await _db.Conversations.FirstOrDefaultAsync(c => c.Id == cid, ct);
+        // ابحث في الـ ChangeTracker المحلّيّ أوّلاً — في عمليّات مركّبة
+        // (Support.Open ينشئ Conversation + Ticket + الرسالة الأولى داخل
+        // نفس الـ scope) الـ Conversation تكون tracked لكنّها لم تُحفظ بعد،
+        // فاستعلام DB يردّ null. Local يكشفها مباشرةً.
+        var conv = _db.Conversations.Local.FirstOrDefault(c => c.Id == cid)
+                ?? await _db.Conversations.FirstOrDefaultAsync(c => c.Id == cid, ct);
         if (conv is null)
         {
             // لا محادثة → لا persistence. الرسالة تبقى حدثاً OAM صالحاً

@@ -34,11 +34,13 @@ public static class ReportMarkers
 
 /// <summary>
 /// عقد التخزين. التطبيق يُنفِّذه (مثل <c>EjarReportStore</c>) ويعرف شكل
-/// DB الفعليّ.
+/// DB الفعليّ. كلّ الـ <i>writes</i> اختياريّة — default no-op يجعل
+/// <c>report.submit</c> ينجح كحدث OAM حتّى دون جدول Reports.
 /// </summary>
 public interface IReportStore
 {
-    /// <summary>إنشاء بلاغ جديد. الـ controller يستدعيها داخل OAM envelope.</summary>
+    /// <summary>إنشاء بلاغ جديد. مسار قديم — يُستخدم للتوافق فقط.</summary>
+    [Obsolete("استعمل AddNoSaveAsync بدلاً منها — يقبل IReport مبنيّاً مسبقاً ولا يحفظ بنفسه (F6: SaveAtEnd على القيد).")]
     Task<IReport> SubmitAsync(
         string reporterId,
         string entityType,
@@ -46,6 +48,16 @@ public interface IReportStore
         string reason,
         string? body,
         CancellationToken ct);
+
+    /// <summary>
+    /// يُسجِّل البلاغ على tracker (F6: لا <c>SaveChangesAsync</c>).
+    /// المُتّصِل (<c>ReportsController.Submit</c>) يبني <see cref="IReport"/>
+    /// كـ POCO أوّلاً (<see cref="InMemoryReport"/>)، يضعه على
+    /// <c>ctx.WithEntity&lt;IReport&gt;()</c> ثمّ يستدعي هذه الدالّة لو
+    /// أراد persistence. default no-op يجعل العمليّة تنجح حتّى لو رفض
+    /// التطبيق الفهرسة في DB.
+    /// </summary>
+    Task AddNoSaveAsync(IReport report, CancellationToken ct) => Task.CompletedTask;
 
     /// <summary>قائمة بلاغات هذا المستخدم — للـ "بلاغاتي".</summary>
     Task<IReadOnlyList<IReport>> ListMineAsync(string userId, CancellationToken ct);

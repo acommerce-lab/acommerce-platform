@@ -80,7 +80,8 @@ public interface ISupportStore
 
     /// <summary>فتح تذكرة: ينشئ Conversation عبر مزوّد الدردشة، ثمّ Ticket
     /// يُلصِقه عليها، ثمّ يضع <paramref name="initialMessage"/> رسالةً أولى.
-    /// كلّ ذلك ذرّياً (نفس SaveChanges).</summary>
+    /// مسار قديم — يبني الـ Ticket داخلياً.</summary>
+    [Obsolete("استعمل AddNoSaveAsync بدلاً منها — يقبل ISupportTicket مبنيّاً مسبقاً ولا يحفظ بنفسه (F6: SaveAtEnd على القيد).")]
     Task<ISupportTicket> OpenAsync(
         string userId,
         string subject,
@@ -88,6 +89,20 @@ public interface ISupportStore
         string priority,
         string? relatedEntityId,
         CancellationToken ct);
+
+    /// <summary>
+    /// يُسجِّل التذكرة + Conversation المرتبطة + الرسالة الأولى على tracker
+    /// (F6: لا <c>SaveChangesAsync</c>). المُتّصِل
+    /// (<c>SupportController.Open</c>) يبني <see cref="ISupportTicket"/> +
+    /// <c>IChatMessage</c> كـ POCOs أوّلاً، يضعهما على
+    /// <c>ctx.WithEntity</c>، ثمّ يستدعي هذه الدالّة لو أراد persistence.
+    /// default no-op يجعل <c>support.ticket.open</c> ينجح كحدث OAM حتّى
+    /// دون جداول SupportTickets/Conversations.
+    /// </summary>
+    Task AddNoSaveAsync(
+        ISupportTicket ticket,
+        string initialMessageBody,
+        CancellationToken ct) => Task.CompletedTask;
 
     /// <summary>تغيير الحالة. يستدعي appendMessageAsync داخلياً لإنشاء رسالة
     /// نظام في المحادثة (FromRole=system) ليصل الإشعار للمستخدم عبر مسار

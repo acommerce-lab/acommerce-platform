@@ -15,26 +15,43 @@ public sealed class EjarReportStore : IReportStore
     private readonly EjarDbContext _db;
     public EjarReportStore(EjarDbContext db) => _db = db;
 
-    public Task<IReport> SubmitAsync(
+    public async Task<IReport> SubmitAsync(
         string reporterId, string entityType, string entityId,
         string reason, string? body, CancellationToken ct)
     {
-        if (!Guid.TryParse(reporterId, out var rid))
+        // مسار قديم — يبني POCO ثمّ يُمرّره للمسار الجديد AddNoSaveAsync.
+        var poco = new InMemoryReport(
+            Id:         Guid.NewGuid().ToString(),
+            ReporterId: reporterId,
+            EntityType: entityType,
+            EntityId:   entityId,
+            Reason:     reason,
+            Body:       body,
+            Status:     "open",
+            CreatedAt:  DateTime.UtcNow);
+        await AddNoSaveAsync(poco, ct);
+        return poco;
+    }
+
+    public Task AddNoSaveAsync(IReport report, CancellationToken ct)
+    {
+        if (!Guid.TryParse(report.ReporterId, out var rid))
             throw new InvalidOperationException("invalid_reporter_id");
-        var r = new ReportEntity
+        var rowId = Guid.TryParse(report.Id, out var mid) ? mid : Guid.NewGuid();
+        var entity = new ReportEntity
         {
-            Id          = Guid.NewGuid(),
-            CreatedAt   = DateTime.UtcNow,
+            Id          = rowId,
+            CreatedAt   = report.CreatedAt,
             ReporterId  = rid,
-            EntityType  = entityType,
-            EntityId    = entityId,
-            Reason      = reason,
-            Body        = body,
-            Status      = "open",
+            EntityType  = report.EntityType,
+            EntityId    = report.EntityId,
+            Reason      = report.Reason,
+            Body        = report.Body,
+            Status      = report.Status,
         };
-        _db.Reports.Add(r);
+        _db.Reports.Add(entity);
         // (F6) لا SaveChanges — ReportsController.Submit يضع .SaveAtEnd().
-        return Task.FromResult<IReport>(r);
+        return Task.CompletedTask;
     }
 
     public async Task<IReadOnlyList<IReport>> ListMineAsync(string userId, CancellationToken ct)
