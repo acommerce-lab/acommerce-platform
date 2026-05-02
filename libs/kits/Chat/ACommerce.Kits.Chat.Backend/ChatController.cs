@@ -8,6 +8,7 @@ using ACommerce.OperationEngine.Wire.Http;
 using ACommerce.Realtime.Operations.Abstractions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.DependencyInjection;
 using System.Security.Claims;
 
 namespace ACommerce.Kits.Chat.Backend;
@@ -80,22 +81,24 @@ public class ChatController : ControllerBase
         if (!await _store.CanParticipateAsync(id, CallerId, ct))
             return this.ForbiddenEnvelope("not_a_participant");
 
-        // F5: القيد المحاسبيّ — استبدال السلاسل بـ typed values:
-        //   - Type = "message.send" (دلالة عمل، يطابقه interceptors).
-        //   - ChatTagKeys.ConversationId + ChatEntityKinds.Message على
-        //     TargetEntity tag للـ observability + ربط الكيان.
-        //   - Mark(IsChatMessageCreate) → interceptors البثّ/الإشعار يطابقون
-        //     عبر marker لا سلاسل.
-        //   - WithEntity<IChatMessage>(msg) — F1: typed entity على ctx؛
-        //     interceptors تستهلكها مكتَّبة بدل بناء tags وتركيبها.
+        // الرسالة كحدث OAM أصيل: نبنيها كـ POCO نقيّ (InMemoryChatMessage)
+        // دون أيّ افتراض حول وجود جدول Messages في DB. الـ Execute body
+        // يضعها على ctx.WithEntity<IChatMessage>() فتتدفّق لكلّ post-interceptor
+        // (broadcast، notification.create، FCM) مستقلّةً عن persistence.
         //
-        // ملاحظة الذرّيّة: <c>IChatStore.AppendMessageAsync</c> يُتَرَك
-        // مسؤولاً عن SaveChanges واحد يحفظ الرسالة + تعديلات Conversation
-        // معاً ذرّيّاً. لذا لا نضيف <c>DbAction=Create</c> tag — الـ
-        // CrudActionInterceptor يخلق سيناريو حفظ مزدوج. كيتس بعمليّات
-        // أحاديّة-الكيان (Reports.Submit مثلاً) تستعمل المسار الكامل مع
-        // DbAction tag بدلاً من store يدويّ.
-        IChatMessage? msg = null;
+        // التخزين <i>اختياريّ</i>: الـ store يُستدعى عبر AppendNoSaveAsync
+        // (default impl = no-op على الـ interface)، فيُضيف tracked entities
+        // للـ DbContext لو رغب. الـ SaveAtEnd يحفظ ذرّيّاً. لو الـ store
+        // لا يحفظ شيئاً (in-memory app، أو لا جدول Messages)، الحدث يبقى
+        // صالحاً ويصل المستلم realtime ويُسجَّل audit و notification.create
+        // ينطلق — ينقص فقط فهرس الـ inbox التاريخيّ.
+        var msg = new InMemoryChatMessage(
+            Id:             Guid.NewGuid().ToString(),
+            ConversationId: id,
+            SenderPartyId:  CallerPartyId,
+            Body:           req.Text ?? "",
+            SentAt:         DateTime.UtcNow);
+
         var op = Entry.Create("message.send")
             .Describe($"User {CallerId} sends message in conversation {id}")
             .From(CallerPartyId, 1, ("role", "sender"))
@@ -107,19 +110,23 @@ public class ChatController : ControllerBase
             .Analyze(new MaxLengthAnalyzer("text",    () => req.Text, _options.MaxMessageLength))
             .Execute(async ctx =>
             {
-                msg = await _store.AppendMessageAsync(id, CallerId, req.Text ?? "", ctx.CancellationToken);
-                if (msg is not null) ctx.WithEntity(msg);
+                ctx.WithEntity<IChatMessage>(msg);
+                // Persistence اختياريّ: الـ store الافتراضيّ يقدّم no-op،
+                // فإسقاطه لا يكسر العمليّة. التطبيقات التي تريد فهرسة
+                // المحادثات في DB تتجاوز AppendNoSaveAsync بحفظ tracked.
+                var store = ctx.Services.GetService<IChatStore>();
+                if (store is not null)
+                    await store.AppendNoSaveAsync(msg, ctx.CancellationToken);
             })
-            .SaveAtEnd()  // F6: SaveChanges واحد ذرّيّ (Message + Conversation) في hook AfterExecute
+            .SaveAtEnd()  // F6: لو الـ store أضاف tracked entities → حفظ ذرّيّ
             .Build();
 
-        var env = await _engine.ExecuteEnvelopeAsync(op, (object?)msg ?? new { }, ct);
-        if (env.Operation.Status != "Success" || msg is null)
+        var env = await _engine.ExecuteEnvelopeAsync(op, (object)msg, ct);
+        if (env.Operation.Status != "Success")
             return this.BadRequestEnvelope(env.Operation.FailedAnalyzer ?? "send_failed", env.Operation.ErrorMessage);
 
-        // البثّ على group chat:conv:X — ChatService مسؤول عنه (لا يلامس
-        // كيان البيانات). Realtime user-pin + DB notification + FCM ينطلقون
-        // كـ post-interceptors تلقائياً عبر مسار composition.
+        // البثّ realtime: حدث OAM يُسلَّم لطرفَي المحادثة عبر القناة
+        // chat:conv:X. مستقلّ تماماً عن DB — يعمل حتى بدون جدول Messages.
         if (_chat is not null) await _chat.BroadcastNewMessageAsync(msg, ct);
         return this.OkEnvelope("message.send", msg);
     }
