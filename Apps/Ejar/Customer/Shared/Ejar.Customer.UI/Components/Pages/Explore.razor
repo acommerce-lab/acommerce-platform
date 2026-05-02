@@ -50,6 +50,19 @@
     {
         Store.OnChanged += OnChange;
         var qs = System.Web.HttpUtility.ParseQueryString(new Uri(Nav.Uri).Query);
+
+        // ?reset=1 من Home.OnViewAll → حالة نظيفة (لا فلتر، لا فئة، لا بحث،
+        // الترتيب الافتراضيّ). نُزيل المعامل من الـ URL فلا يُلوِّث المشاركة.
+        if (qs.Get("reset") == "1")
+        {
+            _categoryId = null;
+            _query      = null;
+            _sort       = "newest";
+            _filters    = new(null, null, 0, 0);
+            Nav.NavigateTo("/explore", replace: true);
+            return;
+        }
+
         _categoryId = qs.Get("category");
         _query      = qs.Get("q");
     }
@@ -108,12 +121,17 @@
     private async Task OnCategorySelected(string? id)
     {
         _categoryId = id;
-        // اختيار "الكل" (id == null) يمسح الفلاتر المرتبطة بنوع الإعلان
-        // (السعة وعدد الغرف والحدّ الأدنى للتقييم)، ويُبقي البحث النصّيّ والترتيب.
-        // قبل هذا الإصلاح كانت الفلاتر تبقى عالقة فيُرجع التطبيق نتائج فارغة
-        // أو متناقضة مع اختيار المستخدم.
+        // اختيار "الكل" (id == null) يمسح <i>كلّ</i> الفلاتر — البحث النصّيّ
+        // والترتيب أيضاً، ليطابق سلوك ClearAllFilters. هذا طلب صاحب
+        // المصلحة (#5 الجولة الأولى): "عند الضغط على الكل يتم تنظيف
+        // كل الفلاتر". قبل هذا الإصلاح كان _query و _sort يبقيان فيُرجع
+        // التطبيق نتائج لا تطابق توقّع المستخدم.
         if (id is null)
+        {
+            _query   = null;
+            _sort    = "newest";
             _filters = new(null, null, 0, 0);
+        }
         await ApplyAndSyncAsync();
     }
 

@@ -80,34 +80,49 @@ public sealed class SupportController : ControllerBase
     [HttpPost("/support/tickets")]
     public async Task<IActionResult> Open([FromBody] OpenRequest req, CancellationToken ct)
     {
-        ISupportTicket? created = null;
+        // التذكرة كحدث OAM أصيل: نبنيها كـ POCO (InMemorySupportTicket)
+        // مع Conversation Id مُسبَق العشوائيّ، ونضعها على
+        // ctx.WithEntity<ISupportTicket>(). الـ store يُستدعى عبر
+        // AddNoSaveAsync (default no-op): persistence اختياريّ — العمليّة
+        // تنجح كحدث OAM حتّى دون جداول SupportTickets/Conversations.
+        var ticketId = Guid.NewGuid().ToString();
+        var convId   = Guid.NewGuid().ToString();
+        var ticket = new InMemorySupportTicket(
+            Id:              ticketId,
+            UserId:          CallerId,
+            ConversationId:  convId,
+            Subject:         req.Subject ?? "",
+            Status:          "open",
+            Priority:        req.Priority ?? "normal",
+            RelatedEntityId: req.RelatedEntityId,
+            AssignedAgentId: null,
+            CreatedAt:       DateTime.UtcNow);
+
         var op = Entry.Create(SupportOps.TicketOpen)
             .Describe($"User {CallerId} opens a support ticket")
             .From(CallerPartyId, 1, ("role", "complainant"))
-            .To("Ticket:NEW",   1, ("role", "created"))
+            .To($"Ticket:{ticketId}", 1, ("role", "created"))
             .Mark(SupportMarkers.IsTicketReply)
             .Tag("subject",   req.Subject ?? "")
             .Tag("priority",  req.Priority ?? "normal")
+            .Tag(SupportTagKeys.TicketId,  ticketId)
+            .Tag("conversation_id",        convId)
             .Analyze(new RequiredFieldAnalyzer("subject", () => req.Subject))
             .Analyze(new MaxLengthAnalyzer ("subject", () => req.Subject, _options.MaxSubjectLength))
             .Analyze(new RequiredFieldAnalyzer("body",    () => req.Body))
             .Analyze(new MaxLengthAnalyzer ("body",    () => req.Body, _options.MaxBodyLength))
             .Execute(async ctx =>
             {
-                created = await _store.OpenAsync(
-                    userId: CallerId,
-                    subject: req.Subject!,
-                    initialMessage: req.Body!,
-                    priority: req.Priority ?? "normal",
-                    relatedEntityId: req.RelatedEntityId,
-                    ct: ctx.CancellationToken);
+                ctx.WithEntity<ISupportTicket>(ticket);
+                await _store.AddNoSaveAsync(ticket, req.Body ?? "", ctx.CancellationToken);
             })
+            .SaveAtEnd()  // F6: Conversation + Ticket + initial-message ذرّيّاً
             .Build();
 
-        var env = await _engine.ExecuteEnvelopeAsync(op, (object?)created ?? new { }, ct);
-        if (env.Operation.Status != "Success" || created is null)
+        var env = await _engine.ExecuteEnvelopeAsync(op, (object)ticket, ct);
+        if (env.Operation.Status != "Success")
             return this.BadRequestEnvelope(env.Operation.FailedAnalyzer ?? "open_failed", env.Operation.ErrorMessage);
-        return this.OkEnvelope(SupportOps.TicketOpen, created);
+        return this.OkEnvelope(SupportOps.TicketOpen, ticket);
     }
 
     // ─── POST /support/tickets/{id}/replies ────────────────────────────
@@ -125,7 +140,17 @@ public sealed class SupportController : ControllerBase
         // OAM Type = "message.send" (نفس Chat kit) — الردّ يُورِّث أيّ
         // interceptor مسجَّل على رسائل الدردشة (realtime، FCM، …) دون
         // كود إضافيّ. التمييز للـ Support interceptors عبر marker.
-        IChatMessage? msg = null;
+        //
+        // H3: الرسالة كحدث OAM أصيل — POCO ينسرب لـ ctx.WithEntity ويفصل
+        // عن persistence. الـ store يُستدعى عبر AppendNoSaveAsync (default
+        // no-op)، فإسقاطه أو تعطيله لا يكسر الردّ.
+        var msg = new InMemoryChatMessage(
+            Id:             Guid.NewGuid().ToString(),
+            ConversationId: ticket.ConversationId,
+            SenderPartyId:  CallerPartyId,
+            Body:           req.Text ?? "",
+            SentAt:         DateTime.UtcNow);
+
         var op = Entry.Create(SupportOps.TicketReply)
             .Describe($"User {CallerId} replies on ticket {id}")
             .From(CallerPartyId, 1, ("role", "sender"))
@@ -137,13 +162,14 @@ public sealed class SupportController : ControllerBase
             .Analyze(new MaxLengthAnalyzer ("text", () => req.Text, _options.MaxBodyLength))
             .Execute(async ctx =>
             {
-                msg = await _chat.AppendMessageAsync(
-                    ticket.ConversationId, CallerId, req.Text ?? "", ctx.CancellationToken);
+                ctx.WithEntity<IChatMessage>(msg);
+                await _chat.AppendNoSaveAsync(msg, ctx.CancellationToken);
             })
+            .SaveAtEnd()  // F6: حفظ ذرّيّ للرسالة + Conversation update
             .Build();
 
-        var env = await _engine.ExecuteEnvelopeAsync(op, (object?)msg ?? new { }, ct);
-        if (env.Operation.Status != "Success" || msg is null)
+        var env = await _engine.ExecuteEnvelopeAsync(op, (object)msg, ct);
+        if (env.Operation.Status != "Success")
             return this.BadRequestEnvelope(env.Operation.FailedAnalyzer ?? "reply_failed", env.Operation.ErrorMessage);
         return this.OkEnvelope(SupportOps.TicketReply, msg);
     }
@@ -179,6 +205,7 @@ public sealed class SupportController : ControllerBase
             {
                 await _store.SetStatusAsync(id, newStatus, ctx.CancellationToken);
             })
+            .SaveAtEnd()  // F6: تحديث Ticket.Status + رسالة النظام في حفظ واحد
             .Build();
 
         var env = await _engine.ExecuteEnvelopeAsync(op, new { id, status = newStatus }, ct);

@@ -35,6 +35,8 @@ public sealed class ChatPushNotificationInterceptor : IOperationInterceptor
 
     public async Task<AnalyzerResult> InterceptAsync(OperationContext ctx, OperationResult? result = null)
     {
+        // Post-phase يعمل فقط لو نجح Execute + AfterExecute (بما فيه SaveAtEnd)؛
+        // الـ adapter يُمرّر result=null دوماً، فلا نقرأها.
         try
         {
             using var scope = _root.CreateScope();

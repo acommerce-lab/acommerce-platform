@@ -21,7 +21,18 @@ public interface INotificationStore
     /// Chat.WithNotifications) فيُلصِق سجلّ إشعار على كلّ رسالة دردشة، دون
     /// أن يضع Chat kit أصلاً يداً في DB إشعارات.
     /// </summary>
+    [Obsolete("استعمل INotificationDispatcher.DispatchCreateAsync بدلاً منها — تمرّ بـ OAM envelope كاملاً (analyzers + parent linkage + SaveAtEnd). تبقى هنا للتوافق مع المتّصلين الخارجيّين.")]
     Task<NotificationItem> CreateAsync(string userId, string type, string title, string body,
+        string? relatedId = null, CancellationToken ct = default);
+
+    /// <summary>
+    /// إنشاء tracker-only (F6): يُضيف الكيان للـ ChangeTracker بدون
+    /// <c>SaveChangesAsync</c>. الـ <c>OperationBuilder.SaveAtEnd()</c>
+    /// (داخل <see cref="INotificationDispatcher"/>) يُسلِّم الحفظ لـ
+    /// <c>IUnitOfWork</c> ذرّيّاً مع أيّ entity مرافقة قد يضيفها interceptor
+    /// آخر على <c>notification.create</c>.
+    /// </summary>
+    Task<NotificationItem> AddNoSaveAsync(string userId, string type, string title, string body,
         string? relatedId = null, CancellationToken ct = default);
 }
 

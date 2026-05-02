@@ -216,6 +216,43 @@ public class AccountingBuilder
     }
 
     /// <summary>
+    /// (F6) يَجدُل <c>IUnitOfWork.SaveChangesAsync</c> على hook
+    /// <c>OnAfterExecute</c> فيُحفَظ كلّ ما أضافه/عدّله Execute body في
+    /// معاملة واحدة، قبل أيّ Post-interceptor (broadcast/notification/FCM).
+    ///
+    /// <para>المتطلَّب: <c>IUnitOfWork</c> مُسجَّل في DI. لو لم يُسجَّل،
+    /// يفشل الـ hook بـ <c>InvalidOperationException</c> عند التنفيذ —
+    /// خطأ تكوين، لا يُلتقط ضمنياً.</para>
+    ///
+    /// <para>القيمة: Post-interceptors التي تَفحص <c>result.Success</c>
+    /// لن تنطلق إن فشل الحفظ (الاستثناء يُلغي الـ envelope تلقائياً).</para>
+    /// </summary>
+    public AccountingBuilder SaveAtEnd()
+    {
+        _inner.OnAfterExecute(async ctx =>
+        {
+            // Late-bind لـ IUnitOfWork لتجنّب cyclic dependency بين
+            // OperationEngine و SharedKernel.Repositories. الـ type يُحلّ
+            // عبر اسمه الكامل من DI.
+            var uowType = Type.GetType(
+                "ACommerce.SharedKernel.Repositories.Interfaces.IUnitOfWork, ACommerce.SharedKernel.Repositories");
+            if (uowType is null)
+                throw new InvalidOperationException(
+                    "SaveAtEnd() requires SharedKernel.Repositories to be loaded. " +
+                    "Add a ProjectReference to ACommerce.SharedKernel.Repositories in your app project.");
+            var uow = ctx.Services.GetService(uowType);
+            if (uow is null)
+                throw new InvalidOperationException(
+                    "SaveAtEnd() requires IUnitOfWork registered. Add to Program.cs: " +
+                    "services.AddScoped<IUnitOfWork, EfUnitOfWork>().");
+            var method = uowType.GetMethod("SaveChangesAsync")!;
+            var task = (Task)method.Invoke(uow, new object[] { ctx.CancellationToken })!;
+            await task.ConfigureAwait(false);
+        });
+        return this;
+    }
+
+    /// <summary>
     /// يختم القيد - يمنع كل المعترضات العامة من الحقن.
     /// مفيد للقيود الحساسة التي يجب ألا تتأثر بأي طبقة cross-cutting.
     /// </summary>

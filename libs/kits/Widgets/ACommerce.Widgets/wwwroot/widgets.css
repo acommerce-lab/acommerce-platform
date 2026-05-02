@@ -1706,18 +1706,27 @@ body.ac-dark .acm-details-circle-btn { background: rgba(30, 41, 59, 0.92); color
     position: absolute;
     top: calc(100% + 4px);
     inset-inline-start: 0;
-    min-width: 160px;
+    min-width: 200px;
+    /* أبقِها داخل الشاشة على الهواتف الصغيرة — لا تتجاوز يمين الـ viewport */
+    max-width: min(320px, calc(100vw - 24px));
     padding: 4px;
     background: var(--ac-surface, #ffffff);
     border: 1px solid var(--ac-border, #e5e7eb);
     border-radius: var(--ac-radius-md, 8px);
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
-    z-index: 10;
+    /* z-index 10 كان يُغطّى بـ hero على الصفحة الرئيسيّة (z-index ~50)
+       فلا تظهر القائمة فوق ما يلي. 200 يضمن السبق على المحتوى العاديّ. */
+    z-index: 200;
     display: flex;
     flex-direction: column;
     gap: 2px;
-    max-height: 280px;
+    /* ارتفاع أكبر للهواتف (50vh) فيظهر ٨-١٠ مدن قبل الحاجة للسحب —
+       الكثير من المستخدمين على iOS لا يُدركون أنّ القائمة قابلة للسحب. */
+    max-height: min(50vh, 380px);
     overflow-y: auto;
+    /* iOS Safari: zalo momentum scrolling داخل عنصر مقيّد الارتفاع. */
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
 }
 .ac-citypicker-option {
     padding: 8px 12px;

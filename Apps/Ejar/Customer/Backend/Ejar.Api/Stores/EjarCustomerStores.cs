@@ -44,7 +44,9 @@ public sealed class EjarCustomerAuthUserStore : IAuthUserStore
             MemberSince   = DateTime.UtcNow,
         };
         _db.Users.Add(newUser);
-        await _db.SaveChangesAsync(ct);
+        // (F6) لا SaveChangesAsync — AuthController.VerifyOtp يضع .SaveAtEnd().
+        // الذرّيّة هنا تُهمّ لو سُجِّل interceptor للـ audit يضيف صفّاً عند
+        // تسجيل دخول جديد: المستخدم + الـ audit يُحفظان معاً، لا أحدهما بدون الآخر.
         return newUser.Id.ToString();
     }
 
@@ -88,48 +90,60 @@ public sealed class EjarCustomerChatStore : IChatStore
     public async Task<IChatMessage> AppendMessageAsync(
         string conversationId, string senderId, string body, CancellationToken ct)
     {
-        if (!Guid.TryParse(conversationId, out var cid))
+        // مسار قديم — يبقى للـ Support kit وغيره ممّن لم يُرحَّل بعد.
+        // يبني الرسالة كـ POCO ثمّ يُمرّرها لـ AppendNoSaveAsync (المسار
+        // الجديد) ليتمحور كل المسار حول IChatMessage بدل إنشاء MessageEntity
+        // مباشرةً.
+        var msg = new InMemoryChatMessage(
+            Id:             Guid.NewGuid().ToString(),
+            ConversationId: conversationId,
+            SenderPartyId:  $"User:{senderId}",
+            Body:           body,
+            SentAt:         DateTime.UtcNow);
+        await AppendNoSaveAsync(msg, ct);
+        return msg;
+    }
+
+    public async Task AppendNoSaveAsync(IChatMessage message, CancellationToken ct)
+    {
+        if (!Guid.TryParse(message.ConversationId, out var cid))
             throw new InvalidOperationException("invalid_conversation_id");
 
-        var conv = await _db.Conversations.FirstOrDefaultAsync(c => c.Id == cid, ct);
-        if (conv is null) throw new InvalidOperationException("conversation_not_found");
-
-        var msg = new MessageEntity
+        // ابحث في الـ ChangeTracker المحلّيّ أوّلاً — في عمليّات مركّبة
+        // (Support.Open ينشئ Conversation + Ticket + الرسالة الأولى داخل
+        // نفس الـ scope) الـ Conversation تكون tracked لكنّها لم تُحفظ بعد،
+        // فاستعلام DB يردّ null. Local يكشفها مباشرةً.
+        var conv = _db.Conversations.Local.FirstOrDefault(c => c.Id == cid)
+                ?? await _db.Conversations.FirstOrDefaultAsync(c => c.Id == cid, ct);
+        if (conv is null)
         {
-            Id             = Guid.NewGuid(),
-            CreatedAt      = DateTime.UtcNow,
+            // لا محادثة → لا persistence. الرسالة تبقى حدثاً OAM صالحاً
+            // (نزل لـ Post-interceptors)، لكن لا صفّ في DB. الـ broadcast
+            // ينطلق على ConversationId المُعطى — التطبيق يقرّر هل ذلك
+            // مقبول (مثلاً جلسة عابرة) أو لا (يرفض في analyzer مسبقاً).
+            return;
+        }
+
+        // SenderPartyId قد يأتي بصيغة "User:GUID" (من ChatController) أو
+        // GUID خام (من المسار القديم AppendMessageAsync). نقبل الاثنين.
+        var senderRaw = message.SenderPartyId;
+        var idx = senderRaw.IndexOf(':');
+        var senderId = idx >= 0 ? senderRaw[(idx + 1)..] : senderRaw;
+
+        var msgId = Guid.TryParse(message.Id, out var mid) ? mid : Guid.NewGuid();
+        var entity = new MessageEntity
+        {
+            Id             = msgId,
+            CreatedAt      = message.SentAt,
             ConversationId = cid,
             From           = senderId,
-            Text           = body,
-            SentAt         = DateTime.UtcNow,
+            Text           = message.Body,
+            SentAt         = message.SentAt,
         };
-        _db.Messages.Add(msg);
-        conv.LastAt = msg.SentAt;
+        _db.Messages.Add(entity);          // tracked
+        conv.LastAt      = message.SentAt;
         conv.UnreadCount += 1;
-
-        // أنشئ Notification persisted في DB للمستلِم (الطرف الآخر) — هذا ما
-        // يجعل صفحة /notifications تعرض رسالة جديدة حتى لو كان الـ realtime
-        // معطّلاً وقت الإرسال أو المستلم غير متّصل. الإشعار يبقى لحين قراءته
-        // من المستلِم.
-        // ملاحظة Phase F3: إنشاء سجلّ الإشعار + إرسال FCM نُقلا إلى:
-        //   libs/compositions/Chat.WithNotifications/...
-        //     ChatPersistentNotificationBundle  (DB record عبر INotificationStore)
-        //     ChatPushNotificationBundle        (FCM عبر INotificationChannel)
-        // الـ Chat-store الآن يحفظ الرسالة فقط؛ Notifications kit نقيّ؛
-        // Realtime نقيّ؛ التركيب الخارجيّ يربط الثلاثة.
-
-        await _db.SaveChangesAsync(ct);
-
-        var view = new MessageView(msg);
-
-        // ملاحظة Phase B: البثّ user-pinned كان هنا، نُقل إلى
-        // ACommerce.Compositions.Chat.Realtime.RealtimeBroadcastBundle
-        // كمعترض على message.send. الـ store الآن يحفظ فقط، Chat kit
-        // يبقى نقيّاً (لا يعرف Realtime)، التركيب الخارجيّ يُلصِق البثّ.
-
-        // Phase F3: FCM push نُقل إلى ChatPushNotificationBundle في
-        // libs/compositions/Chat.WithNotifications. الـ store يحفظ فقط.
-        return view;
+        // (F6) لا SaveChanges — ChatController.Send يضع .SaveAtEnd().
     }
 
     public async Task<IReadOnlyList<IChatMessage>> GetMessagesAsync(
@@ -295,6 +309,17 @@ public sealed class EjarCustomerNotificationStore : INotificationStore
     public async Task<NotificationItem> CreateAsync(string userId, string type, string title,
         string body, string? relatedId = null, CancellationToken ct = default)
     {
+        // مسار قديم — يحفظ مباشرةً. متروك للتوافق مع أيّ متّصل خارجيّ
+        // غير مرحَّل لـ INotificationDispatcher بعد. المسار المفضّل الآن
+        // يمرّ بـ AddNoSaveAsync داخل OAM envelope مع SaveAtEnd.
+        var item = await AddNoSaveAsync(userId, type, title, body, relatedId, ct);
+        await _db.SaveChangesAsync(ct);
+        return item;
+    }
+
+    public Task<NotificationItem> AddNoSaveAsync(string userId, string type, string title,
+        string body, string? relatedId = null, CancellationToken ct = default)
+    {
         if (!Guid.TryParse(userId, out var uid))
             throw new InvalidOperationException("invalid_user_id");
         var entity = new NotificationEntity
@@ -309,10 +334,10 @@ public sealed class EjarCustomerNotificationStore : INotificationStore
             IsRead    = false,
         };
         _db.Notifications.Add(entity);
-        await _db.SaveChangesAsync(ct);
-        return new NotificationItem(
+        // (F6) لا SaveChangesAsync — INotificationDispatcher يضع .SaveAtEnd().
+        return Task.FromResult(new NotificationItem(
             entity.Id.ToString(), entity.Type, entity.Title, entity.Body,
-            entity.CreatedAt, entity.IsRead, entity.RelatedId);
+            entity.CreatedAt, entity.IsRead, entity.RelatedId));
     }
 }
 
@@ -394,7 +419,9 @@ public sealed class EjarVersionStore : IVersionStore
             existing.DownloadUrl = version.DownloadUrl;
             existing.UpdatedAt   = DateTime.UtcNow;
         }
-        await _db.SaveChangesAsync(ct);
+        // (F6) لا SaveChangesAsync — AdminVersionsController.Upsert يضع .SaveAtEnd().
+        // الذرّيّة هنا حرجة: demote-prior-Latest + insert/update الجديد يجب أن
+        // يحدثا في معاملة واحدة وإلّا قد تظهر فترة فيها إصداران Latest.
         return version;
     }
 
@@ -421,7 +448,7 @@ public sealed class EjarVersionStore : IVersionStore
         row.Status    = (int)status;
         row.SunsetAt  = sunsetAt;
         row.UpdatedAt = DateTime.UtcNow;
-        await _db.SaveChangesAsync(ct);
+        // (F6) لا SaveChangesAsync — AdminVersionsController.SetStatus يضع .SaveAtEnd().
         return true;
     }
 
@@ -432,7 +459,7 @@ public sealed class EjarVersionStore : IVersionStore
         if (row is null) return false;
         row.IsDeleted = true;
         row.UpdatedAt = DateTime.UtcNow;
-        await _db.SaveChangesAsync(ct);
+        // (F6) لا SaveChangesAsync — AdminVersionsController.Delete يضع .SaveAtEnd().
         return true;
     }
 

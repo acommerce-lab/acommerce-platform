@@ -1,12 +1,14 @@
 using ACommerce.Chat.Operations;
 using ACommerce.OperationEngine.Analyzers;
 using ACommerce.OperationEngine.Core;
+using ACommerce.OperationEngine.DataInterceptors;
 using ACommerce.OperationEngine.Patterns;
 using ACommerce.OperationEngine.Wire;
 using ACommerce.OperationEngine.Wire.Http;
 using ACommerce.Realtime.Operations.Abstractions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.DependencyInjection;
 using System.Security.Claims;
 
 namespace ACommerce.Kits.Chat.Backend;
@@ -79,30 +81,53 @@ public class ChatController : ControllerBase
         if (!await _store.CanParticipateAsync(id, CallerId, ct))
             return this.ForbiddenEnvelope("not_a_participant");
 
-        // البثّ داخل Execute body (لا خارج الـ envelope) — هكذا أيّ
-        // IOperationInterceptor مسجَّل لاحقاً (audit، rate-limit، ...) يلتقط
-        // البثّ والإستمرار معاً كعمليّة واحدة. أيضاً يعمل صحّ مع Support
-        // kit الذي يُعيد استخدام Type=message.send لردود التذاكر فيرث نفس
-        // المسار ودون تكرار broadcast logic.
-        IChatMessage? msg = null;
+        // الرسالة كحدث OAM أصيل: نبنيها كـ POCO نقيّ (InMemoryChatMessage)
+        // دون أيّ افتراض حول وجود جدول Messages في DB. الـ Execute body
+        // يضعها على ctx.WithEntity<IChatMessage>() فتتدفّق لكلّ post-interceptor
+        // (broadcast، notification.create، FCM) مستقلّةً عن persistence.
+        //
+        // التخزين <i>اختياريّ</i>: الـ store يُستدعى عبر AppendNoSaveAsync
+        // (default impl = no-op على الـ interface)، فيُضيف tracked entities
+        // للـ DbContext لو رغب. الـ SaveAtEnd يحفظ ذرّيّاً. لو الـ store
+        // لا يحفظ شيئاً (in-memory app، أو لا جدول Messages)، الحدث يبقى
+        // صالحاً ويصل المستلم realtime ويُسجَّل audit و notification.create
+        // ينطلق — ينقص فقط فهرس الـ inbox التاريخيّ.
+        var msg = new InMemoryChatMessage(
+            Id:             Guid.NewGuid().ToString(),
+            ConversationId: id,
+            SenderPartyId:  CallerPartyId,
+            Body:           req.Text ?? "",
+            SentAt:         DateTime.UtcNow);
+
         var op = Entry.Create("message.send")
             .Describe($"User {CallerId} sends message in conversation {id}")
             .From(CallerPartyId, 1, ("role", "sender"))
             .To($"Conversation:{id}", 1, ("role", "appended"))
-            .Tag("conversation_id", id)
+            .Tag(ChatTagKeys.ConversationId, id)
+            .Tag(OperationTags.TargetEntity, ChatEntityKinds.Message)
+            .Mark(ChatMarkers.IsChatMessageCreate)
             .Analyze(new RequiredFieldAnalyzer("text", () => req.Text))
             .Analyze(new MaxLengthAnalyzer("text",    () => req.Text, _options.MaxMessageLength))
             .Execute(async ctx =>
             {
-                msg = await _store.AppendMessageAsync(id, CallerId, req.Text ?? "", ctx.CancellationToken);
-                if (_chat is not null && msg is not null)
-                    await _chat.BroadcastNewMessageAsync(msg, ctx.CancellationToken);
+                ctx.WithEntity<IChatMessage>(msg);
+                // Persistence اختياريّ: الـ store الافتراضيّ يقدّم no-op،
+                // فإسقاطه لا يكسر العمليّة. التطبيقات التي تريد فهرسة
+                // المحادثات في DB تتجاوز AppendNoSaveAsync بحفظ tracked.
+                var store = ctx.Services.GetService<IChatStore>();
+                if (store is not null)
+                    await store.AppendNoSaveAsync(msg, ctx.CancellationToken);
             })
+            .SaveAtEnd()  // F6: لو الـ store أضاف tracked entities → حفظ ذرّيّ
             .Build();
 
-        var env = await _engine.ExecuteEnvelopeAsync(op, (object?)msg ?? new { }, ct);
-        if (env.Operation.Status != "Success" || msg is null)
+        var env = await _engine.ExecuteEnvelopeAsync(op, (object)msg, ct);
+        if (env.Operation.Status != "Success")
             return this.BadRequestEnvelope(env.Operation.FailedAnalyzer ?? "send_failed", env.Operation.ErrorMessage);
+
+        // البثّ realtime: حدث OAM يُسلَّم لطرفَي المحادثة عبر القناة
+        // chat:conv:X. مستقلّ تماماً عن DB — يعمل حتى بدون جدول Messages.
+        if (_chat is not null) await _chat.BroadcastNewMessageAsync(msg, ct);
         return this.OkEnvelope("message.send", msg);
     }
 

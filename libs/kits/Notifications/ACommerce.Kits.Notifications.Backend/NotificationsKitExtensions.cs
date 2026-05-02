@@ -19,6 +19,10 @@ public static class NotificationsKitExtensions
         where TStore : class, INotificationStore
     {
         services.AddScoped<INotificationStore, TStore>();
+        // INotificationDispatcher: واجهة دفع OAM للإشعارات. المعترضات
+        // (Chat.WithNotifications إلخ) تعتمدها بدل الـ store المباشر،
+        // فينطلق envelope كامل لكلّ إشعار + يُحفظ ذرّيّاً عبر SaveAtEnd.
+        services.AddScoped<INotificationDispatcher, OpEngineNotificationDispatcher>();
         services.AddControllers().AddApplicationPart(typeof(NotificationsController).Assembly);
         return services;
     }

@@ -39,13 +39,35 @@ public sealed class HomeController : ControllerBase
     }
 
     // ── /home/explore ──────────────────────────────────────────────────────
+    // اسم البارامترَين priceMin/priceMax مطابق لما يبنيه Explore.razor
+    // BuildQueryString — لا تُغيِّره لئلّا تنكسر الواجهة. /listings يقبل
+    // minPrice/maxPrice (اسم REST قياسيّ)، نقبل هنا الاسمين معاً.
     [HttpGet("/home/explore")]
     public async Task<IActionResult> HomeExplore(
-        [FromQuery] string? sort, [FromQuery] string? category, [FromQuery] string? q,
-        CancellationToken ct)
+        [FromQuery] string? sort,
+        [FromQuery] string? category,
+        [FromQuery] string? q,
+        [FromQuery] string? city,
+        [FromQuery] string? district,
+        [FromQuery] string? propertyType,
+        [FromQuery] string? timeUnit,
+        [FromQuery(Name = "priceMin")] decimal? priceMin,
+        [FromQuery(Name = "priceMax")] decimal? priceMax,
+        [FromQuery(Name = "minPrice")] decimal? minPriceAlias,
+        [FromQuery(Name = "maxPrice")] decimal? maxPriceAlias,
+        CancellationToken ct = default)
     {
+        var min = priceMin ?? minPriceAlias;
+        var max = priceMax ?? maxPriceAlias;
+
         var query = _db.Listings.AsNoTracking().Where(l => l.Status == 1);
-        if (!string.IsNullOrWhiteSpace(category)) query = query.Where(l => l.PropertyType == category);
+        if (!string.IsNullOrWhiteSpace(category))     query = query.Where(l => l.PropertyType == category);
+        if (!string.IsNullOrWhiteSpace(propertyType)) query = query.Where(l => l.PropertyType == propertyType);
+        if (!string.IsNullOrWhiteSpace(timeUnit))     query = query.Where(l => l.TimeUnit == timeUnit);
+        if (!string.IsNullOrWhiteSpace(city))         query = query.Where(l => l.City.Contains(city));
+        if (!string.IsNullOrWhiteSpace(district))     query = query.Where(l => l.District.Contains(district));
+        if (min.HasValue)                             query = query.Where(l => l.Price >= min.Value);
+        if (max.HasValue)                             query = query.Where(l => l.Price <= max.Value);
         if (!string.IsNullOrWhiteSpace(q))
             query = query.Where(l => l.Title.Contains(q) || l.Description.Contains(q) ||
                                      l.City.Contains(q)  || l.District.Contains(q));

@@ -27,18 +27,29 @@ public sealed class CatalogController : ControllerBase
     private readonly IChatService? _chat;
     private readonly IConnectionTracker? _connections;
     private readonly IDeviceTokenStore? _pushTokens;
+    private readonly IConfiguration _config;
 
     public CatalogController(
         EjarDbContext db,
+        IConfiguration config,
         IChatService? chat = null,
         IConnectionTracker? connections = null,
         IDeviceTokenStore? pushTokens = null)
     {
         _db = db;
+        _config = config;
         _chat = chat;
         _connections = connections;
         _pushTokens = pushTokens;
     }
+
+    /// <summary>
+    /// وضع التجربة المفتوحة — يُعطّل بوّابات الاشتراك (no_active_subscription،
+    /// listings_quota_exceeded، images_quota_exceeded). افتراضيّاً <c>true</c>
+    /// في فترة الإطلاق التجريبيّ. يُضبط من appsettings عبر <c>Trial:OpenAccess</c>.
+    /// </summary>
+    private bool TrialOpenAccess =>
+        _config.GetValue<bool?>("Trial:OpenAccess") ?? true;
 
     // ═══ Push subscription ═══════════════════════════════════════════════
     public sealed record PushSubscribeBody(string? Token, string? Platform);
@@ -121,6 +132,26 @@ public sealed class CatalogController : ControllerBase
     public async Task<IActionResult> MySubscription(CancellationToken ct)
     {
         if (CurrentUserGuid is not { } id) return this.UnauthorizedEnvelope();
+
+        // فترة التجربة المفتوحة: نُرجع اشتراكاً اصطناعيّاً نشطاً بحصص بلا
+        // حدود (-1 = unlimited عُرفاً). هذا يَمنع الواجهة من إظهار شريط
+        // "اشترك بباقة" + يُسلِّم القيود على CreateListing التي تتجاوزها كذلك.
+        if (TrialOpenAccess)
+        {
+            return this.OkEnvelope("me.subscription", new {
+                id               = Guid.Empty,
+                planId           = (Guid?)null,
+                planName         = "تجربة مفتوحة",
+                status           = "active",
+                startDate        = DateTime.UtcNow.Date,
+                endDate          = DateTime.UtcNow.Date.AddYears(10),
+                listingsLimit    = 0,    // 0 = unlimited (يطابق دلالة الـ gate في CreateListing)
+                featuredLimit    = 0,
+                imagesPerListing = 0,
+                price            = 0m
+            });
+        }
+
         var s = await _db.Subscriptions.AsNoTracking()
             .Where(x => x.UserId == id && x.Status == "active")
             .OrderByDescending(x => x.EndDate).FirstOrDefaultAsync(ct);
@@ -243,27 +274,31 @@ public sealed class CatalogController : ControllerBase
         if (string.IsNullOrWhiteSpace(body.Title) || string.IsNullOrWhiteSpace(body.City))
             return this.BadRequestEnvelope("missing_fields", "title و city مطلوبان");
 
-        // فحص الاشتراك: لا يُسمح بإنشاء إعلان بلا اشتراك نشط، ولا تجاوز حصّة
-        // الباقة. السابق كان يسمح للجميع بالنشر — يخالف ميثاق الباقات.
-        var sub = await _db.Subscriptions
-            .Where(s => s.UserId == id && s.Status == "active" && s.EndDate > DateTime.UtcNow)
-            .OrderByDescending(s => s.EndDate)
-            .FirstOrDefaultAsync(ct);
-        if (sub is null)
-            return this.BadRequestEnvelope("no_active_subscription",
-                "لا يوجد اشتراك نشط — اشترك بباقة أوّلاً.");
+        // بوّابات الاشتراك — مُعطّلة افتراضيّاً في فترة التجربة عبر
+        // Trial:OpenAccess=true في appsettings. عند تحوّل التطبيق لنموذج
+        // مدفوع: اضبط Trial:OpenAccess=false → تعود الفحوص الثلاث (نشط،
+        // حصّة الإعلانات، حصّة الصور) دون أيّ تغيير في الكود.
+        if (!TrialOpenAccess)
+        {
+            var sub = await _db.Subscriptions
+                .Where(s => s.UserId == id && s.Status == "active" && s.EndDate > DateTime.UtcNow)
+                .OrderByDescending(s => s.EndDate)
+                .FirstOrDefaultAsync(ct);
+            if (sub is null)
+                return this.BadRequestEnvelope("no_active_subscription",
+                    "لا يوجد اشتراك نشط — اشترك بباقة أوّلاً.");
 
-        var activeCount = await _db.Listings.CountAsync(
-            l => l.OwnerId == id && l.Status == 1 && !l.IsDeleted, ct);
-        if (sub.ListingsLimit > 0 && activeCount >= sub.ListingsLimit)
-            return this.BadRequestEnvelope("listings_quota_exceeded",
-                $"الباقة الحاليّة تسمح بـ {sub.ListingsLimit} إعلان نشط فقط — حدّث الباقة أو احذف إعلاناً.");
+            var activeCount = await _db.Listings.CountAsync(
+                l => l.OwnerId == id && l.Status == 1 && !l.IsDeleted, ct);
+            if (sub.ListingsLimit > 0 && activeCount >= sub.ListingsLimit)
+                return this.BadRequestEnvelope("listings_quota_exceeded",
+                    $"الباقة الحاليّة تسمح بـ {sub.ListingsLimit} إعلان نشط فقط — حدّث الباقة أو احذف إعلاناً.");
 
-        // فحص حصّة الصور لكلّ إعلان حسب الباقة.
-        var imageCount = body.Images?.Count ?? 0;
-        if (sub.ImagesPerListing > 0 && imageCount > sub.ImagesPerListing)
-            return this.BadRequestEnvelope("images_quota_exceeded",
-                $"الباقة الحاليّة تسمح بـ {sub.ImagesPerListing} صور لكلّ إعلان.");
+            var imageCount = body.Images?.Count ?? 0;
+            if (sub.ImagesPerListing > 0 && imageCount > sub.ImagesPerListing)
+                return this.BadRequestEnvelope("images_quota_exceeded",
+                    $"الباقة الحاليّة تسمح بـ {sub.ImagesPerListing} صور لكلّ إعلان.");
+        }
 
         var entity = new ListingEntity
         {
@@ -287,6 +322,59 @@ public sealed class CatalogController : ControllerBase
         _db.Listings.Add(entity);
         await _db.SaveChangesAsync(ct);
         return this.OkEnvelope("listing.create", new { id = entity.Id, title = entity.Title, status = entity.Status });
+    }
+
+    public sealed record EditListingBody(
+        string? Title, string? Description, decimal? Price,
+        string? TimeUnit, string? PropertyType,
+        string? City, string? District,
+        double? Lat, double? Lng,
+        int? BedroomCount, int? BathroomCount, int? AreaSqm,
+        IReadOnlyList<string>? Amenities,
+        IReadOnlyList<string>? Images,
+        string? Thumbnail);
+
+    /// <summary>
+    /// تعديل إعلان موجود — مالكه فقط. كلّ الحقول اختياريّة: <c>null</c>
+    /// يعني "لا تغيِّر هذا الحقل" (دلالة PATCH). الإعلانات المحذوفة ترفع
+    /// 404 — لا تعديل بعد الحذف.
+    ///
+    /// <para>سبب الإضافة: ملاحظات صاحب المصلحة — "إذا نشرت من غلط كيف
+    /// أرجع أعدّله؟". القائمة كانت تكتفي بـ create + toggle + delete،
+    /// والمستخدم اضطرّ للحذف وإعادة الإنشاء على كلّ تعديل بسيط.</para>
+    /// </summary>
+    [HttpPatch("/my-listings/{id:guid}")]
+    public async Task<IActionResult> EditListing(Guid id, [FromBody] EditListingBody body, CancellationToken ct)
+    {
+        if (CurrentUserGuid is not { } uid) return this.UnauthorizedEnvelope();
+        var l = await _db.Listings.FirstOrDefaultAsync(x => x.Id == id && !x.IsDeleted, ct);
+        if (l is null) return this.NotFoundEnvelope("listing_not_found");
+        if (l.OwnerId != uid) return this.ForbiddenEnvelope("not_owner");
+
+        // تطبيق الحقول الاختياريّة فقط — null = أبقِ القديم.
+        if (body.Title        is { Length: > 0 }) l.Title        = body.Title;
+        if (body.Description  is not null)        l.Description  = body.Description;
+        if (body.Price.HasValue)                  l.Price        = body.Price.Value;
+        if (body.TimeUnit     is { Length: > 0 }) l.TimeUnit     = body.TimeUnit;
+        if (body.PropertyType is { Length: > 0 }) l.PropertyType = body.PropertyType;
+        if (body.City         is { Length: > 0 }) l.City         = body.City;
+        if (body.District     is not null)        l.District     = body.District;
+        if (body.Lat.HasValue)                    l.Lat          = body.Lat.Value;
+        if (body.Lng.HasValue)                    l.Lng          = body.Lng.Value;
+        if (body.BedroomCount.HasValue)           l.BedroomCount = body.BedroomCount.Value;
+        if (body.BathroomCount.HasValue)          l.BathroomCount = body.BathroomCount.Value;
+        if (body.AreaSqm.HasValue)                l.AreaSqm      = body.AreaSqm.Value;
+        if (body.Amenities is not null)           l.AmenitiesCsv = string.Join(",", body.Amenities);
+        if (body.Images    is not null)           l.ImagesCsv    = string.Join("|", body.Images);
+        if (body.Thumbnail is not null)
+            l.ThumbnailUrl = string.IsNullOrEmpty(body.Thumbnail) ? null : body.Thumbnail;
+        l.UpdatedAt = DateTime.UtcNow;
+
+        await _db.SaveChangesAsync(ct);
+        return this.OkEnvelope("listing.edit", new {
+            id = l.Id, title = l.Title, price = l.Price, status = l.Status,
+            updatedAt = l.UpdatedAt
+        });
     }
 
     [HttpPost("/my-listings/{id:guid}/toggle")]

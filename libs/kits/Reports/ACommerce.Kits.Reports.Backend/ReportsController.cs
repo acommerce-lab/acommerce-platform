@@ -7,6 +7,7 @@ using ACommerce.OperationEngine.Wire;
 using ACommerce.OperationEngine.Wire.Http;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.DependencyInjection;
 using System.Security.Claims;
 
 namespace ACommerce.Kits.Reports.Backend;
@@ -55,7 +56,21 @@ public sealed class ReportsController : ControllerBase
     [HttpPost("/reports")]
     public async Task<IActionResult> Submit([FromBody] SubmitRequest req, CancellationToken ct)
     {
-        IReport? created = null;
+        // البلاغ كحدث OAM أصيل: نبنيه كـ POCO نقيّ (InMemoryReport)
+        // ونضعه على ctx.WithEntity<IReport>() فيتدفّق لكلّ post-interceptor
+        // (notify-moderation، slack-alert، email-team، …) بصرف النظر عن
+        // وجود جدول Reports. التخزين اختياريّ — default impl للـ store
+        // = no-op، فالعمليّة تنجح حتّى بدون فهرسة DB.
+        var report = new InMemoryReport(
+            Id:         Guid.NewGuid().ToString(),
+            ReporterId: CallerId,
+            EntityType: req.EntityType ?? "",
+            EntityId:   req.EntityId   ?? "",
+            Reason:     req.Reason     ?? "",
+            Body:       req.Body,
+            Status:     "open",
+            CreatedAt:  DateTime.UtcNow);
+
         var op = Entry.Create(ReportOps.Submit)
             .Describe($"User {CallerId} reports {req.EntityType}:{req.EntityId}")
             .From(CallerPartyId, 1, ("role", "reporter"))
@@ -75,20 +90,19 @@ public sealed class ReportsController : ControllerBase
                         : AnalyzerResult.Fail($"سبب غير معروف: {req.Reason}"))))
             .Execute(async ctx =>
             {
-                created = await _store.SubmitAsync(
-                    reporterId: CallerId,
-                    entityType: req.EntityType!,
-                    entityId:   req.EntityId!,
-                    reason:     req.Reason!,
-                    body:       req.Body,
-                    ct:         ctx.CancellationToken);
+                ctx.WithEntity<IReport>(report);
+                // Persistence اختياريّ — default no-op يسمح بإسقاط الـ store تماماً.
+                var store = ctx.Services.GetService<IReportStore>();
+                if (store is not null)
+                    await store.AddNoSaveAsync(report, ctx.CancellationToken);
             })
+            .SaveAtEnd()  // F6
             .Build();
 
-        var env = await _engine.ExecuteEnvelopeAsync(op, (object?)created ?? new { }, ct);
-        if (env.Operation.Status != "Success" || created is null)
+        var env = await _engine.ExecuteEnvelopeAsync(op, (object)report, ct);
+        if (env.Operation.Status != "Success")
             return this.BadRequestEnvelope(env.Operation.FailedAnalyzer ?? "submit_failed", env.Operation.ErrorMessage);
-        return this.OkEnvelope(ReportOps.Submit, created);
+        return this.OkEnvelope(ReportOps.Submit, report);
     }
 
     // ─── GET /reports/me ───────────────────────────────────────────────
@@ -129,6 +143,7 @@ public sealed class ReportsController : ControllerBase
             {
                 await _store.SetStatusAsync(id, newStatus, ctx.CancellationToken);
             })
+            .SaveAtEnd()  // F6
             .Build();
 
         var env = await _engine.ExecuteEnvelopeAsync(op, new { id, status = newStatus }, ct);

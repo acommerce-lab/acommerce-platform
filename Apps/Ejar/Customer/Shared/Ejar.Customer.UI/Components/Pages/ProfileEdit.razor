@@ -120,9 +120,9 @@
     {
         if (!first) return;
         var p = await Api.GetAsync<ProfileDto>("/me/profile");
-        _data = p.Data ?? new ProfileDto("U-1", "", "", false, "", false, "صنعاء", null, DateTime.UtcNow);
+        _data = p.Data ?? new ProfileDto("U-1", "", "", false, "", false, "إب", null, DateTime.UtcNow);
         var c = await Api.GetAsync<List<string>>("/cities");
-        _cities = c.Data ?? new() { "صنعاء" };
+        _cities = c.Data ?? new() { "إب" };
         _loading = false;
         await InvokeAsync(StateHasChanged);
     }

@@ -63,6 +63,12 @@ builder.Host.UseSerilog();
 builder.Services.AddEjarDatabase(builder.Configuration, builder.Environment);
 // تسجيله كـ DbContext عام للمستودعات
 builder.Services.AddScoped<DbContext>(sp => sp.GetRequiredService<EjarDbContext>());
+// (F6) Unit-of-Work: SaveAtEnd() على القيود يستهلكه — يحفظ كل التغييرات
+// المتراكمة في DbContext ضمن نفس الـ scope في معاملة واحدة، قبل أيّ
+// Post-interceptor (broadcast/notification/FCM).
+builder.Services.AddScoped<
+    ACommerce.SharedKernel.Repositories.Interfaces.IUnitOfWork,
+    ACommerce.SharedKernel.Infrastructure.EFCore.EfUnitOfWork>();
 builder.Services.AddScoped<IRepositoryFactory, RepositoryFactory>();
 
 // 3. Operation Engine & Interceptors

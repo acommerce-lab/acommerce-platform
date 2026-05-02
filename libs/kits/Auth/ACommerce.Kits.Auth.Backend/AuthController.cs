@@ -57,6 +57,7 @@ public class AuthController : ControllerBase
                 expiresInSeconds = r.ExpiresInSeconds;
                 ctx.Set("expiresInSeconds", r.ExpiresInSeconds);
             })
+            .SaveAtEnd()  // F6: لو IAuthFlow ينشئ سجلّ تحدّي في DB يُحفَظ ذرّيّاً
             .Build();
 
         var env = await _engine.ExecuteEnvelopeAsync(op, new { masked = Mask(subject) }, ct);
@@ -91,6 +92,7 @@ public class AuthController : ControllerBase
                 displayName = await _users.GetDisplayNameAsync(userId, ctx.CancellationToken) ?? "";
                 token       = GenerateToken(userId, resolvedSubject);
             })
+            .SaveAtEnd()  // F6: إنشاء UserEntity (لو جديد) + أيّ audit interceptor يُحفَظون ذرّيّاً
             .Build();
 
         var env = await _engine.ExecuteEnvelopeAsync(op, new { subject = Mask(subject) }, ct);
