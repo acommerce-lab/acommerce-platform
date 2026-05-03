@@ -4,16 +4,9 @@
 @inject AuthenticationStateProvider Auth
 
 @*
-    HostedApp — الـ root component للتطبيقات. يَلفّ Router قياسيّ Blazor مع
-    قدرات إضافيّة:
-
-      ١. KitPageRegistry: يَحلّ URL → component runtime (kit widgets بدون @page).
-      ٢. CascadingAuthenticationState: يُمَرَّر AuthenticationState لكلّ شجرة.
-      ٣. DefaultLayout: يَلفّ kit widgets في الـ layout — مَكافِئ لـ AuthorizeRouteView.
-      ٤. RequiresAuth: لو الصفحة تَتطلّب مصادقة والمستخدِم غير مُصادَق ⇒
-         redirect لـ <see cref="LoginRoute"/>.
-      ٥. AdditionalAssemblies: يَكتشف صفحات تَستعمل @page تقليديّاً (تعايش
-         مع الكود القديم أثناء الترحيل).
+    HostedApp — يَلفّ Blazor Router مع KitPageRegistry + auth gate +
+    DefaultLayout. الـ slots (loading/404) parameters نصّيّة فقط — قابلة
+    للـ serialize عبر rendermode boundary.
 *@
 
 <CascadingAuthenticationState>
@@ -23,21 +16,21 @@
         <Found Context="routeData">
             @if (_currentMatch is null)
             {
-                @* لا match في السجلّ — fallback لصفحات @page تقليديّة *@
                 <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@DefaultLayout">
-                    <Authorizing>@AuthorizingSlot</Authorizing>
-                    <NotAuthorized>@NotAuthorizedSlot</NotAuthorized>
+                    <Authorizing>
+                        <div class="ejar-loading" role="status" aria-busy="true">@LoadingMessage</div>
+                    </Authorizing>
+                    <NotAuthorized>
+                        <_RedirectToLogin Login="@LoginRoute" Return="@_returnUrl" />
+                    </NotAuthorized>
                 </AuthorizeRouteView>
             }
             else if (_currentMatch.Page.RequiresAuth && !_isAuthenticated)
             {
-                @* kit widget يَتطلّب مصادقة، المستخدِم غير مُصادَق ⇒ redirect *@
                 <_RedirectToLogin Login="@LoginRoute" Return="@_returnUrl" />
             }
             else
             {
-                @* kit widget — يَتلفّ بـ DefaultLayout يدويّاً (DynamicComponent
-                   لا يَكتسب layout تلقائياً). *@
                 <LayoutView Layout="@DefaultLayout">
                     <DynamicComponent Type="@_currentMatch.Page.Component"
                                       Parameters="@BuildParameters(_currentMatch)" />
@@ -47,30 +40,22 @@
         </Found>
         <NotFound>
             <LayoutView Layout="@DefaultLayout">
-                @NotFoundSlot
+                <div class="ejar-notfound">
+                    <h1>@NotFoundTitle</h1>
+                    <p>@NotFoundMessage <a href="/">الرئيسيّة</a>.</p>
+                </div>
             </LayoutView>
         </NotFound>
     </Router>
 </CascadingAuthenticationState>
 
 @code {
-    /// <summary>أساس البحث عن صفحات @page التقليديّة. الافتراضيّ: assembly الـ host.</summary>
     [Parameter] public System.Reflection.Assembly? AppAssembly { get; set; }
-
-    /// <summary>الـ layout الافتراضيّ — يُلفّ كلّ صفحات الكيتس + الصفحات القديمة.</summary>
     [Parameter] public Type? DefaultLayout { get; set; }
-
-    /// <summary>المسار الذي يُحوَّل إليه عند RequiresAuth + غير مُصادَق.</summary>
-    [Parameter] public string LoginRoute { get; set; } = "/login";
-
-    /// <summary>محتوى يَظهر أثناء استعادة JWT من localStorage (يَمنع redirect race).</summary>
-    [Parameter] public RenderFragment? AuthorizingSlot { get; set; }
-
-    /// <summary>محتوى صفحة 404.</summary>
-    [Parameter] public RenderFragment? NotFoundSlot { get; set; } = DefaultNotFound;
-
-    /// <summary>سلوك الصفحات القديمة (@page) عند منع الوصول.</summary>
-    [Parameter] public RenderFragment? NotAuthorizedSlot { get; set; }
+    [Parameter] public string LoginRoute     { get; set; } = "/login";
+    [Parameter] public string LoadingMessage { get; set; } = "جاري التحميل…";
+    [Parameter] public string NotFoundTitle  { get; set; } = "الصفحة غير موجودة";
+    [Parameter] public string NotFoundMessage{ get; set; } = "تأكّد من الرابط أو عُد للرئيسيّة.";
 
     private PageMatch? _currentMatch;
     private bool _isAuthenticated;
@@ -82,7 +67,6 @@
         _currentMatch = Registry.Resolve(path);
         _returnUrl = path;
 
-        // فحص مصادقة فقط لو match في السجلّ — صفحات @page تَستخدم AuthorizeRouteView.
         if (_currentMatch?.Page.RequiresAuth == true)
         {
             var state = await Auth.GetAuthenticationStateAsync();
@@ -97,11 +81,4 @@
             dict[kvp.Key] = kvp.Value;
         return dict;
     }
-
-    private static readonly RenderFragment DefaultNotFound = builder =>
-    {
-        builder.OpenElement(0, "p");
-        builder.AddContent(1, "404 — Page not found");
-        builder.CloseElement();
-    };
 }

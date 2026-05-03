@@ -16,19 +16,16 @@
     <HeadOutlet />
 </head>
 <body>
+    @*
+        كلّ الـ parameters هنا قابلة للـ JSON-serialize (Type + string)
+        فلا تَنكسر عند SSR→Interactive boundary.
+    *@
     <RoutableHostedApp DefaultLayout="@typeof(MainLayout)"
                        LoginRoute="/login"
-                       @rendermode="@(new Microsoft.AspNetCore.Components.Web.InteractiveServerRenderMode())">
-        <AuthorizingSlot>
-            <div class="ejar-loading" role="status" aria-busy="true">جاري التحميل…</div>
-        </AuthorizingSlot>
-        <NotFoundSlot>
-            <div class="ejar-notfound">
-                <h1>الصفحة غير موجودة</h1>
-                <p>عُد إلى <a href="/">الرئيسيّة</a>.</p>
-            </div>
-        </NotFoundSlot>
-    </RoutableHostedApp>
+                       LoadingMessage="جاري التحميل…"
+                       NotFoundTitle="الصفحة غير موجودة"
+                       NotFoundMessage="عُد إلى"
+                       @rendermode="@(new Microsoft.AspNetCore.Components.Web.InteractiveServerRenderMode())" />
     <script src="_framework/blazor.web.js"></script>
 </body>
 </html>

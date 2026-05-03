@@ -2,32 +2,34 @@
 @page "/{*Path:nonfile}"
 
 @*
-    RoutableHostedApp — مكوّن جذر routable واحد. سَببه: Blazor Web App
-    يَحتاج <c>@page</c> directive واحدة على الأقلّ لإنشاء endpoint على
-    الـ server. بدونها، الـ server يَردّ 404 لأيّ مسار.
+    RoutableHostedApp — مكوّن جذر routable واحد بـ catch-all.
 
-    هذا المكوّن catch-all (<c>@page "/{*Path:nonfile}"</c>) يَلتقط كلّ
-    المسارات ويُمرِّرها لـ <see cref="HostedApp"/> الذي يَحلّها فعليّاً
-    عبر <c>KitPageRegistry</c>. النَتيجة:
-      • المُستخدِم لا يَكتب صفحات بـ <c>@page</c> أصلاً.
-      • التطبيق يُسجّل route واحدة في App.razor: <c>&lt;RoutableHostedApp /&gt;</c>.
-      • كلّ شيء آخر runtime عبر <c>AddAppPages</c>.
+    حدود rendermode:
+      App.razor (SSR) → RoutableHostedApp (Interactive) ← هنا boundary
+      Parameters تَعبر الحدّ يَجب أن تَكون JSON-serializable.
+
+    لذلك: لا <c>RenderFragment</c> parameters هنا. الـ slots (loading،
+    404…) مُعرَّفة داخل HostedApp بـ defaults نَصّيّة. التطبيقات التي
+    تَحتاج loader مخصّصاً تُغيّره عبر CSS أو تُعرّف كاسكاديّة DI.
 *@
 
 <HostedApp DefaultLayout="@DefaultLayout"
            LoginRoute="@LoginRoute"
            AppAssembly="@AppAssembly"
-           AuthorizingSlot="@AuthorizingSlot"
-           NotFoundSlot="@NotFoundSlot"
-           NotAuthorizedSlot="@NotAuthorizedSlot" />
+           LoadingMessage="@LoadingMessage"
+           NotFoundTitle="@NotFoundTitle"
+           NotFoundMessage="@NotFoundMessage" />
 
 @code {
     [Parameter] public string? Path { get; set; }
 
+    /// <summary>الـ layout الافتراضيّ — Type قابل للـ serialize عبر boundary.</summary>
     [Parameter] public Type? DefaultLayout { get; set; }
-    [Parameter] public string LoginRoute { get; set; } = "/login";
+
+    [Parameter] public string LoginRoute     { get; set; } = "/login";
+    [Parameter] public string LoadingMessage { get; set; } = "جاري التحميل…";
+    [Parameter] public string NotFoundTitle  { get; set; } = "الصفحة غير موجودة";
+    [Parameter] public string NotFoundMessage{ get; set; } = "تأكّد من الرابط أو عُد للرئيسيّة.";
+
     [Parameter] public System.Reflection.Assembly? AppAssembly { get; set; }
-    [Parameter] public RenderFragment? AuthorizingSlot { get; set; }
-    [Parameter] public RenderFragment? NotFoundSlot { get; set; }
-    [Parameter] public RenderFragment? NotAuthorizedSlot { get; set; }
 }
