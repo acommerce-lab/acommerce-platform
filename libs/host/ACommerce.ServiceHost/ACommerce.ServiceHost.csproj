@@ -31,6 +31,7 @@
     <ProjectReference Include="..\..\kits\Listings\ACommerce.Kits.Listings.Backend\ACommerce.Kits.Listings.Backend.csproj" />
     <ProjectReference Include="..\..\kits\Notifications\ACommerce.Kits.Notifications.Backend\ACommerce.Kits.Notifications.Backend.csproj" />
     <ProjectReference Include="..\..\kits\Notifications\Providers\Firebase\ACommerce.Notification.Providers.Firebase\ACommerce.Notification.Providers.Firebase.csproj" />
+    <ProjectReference Include="..\..\kits\Notifications\Providers\InApp\ACommerce.Notification.Providers.InApp\ACommerce.Notification.Providers.InApp.csproj" />
     <ProjectReference Include="..\..\kits\Profiles\ACommerce.Kits.Profiles.Backend\ACommerce.Kits.Profiles.Backend.csproj" />
     <ProjectReference Include="..\..\kits\Reports\ACommerce.Kits.Reports.Backend\ACommerce.Kits.Reports.Backend.csproj" />
     <ProjectReference Include="..\..\kits\Subscriptions\ACommerce.Subscriptions.Operations\ACommerce.Subscriptions.Operations.csproj" />

@@ -29,10 +29,14 @@ public sealed class KitBuilder
 {
     public IServiceCollection Services { get; }
     public IConfiguration Configuration { get; }
+    public Microsoft.Extensions.Hosting.IHostEnvironment? Environment { get; }
 
-    public KitBuilder(IServiceCollection services, IConfiguration configuration)
+    public KitBuilder(
+        IServiceCollection services,
+        IConfiguration configuration,
+        Microsoft.Extensions.Hosting.IHostEnvironment? environment = null)
     {
-        Services = services; Configuration = configuration;
+        Services = services; Configuration = configuration; Environment = environment;
     }
 
     // ── Auth + 2FA (هرميّ) ────────────────────────────────────────────────
@@ -115,9 +119,15 @@ public sealed class KitBuilder
     }
 
     // ── Notifications ─────────────────────────────────────────────────────
-    public KitBuilder AddNotifications<TStore>() where TStore : class, INotificationStore
+    public KitBuilder AddNotifications<TStore>(Action<NotificationsBuilder>? configure = null)
+        where TStore : class, INotificationStore
     {
         Services.AddNotificationsKit<TStore>();
+        if (configure is not null)
+        {
+            var notif = new NotificationsBuilder(Services, Configuration, Environment);
+            configure(notif);
+        }
         return this;
     }
 

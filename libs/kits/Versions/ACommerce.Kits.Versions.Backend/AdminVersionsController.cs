@@ -18,7 +18,7 @@ namespace ACommerce.Kits.Versions.Backend;
 /// (لأنّ الأدمن قد يستخدم تطبيقاً قديماً ويحتاج للوصول لإصلاح الإصدارات).</para>
 /// </summary>
 [ApiController]
-[Authorize(Roles = "admin,Admin")]
+[Authorize(Policy = VersionsKitPolicies.Admin)]
 [Route("admin/versions")]
 public sealed class AdminVersionsController : ControllerBase
 {

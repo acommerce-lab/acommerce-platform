@@ -34,6 +34,7 @@ public static class SubscriptionsKitExtensions
 
         services.AddControllers()
             .AddApplicationPart(typeof(SubscriptionsController).Assembly);
+        services.AddSubscriptionsKitPolicies();
         return services;
     }
 }

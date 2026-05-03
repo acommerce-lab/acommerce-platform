@@ -7,7 +7,7 @@ namespace ACommerce.Kits.Subscriptions.Backend;
 
 /// <summary>فواتير المستخدم (read-only).</summary>
 [ApiController]
-[Authorize]
+[Authorize(Policy = SubscriptionsKitPolicies.Authenticated)]
 public sealed class InvoicesController : ControllerBase
 {
     private readonly IInvoiceStore _store;

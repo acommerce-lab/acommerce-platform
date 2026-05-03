@@ -9,6 +9,7 @@ public static class ProfilesKitExtensions
     {
         services.AddScoped<IProfileStore, TStore>();
         services.AddControllers().AddApplicationPart(typeof(ProfilesController).Assembly);
+        services.AddProfilesKitPolicies();
         return services;
     }
 }

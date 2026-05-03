@@ -28,6 +28,7 @@ public static class VersionsKitExtensions
         services.AddHttpContextAccessor();
         services.AddVersionGateInterceptor();
         services.AddControllers().AddApplicationPart(typeof(VersionsController).Assembly);
+        services.AddVersionsKitPolicies();
         return services;
     }
 
@@ -41,6 +42,7 @@ public static class VersionsKitExtensions
         services.AddHttpContextAccessor();
         services.AddVersionGateInterceptor();
         services.AddControllers().AddApplicationPart(typeof(VersionsController).Assembly);
+        services.AddVersionsKitPolicies();
         return services;
     }
 

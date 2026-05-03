@@ -24,6 +24,7 @@ public static class NotificationsKitExtensions
         // فينطلق envelope كامل لكلّ إشعار + يُحفظ ذرّيّاً عبر SaveAtEnd.
         services.AddScoped<INotificationDispatcher, OpEngineNotificationDispatcher>();
         services.AddControllers().AddApplicationPart(typeof(NotificationsController).Assembly);
+        services.AddNotificationsKitPolicies();
         return services;
     }
 }

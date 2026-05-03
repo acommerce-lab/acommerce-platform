@@ -16,7 +16,7 @@ namespace ACommerce.Kits.Profiles.Backend;
 ///   رغم HTTP verb).
 /// </summary>
 [ApiController]
-[Authorize]
+[Authorize(Policy = ProfilesKitPolicies.Self)]
 public sealed class ProfilesController : ControllerBase
 {
     private readonly IProfileStore _store;

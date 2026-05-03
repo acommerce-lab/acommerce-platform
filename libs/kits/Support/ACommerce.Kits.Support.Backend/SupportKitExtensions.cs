@@ -27,6 +27,7 @@ public static class SupportKitExtensions
         services.AddSingleton(options);
         services.AddScoped<ISupportStore, TStore>();
         services.AddControllers().AddApplicationPart(typeof(SupportController).Assembly);
+        services.AddSupportKitPolicies();
         return services;
     }
 }

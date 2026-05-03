@@ -15,6 +15,7 @@ public static class ReportsKitExtensions
         services.AddSingleton(options);
         services.AddScoped<IReportStore, TStore>();
         services.AddControllers().AddApplicationPart(typeof(ReportsController).Assembly);
+        services.AddReportsKitPolicies();
         return services;
     }
 }

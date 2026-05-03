@@ -9,6 +9,7 @@ public static class FavoritesKitExtensions
     {
         services.AddScoped<FavoriteService>();
         services.AddControllers().AddApplicationPart(typeof(FavoritesController).Assembly);
+        services.AddFavoritesKitPolicies();
         return services;
     }
 }

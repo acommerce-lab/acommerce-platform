@@ -20,7 +20,7 @@ namespace ACommerce.Kits.Subscriptions.Backend;
 /// لتعطيل بوّابات الحصص في كلّ القيود التي تشترط اشتراكاً نشطاً.</para>
 /// </summary>
 [ApiController]
-[Authorize]
+[Authorize(Policy = SubscriptionsKitPolicies.Authenticated)]
 public sealed class SubscriptionsController : ControllerBase
 {
     private readonly ISubscriptionStore _store;

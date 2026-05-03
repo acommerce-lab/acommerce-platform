@@ -31,7 +31,7 @@ namespace ACommerce.Kits.Chat.Backend;
 /// </para>
 /// </summary>
 [ApiController]
-[Authorize]
+[Authorize(Policy = ChatKitPolicies.Authenticated)]
 public class ChatController : ControllerBase
 {
     private readonly IChatStore _store;

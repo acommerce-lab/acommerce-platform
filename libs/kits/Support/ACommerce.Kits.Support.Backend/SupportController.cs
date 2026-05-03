@@ -33,7 +33,7 @@ namespace ACommerce.Kits.Support.Backend;
 /// </para>
 /// </summary>
 [ApiController]
-[Authorize]
+[Authorize(Policy = SupportKitPolicies.User)]
 public sealed class SupportController : ControllerBase
 {
     private readonly ISupportStore _store;

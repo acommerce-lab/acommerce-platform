@@ -31,7 +31,7 @@ namespace ACommerce.Kits.Reports.Backend;
 /// </para>
 /// </summary>
 [ApiController]
-[Authorize]
+[Authorize(Policy = ReportsKitPolicies.Reporter)]
 public sealed class ReportsController : ControllerBase
 {
     private readonly IReportStore _store;
@@ -117,6 +117,7 @@ public sealed class ReportsController : ControllerBase
     // ملاحظة: هذا للإدارة. الـ guard المناسب يضاف من جهة التطبيق عبر
     // [Authorize(Roles="admin,agent")] لو احتاجت Ejar تمييز أدوار.
     [HttpGet("/reports/all")]
+    [Authorize(Policy = ReportsKitPolicies.Moderator)]
     public async Task<IActionResult> ListAll([FromQuery] string? status, CancellationToken ct)
     {
         var rows = await _store.ListAllAsync(status, ct);
@@ -127,6 +128,7 @@ public sealed class ReportsController : ControllerBase
     public sealed record StatusRequest(string? Status);
 
     [HttpPatch("/reports/{id}/status")]
+    [Authorize(Policy = ReportsKitPolicies.Moderator)]
     public async Task<IActionResult> SetStatus(string id, [FromBody] StatusRequest req, CancellationToken ct)
     {
         var newStatus = (req.Status ?? "").Trim().ToLowerInvariant();

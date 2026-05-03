@@ -21,7 +21,7 @@ public static class ServiceHostFluentExtensions
     public static ServiceHostBuilder AddKits(
         this ServiceHostBuilder host, Action<KitBuilder> configure)
     {
-        var kits = new KitBuilder(host.Builder.Services, host.Builder.Configuration);
+        var kits = new KitBuilder(host.Builder.Services, host.Builder.Configuration, host.Builder.Environment);
         configure(kits);
         return host;
     }

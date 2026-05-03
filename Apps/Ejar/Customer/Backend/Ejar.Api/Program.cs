@@ -29,7 +29,6 @@ builder.AddACommerceServiceHost(host => host
     .UseOperationEngine(typeof(Program).Assembly)
     .UseJwtAuthentication(jwt => { jwt.Secret = JwtSecret; jwt.Issuer = "ejar.api"; jwt.Audience = "ejar.mobile"; })
     .UseRealtime<EjarSignalRTransport, EjarRealtimeHub>()
-    .UseFirebaseIfConfigured<EjarDeviceTokenStore>()
     .UseControllers()
     .RegisterEntities(typeof(EjarDbContext).Assembly)
 
@@ -50,7 +49,9 @@ builder.AddACommerceServiceHost(host => host
         })
         .AddReports<EjarReportStore>(opts => opts.PartyKind = "User")
         .AddFavorites()
-        .AddNotifications<EjarCustomerNotificationStore>()
+        .AddNotifications<EjarCustomerNotificationStore>(notif => notif
+            .UseInAppProvider()
+            .UseFirebaseProvider<EjarDeviceTokenStore>())
         .AddVersions<EjarVersionStore>()
         .AddSubscriptions<EjarSubscriptionStore, EjarPlanStore, EjarInvoiceStore>(
             opts => opts.OpenAccess = builder.Configuration.GetValue("Trial:OpenAccess", true))
