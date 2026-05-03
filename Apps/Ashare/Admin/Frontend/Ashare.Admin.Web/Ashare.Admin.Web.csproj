@@ -10,11 +10,11 @@
 
   <ItemGroup>
     <!-- SharedKernel (DynamicAttribute types used in pages via Widgets) -->
-    <ProjectReference Include="..\..\..\..\..\libs\kits\Core\SharedKernel\ACommerce.SharedKernel.Abstractions\ACommerce.SharedKernel.Abstractions.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\core\SharedKernel\ACommerce.SharedKernel.Abstractions\ACommerce.SharedKernel.Abstractions.csproj" />
 
     <!-- OperationEngine core + Wire -->
-    <ProjectReference Include="..\..\..\..\..\libs\kits\Core\OperationEngine\ACommerce.OperationEngine\ACommerce.OperationEngine.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\kits\Core\OperationEngine\ACommerce.OperationEngine.Wire\ACommerce.OperationEngine.Wire.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\core\OperationEngine\ACommerce.OperationEngine\ACommerce.OperationEngine.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\core\OperationEngine\ACommerce.OperationEngine.Wire\ACommerce.OperationEngine.Wire.csproj" />
 
     <!-- Client libraries -->
     <ProjectReference Include="..\..\..\..\..\clients\ACommerce.Client.Operations\ACommerce.Client.Operations.csproj" />

@@ -7,10 +7,10 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\ACommerce.Kits.Support.Operations\ACommerce.Kits.Support.Operations.csproj" />
-    <ProjectReference Include="..\..\Core\SharedKernel\ACommerce.SharedKernel.Repositories\ACommerce.SharedKernel.Repositories.csproj" />
-    <ProjectReference Include="..\..\Core\OperationEngine\ACommerce.OperationEngine.Wire\ACommerce.OperationEngine.Wire.csproj" />
-    <ProjectReference Include="..\..\Core\OperationEngine\ACommerce.OperationEngine.AspNetCore\ACommerce.OperationEngine.AspNetCore.csproj" />
-    <ProjectReference Include="..\..\Core\OperationEngine\ACommerce.OperationEngine.DataInterceptors\ACommerce.OperationEngine.DataInterceptors.csproj" />
+    <ProjectReference Include="..\..\..\core\SharedKernel\ACommerce.SharedKernel.Repositories\ACommerce.SharedKernel.Repositories.csproj" />
+    <ProjectReference Include="..\..\..\core\OperationEngine\ACommerce.OperationEngine.Wire\ACommerce.OperationEngine.Wire.csproj" />
+    <ProjectReference Include="..\..\..\core\OperationEngine\ACommerce.OperationEngine.AspNetCore\ACommerce.OperationEngine.AspNetCore.csproj" />
+    <ProjectReference Include="..\..\..\core\OperationEngine\ACommerce.OperationEngine.DataInterceptors\ACommerce.OperationEngine.DataInterceptors.csproj" />
     <!-- Chat kit — Support's reply uses IChatStore.AppendMessageAsync inside
          its Execute body so realtime / FCM / DB notification side effects
          travel as one envelope. Conversation listing for ticket details

@@ -22,7 +22,7 @@
     <!-- Pure contracts: AppVersion + IAppVersionGate + VersionTagKeys.
          Interceptor + DI extensions live in Versions.Backend; FrameworkReference
          is unused here and would propagate into WASM (NETSDK1082). -->
-    <ProjectReference Include="..\..\Core\OperationEngine\ACommerce.OperationEngine\ACommerce.OperationEngine.csproj" />
-    <ProjectReference Include="..\..\Core\OperationEngine\ACommerce.OperationEngine.Interceptors\ACommerce.OperationEngine.Interceptors.csproj" />
+    <ProjectReference Include="..\..\..\core\OperationEngine\ACommerce.OperationEngine\ACommerce.OperationEngine.csproj" />
+    <ProjectReference Include="..\..\..\core\OperationEngine\ACommerce.OperationEngine.Interceptors\ACommerce.OperationEngine.Interceptors.csproj" />
   </ItemGroup>
 </Project>

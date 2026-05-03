@@ -19,7 +19,7 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\Auth\ACommerce.Kits.Auth.Operations\ACommerce.Kits.Auth.Operations.csproj" />
-    <ProjectReference Include="..\ACommerce.Kits.Auth.TwoFactor\ACommerce.Kits.Auth.TwoFactor.csproj" />
+    <ProjectReference Include="..\ACommerce.Authentication.TwoFactor.Operations\ACommerce.Authentication.TwoFactor.Operations.csproj" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.7" />
   </ItemGroup>
 </Project>

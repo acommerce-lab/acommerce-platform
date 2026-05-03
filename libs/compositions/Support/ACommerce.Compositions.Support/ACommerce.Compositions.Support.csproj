@@ -8,8 +8,8 @@
   <ItemGroup>
     <ProjectReference Include="..\..\ACommerce.Compositions.Core\ACommerce.Compositions.Core.csproj" />
     <ProjectReference Include="..\..\Chat.Realtime\ACommerce.Compositions.Chat.Realtime\ACommerce.Compositions.Chat.Realtime.csproj" />
-    <ProjectReference Include="..\..\..\kits\Core\OperationEngine\ACommerce.OperationEngine\ACommerce.OperationEngine.csproj" />
-    <ProjectReference Include="..\..\..\kits\Core\OperationEngine\ACommerce.OperationEngine.Interceptors\ACommerce.OperationEngine.Interceptors.csproj" />
+    <ProjectReference Include="..\..\..\core\OperationEngine\ACommerce.OperationEngine\ACommerce.OperationEngine.csproj" />
+    <ProjectReference Include="..\..\..\core\OperationEngine\ACommerce.OperationEngine.Interceptors\ACommerce.OperationEngine.Interceptors.csproj" />
     <ProjectReference Include="..\..\..\kits\Support\ACommerce.Kits.Support.Operations\ACommerce.Kits.Support.Operations.csproj" />
   </ItemGroup>
   <ItemGroup>

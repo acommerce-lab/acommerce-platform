@@ -495,7 +495,7 @@ public sealed class RateLimitBundle : IInterceptorBundle
 | `Marker`/`TagKey` لكيت | `<Kit>.Operations/Operations/<KitTags>.cs` | نفس الـ kit |
 | `IInterceptorBundle` لتركيب | `Compositions/<X>/Bundles/<Y>Bundle.cs` | لا يخرج التركيب |
 | `ICompositionDescriptor` | `Compositions/<X>/<X>Composition.cs` | عنوان التركيب |
-| Marker مشترَك بين kits (نادر) | `libs/kits/Core/SharedMarkers/` | الكيتس لا تعرف بعضها، لكن TYPES مشتركة |
+| Marker مشترَك بين kits (نادر) | `libs/core/SharedMarkers/` | الكيتس لا تعرف بعضها، لكن TYPES مشتركة |
 
 ---
 

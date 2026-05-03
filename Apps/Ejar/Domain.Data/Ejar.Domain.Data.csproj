@@ -11,9 +11,9 @@
     <ProjectReference Include="..\Domain\Ejar.Domain.csproj" />
 
     <!-- core EF + repositories -->
-    <ProjectReference Include="..\..\..\libs\kits\Core\SharedKernel\ACommerce.SharedKernel.Domain\ACommerce.SharedKernel.Domain.csproj" />
-    <ProjectReference Include="..\..\..\libs\kits\Core\SharedKernel\ACommerce.SharedKernel.Repositories\ACommerce.SharedKernel.Repositories.csproj" />
-    <ProjectReference Include="..\..\..\libs\kits\Core\SharedKernel\ACommerce.SharedKernel.Infrastructure.EFCores\ACommerce.SharedKernel.Infrastructure.EFCores.csproj" />
+    <ProjectReference Include="..\..\..\libs\core\SharedKernel\ACommerce.SharedKernel.Domain\ACommerce.SharedKernel.Domain.csproj" />
+    <ProjectReference Include="..\..\..\libs\core\SharedKernel\ACommerce.SharedKernel.Repositories\ACommerce.SharedKernel.Repositories.csproj" />
+    <ProjectReference Include="..\..\..\libs\core\SharedKernel\ACommerce.SharedKernel.Infrastructure.EFCores\ACommerce.SharedKernel.Infrastructure.EFCores.csproj" />
 
     <!-- kits whose store interfaces we implement -->
     <ProjectReference Include="..\..\..\libs\kits\Auth\ACommerce.Kits.Auth.Backend\ACommerce.Kits.Auth.Backend.csproj" />

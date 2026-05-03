@@ -23,8 +23,8 @@
   <ItemGroup>
     <ProjectReference Include="..\ACommerce.Kits.Versions.Operations\ACommerce.Kits.Versions.Operations.csproj" />
     <ProjectReference Include="..\..\Widgets\ACommerce.Widgets\ACommerce.Widgets.csproj" />
-    <ProjectReference Include="..\..\Core\OperationEngine\ACommerce.OperationEngine\ACommerce.OperationEngine.csproj" />
-    <ProjectReference Include="..\..\Core\OperationEngine\ACommerce.OperationEngine.Wire\ACommerce.OperationEngine.Wire.csproj" />
+    <ProjectReference Include="..\..\..\core\OperationEngine\ACommerce.OperationEngine\ACommerce.OperationEngine.csproj" />
+    <ProjectReference Include="..\..\..\core\OperationEngine\ACommerce.OperationEngine.Wire\ACommerce.OperationEngine.Wire.csproj" />
   </ItemGroup>
   <ItemGroup>
     <!-- Razor templates only use Components.Web (Blazor side) + Extensions.Http

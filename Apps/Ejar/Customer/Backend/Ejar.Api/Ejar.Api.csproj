@@ -35,20 +35,20 @@
   <ItemGroup>
     <!-- Domain (entities + seed state) — single source of truth shared by Customer/Provider/Admin -->
     <ProjectReference Include="..\..\..\..\..\libs\kits\Auth\ACommerce.Kits.Auth.Backend\ACommerce.Kits.Auth.Backend.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\kits\Versions\ACommerce.Kits.Versions\ACommerce.Kits.Versions.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Versions\ACommerce.Kits.Versions.Backend\ACommerce.Kits.Versions.Backend.csproj" />
     <ProjectReference Include="..\..\..\Domain\Ejar.Domain.csproj" />
     <ProjectReference Include="..\..\..\Domain.Data\Ejar.Domain.Data.csproj" />
 
     <!-- SharedKernel EF infra (PlatformDataRoot + SqliteSchemaGuard helpers) -->
-    <ProjectReference Include="..\..\..\..\..\libs\kits\Core\SharedKernel\ACommerce.SharedKernel.Infrastructure.EFCores\ACommerce.SharedKernel.Infrastructure.EFCores.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\core\SharedKernel\ACommerce.SharedKernel.Infrastructure.EFCores\ACommerce.SharedKernel.Infrastructure.EFCores.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <!-- ─── Core OAM engine ──────────────────────────────────────────── -->
-    <ProjectReference Include="..\..\..\..\..\libs\kits\Core\OperationEngine\ACommerce.OperationEngine\ACommerce.OperationEngine.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\kits\Core\OperationEngine\ACommerce.OperationEngine.Wire\ACommerce.OperationEngine.Wire.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\kits\Core\OperationEngine\ACommerce.OperationEngine.AspNetCore\ACommerce.OperationEngine.AspNetCore.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\kits\Core\OperationEngine\ACommerce.OperationEngine.Interceptors\ACommerce.OperationEngine.Interceptors.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\core\OperationEngine\ACommerce.OperationEngine\ACommerce.OperationEngine.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\core\OperationEngine\ACommerce.OperationEngine.Wire\ACommerce.OperationEngine.Wire.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\core\OperationEngine\ACommerce.OperationEngine.AspNetCore\ACommerce.OperationEngine.AspNetCore.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\core\OperationEngine\ACommerce.OperationEngine.Interceptors\ACommerce.OperationEngine.Interceptors.csproj" />
   </ItemGroup>
 
   <ItemGroup>
@@ -57,7 +57,6 @@
          Add a TwoFactor channel + AsAuth bridge below to make OTP login work. -->
 
     <!-- ─── Auth.TwoFactor: SMS Mock (رمز ثابت 123456 — أبدله بمزوّد SMS حقيقي في الإنتاج) ── -->
-    <ProjectReference Include="..\..\..\..\..\libs\kits\Auth.TwoFactor\ACommerce.Kits.Auth.TwoFactor\ACommerce.Kits.Auth.TwoFactor.csproj" />
     <ProjectReference Include="..\..\..\..\..\libs\kits\Auth.TwoFactor\Providers\Sms\ACommerce.Kits.Auth.TwoFactor.Sms\ACommerce.Kits.Auth.TwoFactor.Sms.csproj" />
     <ProjectReference Include="..\..\..\..\..\libs\kits\Auth.TwoFactor\ACommerce.Kits.Auth.TwoFactor.AsAuth\ACommerce.Kits.Auth.TwoFactor.AsAuth.csproj" />
   </ItemGroup>
@@ -69,7 +68,8 @@
     <!-- InMemory provider only for InMemoryConnectionTracker — used by the SignalR
          hub to map userId → connectionId; not used as a transport. -->
     <ProjectReference Include="..\..\..\..\..\libs\kits\Realtime\Providers\InMemory\ACommerce.Realtime.Providers.InMemory\ACommerce.Realtime.Providers.InMemory.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\kits\Chat\ACommerce.Kits.Chat\ACommerce.Kits.Chat.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Chat\ACommerce.Chat.Operations\ACommerce.Chat.Operations.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Chat\ACommerce.Kits.Chat.Backend\ACommerce.Kits.Chat.Backend.csproj" />
     <ProjectReference Include="..\..\..\..\..\libs\kits\Notifications\ACommerce.Notification.Operations\ACommerce.Notification.Operations.csproj" />
     <ProjectReference Include="..\..\..\..\..\libs\kits\Notifications\ACommerce.Kits.Notifications.Backend\ACommerce.Kits.Notifications.Backend.csproj" />
     <ProjectReference Include="..\..\..\..\..\libs\kits\Notifications\Providers\InApp\ACommerce.Notification.Providers.InApp\ACommerce.Notification.Providers.InApp.csproj" />
@@ -80,19 +80,22 @@
     <ProjectReference Include="..\..\..\..\..\libs\kits\Cache\Providers\InMemory\ACommerce.Cache.Providers.InMemory\ACommerce.Cache.Providers.InMemory.csproj" />
     <ProjectReference Include="..\..\..\..\..\libs\kits\Cache\Providers\Redis\ACommerce.Cache.Providers.Redis\ACommerce.Cache.Providers.Redis.csproj" />
     <ProjectReference Include="..\..\..\..\..\libs\kits\Realtime\Providers\SignalR.Redis\ACommerce.Realtime.Providers.SignalR.Redis\ACommerce.Realtime.Providers.SignalR.Redis.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\kits\Core\OperationEngine\ACommerce.OperationEngine.DataInterceptors\ACommerce.OperationEngine.DataInterceptors.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\kits\Core\SharedKernel\ACommerce.SharedKernel.Domain\ACommerce.SharedKernel.Domain.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\kits\Core\SharedKernel\ACommerce.SharedKernel.Repositories\ACommerce.SharedKernel.Repositories.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\kits\Core\SharedKernel\ACommerce.SharedKernel.Mediators\ACommerce.SharedKernel.Mediators.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\kits\Support\ACommerce.Kits.Support\ACommerce.Kits.Support.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\kits\Reports\ACommerce.Kits.Reports\ACommerce.Kits.Reports.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\core\OperationEngine\ACommerce.OperationEngine.DataInterceptors\ACommerce.OperationEngine.DataInterceptors.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\core\SharedKernel\ACommerce.SharedKernel.Domain\ACommerce.SharedKernel.Domain.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\core\SharedKernel\ACommerce.SharedKernel.Repositories\ACommerce.SharedKernel.Repositories.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\core\SharedKernel\ACommerce.SharedKernel.Mediators\ACommerce.SharedKernel.Mediators.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Support\ACommerce.Kits.Support.Operations\ACommerce.Kits.Support.Operations.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Support\ACommerce.Kits.Support.Backend\ACommerce.Kits.Support.Backend.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Reports\ACommerce.Kits.Reports.Operations\ACommerce.Kits.Reports.Operations.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Reports\ACommerce.Kits.Reports.Backend\ACommerce.Kits.Reports.Backend.csproj" />
     <!-- ─── Compositions: تراكيب خارجيّة توصِّل kits دون أن يعرف بعضها ─── -->
     <ProjectReference Include="..\..\..\..\..\libs\compositions\ACommerce.Compositions.Core\ACommerce.Compositions.Core.csproj" />
     <ProjectReference Include="..\..\..\..\..\libs\compositions\Chat.Realtime\ACommerce.Compositions.Chat.Realtime\ACommerce.Compositions.Chat.Realtime.csproj" />
     <ProjectReference Include="..\..\..\..\..\libs\compositions\Auth.WithSmsOtp\ACommerce.Compositions.Auth.WithSmsOtp\ACommerce.Compositions.Auth.WithSmsOtp.csproj" />
     <ProjectReference Include="..\..\..\..\..\libs\compositions\Support\ACommerce.Compositions.Support\ACommerce.Compositions.Support.csproj" />
     <ProjectReference Include="..\..\..\..\..\libs\compositions\Chat.WithNotifications\ACommerce.Compositions.Chat.WithNotifications\ACommerce.Compositions.Chat.WithNotifications.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\kits\Discovery\ACommerce.Kits.Discovery\ACommerce.Kits.Discovery.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Discovery\ACommerce.Kits.Discovery.Operations\ACommerce.Kits.Discovery.Operations.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Discovery\ACommerce.Kits.Discovery.Backend\ACommerce.Kits.Discovery.Backend.csproj" />
     <ProjectReference Include="..\..\..\..\..\libs\kits\Favorites\ACommerce.Favorites.Operations\ACommerce.Favorites.Operations.csproj" />
     <ProjectReference Include="..\..\..\..\..\libs\kits\Favorites\ACommerce.Favorites.Backend\ACommerce.Favorites.Backend.csproj" />
     <ProjectReference Include="..\..\..\..\..\libs\kits\Subscriptions\ACommerce.Subscriptions.Operations\ACommerce.Subscriptions.Operations.csproj" />

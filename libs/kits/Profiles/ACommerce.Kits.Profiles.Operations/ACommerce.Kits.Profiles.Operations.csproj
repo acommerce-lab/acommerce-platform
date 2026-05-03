@@ -8,6 +8,6 @@
     <Description>Profiles primitives: IUserProfile interface (apps' user entity implements it), InMemoryUserProfile POCO, ProfileOps + tag keys.</Description>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\Core\OperationEngine\ACommerce.OperationEngine\ACommerce.OperationEngine.csproj" />
+    <ProjectReference Include="..\..\..\core\OperationEngine\ACommerce.OperationEngine\ACommerce.OperationEngine.csproj" />
   </ItemGroup>
 </Project>

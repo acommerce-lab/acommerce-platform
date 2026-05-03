@@ -8,6 +8,6 @@
     <Description>Listings primitives: IListing interface (apps' DB entity implements it), InMemoryListing POCO, ListingOps + tag keys + filter DTO. Backend kit consumes these.</Description>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\Core\OperationEngine\ACommerce.OperationEngine\ACommerce.OperationEngine.csproj" />
+    <ProjectReference Include="..\..\..\core\OperationEngine\ACommerce.OperationEngine\ACommerce.OperationEngine.csproj" />
   </ItemGroup>
 </Project>
