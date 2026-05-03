@@ -29,9 +29,9 @@
 
 <div class="acs-auth-page">
     <div class="acs-auth-hero">
-        @if (!string.IsNullOrEmpty(BrandIcon))
+        @if (BrandIconSlot != null)
         {
-            <div class="acs-auth-icon">@((MarkupString)BrandIcon)</div>
+            <div class="acs-auth-icon">@BrandIconSlot</div>
         }
         @if (!string.IsNullOrEmpty(BrandName))
         {
@@ -142,7 +142,10 @@
     [Parameter] public string RedirectUrl { get; set; } = "/";
 
     // ── Brand ──────────────────────────────────────────────────────────────
-    [Parameter] public string? BrandIcon { get; set; }
+    // Old `BrandIcon` (raw SVG string) was removed — required MarkupString and
+    // violated the no-XSS rule. Pass an SVG component or static <img/> via
+    // BrandIconSlot if you need a glyph.
+    [Parameter] public RenderFragment? BrandIconSlot { get; set; }
     [Parameter] public string? BrandName { get; set; }
     [Parameter] public string? BrandTagline { get; set; }
 

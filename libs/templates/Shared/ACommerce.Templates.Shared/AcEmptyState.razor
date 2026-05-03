@@ -6,7 +6,11 @@
     Icon source priority (highest first):
       1. IconSlot       — fully custom RenderFragment for rare cases
       2. IconName       — name of a built-in AcIcon (e.g. "inbox", "heart")
-      3. Icon (string)  — raw markup / emoji fallback for legacy callers
+
+    Legacy "Icon (raw markup string)" path was removed — it required
+    MarkupString rendering which violates the platform's no-XSS rule
+    (libs/host-client/.../IRichTextSanitizer). Pass an SVG via IconSlot
+    if you need a custom glyph.
 
     Flex slots: IconSlot, ExtraContent (below message), BelowAction
 *@
@@ -21,10 +25,6 @@
         <div class="acs-empty-icon acs-empty-icon-line">
             <AcIcon Name="@IconName" Size="48" StrokeWidth="1.5" />
         </div>
-    }
-    else if (!string.IsNullOrEmpty(Icon))
-    {
-        <div class="acs-empty-icon">@((MarkupString)Icon)</div>
     }
     @if (!string.IsNullOrEmpty(Title))
     {
@@ -56,10 +56,8 @@
 </div>
 
 @code {
-    /// <summary>Name of a built-in <see cref="AcIcon"/> (e.g. "inbox", "heart"). Preferred over Icon.</summary>
+    /// <summary>Name of a built-in <see cref="AcIcon"/> (e.g. "inbox", "heart"). Preferred.</summary>
     [Parameter] public string? IconName { get; set; }
-    /// <summary>Legacy: raw icon markup / emoji. Ignored if <see cref="IconName"/> or <see cref="IconSlot"/> is set.</summary>
-    [Parameter] public string? Icon { get; set; }
     [Parameter] public string? Title { get; set; }
     [Parameter] public string? Message { get; set; }
     [Parameter] public string? ActionLabel { get; set; }
