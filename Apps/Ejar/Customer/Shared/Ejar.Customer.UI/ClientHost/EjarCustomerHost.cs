@@ -14,9 +14,13 @@ namespace Ejar.Customer.UI.ClientHost;
 
 /// <summary>
 /// النقطة الوحيدة التي يَستدعيها <c>Ejar.Web</c> أو <c>Ejar.Maui</c>:
-/// <code>builder.Services.AddEjarCustomer(builder.Configuration);</code>
-/// كلّ شيء — صفحات الكيتس، الـ stores، الـ branding، الـ navigation،
-/// الـ compositions — يُسجَّل من هنا. الـ shims لا تَعرف عن الكيتس.
+/// <code>builder.Services.AddEjarCustomer();</code>
+///
+/// <para>
+/// النَموذج: الكيتس تَكشف <c>XxxWidgets</c> (مكوّنات Razor بدون
+/// <c>@page</c>)، التطبيق هو الذي يَختار route + layout. هذا يَسمح
+/// بإعادة تركيب نفس الـ widgets بأشكال مختلفة في تطبيقات مختلفة.
+/// </para>
 /// </summary>
 public static class EjarCustomerHostExtensions
 {
@@ -24,42 +28,50 @@ public static class EjarCustomerHostExtensions
         services.AddACommerceClientHost(client => client
 
             // ── XSS guards ───────────────────────────────────────────
-            // الـ default sanitizer يُجرّد كلّ HTML. لو احتجنا markdown مستقبلاً
-            // نُسجِّل MarkdownSanitizer بدلاً منه.
             .UseUrlAllowlist(a => a.Add(
                 "cdn.ejar.sa",
                 "storage.googleapis.com",
                 "firebasestorage.googleapis.com"))
 
-            // ── kit pages (الكيتس التي ما زالت تَشحن PageBundle جاهز) ─
-            // التطبيق يَختار + يُعيد التسمية حسب الحاجة. ايجار يَستعمل
-            // "/properties" بدل "/listings" في الـ UX.
-            .AddKitPages(p => p
-                .Add<AuthPageBundle>()
-                .Add<ListingsPageBundle>(o => o
-                    .Rename("listings.index",  "/properties")
-                    .Rename("listings.detail", "/properties/{id}"))
-                .Add<ProfilesPageBundle>()
-                .Add<SubscriptionsPageBundle>()
-                .Add<SupportPageBundle>()
-                .Add<FavoritesPageBundle>())
-
-            // ── widget-only kits (Chat, Notifications) ───────────────
-            // الكيت لا يَفرض routes. التطبيق يَكتب الصفحة كـ Razor file
-            // أو يَربط widget مباشرةً لـ route. هذا يَسمح بإعادة تركيب
-            // نفس widgets بأشكال مختلفة بين تطبيقات.
+            // ── ربط widgets الكيتس بـ routes إيجار ────────────────────
+            // الكيتس تَكشف Types فقط — التطبيق يَختار المسارات + يُعيد
+            // التسمية إن لزم. ايجار يَستعمل /properties بدل /listings.
             .AddAppPages(p => p
-                .Add("/chat",          ChatWidgets.Inbox,       requiresAuth: true)
-                .Add("/chat/{id}",     ChatWidgets.Room,        requiresAuth: true)
-                .Add("/notifications", NotificationsWidgets.Inbox, requiresAuth: true)
-                // composition: صفحة dashboard تَجمع widgets من Chat + Notifications
-                // (راجع Pages/EjarDashboardPage.razor — مكتوبة كـ Razor عاديّ).
-                .Add("/dashboard",     typeof(Pages.EjarDashboardPage), requiresAuth: true))
+                // Auth
+                .Add("/login",            AuthWidgets.Login)
+
+                // Listings (renamed routes — وكأنّ "Rename" قديم)
+                .Add("/properties",       ListingsWidgets.Explore)
+                .Add("/properties/{id}",  ListingsWidgets.Details)
+                .Add("/my-listings",      ListingsWidgets.Mine,    requiresAuth: true)
+                .Add("/my-listings/new",  ListingsWidgets.Create,  requiresAuth: true)
+
+                // Chat
+                .Add("/chat",             ChatWidgets.Inbox,             requiresAuth: true)
+                .Add("/chat/{id}",        ChatWidgets.Room,              requiresAuth: true)
+
+                // Notifications
+                .Add("/notifications",    NotificationsWidgets.Inbox,    requiresAuth: true)
+
+                // Profile
+                .Add("/me",               ProfilesWidgets.Profile,       requiresAuth: true)
+
+                // Subscriptions
+                .Add("/plans",            SubscriptionsWidgets.Plans)
+
+                // Support
+                .Add("/support",          SupportWidgets.Tickets,        requiresAuth: true)
+
+                // Favorites
+                .Add("/favorites",        FavoritesWidgets.List,         requiresAuth: true)
+
+                // app-only composition (يُجمّع widgets من ≥2 kit)
+                .Add("/dashboard",        typeof(Pages.EjarDashboardPage), requiresAuth: true))
 
             // ── ربط الـ stores بتنفيذات إيجار ────────────────────────
-            // كلّ store يَستهلك خِدمات إيجار الموجودة (HTTP، realtime، AppStore)
-            // لكنّه يَعرضها عبر interface kit-aware. الكيت لا يَعرف بأنّ
-            // التنفيذ هو Ejar — يَرى IListingsStore فقط.
+            // كلّ store يَستهلك خِدمات إيجار الموجودة لكنّه يَعرضها عبر
+            // interface kit-aware. الكيت لا يَعرف عن EjarChatStore — يَرى
+            // IChatStore فقط.
             .AddDomainBindings(b => b
                 .Use<ACommerce.Kits.Auth.Frontend.Customer.Stores.IAuthStore,                       EjarAuthStore>()
                 .Use<ACommerce.Kits.Listings.Frontend.Customer.Stores.IListingsStore,               EjarListingsStore>()
