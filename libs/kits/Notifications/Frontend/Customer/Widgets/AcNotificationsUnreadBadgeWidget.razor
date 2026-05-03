@@ -1,0 +1,23 @@
+@inject INotificationsStore Store
+@implements IDisposable
+
+@*
+    AcNotificationsUnreadBadgeWidget — شارة بسيطة للإشعارات غير المقروءة.
+    قابل للاستعمال في navbar، dashboard، أو composition مع شارات أخرى
+    (chat unread، support tickets، …).
+*@
+
+@if (Store.UnreadCount > 0)
+{
+    <span class="ac-badge ac-badge-notifications" aria-label="@AriaLabel">
+        @(Store.UnreadCount > 99 ? "99+" : Store.UnreadCount.ToString())
+    </span>
+}
+
+@code {
+    [Parameter] public string AriaLabel { get; set; } = "Unread notifications";
+
+    protected override void OnInitialized() => Store.Changed += OnChanged;
+    private void OnChanged() => InvokeAsync(StateHasChanged);
+    public void Dispose() => Store.Changed -= OnChanged;
+}

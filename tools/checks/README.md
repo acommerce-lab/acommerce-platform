@@ -20,8 +20,9 @@ bash tools/checks/check-isolation.sh
 | 4 | كلّ `IXxxStore` له binding في `EjarCustomerHost` | اكتمال DI |
 | 5 | الـ shims (Web/Maui) لا تَستورد kit/domain | حدّ أدنى للـ shim |
 | 6 | kit Frontend.Customer لا يَذكُر `Ejar` | قابليّة إعادة التركيب |
+| 7 | لا `@page` في `kits/*/Frontend/Customer/Widgets/` | الكيتس لا تَفرض routes — التطبيق يُجمِّع |
 
-نَتيجة الـ branch الحاليّة: **7 passed / 0 failed**.
+نَتيجة الـ branch الحاليّة: **8 passed / 0 failed**.
 
 ## ٢. تَشغيل التطبيق محلّيّاً
 

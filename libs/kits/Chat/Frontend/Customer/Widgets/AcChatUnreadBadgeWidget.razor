@@ -1,0 +1,30 @@
+@inject IChatStore Store
+@implements IDisposable
+
+@*
+    AcChatUnreadBadgeWidget — شارة بسيطة تَعرض إجماليّ الرسائل غير المقروءة.
+
+    قابل للاستعمال:
+      - في BottomNav بجانب أيقونة المحادثات.
+      - في Header الموبايل.
+      - في Dashboard composition (مع NotificationsUnreadBadgeWidget …) لإظهار
+        إجماليّ نشاط متعدّد المصادر.
+
+    يَستهلك IChatStore فقط — التطبيق يُسجّل تنفيذه ⇒ نفس الـ widget يَعمل
+    على أيّ backend.
+*@
+
+@if (Store.UnreadTotal > 0)
+{
+    <span class="ac-badge ac-badge-chat" aria-label="@AriaLabel">
+        @(Store.UnreadTotal > 99 ? "99+" : Store.UnreadTotal.ToString())
+    </span>
+}
+
+@code {
+    [Parameter] public string AriaLabel { get; set; } = "Unread messages";
+
+    protected override void OnInitialized() => Store.Changed += OnChanged;
+    private void OnChanged() => InvokeAsync(StateHasChanged);
+    public void Dispose() => Store.Changed -= OnChanged;
+}

@@ -31,20 +31,30 @@ public static class EjarCustomerHostExtensions
                 "storage.googleapis.com",
                 "firebasestorage.googleapis.com"))
 
-            // ── kit pages ────────────────────────────────────────────
-            // التطبيق يَختار من بَين صفحات الكيتس + يُعيد التسمية حسب الحاجة.
-            // ايجار يَستعمل "/properties" بدل "/listings" في الـ UX.
+            // ── kit pages (الكيتس التي ما زالت تَشحن PageBundle جاهز) ─
+            // التطبيق يَختار + يُعيد التسمية حسب الحاجة. ايجار يَستعمل
+            // "/properties" بدل "/listings" في الـ UX.
             .AddKitPages(p => p
                 .Add<AuthPageBundle>()
                 .Add<ListingsPageBundle>(o => o
                     .Rename("listings.index",  "/properties")
                     .Rename("listings.detail", "/properties/{id}"))
-                .Add<ChatPageBundle>()
-                .Add<NotificationsPageBundle>()
                 .Add<ProfilesPageBundle>()
                 .Add<SubscriptionsPageBundle>()
                 .Add<SupportPageBundle>()
                 .Add<FavoritesPageBundle>())
+
+            // ── widget-only kits (Chat, Notifications) ───────────────
+            // الكيت لا يَفرض routes. التطبيق يَكتب الصفحة كـ Razor file
+            // أو يَربط widget مباشرةً لـ route. هذا يَسمح بإعادة تركيب
+            // نفس widgets بأشكال مختلفة بين تطبيقات.
+            .AddAppPages(p => p
+                .Add("/chat",          ChatWidgets.Inbox,       requiresAuth: true)
+                .Add("/chat/{id}",     ChatWidgets.Room,        requiresAuth: true)
+                .Add("/notifications", NotificationsWidgets.Inbox, requiresAuth: true)
+                // composition: صفحة dashboard تَجمع widgets من Chat + Notifications
+                // (راجع Pages/EjarDashboardPage.razor — مكتوبة كـ Razor عاديّ).
+                .Add("/dashboard",     typeof(Pages.EjarDashboardPage), requiresAuth: true))
 
             // ── ربط الـ stores بتنفيذات إيجار ────────────────────────
             // كلّ store يَستهلك خِدمات إيجار الموجودة (HTTP، realtime، AppStore)

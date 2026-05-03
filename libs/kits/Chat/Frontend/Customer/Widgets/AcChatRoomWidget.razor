@@ -2,6 +2,12 @@
 @inject IRichTextSanitizer Sanitizer
 @implements IDisposable
 
+@*
+    AcChatRoomWidget — يَعرض رسائل المحادثة المفتوحة + composer.
+    يَتركّب من AcChatComposerWidget — نفس الـ composer قابل للاستعمال
+    بشكل مستقلّ في side-drawer مثلاً.
+*@
+
 <section class="ac-chat-room">
     <ul class="ac-messages">
         @foreach (var m in Store.CurrentMessages)
@@ -12,15 +18,11 @@
             </li>
         }
     </ul>
-    <form @onsubmit="OnSend" @onsubmit:preventDefault>
-        <input @bind="_draft" placeholder="Type a message" />
-        <button type="submit">Send</button>
-    </form>
+    <AcChatComposerWidget OnSend="@HandleSend" />
 </section>
 
 @code {
     [Parameter] public string? Id { get; set; }
-    private string _draft = "";
 
     protected override async Task OnParametersSetAsync()
     {
@@ -29,14 +31,7 @@
             await Store.OpenConversationAsync(Id);
     }
 
-    private async Task OnSend()
-    {
-        var body = _draft.Trim();
-        if (body.Length == 0) return;
-        _draft = "";
-        await Store.SendAsync(body);
-    }
-
+    private Task HandleSend(string body) => Store.SendAsync(body);
     private void OnChanged() => InvokeAsync(StateHasChanged);
     public void Dispose() => Store.Changed -= OnChanged;
 }

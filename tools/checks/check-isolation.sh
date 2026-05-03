@@ -17,7 +17,7 @@ strip_comments() {
 }
 
 # ─── الفحص ١: لا MarkupString cast/parameter في kit page أو template ──
-header "[1/6] No MarkupString usage in kit pages/templates (XSS guard)"
+header "[1/7] No MarkupString usage in kit pages/templates (XSS guard)"
 hits=""
 for f in $(find libs/kits/*/Frontend/Customer libs/templates \( -name "*.razor" -o -name "*.cs" \) 2>/dev/null | grep -v "/obj/\|/bin/"); do
   out=$(strip_comments < "$f" | grep -nE '\(MarkupString\)|<MarkupString\b|new MarkupString' || true)
@@ -27,7 +27,7 @@ if [ -z "$hits" ]; then green "no MarkupString cast/parameter in kit pages or te
 else red "MarkupString usage:"; echo "$hits" | sed 's/^/    /'; fi
 
 # ─── الفحص ٢: لا @inject HttpClient في kit page ───────────────────────
-header "[2/6] No HttpClient injection in kit pages (data-isolation)"
+header "[2/7] No HttpClient injection in kit pages (data-isolation)"
 hits=""
 for f in $(find libs/kits/*/Frontend/Customer \( -name "*.razor" -o -name "*.cs" \) 2>/dev/null | grep -v "/obj/\|/bin/"); do
   out=$(strip_comments < "$f" | grep -nE '@inject[[:space:]]+HttpClient|^[[:space:]]*using[[:space:]]+System\.Net\.Http[[:space:]]*;' || true)
@@ -37,7 +37,7 @@ if [ -z "$hits" ]; then green "kit pages do not @inject HttpClient or import Sys
 else red "HttpClient leakage:"; echo "$hits" | sed 's/^/    /'; fi
 
 # ─── الفحص ٣: kit pages لا تَستهلك app entities ────────────────────────
-header "[3/6] No app entity types in kit pages (interface-only deps)"
+header "[3/7] No app entity types in kit pages (interface-only deps)"
 hits=""
 for f in $(find libs/kits/*/Frontend/Customer \( -name "*.razor" -o -name "*.cs" \) 2>/dev/null | grep -v "/obj/\|/bin/"); do
   out=$(strip_comments < "$f" | grep -nE '^[[:space:]]*using[[:space:]]+(Ejar|Order|Ashare)\b|@using[[:space:]]+(Ejar|Order|Ashare)\b' || true)
@@ -47,7 +47,7 @@ if [ -z "$hits" ]; then green "kit pages depend only on kit interfaces (IListing
 else red "app entity refs:"; echo "$hits" | sed 's/^/    /'; fi
 
 # ─── الفحص ٤: كلّ IXxxStore له binding في AddEjarCustomer ─────────────
-header "[4/6] All kit IXxxStore interfaces wired in EjarCustomerHost"
+header "[4/7] All kit IXxxStore interfaces wired in EjarCustomerHost"
 expected=(IAuthStore IListingsStore IChatStore INotificationsStore IProfileStore ISubscriptionsStore ISupportStore IFavoritesStore)
 host="Apps/Ejar/Customer/Shared/Ejar.Customer.UI/ClientHost/EjarCustomerHost.cs"
 missing=0
@@ -57,7 +57,7 @@ done
 if [ "$missing" -eq 0 ]; then green "8/8 kit stores wired (Auth, Listings, Chat, Notifications, Profile, Subscriptions, Support, Favorites)"; fi
 
 # ─── الفحص ٥: shims خاليتان من kit/domain imports ──────────────────────
-header "[5/6] Shims contain only platform glue (no domain imports)"
+header "[5/7] Shims contain only platform glue (no domain imports)"
 for shim in Apps/Ejar/Customer/Frontend/Ejar.Web/Program.cs Apps/Ejar/Customer/Frontend/Ejar.Maui/MauiProgram.cs; do
   out=$(strip_comments < "$shim" | grep -nE '^[[:space:]]*using[[:space:]]+(ACommerce\.Kits|Ejar\.Domain)' | grep -v "Ejar.Customer.UI\|Versions" || true)
   if [ -z "$out" ]; then green "$shim — no kit/domain imports"
@@ -65,7 +65,7 @@ for shim in Apps/Ejar/Customer/Frontend/Ejar.Web/Program.cs Apps/Ejar/Customer/F
 done
 
 # ─── الفحص ٦: kit Frontend.Customer لا تَذكُر Ejar (portability) ──────
-header "[6/6] Cross-app reusability: kit Frontend.Customer is app-agnostic"
+header "[6/7] Cross-app reusability: kit Frontend.Customer is app-agnostic"
 hits=""
 for f in $(find libs/kits/*/Frontend/Customer \( -name "*.razor" -o -name "*.cs" -o -name "*.csproj" \) 2>/dev/null | grep -v "/obj/\|/bin/"); do
   out=$(strip_comments < "$f" | grep -nE '^[[:space:]]*using[[:space:]]+Ejar|@using[[:space:]]+Ejar|<ProjectReference[^>]*Ejar' || true)
@@ -73,6 +73,12 @@ for f in $(find libs/kits/*/Frontend/Customer \( -name "*.razor" -o -name "*.cs"
 done
 if [ -z "$hits" ]; then green "kit Frontend.Customer projects ⊥ Ejar — droppable into any app"
 else red "Ejar leaked into kit:"; echo "$hits" | sed 's/^/    /'; fi
+
+# ─── الفحص ٧: kit Widgets/ بلا @page ⇒ التطبيق هو من يَفرض routes ─────
+header "[7/7] No @page directives in kit Widgets/ (pages are app-owned)"
+hits=$(grep -rln '^@page' libs/kits/*/Frontend/Customer/Widgets 2>/dev/null | grep -v "/obj/\|/bin/" || true)
+if [ -z "$hits" ]; then green "kit widgets are route-agnostic — apps assemble pages via AddAppPages"
+else red "@page directive in kit widget:"; echo "$hits" | sed 's/^/    /'; fi
 
 # ─── الخلاصة ──────────────────────────────────────────────────────────
 echo
