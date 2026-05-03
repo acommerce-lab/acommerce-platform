@@ -48,7 +48,7 @@ builder.AddACommerceServiceHost(host => host
             if (Guid.TryParse(poolStr, out var poolGuid)) opts.AgentPoolPartyId = poolGuid;
         })
         .AddReports<EjarReportStore>(opts => opts.PartyKind = "User")
-        .AddFavorites()
+        .AddFavorites<EjarFavoritesStore>()
         .AddNotifications<EjarCustomerNotificationStore>(notif => notif
             .UseInAppProvider()
             .UseFirebaseProvider<EjarDeviceTokenStore>())

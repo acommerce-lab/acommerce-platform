@@ -26,62 +26,21 @@ public sealed class CatalogController : ControllerBase
     private readonly EjarDbContext _db;
     private readonly IChatService? _chat;
     private readonly IConnectionTracker? _connections;
-    private readonly IDeviceTokenStore? _pushTokens;
-    private readonly IConfiguration _config;
 
     public CatalogController(
         EjarDbContext db,
-        IConfiguration config,
         IChatService? chat = null,
-        IConnectionTracker? connections = null,
-        IDeviceTokenStore? pushTokens = null)
+        IConnectionTracker? connections = null)
     {
         _db = db;
-        _config = config;
         _chat = chat;
         _connections = connections;
-        _pushTokens = pushTokens;
     }
 
-    /// <summary>
-    /// وضع التجربة المفتوحة — يُعطّل بوّابات الاشتراك (no_active_subscription،
-    /// listings_quota_exceeded، images_quota_exceeded). افتراضيّاً <c>true</c>
-    /// في فترة الإطلاق التجريبيّ. يُضبط من appsettings عبر <c>Trial:OpenAccess</c>.
-    /// </summary>
-    private bool TrialOpenAccess =>
-        _config.GetValue<bool?>("Trial:OpenAccess") ?? true;
-
-    // ═══ Push subscription ═══════════════════════════════════════════════
-    public sealed record PushSubscribeBody(string? Token, string? Platform);
-
-    /// <summary>
-    /// تسجيل رمز جهاز لـ Firebase Cloud Messaging. الواجهة تستدعيها بعد ما
-    /// يحصل المتصفّح/التطبيق على الـ token من Firebase SDK
-    /// (<c>getToken({vapidKey})</c>). الرموز تُحفَظ في جدول
-    /// <c>UserPushTokens</c> ويستهلكها <c>FirebaseNotificationChannel</c>
-    /// عند البثّ. لو الـ FCM غير مهيّأ على الخادم، نُرجع 200 ok بصمت ليبقى
-    /// الفرونت غير مرتبط بحالة التهيئة.
-    /// </summary>
-    [HttpPost("/me/push-subscription")]
-    public async Task<IActionResult> RegisterPushToken([FromBody] PushSubscribeBody body, CancellationToken ct)
-    {
-        if (CurrentUserGuid is not { } uid) return this.UnauthorizedEnvelope();
-        if (string.IsNullOrWhiteSpace(body.Token))
-            return this.BadRequestEnvelope("missing_token");
-        if (_pushTokens is null)
-            return this.OkEnvelope("push.subscribe", new { ok = true, fcmConfigured = false });
-
-        await _pushTokens.RegisterAsync(uid.ToString(), body.Token!, body.Platform, ct);
-        return this.OkEnvelope("push.subscribe", new { ok = true, fcmConfigured = true });
-    }
-
-    [HttpDelete("/me/push-subscription/{token}")]
-    public async Task<IActionResult> UnregisterPushToken(string token, CancellationToken ct)
-    {
-        if (CurrentUserGuid is not { } _) return this.UnauthorizedEnvelope();
-        if (_pushTokens is not null) await _pushTokens.UnregisterAsync(token, ct);
-        return this.OkEnvelope("push.unsubscribe", new { ok = true });
-    }
+    // ═══ Push subscription — نُقلت لـ Notifications.Backend (DeviceTokensController):
+    //   POST   /me/push-subscription          — تَسجيل رمز
+    //   DELETE /me/push-subscription/{token}  — إلغاء
+    // EjarDeviceTokenStore يَستهلكه FCM channel للبثّ.
 
     private Guid? CurrentUserGuid =>
         Guid.TryParse(User.FindFirstValue("user_id"), out var g) ? g : null;
@@ -107,65 +66,15 @@ public sealed class CatalogController : ControllerBase
     //    افتراضيّاً) — لو احتاجها التطبيق لاحقاً، تُضاف interceptor على
     //    listing.create يقرأ ISubscriptionStore.
 
-    // ═══ Favorites ═══════════════════════════════════════════════════════
-    [HttpGet("/favorites")]
-    public async Task<IActionResult> Favorites(CancellationToken ct)
-    {
-        if (CurrentUserGuid is not { } uid) return this.UnauthorizedEnvelope();
-        var ids = await _db.Favorites.AsNoTracking()
-            .Where(f => f.UserId == uid && f.EntityType == nameof(ListingEntity))
-            .Select(f => f.EntityId).ToListAsync(ct);
-        var listings = await _db.Listings.AsNoTracking()
-            .Where(l => ids.Contains(l.Id)).ToListAsync(ct);
-        return this.OkEnvelope("favorite.list",
-            listings.Select(l => new {
-                id = l.Id, title = l.Title, price = l.Price,
-                timeUnit = l.TimeUnit, propertyType = l.PropertyType,
-                city = l.City, district = l.District, isVerified = l.IsVerified,
-                bedroomCount = l.BedroomCount,
-                // فضّل المُصغّر للبطاقات (~30KB) على الصورة الكاملة (~250KB).
-                // fallback على أوّل صورة في ImagesCsv للإعلانات القديمة قبل
-                // إضافة ThumbnailUrl.
-                firstImage = l.ThumbnailUrl ?? l.ImagesCsv?.Split('|').FirstOrDefault()
-            }));
-    }
+    // ═══ Favorites — نُقلت لـ Favorites.Backend kit (FavoritesController):
+    //   GET  /favorites                — Mine via IFavoritesStore.ListMineAsync
+    //   POST /listings/{id}/favorite   — Toggle via OAM op favorite.toggle
+    //   GET  /api/favorites            — legacy DataInterceptor read-all يبقى
+    // EjarFavoritesStore يُترجم بين IFavoritesStore و Favorite entity.
 
-    [HttpPost("/listings/{id:guid}/favorite")]
-    public async Task<IActionResult> ToggleFavorite(Guid id, CancellationToken ct)
-    {
-        if (CurrentUserGuid is not { } uid) return this.UnauthorizedEnvelope();
-        var listing = await _db.Listings.AsNoTracking().FirstOrDefaultAsync(l => l.Id == id, ct);
-        if (listing is null) return this.NotFoundEnvelope("listing_not_found");
-
-        var existing = await _db.Favorites.FirstOrDefaultAsync(
-            f => f.UserId == uid && f.EntityId == id && f.EntityType == nameof(ListingEntity), ct);
-        bool nowFavorite;
-        if (existing is null)
-        {
-            _db.Favorites.Add(new Favorite {
-                Id = Guid.NewGuid(), UserId = uid,
-                EntityId = id, EntityType = nameof(ListingEntity),
-                CreatedAt = DateTime.UtcNow
-            });
-            nowFavorite = true;
-        }
-        else
-        {
-            _db.Favorites.Remove(existing);
-            nowFavorite = false;
-        }
-        await _db.SaveChangesAsync(ct);
-        return this.OkEnvelope("favorite.toggle", new { id, isFavorite = nowFavorite });
-    }
-
-    // ═══ Bookings ════════════════════════════════════════════════════════
-    [HttpGet("/bookings")]
-    public IActionResult Bookings() =>
-        this.OkEnvelope("booking.list", Array.Empty<object>());
-
-    [HttpGet("/bookings/{id}")]
-    public IActionResult BookingDetails(string id) =>
-        this.NotFoundEnvelope("booking_not_found");
+    // ═══ Bookings — أُسقطت تماماً. إيجار لا يَدعم حجوزات تأجيريّة في النموذج
+    //   الحاليّ. لو احتاج التطبيق هذه الميزة لاحقاً، Bookings.Backend kit
+    //   جاهز للتفعيل (libs/kits/Bookings — operations فقط حاليّاً).
 
     // ═══ الشكاوى انتقلت إلى Support kit ═══════════════════════════════
     // المسارات الجديدة (راجع libs/kits/Support/.../SupportController.cs):

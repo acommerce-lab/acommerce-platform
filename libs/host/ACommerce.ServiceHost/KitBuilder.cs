@@ -110,6 +110,13 @@ public sealed class KitBuilder
         return this;
     }
 
+    /// <summary>Favorites مع store يَدعم Mine + Toggle.</summary>
+    public KitBuilder AddFavorites<TStore>() where TStore : class, IFavoritesStore
+    {
+        Services.AddFavoritesKit<TStore>();
+        return this;
+    }
+
     // ── Listings ──────────────────────────────────────────────────────────
     public KitBuilder AddListings<TStore>(Action<ListingsKitOptions>? configure = null)
         where TStore : class, IListingStore

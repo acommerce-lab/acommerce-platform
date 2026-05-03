@@ -9,6 +9,9 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\ACommerce.Notification.Operations\ACommerce.Notification.Operations.csproj" />
+    <!-- Firebase provider يَعرّف IDeviceTokenStore الذي يَستهلكه DeviceTokensController.
+         ربط مباشر للأن — IDeviceTokenStore سيُنقل لاحقاً إلى Notification.Operations. -->
+    <ProjectReference Include="..\Providers\Firebase\ACommerce.Notification.Providers.Firebase\ACommerce.Notification.Providers.Firebase.csproj" />
     <ProjectReference Include="..\..\Core\OperationEngine\ACommerce.OperationEngine\ACommerce.OperationEngine.csproj" />
     <ProjectReference Include="..\..\Core\OperationEngine\ACommerce.OperationEngine.Wire\ACommerce.OperationEngine.Wire.csproj" />
     <ProjectReference Include="..\..\Core\OperationEngine\ACommerce.OperationEngine.AspNetCore\ACommerce.OperationEngine.AspNetCore.csproj" />

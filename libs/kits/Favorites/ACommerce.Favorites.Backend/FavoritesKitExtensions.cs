@@ -12,4 +12,13 @@ public static class FavoritesKitExtensions
         services.AddFavoritesKitPolicies();
         return services;
     }
+
+    /// <summary>تَسجيل Favorites kit مع store يَدعم Mine + Toggle.</summary>
+    public static IServiceCollection AddFavoritesKit<TStore>(this IServiceCollection services)
+        where TStore : class, IFavoritesStore
+    {
+        services.AddFavoritesKit();
+        services.AddScoped<IFavoritesStore, TStore>();
+        return services;
+    }
 }
