@@ -1,0 +1,77 @@
+/* Ejar V2 — قشرة بسيطة، تَركيز على إثبات النَمَط لا على البولش. */
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
+body { background: #f7f7fb; color: #1a1a2e; }
+a { color: #2548b8; text-decoration: none; }
+h1 { margin: 0 0 1rem; }
+
+.ejar-v2-shell {
+  display: flex; flex-direction: column; min-height: 100vh;
+}
+
+.ejar-v2-topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: .75rem 1rem; background: #fff; border-bottom: 1px solid #e3e3eb;
+  position: sticky; top: 0; z-index: 10;
+}
+.ejar-v2-logo { font-weight: 700; font-size: 1.1rem; color: #2548b8; }
+.ejar-v2-topbar-actions { display: flex; gap: 1rem; align-items: center; }
+.ejar-v2-topbar-actions a { position: relative; font-size: 1.25rem; }
+
+.ejar-v2-body { flex: 1; padding: 1rem; padding-bottom: 5rem; max-width: 720px; margin: 0 auto; width: 100%; }
+
+.ejar-v2-bottomnav {
+  position: fixed; bottom: 0; right: 0; left: 0;
+  display: flex; justify-content: space-around;
+  background: #fff; border-top: 1px solid #e3e3eb; padding: .25rem 0; z-index: 10;
+}
+.ejar-v2-bottomnav a {
+  flex: 1; display: flex; flex-direction: column; align-items: center;
+  padding: .25rem; color: #61617a; position: relative;
+}
+.ejar-v2-bottomnav a.ejar-v2-bn-active { color: #2548b8; }
+.ejar-v2-bn-icon { font-size: 1.25rem; }
+.ejar-v2-bn-label { font-size: .7rem; }
+
+.ejar-v2-card, .ejar-v2-dashboard-card {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 1rem; background: #fff; border: 1px solid #e3e3eb;
+  border-radius: .75rem; margin-bottom: .5rem;
+}
+.ejar-v2-quicklinks, .ejar-v2-dashboard-stats {
+  display: flex; flex-direction: column; gap: .5rem; margin-top: 1rem;
+}
+
+/* kit unread badges — صغيرة في الـ navbar/cards */
+.ac-badge { display: inline-block; min-width: 1.25rem; padding: 0 .35rem;
+            background: #d22; color: #fff; border-radius: .75rem;
+            font-size: .7rem; line-height: 1.25rem; text-align: center; }
+.ac-badge-chat          { background: #2548b8; }
+.ac-badge-notifications { background: #d22; }
+.ejar-v2-bottomnav .ac-badge {
+  position: absolute; top: 2px; right: calc(50% - 18px);
+}
+.ejar-v2-topbar-actions .ac-badge {
+  position: absolute; top: -.25rem; right: -.5rem;
+}
+
+/* states */
+.ejar-v2-loading, .ejar-v2-notfound { padding: 2rem; text-align: center; }
+.ejar-v2-hint { color: #61617a; }
+
+/* kit widget bare elements */
+.ac-listings-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+                    gap: .5rem; padding: 0; list-style: none; }
+.ac-listings-grid li a { display: block; padding: 1rem; background: #fff;
+                         border: 1px solid #e3e3eb; border-radius: .5rem; }
+.ac-messages { list-style: none; padding: 0; margin: 0 0 1rem; }
+.ac-messages li { background: #fff; padding: .5rem .75rem; margin-bottom: .25rem;
+                  border-radius: .5rem; }
+.ac-from { font-size: .7rem; color: #61617a; }
+.ac-chat-composer { display: flex; gap: .5rem; }
+.ac-chat-composer input { flex: 1; padding: .5rem; border: 1px solid #e3e3eb;
+                          border-radius: .5rem; font: inherit; }
+.ac-btn { padding: .5rem 1rem; background: #2548b8; color: #fff; border: 0;
+          border-radius: .5rem; cursor: pointer; }
+.ac-btn:disabled { opacity: .5; cursor: not-allowed; }

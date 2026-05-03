@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RollForward>LatestMajor</RollForward>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>Ejar.Web.V2</RootNamespace>
+    <AssemblyName>Ejar.Web.V2</AssemblyName>
+    <UserSecretsId>ejar-web-v2</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- يَستهلك V2 المشتركة بدلاً من V1. كلّ شيء آخر مطابق لـ Ejar.Web. -->
+    <ProjectReference Include="..\..\Shared\Ejar.Customer.UI.V2\Ejar.Customer.UI.V2.csproj" />
+  </ItemGroup>
+</Project>

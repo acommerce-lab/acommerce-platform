@@ -1,0 +1,30 @@
+@inherits LayoutComponentBase
+
+@*
+    MainLayout V2 — قشرة كاملة (top bar + body + bottom nav). الفروقات
+    عن V1: يَستهلك kit widgets للشارات، فأيّ تطبيق آخر يُغيّر store
+    binding يَرى نفس الـ chrome مع بياناته.
+*@
+
+<div class="ejar-v2-shell">
+    <header class="ejar-v2-topbar">
+        <a href="/" class="ejar-v2-logo">إيجار V2</a>
+        <nav class="ejar-v2-topbar-actions">
+            <a href="/dashboard" title="لوحة المعلومات">📊</a>
+            <a href="/notifications" title="الإشعارات">
+                🔔
+                <AcNotificationsUnreadBadgeWidget />
+            </a>
+            <a href="/chat" title="المحادثات">
+                💬
+                <AcChatUnreadBadgeWidget />
+            </a>
+        </nav>
+    </header>
+
+    <main class="ejar-v2-body">
+        @Body
+    </main>
+
+    <BottomNav />
+</div>

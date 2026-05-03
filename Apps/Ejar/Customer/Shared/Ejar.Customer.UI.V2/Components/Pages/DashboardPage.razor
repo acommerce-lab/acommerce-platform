@@ -1,0 +1,25 @@
+@page "/dashboard"
+@attribute [Authorize]
+
+<PageTitle>لوحة المعلومات — إيجار V2</PageTitle>
+
+@*
+    صفحة composition — تَجمع widgets من Chat + Notifications kits.
+    لا توجد PageBundle تَفرض هذا الشكل — التطبيق يَختار التَركيب.
+*@
+
+<section class="ejar-v2-dashboard">
+    <h1>لوحة المعلومات</h1>
+
+    <div class="ejar-v2-dashboard-stats">
+        <a href="/chat" class="ejar-v2-dashboard-card">
+            <span class="ejar-v2-card-label">المحادثات</span>
+            <AcChatUnreadBadgeWidget AriaLabel="رسائل غير مقروءة" />
+        </a>
+
+        <a href="/notifications" class="ejar-v2-dashboard-card">
+            <span class="ejar-v2-card-label">الإشعارات</span>
+            <AcNotificationsUnreadBadgeWidget AriaLabel="إشعارات غير مقروءة" />
+        </a>
+    </div>
+</section>

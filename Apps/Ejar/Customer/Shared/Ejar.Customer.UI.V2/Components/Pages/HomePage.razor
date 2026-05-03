@@ -1,0 +1,25 @@
+@page "/"
+
+<PageTitle>إيجار V2 — الرئيسيّة</PageTitle>
+
+<section class="ejar-v2-home">
+    <h1>أهلاً بك في إيجار V2</h1>
+    <p class="ejar-v2-hint">
+        هذه نسخة kit-based — كلّ صفحة هنا hgthin wrapper حول widget من kit.
+        صفحات المحادثات والإشعارات تَعمل فعليّاً ضدّ نفس الـ Ejar.Api.
+    </p>
+
+    <div class="ejar-v2-quicklinks">
+        <a href="/notifications" class="ejar-v2-card">
+            <span class="ejar-v2-card-title">الإشعارات</span>
+            <AcNotificationsUnreadBadgeWidget />
+        </a>
+        <a href="/chat" class="ejar-v2-card">
+            <span class="ejar-v2-card-title">المحادثات</span>
+            <AcChatUnreadBadgeWidget />
+        </a>
+        <a href="/dashboard" class="ejar-v2-card">
+            <span class="ejar-v2-card-title">لوحة المعلومات</span>
+        </a>
+    </div>
+</section>

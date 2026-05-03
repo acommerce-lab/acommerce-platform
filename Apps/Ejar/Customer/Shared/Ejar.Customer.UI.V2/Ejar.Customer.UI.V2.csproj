@@ -1,0 +1,45 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>Ejar.Customer.UI.V2</RootNamespace>
+    <AssemblyName>Ejar.Customer.UI.V2</AssemblyName>
+    <PackageId>Ejar.Customer.UI.V2</PackageId>
+    <Version>2.0.0</Version>
+    <Description>
+      ا لنسخة V2 الـ kit-based لمكتبة عميل إيجار. لا صفحات بمنطق
+      نطاقيّ — كلّ الصفحات thin wrappers (@page + widget من kit
+      مناسب). الـ MainLayout يَستهلك kit widgets للشارات (chat unread،
+      notifications unread). تَستعمل نفس Bindings + AppStore +
+      الخدمات من Ejar.Customer.UI (V1) عبر ProjectReference.
+    </Description>
+    <RazorLangVersion>latest</RazorLangVersion>
+  </PropertyGroup>
+  <ItemGroup>
+    <SupportedPlatform Include="browser" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- V1 يَملك الخدمات (AppStore، EjarChatClient، ApiReader، …) +
+         Bindings (EjarXxxStore). V2 يَستهلكها كما هي — لا تَكرار. -->
+    <ProjectReference Include="..\Ejar.Customer.UI\Ejar.Customer.UI.csproj" />
+
+    <!-- ClientHost (fluent builder) -->
+    <ProjectReference Include="..\..\..\..\..\libs\host-client\ACommerce.ClientHost\ACommerce.ClientHost.csproj" />
+
+    <!-- 8 kit Frontend.Customer projects — مصدر الـ widgets -->
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Auth\Frontend\Customer\ACommerce.Kits.Auth.Frontend.Customer.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Listings\Frontend\Customer\ACommerce.Kits.Listings.Frontend.Customer.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Chat\Frontend\Customer\ACommerce.Kits.Chat.Frontend.Customer.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Notifications\Frontend\Customer\ACommerce.Kits.Notifications.Frontend.Customer.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Profiles\Frontend\Customer\ACommerce.Kits.Profiles.Frontend.Customer.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Subscriptions\Frontend\Customer\ACommerce.Kits.Subscriptions.Frontend.Customer.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Support\Frontend\Customer\ACommerce.Kits.Support.Frontend.Customer.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Favorites\Frontend\Customer\ACommerce.Kits.Favorites.Frontend.Customer.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Components.Authorization" Version="10.0.7" />
+    <PackageReference Include="Microsoft.AspNetCore.Authorization" Version="10.0.7" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.7" />
+  </ItemGroup>
+</Project>

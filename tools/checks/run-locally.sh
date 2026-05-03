@@ -6,9 +6,11 @@
 #  بَرنامج يَربط منفذاً). نَفِّذها على جهازك المحلّيّ.
 #
 #  الاستعمال:
-#    bash tools/checks/run-locally.sh        # full stack
-#    bash tools/checks/run-locally.sh api    # backend only
-#    bash tools/checks/run-locally.sh web    # frontend only
+#    bash tools/checks/run-locally.sh        # api + web V1
+#    bash tools/checks/run-locally.sh api    # backend only          → :5300
+#    bash tools/checks/run-locally.sh web    # frontend V1 (legacy)  → :5113
+#    bash tools/checks/run-locally.sh v2     # frontend V2 (kit-based) → :5114
+#    bash tools/checks/run-locally.sh both   # api + web V1 + web V2
 # ─────────────────────────────────────────────────────────────────────────────
 set -e
 
@@ -37,9 +39,28 @@ start_web() {
   dotnet run --project Apps/Ejar/Customer/Frontend/Ejar.Web/Ejar.Web.csproj
 }
 
+start_v2() {
+  echo "▶ Ejar.Web.V2 (kit-based) → http://localhost:5114"
+  echo "  افتح في المتصفّح:"
+  echo "    /                — V2 home (kit widgets)"
+  echo "    /chat            — AcChatInboxWidget"
+  echo "    /chat/{id}       — AcChatRoomWidget (+ AcChatComposerWidget)"
+  echo "    /notifications   — AcNotificationsInboxWidget"
+  echo "    /dashboard       — composition: ChatUnreadBadge + NotificationsUnreadBadge"
+  echo "    /properties      — AcListingExploreWidget"
+  echo "    /me              — AcProfileWidget"
+  echo "    /plans           — AcPlansWidget"
+  echo "    /support         — AcTicketsWidget"
+  echo "    /favorites       — AcFavoritesWidget"
+  echo "    /login           — AcLoginWidget"
+  echo
+  dotnet run --project Apps/Ejar/Customer/Frontend/Ejar.Web.V2/Ejar.Web.V2.csproj
+}
+
 case "${1:-all}" in
-  api) start_api ;;
-  web) start_web ;;
+  api)  start_api ;;
+  web)  start_web ;;
+  v2)   start_v2 ;;
   all)
     start_api &
     API_PID=$!
@@ -47,5 +68,15 @@ case "${1:-all}" in
     sleep 5
     start_web
     ;;
-  *)  echo "usage: $0 [api|web|all]"; exit 1 ;;
+  both)
+    start_api &
+    API_PID=$!
+    sleep 5
+    start_web &
+    WEB_PID=$!
+    trap "kill $API_PID $WEB_PID 2>/dev/null || true" EXIT
+    sleep 5
+    start_v2
+    ;;
+  *)  echo "usage: $0 [api|web|v2|all|both]"; exit 1 ;;
 esac
