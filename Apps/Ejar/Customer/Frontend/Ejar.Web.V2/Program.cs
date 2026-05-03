@@ -36,10 +36,16 @@ if (!app.Environment.IsDevelopment())
 app.UseStaticFiles();
 app.UseAntiforgery();
 
-// V2 ليس فيها @page directives — كلّ الـ routes تُحَلّ runtime عبر
-// HostedApp + KitPageRegistry. لا AdditionalAssemblies (App في نفس
-// assembly EjarV2CustomerHostExtensions ⇒ تَسجيل مزدوج فاشل).
+// V2 routable components تَعيش في mكتبة منفصلة (ACommerce.ClientHost) —
+// تَحديداً RoutableHostedApp.razor الذي يَحوي @page "/" و @page "/{*Path}".
+// MapRazorComponents<App>() يَكتشف App's assembly فقط افتراضياً، فيَتطلَّب
+// AddAdditionalAssemblies(ClientHost) ليَكتشف الـ catch-all endpoint.
+//
+// لا تَعارُض مع الخطأ السابق "Assembly already defined": App في
+// Ejar.Customer.UI.V2 و RoutableHostedApp في ACommerce.ClientHost —
+// assembly مختلفان.
 app.MapRazorComponents<App>()
-    .AddInteractiveServerRenderMode();
+    .AddInteractiveServerRenderMode()
+    .AddAdditionalAssemblies(typeof(ACommerce.ClientHost.RoutableHostedApp).Assembly);
 
 app.Run();
