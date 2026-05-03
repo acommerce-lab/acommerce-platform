@@ -49,6 +49,22 @@
 
     <!-- Subscriptions Templates (AcSubscriptionGate + SubscriptionState) -->
     <ProjectReference Include="..\..\..\..\..\libs\kits\Subscriptions\ACommerce.Subscriptions.Templates\ACommerce.Subscriptions.Templates.csproj" />
+
+    <!-- F1: ClientHost (fluent client-side host) -->
+    <ProjectReference Include="..\..\..\..\..\libs\host-client\ACommerce.ClientHost\ACommerce.ClientHost.csproj" />
+
+    <!-- F2+F3: per-kit Frontend.Customer projects (pages + IXxxStore + PageBundles) -->
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Listings\Frontend\Customer\ACommerce.Kits.Listings.Frontend.Customer.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Chat\Frontend\Customer\ACommerce.Kits.Chat.Frontend.Customer.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Notifications\Frontend\Customer\ACommerce.Kits.Notifications.Frontend.Customer.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Profiles\Frontend\Customer\ACommerce.Kits.Profiles.Frontend.Customer.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Auth\Frontend\Customer\ACommerce.Kits.Auth.Frontend.Customer.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Subscriptions\Frontend\Customer\ACommerce.Kits.Subscriptions.Frontend.Customer.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Support\Frontend\Customer\ACommerce.Kits.Support.Frontend.Customer.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Favorites\Frontend\Customer\ACommerce.Kits.Favorites.Frontend.Customer.csproj" />
+
+    <!-- Listings Operations (for IListing interface used by EjarListingsStore) -->
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Listings\ACommerce.Kits.Listings.Operations\ACommerce.Kits.Listings.Operations.csproj" />
   </ItemGroup>
 
   <ItemGroup>
