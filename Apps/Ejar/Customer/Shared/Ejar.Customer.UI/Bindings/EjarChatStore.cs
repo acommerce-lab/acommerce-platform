@@ -1,29 +1,84 @@
 using ACommerce.Chat.Operations;
 using ACommerce.Kits.Chat.Frontend.Customer.Stores;
+using Ejar.Customer.UI.Services;
+using Ejar.Customer.UI.Store;
 
 namespace Ejar.Customer.UI.Bindings;
 
 /// <summary>
-/// تنفيذ <see cref="IChatStore"/> لإيجار. يَلفّ <c>EjarChatClient</c>
-/// الموجود + signalR realtime. العرض النهائيّ سيَستهلك IChatMessage فقط
-/// (Law 6) — التطبيق يستطيع استبدال الـ DTO الخلفيّ دون كسر صفحات الكيت.
+/// تنفيذ <see cref="IChatStore"/> لإيجار. يَلفّ <see cref="EjarChatClient"/>
+/// (للإرسال + استقبال realtime) + <see cref="ApiReader"/> (لجلب القائمة).
 /// </summary>
-public sealed class EjarChatStore : IChatStore
+public sealed class EjarChatStore : IChatStore, IDisposable
 {
-    public IReadOnlyList<ConversationSummary> Conversations { get; private set; } = Array.Empty<ConversationSummary>();
-    public IReadOnlyList<IChatMessage> CurrentMessages { get; private set; } = Array.Empty<IChatMessage>();
-    public string? CurrentConversationId { get; private set; }
-    public int UnreadTotal => Conversations.Sum(c => c.UnreadCount);
+    private readonly EjarChatClient _chat;
+    private readonly ApiReader _api;
+    private readonly List<IChatMessage> _msgs = new();
+    private List<ConversationSummary> _conversations = new();
+
+    public EjarChatStore(EjarChatClient chat, ApiReader api)
+    {
+        _chat = chat;
+        _api  = api;
+        _chat.MessageReceived += OnMessageReceived;
+    }
+
+    public IReadOnlyList<ConversationSummary> Conversations => _conversations;
+    public IReadOnlyList<IChatMessage> CurrentMessages => _msgs;
+    public string? CurrentConversationId => _chat.ActiveConversationId;
+    public int UnreadTotal => _conversations.Sum(c => c.UnreadCount);
     public bool IsLoading { get; private set; }
     public event Action? Changed;
 
-    public Task LoadConversationsAsync(CancellationToken ct = default)             { Changed?.Invoke(); return Task.CompletedTask; }
-    public Task OpenConversationAsync(string conversationId, CancellationToken ct = default)
+    public async Task LoadConversationsAsync(CancellationToken ct = default)
     {
-        CurrentConversationId = conversationId;
-        Changed?.Invoke();
-        return Task.CompletedTask;
+        IsLoading = true; Changed?.Invoke();
+        try
+        {
+            var env = await _api.GetAsync<List<ConversationSummary>>("/conversations", ct: ct);
+            if (env.Operation.Status == "Success" && env.Data is not null)
+                _conversations = env.Data;
+        }
+        finally { IsLoading = false; Changed?.Invoke(); }
     }
-    public Task SendAsync(string body, CancellationToken ct = default)             { Changed?.Invoke(); return Task.CompletedTask; }
-    public Task MarkReadAsync(string conversationId, CancellationToken ct = default) { Changed?.Invoke(); return Task.CompletedTask; }
+
+    public async Task OpenConversationAsync(string conversationId, CancellationToken ct = default)
+    {
+        await _chat.EnterAsync(conversationId);
+        var env = await _api.GetAsync<List<ChatMessageDto>>(
+            $"/conversations/{Uri.EscapeDataString(conversationId)}/messages", ct: ct);
+        _msgs.Clear();
+        if (env.Operation.Status == "Success" && env.Data is not null)
+            _msgs.AddRange(env.Data);
+        Changed?.Invoke();
+    }
+
+    public Task SendAsync(string body, CancellationToken ct = default) =>
+        _chat.SendAsync(body);
+
+    public async Task MarkReadAsync(string conversationId, CancellationToken ct = default)
+    {
+        await _api.PostAsync<object>(
+            $"/conversations/{Uri.EscapeDataString(conversationId)}/read", null, ct);
+        Changed?.Invoke();
+    }
+
+    private void OnMessageReceived(IChatMessage msg)
+    {
+        _msgs.Add(msg);
+        Changed?.Invoke();
+    }
+
+    public void Dispose() => _chat.MessageReceived -= OnMessageReceived;
+
+    /// <summary>DTO يُحقّق <see cref="IChatMessage"/> مباشرةً (Law 6).</summary>
+    private sealed class ChatMessageDto : IChatMessage
+    {
+        public string Id { get; set; } = "";
+        public string ConversationId { get; set; } = "";
+        public string SenderPartyId { get; set; } = "";
+        public string Body { get; set; } = "";
+        public DateTime SentAt { get; set; }
+        public DateTime? ReadAt { get; set; }
+    }
 }
