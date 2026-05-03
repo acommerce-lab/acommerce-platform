@@ -1,0 +1,38 @@
+@inject INotificationsStore Store
+@inject IRichTextSanitizer Sanitizer
+@implements IDisposable
+
+<section class="ac-notifications-inbox">
+    <header>
+        <h1>Notifications</h1>
+        @if (Store.UnreadCount > 0)
+        {
+            <button @onclick="MarkAll">Mark all read (@Store.UnreadCount)</button>
+        }
+    </header>
+    @if (Store.IsLoading) { <p>Loading…</p> }
+    else if (Store.Items.Count == 0) { <p>No notifications.</p> }
+    else
+    {
+        <ul>
+            @foreach (var n in Store.Items)
+            {
+                <li class="@(n.IsRead ? "ac-read" : "ac-unread")">
+                    <strong>@n.Title</strong>
+                    <p>@Sanitizer.Sanitize(n.Body)</p>
+                </li>
+            }
+        </ul>
+    }
+</section>
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        Store.Changed += OnChanged;
+        await Store.LoadAsync();
+    }
+    private Task MarkAll() => Store.MarkAllReadAsync();
+    private void OnChanged() => InvokeAsync(StateHasChanged);
+    public void Dispose() => Store.Changed -= OnChanged;
+}

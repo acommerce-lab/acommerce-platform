@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <PackageId>ACommerce.Kits.Listings.Frontend.Customer</PackageId>
+    <Version>1.0.0</Version>
+    <Description>Customer-facing UI for the Listings kit: pages (explore, details, my-listings, create), components, IListingsStore interface, and ListingsPageBundle that an app registers via AddKitPages(). The app implements IListingsStore against its own data shape; kit pages talk only to the interface (Law 6).</Description>
+    <RazorLangVersion>latest</RazorLangVersion>
+  </PropertyGroup>
+  <ItemGroup>
+    <SupportedPlatform Include="browser" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\ACommerce.Kits.Listings.Operations\ACommerce.Kits.Listings.Operations.csproj" />
+    <ProjectReference Include="..\..\..\..\host-client\ACommerce.ClientHost\ACommerce.ClientHost.csproj" />
+  </ItemGroup>
+</Project>

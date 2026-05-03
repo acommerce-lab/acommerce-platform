@@ -1,0 +1,31 @@
+@inject ISupportStore Store
+@implements IDisposable
+
+<section class="ac-tickets">
+    @if (Store.IsLoading) { <p>Loading…</p> }
+    else if (Store.Tickets.Count == 0) { <p>No tickets.</p> }
+    else
+    {
+        <ul>
+            @foreach (var t in Store.Tickets)
+            {
+                <li>
+                    <a href="@($"/support/{t.Id}")">
+                        <strong>@t.Subject</strong>
+                        <span>@t.Status</span>
+                    </a>
+                </li>
+            }
+        </ul>
+    }
+</section>
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        Store.Changed += OnChanged;
+        await Store.LoadAsync();
+    }
+    private void OnChanged() => InvokeAsync(StateHasChanged);
+    public void Dispose() => Store.Changed -= OnChanged;
+}

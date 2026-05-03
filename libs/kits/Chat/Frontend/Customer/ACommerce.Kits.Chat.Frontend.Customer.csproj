@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <PackageId>ACommerce.Kits.Chat.Frontend.Customer</PackageId>
+    <Version>1.0.0</Version>
+    <Description>Customer-facing UI for the Chat kit: conversation list page, chat room page, IChatStore reactive store interface, and ChatPageBundle.</Description>
+    <RazorLangVersion>latest</RazorLangVersion>
+  </PropertyGroup>
+  <ItemGroup>
+    <SupportedPlatform Include="browser" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\ACommerce.Chat.Operations\ACommerce.Chat.Operations.csproj" />
+    <ProjectReference Include="..\..\..\..\host-client\ACommerce.ClientHost\ACommerce.ClientHost.csproj" />
+  </ItemGroup>
+</Project>

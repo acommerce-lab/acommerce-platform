@@ -1,0 +1,29 @@
+@inject ISubscriptionsStore Store
+@implements IDisposable
+
+<section class="ac-plans">
+    @if (Store.IsLoading) { <p>Loading…</p> }
+    else
+    {
+        <ul class="ac-plans-grid">
+            @foreach (var p in Store.Plans)
+            {
+                <li>
+                    <h2>@p.Name</h2>
+                    <p>@p.Slug</p>
+                    <button @onclick="() => Store.SubscribeAsync(p.Id.ToString())">Subscribe</button>
+                </li>
+            }
+        </ul>
+    }
+</section>
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        Store.Changed += OnChanged;
+        await Store.LoadPlansAsync();
+    }
+    private void OnChanged() => InvokeAsync(StateHasChanged);
+    public void Dispose() => Store.Changed -= OnChanged;
+}

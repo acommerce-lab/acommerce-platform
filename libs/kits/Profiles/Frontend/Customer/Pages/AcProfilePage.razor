@@ -1,0 +1,22 @@
+@inject IProfileStore Store
+@implements IDisposable
+
+<section class="ac-profile">
+    @if (Store.IsLoading || Store.Current is null) { <p>Loading…</p> }
+    else
+    {
+        <h1>@Store.Current.FullName</h1>
+        <p>@Store.Current.Phone</p>
+        <a href="/me/edit">Edit</a>
+    }
+</section>
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        Store.Changed += OnChanged;
+        await Store.LoadAsync();
+    }
+    private void OnChanged() => InvokeAsync(StateHasChanged);
+    public void Dispose() => Store.Changed -= OnChanged;
+}

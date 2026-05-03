@@ -1,0 +1,32 @@
+@inject IChatStore Store
+@implements IDisposable
+
+<section class="ac-chat-inbox">
+    @if (Store.IsLoading) { <p>Loading…</p> }
+    else if (Store.Conversations.Count == 0) { <p>No conversations.</p> }
+    else
+    {
+        <ul>
+            @foreach (var c in Store.Conversations)
+            {
+                <li>
+                    <a href="@($"/chat/{c.Id}")">
+                        <strong>@c.PartnerName</strong>
+                        @if (!string.IsNullOrEmpty(c.LastMessagePreview)) { <span>@c.LastMessagePreview</span> }
+                        @if (c.UnreadCount > 0) { <em>@c.UnreadCount</em> }
+                    </a>
+                </li>
+            }
+        </ul>
+    }
+</section>
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        Store.Changed += OnChanged;
+        await Store.LoadConversationsAsync();
+    }
+    private void OnChanged() => InvokeAsync(StateHasChanged);
+    public void Dispose() => Store.Changed -= OnChanged;
+}

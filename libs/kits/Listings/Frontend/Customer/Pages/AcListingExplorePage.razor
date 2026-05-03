@@ -1,0 +1,38 @@
+@inject IListingsStore Store
+@implements IDisposable
+
+<section class="ac-listings-explore">
+    @if (Store.IsLoading)
+    {
+        <p>Loading…</p>
+    }
+    else if (Store.Visible.Count == 0)
+    {
+        <p>No listings.</p>
+    }
+    else
+    {
+        <ul class="ac-listings-grid">
+            @foreach (var l in Store.Visible)
+            {
+                <li>
+                    <a href="@($"/listings/{l.Id}")">
+                        <strong>@l.Title</strong>
+                        <span>@l.Price @l.TimeUnit</span>
+                    </a>
+                </li>
+            }
+        </ul>
+    }
+</section>
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        Store.Changed += OnChanged;
+        await Store.ApplyFilterAsync(ListingFilter.Empty);
+    }
+
+    private void OnChanged() => InvokeAsync(StateHasChanged);
+    public void Dispose() => Store.Changed -= OnChanged;
+}

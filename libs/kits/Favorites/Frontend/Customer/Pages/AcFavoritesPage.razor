@@ -1,0 +1,26 @@
+@inject IFavoritesStore Store
+@implements IDisposable
+
+<section class="ac-favorites">
+    @if (Store.IsLoading) { <p>Loading…</p> }
+    else if (Store.Ids.Count == 0) { <p>No favorites yet.</p> }
+    else
+    {
+        <ul>
+            @foreach (var id in Store.Ids)
+            {
+                <li>@id <button @onclick="() => Store.ToggleAsync(id)">Remove</button></li>
+            }
+        </ul>
+    }
+</section>
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        Store.Changed += OnChanged;
+        await Store.LoadAsync();
+    }
+    private void OnChanged() => InvokeAsync(StateHasChanged);
+    public void Dispose() => Store.Changed -= OnChanged;
+}

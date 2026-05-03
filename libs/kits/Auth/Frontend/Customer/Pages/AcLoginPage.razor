@@ -1,0 +1,42 @@
+@inject IAuthStore Auth
+@inject NavigationManager Nav
+@implements IDisposable
+
+<section class="ac-login">
+    @if (_step == Step.Phone)
+    {
+        <h1>Login</h1>
+        <input @bind="_phone" placeholder="+9665…" />
+        <button @onclick="RequestOtp" disabled="@Auth.IsBusy">Request code</button>
+    }
+    else
+    {
+        <h1>Enter the code</h1>
+        <input @bind="_code" placeholder="123456" />
+        <button @onclick="VerifyOtp" disabled="@Auth.IsBusy">Verify</button>
+    }
+    @if (!string.IsNullOrEmpty(Auth.LastError)) { <p class="ac-err">@Auth.LastError</p> }
+</section>
+
+@code {
+    private enum Step { Phone, Code }
+    private Step _step = Step.Phone;
+    private string _phone = "";
+    private string _code  = "";
+
+    protected override void OnInitialized() => Auth.Changed += OnChanged;
+    private void OnChanged() => InvokeAsync(StateHasChanged);
+    public void Dispose() => Auth.Changed -= OnChanged;
+
+    private async Task RequestOtp()
+    {
+        await Auth.RequestOtpAsync(_phone);
+        if (string.IsNullOrEmpty(Auth.LastError)) _step = Step.Code;
+    }
+
+    private async Task VerifyOtp()
+    {
+        await Auth.VerifyOtpAsync(_phone, _code);
+        if (Auth.IsAuthenticated) Nav.NavigateTo("/");
+    }
+}

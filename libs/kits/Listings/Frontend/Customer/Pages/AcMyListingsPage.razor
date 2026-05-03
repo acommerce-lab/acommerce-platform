@@ -1,0 +1,37 @@
+@inject IListingsStore Store
+@implements IDisposable
+
+<section class="ac-my-listings">
+    <header>
+        <h1>My Listings</h1>
+        <a href="/my-listings/new" class="ac-btn ac-btn-primary">+ New</a>
+    </header>
+    @if (Store.IsLoading)
+    {
+        <p>Loading…</p>
+    }
+    else if (Store.Mine.Count == 0)
+    {
+        <p>You have no listings yet.</p>
+    }
+    else
+    {
+        <ul>
+            @foreach (var l in Store.Mine)
+            {
+                <li><a href="@($"/listings/{l.Id}")">@l.Title</a></li>
+            }
+        </ul>
+    }
+</section>
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        Store.Changed += OnChanged;
+        await Store.LoadMineAsync();
+    }
+
+    private void OnChanged() => InvokeAsync(StateHasChanged);
+    public void Dispose() => Store.Changed -= OnChanged;
+}

@@ -1,0 +1,35 @@
+@inject IListingsStore Store
+@inject IRichTextSanitizer Sanitizer
+
+<section class="ac-listing-details">
+    @if (_loading)
+    {
+        <p>Loading…</p>
+    }
+    else if (_listing is null)
+    {
+        <p>Listing not found.</p>
+    }
+    else
+    {
+        <h1>@_listing.Title</h1>
+        <p class="ac-price">@_listing.Price @_listing.TimeUnit</p>
+        <p class="ac-location">@_listing.City — @_listing.District</p>
+        @* النصّ الغنيّ يَمرّ عبر sanitizer دائماً — لا MarkupString *@
+        <p class="ac-description">@Sanitizer.Sanitize(_listing.Description)</p>
+    }
+</section>
+
+@code {
+    [Parameter] public string? Id { get; set; }
+    private IListing? _listing;
+    private bool _loading = true;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (string.IsNullOrEmpty(Id)) { _loading = false; return; }
+        _loading = true;
+        _listing = await Store.GetByIdAsync(Id);
+        _loading = false;
+    }
+}

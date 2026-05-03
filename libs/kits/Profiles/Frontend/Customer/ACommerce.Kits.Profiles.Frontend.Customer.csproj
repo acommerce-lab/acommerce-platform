@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <PackageId>ACommerce.Kits.Profiles.Frontend.Customer</PackageId>
+    <Version>1.0.0</Version>
+    <Description>Customer-facing UI for the Profiles kit: profile view + edit pages, IProfileStore interface, ProfilesPageBundle.</Description>
+    <RazorLangVersion>latest</RazorLangVersion>
+  </PropertyGroup>
+  <ItemGroup><SupportedPlatform Include="browser" /></ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\ACommerce.Kits.Profiles.Operations\ACommerce.Kits.Profiles.Operations.csproj" />
+    <ProjectReference Include="..\..\..\..\host-client\ACommerce.ClientHost\ACommerce.ClientHost.csproj" />
+  </ItemGroup>
+</Project>

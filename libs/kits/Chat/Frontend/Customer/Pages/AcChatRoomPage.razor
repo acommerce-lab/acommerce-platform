@@ -1,0 +1,42 @@
+@inject IChatStore Store
+@inject IRichTextSanitizer Sanitizer
+@implements IDisposable
+
+<section class="ac-chat-room">
+    <ul class="ac-messages">
+        @foreach (var m in Store.CurrentMessages)
+        {
+            <li>
+                <span class="ac-from">@m.SenderPartyId</span>
+                <p>@Sanitizer.Sanitize(m.Body)</p>
+            </li>
+        }
+    </ul>
+    <form @onsubmit="OnSend" @onsubmit:preventDefault>
+        <input @bind="_draft" placeholder="Type a message" />
+        <button type="submit">Send</button>
+    </form>
+</section>
+
+@code {
+    [Parameter] public string? Id { get; set; }
+    private string _draft = "";
+
+    protected override async Task OnParametersSetAsync()
+    {
+        Store.Changed += OnChanged;
+        if (!string.IsNullOrEmpty(Id))
+            await Store.OpenConversationAsync(Id);
+    }
+
+    private async Task OnSend()
+    {
+        var body = _draft.Trim();
+        if (body.Length == 0) return;
+        _draft = "";
+        await Store.SendAsync(body);
+    }
+
+    private void OnChanged() => InvokeAsync(StateHasChanged);
+    public void Dispose() => Store.Changed -= OnChanged;
+}
