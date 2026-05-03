@@ -1,0 +1,56 @@
+@inject KitPageRegistry Registry
+@inject NavigationManager Nav
+
+@*
+    HostedApp — الـ root component للتطبيقات. يَستخدم Blazor Router مع
+    AdditionalAssemblies من السجلّ. الصفحات داخل الـ kits لا تَحوي
+    @page directive؛ بدلاً من ذلك Router.OnNavigateAsync يَستعمل
+    Registry.Resolve لمطابقة URL → ResolvedPage، ثمّ يُحوَّل لـ RouteView
+    عبر RenderFragment ديناميكيّ. الـ AdditionalAssemblies كـ fallback
+    لصفحات قديمة لا تزال تَستعمل @page (مثل صفحات التطبيق القديمة).
+*@
+
+<Router AppAssembly="@typeof(HostedApp).Assembly"
+        AdditionalAssemblies="@Registry.PageAssemblies"
+        OnNavigateAsync="@HandleNavigation">
+    <Found Context="routeData">
+        <CascadingValue Value="_currentMatch" Name="KitPageMatch">
+            @if (_currentMatch is null)
+            {
+                <RouteView RouteData="@routeData" DefaultLayout="@DefaultLayout" />
+            }
+            else
+            {
+                <DynamicComponent Type="@_currentMatch.Page.Component"
+                                  Parameters="@BuildParameters(_currentMatch)" />
+            }
+        </CascadingValue>
+    </Found>
+    <NotFound>
+        <LayoutView Layout="@DefaultLayout">
+            <p>404 — Page not found</p>
+        </LayoutView>
+    </NotFound>
+</Router>
+
+@code {
+    [Parameter] public Type? DefaultLayout { get; set; }
+
+    private PageMatch? _currentMatch;
+
+    private Task HandleNavigation(NavigationContext context)
+    {
+        // Path يَأتي بدون host — مثلاً "properties/123". نَطلبه بـ leading slash.
+        var path = "/" + context.Path;
+        _currentMatch = Registry.Resolve(path);
+        return Task.CompletedTask;
+    }
+
+    private static IDictionary<string, object?> BuildParameters(PageMatch match)
+    {
+        var dict = new Dictionary<string, object?>(match.RouteParameters.Count);
+        foreach (var kvp in match.RouteParameters)
+            dict[kvp.Key] = kvp.Value;
+        return dict;
+    }
+}
