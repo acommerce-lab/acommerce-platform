@@ -15,8 +15,8 @@
     <ProjectReference Include="..\..\..\..\..\clients\ACommerce.Client.Http\ACommerce.Client.Http.csproj" />
     <ProjectReference Include="..\..\..\..\..\clients\ACommerce.Client.StateBridge\ACommerce.Client.StateBridge.csproj" />
     <ProjectReference Include="..\..\..\..\..\libs\kits\Widgets\ACommerce.Widgets\ACommerce.Widgets.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\kits\Templates\Shared\ACommerce.Templates.Shared\ACommerce.Templates.Shared.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\kits\Templates\Admin\ACommerce.Templates.Admin\ACommerce.Templates.Admin.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\templates\Shared\ACommerce.Templates.Shared\ACommerce.Templates.Shared.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\templates\Admin\ACommerce.Templates.Admin\ACommerce.Templates.Admin.csproj" />
     <ProjectReference Include="..\..\..\..\..\libs\kits\L10n\ACommerce.L10n.Blazor\ACommerce.L10n.Blazor.csproj" />
   </ItemGroup>
 </Project>

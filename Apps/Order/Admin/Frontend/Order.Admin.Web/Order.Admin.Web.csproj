@@ -20,8 +20,8 @@
 
     <!-- Widgets + Templates -->
     <ProjectReference Include="..\..\..\..\..\libs\kits\Widgets\ACommerce.Widgets\ACommerce.Widgets.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\kits\Templates\Shared\ACommerce.Templates.Shared\ACommerce.Templates.Shared.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\kits\Templates\Admin\ACommerce.Templates.Admin\ACommerce.Templates.Admin.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\kits\Templates\Commerce.Merchant\ACommerce.Templates.Merchant.Commerce\ACommerce.Templates.Merchant.Commerce.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\templates\Shared\ACommerce.Templates.Shared\ACommerce.Templates.Shared.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\templates\Admin\ACommerce.Templates.Admin\ACommerce.Templates.Admin.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\templates\Commerce.Merchant\ACommerce.Templates.Merchant.Commerce\ACommerce.Templates.Merchant.Commerce.csproj" />
   </ItemGroup>
 </Project>

@@ -19,9 +19,9 @@
 
     <!-- Our widgets + commerce templates (the styling cascade) -->
     <ProjectReference Include="..\..\..\..\..\libs\kits\Widgets\ACommerce.Widgets\ACommerce.Widgets.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\kits\Templates\Commerce\ACommerce.Templates.Commerce\ACommerce.Templates.Commerce.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\kits\Templates\Shared\ACommerce.Templates.Shared\ACommerce.Templates.Shared.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\kits\Templates\Commerce.Customer\ACommerce.Templates.Customer.Commerce\ACommerce.Templates.Customer.Commerce.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\templates\Commerce\ACommerce.Templates.Commerce\ACommerce.Templates.Commerce.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\templates\Shared\ACommerce.Templates.Shared\ACommerce.Templates.Shared.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\templates\Commerce.Customer\ACommerce.Templates.Customer.Commerce\ACommerce.Templates.Customer.Commerce.csproj" />
 
     <!-- Culture stack for timezone-aware timestamps + numeral rendering -->
     <ProjectReference Include="..\..\..\..\..\libs\kits\Culture\ACommerce.Culture.Blazor\ACommerce.Culture.Blazor.csproj" />

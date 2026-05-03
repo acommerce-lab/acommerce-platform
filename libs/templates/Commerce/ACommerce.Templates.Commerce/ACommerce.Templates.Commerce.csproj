@@ -16,6 +16,6 @@
     <PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="10.0.7" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\..\Widgets\ACommerce.Widgets\ACommerce.Widgets.csproj" />
+    <ProjectReference Include="..\..\..\kits\Widgets\ACommerce.Widgets\ACommerce.Widgets.csproj" />
   </ItemGroup>
 </Project>

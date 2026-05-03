@@ -401,17 +401,17 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACommerce.Realtime.Provider
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACommerce.Subscriptions.Operations", "libs\kits\Subscriptions\ACommerce.Subscriptions.Operations\ACommerce.Subscriptions.Operations.csproj", "{6F15FC54-F6A6-46CD-8559-EB653870EEA5}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACommerce.Templates.Admin", "libs\kits\Templates\Admin\ACommerce.Templates.Admin\ACommerce.Templates.Admin.csproj", "{869FAB46-D964-4823-B1A2-E883ACEB363B}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACommerce.Templates.Admin", "libs\templates\Admin\ACommerce.Templates.Admin\ACommerce.Templates.Admin.csproj", "{869FAB46-D964-4823-B1A2-E883ACEB363B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACommerce.Templates.Commerce", "libs\kits\Templates\Commerce\ACommerce.Templates.Commerce\ACommerce.Templates.Commerce.csproj", "{A819A82F-45C8-4BE7-8B7A-0FDFC0E93E9D}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACommerce.Templates.Commerce", "libs\templates\Commerce\ACommerce.Templates.Commerce\ACommerce.Templates.Commerce.csproj", "{A819A82F-45C8-4BE7-8B7A-0FDFC0E93E9D}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACommerce.Templates.Customer.Commerce", "libs\kits\Templates\Commerce.Customer\ACommerce.Templates.Customer.Commerce\ACommerce.Templates.Customer.Commerce.csproj", "{526224BA-9C60-47C9-8D74-6E89437D6330}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACommerce.Templates.Customer.Commerce", "libs\templates\Commerce.Customer\ACommerce.Templates.Customer.Commerce\ACommerce.Templates.Customer.Commerce.csproj", "{526224BA-9C60-47C9-8D74-6E89437D6330}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACommerce.Templates.Merchant.Commerce", "libs\kits\Templates\Commerce.Merchant\ACommerce.Templates.Merchant.Commerce\ACommerce.Templates.Merchant.Commerce.csproj", "{FFF06979-7866-48CA-B4E1-F2898EFFFA76}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACommerce.Templates.Merchant.Commerce", "libs\templates\Commerce.Merchant\ACommerce.Templates.Merchant.Commerce\ACommerce.Templates.Merchant.Commerce.csproj", "{FFF06979-7866-48CA-B4E1-F2898EFFFA76}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACommerce.Templates.Marketplace", "libs\kits\Templates\Marketplace\ACommerce.Templates.Marketplace\ACommerce.Templates.Marketplace.csproj", "{CFDD948B-C1FF-479D-B241-71B628C4188A}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACommerce.Templates.Marketplace", "libs\templates\Marketplace\ACommerce.Templates.Marketplace\ACommerce.Templates.Marketplace.csproj", "{CFDD948B-C1FF-479D-B241-71B628C4188A}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACommerce.Templates.Shared", "libs\kits\Templates\Shared\ACommerce.Templates.Shared\ACommerce.Templates.Shared.csproj", "{06A5A73B-9BA0-44DE-A952-A6F6165E71DE}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACommerce.Templates.Shared", "libs\templates\Shared\ACommerce.Templates.Shared\ACommerce.Templates.Shared.csproj", "{06A5A73B-9BA0-44DE-A952-A6F6165E71DE}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACommerce.Translations.Operations", "libs\kits\Translations\ACommerce.Translations.Operations\ACommerce.Translations.Operations.csproj", "{F1CFF497-E6AC-49F4-A4B8-5E753EE5B54F}"
 EndProject

@@ -16,8 +16,8 @@
     <PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="10.0.7" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\..\Widgets\ACommerce.Widgets\ACommerce.Widgets.csproj" />
+    <ProjectReference Include="..\..\..\kits\Widgets\ACommerce.Widgets\ACommerce.Widgets.csproj" />
     <ProjectReference Include="..\..\Shared\ACommerce.Templates.Shared\ACommerce.Templates.Shared.csproj" />
-    <ProjectReference Include="..\..\..\..\..\clients\ACommerce.Client.Operations\ACommerce.Client.Operations.csproj" />
+    <ProjectReference Include="..\..\..\..\clients\ACommerce.Client.Operations\ACommerce.Client.Operations.csproj" />
   </ItemGroup>
 </Project>

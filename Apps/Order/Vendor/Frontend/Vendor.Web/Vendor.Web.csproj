@@ -14,9 +14,9 @@
     <ProjectReference Include="..\..\..\..\..\clients\ACommerce.Client.Http\ACommerce.Client.Http.csproj" />
     <ProjectReference Include="..\..\..\..\..\clients\ACommerce.Client.StateBridge\ACommerce.Client.StateBridge.csproj" />
     <ProjectReference Include="..\..\..\..\..\libs\kits\Widgets\ACommerce.Widgets\ACommerce.Widgets.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\kits\Templates\Shared\ACommerce.Templates.Shared\ACommerce.Templates.Shared.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\kits\Templates\Commerce.Customer\ACommerce.Templates.Customer.Commerce\ACommerce.Templates.Customer.Commerce.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\kits\Templates\Commerce.Merchant\ACommerce.Templates.Merchant.Commerce\ACommerce.Templates.Merchant.Commerce.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\templates\Shared\ACommerce.Templates.Shared\ACommerce.Templates.Shared.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\templates\Commerce.Customer\ACommerce.Templates.Customer.Commerce\ACommerce.Templates.Customer.Commerce.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\templates\Commerce.Merchant\ACommerce.Templates.Merchant.Commerce\ACommerce.Templates.Merchant.Commerce.csproj" />
     <ProjectReference Include="..\..\..\..\..\libs\kits\Culture\ACommerce.Culture.Blazor\ACommerce.Culture.Blazor.csproj" />
   </ItemGroup>
 </Project>
