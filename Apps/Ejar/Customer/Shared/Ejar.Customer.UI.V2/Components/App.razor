@@ -1,6 +1,9 @@
+@using ACommerce.ClientHost
+@using Ejar.Customer.UI.V2.Components.Layout
+
 @*
-    App.razor — root component لـ Ejar.Web.V2. الفرق الوحيد عن V1 أنّ
-    الصفحات تَأتي من هذه المكتبة (V2) التي تَستهلك kit widgets.
+    App.razor — root component لـ Ejar.Web.V2. يَلفّ HostedApp مع MainLayout.
+    لا Routes.razor، لا @page wrappers — كلّ المسارات في AddAppPages.
 *@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
@@ -13,7 +16,19 @@
     <HeadOutlet />
 </head>
 <body>
-    <Routes @rendermode="@(new Microsoft.AspNetCore.Components.Web.InteractiveServerRenderMode())" />
+    <HostedApp DefaultLayout="@typeof(MainLayout)"
+               LoginRoute="/login"
+               @rendermode="@(new Microsoft.AspNetCore.Components.Web.InteractiveServerRenderMode())">
+        <AuthorizingSlot>
+            <div class="ejar-v2-loading" role="status" aria-busy="true">جاري التحميل…</div>
+        </AuthorizingSlot>
+        <NotFoundSlot>
+            <div class="ejar-v2-notfound">
+                <h1>الصفحة غير موجودة</h1>
+                <p>عُد إلى <a href="/">الرئيسيّة</a>.</p>
+            </div>
+        </NotFoundSlot>
+    </HostedApp>
     <script src="_framework/blazor.web.js"></script>
 </body>
 </html>

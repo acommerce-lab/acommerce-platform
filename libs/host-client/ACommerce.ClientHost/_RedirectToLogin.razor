@@ -1,0 +1,12 @@
+@inject NavigationManager Nav
+
+@code {
+    [Parameter] public string Login { get; set; } = "/login";
+    [Parameter] public string Return { get; set; } = "/";
+
+    protected override void OnInitialized()
+    {
+        var ret = Uri.EscapeDataString(Return);
+        Nav.NavigateTo($"{Login}?return={ret}", forceLoad: false);
+    }
+}

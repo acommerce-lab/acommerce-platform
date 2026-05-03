@@ -1,11 +1,11 @@
-@page "/dashboard"
-@attribute [Authorize]
-
-<PageTitle>لوحة المعلومات — إيجار V2</PageTitle>
-
 @*
-    صفحة composition — تَجمع widgets من Chat + Notifications kits.
-    لا توجد PageBundle تَفرض هذا الشكل — التطبيق يَختار التَركيب.
+    EjarDashboardWidget — صفحة composition. لا @page directive — تُسَجَّل
+    عبر AddAppPages.Add("/dashboard", typeof(EjarDashboardWidget)). تَجمع
+    widgets من Chat + Notifications kits ضمن نفس الـ layout.
+
+    هذا هو النَمَط لأيّ صفحة تَدمج ≥2 widgets — تَبقى Razor file داخل
+    التطبيق، تُسجَّل بـ AddAppPages مع Type. لا @page تَنتثر، كلّ الـ
+    routes في مكان واحد ضمن EjarV2CustomerHost.
 *@
 
 <section class="ejar-v2-dashboard">

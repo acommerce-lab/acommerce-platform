@@ -1,22 +1,23 @@
+using ACommerce.Chat.Client.Blazor;
 using ACommerce.Chat.Operations;
 using ACommerce.Kits.Chat.Frontend.Customer.Stores;
-using Ejar.Customer.UI.Services;
 using Ejar.Customer.UI.Store;
 
 namespace Ejar.Customer.UI.Bindings;
 
 /// <summary>
-/// تنفيذ <see cref="IChatStore"/> لإيجار. يَلفّ <see cref="EjarChatClient"/>
-/// (للإرسال + استقبال realtime) + <see cref="ApiReader"/> (لجلب القائمة).
+/// تنفيذ <see cref="IChatStore"/> لإيجار. يَلفّ <see cref="IChatClient"/>
+/// (للإرسال + استقبال realtime — التنفيذ الفعليّ <c>EjarChatClient</c>) +
+/// <see cref="ApiReader"/> (لجلب القائمة).
 /// </summary>
 public sealed class EjarChatStore : IChatStore, IDisposable
 {
-    private readonly EjarChatClient _chat;
+    private readonly IChatClient _chat;
     private readonly ApiReader _api;
     private readonly List<IChatMessage> _msgs = new();
     private List<ConversationSummary> _conversations = new();
 
-    public EjarChatStore(EjarChatClient chat, ApiReader api)
+    public EjarChatStore(IChatClient chat, ApiReader api)
     {
         _chat = chat;
         _api  = api;
