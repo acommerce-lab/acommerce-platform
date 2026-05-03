@@ -1,25 +1,100 @@
 @*
-    EjarDashboardWidget — صفحة composition. لا @page directive — تُسَجَّل
-    عبر AddAppPages.Add("/dashboard", typeof(EjarDashboardWidget)). تَجمع
-    widgets من Chat + Notifications kits ضمن نفس الـ layout.
+    EjarDashboardWidget — صفحة composition بكامل OAM design fingerprint:
+      - OamTAccount: حساب المستخدِم (مُلَخَّص ledger-style)
+      - OamReceipt:  آخر عمليّة مُنفَّذة كإيصال
+      - OamLedger:   اليوميّة — قائمة عمليّات أخيرة
+      - شارات kit + composition
 
-    هذا هو النَمَط لأيّ صفحة تَدمج ≥2 widgets — تَبقى Razor file داخل
-    التطبيق، تُسجَّل بـ AddAppPages مع Type. لا @page تَنتثر، كلّ الـ
-    routes في مكان واحد ضمن EjarV2CustomerHost.
+    البيانات هنا توضيحيّة (sample). pass لاحق يُغذّيها من Stores.
 *@
 
-<section class="ejar-v2-dashboard">
+<section class="ejar-page-intro">
     <h1>لوحة المعلومات</h1>
-
-    <div class="ejar-v2-dashboard-stats">
-        <a href="/chat" class="ejar-v2-dashboard-card">
-            <span class="ejar-v2-card-label">المحادثات</span>
-            <AcChatUnreadBadgeWidget AriaLabel="رسائل غير مقروءة" />
-        </a>
-
-        <a href="/notifications" class="ejar-v2-dashboard-card">
-            <span class="ejar-v2-card-label">الإشعارات</span>
-            <AcNotificationsUnreadBadgeWidget AriaLabel="إشعارات غير مقروءة" />
-        </a>
-    </div>
+    <p>ملخَّص حسابك على نَمَط القيد المحاسبيّ.</p>
 </section>
+
+<header class="ejar-section-head">
+    <h2 class="ejar-section-title">حسابي</h2>
+    <span class="ejar-section-meta oam-mono">/ T-account</span>
+</header>
+
+<OamTAccount Title="ملخّص النَشاط"
+             Subtitle="user:current"
+             LeftHeader="مدين"
+             RightHeader="دائن"
+             Left="@_debitsList"
+             Right="@_creditsList"
+             Balanced="true" />
+
+<header class="ejar-section-head">
+    <h2 class="ejar-section-title">آخر عمليّة</h2>
+    <span class="ejar-section-meta oam-mono">/ receipt</span>
+</header>
+
+<OamReceipt OperationType="listing.create"
+            From="user:current"
+            To="listing:apt-zhour"
+            Time="@_lastOpTime"
+            State="OamState.Executed"
+            Tags="@_lastOpTags" />
+
+<header class="ejar-section-head">
+    <h2 class="ejar-section-title">اليوميّة</h2>
+    <span class="ejar-section-meta oam-mono">/ ledger · أخيرة</span>
+</header>
+
+<OamLedger Rows="@_ledger" />
+
+<header class="ejar-section-head">
+    <h2 class="ejar-section-title">شارات</h2>
+    <span class="ejar-section-meta oam-mono">/ kit composition</span>
+</header>
+
+<a href="/chat" class="ejar-card">
+    <div>
+        <div class="ejar-card-title">المحادثات</div>
+        <div class="ejar-card-meta">رسائل غير مقروءة</div>
+    </div>
+    <AcChatUnreadBadgeWidget AriaLabel="رسائل غير مقروءة" />
+</a>
+
+<a href="/notifications" class="ejar-card">
+    <div>
+        <div class="ejar-card-title">الإشعارات</div>
+        <div class="ejar-card-meta">إشعارات غير مقروءة</div>
+    </div>
+    <AcNotificationsUnreadBadgeWidget AriaLabel="إشعارات غير مقروءة" />
+</a>
+
+@code {
+    private static readonly OamTAccountLine[] _debitsList =
+    {
+        new("إعلانات نَشَرتها", "3"),
+        new("رسائل أرسلتها",     "142"),
+        new("مفضّلات أضَفتَها",   "12"),
+    };
+
+    private static readonly OamTAccountLine[] _creditsList =
+    {
+        new("عقارات شُوهدت",   "47"),
+        new("إشعارات قُرِئت",   "23"),
+        new("اشتراكات",        "1"),
+    };
+
+    private static readonly DateTime _lastOpTime = DateTime.UtcNow.AddMinutes(-12);
+
+    private static readonly OamTag[] _lastOpTags =
+    {
+        new("title", "شقّة الزهور"),
+        new("price", "1500"),
+        new("city",  "إب"),
+    };
+
+    private static readonly OamLedgerEntry[] _ledger =
+    {
+        new("11:42", "listing.create",    "user:current", "listing:X",   "+1"),
+        new("11:48", "favorite.toggle",   "user:current", "listing:X",   "±1"),
+        new("11:55", "chat.send",         "user:current", "conv:Y",      "+1msg"),
+        new("12:01", "notification.read", "system",       "user:current","-1"),
+    };
+}

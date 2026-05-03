@@ -1,0 +1,39 @@
+@*
+   FROM                                          TO
+   ┌─────────┐                              ┌──────────┐
+   │User:4521│ ━━━━━━━━━━ 1 ━━━━━━━━━━━━>  │Listing:X │
+   └─────────┘                              └──────────┘
+                  ◯─────●─────◯
+                   متوازن ✓
+
+   مؤشّر مرئيّ live لعمليّة قبل/أثناء التَنفيذ. الـ "خطّ التَوازن" يَنكسر
+   لو IsBalanced=false (analyzer أخفق).
+*@
+
+<div class="oam-balance @(IsBalanced ? "oam-balance-ok" : "oam-balance-fail")">
+    <div class="oam-balance-from">
+        <span class="oam-balance-party">@From</span>
+    </div>
+    <div class="oam-balance-arrow">
+        <span class="oam-balance-line @(IsBalanced ? "" : "oam-balance-line-broken")"></span>
+        @if (!string.IsNullOrEmpty(Amount))
+        {
+            <span class="oam-balance-amount oam-mono">@Amount</span>
+        }
+    </div>
+    <div class="oam-balance-to">
+        <span class="oam-balance-party">@To</span>
+    </div>
+    <div class="oam-balance-status">
+        @(IsBalanced ? OkLabel : FailLabel)
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public string From   { get; set; } = "";
+    [Parameter, EditorRequired] public string To     { get; set; } = "";
+    [Parameter] public string? Amount { get; set; }
+    [Parameter] public bool IsBalanced { get; set; } = true;
+    [Parameter] public string OkLabel   { get; set; } = "متوازن";
+    [Parameter] public string FailLabel { get; set; } = "غير متوازن";
+}

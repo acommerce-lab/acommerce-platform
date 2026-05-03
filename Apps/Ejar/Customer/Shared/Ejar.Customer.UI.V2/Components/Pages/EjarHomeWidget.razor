@@ -1,26 +1,49 @@
 @*
-    EjarHomeWidget — الصفحة الافتراضيّة (route "/"). أيضاً composition،
-    تُسَجَّل عبر AddAppPages.
+    EjarHomeWidget — الصفحة الرئيسيّة. لا route مباشرة؛ تُسَجَّل عبر
+    AddAppPages في EjarV2CustomerHost. تَستعمل OAM design system.
 *@
 
-<section class="ejar-v2-home">
-    <h1>أهلاً بك في إيجار V2</h1>
-    <p class="ejar-v2-hint">
-        نسخة kit-based — كلّ صفحة هنا widget مُسجَّل في AddAppPages.
-        المحادثات والإشعارات تَعمل فعليّاً ضدّ نفس Ejar.Api.
+<section class="ejar-page-intro">
+    <h1>أهلاً بك في إيجار</h1>
+    <p>
+        منصّة إعلانات عقاريّة بنموذج عمليّات محاسبيّ —
+        كلّ فعل لك مُسجَّل كقيد، كلّ صفحة هنا تُجمّع من widgets قابلة لإعادة التَركيب.
     </p>
-
-    <div class="ejar-v2-quicklinks">
-        <a href="/notifications" class="ejar-v2-card">
-            <span class="ejar-v2-card-title">الإشعارات</span>
-            <AcNotificationsUnreadBadgeWidget />
-        </a>
-        <a href="/chat" class="ejar-v2-card">
-            <span class="ejar-v2-card-title">المحادثات</span>
-            <AcChatUnreadBadgeWidget />
-        </a>
-        <a href="/dashboard" class="ejar-v2-card">
-            <span class="ejar-v2-card-title">لوحة المعلومات</span>
-        </a>
-    </div>
 </section>
+
+<header class="ejar-section-head">
+    <h2 class="ejar-section-title">اختصارات</h2>
+    <span class="ejar-section-meta oam-mono">/ home</span>
+</header>
+
+<a href="/properties" class="ejar-card">
+    <div>
+        <div class="ejar-card-title">تَصفّح العقارات</div>
+        <div class="ejar-card-meta">عرض الإعلانات المتاحة + فلترة حسب المدينة والفئة</div>
+    </div>
+    <span aria-hidden="true">←</span>
+</a>
+
+<a href="/notifications" class="ejar-card">
+    <div>
+        <div class="ejar-card-title">الإشعارات</div>
+        <div class="ejar-card-meta">آخر التَنبيهات والتَعليقات على إعلاناتك</div>
+    </div>
+    <AcNotificationsUnreadBadgeWidget />
+</a>
+
+<a href="/chat" class="ejar-card">
+    <div>
+        <div class="ejar-card-title">المحادثات</div>
+        <div class="ejar-card-meta">رسائل المهتمّين بإعلاناتك أو ما تَتابعه</div>
+    </div>
+    <AcChatUnreadBadgeWidget />
+</a>
+
+<a href="/dashboard" class="ejar-card">
+    <div>
+        <div class="ejar-card-title">لوحة المعلومات</div>
+        <div class="ejar-card-meta">ملخّص نَشاطك — إعلاناتك، رسائلك، إشعاراتك</div>
+    </div>
+    <span aria-hidden="true">←</span>
+</a>

@@ -1,0 +1,33 @@
+@page "/"
+@page "/{*Path:nonfile}"
+
+@*
+    RoutableHostedApp — مكوّن جذر routable واحد. سَببه: Blazor Web App
+    يَحتاج <c>@page</c> directive واحدة على الأقلّ لإنشاء endpoint على
+    الـ server. بدونها، الـ server يَردّ 404 لأيّ مسار.
+
+    هذا المكوّن catch-all (<c>@page "/{*Path:nonfile}"</c>) يَلتقط كلّ
+    المسارات ويُمرِّرها لـ <see cref="HostedApp"/> الذي يَحلّها فعليّاً
+    عبر <c>KitPageRegistry</c>. النَتيجة:
+      • المُستخدِم لا يَكتب صفحات بـ <c>@page</c> أصلاً.
+      • التطبيق يُسجّل route واحدة في App.razor: <c>&lt;RoutableHostedApp /&gt;</c>.
+      • كلّ شيء آخر runtime عبر <c>AddAppPages</c>.
+*@
+
+<HostedApp DefaultLayout="@DefaultLayout"
+           LoginRoute="@LoginRoute"
+           AppAssembly="@AppAssembly"
+           AuthorizingSlot="@AuthorizingSlot"
+           NotFoundSlot="@NotFoundSlot"
+           NotAuthorizedSlot="@NotAuthorizedSlot" />
+
+@code {
+    [Parameter] public string? Path { get; set; }
+
+    [Parameter] public Type? DefaultLayout { get; set; }
+    [Parameter] public string LoginRoute { get; set; } = "/login";
+    [Parameter] public System.Reflection.Assembly? AppAssembly { get; set; }
+    [Parameter] public RenderFragment? AuthorizingSlot { get; set; }
+    [Parameter] public RenderFragment? NotFoundSlot { get; set; }
+    [Parameter] public RenderFragment? NotAuthorizedSlot { get; set; }
+}

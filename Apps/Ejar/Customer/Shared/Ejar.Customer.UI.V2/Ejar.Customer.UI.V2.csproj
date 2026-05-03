@@ -24,6 +24,9 @@
          Bindings (EjarXxxStore). V2 يَستهلكها كما هي — لا تَكرار. -->
     <ProjectReference Include="..\Ejar.Customer.UI\Ejar.Customer.UI.csproj" />
 
+    <!-- OAM design fingerprint (Ledger Theme) -->
+    <ProjectReference Include="..\..\..\..\..\libs\templates\OAM\ACommerce.Templates.OAM\ACommerce.Templates.OAM.csproj" />
+
     <!-- ClientHost (fluent builder) -->
     <ProjectReference Include="..\..\..\..\..\libs\host-client\ACommerce.ClientHost\ACommerce.ClientHost.csproj" />
 

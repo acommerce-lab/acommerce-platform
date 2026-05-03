@@ -1,32 +1,27 @@
 @inject NavigationManager Nav
 @implements IDisposable
 
-@*
-    BottomNav V2 — تَنقّل ثابت في الأسفل (موبايل-أوّلاً). يَستعمل kit
-    widgets للشارات على المحادثات والإشعارات.
-*@
-
-<nav class="ejar-v2-bottomnav" aria-label="القائمة السفليّة">
+<nav class="ejar-bottomnav" aria-label="القائمة السفليّة">
     <a href="/" class="@Active("/")">
-        <span class="ejar-v2-bn-icon">🏠</span>
-        <span class="ejar-v2-bn-label">الرئيسيّة</span>
+        <span class="ejar-bn-icon" aria-hidden="true">⌂</span>
+        <span class="ejar-bn-label">الرئيسيّة</span>
     </a>
     <a href="/properties" class="@Active("/properties")">
-        <span class="ejar-v2-bn-icon">🏢</span>
-        <span class="ejar-v2-bn-label">العقارات</span>
+        <span class="ejar-bn-icon" aria-hidden="true">▤</span>
+        <span class="ejar-bn-label">العقارات</span>
     </a>
     <a href="/favorites" class="@Active("/favorites")">
-        <span class="ejar-v2-bn-icon">♥</span>
-        <span class="ejar-v2-bn-label">المفضّلة</span>
+        <span class="ejar-bn-icon" aria-hidden="true">♥</span>
+        <span class="ejar-bn-label">المفضّلة</span>
     </a>
     <a href="/chat" class="@Active("/chat")">
-        <span class="ejar-v2-bn-icon">💬</span>
-        <span class="ejar-v2-bn-label">المحادثات</span>
+        <span class="ejar-bn-icon" aria-hidden="true">✉</span>
+        <span class="ejar-bn-label">المحادثات</span>
         <AcChatUnreadBadgeWidget />
     </a>
     <a href="/me" class="@Active("/me")">
-        <span class="ejar-v2-bn-icon">👤</span>
-        <span class="ejar-v2-bn-label">حسابي</span>
+        <span class="ejar-bn-icon" aria-hidden="true">◉</span>
+        <span class="ejar-bn-label">حسابي</span>
     </a>
 </nav>
 
@@ -41,6 +36,6 @@
         if (string.IsNullOrEmpty(rel)) rel = "/";
         else if (!rel.StartsWith("/")) rel = "/" + rel;
         var match = path == "/" ? rel == "/" : rel.StartsWith(path);
-        return match ? "ejar-v2-bn-active" : "";
+        return match ? "active" : "";
     }
 }
