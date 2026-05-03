@@ -291,33 +291,33 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACommerce.Kits.Auth.Operati
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACommerce.Kits.Auth.Templates", "libs\kits\Auth\ACommerce.Kits.Auth.Templates\ACommerce.Kits.Auth.Templates.csproj", "{46691545-0210-4E47-8D63-C69C41E232E9}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACommerce.Authentication.Providers.Token", "libs\kits\Auth\Providers\Token\ACommerce.Authentication.Providers.Token\ACommerce.Authentication.Providers.Token.csproj", "{79F66E29-E934-4E09-A7F5-F0AC735F6C82}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACommerce.Authentication.Providers.Token", "libs\providers\Auth\Token\ACommerce.Authentication.Providers.Token\ACommerce.Authentication.Providers.Token.csproj", "{79F66E29-E934-4E09-A7F5-F0AC735F6C82}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACommerce.Authentication.TwoFactor.Operations", "libs\kits\Auth.TwoFactor\ACommerce.Authentication.TwoFactor.Operations\ACommerce.Authentication.TwoFactor.Operations.csproj", "{8B59C1F3-101F-4628-83AC-44491489B00F}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACommerce.Kits.Auth.TwoFactor.AsAuth", "libs\kits\Auth.TwoFactor\ACommerce.Kits.Auth.TwoFactor.AsAuth\ACommerce.Kits.Auth.TwoFactor.AsAuth.csproj", "{6EEA6665-4F77-4ADA-8BA4-07C05835E9FD}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACommerce.Authentication.TwoFactor.Providers.Email", "libs\kits\Auth.TwoFactor\Providers\Email\ACommerce.Authentication.TwoFactor.Providers.Email\ACommerce.Authentication.TwoFactor.Providers.Email.csproj", "{30E00DE8-3C66-4FA5-AD25-2598D2BCDDE2}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACommerce.Authentication.TwoFactor.Providers.Email", "libs\providers\Auth.TwoFactor\Email\ACommerce.Authentication.TwoFactor.Providers.Email\ACommerce.Authentication.TwoFactor.Providers.Email.csproj", "{30E00DE8-3C66-4FA5-AD25-2598D2BCDDE2}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACommerce.Authentication.TwoFactor.Providers.Nafath", "libs\kits\Auth.TwoFactor\Providers\Nafath\ACommerce.Authentication.TwoFactor.Providers.Nafath\ACommerce.Authentication.TwoFactor.Providers.Nafath.csproj", "{93A70878-9813-4930-BDD4-0BF13FCD4B05}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACommerce.Authentication.TwoFactor.Providers.Nafath", "libs\providers\Auth.TwoFactor\Nafath\ACommerce.Authentication.TwoFactor.Providers.Nafath\ACommerce.Authentication.TwoFactor.Providers.Nafath.csproj", "{93A70878-9813-4930-BDD4-0BF13FCD4B05}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACommerce.Authentication.TwoFactor.Providers.Nafath.Mock", "libs\kits\Auth.TwoFactor\Providers\Nafath\ACommerce.Authentication.TwoFactor.Providers.Nafath.Mock\ACommerce.Authentication.TwoFactor.Providers.Nafath.Mock.csproj", "{7D3D35CE-7F5F-4D9E-9893-8D766E7E3E0F}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACommerce.Authentication.TwoFactor.Providers.Nafath.Mock", "libs\providers\Auth.TwoFactor\Nafath\ACommerce.Authentication.TwoFactor.Providers.Nafath.Mock\ACommerce.Authentication.TwoFactor.Providers.Nafath.Mock.csproj", "{7D3D35CE-7F5F-4D9E-9893-8D766E7E3E0F}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACommerce.Authentication.TwoFactor.Providers.Sms", "libs\kits\Auth.TwoFactor\Providers\Sms\ACommerce.Authentication.TwoFactor.Providers.Sms\ACommerce.Authentication.TwoFactor.Providers.Sms.csproj", "{8102C12D-1CD8-41A7-8020-521DC786EAE3}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACommerce.Authentication.TwoFactor.Providers.Sms", "libs\providers\Auth.TwoFactor\Sms\ACommerce.Authentication.TwoFactor.Providers.Sms\ACommerce.Authentication.TwoFactor.Providers.Sms.csproj", "{8102C12D-1CD8-41A7-8020-521DC786EAE3}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACommerce.Authentication.TwoFactor.Providers.Sms.Mock", "libs\kits\Auth.TwoFactor\Providers\Sms\ACommerce.Authentication.TwoFactor.Providers.Sms.Mock\ACommerce.Authentication.TwoFactor.Providers.Sms.Mock.csproj", "{53DDE351-FA39-4A8B-8018-4710B1DBB5DF}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACommerce.Authentication.TwoFactor.Providers.Sms.Mock", "libs\providers\Auth.TwoFactor\Sms\ACommerce.Authentication.TwoFactor.Providers.Sms.Mock\ACommerce.Authentication.TwoFactor.Providers.Sms.Mock.csproj", "{53DDE351-FA39-4A8B-8018-4710B1DBB5DF}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACommerce.Kits.Auth.TwoFactor.Sms", "libs\kits\Auth.TwoFactor\Providers\Sms\ACommerce.Kits.Auth.TwoFactor.Sms\ACommerce.Kits.Auth.TwoFactor.Sms.csproj", "{2331C125-B0B8-4715-962D-53AD7F764F81}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACommerce.Kits.Auth.TwoFactor.Sms", "libs\providers\Auth.TwoFactor\Sms\ACommerce.Kits.Auth.TwoFactor.Sms\ACommerce.Kits.Auth.TwoFactor.Sms.csproj", "{2331C125-B0B8-4715-962D-53AD7F764F81}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACommerce.Kits.Auth.TwoFactor.Sms.Templates", "libs\kits\Auth.TwoFactor\Providers\Sms\ACommerce.Kits.Auth.TwoFactor.Sms.Templates\ACommerce.Kits.Auth.TwoFactor.Sms.Templates.csproj", "{211441D4-2C31-428E-BED2-68B746DE4153}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACommerce.Kits.Auth.TwoFactor.Sms.Templates", "libs\providers\Auth.TwoFactor\Sms\ACommerce.Kits.Auth.TwoFactor.Sms.Templates\ACommerce.Kits.Auth.TwoFactor.Sms.Templates.csproj", "{211441D4-2C31-428E-BED2-68B746DE4153}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACommerce.Bookings.Operations", "libs\kits\Bookings\ACommerce.Bookings.Operations\ACommerce.Bookings.Operations.csproj", "{16E84F3E-A1F7-4E07-8941-8EEC97541604}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACommerce.Cache.Operations", "libs\kits\Cache\ACommerce.Cache.Operations\ACommerce.Cache.Operations.csproj", "{31E08A13-D5EB-485A-9986-36FC0E70925E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACommerce.Cache.Providers.InMemory", "libs\kits\Cache\Providers\InMemory\ACommerce.Cache.Providers.InMemory\ACommerce.Cache.Providers.InMemory.csproj", "{9E670791-2E56-4F53-B268-B77C5EB79E9E}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACommerce.Cache.Providers.InMemory", "libs\providers\Cache\InMemory\ACommerce.Cache.Providers.InMemory\ACommerce.Cache.Providers.InMemory.csproj", "{9E670791-2E56-4F53-B268-B77C5EB79E9E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACommerce.Cache.Providers.Redis", "libs\kits\Cache\Providers\Redis\ACommerce.Cache.Providers.Redis\ACommerce.Cache.Providers.Redis.csproj", "{2CF97B23-17D9-4E69-8807-70982C6AB245}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACommerce.Cache.Providers.Redis", "libs\providers\Cache\Redis\ACommerce.Cache.Providers.Redis\ACommerce.Cache.Providers.Redis.csproj", "{2CF97B23-17D9-4E69-8807-70982C6AB245}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACommerce.Chat.Client.Blazor", "libs\kits\Chat\ACommerce.Chat.Client.Blazor\ACommerce.Chat.Client.Blazor.csproj", "{5B8A7482-7FEA-4F9C-81E8-D02E90E1F6D9}"
 EndProject
@@ -349,13 +349,13 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACommerce.Culture.Intercept
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACommerce.Culture.Translation.Abstractions", "libs\kits\Culture\ACommerce.Culture.Translation.Abstractions\ACommerce.Culture.Translation.Abstractions.csproj", "{F5367A15-3872-4DE8-967E-1BD53962B2A2}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACommerce.Culture.Phone.Providers.LibPhoneNumber", "libs\kits\Culture\Providers\Phone.LibPhoneNumber\ACommerce.Culture.Phone.Providers.LibPhoneNumber\ACommerce.Culture.Phone.Providers.LibPhoneNumber.csproj", "{276EFAFD-BB7C-4102-88E9-016A32E3FC2E}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACommerce.Culture.Phone.Providers.LibPhoneNumber", "libs\providers\Culture\Phone.LibPhoneNumber\ACommerce.Culture.Phone.Providers.LibPhoneNumber\ACommerce.Culture.Phone.Providers.LibPhoneNumber.csproj", "{276EFAFD-BB7C-4102-88E9-016A32E3FC2E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACommerce.Culture.Translation.Providers.Ai", "libs\kits\Culture\Providers\Translation.Ai\ACommerce.Culture.Translation.Providers.Ai\ACommerce.Culture.Translation.Providers.Ai.csproj", "{5656142C-F3F5-4A2F-A861-C859C4EF1CA7}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACommerce.Culture.Translation.Providers.Ai", "libs\providers\Culture\Translation.Ai\ACommerce.Culture.Translation.Providers.Ai\ACommerce.Culture.Translation.Providers.Ai.csproj", "{5656142C-F3F5-4A2F-A861-C859C4EF1CA7}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACommerce.Culture.Translation.Providers.Echo", "libs\kits\Culture\Providers\Translation.Echo\ACommerce.Culture.Translation.Providers.Echo\ACommerce.Culture.Translation.Providers.Echo.csproj", "{C5ADA545-DC83-4C83-AFA8-86451B18A62B}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACommerce.Culture.Translation.Providers.Echo", "libs\providers\Culture\Translation.Echo\ACommerce.Culture.Translation.Providers.Echo\ACommerce.Culture.Translation.Providers.Echo.csproj", "{C5ADA545-DC83-4C83-AFA8-86451B18A62B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACommerce.Culture.Translation.Providers.Google", "libs\kits\Culture\Providers\Translation.Google\ACommerce.Culture.Translation.Providers.Google\ACommerce.Culture.Translation.Providers.Google.csproj", "{D9DF6D22-9FA3-4380-90CC-D65FBB8CAF84}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACommerce.Culture.Translation.Providers.Google", "libs\providers\Culture\Translation.Google\ACommerce.Culture.Translation.Providers.Google\ACommerce.Culture.Translation.Providers.Google.csproj", "{D9DF6D22-9FA3-4380-90CC-D65FBB8CAF84}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACommerce.Favorites.Operations", "libs\kits\Favorites\ACommerce.Favorites.Operations\ACommerce.Favorites.Operations.csproj", "{7F7B2E15-2D79-4DCA-986A-89064075BDA8}"
 EndProject
@@ -363,11 +363,11 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACommerce.Files.Abstraction
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACommerce.Files.Operations", "libs\kits\Files\ACommerce.Files.Operations\ACommerce.Files.Operations.csproj", "{8928059E-E9D2-418C-879B-E0C03C15674D}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACommerce.Files.Storage.AliyunOSS", "libs\kits\Files\Providers\AliyunOSS\ACommerce.Files.Storage.AliyunOSS\ACommerce.Files.Storage.AliyunOSS.csproj", "{315376BE-DFD4-47FA-878E-2718B08CF637}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACommerce.Files.Storage.AliyunOSS", "libs\providers\Files\AliyunOSS\ACommerce.Files.Storage.AliyunOSS\ACommerce.Files.Storage.AliyunOSS.csproj", "{315376BE-DFD4-47FA-878E-2718B08CF637}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACommerce.Files.Storage.GoogleCloud", "libs\kits\Files\Providers\GoogleCloud\ACommerce.Files.Storage.GoogleCloud\ACommerce.Files.Storage.GoogleCloud.csproj", "{9A1206F3-5EAD-491F-B2D0-99A9F08A34E6}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACommerce.Files.Storage.GoogleCloud", "libs\providers\Files\GoogleCloud\ACommerce.Files.Storage.GoogleCloud\ACommerce.Files.Storage.GoogleCloud.csproj", "{9A1206F3-5EAD-491F-B2D0-99A9F08A34E6}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACommerce.Files.Storage.Local", "libs\kits\Files\Providers\Local\ACommerce.Files.Storage.Local\ACommerce.Files.Storage.Local.csproj", "{3CEC3C33-39CF-4233-A8EA-91656920D213}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACommerce.Files.Storage.Local", "libs\providers\Files\Local\ACommerce.Files.Storage.Local\ACommerce.Files.Storage.Local.csproj", "{3CEC3C33-39CF-4233-A8EA-91656920D213}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACommerce.L10n.Blazor", "libs\kits\L10n\ACommerce.L10n.Blazor\ACommerce.L10n.Blazor.csproj", "{0248E0A4-9E92-4537-8EC1-01CEDD2203E4}"
 EndProject
@@ -375,17 +375,17 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACommerce.Kits.Notification
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACommerce.Notification.Operations", "libs\kits\Notifications\ACommerce.Notification.Operations\ACommerce.Notification.Operations.csproj", "{32F7EB5F-139A-4EFD-A74F-88CB1E215135}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACommerce.Notification.Providers.Email", "libs\kits\Notifications\Providers\Email\ACommerce.Notification.Providers.Email\ACommerce.Notification.Providers.Email.csproj", "{EE0D9E4B-B9CA-4850-93E5-3CEB46F43739}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACommerce.Notification.Providers.Email", "libs\providers\Notifications\Email\ACommerce.Notification.Providers.Email\ACommerce.Notification.Providers.Email.csproj", "{EE0D9E4B-B9CA-4850-93E5-3CEB46F43739}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACommerce.Notification.Providers.Firebase", "libs\kits\Notifications\Providers\Firebase\ACommerce.Notification.Providers.Firebase\ACommerce.Notification.Providers.Firebase.csproj", "{96ECEDC4-2886-44CC-9FC0-6CE768AA3929}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACommerce.Notification.Providers.Firebase", "libs\providers\Notifications\Firebase\ACommerce.Notification.Providers.Firebase\ACommerce.Notification.Providers.Firebase.csproj", "{96ECEDC4-2886-44CC-9FC0-6CE768AA3929}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACommerce.Notification.Providers.InApp", "libs\kits\Notifications\Providers\InApp\ACommerce.Notification.Providers.InApp\ACommerce.Notification.Providers.InApp.csproj", "{3D9A3779-5961-49F5-9E72-22D61630B06C}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACommerce.Notification.Providers.InApp", "libs\providers\Notifications\InApp\ACommerce.Notification.Providers.InApp\ACommerce.Notification.Providers.InApp.csproj", "{3D9A3779-5961-49F5-9E72-22D61630B06C}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACommerce.Payments.Operations", "libs\kits\Payments\ACommerce.Payments.Operations\ACommerce.Payments.Operations.csproj", "{1542DF88-50F4-4E7F-A027-FF39C9243EED}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACommerce.Payments.Providers.Moyasar", "libs\kits\Payments\Providers\Moyasar\ACommerce.Payments.Providers.Moyasar\ACommerce.Payments.Providers.Moyasar.csproj", "{D6D7F5DC-3C15-4428-B1D7-5654AD285590}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACommerce.Payments.Providers.Moyasar", "libs\providers\Payments\Moyasar\ACommerce.Payments.Providers.Moyasar\ACommerce.Payments.Providers.Moyasar.csproj", "{D6D7F5DC-3C15-4428-B1D7-5654AD285590}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACommerce.Payments.Providers.Noon", "libs\kits\Payments\Providers\Noon\ACommerce.Payments.Providers.Noon\ACommerce.Payments.Providers.Noon.csproj", "{FAB01206-FAB3-4A4B-9EC6-9F987C54FB2A}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACommerce.Payments.Providers.Noon", "libs\providers\Payments\Noon\ACommerce.Payments.Providers.Noon\ACommerce.Payments.Providers.Noon.csproj", "{FAB01206-FAB3-4A4B-9EC6-9F987C54FB2A}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACommerce.Permissions.Operations", "libs\kits\Permissions\ACommerce.Permissions.Operations\ACommerce.Permissions.Operations.csproj", "{4EA112AD-76D1-451E-B611-1414D5E2999A}"
 EndProject
@@ -393,11 +393,11 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACommerce.OrderPlatform.Ent
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACommerce.Realtime.Operations", "libs\kits\Realtime\ACommerce.Realtime.Operations\ACommerce.Realtime.Operations.csproj", "{DB7989FF-9451-4C1D-A948-9B435366A21B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACommerce.Realtime.Providers.InMemory", "libs\kits\Realtime\Providers\InMemory\ACommerce.Realtime.Providers.InMemory\ACommerce.Realtime.Providers.InMemory.csproj", "{E21CB122-939F-4154-A18A-05631741CBF5}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACommerce.Realtime.Providers.InMemory", "libs\providers\Realtime\InMemory\ACommerce.Realtime.Providers.InMemory\ACommerce.Realtime.Providers.InMemory.csproj", "{E21CB122-939F-4154-A18A-05631741CBF5}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACommerce.Realtime.Providers.SignalR", "libs\kits\Realtime\Providers\SignalR\ACommerce.Realtime.Providers.SignalR\ACommerce.Realtime.Providers.SignalR.csproj", "{5E92B42A-4197-4E0C-883D-18713287DD0B}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACommerce.Realtime.Providers.SignalR", "libs\providers\Realtime\SignalR\ACommerce.Realtime.Providers.SignalR\ACommerce.Realtime.Providers.SignalR.csproj", "{5E92B42A-4197-4E0C-883D-18713287DD0B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACommerce.Realtime.Providers.SignalR.Redis", "libs\kits\Realtime\Providers\SignalR.Redis\ACommerce.Realtime.Providers.SignalR.Redis\ACommerce.Realtime.Providers.SignalR.Redis.csproj", "{6AC1AA7B-9F50-46F3-A843-B939927EEE0E}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACommerce.Realtime.Providers.SignalR.Redis", "libs\providers\Realtime\SignalR.Redis\ACommerce.Realtime.Providers.SignalR.Redis\ACommerce.Realtime.Providers.SignalR.Redis.csproj", "{6AC1AA7B-9F50-46F3-A843-B939927EEE0E}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACommerce.Subscriptions.Operations", "libs\kits\Subscriptions\ACommerce.Subscriptions.Operations\ACommerce.Subscriptions.Operations.csproj", "{6F15FC54-F6A6-46CD-8559-EB653870EEA5}"
 EndProject

@@ -22,40 +22,40 @@
   <ItemGroup>
     <!-- ─── Auth: Nafath Mock (تحقق تلقائي 10 ث — يُستبدَل بـ Providers.Nafath في الإنتاج) ── -->
     <ProjectReference Include="..\..\..\..\..\libs\kits\Auth\ACommerce.Authentication.Operations\ACommerce.Authentication.Operations.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\kits\Auth.TwoFactor\Providers\Nafath\ACommerce.Authentication.TwoFactor.Providers.Nafath.Mock\ACommerce.Authentication.TwoFactor.Providers.Nafath.Mock.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\providers\Auth.TwoFactor\Nafath\ACommerce.Authentication.TwoFactor.Providers.Nafath.Mock\ACommerce.Authentication.TwoFactor.Providers.Nafath.Mock.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <!-- ─── Payments: Noon Pay ───────────────────────────────────────── -->
     <ProjectReference Include="..\..\..\..\..\libs\kits\Payments\ACommerce.Payments.Operations\ACommerce.Payments.Operations.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\kits\Payments\Providers\Noon\ACommerce.Payments.Providers.Noon\ACommerce.Payments.Providers.Noon.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\providers\Payments\Noon\ACommerce.Payments.Providers.Noon\ACommerce.Payments.Providers.Noon.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <!-- ─── Files: AliyunOSS (prod) + Local (dev) ────────────────────── -->
     <ProjectReference Include="..\..\..\..\..\libs\kits\Files\ACommerce.Files.Operations\ACommerce.Files.Operations.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\kits\Files\Providers\AliyunOSS\ACommerce.Files.Storage.AliyunOSS\ACommerce.Files.Storage.AliyunOSS.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\kits\Files\Providers\Local\ACommerce.Files.Storage.Local\ACommerce.Files.Storage.Local.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\providers\Files\AliyunOSS\ACommerce.Files.Storage.AliyunOSS\ACommerce.Files.Storage.AliyunOSS.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\providers\Files\Local\ACommerce.Files.Storage.Local\ACommerce.Files.Storage.Local.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <!-- ─── Notifications: Firebase (prod) + InApp + Email ───────────── -->
     <ProjectReference Include="..\..\..\..\..\libs\kits\Notifications\ACommerce.Notification.Operations\ACommerce.Notification.Operations.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\kits\Notifications\Providers\Firebase\ACommerce.Notification.Providers.Firebase\ACommerce.Notification.Providers.Firebase.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\kits\Notifications\Providers\Email\ACommerce.Notification.Providers.Email\ACommerce.Notification.Providers.Email.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\kits\Notifications\Providers\InApp\ACommerce.Notification.Providers.InApp\ACommerce.Notification.Providers.InApp.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\providers\Notifications\Firebase\ACommerce.Notification.Providers.Firebase\ACommerce.Notification.Providers.Firebase.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\providers\Notifications\Email\ACommerce.Notification.Providers.Email\ACommerce.Notification.Providers.Email.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\providers\Notifications\InApp\ACommerce.Notification.Providers.InApp\ACommerce.Notification.Providers.InApp.csproj" />
     <!-- Realtime SignalR transport (browser push via WebSocket) + Chat abstraction -->
     <ProjectReference Include="..\..\..\..\..\libs\kits\Realtime\ACommerce.Realtime.Operations\ACommerce.Realtime.Operations.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\kits\Realtime\Providers\SignalR\ACommerce.Realtime.Providers.SignalR\ACommerce.Realtime.Providers.SignalR.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\kits\Realtime\Providers\InMemory\ACommerce.Realtime.Providers.InMemory\ACommerce.Realtime.Providers.InMemory.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\providers\Realtime\SignalR\ACommerce.Realtime.Providers.SignalR\ACommerce.Realtime.Providers.SignalR.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\providers\Realtime\InMemory\ACommerce.Realtime.Providers.InMemory\ACommerce.Realtime.Providers.InMemory.csproj" />
     <ProjectReference Include="..\..\..\..\..\libs\kits\Chat\ACommerce.Chat.Operations\ACommerce.Chat.Operations.csproj" />
     <ProjectReference Include="..\..\..\Domain\Ashare.V2.Domain.csproj" />
 
     <!-- Production-grade cache + SignalR Redis backplane (opt-in via config) -->
     <ProjectReference Include="..\..\..\..\..\libs\kits\Cache\ACommerce.Cache.Operations\ACommerce.Cache.Operations.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\kits\Cache\Providers\InMemory\ACommerce.Cache.Providers.InMemory\ACommerce.Cache.Providers.InMemory.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\kits\Cache\Providers\Redis\ACommerce.Cache.Providers.Redis\ACommerce.Cache.Providers.Redis.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\kits\Realtime\Providers\SignalR.Redis\ACommerce.Realtime.Providers.SignalR.Redis\ACommerce.Realtime.Providers.SignalR.Redis.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\providers\Cache\InMemory\ACommerce.Cache.Providers.InMemory\ACommerce.Cache.Providers.InMemory.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\providers\Cache\Redis\ACommerce.Cache.Providers.Redis\ACommerce.Cache.Providers.Redis.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\providers\Realtime\SignalR.Redis\ACommerce.Realtime.Providers.SignalR.Redis\ACommerce.Realtime.Providers.SignalR.Redis.csproj" />
   </ItemGroup>
 
   <ItemGroup>

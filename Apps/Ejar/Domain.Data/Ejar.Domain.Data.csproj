@@ -22,7 +22,7 @@
     <ProjectReference Include="..\..\..\libs\kits\Favorites\ACommerce.Favorites.Backend\ACommerce.Favorites.Backend.csproj" />
     <ProjectReference Include="..\..\..\libs\kits\Listings\ACommerce.Kits.Listings.Backend\ACommerce.Kits.Listings.Backend.csproj" />
     <ProjectReference Include="..\..\..\libs\kits\Notifications\ACommerce.Kits.Notifications.Backend\ACommerce.Kits.Notifications.Backend.csproj" />
-    <ProjectReference Include="..\..\..\libs\kits\Notifications\Providers\Firebase\ACommerce.Notification.Providers.Firebase\ACommerce.Notification.Providers.Firebase.csproj" />
+    <ProjectReference Include="..\..\..\libs\providers\Notifications\Firebase\ACommerce.Notification.Providers.Firebase\ACommerce.Notification.Providers.Firebase.csproj" />
     <ProjectReference Include="..\..\..\libs\kits\Profiles\ACommerce.Kits.Profiles.Backend\ACommerce.Kits.Profiles.Backend.csproj" />
     <ProjectReference Include="..\..\..\libs\kits\Reports\ACommerce.Kits.Reports.Backend\ACommerce.Kits.Reports.Backend.csproj" />
     <ProjectReference Include="..\..\..\libs\kits\Subscriptions\ACommerce.Kits.Subscriptions.Backend\ACommerce.Kits.Subscriptions.Backend.csproj" />

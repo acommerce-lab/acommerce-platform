@@ -57,29 +57,29 @@
          Add a TwoFactor channel + AsAuth bridge below to make OTP login work. -->
 
     <!-- ─── Auth.TwoFactor: SMS Mock (رمز ثابت 123456 — أبدله بمزوّد SMS حقيقي في الإنتاج) ── -->
-    <ProjectReference Include="..\..\..\..\..\libs\kits\Auth.TwoFactor\Providers\Sms\ACommerce.Kits.Auth.TwoFactor.Sms\ACommerce.Kits.Auth.TwoFactor.Sms.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\providers\Auth.TwoFactor\Sms\ACommerce.Kits.Auth.TwoFactor.Sms\ACommerce.Kits.Auth.TwoFactor.Sms.csproj" />
     <ProjectReference Include="..\..\..\..\..\libs\kits\Auth.TwoFactor\ACommerce.Kits.Auth.TwoFactor.AsAuth\ACommerce.Kits.Auth.TwoFactor.AsAuth.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <!-- ─── Realtime + Chat Kit + Notifications (InApp + Firebase) ──────── -->
     <ProjectReference Include="..\..\..\..\..\libs\kits\Realtime\ACommerce.Realtime.Operations\ACommerce.Realtime.Operations.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\kits\Realtime\Providers\SignalR\ACommerce.Realtime.Providers.SignalR\ACommerce.Realtime.Providers.SignalR.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\providers\Realtime\SignalR\ACommerce.Realtime.Providers.SignalR\ACommerce.Realtime.Providers.SignalR.csproj" />
     <!-- InMemory provider only for InMemoryConnectionTracker — used by the SignalR
          hub to map userId → connectionId; not used as a transport. -->
-    <ProjectReference Include="..\..\..\..\..\libs\kits\Realtime\Providers\InMemory\ACommerce.Realtime.Providers.InMemory\ACommerce.Realtime.Providers.InMemory.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\providers\Realtime\InMemory\ACommerce.Realtime.Providers.InMemory\ACommerce.Realtime.Providers.InMemory.csproj" />
     <ProjectReference Include="..\..\..\..\..\libs\kits\Chat\ACommerce.Chat.Operations\ACommerce.Chat.Operations.csproj" />
     <ProjectReference Include="..\..\..\..\..\libs\kits\Chat\ACommerce.Kits.Chat.Backend\ACommerce.Kits.Chat.Backend.csproj" />
     <ProjectReference Include="..\..\..\..\..\libs\kits\Notifications\ACommerce.Notification.Operations\ACommerce.Notification.Operations.csproj" />
     <ProjectReference Include="..\..\..\..\..\libs\kits\Notifications\ACommerce.Kits.Notifications.Backend\ACommerce.Kits.Notifications.Backend.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\kits\Notifications\Providers\InApp\ACommerce.Notification.Providers.InApp\ACommerce.Notification.Providers.InApp.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\kits\Notifications\Providers\Firebase\ACommerce.Notification.Providers.Firebase\ACommerce.Notification.Providers.Firebase.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\providers\Notifications\InApp\ACommerce.Notification.Providers.InApp\ACommerce.Notification.Providers.InApp.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\providers\Notifications\Firebase\ACommerce.Notification.Providers.Firebase\ACommerce.Notification.Providers.Firebase.csproj" />
 
     <!-- Production-grade cache + SignalR Redis backplane (opt-in via config) -->
     <ProjectReference Include="..\..\..\..\..\libs\kits\Cache\ACommerce.Cache.Operations\ACommerce.Cache.Operations.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\kits\Cache\Providers\InMemory\ACommerce.Cache.Providers.InMemory\ACommerce.Cache.Providers.InMemory.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\kits\Cache\Providers\Redis\ACommerce.Cache.Providers.Redis\ACommerce.Cache.Providers.Redis.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\kits\Realtime\Providers\SignalR.Redis\ACommerce.Realtime.Providers.SignalR.Redis\ACommerce.Realtime.Providers.SignalR.Redis.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\providers\Cache\InMemory\ACommerce.Cache.Providers.InMemory\ACommerce.Cache.Providers.InMemory.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\providers\Cache\Redis\ACommerce.Cache.Providers.Redis\ACommerce.Cache.Providers.Redis.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\providers\Realtime\SignalR.Redis\ACommerce.Realtime.Providers.SignalR.Redis\ACommerce.Realtime.Providers.SignalR.Redis.csproj" />
     <ProjectReference Include="..\..\..\..\..\libs\core\OperationEngine\ACommerce.OperationEngine.DataInterceptors\ACommerce.OperationEngine.DataInterceptors.csproj" />
     <ProjectReference Include="..\..\..\..\..\libs\core\SharedKernel\ACommerce.SharedKernel.Domain\ACommerce.SharedKernel.Domain.csproj" />
     <ProjectReference Include="..\..\..\..\..\libs\core\SharedKernel\ACommerce.SharedKernel.Repositories\ACommerce.SharedKernel.Repositories.csproj" />

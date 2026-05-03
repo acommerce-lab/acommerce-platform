@@ -26,15 +26,15 @@
 
     <!-- Authentication + JWT + SMS 2FA -->
     <ProjectReference Include="..\..\..\..\..\libs\kits\Auth\ACommerce.Authentication.Operations\ACommerce.Authentication.Operations.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\kits\Auth\Providers\Token\ACommerce.Authentication.Providers.Token\ACommerce.Authentication.Providers.Token.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\providers\Auth\Token\ACommerce.Authentication.Providers.Token\ACommerce.Authentication.Providers.Token.csproj" />
     <ProjectReference Include="..\..\..\..\..\libs\kits\Auth.TwoFactor\ACommerce.Authentication.TwoFactor.Operations\ACommerce.Authentication.TwoFactor.Operations.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\kits\Auth.TwoFactor\Providers\Sms\ACommerce.Authentication.TwoFactor.Providers.Sms\ACommerce.Authentication.TwoFactor.Providers.Sms.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\providers\Auth.TwoFactor\Sms\ACommerce.Authentication.TwoFactor.Providers.Sms\ACommerce.Authentication.TwoFactor.Providers.Sms.csproj" />
 
     <!-- Messaging -->
     <ProjectReference Include="..\..\..\..\..\libs\kits\Realtime\ACommerce.Realtime.Operations\ACommerce.Realtime.Operations.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\kits\Realtime\Providers\InMemory\ACommerce.Realtime.Providers.InMemory\ACommerce.Realtime.Providers.InMemory.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\providers\Realtime\InMemory\ACommerce.Realtime.Providers.InMemory\ACommerce.Realtime.Providers.InMemory.csproj" />
     <ProjectReference Include="..\..\..\..\..\libs\kits\Notifications\ACommerce.Notification.Operations\ACommerce.Notification.Operations.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\kits\Notifications\Providers\InApp\ACommerce.Notification.Providers.InApp\ACommerce.Notification.Providers.InApp.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\providers\Notifications\InApp\ACommerce.Notification.Providers.InApp\ACommerce.Notification.Providers.InApp.csproj" />
 
     <!-- Order.Api entity set — shared order-platform DB requires that whichever
          backend creates the schema first register ALL of the platform's
