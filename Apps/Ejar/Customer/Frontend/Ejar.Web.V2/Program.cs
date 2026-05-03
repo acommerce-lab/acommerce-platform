@@ -36,9 +36,10 @@ if (!app.Environment.IsDevelopment())
 app.UseStaticFiles();
 app.UseAntiforgery();
 
-// AppAssembly = Ejar.Customer.UI.V2 ⇒ يَكتشف صفحات V2 فقط.
+// V2 ليس فيها @page directives — كلّ الـ routes تُحَلّ runtime عبر
+// HostedApp + KitPageRegistry. لا AdditionalAssemblies (App في نفس
+// assembly EjarV2CustomerHostExtensions ⇒ تَسجيل مزدوج فاشل).
 app.MapRazorComponents<App>()
-    .AddInteractiveServerRenderMode()
-    .AddAdditionalAssemblies(typeof(Ejar.Customer.UI.V2.ClientHost.EjarV2CustomerHostExtensions).Assembly);
+    .AddInteractiveServerRenderMode();
 
 app.Run();
