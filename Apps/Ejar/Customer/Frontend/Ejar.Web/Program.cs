@@ -1,5 +1,6 @@
 using ACommerce.Kits.Versions.Templates;
 using Ejar.Customer.UI;
+using Ejar.Customer.UI.ClientHost;
 using Ejar.Customer.UI.Interceptors;
 using Ejar.Web.Components;
 
@@ -28,8 +29,14 @@ builder.Services.AddHttpClient("ejar", c =>
 .AddHttpMessageHandler<AppVersionHeadersHandler>()
 .AddHttpMessageHandler<AuthHeadersHandler>();
 
-// كل خدمات الـ UI المشتركة (AppStore, OpEngine, dispatchers, chat client …)
+// خدمات الـ UI القديمة (AppStore, OpEngine، dispatchers، chat client…) —
+// تَبقى موجودة بالتوازي مع AddEjarCustomer() الجديد. التَنقية الكاملة في pass
+// لاحق لمّا تُربَط الـ Ejar*Store stubs بكلّ الخدمات تماماً.
 builder.Services.AddEjarCustomerUI();
+
+// ClientHost الجديد — يُسجِّل صفحات الكيتس الـ 8 + IXxxStore bindings.
+// الصفحات تُحَلّ runtime عبر KitPageRegistry بدون @page.
+builder.Services.AddEjarCustomer();
 
 var app = builder.Build();
 

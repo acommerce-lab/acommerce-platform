@@ -1,4 +1,5 @@
 using Ejar.Customer.UI;
+using Ejar.Customer.UI.ClientHost;
 using Ejar.Customer.UI.Interceptors;
 using Microsoft.AspNetCore.Components.WebView.Maui;
 using Microsoft.Extensions.Configuration;
@@ -44,6 +45,7 @@ public static class MauiProgram
             sp.GetRequiredService<IHttpClientFactory>().CreateClient("ejar"));
 
         builder.Services.AddEjarCustomerUI();
+        builder.Services.AddEjarCustomer();   // ClientHost: kit pages + IXxxStore bindings
 
         return builder.Build();
     }
