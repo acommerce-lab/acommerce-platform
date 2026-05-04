@@ -132,7 +132,9 @@
             catch { /* ignore */ }
 
             // EnterAsync الخادميّ يَستدعي MarkReadAsync فيُصَفِّر العَدّاد في
-            // DB. حدِّث الـ navbar badge فوراً بدون انتظار refresh.
+            // DB. ActiveConversationId يَجعل UnreadService يَتجاهل الرسائل
+            // الواردة لهذه المحادثة (لا تُحسَب unread لأنّ المُستخدِم يَراها).
+            Unread.ActiveConversationId = Id;
             await Unread.RefreshAsync();
 
             // ركّز على خانة الرسالة بعد ما يُرسَم الـ DOM.
@@ -236,6 +238,7 @@
         Chat.MessageReceived -= OnRealtimeMessage;
         // Closing the chat channel re-opens the notif channel for this
         // conversation, so future messages reach the user as notifications.
+        if (Unread.ActiveConversationId == Id) Unread.ActiveConversationId = null;
         await Chat.LeaveAsync();
     }
 
