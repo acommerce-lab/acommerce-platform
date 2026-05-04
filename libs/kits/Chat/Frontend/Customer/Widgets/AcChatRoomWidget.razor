@@ -3,30 +3,57 @@
 @implements IDisposable
 
 @*
-    AcChatRoomWidget — يَعرض رسائل المحادثة المفتوحة + composer.
-    يَتركّب من AcChatComposerWidget — نفس الـ composer قابل للاستعمال
-    بشكل مستقلّ في side-drawer مثلاً.
+    AcChatRoomWidget — غرفة محادثة بـ OAM:
+      - bubbles ثنائيّة الاتجاه (mine / other)
+      - زمن mono صغير تحت كلّ رسالة
+      - composer منفصل في الأسفل
 *@
 
-<section class="ac-chat-room">
-    <ul class="ac-messages">
-        @foreach (var m in Store.CurrentMessages)
-        {
-            <li>
-                <span class="ac-from">@m.SenderPartyId</span>
-                <p>@Sanitizer.Sanitize(m.Body)</p>
-            </li>
-        }
-    </ul>
-    <AcChatComposerWidget OnSend="@HandleSend" />
+<section class="ejar-chatroom">
+    <header class="ejar-chatroom-head">
+        <a href="/chat" class="ejar-chatroom-back" aria-label="رجوع">←</a>
+        <span class="ejar-chatroom-title">المحادثة</span>
+    </header>
+
+    @if (Store.IsLoading)
+    {
+        <p class="ejar-loading">جاري تَحميل الرسائل…</p>
+    }
+    else if (Store.CurrentMessages.Count == 0)
+    {
+        <div class="ejar-empty">
+            <span class="ejar-empty-glyph" aria-hidden="true">⌖</span>
+            <h3>لا رسائل بَعد</h3>
+            <p>اكتب أوّل رسالة وابدأ المحادثة.</p>
+        </div>
+    }
+    else
+    {
+        <ul class="ejar-chatroom-msgs">
+            @foreach (var m in Store.CurrentMessages)
+            {
+                var mine = string.Equals(m.SenderPartyId, _myPartyId, StringComparison.OrdinalIgnoreCase);
+                <li class="ejar-bubble @(mine ? "ejar-bubble-mine" : "ejar-bubble-other")">
+                    <p class="ejar-bubble-body">@Sanitizer.Sanitize(m.Body)</p>
+                    <span class="ejar-bubble-time oam-mono">@m.SentAt.ToLocalTime().ToString("HH:mm")</span>
+                </li>
+            }
+        </ul>
+    }
+
+    <AcChatComposerWidget OnSend="@HandleSend" Placeholder="اكتب رسالة…" SendLabel="إرسال" />
 </section>
 
 @code {
     [Parameter] public string? Id { get; set; }
+    [Parameter] public string? MyPartyId { get; set; }
+
+    private string _myPartyId = "";
 
     protected override async Task OnParametersSetAsync()
     {
         Store.Changed += OnChanged;
+        _myPartyId = MyPartyId ?? "";
         if (!string.IsNullOrEmpty(Id))
             await Store.OpenConversationAsync(Id);
     }

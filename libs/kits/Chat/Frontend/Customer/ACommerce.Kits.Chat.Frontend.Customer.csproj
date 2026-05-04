@@ -14,5 +14,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\ACommerce.Chat.Operations\ACommerce.Chat.Operations.csproj" />
     <ProjectReference Include="..\..\..\..\host-client\ACommerce.ClientHost\ACommerce.ClientHost.csproj" />
+    <ProjectReference Include="..\..\..\..\templates\OAM\ACommerce.Templates.OAM\ACommerce.Templates.OAM.csproj" />
+    <ProjectReference Include="..\..\..\Widgets\ACommerce.Widgets\ACommerce.Widgets.csproj" />
   </ItemGroup>
 </Project>

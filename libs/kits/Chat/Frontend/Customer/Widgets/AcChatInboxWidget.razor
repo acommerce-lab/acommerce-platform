@@ -1,20 +1,65 @@
 @inject IChatStore Store
+@inject NavigationManager Nav
 @implements IDisposable
 
+@*
+    AcChatInboxWidget — قائمة محادثات لائقة:
+      - AcAvatar (initials بـ gradient محسوب من الاسم)
+      - اسم + زمن relative + معاينة آخر رسالة
+      - شارة حمراء بعَدّاد رسائل غير مقروءة
+      - row غير مَقروء يَلبس tint primary
+*@
+
 <section class="ac-chat-inbox">
-    @if (Store.IsLoading) { <p>Loading…</p> }
-    else if (Store.Conversations.Count == 0) { <p>No conversations.</p> }
+    <header class="ejar-section-head">
+        <h2 class="ejar-section-title">المحادثات</h2>
+        <span class="ejar-section-meta oam-mono">/ chat · @Store.Conversations.Count</span>
+    </header>
+
+    @if (Store.IsLoading)
+    {
+        <p class="ejar-loading">جاري التحميل…</p>
+    }
+    else if (Store.Conversations.Count == 0)
+    {
+        <div class="ejar-empty">
+            <span class="ejar-empty-glyph" aria-hidden="true">✉</span>
+            <h3>لا توجد محادثات بَعد</h3>
+            <p>افتح إعلاناً واضغط "تَواصُل" لبدء محادثة.</p>
+        </div>
+    }
     else
     {
-        <ul>
+        <ul class="ejar-chat-list">
             @foreach (var c in Store.Conversations)
             {
-                <li>
-                    <a href="@($"/chat/{c.Id}")">
-                        <strong>@c.PartnerName</strong>
-                        @if (!string.IsNullOrEmpty(c.LastMessagePreview)) { <span>@c.LastMessagePreview</span> }
-                        @if (c.UnreadCount > 0) { <em>@c.UnreadCount</em> }
-                    </a>
+                var cid = c.Id;
+                var hasUnread = c.UnreadCount > 0;
+                <li class="ejar-chat-row @(hasUnread ? "ejar-chat-row-unread" : "")"
+                    @onclick="@(() => Open(cid))" role="button" tabindex="0">
+
+                    <AcAvatar Name="@c.PartnerName" Size="48" />
+
+                    <div class="ejar-chat-row-body">
+                        <div class="ejar-chat-row-top">
+                            <span class="ejar-chat-name">@c.PartnerName</span>
+                            <span class="ejar-chat-time oam-mono">@FormatTime(c.LastAt)</span>
+                        </div>
+                        <div class="ejar-chat-row-bot">
+                            <span class="ejar-chat-preview">
+                                @(string.IsNullOrEmpty(c.LastMessagePreview)
+                                    ? (c.Subject ?? "—")
+                                    : Truncate(c.LastMessagePreview, 80))
+                            </span>
+                            @if (hasUnread)
+                            {
+                                <span class="ejar-chat-unread"
+                                      aria-label="@($"{c.UnreadCount} رسالة غير مقروءة")">
+                                    @(c.UnreadCount > 99 ? "99+" : c.UnreadCount.ToString())
+                                </span>
+                            }
+                        </div>
+                    </div>
                 </li>
             }
         </ul>
@@ -27,6 +72,23 @@
         Store.Changed += OnChanged;
         await Store.LoadConversationsAsync();
     }
+
+    private void Open(string id) => Nav.NavigateTo($"/chat/{id}");
+
+    private static string Truncate(string s, int max)
+        => s.Length <= max ? s : s[..max].TrimEnd() + "…";
+
+    private static string FormatTime(DateTime utc)
+    {
+        var local = utc.ToLocalTime();
+        var diff  = DateTime.Now - local;
+        if (diff.TotalMinutes < 1)  return "الآن";
+        if (diff.TotalMinutes < 60) return $"{(int)diff.TotalMinutes}د";
+        if (diff.TotalHours   < 24) return $"{(int)diff.TotalHours}س";
+        if (diff.TotalDays    < 7)  return $"{(int)diff.TotalDays}ي";
+        return local.ToString("yyyy-MM-dd");
+    }
+
     private void OnChanged() => InvokeAsync(StateHasChanged);
     public void Dispose() => Store.Changed -= OnChanged;
 }
