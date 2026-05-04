@@ -612,3 +612,106 @@ p  { line-height: 1.65; color: var(--oam-ink); }
 .ejar-bubble-time  { display: block; margin-top: .15rem;
                      font-size: .65rem; color: var(--oam-ink-mute);
                      text-align: end; }
+
+/* ─── Notifications inbox ─────────────────────────────────────────── */
+.ejar-notifs-bar {
+  display: flex; justify-content: space-between; align-items: center;
+  gap: .65rem; padding: .65rem 1rem;
+  background: var(--oam-pend-bg);
+  border: 1px solid var(--oam-pend);
+  color: var(--oam-pend);
+  border-radius: var(--oam-radius);
+  margin-bottom: 1rem;
+  font-size: .85rem; font-weight: 500;
+}
+.oam-btn-ghost {
+  background: transparent; color: var(--oam-exec);
+  border: 1px solid var(--oam-line-strong);
+  padding: .35rem .85rem; border-radius: var(--oam-radius-sm);
+  font: 500 .82rem var(--oam-font-body); cursor: pointer;
+}
+.oam-btn-ghost:hover { background: var(--oam-card); }
+
+.ejar-notif-group {
+  font-size: .68rem; text-transform: uppercase; letter-spacing: .12em;
+  color: var(--oam-ink-mute); font-weight: 600;
+  margin: 1.25rem 0 .35rem;
+}
+.ejar-notif-list { list-style: none; padding: 0; margin: 0; }
+.ejar-notif-row {
+  display: flex; gap: .85rem; align-items: flex-start;
+  padding: .85rem 1rem;
+  background: var(--oam-card);
+  border-bottom: 1px solid var(--oam-line);
+  cursor: pointer;
+  transition: background .12s ease;
+  position: relative;
+}
+.ejar-notif-row:first-child { border-top: 1px solid var(--oam-line); }
+.ejar-notif-row:hover { background: var(--oam-paper); }
+.ejar-notif-row-unread { background: rgba(184,134,11,0.04); }
+
+.ejar-notif-icon {
+  flex-shrink: 0;
+  width: 32px; height: 32px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--oam-paper);
+  border: 1px solid var(--oam-line);
+  border-radius: 50%;
+  font-size: 1rem; color: var(--oam-ink-mute);
+}
+.ejar-notif-row-unread .ejar-notif-icon {
+  background: var(--oam-pend-bg); color: var(--oam-pend); border-color: var(--oam-pend);
+}
+.ejar-notif-body { flex: 1; min-width: 0;
+                   display: flex; flex-direction: column; gap: .2rem; }
+.ejar-notif-top  { display: flex; gap: .5rem; align-items: baseline;
+                   justify-content: space-between; }
+.ejar-notif-title {
+  font-weight: 600; font-size: .9rem; color: var(--oam-ink);
+}
+.ejar-notif-row-unread .ejar-notif-title { color: var(--oam-ink); }
+.ejar-notif-row-read   .ejar-notif-title { font-weight: 500; color: var(--oam-ink-mute); }
+.ejar-notif-time { font-size: .68rem; color: var(--oam-ink-mute); flex-shrink: 0; }
+.ejar-notif-text {
+  margin: 0; font-size: .82rem; color: var(--oam-ink-mute);
+  line-height: 1.5;
+}
+.ejar-notif-dot {
+  position: absolute; top: .85rem; inset-inline-end: .85rem;
+  width: 8px; height: 8px; background: #dc2626; border-radius: 50%;
+}
+
+/* ─── Profile ──────────────────────────────────────────────────────── */
+.ejar-profile-card {
+  display: flex; gap: 1rem; align-items: center;
+  padding: 1.25rem;
+  background: var(--oam-card);
+  border: 1px solid var(--oam-line);
+  border-radius: var(--oam-radius);
+  box-shadow: var(--oam-shadow);
+  margin-bottom: 1rem;
+}
+.ejar-profile-card-body { flex: 1; min-width: 0; }
+.ejar-profile-name { margin: 0 0 .25rem; font-size: 1.15rem; font-weight: 700; }
+.ejar-profile-since { margin: 0; font-size: .78rem; color: var(--oam-ink-mute); }
+
+.ejar-identity-list { list-style: none; padding: 0; margin: 0; }
+.ejar-identity-row {
+  display: flex; gap: .85rem; align-items: center;
+  padding: .85rem 1rem;
+  background: var(--oam-card);
+  border-bottom: 1px solid var(--oam-line);
+}
+.ejar-identity-row:first-child { border-top: 1px solid var(--oam-line); }
+.ejar-identity-label {
+  flex-shrink: 0; min-width: 4rem;
+  font-size: .72rem; text-transform: uppercase; letter-spacing: .08em;
+  color: var(--oam-ink-mute); font-weight: 600;
+}
+.ejar-identity-value { flex: 1; color: var(--oam-ink); font-size: .9rem; }
+
+.ejar-profile-actions {
+  display: flex; gap: .65rem; margin-top: 1rem; flex-wrap: wrap;
+}
+.ejar-profile-actions .oam-btn { text-decoration: none; }

@@ -1,13 +1,82 @@
 @inject IProfileStore Store
+@inject NavigationManager Nav
 @implements IDisposable
 
+@*
+    AcProfileWidget — صفحة "حسابي" بأنماط OAM:
+      - بَطاقة هويّة: AcAvatar + الاسم + هاتف/بريد بصيغة tags
+      - OamStamp بجانب كلّ هويّة (مُوثَّقة / تَنتظر التحقّق)
+      - actions: تعديل المَلفّ، تَسجيل الخروج
+*@
+
 <section class="ac-profile">
-    @if (Store.IsLoading || Store.Current is null) { <p>Loading…</p> }
+    @if (Store.IsLoading)
+    {
+        <p class="ejar-loading">جاري التحميل…</p>
+    }
+    else if (Store.Current is null)
+    {
+        <div class="ejar-empty">
+            <span class="ejar-empty-glyph" aria-hidden="true">◉</span>
+            <h3>تَعذَّر تَحميل الملفّ</h3>
+            <p>تَأكَّد من تسجيل الدخول وحاول مَجدَّداً.</p>
+        </div>
+    }
     else
     {
-        <h1>@Store.Current.FullName</h1>
-        <p>@Store.Current.Phone</p>
-        <a href="/me/edit">Edit</a>
+        var p = Store.Current;
+        <header class="ejar-section-head">
+            <h2 class="ejar-section-title">حسابي</h2>
+            <span class="ejar-section-meta oam-mono">/ profile</span>
+        </header>
+
+        <div class="ejar-profile-card">
+            <AcAvatar Name="@p.FullName" ImageUrl="@p.AvatarUrl" Size="72" />
+            <div class="ejar-profile-card-body">
+                <h1 class="ejar-profile-name">@p.FullName</h1>
+                @if (p.MemberSince != default)
+                {
+                    <p class="ejar-profile-since oam-mono">
+                        عُضْو منذ @p.MemberSince.ToString("yyyy-MM-dd")
+                    </p>
+                }
+            </div>
+        </div>
+
+        <header class="ejar-section-head">
+            <h2 class="ejar-section-title">الهويّة</h2>
+            <span class="ejar-section-meta oam-mono">/ identities</span>
+        </header>
+
+        <ul class="ejar-identity-list">
+            <li class="ejar-identity-row">
+                <span class="ejar-identity-label">الهاتف</span>
+                <span class="ejar-identity-value oam-mono">@p.Phone</span>
+                <OamStamp State="@(p.PhoneVerified ? OamState.Executed : OamState.Pending)"
+                          Compact="true" />
+            </li>
+            @if (!string.IsNullOrEmpty(p.Email))
+            {
+                <li class="ejar-identity-row">
+                    <span class="ejar-identity-label">البريد</span>
+                    <span class="ejar-identity-value oam-mono">@p.Email</span>
+                    <OamStamp State="@(p.EmailVerified ? OamState.Executed : OamState.Pending)"
+                              Compact="true" />
+                </li>
+            }
+            @if (!string.IsNullOrEmpty(p.City))
+            {
+                <li class="ejar-identity-row">
+                    <span class="ejar-identity-label">المدينة</span>
+                    <span class="ejar-identity-value">@p.City</span>
+                </li>
+            }
+        </ul>
+
+        <div class="ejar-profile-actions">
+            <a href="/me/edit" class="oam-btn">تَعديل</a>
+            <a href="/me/settings" class="oam-btn oam-btn-ghost">الإعدادات</a>
+        </div>
     }
 </section>
 
