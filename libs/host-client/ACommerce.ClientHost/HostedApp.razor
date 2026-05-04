@@ -30,7 +30,8 @@
                     </NotAuthorized>
                 </AuthorizeRouteView>
             }
-            else if (_currentMatch.Page.RequiresAuth && !_isAuthenticated)
+            else if (_shouldRedirectToLogin
+                     || (_currentMatch.Page.RequiresAuth && !_isAuthenticated))
             {
                 <LayoutView Layout="@DefaultLayout">
                     <div class="ejar-loading" role="status" aria-busy="true">@LoadingMessage</div>
@@ -67,6 +68,7 @@
 
     private PageMatch? _currentMatch;
     private bool _isAuthenticated;
+    private bool _shouldRedirectToLogin;
     private string _returnUrl = "/";
 
     private async Task HandleNavigation(NavigationContext context)
@@ -80,14 +82,19 @@
             var state = await Auth.GetAuthenticationStateAsync();
             _isAuthenticated = state.User.Identity?.IsAuthenticated == true;
 
-            // إذا غير مُصادَق، حَوِّل فوراً قبل أيّ render. هذا يَتفادى
-            // طبقات الـ fallback (loader + JS redirect) ⇒ المُستخدِم لا يَرى
-            // الصفحة الفارغة. Nav.NavigateTo يَقذف NavigationException الذي
-            // يَعالجه Router قياسيّاً ⇒ التَنقّل لـ /login بدون 'unhandled'.
+            // إذا غير مُصادَق، حَوِّل لـ /login. لا نَستدعي NavigateTo داخل
+            // HandleNavigation — يَقذف NavigationException يَظهر للمُصَحِّح
+            // كَ "unhandled" حتى لو الـ framework يَلتقطها لاحقاً. نَعتمد
+            // على _shouldRedirect flag ⇒ render branch يَكتب
+            // <_RedirectToLogin> ضمن LayoutView، الذي يُنفِّذ NavigateTo في
+            // OnAfterRenderAsync (interactive realm، آمن).
             if (!_isAuthenticated && !path.Equals(LoginRoute, StringComparison.OrdinalIgnoreCase))
             {
-                var ret = Uri.EscapeDataString(path);
-                Nav.NavigateTo($"{LoginRoute}?return={ret}", forceLoad: false, replace: true);
+                _shouldRedirectToLogin = true;
+            }
+            else
+            {
+                _shouldRedirectToLogin = false;
             }
         }
     }

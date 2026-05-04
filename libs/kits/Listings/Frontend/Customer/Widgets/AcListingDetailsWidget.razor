@@ -3,11 +3,14 @@
 @inject NavigationManager Nav
 
 @*
-    AcListingDetailsWidget — صفحة تَفاصيل بمَظهر إيصال محاسبيّ كامل:
-      - galley للصور أعلى الصفحة
-      - OamReceipt: type=listing.details، Owner→Listing، tags الحقول
-      - OamStamp: حالة موثَّق/غير موثَّق
-      - زرّ "تَواصُل" يَفتح المحادثة
+    AcListingDetailsWidget — صفحة تَفاصيل بمَظهر إيصال محاسبيّ كامل.
+
+    Extension points (slots):
+      [Parameter] BeforeReceipt   — مَحتوى قبل الإيصال (سياق إضافيّ)
+      [Parameter] ExtraSection    — قسم إضافيّ بعد الإيصال (خَريطة، عَقارات
+                                      مشابهة، …)
+      [Parameter] ExtraActions    — أزرار إضافيّة بجانب "تَواصُل"
+      [Parameter] HideContact     — إخفاء زرّ التَواصُل
 *@
 
 <section class="ac-listing-details">
@@ -44,6 +47,7 @@
             </div>
         }
 
+        @if (BeforeReceipt is not null) { <div class="ac-slot-before-receipt">@BeforeReceipt</div> }
         <OamReceipt OperationType="@($"listing.details · {_listing.Id[..Math.Min(8, _listing.Id.Length)]}")"
                     From="@($"المالك:{_listing.OwnerId[..Math.Min(8, _listing.OwnerId.Length)]}")"
                     To="@($"العقار:{_listing.Id[..Math.Min(8, _listing.Id.Length)]}")"
@@ -72,14 +76,23 @@
                 }
             </ChildContent>
             <FooterExtra>
-                <button class="oam-btn" @onclick="OnContact">تَواصُل مع المالك</button>
+                @if (!HideContact)
+                {
+                    <button class="oam-btn" @onclick="OnContact">تَواصُل مع المالك</button>
+                }
+                @if (ExtraActions is not null) { @ExtraActions(_listing) }
             </FooterExtra>
         </OamReceipt>
+        @if (ExtraSection is not null) { <div class="ac-slot-extra-section">@ExtraSection(_listing)</div> }
     }
 </section>
 
 @code {
     [Parameter] public string? Id { get; set; }
+    [Parameter] public RenderFragment? BeforeReceipt { get; set; }
+    [Parameter] public RenderFragment<IListing>? ExtraSection { get; set; }
+    [Parameter] public RenderFragment<IListing>? ExtraActions { get; set; }
+    [Parameter] public bool HideContact { get; set; }
     private IListing? _listing;
     private bool _loading = true;
     private int _imgIdx;

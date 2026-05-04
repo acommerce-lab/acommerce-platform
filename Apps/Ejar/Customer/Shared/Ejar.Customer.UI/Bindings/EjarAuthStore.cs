@@ -77,7 +77,7 @@ public sealed class EjarAuthStore : IAuthStore, IDisposable
                 return;
             }
 
-            _app.Auth.UserId      = Guid.TryParse(userId, out var g) ? g : null;
+            _app.Auth.UserId      = ParseUserGuid(userId);
             _app.Auth.FullName    = name ?? "—";
             _app.Auth.Phone       = phone;
             _app.Auth.AccessToken = token;
@@ -85,6 +85,23 @@ public sealed class EjarAuthStore : IAuthStore, IDisposable
         }
         catch (Exception ex) { LastError = $"network_error: {ex.Message}"; }
         finally { IsBusy = false; FireChanged(); }
+    }
+
+    /// <summary>
+    /// يُحَوِّل userId خادميّ إلى Guid. لو كان Guid فعلاً نُرجِعه كما هو.
+    /// لو ليس Guid (مثلاً int أو string) نُولِّد Guid حتميّاً من SHA-1
+    /// للنصّ — نَفس الـ id ⇒ نَفس Guid دائماً، فلا تَتَكاثر السجلّات
+    /// المحلّيّة لنفس المُستخدِم. هذا يَجعل <c>IsAuthenticated</c> = true
+    /// حتى مع APIs لا تَستخدم Guid لـ userId.
+    /// </summary>
+    private static Guid ParseUserGuid(string raw)
+    {
+        if (Guid.TryParse(raw, out var g)) return g;
+        var bytes = System.Security.Cryptography.SHA1.HashData(
+            System.Text.Encoding.UTF8.GetBytes(raw ?? ""));
+        var guidBytes = new byte[16];
+        Array.Copy(bytes, guidBytes, 16);
+        return new Guid(guidBytes);
     }
 
     public async Task LogoutAsync(CancellationToken ct = default)

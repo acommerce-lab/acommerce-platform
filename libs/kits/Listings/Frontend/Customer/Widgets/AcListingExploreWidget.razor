@@ -3,14 +3,21 @@
 @implements IDisposable
 
 @*
-    AcListingExploreWidget — قائمة تَصفّح بإيقاع ledger:
-      - شَريط فلاتر بسيط أعلى الصفحة
-      - بطاقات إعلانات بمَظهر إيصالات صغيرة (price بـ tabular figures،
-        ختم EXECUTED للموثَّقة، خطّ ledger بين الصفوف)
-      - نقرة على بطاقة ⇒ /listings/{id}
+    AcListingExploreWidget — قائمة تَصفّح بإيقاع ledger.
+
+    Extension points (slots) — لا تَعديل في الكيت:
+      [Parameter] BeforeFilters   — مَحتوى أعلى شَريط الفلاتر (banner، إلخ)
+      [Parameter] ExtraFilters    — حقول فلاتر إضافيّة (city، sort، …)
+      [Parameter] BeforeListings  — مَحتوى قبل القائمة (recommendations…)
+      [Parameter] AfterListings   — مَحتوى بعد القائمة (load-more، إلخ)
+      [Parameter] CardExtra       — مَحتوى يُحقَن داخل كلّ card (tags…)
+      [Parameter] DetailUrl       — Func يُحَوِّل id إلى URL (default /listings/{id})
+
+    التَطبيق يُمَرِّر RenderFragment لأيّ slot دون تَعديل الكيت.
 *@
 
 <section class="ac-listings-explore">
+    @if (BeforeFilters is not null) { <div class="ac-slot-before-filters">@BeforeFilters</div> }
     <header class="ejar-section-head">
         <h2 class="ejar-section-title">العقارات المتاحة</h2>
         <span class="ejar-section-meta oam-mono">/ listings · @Store.Visible.Count</span>
@@ -29,8 +36,10 @@
             <option value="studio">استوديو</option>
             <option value="office">مكتب</option>
         </select>
+        @if (ExtraFilters is not null) { @ExtraFilters }
         <button class="oam-btn" type="submit">تَطبيق</button>
     </form>
+    @if (BeforeListings is not null) { <div class="ac-slot-before-listings">@BeforeListings</div> }
 
     @if (Store.IsLoading)
     {
@@ -77,14 +86,23 @@
                             @if (l.BathroomCount > 0) { <span>🛁 @l.BathroomCount</span> }
                             @if (l.AreaSqm > 0)        { <span>@l.AreaSqm m²</span> }
                         </div>
+                        @if (CardExtra is not null) { <div class="ac-slot-card-extra">@CardExtra(l)</div> }
                     </div>
                 </li>
             }
         </ul>
+        @if (AfterListings is not null) { <div class="ac-slot-after-listings">@AfterListings</div> }
     }
 </section>
 
 @code {
+    [Parameter] public RenderFragment? BeforeFilters { get; set; }
+    [Parameter] public RenderFragment? ExtraFilters { get; set; }
+    [Parameter] public RenderFragment? BeforeListings { get; set; }
+    [Parameter] public RenderFragment? AfterListings { get; set; }
+    [Parameter] public RenderFragment<IListing>? CardExtra { get; set; }
+    [Parameter] public Func<string, string>? DetailUrl { get; set; }
+
     private string _query = "";
     private string _propertyType = "";
 
@@ -102,7 +120,8 @@
             Query: string.IsNullOrEmpty(_query) ? null : _query));
     }
 
-    private void Open(string id) => Nav.NavigateTo($"/listings/{id}");
+    private void Open(string id)
+        => Nav.NavigateTo(DetailUrl?.Invoke(id) ?? $"/listings/{id}");
 
     private static string PriceUnit(string timeUnit) => timeUnit switch
     {
