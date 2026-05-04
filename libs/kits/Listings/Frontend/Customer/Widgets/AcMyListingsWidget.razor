@@ -1,37 +1,114 @@
 @inject IListingsStore Store
+@inject NavigationManager Nav
 @implements IDisposable
 
+@*
+    AcMyListingsWidget — إعلاناتي بمَظهر T-account: ملخّص أعلى الصفحة
+    (نَشَر/مُوثَّق/مُشاهَدات)، ثمّ ledger للإعلانات.
+*@
+
 <section class="ac-my-listings">
-    <header>
-        <h1>My Listings</h1>
-        <a href="/my-listings/new" class="ac-btn ac-btn-primary">+ New</a>
+    <header class="ejar-section-head">
+        <h2 class="ejar-section-title">إعلاناتي</h2>
+        <a href="/my-listings/new" class="oam-btn ejar-add-btn">+ إعلان جديد</a>
     </header>
+
     @if (Store.IsLoading)
     {
-        <p>Loading…</p>
+        <p class="ejar-loading">جاري التحميل…</p>
     }
     else if (Store.Mine.Count == 0)
     {
-        <p>You have no listings yet.</p>
+        <div class="ejar-empty">
+            <span class="ejar-empty-glyph" aria-hidden="true">⌂</span>
+            <h3>لم تَنشر أيّ إعلان بَعد</h3>
+            <p>اضغط "إعلان جديد" لإضافة عقارك الأوّل.</p>
+        </div>
     }
     else
     {
-        <ul>
+        @* T-account: ما نَشَرت / ما لديك من نَشاط *@
+        <OamTAccount Title="ملخّص نَشاطي"
+                     LeftHeader="مَنشور"
+                     RightHeader="نَشاط"
+                     Left="@_summaryLeft"
+                     Right="@_summaryRight"
+                     Balanced="true"
+                     ShowBalance="false" />
+
+        <header class="ejar-section-head" style="margin-top:1.25rem">
+            <h2 class="ejar-section-title">قائمة الإعلانات</h2>
+            <span class="ejar-section-meta oam-mono">/ ledger</span>
+        </header>
+
+        <ul class="ejar-listings">
             @foreach (var l in Store.Mine)
             {
-                <li><a href="@($"/listings/{l.Id}")">@l.Title</a></li>
+                var lid = l.Id;
+                <li class="ejar-listing-row" @onclick="@(() => Open(lid))"
+                    role="button" tabindex="0">
+                    <div class="ejar-listing-thumb"
+                         style="@(string.IsNullOrEmpty(l.ThumbnailUrl) ? "" : $"background-image:url('{l.ThumbnailUrl}')")">
+                        @if (string.IsNullOrEmpty(l.ThumbnailUrl))
+                        {
+                            <span class="ejar-listing-thumb-glyph" aria-hidden="true">⌂</span>
+                        }
+                    </div>
+                    <div class="ejar-listing-body">
+                        <div class="ejar-listing-top">
+                            <span class="ejar-listing-title">@l.Title</span>
+                            <OamStamp State="@(l.Status == 1 ? OamState.Executed : OamState.Pending)"
+                                      Compact="true" />
+                        </div>
+                        <div class="ejar-listing-meta">
+                            <span class="oam-mono">@l.Price.ToString("0")</span>
+                            <span class="ejar-listing-sep" aria-hidden="true">·</span>
+                            <span class="oam-mono">@l.ViewsCount مُشاهدة</span>
+                        </div>
+                    </div>
+                </li>
             }
         </ul>
     }
 </section>
 
 @code {
+    private OamTAccountLine[] _summaryLeft = Array.Empty<OamTAccountLine>();
+    private OamTAccountLine[] _summaryRight = Array.Empty<OamTAccountLine>();
+
     protected override async Task OnInitializedAsync()
     {
         Store.Changed += OnChanged;
         await Store.LoadMineAsync();
+        BuildSummary();
     }
 
-    private void OnChanged() => InvokeAsync(StateHasChanged);
+    private void BuildSummary()
+    {
+        var total      = Store.Mine.Count;
+        var verified   = Store.Mine.Count(l => l.IsVerified);
+        var active     = Store.Mine.Count(l => l.Status == 1);
+        var totalViews = Store.Mine.Sum(l => l.ViewsCount);
+
+        _summaryLeft = new[]
+        {
+            new OamTAccountLine("إعلانات",     total.ToString()),
+            new OamTAccountLine("نَشِطة",       active.ToString()),
+            new OamTAccountLine("مُوثَّقة",     verified.ToString()),
+        };
+        _summaryRight = new[]
+        {
+            new OamTAccountLine("إجماليّ المُشاهدات", totalViews.ToString()),
+            new OamTAccountLine("متوسّط لكلّ إعلان",   (total > 0 ? totalViews / total : 0).ToString()),
+        };
+    }
+
+    private void Open(string id) => Nav.NavigateTo($"/listings/{id}");
+
+    private void OnChanged()
+    {
+        BuildSummary();
+        InvokeAsync(StateHasChanged);
+    }
     public void Dispose() => Store.Changed -= OnChanged;
 }

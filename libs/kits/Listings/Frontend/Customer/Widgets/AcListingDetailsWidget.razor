@@ -1,22 +1,80 @@
 @inject IListingsStore Store
 @inject IRichTextSanitizer Sanitizer
+@inject NavigationManager Nav
+
+@*
+    AcListingDetailsWidget — صفحة تَفاصيل بمَظهر إيصال محاسبيّ كامل:
+      - galley للصور أعلى الصفحة
+      - OamReceipt: type=listing.details، Owner→Listing، tags الحقول
+      - OamStamp: حالة موثَّق/غير موثَّق
+      - زرّ "تَواصُل" يَفتح المحادثة
+*@
 
 <section class="ac-listing-details">
     @if (_loading)
     {
-        <p>Loading…</p>
+        <p class="ejar-loading">جاري التحميل…</p>
     }
     else if (_listing is null)
     {
-        <p>Listing not found.</p>
+        <div class="ejar-empty">
+            <span class="ejar-empty-glyph" aria-hidden="true">∅</span>
+            <h3>الإعلان غير متوفّر</h3>
+            <p>قد يَكون مَحذوفاً أو الرابط غير صحيح.</p>
+        </div>
     }
     else
     {
-        <h1>@_listing.Title</h1>
-        <p class="ac-price">@_listing.Price @_listing.TimeUnit</p>
-        <p class="ac-location">@_listing.City — @_listing.District</p>
-        @* النصّ الغنيّ يَمرّ عبر sanitizer دائماً — لا MarkupString *@
-        <p class="ac-description">@Sanitizer.Sanitize(_listing.Description)</p>
+        @if (_listing.Images is { Count: > 0 })
+        {
+            <div class="ejar-listing-gallery">
+                <img src="@_listing.Images[_imgIdx]" alt="@_listing.Title" loading="lazy" />
+                @if (_listing.Images.Count > 1)
+                {
+                    <div class="ejar-listing-gallery-dots">
+                        @for (var i = 0; i < _listing.Images.Count; i++)
+                        {
+                            var idx = i;
+                            <button class="@(idx == _imgIdx ? "active" : "")"
+                                    @onclick="@(() => _imgIdx = idx)"
+                                    aria-label="@($"صورة {idx + 1}")"></button>
+                        }
+                    </div>
+                }
+            </div>
+        }
+
+        <OamReceipt OperationType="@($"listing.details · {_listing.Id[..Math.Min(8, _listing.Id.Length)]}")"
+                    From="@($"المالك:{_listing.OwnerId[..Math.Min(8, _listing.OwnerId.Length)]}")"
+                    To="@($"العقار:{_listing.Id[..Math.Min(8, _listing.Id.Length)]}")"
+                    Time="@_listing.CreatedAt"
+                    State="@(_listing.IsVerified ? OamState.Executed : OamState.Pending)"
+                    Tags="@_tags">
+            <ChildContent>
+                <h1 class="ejar-listing-detail-title">@_listing.Title</h1>
+                <p class="ejar-listing-detail-price oam-mono">
+                    @_listing.Price.ToString("0") @PriceUnit(_listing.TimeUnit)
+                </p>
+                @if (!string.IsNullOrEmpty(_listing.Description))
+                {
+                    <p class="ejar-listing-detail-desc">
+                        @Sanitizer.Sanitize(_listing.Description)
+                    </p>
+                }
+                @if (_listing.Amenities is { Count: > 0 })
+                {
+                    <div class="ejar-listing-detail-amenities">
+                        @foreach (var a in _listing.Amenities)
+                        {
+                            <span class="ejar-amenity-chip oam-mono">@a</span>
+                        }
+                    </div>
+                }
+            </ChildContent>
+            <FooterExtra>
+                <button class="oam-btn" @onclick="OnContact">تَواصُل مع المالك</button>
+            </FooterExtra>
+        </OamReceipt>
     }
 </section>
 
@@ -24,12 +82,57 @@
     [Parameter] public string? Id { get; set; }
     private IListing? _listing;
     private bool _loading = true;
+    private int _imgIdx;
+    private List<OamTag>? _tags;
 
     protected override async Task OnParametersSetAsync()
     {
         if (string.IsNullOrEmpty(Id)) { _loading = false; return; }
         _loading = true;
+        _imgIdx = 0;
         _listing = await Store.GetByIdAsync(Id);
         _loading = false;
+
+        if (_listing is not null)
+        {
+            _tags = new List<OamTag>
+            {
+                new("النَوع",  PropertyTypeLabel(_listing.PropertyType)),
+                new("المدينة",  _listing.City),
+            };
+            if (!string.IsNullOrEmpty(_listing.District))
+                _tags.Add(new("الحيّ", _listing.District));
+            if (_listing.BedroomCount > 0)
+                _tags.Add(new("غُرف", _listing.BedroomCount.ToString()));
+            if (_listing.BathroomCount > 0)
+                _tags.Add(new("حمّامات", _listing.BathroomCount.ToString()));
+            if (_listing.AreaSqm > 0)
+                _tags.Add(new("المساحة", $"{_listing.AreaSqm} m²"));
+        }
     }
+
+    private void OnContact()
+    {
+        if (_listing is null) return;
+        // فَتح محادثة مع المالك على هذا الإعلان (المسار يُعرَّف في تَطبيق
+        // الـ host — نَستعمل /chat/start?listing= كـ deep link قياسيّ).
+        Nav.NavigateTo($"/conversations/start?listingId={Uri.EscapeDataString(_listing.Id)}");
+    }
+
+    private static string PriceUnit(string timeUnit) => timeUnit switch
+    {
+        "monthly" => "/شهر",
+        "yearly"  => "/سنة",
+        "daily"   => "/يوم",
+        _ => $"/{timeUnit}",
+    };
+
+    private static string PropertyTypeLabel(string t) => t switch
+    {
+        "apartment" => "شقّة",
+        "villa"     => "فيلا",
+        "studio"    => "استوديو",
+        "office"    => "مكتب",
+        _           => t,
+    };
 }

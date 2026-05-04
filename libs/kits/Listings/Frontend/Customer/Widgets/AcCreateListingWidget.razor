@@ -1,6 +1,137 @@
-@* Placeholder — full create form follows in F4 along with submit handler
-   that dispatches listing.create through ClientOpEngine. *@
+@inject IListingsStore Store
+@inject NavigationManager Nav
+
+@*
+    AcCreateListingWidget — نَموذج إعلان جديد بـ AnalyzerStrip:
+      - حقول مَنطقيّة (عنوان، سعر، نَوع، مدينة، …)
+      - OamAnalyzerStrip يَرى كلّ الحقول قبل التَنفيذ:
+          * عنوان موجود
+          * سعر > 0
+          * نَوع مُختار
+          * مدينة مَكتوبة
+      - الزرّ مُعَطَّل حتى تَكون كلّ الـ analyzers Pass
+      - عند النَجاح: redirect لـ /my-listings
+*@
+
 <section class="ac-create-listing">
-    <h1>Create a new listing</h1>
-    <p>Form will be wired in F4.</p>
+    <header class="ejar-section-head">
+        <h2 class="ejar-section-title">إعلان جديد</h2>
+        <span class="ejar-section-meta oam-mono">/ listing.create</span>
+    </header>
+
+    <div class="ejar-create-form">
+        <label class="ejar-field">
+            <span>العنوان</span>
+            <input class="ac-input" type="text" maxlength="120"
+                   value="@_title" @oninput="@(e => Update(_title = e.Value?.ToString() ?? ""))" />
+        </label>
+
+        <label class="ejar-field">
+            <span>الوصف</span>
+            <textarea class="ac-input" rows="3" maxlength="2000"
+                      @oninput="@(e => Update(_description = e.Value?.ToString() ?? ""))">@_description</textarea>
+        </label>
+
+        <div class="ejar-field-row">
+            <label class="ejar-field">
+                <span>السعر</span>
+                <input class="ac-input oam-mono" type="number" min="0" step="100"
+                       value="@_price" @oninput="@(e => { decimal.TryParse(e.Value?.ToString(), out var p); Update(_price = p); })" />
+            </label>
+            <label class="ejar-field">
+                <span>الفترة</span>
+                <select class="ac-input" @bind="_timeUnit" @bind:after="OnFormChanged">
+                    <option value="monthly">شهريّ</option>
+                    <option value="yearly">سنويّ</option>
+                    <option value="daily">يَوميّ</option>
+                </select>
+            </label>
+        </div>
+
+        <div class="ejar-field-row">
+            <label class="ejar-field">
+                <span>النَوع</span>
+                <select class="ac-input" @bind="_propertyType" @bind:after="OnFormChanged">
+                    <option value="">— اختَر —</option>
+                    <option value="apartment">شقّة</option>
+                    <option value="villa">فيلا</option>
+                    <option value="studio">استوديو</option>
+                    <option value="office">مكتب</option>
+                </select>
+            </label>
+            <label class="ejar-field">
+                <span>المدينة</span>
+                <input class="ac-input" type="text" maxlength="60"
+                       value="@_city" @oninput="@(e => Update(_city = e.Value?.ToString() ?? ""))" />
+            </label>
+        </div>
+    </div>
+
+    <OamAnalyzerStrip OperationType="listing.create"
+                      Analyzers="@_analyzers">
+        <Action>
+            <button class="oam-btn" disabled="@(!context || _submitting)"
+                    @onclick="OnSubmit">
+                @(_submitting ? "جاري النَشر…" : "نَشر الإعلان")
+            </button>
+        </Action>
+    </OamAnalyzerStrip>
+
+    @if (!string.IsNullOrEmpty(_error))
+    {
+        <p class="ac-err">@_error</p>
+    }
 </section>
+
+@code {
+    private string _title = "";
+    private string _description = "";
+    private decimal _price;
+    private string _timeUnit = "monthly";
+    private string _propertyType = "";
+    private string _city = "";
+
+    private bool _submitting;
+    private string? _error;
+
+    private OamAnalyzer[] _analyzers = Array.Empty<OamAnalyzer>();
+
+    protected override void OnInitialized() => OnFormChanged();
+
+    private void Update<T>(T _) => OnFormChanged();
+
+    private void OnFormChanged()
+    {
+        _analyzers = new[]
+        {
+            new OamAnalyzer("عنوان غير فارغ",
+                !string.IsNullOrWhiteSpace(_title) ? OamAnalyzerState.Pass : OamAnalyzerState.Fail,
+                _title.Length > 5 ? null : "≥ 5 حرف"),
+            new OamAnalyzer("سعر صحيح",
+                _price > 0 ? OamAnalyzerState.Pass : OamAnalyzerState.Fail,
+                _price <= 0 ? "أكبر من صِفر" : null),
+            new OamAnalyzer("نَوع العقار مُختار",
+                !string.IsNullOrEmpty(_propertyType) ? OamAnalyzerState.Pass : OamAnalyzerState.Fail),
+            new OamAnalyzer("مدينة مُحدَّدة",
+                !string.IsNullOrWhiteSpace(_city) ? OamAnalyzerState.Pass : OamAnalyzerState.Fail),
+        };
+        StateHasChanged();
+    }
+
+    private async Task OnSubmit()
+    {
+        _submitting = true; _error = null; StateHasChanged();
+        try
+        {
+            // POST /my-listings عبر store. الـ store sends raw — backend يَفحص
+            // الحقول وَ يُرجع 400 إن لزم، نَعرضها هنا.
+            // (نَستعمل ApplyFilterAsync لإعادة التَحميل بعد النَجاح.)
+            // الـ store لا يَكشف Create حالياً — نُسلِّم للتَطبيق redirect:
+            await Task.Yield();
+            // pass-through: التَطبيق المُغذِّي يُسجِّل actual create logic.
+            Nav.NavigateTo($"/my-listings/new/submit?title={Uri.EscapeDataString(_title)}&price={_price}&type={_propertyType}&city={Uri.EscapeDataString(_city)}&timeUnit={_timeUnit}");
+        }
+        catch (Exception ex) { _error = ex.Message; }
+        finally { _submitting = false; StateHasChanged(); }
+    }
+}
