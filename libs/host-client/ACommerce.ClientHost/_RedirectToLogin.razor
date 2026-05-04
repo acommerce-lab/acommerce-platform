@@ -1,11 +1,20 @@
 @inject NavigationManager Nav
 
+@*
+    Internal redirect helper — يَتفادى استدعاء NavigateTo أثناء prerender
+    (الذي يَقذف NavigationException غير مُعالَجة في pre-render phase).
+    OnAfterRenderAsync يَعمل فقط بعد initial paint = داخل interactive
+    rendermode حيث NavigateTo يَعمل بأمان.
+*@
+
 @code {
     [Parameter] public string Login { get; set; } = "/login";
     [Parameter] public string Return { get; set; } = "/";
 
-    protected override void OnInitialized()
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        if (!firstRender) return;
+        await Task.Yield();
         var ret = Uri.EscapeDataString(Return);
         Nav.NavigateTo($"{Login}?return={ret}", forceLoad: false);
     }

@@ -20,7 +20,7 @@
   --oam-line-strong:  #d6cfb8;   /* فواصل بارزة */
   --oam-ink:          #1a1a1a;   /* النصّ الأساسيّ */
   --oam-ink-mute:     #6b6b6b;   /* النصّ الثانويّ */
-  --oam-ink-faint:    #9a9a9a;   /* placeholders */
+  --oam-ink-faint:    #6b6b6b;   /* placeholders — كان #9a9a9a لكن WCAG AA يَتَطلَّب 4.5:1 */
 
   /* الأختام */
   --oam-exec:         #1f4d3d;   /* أخضر forest — نُفِّذ */

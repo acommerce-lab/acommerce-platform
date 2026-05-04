@@ -18,16 +18,24 @@
             {
                 <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@DefaultLayout">
                     <Authorizing>
-                        <div class="ejar-loading" role="status" aria-busy="true">@LoadingMessage</div>
+                        <LayoutView Layout="@DefaultLayout">
+                            <div class="ejar-loading" role="status" aria-busy="true">@LoadingMessage</div>
+                        </LayoutView>
                     </Authorizing>
                     <NotAuthorized>
-                        <_RedirectToLogin Login="@LoginRoute" Return="@_returnUrl" />
+                        <LayoutView Layout="@DefaultLayout">
+                            <div class="ejar-loading" role="status" aria-busy="true">@LoadingMessage</div>
+                            <_RedirectToLogin Login="@LoginRoute" Return="@_returnUrl" />
+                        </LayoutView>
                     </NotAuthorized>
                 </AuthorizeRouteView>
             }
             else if (_currentMatch.Page.RequiresAuth && !_isAuthenticated)
             {
-                <_RedirectToLogin Login="@LoginRoute" Return="@_returnUrl" />
+                <LayoutView Layout="@DefaultLayout">
+                    <div class="ejar-loading" role="status" aria-busy="true">@LoadingMessage</div>
+                    <_RedirectToLogin Login="@LoginRoute" Return="@_returnUrl" />
+                </LayoutView>
             }
             else
             {

@@ -55,7 +55,7 @@ p  { line-height: 1.65; color: var(--oam-ink); }
 
 .ejar-brand {
   display: flex; align-items: baseline; gap: .5rem;
-  font-weight: 700; font-size: 1.05rem;
+  font-weight: 700; font-size: 1rem;          /* 16px on scale */
   color: var(--oam-ink);
   letter-spacing: -0.01em;
 }
@@ -95,7 +95,7 @@ p  { line-height: 1.65; color: var(--oam-ink); }
   display: flex; justify-content: space-around;
   background: var(--oam-card);
   border-top: 1px solid var(--oam-line-strong);
-  padding: .35rem 0 .5rem;
+  padding: .5rem 0;                /* 8px على شبكة 4-pt */
   z-index: 10;
   max-width: 760px; margin: 0 auto;
 }
@@ -347,3 +347,46 @@ p  { line-height: 1.65; color: var(--oam-ink); }
   color: var(--oam-exec);
   cursor: pointer;
 }
+
+/* ─── kit widget classes — Layer 2 baseline ─────────────────────────────
+ * كلاسات تَستعملها kit widgets الافتراضيّة. أبسط styling — bottom-up
+ * elegant: padding، borders، colors من OAM tokens.
+ * ─────────────────────────────────────────────────────────────────────── */
+.ac-chat-room        { display: flex; flex-direction: column; gap: .65rem; }
+.ac-create-listing   { padding: 1rem 0; }
+.ac-listing-details  { padding: 1rem 0; }
+.ac-listings-explore { padding: .25rem 0; }
+.ac-my-listings      { padding: 0; }
+.ac-my-listings header {
+  display: flex; justify-content: space-between; align-items: baseline;
+  margin-bottom: .65rem; padding-bottom: .35rem;
+  border-bottom: 1px solid var(--oam-line);
+}
+.ac-my-listings header h1 { margin: 0; font-size: 1.1rem; }
+.ac-profile          { padding: 1.25rem; background: var(--oam-card);
+                       border: 1px solid var(--oam-line); border-radius: var(--oam-radius);
+                       box-shadow: var(--oam-shadow); }
+.ac-profile h1       { margin: 0 0 .35rem; font-size: 1.1rem; }
+.ac-profile p        { margin: 0; color: var(--oam-ink-mute);
+                       font-family: var(--oam-font-mono); font-size: .85rem; }
+
+.ac-plans            { display: flex; flex-direction: column; gap: .85rem;
+                       padding: .25rem 0; }
+.ac-plans-grid       { list-style: none; padding: 0; margin: 0;
+                       display: grid; grid-template-columns: 1fr; gap: .5rem; }
+.ac-plans-grid li    { background: var(--oam-card); border: 1px solid var(--oam-line);
+                       border-radius: var(--oam-radius); padding: 1rem 1.15rem;
+                       box-shadow: var(--oam-shadow); }
+.ac-plans-grid li h2 { margin: 0 0 .25rem; font-size: 1rem; }
+.ac-plans-grid li button {
+  margin-top: .5rem; padding: .4rem .85rem;
+  background: var(--oam-exec); color: #fff;
+  border: 0; border-radius: var(--oam-radius-sm);
+  cursor: pointer; font: 500 .85rem var(--oam-font-body);
+}
+
+.ac-price            { font-family: var(--oam-font-mono);
+                       font-size: 1.1rem; font-weight: 600;
+                       color: var(--oam-exec); margin: .35rem 0; }
+.ac-location         { font-size: .9rem; color: var(--oam-ink-mute); margin-bottom: .5rem; }
+.ac-description      { line-height: 1.7; color: var(--oam-ink); }

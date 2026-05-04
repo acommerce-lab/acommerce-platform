@@ -18,6 +18,12 @@
     <HeadOutlet />
 </head>
 <body>
+    @*
+        prerender يَعمل: SSR يَرسم أوّل HTML كامل (مع .ejar-shell) فيُسرِع
+        الـ first paint و يَجعل verify-runtime.mjs يَجد الـ shell. الـ
+        _RedirectToLogin مُؤجَّل لـ OnAfterRender فلا يَقذف NavigationException
+        أثناء prerender.
+    *@
     <Routes @rendermode="@(new Microsoft.AspNetCore.Components.Web.InteractiveServerRenderMode())" />
     <script src="_framework/blazor.web.js"></script>
 </body>
