@@ -50,8 +50,14 @@ public sealed class ChatPushNotificationInterceptor : IOperationInterceptor
             var convId = string.IsNullOrEmpty(convTag.Key) ? null : convTag.Value;
             if (string.IsNullOrEmpty(convId)) return AnalyzerResult.Pass();
 
+            // ChatController.Send يَكتب From(CallerPartyId, 1, ("role", "sender"))
+            // — لا direction=debit. الكود السابق كان يَبحث عن debit ⇒ sender
+            // = null ⇒ Pass() ⇒ صفر FCM دفعات. هذا سَبب جوهريّ لعدم وصول
+            // الإشعارات رغم صحّة الـ Firebase creds + التَوكنات.
             var sender = ctx.Operation.Parties
-                .FirstOrDefault(p => p.Tags.Any(t => t.Key == "direction" && t.Value == "debit"));
+                .FirstOrDefault(p => p.Tags.Any(t =>
+                    (t.Key == "role"      && t.Value == "sender") ||
+                    (t.Key == "direction" && t.Value == "debit")));
             if (sender is null) return AnalyzerResult.Pass();
             var senderId = ExtractId(sender.Identity);
 

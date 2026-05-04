@@ -139,12 +139,18 @@ public class ChatController : ControllerBase
     [HttpPost("/chat/{convId}/enter")]
     public async Task<IActionResult> Enter(string convId, CancellationToken ct)
     {
-        if (_chat is null) return this.OkEnvelope("chat.enter", new { ok = true });
         if (!await _store.CanParticipateAsync(convId, CallerId, ct))
             return this.ForbiddenEnvelope("not_a_participant");
+
+        // ١. صَفِّر unread + اقرأ الرسائل (DB) — حدث مَنطقيّ مُستقلّ عن
+        //    presence. يَنفّذ حتى لو الـ realtime hub غير مُهيّأ.
+        await _store.MarkReadAsync(convId, CallerId, ct);
+
+        // ٢. presence (للـ FCM وقمع notif بينما المُستخدِم يَقرأ) — اختياريّ.
+        if (_chat is null) return this.OkEnvelope("chat.enter", new { ok = true });
         var connId = _connections is null ? null : await _connections.GetConnectionIdAsync(CallerPartyId, ct);
         if (string.IsNullOrEmpty(connId))
-            return this.OkEnvelope("chat.enter", new { ok = false, reason = "no_connection" });
+            return this.OkEnvelope("chat.enter", new { ok = true, reason = "marked_read_no_presence" });
         await _chat.EnterConversationAsync(convId, CallerPartyId, connId, _options.ChatIdleTimeout, ct);
         return this.OkEnvelope("chat.enter", new { ok = true, conversationId = convId });
     }

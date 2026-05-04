@@ -67,8 +67,12 @@ public sealed class ChatPersistentNotificationInterceptor : IOperationIntercepto
             var convId = string.IsNullOrEmpty(convTag.Key) ? null : convTag.Value;
             if (string.IsNullOrEmpty(convId)) return AnalyzerResult.Pass();
 
+            // ChatController.Send يَكتب From(party, 1, ("role","sender")) — لا
+            // direction=debit. نَدعم الاثنَين فلا يَفشل التَركيب على شَكلَين.
             var sender = ctx.Operation.Parties
-                .FirstOrDefault(p => p.Tags.Any(t => t.Key == "direction" && t.Value == "debit"));
+                .FirstOrDefault(p => p.Tags.Any(t =>
+                    (t.Key == "role"      && t.Value == "sender") ||
+                    (t.Key == "direction" && t.Value == "debit")));
             if (sender is null) return AnalyzerResult.Pass();
             var senderId = ExtractId(sender.Identity);
 

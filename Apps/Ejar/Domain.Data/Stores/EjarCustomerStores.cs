@@ -200,6 +200,28 @@ public sealed class EjarCustomerChatStore : IChatStore
         )).ToList();
     }
 
+    /// <summary>
+    /// يُحدِّد كلّ الرسائل في المحادثة كَمَقروءة بَعد فَتح المُستخدِم لها.
+    /// آليّة بسيطة: <c>UnreadCount = 0</c> على كيان المحادثة. لا نَستعمل
+    /// per-message ReadAt حالياً (الـ schema الحاليّ بدون عمود) — التَطوّر
+    /// المُمكِن لاحقاً.
+    /// </summary>
+    public async Task MarkReadAsync(string conversationId, string userId, CancellationToken ct)
+    {
+        if (!Guid.TryParse(conversationId, out var cid)) return;
+        if (!Guid.TryParse(userId,        out var uid)) return;
+
+        var conv = await _db.Conversations.FirstOrDefaultAsync(x => x.Id == cid, ct);
+        if (conv is null) return;
+        // فقط من شارك في المحادثة يَستطيع تَصفير العَدّاد لنفسه. الـ schema
+        // الحاليّ يَحتفظ بعَدّاد واحد لكلّ محادثة (يَكفي لـ inbox 1-on-1).
+        if (conv.OwnerId != uid && conv.PartnerId != uid) return;
+        if (conv.UnreadCount == 0) return;
+
+        conv.UnreadCount = 0;
+        await _db.SaveChangesAsync(ct);
+    }
+
     private async Task<ConversationView> BuildViewAsync(ConversationEntity c, CancellationToken ct)
     {
         var owner   = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == c.OwnerId, ct);

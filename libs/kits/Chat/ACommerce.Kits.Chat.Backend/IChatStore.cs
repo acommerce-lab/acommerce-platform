@@ -43,4 +43,12 @@ public interface IChatStore
 
     /// <summary>كلّ محادثات المستخدم — للـ inbox.</summary>
     Task<IReadOnlyList<IChatConversation>> ListForUserAsync(string userId, CancellationToken ct);
+
+    /// <summary>
+    /// يُحدِّد كلّ رسائل المحادثة <paramref name="conversationId"/> كمَقروءة
+    /// من قِبَل <paramref name="userId"/> ويُصَفِّر <c>UnreadCount</c>. يُستدعى
+    /// من <c>ChatController.Enter</c> عندما يَفتح المُستخدِم المحادثة.
+    /// التطبيق الافتراضيّ no-op — التطبيقات تَتَجاوزه بـ EF update.
+    /// </summary>
+    Task MarkReadAsync(string conversationId, string userId, CancellationToken ct) => Task.CompletedTask;
 }

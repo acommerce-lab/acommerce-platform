@@ -46,7 +46,11 @@ public static class EjarV2CustomerHostExtensions
                 // Auth
                 .Add("/login",            AuthWidgets.Login)
 
-                // Listings (renamed routes)
+                // Listings — يَربط الـ widget إلى /listings/{id} hardcoded،
+                // فنُسَجِّل المسار حرفيّاً. /properties alias للوصول من الـ
+                // brand text لكنّ الروابط الفعليّة تَستعمل /listings.
+                .Add("/listings",         ListingsWidgets.Explore)
+                .Add("/listings/{id}",    ListingsWidgets.Details)
                 .Add("/properties",       ListingsWidgets.Explore)
                 .Add("/properties/{id}",  ListingsWidgets.Details)
                 .Add("/my-listings",      ListingsWidgets.Mine,    requiresAuth: true)

@@ -1,23 +1,34 @@
+using System.Net.Http.Json;
+using System.Text.Json;
 using ACommerce.Kits.Auth.Frontend.Customer.Stores;
+using Ejar.Customer.UI.Interceptors;
 using Ejar.Customer.UI.Store;
 
 namespace Ejar.Customer.UI.Bindings;
 
 /// <summary>
-/// تنفيذ <see cref="IAuthStore"/> لإيجار. يَلفّ <see cref="AppStore"/> +
-/// <see cref="ApiReader"/>. لا يَستحدث state — الـ AppStore يبقى مصدر
-/// الحقيقة الوحيد للـ JWT والـ user info (يَستهلكه
-/// <c>EjarAuthenticationStateProvider</c> أيضاً).
+/// تنفيذ <see cref="IAuthStore"/> لإيجار. يَستخدم HttpClient مباشرة (عبر
+/// <see cref="EjarCircuitHttp"/> فيَصل للـ JWT بَعْد التَحقّق). لا يَعتمد
+/// على envelope parsing فلا يَنهار لو الـ remote شَكَّل ردّاً غير قياسيّ.
+///
+/// <para>سياسة التَسامح:
+///   <list type="bullet">
+///     <item>POST /auth/otp/request: HTTP 2xx ⇒ نَجاح، أيّ شيء آخر ⇒ خطأ.</item>
+///     <item>POST /auth/otp/verify: نَستخرج token + userId + name من JSON
+///           بأكثر من نمط (envelope.data.* أو data.* أو root.*).</item>
+///   </list>
+/// </para>
 /// </summary>
 public sealed class EjarAuthStore : IAuthStore, IDisposable
 {
     private readonly AppStore _app;
-    private readonly ApiReader _api;
+    private readonly EjarCircuitHttp _http;
+    private readonly JsonSerializerOptions _json = new(JsonSerializerDefaults.Web);
 
-    public EjarAuthStore(AppStore app, ApiReader api)
+    public EjarAuthStore(AppStore app, EjarCircuitHttp http)
     {
         _app = app;
-        _api = api;
+        _http = http;
         _app.OnChanged += FireChanged;
     }
 
@@ -33,10 +44,13 @@ public sealed class EjarAuthStore : IAuthStore, IDisposable
         IsBusy = true; LastError = null; FireChanged();
         try
         {
-            var env = await _api.PostAsync<object>("/auth/otp/request", new { phone }, ct);
-            if (env.Operation.Status != "Success")
-                LastError = env.Error?.Message ?? env.Operation?.ErrorMessage ?? "otp_request_failed";
+            var resp = await _http.Client.PostAsJsonAsync(
+                "/auth/otp/request", new { phone }, _json, ct);
+            if (!resp.IsSuccessStatusCode)
+                LastError = $"otp_request_failed ({(int)resp.StatusCode})";
+            // أيّ 2xx ⇒ نَجاح. الـ widget يَنتقل لـ Code step تلقائياً.
         }
+        catch (Exception ex) { LastError = $"network_error: {ex.Message}"; }
         finally { IsBusy = false; FireChanged(); }
     }
 
@@ -45,20 +59,31 @@ public sealed class EjarAuthStore : IAuthStore, IDisposable
         IsBusy = true; LastError = null; FireChanged();
         try
         {
-            var env = await _api.PostAsync<AuthResponse>("/auth/otp/verify", new { phone, code }, ct);
-            if (env.Operation.Status != "Success" || env.Data is null)
+            var resp = await _http.Client.PostAsJsonAsync(
+                "/auth/otp/verify", new { phone, code }, _json, ct);
+            var raw = await resp.Content.ReadAsStringAsync(ct);
+            if (!resp.IsSuccessStatusCode)
             {
-                LastError = env.Error?.Message ?? env.Operation?.ErrorMessage ?? "otp_verify_failed";
+                LastError = $"otp_verify_failed ({(int)resp.StatusCode})";
                 return;
             }
-            // AppStore يبقى المصدر الوحيد — نُحدّث خصائصه (الـ object مشترك).
-            // Server returns { token, userId, name, phone, role } — انظر AuthController.VerifyOtp
-            _app.Auth.UserId      = Guid.TryParse(env.Data.UserId, out var g) ? g : null;
-            _app.Auth.FullName    = env.Data.Name;
+
+            // نَبحث عن { token, userId, name } في أيّ مَوقع: data، root، أو envelope.data
+            using var doc = JsonDocument.Parse(raw);
+            var (token, userId, name) = ExtractAuth(doc.RootElement);
+            if (string.IsNullOrEmpty(token) || string.IsNullOrEmpty(userId))
+            {
+                LastError = "otp_verify_no_token";
+                return;
+            }
+
+            _app.Auth.UserId      = Guid.TryParse(userId, out var g) ? g : null;
+            _app.Auth.FullName    = name ?? "—";
             _app.Auth.Phone       = phone;
-            _app.Auth.AccessToken = env.Data.Token;
+            _app.Auth.AccessToken = token;
             _app.NotifyChanged();
         }
+        catch (Exception ex) { LastError = $"network_error: {ex.Message}"; }
         finally { IsBusy = false; FireChanged(); }
     }
 
@@ -67,7 +92,7 @@ public sealed class EjarAuthStore : IAuthStore, IDisposable
         IsBusy = true; FireChanged();
         try
         {
-            await _api.PostAsync<object>("/auth/logout", null, ct);
+            try { await _http.Client.PostAsync("/auth/logout", null, ct); } catch { }
             _app.Auth.UserId      = null;
             _app.Auth.FullName    = null;
             _app.Auth.Phone       = null;
@@ -77,9 +102,35 @@ public sealed class EjarAuthStore : IAuthStore, IDisposable
         finally { IsBusy = false; FireChanged(); }
     }
 
+    private static (string? Token, string? UserId, string? Name) ExtractAuth(JsonElement root)
+    {
+        // 1) envelope.data.{token,userId,name}
+        if (root.ValueKind == JsonValueKind.Object && root.TryGetProperty("data", out var data) && data.ValueKind == JsonValueKind.Object)
+        {
+            var t = Pick(data, "token", "accessToken");
+            var u = Pick(data, "userId", "id");
+            var n = Pick(data, "name", "fullName", "displayName");
+            if (t is not null && u is not null) return (t, u, n);
+        }
+        // 2) root.{token,userId,name}
+        if (root.ValueKind == JsonValueKind.Object)
+        {
+            var t = Pick(root, "token", "accessToken");
+            var u = Pick(root, "userId", "id");
+            var n = Pick(root, "name", "fullName", "displayName");
+            if (t is not null && u is not null) return (t, u, n);
+        }
+        return (null, null, null);
+    }
+
+    private static string? Pick(JsonElement obj, params string[] keys)
+    {
+        foreach (var key in keys)
+            if (obj.TryGetProperty(key, out var p) && p.ValueKind == JsonValueKind.String)
+                return p.GetString();
+        return null;
+    }
+
     private void FireChanged() => Changed?.Invoke();
     public void Dispose() => _app.OnChanged -= FireChanged;
-
-    /// <summary>Server response shape — see AuthController.VerifyOtp.</summary>
-    private sealed record AuthResponse(string Token, string UserId, string Name, string Phone, string Role);
 }
