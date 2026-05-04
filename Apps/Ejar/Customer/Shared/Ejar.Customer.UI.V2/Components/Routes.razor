@@ -1,0 +1,28 @@
+@page "/"
+@page "/{*Path:nonfile}"
+
+@using ACommerce.ClientHost
+@using Ejar.Customer.UI.V2.Components.Layout
+
+@*
+    Routes — مكوّن routable واحد catch-all يَلتقط كلّ المسارات.
+
+    لماذا هنا (V2 assembly) لا في ACommerce.ClientHost؟
+      Type serialization: <HostedApp DefaultLayout=typeof(MainLayout) />
+      يُمَرَّر داخل نفس render-mode boundary (App.razor ⇒ Routes interactive).
+      لو كان Routes في assembly آخر، Type لا يَعبر JSON بنجاح.
+
+    App.razor يَستدعيه بـ @rendermode="InteractiveServer" — Routes يَصير
+    interactive. HostedApp + DefaultLayout = نفس الـ boundary، فلا serialization
+    لـ Type ولا RenderFragment.
+*@
+
+<HostedApp DefaultLayout="@typeof(MainLayout)"
+           LoginRoute="/login"
+           LoadingMessage="جاري التحميل…"
+           NotFoundTitle="الصفحة غير موجودة"
+           NotFoundMessage="عُد إلى" />
+
+@code {
+    [Parameter] public string? Path { get; set; }
+}

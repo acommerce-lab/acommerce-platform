@@ -1,6 +1,8 @@
-@using ACommerce.ClientHost
-@using Ejar.Customer.UI.V2.Components.Layout
-
+@*
+    App.razor — root SSR component. يَلفّ Routes (الذي يَحوي @page directives)
+    بـ @rendermode interactive — كلّ شيء داخل Routes يَكون Interactive، فلا
+    حدود serialize عبور.
+*@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -16,16 +18,7 @@
     <HeadOutlet />
 </head>
 <body>
-    @*
-        كلّ الـ parameters هنا قابلة للـ JSON-serialize (Type + string)
-        فلا تَنكسر عند SSR→Interactive boundary.
-    *@
-    <RoutableHostedApp DefaultLayout="@typeof(MainLayout)"
-                       LoginRoute="/login"
-                       LoadingMessage="جاري التحميل…"
-                       NotFoundTitle="الصفحة غير موجودة"
-                       NotFoundMessage="عُد إلى"
-                       @rendermode="@(new Microsoft.AspNetCore.Components.Web.InteractiveServerRenderMode())" />
+    <Routes @rendermode="@(new Microsoft.AspNetCore.Components.Web.InteractiveServerRenderMode())" />
     <script src="_framework/blazor.web.js"></script>
 </body>
 </html>
