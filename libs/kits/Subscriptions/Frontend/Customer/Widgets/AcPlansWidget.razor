@@ -1,17 +1,92 @@
 @inject ISubscriptionsStore Store
 @implements IDisposable
 
+@*
+    AcPlansWidget — لوحة باقات بإيقاع OAM:
+      - لو هناك باقة فعَّالة (Active) ⇒ بَطاقة "اشتراكي الحاليّ" أعلى
+        الصفحة بـ OamReceipt + ختم Executed.
+      - شَبكة بَطاقات للباقات المُتاحة. الباقة الحاليّة تَأخذ ختم
+        Executed + زرّ "مَفعَّل". الباقات الأخرى تَعرض زرّ "اشترك".
+      - tags داخل بطاقة الباقة تَكشف Quotas (مثلاً listings.create=5).
+*@
+
 <section class="ac-plans">
-    @if (Store.IsLoading) { <p>Loading…</p> }
+    <header class="ejar-section-head">
+        <h2 class="ejar-section-title">الاشتراك</h2>
+        <span class="ejar-section-meta oam-mono">/ plans · @Store.Plans.Count</span>
+    </header>
+
+    @if (Store.IsLoading)
+    {
+        <p class="ejar-loading">جاري التحميل…</p>
+    }
+    else if (Store.Plans.Count == 0)
+    {
+        <div class="ejar-empty">
+            <span class="ejar-empty-glyph" aria-hidden="true">▣</span>
+            <h3>لا توجد باقات مُتاحة</h3>
+            <p>سيَتمّ نَشر الباقات قريباً.</p>
+        </div>
+    }
     else
     {
-        <ul class="ac-plans-grid">
+        @if (Store.Active is { } act)
+        {
+            <div class="ejar-current-plan">
+                <div class="ejar-current-plan-row">
+                    <OamStamp State="OamState.Executed" Compact="true" />
+                    <span class="ejar-current-plan-label">باقتي الحاليّة</span>
+                </div>
+                <p class="ejar-current-plan-name">
+                    @(Store.Plans.FirstOrDefault(p => p.Id == act.PlanId)?.Name ?? "—")
+                </p>
+                <p class="ejar-current-plan-period oam-mono">
+                    @act.StartDate.ToString("yyyy-MM-dd") → @act.EndDate.ToString("yyyy-MM-dd")
+                </p>
+            </div>
+        }
+
+        <ul class="ejar-plans-grid">
             @foreach (var p in Store.Plans)
             {
-                <li>
-                    <h2>@p.Name</h2>
-                    <p>@p.Slug</p>
-                    <button @onclick="() => Store.SubscribeAsync(p.Id.ToString())">Subscribe</button>
+                var pid = p.Id;
+                var isActive = Store.Active is { } a && a.PlanId == pid;
+                <li class="ejar-plan-card @(isActive ? "ejar-plan-card-active" : "")">
+                    <header class="ejar-plan-head">
+                        <h3>@p.Name</h3>
+                        @if (isActive)
+                        {
+                            <OamStamp State="OamState.Executed" Compact="true" />
+                        }
+                    </header>
+                    <p class="ejar-plan-slug oam-mono">@p.Slug</p>
+
+                    @if (p.Quotas is { Count: > 0 })
+                    {
+                        <ul class="ejar-plan-quotas">
+                            @foreach (var q in p.Quotas)
+                            {
+                                <li>
+                                    <span class="ejar-plan-quota-key">@QuotaLabel(q.Key)</span>
+                                    <span class="ejar-plan-quota-val oam-mono">
+                                        @(q.Value < 0 ? "غير محدود" : q.Value.ToString())
+                                    </span>
+                                </li>
+                            }
+                        </ul>
+                    }
+
+                    @if (isActive)
+                    {
+                        <button class="oam-btn-ghost ejar-plan-btn" disabled>مَفعَّلة</button>
+                    }
+                    else
+                    {
+                        <button class="oam-btn ejar-plan-btn"
+                                @onclick="() => Store.SubscribeAsync(pid.ToString())">
+                            اشترك
+                        </button>
+                    }
                 </li>
             }
         </ul>
@@ -23,7 +98,17 @@
     {
         Store.Changed += OnChanged;
         await Store.LoadPlansAsync();
+        await Store.LoadActiveAsync();
     }
+
+    private static string QuotaLabel(string key) => key switch
+    {
+        "listings.create"     => "إعلانات",
+        "messages.send"       => "رسائل",
+        "notifications.send"  => "تَنبيهات",
+        _                     => key,
+    };
+
     private void OnChanged() => InvokeAsync(StateHasChanged);
     public void Dispose() => Store.Changed -= OnChanged;
 }

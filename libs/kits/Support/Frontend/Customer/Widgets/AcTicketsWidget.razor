@@ -1,19 +1,58 @@
 @inject ISupportStore Store
+@inject NavigationManager Nav
 @implements IDisposable
 
+@*
+    AcTicketsWidget — تَذاكر الدَعم بإيقاع OAM:
+      - زرّ "تَذكرة جديدة" أعلى الصفحة
+      - قائمة بَطاقات: subject (bold) + OamStamp يَعكس الحالة
+        (open=Pending، waiting=Executing، resolved=Executed، closed=Rejected)
+      - عَدّاد الردود غير المَقروءة كَـ red dot
+*@
+
 <section class="ac-tickets">
-    @if (Store.IsLoading) { <p>Loading…</p> }
-    else if (Store.Tickets.Count == 0) { <p>No tickets.</p> }
+    <header class="ejar-section-head">
+        <h2 class="ejar-section-title">الدَعم الفنّيّ</h2>
+        <a href="/support/new" class="oam-btn ejar-add-btn">+ تَذكرة جديدة</a>
+    </header>
+
+    @if (Store.IsLoading)
+    {
+        <p class="ejar-loading">جاري التحميل…</p>
+    }
+    else if (Store.Tickets.Count == 0)
+    {
+        <div class="ejar-empty">
+            <span class="ejar-empty-glyph" aria-hidden="true">?</span>
+            <h3>لا توجد تَذاكر</h3>
+            <p>افتح تَذكرة لو تَحتاج مساعدة من فريق الدَعم.</p>
+        </div>
+    }
     else
     {
-        <ul>
+        <ul class="ejar-tickets">
             @foreach (var t in Store.Tickets)
             {
-                <li>
-                    <a href="@($"/support/{t.Id}")">
-                        <strong>@t.Subject</strong>
-                        <span>@t.Status</span>
-                    </a>
+                var tid = t.Id;
+                <li class="ejar-ticket-row" @onclick="@(() => Nav.NavigateTo($"/support/{tid}"))"
+                    role="button" tabindex="0">
+                    <div class="ejar-ticket-body">
+                        <div class="ejar-ticket-top">
+                            <span class="ejar-ticket-subject">@t.Subject</span>
+                            <OamStamp State="@MapStatus(t.Status)" Compact="true" />
+                        </div>
+                        <div class="ejar-ticket-meta oam-mono">
+                            <span>@FormatTime(t.UpdatedAt)</span>
+                            <span class="ejar-ticket-id"># @ShortId(t.Id)</span>
+                        </div>
+                    </div>
+                    @if (t.UnreadReplies > 0)
+                    {
+                        <span class="ejar-ticket-unread"
+                              aria-label="@($"{t.UnreadReplies} ردّ غير مَقروء")">
+                            @t.UnreadReplies
+                        </span>
+                    }
                 </li>
             }
         </ul>
@@ -26,6 +65,29 @@
         Store.Changed += OnChanged;
         await Store.LoadAsync();
     }
+
+    private static OamState MapStatus(string status) => status switch
+    {
+        "open"     or "new"      => OamState.Pending,
+        "waiting"  or "pending"  => OamState.Executing,
+        "resolved" or "closed"   => OamState.Executed,
+        "rejected" or "cancelled"=> OamState.Rejected,
+        _                        => OamState.Pending,
+    };
+
+    private static string FormatTime(DateTime utc)
+    {
+        var local = utc.ToLocalTime();
+        var diff  = DateTime.Now - local;
+        if (diff.TotalMinutes < 60) return $"منذ {(int)diff.TotalMinutes}د";
+        if (diff.TotalHours   < 24) return $"منذ {(int)diff.TotalHours}س";
+        if (diff.TotalDays    < 7)  return $"منذ {(int)diff.TotalDays}ي";
+        return local.ToString("yyyy-MM-dd");
+    }
+
+    private static string ShortId(string id)
+        => id.Length > 8 ? id[..8] : id;
+
     private void OnChanged() => InvokeAsync(StateHasChanged);
     public void Dispose() => Store.Changed -= OnChanged;
 }

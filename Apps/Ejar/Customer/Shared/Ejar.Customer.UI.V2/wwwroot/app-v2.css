@@ -776,3 +776,95 @@ p  { line-height: 1.65; color: var(--oam-ink); }
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .ejar-fav-remove { font-size: .75rem; padding: .25rem .65rem; }
+
+/* ─── Subscriptions plans ────────────────────────────────────────── */
+.ejar-current-plan {
+  margin-bottom: 1rem; padding: 1rem 1.15rem;
+  background: var(--oam-exec-bg);
+  border: 1px solid var(--oam-exec);
+  border-radius: var(--oam-radius);
+}
+.ejar-current-plan-row { display: flex; align-items: center; gap: .5rem; }
+.ejar-current-plan-label {
+  font-size: .72rem; text-transform: uppercase; letter-spacing: .1em;
+  color: var(--oam-exec); font-weight: 600;
+}
+.ejar-current-plan-name { margin: .35rem 0 .15rem; font-size: 1.05rem;
+                          font-weight: 700; color: var(--oam-ink); }
+.ejar-current-plan-period { margin: 0; font-size: .78rem;
+                            color: var(--oam-ink-mute); }
+
+.ejar-plans-grid {
+  list-style: none; padding: 0; margin: 0;
+  display: grid; grid-template-columns: 1fr; gap: .75rem;
+}
+@media (min-width: 600px) {
+  .ejar-plans-grid { grid-template-columns: repeat(2, 1fr); }
+}
+.ejar-plan-card {
+  background: var(--oam-card);
+  border: 1px solid var(--oam-line);
+  border-radius: var(--oam-radius);
+  box-shadow: var(--oam-shadow);
+  padding: 1rem 1.15rem;
+  display: flex; flex-direction: column; gap: .5rem;
+}
+.ejar-plan-card-active {
+  border-color: var(--oam-exec); border-width: 2px;
+}
+.ejar-plan-head { display: flex; justify-content: space-between;
+                  align-items: center; }
+.ejar-plan-head h3 { margin: 0; font-size: 1rem; font-weight: 700; }
+.ejar-plan-slug   { margin: 0; font-size: .75rem; color: var(--oam-ink-mute); }
+
+.ejar-plan-quotas { list-style: none; padding: 0; margin: .35rem 0 0;
+                    display: flex; flex-direction: column; gap: .25rem;
+                    border-top: 1px dashed var(--oam-line); padding-top: .65rem; }
+.ejar-plan-quotas li {
+  display: flex; justify-content: space-between; align-items: center;
+  font-size: .82rem;
+}
+.ejar-plan-quota-key { color: var(--oam-ink-mute); }
+.ejar-plan-quota-val { color: var(--oam-ink); font-weight: 600; }
+
+.ejar-plan-btn { margin-top: .65rem; }
+.ejar-plan-btn:disabled {
+  background: var(--oam-exec-bg); color: var(--oam-exec);
+  border: 1px solid var(--oam-exec);
+}
+
+/* ─── Support tickets ──────────────────────────────────────────── */
+.ejar-tickets { list-style: none; padding: 0; margin: 0;
+                display: flex; flex-direction: column; }
+.ejar-ticket-row {
+  display: flex; gap: .85rem; align-items: center;
+  padding: .85rem 1rem;
+  background: var(--oam-card);
+  border-bottom: 1px solid var(--oam-line);
+  cursor: pointer;
+  transition: background .12s ease;
+}
+.ejar-ticket-row:first-child { border-top: 1px solid var(--oam-line); }
+.ejar-ticket-row:hover { background: var(--oam-paper); }
+.ejar-ticket-body { flex: 1; min-width: 0;
+                    display: flex; flex-direction: column; gap: .25rem; }
+.ejar-ticket-top  { display: flex; justify-content: space-between;
+                    align-items: center; gap: .5rem; }
+.ejar-ticket-subject {
+  font-weight: 600; font-size: .95rem; color: var(--oam-ink);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.ejar-ticket-meta {
+  display: flex; gap: .85rem; font-size: .72rem;
+  color: var(--oam-ink-mute);
+}
+.ejar-ticket-id { color: var(--oam-ink-faint); }
+.ejar-ticket-unread {
+  flex-shrink: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 22px; height: 22px;
+  padding: 0 7px;
+  background: #dc2626; color: #fff;
+  border-radius: 9999px;
+  font: 700 .72rem var(--oam-font-mono);
+}
