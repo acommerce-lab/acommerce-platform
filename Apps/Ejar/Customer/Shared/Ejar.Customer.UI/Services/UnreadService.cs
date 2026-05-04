@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Ejar.Customer.UI.Store;
 
 namespace Ejar.Customer.UI.Services;
@@ -92,8 +93,43 @@ public sealed class UnreadService : IDisposable
         catch { /* keep last */ }
     }
 
-    private void OnMessage(string _)      { ChatUnread++;  Changed?.Invoke(); }
-    private void OnNotification(string _) { NotifUnread++; Changed?.Invoke(); }
+    /// <summary>
+    /// id المحادثة المفتوحة حاليّاً. الرسائل التي تَرد لها لا تُحسَب
+    /// كَغير-مَقروءة (المُستخدِم يَراها لحظيّاً). ChatRoom.razor يَضبطها
+    /// عند الـ Enter ويَمسحها عند الـ Leave.
+    /// </summary>
+    public string? ActiveConversationId { get; set; }
+
+    private void OnMessage(string json)
+    {
+        // ١. لا تَزِد عدّاد على رسالة من المستخدِم نفسه (server echo).
+        // ٢. لا تَزِد على رسالة من المحادثة المفتوحة (المُستخدِم يَراها).
+        try
+        {
+            using var doc = JsonDocument.Parse(json);
+            var root = doc.RootElement;
+            var sender = TryGet(root, "senderPartyId") ?? TryGet(root, "SenderPartyId");
+            var convId = TryGet(root, "conversationId") ?? TryGet(root, "ConversationId");
+
+            var myPartyId = _store.Auth.UserId is { } g ? $"User:{g}" : null;
+            if (!string.IsNullOrEmpty(sender) && sender == myPartyId) return;
+            if (!string.IsNullOrEmpty(convId) && convId == ActiveConversationId) return;
+        }
+        catch { /* parsing failed — treat as new */ }
+
+        ChatUnread++;
+        Changed?.Invoke();
+    }
+
+    private void OnNotification(string _)
+    {
+        NotifUnread++;
+        Changed?.Invoke();
+    }
+
+    private static string? TryGet(JsonElement el, string name)
+        => el.TryGetProperty(name, out var p) && p.ValueKind == JsonValueKind.String
+           ? p.GetString() : null;
 
     public void ClearChat()  { ChatUnread = 0;  Changed?.Invoke(); }
     public void ClearNotif() { NotifUnread = 0; Changed?.Invoke(); }

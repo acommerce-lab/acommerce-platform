@@ -99,13 +99,28 @@ window.ejarFirebase = (function () {
       }
       if (perm !== 'granted') return null;
 
+      // VAPID key Pre-flight: يَجب أن يَكون مفتاح Web Push public من
+      // Firebase Console ⇒ Project Settings ⇒ Cloud Messaging ⇒ Web Push
+      // certificates ⇒ Generate key pair. الشكل: 87-88 base64url يَبدأ بـ 'B'.
+      // مَفتاح خاطئ يُنتج DOMException 'applicationServerKey is not valid'.
+      if (!vapidKey || vapidKey.length < 80 || vapidKey.length > 100 || vapidKey[0] !== 'B') {
+        console.error(
+          '[ejarFirebase] VAPID key غير صالح (الطول=' + (vapidKey?.length ?? 0) +
+          '، الحرف الأوّل=' + (vapidKey?.[0] ?? '?') + '). ' +
+          'احصل على المفتاح من Firebase Console → Project Settings → Cloud Messaging → ' +
+          'Web Push certificates → Generate key pair → انسخ Public key (88 char يَبدأ بـ B) ' +
+          'وضعه في wwwroot/firebase-config.json تحت "vapidKey".');
+        return null;
+      }
+
       const token = await _modCache.getToken(_messaging, {
-        vapidKey: vapidKey || undefined,
+        vapidKey: vapidKey,
         serviceWorkerRegistration: _swReg || undefined,
       });
       return token || null;
     } catch (e) {
-      console.warn('[ejarFirebase] getToken فشل:', e);
+      console.error('[ejarFirebase] getToken فشل — غالباً VAPID key مَرفوض. ' +
+        'تَأكَّد من Firebase Console > Cloud Messaging > Web Push certificates.', e);
       return null;
     }
   }

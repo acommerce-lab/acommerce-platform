@@ -89,9 +89,13 @@
 
     private async Task MarkAllRead()
     {
+        // ١. تَحديث محلّيّ تَفاؤليّ + إعادة render فوريّة قبل الاستجابة من
+        //    الخادم (الـ "جديد" badges تَختفي مباشرةً، لا انتظار).
         _items = _items.Select(n => n with { IsRead = true }).ToList();
-        await Engine.ExecuteAsync<object>(EjarOps.ReadAllNotifications());
         Unread.ClearNotif();
+        StateHasChanged();
+        // ٢. الـ server يَدوِّن الحدث. لو فشل، نَترك الـ UI كما هو (تَفاؤليّ).
+        await Engine.ExecuteAsync<object>(EjarOps.ReadAllNotifications());
     }
 
     private string GroupLabel(DateTime localDt)

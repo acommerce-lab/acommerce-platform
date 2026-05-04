@@ -80,18 +80,27 @@ public sealed class FirebasePushService
             }
             if (cfg is null) return;
 
-            // VAPID public key — مطلوب للـ web push. لو فارغ نُسجِّل التهيئة
-            // لاستلام foreground messages فقط (لا background subscription).
-            if (string.IsNullOrWhiteSpace(cfg.VapidKey))
+            // VAPID public key — لو فارغ أو غير صالح (الطول ≠ 87-88 ولا يَبدأ
+            // بـ B) نَخرج بـ error واضح. السبب الأكثر شيوعاً لفشل الـ push:
+            // مفتاح خاطئ ⇒ DOMException 'applicationServerKey is not valid'.
+            if (string.IsNullOrWhiteSpace(cfg.VapidKey)
+                || cfg.VapidKey.Length < 80 || cfg.VapidKey.Length > 100
+                || cfg.VapidKey[0] != 'B')
             {
-                _log.LogInformation("FCM: vapidKey فارغ — رسائل foreground فقط، بدون اشتراك.");
+                _log.LogError(
+                    "FCM: VAPID key غير صالح (الطول={Len}). افتح Firebase Console → " +
+                    "Project Settings → Cloud Messaging → Web Push certificates → " +
+                    "Generate key pair → Public key (88 char يَبدأ بـ B) → ضعه في " +
+                    "wwwroot/firebase-config.json تحت \"vapidKey\".",
+                    cfg.VapidKey?.Length ?? 0);
                 return;
             }
 
             var token = await _js.InvokeAsync<string?>("ejarFirebase.requestToken", ct, cfg.VapidKey);
             if (string.IsNullOrWhiteSpace(token))
             {
-                _log.LogInformation("FCM: getToken أرجع null (الإذن مرفوض أو غير مدعوم).");
+                _log.LogWarning("FCM: getToken أرجع null. راجع DevTools Console — " +
+                    "غالباً VAPID مَرفوض أو إذن الإشعارات مَمنوع.");
                 return;
             }
 
