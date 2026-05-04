@@ -1,34 +1,22 @@
-using System.Net.Http.Json;
-using System.Text.Json;
 using ACommerce.Kits.Auth.Frontend.Customer.Stores;
-using Ejar.Customer.UI.Interceptors;
 using Ejar.Customer.UI.Store;
 
 namespace Ejar.Customer.UI.Bindings;
 
 /// <summary>
-/// تنفيذ <see cref="IAuthStore"/> لإيجار. يَستخدم HttpClient مباشرة (عبر
-/// <see cref="EjarCircuitHttp"/> فيَصل للـ JWT بَعْد التَحقّق). لا يَعتمد
-/// على envelope parsing فلا يَنهار لو الـ remote شَكَّل ردّاً غير قياسيّ.
-///
-/// <para>سياسة التَسامح:
-///   <list type="bullet">
-///     <item>POST /auth/otp/request: HTTP 2xx ⇒ نَجاح، أيّ شيء آخر ⇒ خطأ.</item>
-///     <item>POST /auth/otp/verify: نَستخرج token + userId + name من JSON
-///           بأكثر من نمط (envelope.data.* أو data.* أو root.*).</item>
-///   </list>
-/// </para>
+/// تنفيذ <see cref="IAuthStore"/> لإيجار. يَدلّع للـ <see cref="IAuthApiClient"/>
+/// لشكل الـ HTTP، ويُحَدِّث <see cref="AppStore"/> بالـ JWT + الهوية. لا
+/// shape knowledge هنا — Kit api client يَملك ذلك مَركزياً.
 /// </summary>
 public sealed class EjarAuthStore : IAuthStore, IDisposable
 {
     private readonly AppStore _app;
-    private readonly EjarCircuitHttp _http;
-    private readonly JsonSerializerOptions _json = new(JsonSerializerDefaults.Web);
+    private readonly IAuthApiClient _api;
 
-    public EjarAuthStore(AppStore app, EjarCircuitHttp http)
+    public EjarAuthStore(AppStore app, IAuthApiClient api)
     {
         _app = app;
-        _http = http;
+        _api = api;
         _app.OnChanged += FireChanged;
     }
 
@@ -44,13 +32,9 @@ public sealed class EjarAuthStore : IAuthStore, IDisposable
         IsBusy = true; LastError = null; FireChanged();
         try
         {
-            var resp = await _http.Client.PostAsJsonAsync(
-                "/auth/otp/request", new { phone }, _json, ct);
-            if (!resp.IsSuccessStatusCode)
-                LastError = $"otp_request_failed ({(int)resp.StatusCode})";
-            // أيّ 2xx ⇒ نَجاح. الـ widget يَنتقل لـ Code step تلقائياً.
+            var r = await _api.RequestOtpAsync(phone, ct);
+            if (!r.Success) LastError = r.Error ?? "otp_request_failed";
         }
-        catch (Exception ex) { LastError = $"network_error: {ex.Message}"; }
         finally { IsBusy = false; FireChanged(); }
     }
 
@@ -59,49 +43,19 @@ public sealed class EjarAuthStore : IAuthStore, IDisposable
         IsBusy = true; LastError = null; FireChanged();
         try
         {
-            var resp = await _http.Client.PostAsJsonAsync(
-                "/auth/otp/verify", new { phone, code }, _json, ct);
-            var raw = await resp.Content.ReadAsStringAsync(ct);
-            if (!resp.IsSuccessStatusCode)
+            var r = await _api.VerifyOtpAsync(phone, code, ct);
+            if (!r.Success || string.IsNullOrEmpty(r.Token) || string.IsNullOrEmpty(r.UserId))
             {
-                LastError = $"otp_verify_failed ({(int)resp.StatusCode})";
+                LastError = r.Error ?? "otp_verify_failed";
                 return;
             }
-
-            // نَبحث عن { token, userId, name } في أيّ مَوقع: data، root، أو envelope.data
-            using var doc = JsonDocument.Parse(raw);
-            var (token, userId, name) = ExtractAuth(doc.RootElement);
-            if (string.IsNullOrEmpty(token) || string.IsNullOrEmpty(userId))
-            {
-                LastError = "otp_verify_no_token";
-                return;
-            }
-
-            _app.Auth.UserId      = ParseUserGuid(userId);
-            _app.Auth.FullName    = name ?? "—";
+            _app.Auth.UserId      = ParseUserGuid(r.UserId!);
+            _app.Auth.FullName    = r.FullName ?? "—";
             _app.Auth.Phone       = phone;
-            _app.Auth.AccessToken = token;
+            _app.Auth.AccessToken = r.Token!;
             _app.NotifyChanged();
         }
-        catch (Exception ex) { LastError = $"network_error: {ex.Message}"; }
         finally { IsBusy = false; FireChanged(); }
-    }
-
-    /// <summary>
-    /// يُحَوِّل userId خادميّ إلى Guid. لو كان Guid فعلاً نُرجِعه كما هو.
-    /// لو ليس Guid (مثلاً int أو string) نُولِّد Guid حتميّاً من SHA-1
-    /// للنصّ — نَفس الـ id ⇒ نَفس Guid دائماً، فلا تَتَكاثر السجلّات
-    /// المحلّيّة لنفس المُستخدِم. هذا يَجعل <c>IsAuthenticated</c> = true
-    /// حتى مع APIs لا تَستخدم Guid لـ userId.
-    /// </summary>
-    private static Guid ParseUserGuid(string raw)
-    {
-        if (Guid.TryParse(raw, out var g)) return g;
-        var bytes = System.Security.Cryptography.SHA1.HashData(
-            System.Text.Encoding.UTF8.GetBytes(raw ?? ""));
-        var guidBytes = new byte[16];
-        Array.Copy(bytes, guidBytes, 16);
-        return new Guid(guidBytes);
     }
 
     public async Task LogoutAsync(CancellationToken ct = default)
@@ -109,7 +63,7 @@ public sealed class EjarAuthStore : IAuthStore, IDisposable
         IsBusy = true; FireChanged();
         try
         {
-            try { await _http.Client.PostAsync("/auth/logout", null, ct); } catch { }
+            try { await _api.LogoutAsync(ct); } catch { }
             _app.Auth.UserId      = null;
             _app.Auth.FullName    = null;
             _app.Auth.Phone       = null;
@@ -119,33 +73,19 @@ public sealed class EjarAuthStore : IAuthStore, IDisposable
         finally { IsBusy = false; FireChanged(); }
     }
 
-    private static (string? Token, string? UserId, string? Name) ExtractAuth(JsonElement root)
+    /// <summary>
+    /// يُحَوِّل userId خادميّ إلى Guid. لو كان Guid فعلاً نُرجِعه. غير ذلك
+    /// نُولِّد Guid حتميّاً من SHA-1 للنصّ — نَفس الـ id ⇒ نَفس Guid دائماً،
+    /// فلا تَتَكاثر السجلّات المحلّيّة. هذا يُمَكِّن APIs لا تَستخدم Guid.
+    /// </summary>
+    private static Guid ParseUserGuid(string raw)
     {
-        // 1) envelope.data.{token,userId,name}
-        if (root.ValueKind == JsonValueKind.Object && root.TryGetProperty("data", out var data) && data.ValueKind == JsonValueKind.Object)
-        {
-            var t = Pick(data, "token", "accessToken");
-            var u = Pick(data, "userId", "id");
-            var n = Pick(data, "name", "fullName", "displayName");
-            if (t is not null && u is not null) return (t, u, n);
-        }
-        // 2) root.{token,userId,name}
-        if (root.ValueKind == JsonValueKind.Object)
-        {
-            var t = Pick(root, "token", "accessToken");
-            var u = Pick(root, "userId", "id");
-            var n = Pick(root, "name", "fullName", "displayName");
-            if (t is not null && u is not null) return (t, u, n);
-        }
-        return (null, null, null);
-    }
-
-    private static string? Pick(JsonElement obj, params string[] keys)
-    {
-        foreach (var key in keys)
-            if (obj.TryGetProperty(key, out var p) && p.ValueKind == JsonValueKind.String)
-                return p.GetString();
-        return null;
+        if (Guid.TryParse(raw, out var g)) return g;
+        var bytes = System.Security.Cryptography.SHA1.HashData(
+            System.Text.Encoding.UTF8.GetBytes(raw));
+        var guidBytes = new byte[16];
+        Array.Copy(bytes, guidBytes, 16);
+        return new Guid(guidBytes);
     }
 
     private void FireChanged() => Changed?.Invoke();

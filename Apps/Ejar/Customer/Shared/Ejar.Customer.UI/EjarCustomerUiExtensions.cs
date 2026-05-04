@@ -3,6 +3,7 @@ using ACommerce.Client.Http;
 using ACommerce.Client.Operations;
 using ACommerce.Client.Operations.Interceptors;
 using ACommerce.Client.StateBridge;
+using ACommerce.ClientHost.KitApi;
 using ACommerce.Culture.Abstractions;
 using ACommerce.Culture.Defaults;
 using ACommerce.Kits.Versions.Templates;
@@ -95,12 +96,35 @@ public static class EjarCustomerUiExtensions
         services.AddScoped<FavoritesSync>();
         services.AddScoped<FirebasePushService>();
 
+        // ─── KitApi pipeline موحَّد ─────────────────────────────────────
+        // analyzers (pre-flight) + interceptors (around) تَنطبق تلقائياً
+        // على كلّ kit api clients. تَطبيقات أخرى تَكتفي بإضافة analyzer
+        // واحد لتَنطبق القاعدة على كلّ الكيتس بدون تَعديلها — نَفس فلسفة
+        // backend interceptors لكن على الـ client.
+        services
+            .AddKitApiPipeline(sp => sp.GetRequiredService<EjarCircuitHttp>().Client)
+            .AddAnalyzer<RequiredAuthAnalyzer>()
+            .AddInterceptor<TelemetryInterceptor>();
+
         // ─── kit ApiClients (per-kit shape ownership) ──────────────────
-        // كلّ kit يَملك تَقشير envelope الخاصّ به. التطبيق يَحقن HttpClient
-        // ويَنتهي. لا shape knowledge في bindings.
-        services.AddScoped<ACommerce.Kits.Listings.Frontend.Customer.Stores.IListingsApiClient>(
-            sp => new ACommerce.Kits.Listings.Frontend.Customer.Stores.HttpListingsApiClient(
-                sp.GetRequiredService<EjarCircuitHttp>().Client));
+        // كلّ kit يَستهلك KitHttpClient الموحَّد ⇒ analyzers/interceptors
+        // مُسَجَّلة مرّة واحدة لكلّ الكيتس. لا تَكرار في bindings.
+        services.AddScoped<ACommerce.Kits.Auth.Frontend.Customer.Stores.IAuthApiClient,
+                          ACommerce.Kits.Auth.Frontend.Customer.Stores.HttpAuthApiClient>();
+        services.AddScoped<ACommerce.Kits.Listings.Frontend.Customer.Stores.IListingsApiClient,
+                          ACommerce.Kits.Listings.Frontend.Customer.Stores.HttpListingsApiClient>();
+        services.AddScoped<ACommerce.Kits.Chat.Frontend.Customer.Stores.IChatApiClient,
+                          ACommerce.Kits.Chat.Frontend.Customer.Stores.HttpChatApiClient>();
+        services.AddScoped<ACommerce.Kits.Notifications.Frontend.Customer.Stores.INotificationsApiClient,
+                          ACommerce.Kits.Notifications.Frontend.Customer.Stores.HttpNotificationsApiClient>();
+        services.AddScoped<ACommerce.Kits.Profiles.Frontend.Customer.Stores.IProfileApiClient,
+                          ACommerce.Kits.Profiles.Frontend.Customer.Stores.HttpProfileApiClient>();
+        services.AddScoped<ACommerce.Kits.Subscriptions.Frontend.Customer.Stores.ISubscriptionsApiClient,
+                          ACommerce.Kits.Subscriptions.Frontend.Customer.Stores.HttpSubscriptionsApiClient>();
+        services.AddScoped<ACommerce.Kits.Support.Frontend.Customer.Stores.ISupportApiClient,
+                          ACommerce.Kits.Support.Frontend.Customer.Stores.HttpSupportApiClient>();
+        services.AddScoped<ACommerce.Kits.Favorites.Frontend.Customer.Stores.IFavoritesApiClient,
+                          ACommerce.Kits.Favorites.Frontend.Customer.Stores.HttpFavoritesApiClient>();
 
         services.AddScoped<ClientOpEngine>(sp =>
             new ClientOpEngine(

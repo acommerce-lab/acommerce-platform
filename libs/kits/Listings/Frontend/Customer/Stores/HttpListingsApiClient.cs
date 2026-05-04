@@ -1,69 +1,50 @@
-using System.Net.Http.Json;
-using System.Text.Json;
+using ACommerce.ClientHost.KitApi;
 using ACommerce.Kits.Listings.Domain;
-using ACommerce.OperationEngine.Wire;
 
 namespace ACommerce.Kits.Listings.Frontend.Customer.Stores;
 
 /// <summary>
-/// التَنفيذ الافتراضيّ — يَعرف الـ wire shape بالضبط:
+/// التَنفيذ الافتراضيّ — يَستهلك <see cref="KitHttpClient"/> الموحَّد فيَستفيد
+/// تلقائيّاً من كلّ analyzers/interceptors المُسَجَّلة في التطبيق (auth،
+/// telemetry، retry، …) دون تَكرار. هو يَعرف فقط wire shapes:
 /// <list type="bullet">
-///   <item><c>GET /listings</c> ⇒ <c>OperationEnvelope&lt;{ total, page, pageSize, items: ListingDto[] }&gt;</c></item>
-///   <item><c>GET /listings/{id}</c> ⇒ <c>OperationEnvelope&lt;ListingDto&gt;</c> (مع enricher fields)</item>
-///   <item><c>GET /my-listings</c> ⇒ <c>OperationEnvelope&lt;ListingDto[]&gt;</c></item>
+///   <item><c>GET /listings</c> ⇒ <c>{ total, page, pageSize, items: ListingDto[] }</c></item>
+///   <item><c>GET /listings/{id}</c> ⇒ <c>ListingDto</c></item>
+///   <item><c>GET /my-listings</c> ⇒ <c>ListingDto[]</c></item>
 /// </list>
+/// تَقشير <c>OperationEnvelope</c> يَتمّ داخل <c>KitHttpClient.PeelEnvelope</c>.
 ///
-/// <para>التَطبيق يَحقن <c>HttpClient</c> مَوصول لـ <c>EjarApi:BaseUrl</c>
-/// مع AuthHeadersHandler. هذا الـ client يُقَشِّر الـ envelope ويَردّ
-/// <see cref="IListing"/>؛ الـ widgets لا تَرى JSON إطلاقاً.</para>
-///
-/// <para>تَطبيق آخر بـ wire shape مختلفة (مثلاً GraphQL أو REST بدون OAM)
-/// يُسَجِّل تنفيذاً خاصّاً لـ <see cref="IListingsApiClient"/> — kit pages
-/// لا تَتأثّر.</para>
+/// <para>تَطبيق آخر بـ wire shape مختلفة (GraphQL مثلاً) يُسَجِّل تنفيذاً
+/// خاصّاً لـ <see cref="IListingsApiClient"/> — kit pages لا تَتأثّر.</para>
 /// </summary>
 public sealed class HttpListingsApiClient : IListingsApiClient
 {
-    private readonly HttpClient _http;
-    private readonly JsonSerializerOptions _json = new(JsonSerializerDefaults.Web);
+    private const string Kit = "listings";
+    private readonly KitHttpClient _http;
 
-    public HttpListingsApiClient(HttpClient http) => _http = http;
+    public HttpListingsApiClient(KitHttpClient http) => _http = http;
 
     public async Task<ListingPageResult> SearchAsync(ListingFilter filter, CancellationToken ct = default)
     {
         var qs = BuildQuery(filter);
-        try
-        {
-            var env = await _http.GetFromJsonAsync<OperationEnvelope<ListingPageDto>>(
-                "/listings" + qs, _json, ct);
-            if (env?.Operation.Status == "Success" && env.Data?.Items is { } items)
-                return new ListingPageResult(items.Cast<IListing>().ToList(),
-                                              env.Data.Total, env.Data.Page, env.Data.PageSize);
-        }
-        catch { /* network/shape — empty page */ }
+        var res = await _http.GetAsync<ListingPageDto>(Kit, "/listings" + qs, ct);
+        if (res.Success && res.Data?.Items is { } items)
+            return new ListingPageResult(items.Cast<IListing>().ToList(),
+                                          res.Data.Total, res.Data.Page, res.Data.PageSize);
         return new ListingPageResult(Array.Empty<IListing>(), 0, filter.Page, filter.PageSize);
     }
 
     public async Task<IListing?> GetAsync(string id, CancellationToken ct = default)
     {
-        try
-        {
-            var env = await _http.GetFromJsonAsync<OperationEnvelope<ListingDto>>(
-                $"/listings/{Uri.EscapeDataString(id)}", _json, ct);
-            return env?.Operation.Status == "Success" ? env.Data : null;
-        }
-        catch { return null; }
+        var res = await _http.GetAsync<ListingDto>(Kit, $"/listings/{Uri.EscapeDataString(id)}", ct);
+        return res.Success ? res.Data : null;
     }
 
     public async Task<IReadOnlyList<IListing>> ListMineAsync(CancellationToken ct = default)
     {
-        try
-        {
-            var env = await _http.GetFromJsonAsync<OperationEnvelope<List<ListingDto>>>(
-                "/my-listings", _json, ct);
-            if (env?.Operation.Status == "Success" && env.Data is { } list)
-                return list.Cast<IListing>().ToList();
-        }
-        catch { /* network/shape */ }
+        var res = await _http.GetAsync<List<ListingDto>>(Kit, "/my-listings", ct);
+        if (res.Success && res.Data is { } list)
+            return list.Cast<IListing>().ToList();
         return Array.Empty<IListing>();
     }
 

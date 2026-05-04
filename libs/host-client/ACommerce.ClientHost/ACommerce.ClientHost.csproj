@@ -17,8 +17,10 @@
     <PackageReference Include="Microsoft.AspNetCore.Components.Authorization" Version="10.0.7" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.7" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="10.0.7" />
+    <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.7" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\..\clients\ACommerce.Client.Operations\ACommerce.Client.Operations.csproj" />
+    <ProjectReference Include="..\..\core\OperationEngine\ACommerce.OperationEngine.Wire\ACommerce.OperationEngine.Wire.csproj" />
   </ItemGroup>
 </Project>

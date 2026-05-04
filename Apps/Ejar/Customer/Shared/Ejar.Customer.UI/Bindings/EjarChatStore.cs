@@ -1,23 +1,22 @@
 using ACommerce.Chat.Client.Blazor;
 using ACommerce.Chat.Operations;
 using ACommerce.Kits.Chat.Frontend.Customer.Stores;
-using Ejar.Customer.UI.Store;
 
 namespace Ejar.Customer.UI.Bindings;
 
 /// <summary>
 /// تنفيذ <see cref="IChatStore"/> لإيجار. يَلفّ <see cref="IChatClient"/>
-/// (للإرسال + استقبال realtime — التنفيذ الفعليّ <c>EjarChatClient</c>) +
-/// <see cref="ApiReader"/> (لجلب القائمة).
+/// (للإرسال + استقبال realtime) + <see cref="IChatApiClient"/> (لجلب
+/// القائمة والتاريخ). لا shape/JSON هنا.
 /// </summary>
 public sealed class EjarChatStore : IChatStore, IDisposable
 {
     private readonly IChatClient _chat;
-    private readonly ApiReader _api;
+    private readonly IChatApiClient _api;
     private readonly List<IChatMessage> _msgs = new();
     private List<ConversationSummary> _conversations = new();
 
-    public EjarChatStore(IChatClient chat, ApiReader api)
+    public EjarChatStore(IChatClient chat, IChatApiClient api)
     {
         _chat = chat;
         _api  = api;
@@ -34,23 +33,16 @@ public sealed class EjarChatStore : IChatStore, IDisposable
     public async Task LoadConversationsAsync(CancellationToken ct = default)
     {
         IsLoading = true; Changed?.Invoke();
-        try
-        {
-            var env = await _api.GetAsync<List<ConversationSummary>>("/conversations", ct: ct);
-            if (env.Operation.Status == "Success" && env.Data is not null)
-                _conversations = env.Data;
-        }
+        try   { _conversations = (await _api.ListConversationsAsync(ct)).ToList(); }
         finally { IsLoading = false; Changed?.Invoke(); }
     }
 
     public async Task OpenConversationAsync(string conversationId, CancellationToken ct = default)
     {
         await _chat.EnterAsync(conversationId);
-        var env = await _api.GetAsync<List<ChatMessageDto>>(
-            $"/conversations/{Uri.EscapeDataString(conversationId)}/messages", ct: ct);
+        var msgs = await _api.ListMessagesAsync(conversationId, ct);
         _msgs.Clear();
-        if (env.Operation.Status == "Success" && env.Data is not null)
-            _msgs.AddRange(env.Data);
+        _msgs.AddRange(msgs);
         Changed?.Invoke();
     }
 
@@ -59,8 +51,7 @@ public sealed class EjarChatStore : IChatStore, IDisposable
 
     public async Task MarkReadAsync(string conversationId, CancellationToken ct = default)
     {
-        await _api.PostAsync<object>(
-            $"/conversations/{Uri.EscapeDataString(conversationId)}/read", null, ct);
+        await _api.EnterAsync(conversationId, ct);
         Changed?.Invoke();
     }
 
@@ -71,15 +62,4 @@ public sealed class EjarChatStore : IChatStore, IDisposable
     }
 
     public void Dispose() => _chat.MessageReceived -= OnMessageReceived;
-
-    /// <summary>DTO يُحقّق <see cref="IChatMessage"/> مباشرةً (Law 6).</summary>
-    private sealed class ChatMessageDto : IChatMessage
-    {
-        public string Id { get; set; } = "";
-        public string ConversationId { get; set; } = "";
-        public string SenderPartyId { get; set; } = "";
-        public string Body { get; set; } = "";
-        public DateTime SentAt { get; set; }
-        public DateTime? ReadAt { get; set; }
-    }
 }

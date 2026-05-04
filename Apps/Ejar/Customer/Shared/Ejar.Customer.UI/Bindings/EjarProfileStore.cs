@@ -1,19 +1,17 @@
 using ACommerce.Kits.Profiles.Frontend.Customer.Stores;
 using ACommerce.Kits.Profiles.Operations;
-using Ejar.Customer.UI.Store;
 
 namespace Ejar.Customer.UI.Bindings;
 
 /// <summary>
-/// تنفيذ <see cref="IProfileStore"/> لإيجار. يَجلب من <c>GET /me/profile</c>
-/// ويَدفع تعديلات بـ <c>PUT /me/profile</c>. يَكشف <see cref="IUserProfile"/>
-/// (interface من Profiles.Operations) — الصفحات لا تَرى أيّ DTO خادميّ.
+/// تنفيذ <see cref="IProfileStore"/> لإيجار. يَدلّع للـ
+/// <see cref="IProfileApiClient"/>. لا shape/JSON هنا.
 /// </summary>
 public sealed class EjarProfileStore : IProfileStore
 {
-    private readonly ApiReader _api;
+    private readonly IProfileApiClient _api;
 
-    public EjarProfileStore(ApiReader api) => _api = api;
+    public EjarProfileStore(IProfileApiClient api) => _api = api;
 
     public IUserProfile? Current { get; private set; }
     public bool IsLoading { get; private set; }
@@ -24,31 +22,16 @@ public sealed class EjarProfileStore : IProfileStore
         IsLoading = true; Changed?.Invoke();
         try
         {
-            var env = await _api.GetAsync<ProfileDto>("/me/profile", ct: ct);
-            if (env.Operation.Status == "Success" && env.Data is not null)
-                Current = env.Data;
+            var p = await _api.GetMineAsync(ct);
+            if (p is not null) Current = p;
         }
         finally { IsLoading = false; Changed?.Invoke(); }
     }
 
     public async Task UpdateAsync(IUserProfile next, CancellationToken ct = default)
     {
-        var env = await _api.PostAsync<ProfileDto>("/me/profile", next, ct);
-        // PUT لا يَرجع envelope مختلف — نَستهلك Success فقط
-        if (env.Operation.Status == "Success" && env.Data is not null)
-            Current = env.Data;
+        var p = await _api.UpdateAsync(next, ct);
+        if (p is not null) Current = p;
         Changed?.Invoke();
     }
-
-    /// <summary>DTO خادميّ يُحقّق <see cref="IUserProfile"/> مباشرةً (Law 6).</summary>
-    private sealed record ProfileDto(
-        string Id,
-        string FullName,
-        string Phone,
-        bool   PhoneVerified,
-        string? Email,
-        bool   EmailVerified,
-        string? City,
-        string? AvatarUrl,
-        DateTime MemberSince) : IUserProfile;
 }
