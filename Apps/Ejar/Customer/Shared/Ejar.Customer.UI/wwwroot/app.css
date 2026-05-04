@@ -779,3 +779,94 @@ main {
     max-width: 100%;
     width: 100%;
 }
+
+/* ─── Notification badge على أيقونة Mobile-nav ─────────────────────────
+   نقطة حمراء + رقم فوق الأيقونة عند وجود إشعارات/رسائل غير مقروءة.
+   ─────────────────────────────────────────────────────────────────── */
+.ejar-icon-with-badge { position: relative; }
+.ejar-icon-badge {
+  position: absolute;
+  top: 4px; right: 4px;          /* RTL: top-right corner of icon button */
+  min-width: 18px; height: 18px;
+  padding: 0 5px;
+  background: #dc2626;            /* red-600 */
+  color: #fff;
+  border-radius: 9999px;
+  font-size: 10px; font-weight: 700;
+  line-height: 18px;
+  text-align: center;
+  border: 2px solid var(--ac-card-bg, #fff);
+  box-shadow: 0 0 0 1px rgba(0,0,0,.04);
+  pointer-events: none;
+}
+
+/* ─── Chats page — قائمة محادثات لائقة ────────────────────────────── */
+.ejar-chats-head {
+  display: flex; align-items: baseline; justify-content: space-between;
+  margin-bottom: 12px;
+}
+.ejar-chats-head h1 { margin: 0; font-size: 1.25rem; font-weight: 700; }
+
+.ejar-chat-list {
+  list-style: none; padding: 0; margin: 12px 0 0;
+  display: flex; flex-direction: column;
+}
+.ejar-chat-row {
+  display: flex; gap: 12px; align-items: center;
+  padding: 12px 14px;
+  background: var(--ac-card-bg, #fff);
+  border: 1px solid var(--ac-border, #e5e7eb);
+  border-radius: 12px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  transition: background .12s ease, border-color .12s ease, transform .12s ease;
+}
+.ejar-chat-row:hover {
+  background: var(--ac-bg-alt, #fafafa);
+  border-color: var(--ac-border-strong, #d1d5db);
+  transform: translateY(-1px);
+}
+.ejar-chat-row:focus-visible {
+  outline: 2px solid var(--ac-primary, #2563eb); outline-offset: 2px;
+}
+.ejar-chat-row-unread {
+  background: var(--ac-primary-soft, #f0f7ff);
+  border-color: var(--ac-primary, #2563eb);
+}
+
+.ejar-chat-row-body {
+  flex: 1; min-width: 0;             /* min-width:0 يَسمح للنصّ بالـ truncate */
+  display: flex; flex-direction: column; gap: 4px;
+}
+.ejar-chat-row-top, .ejar-chat-row-bot {
+  display: flex; justify-content: space-between; align-items: center;
+  gap: 8px; min-width: 0;
+}
+.ejar-chat-name {
+  font-weight: 600; font-size: 0.95rem; color: var(--ac-text, #1f2937);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.ejar-chat-time {
+  font-size: 0.72rem; color: var(--ac-text-muted, #6b7280);
+  flex-shrink: 0;
+}
+.ejar-chat-preview {
+  font-size: 0.85rem; color: var(--ac-text-muted, #6b7280);
+  line-height: 1.45;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  flex: 1; min-width: 0;
+}
+.ejar-chat-row-unread .ejar-chat-preview {
+  color: var(--ac-text, #1f2937);
+  font-weight: 500;
+}
+.ejar-chat-unread {
+  flex-shrink: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 22px; height: 22px;
+  padding: 0 7px;
+  background: #dc2626;          /* red-600 */
+  color: #fff;
+  border-radius: 9999px;
+  font-size: 0.72rem; font-weight: 700;
+}

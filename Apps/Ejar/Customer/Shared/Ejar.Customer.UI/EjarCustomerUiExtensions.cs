@@ -95,6 +95,13 @@ public static class EjarCustomerUiExtensions
         services.AddScoped<FavoritesSync>();
         services.AddScoped<FirebasePushService>();
 
+        // ─── kit ApiClients (per-kit shape ownership) ──────────────────
+        // كلّ kit يَملك تَقشير envelope الخاصّ به. التطبيق يَحقن HttpClient
+        // ويَنتهي. لا shape knowledge في bindings.
+        services.AddScoped<ACommerce.Kits.Listings.Frontend.Customer.Stores.IListingsApiClient>(
+            sp => new ACommerce.Kits.Listings.Frontend.Customer.Stores.HttpListingsApiClient(
+                sp.GetRequiredService<EjarCircuitHttp>().Client));
+
         services.AddScoped<ClientOpEngine>(sp =>
             new ClientOpEngine(
                 sp.GetRequiredService<IOperationDispatcher>(),
@@ -117,6 +124,11 @@ public static class EjarCustomerUiExtensions
 
         // ─── Realtime + Chat client ────────────────────────────────────
         services.AddScoped<EjarRealtimeService>();
+
+        // عدّاد موحَّد للرسائل + الإشعارات غير المقروءة — يُغذِّي الشارات
+        // الحمراء على Bottom/Top nav. يُحدَّث realtime من EjarRealtimeService
+        // ودوريّاً عبر RefreshAsync من MainLayout.
+        services.AddScoped<UnreadService>();
 
         // VersionPoll يفحص /version.json دورياً ويُعلِم الواجهة بإصدار جديد
         // مع زرّ تحديث ضمن التطبيق (بدلاً من إجبار auto-reload الذي قد يُربك

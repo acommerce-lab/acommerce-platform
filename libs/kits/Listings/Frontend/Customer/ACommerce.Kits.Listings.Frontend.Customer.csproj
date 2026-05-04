@@ -5,7 +5,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <PackageId>ACommerce.Kits.Listings.Frontend.Customer</PackageId>
     <Version>1.0.0</Version>
-    <Description>Customer-facing UI for the Listings kit: pages (explore, details, my-listings, create), components, IListingsStore interface, and ListingsPageBundle that an app registers via AddKitPages(). The app implements IListingsStore against its own data shape; kit pages talk only to the interface (Law 6).</Description>
+    <Description>Customer-facing UI for the Listings kit: widgets, IListingsApiClient (knows /listings wire shape) + default HttpListingsApiClient impl, IListingsStore reactive store. The app injects HttpClient and the kit peels OperationEnvelope itself — no shape knowledge in app bindings.</Description>
     <RazorLangVersion>latest</RazorLangVersion>
   </PropertyGroup>
   <ItemGroup>
@@ -14,5 +14,9 @@
   <ItemGroup>
     <ProjectReference Include="..\..\ACommerce.Kits.Listings.Operations\ACommerce.Kits.Listings.Operations.csproj" />
     <ProjectReference Include="..\..\..\..\host-client\ACommerce.ClientHost\ACommerce.ClientHost.csproj" />
+    <ProjectReference Include="..\..\..\..\core\OperationEngine\ACommerce.OperationEngine.Wire\ACommerce.OperationEngine.Wire.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.7" />
   </ItemGroup>
 </Project>

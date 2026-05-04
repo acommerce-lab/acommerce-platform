@@ -14,6 +14,7 @@
 @inject EjarRealtimeService Realtime
 @inject FavoritesSync Favorites
 @inject VersionPoll VersionPoll
+@inject UnreadService Unread
 @inject IConfiguration Config
 @implements IAsyncDisposable
 
@@ -50,8 +51,16 @@
                     <button class="acm-mobile-nav-btn" @onclick="@(() => Nav.NavigateTo("/search"))" aria-label="بحث">
                         <AcIcon Name="search" Size="28" />
                     </button>
-                    <button class="acm-mobile-nav-btn" @onclick="@(() => Nav.NavigateTo("/notifications"))" aria-label="إشعارات">
+                    <button class="acm-mobile-nav-btn ejar-icon-with-badge"
+                            @onclick="@(() => Nav.NavigateTo("/notifications"))"
+                            aria-label="@($"إشعارات{(Unread.NotifUnread > 0 ? $" ({Unread.NotifUnread} غير مقروء)" : "")}")">
                         <AcIcon Name="bell" Size="28" />
+                        @if (Unread.NotifUnread > 0)
+                        {
+                            <span class="ejar-icon-badge" aria-hidden="true">
+                                @(Unread.NotifUnread > 99 ? "99+" : Unread.NotifUnread.ToString())
+                            </span>
+                        }
                     </button>
                 </div>
             </div>
@@ -90,22 +99,25 @@
     // لم نعد نستدعي /version/check يدوياً.
     private bool _favoritesLoaded;
 
-    private static readonly IReadOnlyList<BottomNavItemDto> _bottomItems = new[]
+    // الـ items مُحَسوبة من Unread.ChatUnread / NotifUnread فالشارات تَتَحدَّث
+    // realtime عند وصول رسالة/إشعار. NullableInt: null = لا badge، >0 = badge.
+    private IReadOnlyList<BottomNavItemDto> _bottomItems => new[]
     {
-        new BottomNavItemDto { Href = "/",              Label = "الرئيسية", IconName = "home",    Exact = true },
-        new BottomNavItemDto { Href = "/explore",       Label = "استكشاف",  IconName = "compass" },
-        new BottomNavItemDto { Href = "/favorites",     Label = "المفضلة",  IconName = "heart" },
-        new BottomNavItemDto { Href = "/chats",         Label = "الرسائل",  IconName = "message" },
-        new BottomNavItemDto { Href = "/me",            Label = "حسابي",    IconName = "user" }
+        new BottomNavItemDto { Href = "/",          Label = "الرئيسية", IconName = "home",    Exact = true },
+        new BottomNavItemDto { Href = "/explore",   Label = "استكشاف",  IconName = "compass" },
+        new BottomNavItemDto { Href = "/favorites", Label = "المفضلة",  IconName = "heart" },
+        new BottomNavItemDto { Href = "/chats",     Label = "الرسائل",  IconName = "message",
+                               Badge = Unread.ChatUnread > 0 ? Unread.ChatUnread : null },
+        new BottomNavItemDto { Href = "/me",        Label = "حسابي",    IconName = "user" }
     };
 
-    private static readonly IReadOnlyList<AcTopNav.TopNavItem> _topItems = new[]
+    private IReadOnlyList<AcTopNav.TopNavItem> _topItems => new[]
     {
         new AcTopNav.TopNavItem("/",              "الرئيسية",  "home",    null, true),
         new AcTopNav.TopNavItem("/explore",       "استكشاف",   "compass"),
         new AcTopNav.TopNavItem("/favorites",     "المفضلة",   "heart"),
-        new AcTopNav.TopNavItem("/chats",         "الرسائل",   "message"),
-        new AcTopNav.TopNavItem("/notifications", "الإشعارات", "bell"),
+        new AcTopNav.TopNavItem("/chats",         "الرسائل",   "message", Unread.ChatUnread > 0 ? Unread.ChatUnread : (int?)null),
+        new AcTopNav.TopNavItem("/notifications", "الإشعارات", "bell",    Unread.NotifUnread > 0 ? Unread.NotifUnread : (int?)null),
         new AcTopNav.TopNavItem("/me",            "حسابي",     "user")
     };
 
@@ -117,9 +129,12 @@
         Store.OnChanged += OnChange;
         Nav.LocationChanged += OnLocationChanged;
         VersionPoll.Changed += OnVersionPollChanged;
+        Unread.Changed += OnUnreadChanged;
         _ = VersionPoll.StartAsync();
         UpdateChrome(Nav.Uri);
     }
+
+    private void OnUnreadChanged() => InvokeAsync(StateHasChanged);
 
     private void OnVersionPollChanged() => InvokeAsync(StateHasChanged);
     private async Task ApplyAppUpdate() => await VersionPoll.ApplyUpdateAsync();
@@ -160,6 +175,9 @@
         {
             _favoritesLoaded = true;
             await Favorites.LoadFromServerAsync();
+            // عَدّاد الرسائل + الإشعارات غير المقروءة — يُغذِّي الشارات
+            // الحمراء على Bottom/Top nav بمجرّد إقلاع الجلسة.
+            _ = Unread.RefreshAsync();
         }
 
         if (_appliedTheme != Store.Ui.Theme || _appliedLang != Store.Ui.Language)
@@ -229,6 +247,7 @@
         Store.OnChanged -= OnChange;
         Nav.LocationChanged -= OnLocationChanged;
         VersionPoll.Changed -= OnVersionPollChanged;
+        Unread.Changed -= OnUnreadChanged;
         await VersionPoll.DisposeAsync();
         await Realtime.DisposeAsync();
     }

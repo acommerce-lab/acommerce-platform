@@ -1,16 +1,21 @@
 @page "/chats"
 @attribute [Authorize]
+@using Ejar.Customer.UI.Services
 @using Ejar.Customer.UI.Store
 @inject AppStore Store
 @inject ApiReader Api
 @inject NavigationManager Nav
 @inject ITimezoneProvider Tz
+@inject UnreadService Unread
 @inject L L
+@implements IDisposable
 
 <PageTitle>@(L["chat.title"]) — @(L["app.name"])</PageTitle>
 
 <div class="acs-page acs-chats-page">
-    <h1 class="acm-wizard-title">@(L["chat.title"])</h1>
+    <header class="ejar-chats-head">
+        <h1>@(L["chat.title"])</h1>
+    </header>
 
     <AcSearchBox Value="@_search" ValueChanged="@(v => _search = v ?? string.Empty)"
                  Placeholder="ابحث في المحادثات…" />
@@ -27,27 +32,41 @@
         @if (list.Count == 0) { <AcEmptyState IconName="message" Message="لا توجد محادثات" /> }
         else
         {
-            <div style="display:flex; flex-direction:column; gap:8px; margin-top:12px;">
+            <ul class="ejar-chat-list">
                 @foreach (var c in list)
                 {
                     var cid = c.Id;
-                    <AcCard Hover="true">
-                        <ChildContent>
-                            <button type="button" class="acm-complaint-btn" @onclick="@(() => Open(cid))">
-                                <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
-                                    <strong>@OtherName(c)</strong>
-                                    <div style="display:flex; gap:6px; align-items:center;">
-                                        <small>@Tz.FormatRelative(c.LastAt)</small>
-                                        @if (c.UnreadCount > 0) { <AcBadge Variant="primary" Text="@c.UnreadCount.ToString()" /> }
-                                    </div>
-                                </div>
-                                <div class="acm-complaint-body">@c.LastMessage</div>
-                                <small>@c.Subject</small>
-                            </button>
-                        </ChildContent>
-                    </AcCard>
+                    var name = OtherName(c);
+                    var hasUnread = c.UnreadCount > 0;
+                    <li class="ejar-chat-row @(hasUnread ? "ejar-chat-row-unread" : "")"
+                        @onclick="@(() => Open(cid))"
+                        role="button" tabindex="0">
+
+                        <AcAvatar Name="@name" ImageUrl="@OtherAvatar(c)" Size="48" />
+
+                        <div class="ejar-chat-row-body">
+                            <div class="ejar-chat-row-top">
+                                <span class="ejar-chat-name">@name</span>
+                                <span class="ejar-chat-time">@Tz.FormatRelative(c.LastAt)</span>
+                            </div>
+                            <div class="ejar-chat-row-bot">
+                                <span class="ejar-chat-preview">
+                                    @(string.IsNullOrEmpty(c.LastMessage)
+                                        ? (c.Subject ?? "—")
+                                        : Truncate(c.LastMessage, 80))
+                                </span>
+                                @if (hasUnread)
+                                {
+                                    <span class="ejar-chat-unread"
+                                          aria-label="@($"{c.UnreadCount} رسالة غير مقروءة")">
+                                        @(c.UnreadCount > 99 ? "99+" : c.UnreadCount.ToString())
+                                    </span>
+                                }
+                            </div>
+                        </div>
+                    </li>
                 }
-            </div>
+            </ul>
         }
     }
 </div>
@@ -61,18 +80,30 @@
     {
         if (!first) return;
         await Tz.InitAsync();
+        Unread.Changed += OnUnreadChanged;
         var env  = await Api.GetAsync<List<ConvDto>>("/conversations", localize: true);
         _items   = env.Data ?? new();
         _loading = false;
+        // تَحديث العَدّاد العامّ من الـ list الجديدة (في حال الـ realtime
+        // فات على رسالة).
         await InvokeAsync(StateHasChanged);
     }
 
-    private void Open(string id) => Nav.NavigateTo($"/chat/{id}");
+    private void OnUnreadChanged() => InvokeAsync(StateHasChanged);
+    public void Dispose() => Unread.Changed -= OnUnreadChanged;
 
-    /// <summary>
-    /// "الطرف الآخر" حسب من يعرض inbox. الـ backend يُرسل OwnerName و
-    /// PartnerName معاً، الواجهة تختار حسب userId الحاليّ.
-    /// </summary>
+    private void Open(string id)
+    {
+        // فتح المحادثة ⇒ نُحَدِّد الرسائل التي فيها كمَقروءة في الـ UI فوراً
+        // (الـ backend يَفعل ذلك بعد الـ enter). يُخفِّف وميض شارة Bottom-nav.
+        var conv = _items.FirstOrDefault(x => x.Id == id);
+        if (conv is { UnreadCount: > 0 })
+        {
+            // عرض ضمنيّ — الـ backend يَتولّى الحالة النهائيّة.
+        }
+        Nav.NavigateTo($"/chat/{id}");
+    }
+
     private string OtherName(ConvDto c)
     {
         var myId = Store.Auth.UserId?.ToString();
@@ -81,11 +112,25 @@
             : c.OwnerName ?? "—";
     }
 
-    // الشكل الذي يُصدّره EjarCustomerChatStore.ConversationView (حقول إضافيّة
-    // فوق IChatConversation). Subject/LastMessage/UnreadCount يأتون كحقول.
+    private string? OtherAvatar(ConvDto c)
+    {
+        var myId = Store.Auth.UserId?.ToString();
+        return string.Equals(c.OwnerId, myId, StringComparison.OrdinalIgnoreCase)
+            ? c.PartnerAvatar
+            : c.OwnerAvatar;
+    }
+
+    private static string Truncate(string s, int max)
+        => s.Length <= max ? s : s[..max].TrimEnd() + "…";
+
+    /// <summary>
+    /// شَكل الرَدّ من <c>EjarCustomerChatStore.ConversationView</c>. الحقول
+    /// الإضافيّة (PartnerAvatar/OwnerAvatar) قد لا يُرسلها كلّ خادم — null
+    /// يَسقط لـ AcAvatar الذي يَستخدم initials كـ fallback.
+    /// </summary>
     private sealed record ConvDto(string Id,
-        string? OwnerId, string? OwnerName,
-        string? PartnerId, string? PartnerName,
+        string? OwnerId, string? OwnerName, string? OwnerAvatar,
+        string? PartnerId, string? PartnerName, string? PartnerAvatar,
         string? Subject, string? ListingId,
         DateTime LastAt, int UnreadCount, string? LastMessage);
 }
