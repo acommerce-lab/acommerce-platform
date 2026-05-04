@@ -84,9 +84,17 @@
 
     private static IDictionary<string, object?> BuildParameters(PageMatch match)
     {
-        var dict = new Dictionary<string, object?>(match.RouteParameters.Count);
+        // الـ widget يَكتب [Parameter] public string Id (PascalCase). الـ
+        // route placeholder يُكتَب lowercase {id}. DynamicComponent.Parameters
+        // case-sensitive ⇒ id لا يُربَط بـ Id. نُطَبِّع للأوّل-حرف-كبير.
+        var dict = new Dictionary<string, object?>(match.RouteParameters.Count, StringComparer.Ordinal);
         foreach (var kvp in match.RouteParameters)
-            dict[kvp.Key] = kvp.Value;
+        {
+            var key = kvp.Key;
+            if (key.Length > 0 && char.IsLower(key[0]))
+                key = char.ToUpperInvariant(key[0]) + key[1..];
+            dict[key] = kvp.Value;
+        }
         return dict;
     }
 }

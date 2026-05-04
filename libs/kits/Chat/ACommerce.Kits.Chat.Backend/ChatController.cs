@@ -59,7 +59,12 @@ public class ChatController : ControllerBase
     public async Task<IActionResult> ListMine(CancellationToken ct)
     {
         var rows = await _store.ListForUserAsync(CallerId, ct);
-        return this.OkEnvelope("conversation.list", rows);
+        // System.Text.Json يُسَلسِل حسب declared type (IChatConversation) الذي
+        // يَحوي Id + ParticipantPartyIds فقط. الـ ConversationView (runtime
+        // type) لديه OwnerName/PartnerName/LastMessage/LastAt/UnreadCount/Subject —
+        // كلّها مَفقودة في الـ JSON بدون cast لـ object الذي يُجبر السيريالايزر
+        // على استخدام runtime type. نَتيجة بدون الـ cast: inbox فارغ كاملاً.
+        return this.OkEnvelope("conversation.list", rows.Cast<object>().ToList());
     }
 
     [HttpGet("/conversations/{id}")]

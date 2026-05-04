@@ -1,21 +1,32 @@
+@using Microsoft.JSInterop
 @inject NavigationManager Nav
+@inject IJSRuntime JS
 
 @*
-    Internal redirect helper — يَتفادى استدعاء NavigateTo أثناء prerender
-    (الذي يَقذف NavigationException غير مُعالَجة في pre-render phase).
-    OnAfterRenderAsync يَعمل فقط بعد initial paint = داخل interactive
-    rendermode حيث NavigateTo يَعمل بأمان.
+    Internal redirect — fallback مَرئيّ + JS redirect + Blazor NavigateTo.
+    ٣ طبقات: لو SignalR لم يَتّصل بعد (loader عالق)، يَعمل JS التَوجيه.
+    لو JS مُعَطَّل (نادر)، الـ <a> hint قابل للنقر.
 *@
+
+<div class="ejar-redirect-fallback">
+    <p>تَحويل لتسجيل الدخول…</p>
+    <a class="ejar-redirect-link" href="@Url">اضغط هنا لو لم يَنتقل</a>
+</div>
 
 @code {
     [Parameter] public string Login { get; set; } = "/login";
     [Parameter] public string Return { get; set; } = "/";
 
+    private string Url => $"{Login}?return={Uri.EscapeDataString(Return)}";
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (!firstRender) return;
-        await Task.Yield();
-        var ret = Uri.EscapeDataString(Return);
-        Nav.NavigateTo($"{Login}?return={ret}", forceLoad: false);
+        // ١. حاول JS redirect أولاً — يَعمل حتى لو Blazor router مَشغول.
+        try { await JS.InvokeVoidAsync("eval", $"window.location.replace('{Url}')"); }
+        catch { /* fallback */ }
+        // ٢. ثمّ Blazor NavigateTo (داخل interactive realm، آمن).
+        try { Nav.NavigateTo(Url, forceLoad: false); }
+        catch { /* fallback to <a> hint */ }
     }
 }
