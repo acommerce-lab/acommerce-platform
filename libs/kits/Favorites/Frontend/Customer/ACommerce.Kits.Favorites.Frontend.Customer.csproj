@@ -12,5 +12,6 @@
   <ItemGroup>
     <ProjectReference Include="..\..\ACommerce.Favorites.Operations\ACommerce.Favorites.Operations.csproj" />
     <ProjectReference Include="..\..\..\..\host-client\ACommerce.ClientHost\ACommerce.ClientHost.csproj" />
+    <ProjectReference Include="..\..\..\..\templates\OAM\ACommerce.Templates.OAM\ACommerce.Templates.OAM.csproj" />
   </ItemGroup>
 </Project>

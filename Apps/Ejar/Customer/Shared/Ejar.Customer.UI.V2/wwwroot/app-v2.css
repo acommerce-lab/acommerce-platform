@@ -715,3 +715,64 @@ p  { line-height: 1.65; color: var(--oam-ink); }
   display: flex; gap: .65rem; margin-top: 1rem; flex-wrap: wrap;
 }
 .ejar-profile-actions .oam-btn { text-decoration: none; }
+
+/* ─── Login (OTP) ─────────────────────────────────────────────────── */
+.ejar-login {
+  display: flex; align-items: flex-start; justify-content: center;
+  padding: 1rem;
+}
+.ejar-login-card {
+  width: 100%; max-width: 420px;
+  background: var(--oam-card);
+  border: 1px solid var(--oam-line);
+  border-radius: var(--oam-radius);
+  box-shadow: var(--oam-shadow);
+  padding: 1.5rem 1.5rem 1.25rem;
+  margin-top: 1rem;
+}
+.ejar-login-head { text-align: center; margin-bottom: 1.25rem; }
+.ejar-login-glyph {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 3rem; height: 3rem;
+  border: 2px solid var(--oam-exec);
+  border-radius: var(--oam-radius);
+  color: var(--oam-exec);
+  font-size: 1.25rem; font-weight: 700;
+  margin-bottom: .5rem;
+}
+.ejar-login-head h1 { margin: 0 0 .35rem; font-size: 1.15rem; }
+.ejar-login-sub    { margin: 0; font-size: .85rem; color: var(--oam-ink-mute); }
+
+.ejar-login-btn { width: 100%; }
+.ejar-login-back {
+  display: block; width: 100%; margin-top: .75rem; text-align: center;
+  background: transparent; border: 0; color: var(--oam-ink-mute);
+  font: 500 .85rem var(--oam-font-body); cursor: pointer; padding: .5rem;
+}
+.ejar-otp-input {
+  text-align: center; letter-spacing: .35em;
+  font-size: 1.25rem;
+}
+
+/* ─── Favorites list ──────────────────────────────────────────────── */
+.ejar-fav-list { list-style: none; padding: 0; margin: 0;
+                 display: flex; flex-direction: column; }
+.ejar-fav-row {
+  display: flex; align-items: center; gap: .65rem;
+  padding: .65rem 1rem;
+  background: var(--oam-card);
+  border-bottom: 1px solid var(--oam-line);
+}
+.ejar-fav-row:first-child { border-top: 1px solid var(--oam-line); }
+.ejar-fav-link {
+  flex: 1; min-width: 0;
+  display: flex; align-items: center; gap: .65rem;
+  color: var(--oam-ink); text-decoration: none;
+  padding: .35rem 0;
+}
+.ejar-fav-glyph { color: #dc2626; font-size: 1.1rem; }
+.ejar-fav-id {
+  font-size: .82rem; color: var(--oam-ink-mute);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.ejar-fav-remove { font-size: .75rem; padding: .25rem .65rem; }

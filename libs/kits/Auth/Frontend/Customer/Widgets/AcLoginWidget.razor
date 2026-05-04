@@ -2,20 +2,78 @@
 @inject NavigationManager Nav
 @implements IDisposable
 
-<section class="ac-login">
-    @if (_step == Step.Phone)
-    {
-        <h1>Login</h1>
-        <input @bind="_phone" placeholder="+9665…" />
-        <button @onclick="RequestOtp" disabled="@Auth.IsBusy">Request code</button>
-    }
-    else
-    {
-        <h1>Enter the code</h1>
-        <input @bind="_code" placeholder="123456" />
-        <button @onclick="VerifyOtp" disabled="@Auth.IsBusy">Verify</button>
-    }
-    @if (!string.IsNullOrEmpty(Auth.LastError)) { <p class="ac-err">@Auth.LastError</p> }
+@*
+    AcLoginWidget — تَدَفّق OTP بـ analyzer-strip:
+      - الخطوة ١: phone (هاتف) — analyzer يَفحص الصيغة قبل تَفعيل الزرّ
+      - الخطوة ٢: code (٤-٦ خانات) — analyzer يَفحص الطول
+    OamStamp يَدلّ على حالة الجلسة (Pending → Executing → Executed/Rejected).
+*@
+
+<section class="ejar-login">
+    <div class="ejar-login-card">
+        <header class="ejar-login-head">
+            <span class="ejar-login-glyph" aria-hidden="true">▣</span>
+            <h1>@(_step == Step.Phone ? "تَسجيل الدخول" : "أَدخِل الرمز")</h1>
+            <p class="ejar-login-sub">
+                @(_step == Step.Phone
+                    ? "أَدخِل رقم الجوال لاستلام رمز التَفعيل."
+                    : "أَدخلنا الرمز الـ ٦-أرقام إلى رقمك.")
+            </p>
+        </header>
+
+        @if (_step == Step.Phone)
+        {
+            <label class="ejar-field">
+                <span>رقم الجوال</span>
+                <input class="ac-input oam-mono" type="tel" inputmode="tel"
+                       placeholder="+966500000001"
+                       value="@_phone"
+                       @oninput="@(e => { _phone = e.Value?.ToString() ?? ""; RefreshAnalyzers(); })" />
+            </label>
+
+            <OamAnalyzerStrip OperationType="auth.otp.request"
+                              Analyzers="@_phoneAnalyzers">
+                <Action>
+                    <button class="oam-btn ejar-login-btn"
+                            disabled="@(!context || Auth.IsBusy)"
+                            @onclick="RequestOtp">
+                        @(Auth.IsBusy ? "جاري الإرسال…" : "إرسال الرمز")
+                    </button>
+                </Action>
+            </OamAnalyzerStrip>
+        }
+        else
+        {
+            <label class="ejar-field">
+                <span>الرمز</span>
+                <input class="ac-input oam-mono ejar-otp-input" type="text" inputmode="numeric"
+                       maxlength="6" placeholder="●●●●●●"
+                       value="@_code"
+                       @oninput="@(e => { _code = e.Value?.ToString() ?? ""; RefreshAnalyzers(); })" />
+            </label>
+
+            <OamAnalyzerStrip OperationType="auth.otp.verify"
+                              Analyzers="@_codeAnalyzers">
+                <Action>
+                    <button class="oam-btn ejar-login-btn"
+                            disabled="@(!context || Auth.IsBusy)"
+                            @onclick="VerifyOtp">
+                        @(Auth.IsBusy ? "جاري التحقّق…" : "تَأكيد الرمز")
+                    </button>
+                </Action>
+            </OamAnalyzerStrip>
+
+            <button class="oam-btn-ghost ejar-login-back" type="button"
+                    @onclick="@(() => { _step = Step.Phone; _code = ""; RefreshAnalyzers(); })">
+                ← تَغيير الرقم
+            </button>
+        }
+
+        @if (!string.IsNullOrEmpty(Auth.LastError))
+        {
+            <p class="ac-err">⚠ @Auth.LastError</p>
+        }
+    </div>
 </section>
 
 @code {
@@ -24,9 +82,35 @@
     private string _phone = "";
     private string _code  = "";
 
-    protected override void OnInitialized() => Auth.Changed += OnChanged;
-    private void OnChanged() => InvokeAsync(StateHasChanged);
-    public void Dispose() => Auth.Changed -= OnChanged;
+    private OamAnalyzer[] _phoneAnalyzers = Array.Empty<OamAnalyzer>();
+    private OamAnalyzer[] _codeAnalyzers  = Array.Empty<OamAnalyzer>();
+
+    protected override void OnInitialized()
+    {
+        Auth.Changed += OnChanged;
+        RefreshAnalyzers();
+    }
+
+    private void RefreshAnalyzers()
+    {
+        var phoneClean = new string(_phone.Where(c => char.IsDigit(c) || c == '+').ToArray());
+        _phoneAnalyzers = new[]
+        {
+            new OamAnalyzer("الرقم غير فارغ",
+                !string.IsNullOrEmpty(phoneClean) ? OamAnalyzerState.Pass : OamAnalyzerState.Idle),
+            new OamAnalyzer("صيغة دوليّة (يَبدأ بـ +)",
+                phoneClean.StartsWith("+") ? OamAnalyzerState.Pass : OamAnalyzerState.Fail),
+            new OamAnalyzer("الطول 9-15 رقم",
+                phoneClean.Count(char.IsDigit) is >= 9 and <= 15
+                    ? OamAnalyzerState.Pass : OamAnalyzerState.Fail),
+        };
+        _codeAnalyzers = new[]
+        {
+            new OamAnalyzer("الرمز ٤-٦ أرقام",
+                _code.Length is >= 4 and <= 6 && _code.All(char.IsDigit)
+                    ? OamAnalyzerState.Pass : OamAnalyzerState.Idle),
+        };
+    }
 
     private async Task RequestOtp()
     {
@@ -37,6 +121,16 @@
     private async Task VerifyOtp()
     {
         await Auth.VerifyOtpAsync(_phone, _code);
-        if (Auth.IsAuthenticated) Nav.NavigateTo("/");
+        if (Auth.IsAuthenticated)
+        {
+            // العودة إلى return param أو /
+            var uri = new Uri(Nav.Uri);
+            var q = System.Web.HttpUtility.ParseQueryString(uri.Query);
+            var returnTo = q["return"];
+            Nav.NavigateTo(string.IsNullOrEmpty(returnTo) ? "/" : returnTo);
+        }
     }
+
+    private void OnChanged() => InvokeAsync(StateHasChanged);
+    public void Dispose() => Auth.Changed -= OnChanged;
 }
