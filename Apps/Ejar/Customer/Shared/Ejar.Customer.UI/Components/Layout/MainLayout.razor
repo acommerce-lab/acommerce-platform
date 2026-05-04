@@ -13,6 +13,7 @@
 @inject NavigationManager Nav
 @inject EjarRealtimeService Realtime
 @inject FavoritesSync Favorites
+@inject FirebasePushService FirebasePush
 @inject VersionPoll VersionPoll
 @inject UnreadService Unread
 @inject IConfiguration Config
@@ -178,6 +179,10 @@
             // عَدّاد الرسائل + الإشعارات غير المقروءة — يُغذِّي الشارات
             // الحمراء على Bottom/Top nav بمجرّد إقلاع الجلسة.
             _ = Unread.RefreshAsync();
+            // سَجِّل FCM token على كلّ session — لو المُستخدِم مُسَجَّل
+            // (reload أو يَعود من الـ tab المغلَق) Login.razor لا يُنفَّذ
+            // فلا تَسجيل ⇒ لا push notifications. هنا ضَمان.
+            _ = FirebasePush.TryRegisterAsync();
         }
 
         if (_appliedTheme != Store.Ui.Theme || _appliedLang != Store.Ui.Language)

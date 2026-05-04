@@ -2,12 +2,14 @@
 @attribute [Authorize]
 @using ACommerce.Chat.Client.Blazor
 @using ACommerce.Chat.Operations
+@using Ejar.Customer.UI.Services
 @using Ejar.Customer.UI.Store
 @inject AppStore Store
 @inject ApiReader Api
 @inject NavigationManager Nav
 @inject IChatClient Chat
 @inject IJSRuntime JS
+@inject UnreadService Unread
 @inject L L
 @implements IAsyncDisposable
 
@@ -128,6 +130,10 @@
             Chat.MessageReceived += OnRealtimeMessage;
             try { await Chat.EnterAsync(Id); }
             catch { /* ignore */ }
+
+            // EnterAsync الخادميّ يَستدعي MarkReadAsync فيُصَفِّر العَدّاد في
+            // DB. حدِّث الـ navbar badge فوراً بدون انتظار refresh.
+            await Unread.RefreshAsync();
 
             // ركّز على خانة الرسالة بعد ما يُرسَم الـ DOM.
             try { await JS.InvokeVoidAsync("ejarChatUi.focus", "#chat-composer"); } catch { }

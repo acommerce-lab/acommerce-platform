@@ -2,10 +2,12 @@
 @attribute [Authorize]
 @using ACommerce.Client.Operations
 @using Ejar.Customer.UI.Operations
+@using Ejar.Customer.UI.Services
 @inject AppStore Store
 @inject ApiReader Api
 @inject ITimezoneProvider Tz
 @inject ClientOpEngine Engine
+@inject UnreadService Unread
 @inject L L
 @implements IDisposable
 
@@ -80,12 +82,16 @@
         if (ix < 0 || _items[ix].IsRead) return;
         _items[ix] = _items[ix] with { IsRead = true };
         await Engine.ExecuteAsync<object>(EjarOps.ReadNotification(id));
+        // العَدّاد في الـ navbar يُحَدَّث فوراً بدون انتظار realtime echo.
+        Unread.NotifUnread = Math.Max(0, _items.Count(n => !n.IsRead));
+        Unread.RaiseChanged();
     }
 
     private async Task MarkAllRead()
     {
         _items = _items.Select(n => n with { IsRead = true }).ToList();
         await Engine.ExecuteAsync<object>(EjarOps.ReadAllNotifications());
+        Unread.ClearNotif();
     }
 
     private string GroupLabel(DateTime localDt)

@@ -79,6 +79,16 @@
         {
             var state = await Auth.GetAuthenticationStateAsync();
             _isAuthenticated = state.User.Identity?.IsAuthenticated == true;
+
+            // إذا غير مُصادَق، حَوِّل فوراً قبل أيّ render. هذا يَتفادى
+            // طبقات الـ fallback (loader + JS redirect) ⇒ المُستخدِم لا يَرى
+            // الصفحة الفارغة. Nav.NavigateTo يَقذف NavigationException الذي
+            // يَعالجه Router قياسيّاً ⇒ التَنقّل لـ /login بدون 'unhandled'.
+            if (!_isAuthenticated && !path.Equals(LoginRoute, StringComparison.OrdinalIgnoreCase))
+            {
+                var ret = Uri.EscapeDataString(path);
+                Nav.NavigateTo($"{LoginRoute}?return={ret}", forceLoad: false, replace: true);
+            }
         }
     }
 

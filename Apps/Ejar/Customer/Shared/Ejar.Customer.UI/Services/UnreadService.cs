@@ -28,10 +28,13 @@ public sealed class UnreadService : IDisposable
     private readonly ApiReader _api;
     private readonly EjarRealtimeService _realtime;
 
-    public int ChatUnread  { get; private set; }
-    public int NotifUnread { get; private set; }
+    public int ChatUnread  { get; set; }
+    public int NotifUnread { get; set; }
 
     public event Action? Changed;
+
+    /// <summary>أَطلق Changed بَعْد set مباشر للقيمة من المُستهلِكين.</summary>
+    public void RaiseChanged() => Changed?.Invoke();
 
     public UnreadService(AppStore store, ApiReader api, EjarRealtimeService realtime)
     {
