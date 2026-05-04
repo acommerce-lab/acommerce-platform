@@ -52,10 +52,11 @@ public sealed class EjarAuthStore : IAuthStore, IDisposable
                 return;
             }
             // AppStore يبقى المصدر الوحيد — نُحدّث خصائصه (الـ object مشترك).
+            // Server returns { token, userId, name, phone, role } — انظر AuthController.VerifyOtp
             _app.Auth.UserId      = Guid.TryParse(env.Data.UserId, out var g) ? g : null;
-            _app.Auth.FullName    = env.Data.FullName;
+            _app.Auth.FullName    = env.Data.Name;
             _app.Auth.Phone       = phone;
-            _app.Auth.AccessToken = env.Data.AccessToken;
+            _app.Auth.AccessToken = env.Data.Token;
             _app.NotifyChanged();
         }
         finally { IsBusy = false; FireChanged(); }
@@ -79,5 +80,6 @@ public sealed class EjarAuthStore : IAuthStore, IDisposable
     private void FireChanged() => Changed?.Invoke();
     public void Dispose() => _app.OnChanged -= FireChanged;
 
-    private sealed record AuthResponse(string UserId, string FullName, string AccessToken);
+    /// <summary>Server response shape — see AuthController.VerifyOtp.</summary>
+    private sealed record AuthResponse(string Token, string UserId, string Name, string Phone, string Role);
 }

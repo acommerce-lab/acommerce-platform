@@ -31,18 +31,24 @@ public sealed class EjarListingsStore : IListingsStore
         try
         {
             var qs = BuildQuery(filter);
-            var env = await _api.GetAsync<List<ListingDto>>("/listings" + qs, localize: true, ct: ct);
-            if (env.Operation.Status == "Success" && env.Data is not null)
-                _visible = env.Data.Cast<IListing>().ToList();
+            // Server returns { total, page, pageSize, items: [...] } — see ListingsController.Search
+            var env = await _api.GetAsync<ListingPage>("/listings" + qs, localize: true, ct: ct);
+            if (env.Operation.Status == "Success" && env.Data?.Items is not null)
+                _visible = env.Data.Items.Cast<IListing>().ToList();
         }
+        catch { /* shape mismatch / network — keep _visible as-is */ }
         finally { IsLoading = false; Changed?.Invoke(); }
     }
 
     public async Task<IListing?> GetByIdAsync(string id, CancellationToken ct = default)
     {
-        var env = await _api.GetAsync<ListingDto>(
-            $"/listings/{Uri.EscapeDataString(id)}", localize: true, ct: ct);
-        return env.Operation.Status == "Success" ? env.Data : null;
+        try
+        {
+            var env = await _api.GetAsync<ListingDto>(
+                $"/listings/{Uri.EscapeDataString(id)}", localize: true, ct: ct);
+            return env.Operation.Status == "Success" ? env.Data : null;
+        }
+        catch { return null; }
     }
 
     public async Task LoadMineAsync(CancellationToken ct = default)
@@ -54,8 +60,12 @@ public sealed class EjarListingsStore : IListingsStore
             if (env.Operation.Status == "Success" && env.Data is not null)
                 _mine = env.Data.Cast<IListing>().ToList();
         }
+        catch { /* shape/network — keep _mine as-is */ }
         finally { IsLoading = false; Changed?.Invoke(); }
     }
+
+    /// <summary>Paged response shape — see ListingsController.Search.</summary>
+    private sealed record ListingPage(int Total, int Page, int PageSize, List<ListingDto>? Items);
 
     private static string BuildQuery(ListingFilter f)
     {
@@ -87,7 +97,10 @@ public sealed class EjarListingsStore : IListingsStore
         public double  Lng           { get; set; }
         public int     BedroomCount  { get; set; }
         public int     BathroomCount { get; set; }
-        public int     AreaSqm       { get; set; }
+        // Server يُرسل AreaSqm كـ double (e.g. 120.5). IListing يَتَوَقَّع int —
+        // explicit interface implementation يَحوِّل بدون فقد دقّة الـ JSON.
+        public double  AreaSqm       { get; set; }
+        int IListing.AreaSqm        => (int)Math.Round(AreaSqm);
         public int     Status        { get; set; }
         public int     ViewsCount    { get; set; }
         public bool    IsVerified    { get; set; }
