@@ -30,7 +30,16 @@ builder.AddACommerceServiceHost(host => host
     .UseJwtAuthentication(jwt => { jwt.Secret = JwtSecret; jwt.Issuer = "ejar.api"; jwt.Audience = "ejar.mobile"; })
     .UseRealtime<EjarSignalRTransport, EjarRealtimeHub>()
     .UseControllers()
-    .RegisterEntities(typeof(EjarDbContext).Assembly)
+    // EntityDiscoveryRegistry يَحتاج كلّ entity يَستهلكها CrudActionInterceptor
+    // (مَسار /cities و /amenities و /categories مَثَلاً). assembly الـ
+    // EjarDbContext يَحوي Listing/User/etc.، لكن DiscoveryRegion +
+    // DiscoveryAmenity + DiscoveryCategory + SupportTicket في assemblies
+    // أخرى. نُسَجّلها هنا.
+    .RegisterEntities(
+        typeof(EjarDbContext).Assembly,
+        typeof(ACommerce.Kits.Discovery.Domain.DiscoveryRegion).Assembly,
+        typeof(ACommerce.Kits.Support.Domain.SupportTicket).Assembly,
+        typeof(ACommerce.Favorites.Operations.Entities.Favorite).Assembly)
 
     // ── الكيتس ──────────────────────────────────────────────────────────
     .AddKits(kits => kits

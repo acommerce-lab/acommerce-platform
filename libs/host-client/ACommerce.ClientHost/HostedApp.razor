@@ -105,14 +105,12 @@
             _isAuthenticated = state.User.Identity?.IsAuthenticated == true;
             if (!_isAuthenticated && !path.Equals(LoginRoute, StringComparison.OrdinalIgnoreCase))
             {
-                // تَوجيه فوريّ — Blazor يَلتقط NavigationException ويُحَوِّل
-                // إلى /login (أثناء SSR ⇒ 302، أثناء interactive ⇒ تَنقّل
-                // داخل الـ circuit). الـ "Unhandled" في الـ debugger ظاهرة
-                // فقط، الـ framework يَتعامل معها كَنَتيجة عاديّة.
-                var loginUrl = $"{LoginRoute}?return={Uri.EscapeDataString(path)}";
-                Nav.NavigateTo(loginUrl, replace: true);
-                _shouldRedirectToLogin = true; // backup لو NavigateTo لم يَطرح
-                return;
+                // لا نَستدعي Nav.NavigateTo هنا — يَطرح NavigationException
+                // التي تَظهر في الـ debugger كاستثناء غير مُعالَج (حتى لو
+                // الـ framework يَلتقطها). نَضع flag فقط ⇒ render branch
+                // يَكتب <_RedirectToLogin> الذي يُنَفِّذ النَقل عبر
+                // <script>window.location.replace</script> بدون استثناء.
+                _shouldRedirectToLogin = true;
             }
         }
     }
