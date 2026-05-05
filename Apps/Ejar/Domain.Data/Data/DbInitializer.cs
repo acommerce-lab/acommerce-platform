@@ -94,6 +94,28 @@ public static class DbInitializer
     }
 
     /// <summary>
+    /// يُحَدّث صفوف Favorites القديمة التي EntityType فيها = "ListingEntity"
+    /// (من CatalogController قبل Q1) إلى "Listing" (الصيغة الحاليّة في
+    /// FavoritesController.ToggleListing). idempotent — يَنجح حتى لو لا صفوف
+    /// قديمة. هذا يَحلّ "المفضّلات لا تَظهر بَعد deploy" للمُستخدِمين الذين
+    /// لديهم بيانات سابقة.
+    /// </summary>
+    public static void NormalizeFavoriteEntityType(EjarDbContext db)
+    {
+        try
+        {
+            var n = db.Database.ExecuteSqlRaw(
+                "UPDATE Favorites SET EntityType = 'Listing' WHERE EntityType = 'ListingEntity'");
+            // n يُسَجَّل في logs لو أُريد، لكن idempotent ⇒ لا داعي للأمان.
+        }
+        catch
+        {
+            // فَشِل DDL/Update — DB قد لا يَدعم هذا الـ provider. لا نُعَطِّل
+            // الإقلاع. القراءة الدِفاعيّة في EjarFavoritesStore تُعَوِّض.
+        }
+    }
+
+    /// <summary>
     /// بذور Discovery idempotent (Categories + Regions + Amenities). تَعمل
     /// عند كلّ إقلاع لتَغطية حالة DB القديم الذي فيه Users لكنّ جداول
     /// Discovery أُضيفت لاحقاً (Seed الرئيسيّ يَتجاوزها لو Users.Any).

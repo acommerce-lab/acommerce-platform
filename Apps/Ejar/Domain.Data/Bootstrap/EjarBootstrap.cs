@@ -84,6 +84,10 @@ public static class EjarBootstrap
         DbInitializer.SeedDiscoveryIfMissing(db);
         DbInitializer.SeedAppVersionsIfMissing(db);
 
+        // ترحيل صفوف Favorites القديمة من EntityType="ListingEntity" (الكود
+        // قبل Q1) إلى "Listing" (الكود الحاليّ). idempotent.
+        DbInitializer.NormalizeFavoriteEntityType(db);
+
         // ④ ترقية إصدارات appsettings (غير قاتل لو فشل)
         try
         {

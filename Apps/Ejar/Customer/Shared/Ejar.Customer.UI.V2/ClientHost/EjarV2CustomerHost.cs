@@ -43,8 +43,10 @@ public static class EjarV2CustomerHostExtensions
                 .Add("/",                 typeof(EjarHomeWidget))
                 .Add("/dashboard",        typeof(EjarDashboardWidget), requiresAuth: true)
 
-                // Auth
-                .Add("/login",            AuthWidgets.Login)
+                // Auth — نَستعمل V1 Login.razor الذي يَعمل (AcInput +
+                // ValueChanged + AcButton + Disabled). AcLoginWidget كان
+                // يَفشل في تَفعيل الزرّ ضِمن DynamicComponent + InteractiveServer.
+                .Add("/login",            typeof(Ejar.Customer.UI.Components.Pages.Login))
 
                 // Listings — يَربط الـ widget إلى /listings/{id} hardcoded،
                 // فنُسَجِّل المسار حرفيّاً. /properties alias للوصول من الـ

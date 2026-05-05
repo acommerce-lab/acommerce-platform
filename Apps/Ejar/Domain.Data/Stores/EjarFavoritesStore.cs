@@ -22,13 +22,15 @@ public sealed class EjarFavoritesStore : IFavoritesStore
     {
         if (!Guid.TryParse(userId, out var uid)) return Array.Empty<object>();
 
-        // FavoritesController.ToggleListing يَكتب EntityType="Listing"
-        // (سَطر مَكتوب يَدويّاً، ليس nameof). الاستعلام كان يَستخدم
-        // nameof(ListingEntity) = "ListingEntity" ⇒ لا تَطابق ⇒ القائمة
-        // فارغة دائماً رغم وجود مفضّلات في DB. هذا كان السبب الفعليّ
-        // لـ "المفضلات معطّلة" منذ deploy السابق.
+        // الكود القديم (CatalogController قبل Q1) كان يَكتب
+        // EntityType = nameof(ListingEntity) = "ListingEntity". الكود الحاليّ
+        // (FavoritesController.ToggleListing) يَكتب "Listing" حرفيّاً. صفوف
+        // قديمة في DB الإنتاج لها "ListingEntity" — نُطابق على كلتا القيمتين
+        // حتى لا تَختفي مفضّلات قديمة. (DbInitializer.NormalizeFavoriteEntityType
+        // يُحَدِّث الصفوف القديمة لاحقاً.)
         var ids = await _db.Favorites.AsNoTracking()
-            .Where(f => f.UserId == uid && f.EntityType == "Listing")
+            .Where(f => f.UserId == uid &&
+                        (f.EntityType == "Listing" || f.EntityType == "ListingEntity"))
             .Select(f => f.EntityId).ToListAsync(ct);
 
         if (ids.Count == 0) return Array.Empty<object>();
@@ -63,8 +65,11 @@ public sealed class EjarFavoritesStore : IFavoritesStore
         if (!Guid.TryParse(entityId, out var eid))
             throw new InvalidOperationException("invalid_entity_id");
 
+        // نُطابق على كلتا القيمتين (Listing + ListingEntity) لِيُحَدّد المُستخدِم
+        // مفضّلة قديمة بنقرة واحدة بدلاً من إنشاء سجلّ مُكَرَّر بصيغة جديدة.
         var existing = await _db.Favorites
-            .FirstOrDefaultAsync(f => f.UserId == uid && f.EntityId == eid && f.EntityType == entityType, ct);
+            .FirstOrDefaultAsync(f => f.UserId == uid && f.EntityId == eid &&
+                (f.EntityType == entityType || f.EntityType == "ListingEntity"), ct);
 
         if (existing is null)
         {
