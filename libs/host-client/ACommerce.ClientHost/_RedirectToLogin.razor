@@ -1,21 +1,34 @@
+@using Microsoft.JSInterop
+@inject IJSRuntime JS
+
 @*
-    تَوجيه HTML خالص — لا NavigationException، يَعمل في SSR + interactive.
-    الـ <script> inline يُنفَّذ فور وصول الـ HTML للمتصفّح.
-    الـ fallback link لمن JS مُعَطَّل أو حظر متصفّح.
+    تَوجيه بدون NavigationException وبدون حاجة لضغط مَرئيّ:
+      ١. الـ <script> inline ⇒ يَعمل في full page load (SSR initial).
+      ٢. JS.InvokeVoidAsync في OnAfterRenderAsync ⇒ يَعمل في SPA nav
+         (Blazor diffs لا تُنفِّذ <script>).
+    كلاهما يَستعمل window.location.replace ⇒ لا navigation exception.
+    الـ fallback link لو JS مُعَطَّل.
 *@
 
 <div class="ejar-redirect-fallback">
     <p>تَحويل لتسجيل الدخول…</p>
     <a class="ejar-redirect-link" href="@Url">اضغط هنا لو لم يَنتقل</a>
 </div>
-<script>
-    (function() { try { window.location.replace(@JsUrl); } catch (e) { window.location.href = @JsUrl; } })();
-</script>
+<script>(function(){try{window.location.replace(@JsUrl);}catch(e){window.location.href=@JsUrl;}})();</script>
 
 @code {
     [Parameter] public string Login  { get; set; } = "/login";
     [Parameter] public string Return { get; set; } = "/";
 
-    private string Url    => $"{Login}?return={Uri.EscapeDataString(Return)}";
-    private string JsUrl  => System.Text.Json.JsonSerializer.Serialize(Url);
+    private string Url   => $"{Login}?return={Uri.EscapeDataString(Return)}";
+    private string JsUrl => System.Text.Json.JsonSerializer.Serialize(Url);
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        // SPA navigation: الـ <script> أعلاه لا يُنَفَّذ (Blazor diff)، فنُكَرِّر
+        // النَقل عبر JS interop. firstRender فقط — لا حلقات re-render.
+        if (!firstRender) return;
+        try { await JS.InvokeVoidAsync("eval", $"window.location.replace({JsUrl})"); }
+        catch { /* JS غير مُتَوَفِّر (prerender) — الـ <script> يَكفي */ }
+    }
 }

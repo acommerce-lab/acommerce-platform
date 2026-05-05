@@ -1,10 +1,12 @@
+@using ACommerce.Widgets
 @inject IAuthStore Auth
 @inject NavigationManager Nav
 @implements IDisposable
 
 @*
-    AcLoginWidget — تَدَفّق OTP بدون OamAnalyzerStrip.
-    التَحقّق بسيط ومَرن: ٨ أرقام أو أكثر. السيرفر يَفرض الصيغة النهائيّة.
+    AcLoginWidget — يَتَّبع نَمط Ejar V1 الذي يَعمل: AcInput + ValueChanged
+    EventCallback (لا @oninput lambda، لا analyzer-strip). تَفعيل الزرّ
+    حصراً عند ≥٨ أرقام. السيرفر يَفرض الصيغة النهائيّة.
 *@
 
 <section class="ejar-login">
@@ -21,45 +23,42 @@
 
         @if (_step == Step.Phone)
         {
-            <label class="ejar-field">
-                <span>رقم الجوال</span>
-                <input class="ac-input oam-mono" type="tel" inputmode="tel"
-                       placeholder="مثال: 771234567"
-                       value="@_phone"
-                       @oninput="OnPhoneInput" />
-            </label>
+            <div @onkeydown="OnPhoneKey">
+                <label class="ejar-field">
+                    <span>رقم الجوال</span>
+                    <AcInput Type="tel" Value="@_phone"
+                             ValueChanged="OnPhoneChanged"
+                             Placeholder="7XXXXXXXX" />
+                </label>
 
-            @if (_phoneAttempted && !_phoneValid)
-            {
-                <p class="ac-hint">⚠ أَدخل رقماً صالحاً (٨ أرقام أو أكثر).</p>
-            }
-
-            <button class="oam-btn ejar-login-btn"
-                    disabled="@(!_phoneValid || Auth.IsBusy)"
-                    @onclick="RequestOtp">
-                @(Auth.IsBusy ? "جاري الإرسال…" : "إرسال الرمز")
-            </button>
+                <button class="oam-btn ejar-login-btn"
+                        disabled="@(_phone.Length < 8 || Auth.IsBusy)"
+                        @onclick="RequestOtp">
+                    @(Auth.IsBusy ? "جاري الإرسال…" : "إرسال الرمز")
+                </button>
+            </div>
         }
         else
         {
-            <label class="ejar-field">
-                <span>الرمز</span>
-                <input class="ac-input oam-mono ejar-otp-input" type="text" inputmode="numeric"
-                       maxlength="6" placeholder="●●●●●●"
-                       value="@_code"
-                       @oninput="OnCodeInput" />
-            </label>
+            <div @onkeydown="OnCodeKey">
+                <label class="ejar-field">
+                    <span>الرمز</span>
+                    <AcInput Type="tel" Value="@_code"
+                             ValueChanged="OnCodeChanged"
+                             Placeholder="●●●●●●" />
+                </label>
 
-            <button class="oam-btn ejar-login-btn"
-                    disabled="@(!_codeValid || Auth.IsBusy)"
-                    @onclick="VerifyOtp">
-                @(Auth.IsBusy ? "جاري التحقّق…" : "تَأكيد الرمز")
-            </button>
+                <button class="oam-btn ejar-login-btn"
+                        disabled="@(_code.Length < 4 || Auth.IsBusy)"
+                        @onclick="VerifyOtp">
+                    @(Auth.IsBusy ? "جاري التحقّق…" : "تَأكيد الرمز")
+                </button>
 
-            <button class="oam-btn-ghost ejar-login-back" type="button"
-                    @onclick="BackToPhone">
-                ← تَغيير الرقم
-            </button>
+                <button class="oam-btn-ghost ejar-login-back" type="button"
+                        @onclick="BackToPhone">
+                    ← تَغيير الرقم
+                </button>
+            </div>
         }
 
         @if (!string.IsNullOrEmpty(Auth.LastError))
@@ -74,30 +73,35 @@
     private Step _step = Step.Phone;
     private string _phone = "";
     private string _code  = "";
-    private bool _phoneValid;
-    private bool _codeValid;
-    private bool _phoneAttempted;
 
     protected override void OnInitialized()
     {
         Auth.Changed += OnChanged;
     }
 
-    private void OnPhoneInput(ChangeEventArgs e)
+    private void OnPhoneChanged(string? v)
     {
-        _phone = e.Value?.ToString() ?? "";
-        var digits = NormalizeDigits(_phone).Count(char.IsDigit);
-        _phoneValid = digits >= 8;
-        if (!_phoneAttempted && digits > 0) _phoneAttempted = true;
-        StateHasChanged();
+        _phone = NormalizeDigits(v ?? "").Trim();
+        // لا StateHasChanged هنا — Blazor يُعيد render تلقائياً بَعد
+        // EventCallback. كان الصرف اليَدويّ يَتعارَض مع DynamicComponent
+        // أحياناً ⇒ الزرّ يَبقى مُعَطّلاً رغم تَغَيّر القيمة.
     }
 
-    private void OnCodeInput(ChangeEventArgs e)
+    private void OnCodeChanged(string? v)
     {
-        _code = e.Value?.ToString() ?? "";
-        var digits = NormalizeDigits(_code);
-        _codeValid = digits.Length is >= 4 and <= 6 && digits.All(char.IsDigit);
-        StateHasChanged();
+        _code = NormalizeDigits(v ?? "").Trim();
+    }
+
+    private async Task OnPhoneKey(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && _phone.Length >= 8 && !Auth.IsBusy)
+            await RequestOtp();
+    }
+
+    private async Task OnCodeKey(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && _code.Length >= 4 && !Auth.IsBusy)
+            await VerifyOtp();
     }
 
     /// <summary>يُحَوِّل أرقام ٠١٢٣٤٥٦٧٨٩ + ۰۱۲۳۴۵۶۷۸۹ إلى ASCII.</summary>
@@ -118,19 +122,13 @@
 
     /// <summary>
     /// يُحَوِّل أيّ صيغة مُدخَلة إلى E.164 يَمنيّ <c>+9677XXXXXXXX</c>.
-    /// يَستوعب: <c>7XXXXXXXX</c>، <c>07XXXXXXXX</c>، <c>9677XXXXXXXX</c>،
-    /// <c>+9677XXXXXXXX</c>، <c>00 9677XXXXXXXX</c>.
     /// </summary>
     private static string ToE164Yemen(string raw)
     {
-        var digits = new string(NormalizeDigits(raw).Where(char.IsDigit).ToArray());
-        // يَبدأ بـ 00 → دوليّ
-        if (digits.StartsWith("00")) digits = digits[2..];
-        // 967XXXXXXXXX → +967XXXXXXXXX
+        var digits = new string(raw.Where(char.IsDigit).ToArray());
+        if (digits.StartsWith("00"))  digits = digits[2..];
         if (digits.StartsWith("967")) return "+" + digits;
-        // 0XXXXXXXXX → اقطع 0 ثمّ +967
         if (digits.StartsWith("0"))   return "+967" + digits.TrimStart('0');
-        // YXXXXXXXX (محلّيّ بدون 0) → +967YXXXXXXXX
         return "+967" + digits;
     }
 
@@ -142,7 +140,7 @@
 
     private async Task VerifyOtp()
     {
-        await Auth.VerifyOtpAsync(ToE164Yemen(_phone), NormalizeDigits(_code));
+        await Auth.VerifyOtpAsync(ToE164Yemen(_phone), _code);
         if (Auth.IsAuthenticated)
         {
             var uri = new Uri(Nav.Uri);
@@ -152,13 +150,7 @@
         }
     }
 
-    private void BackToPhone()
-    {
-        _step = Step.Phone;
-        _code = "";
-        _codeValid = false;
-        StateHasChanged();
-    }
+    private void BackToPhone() { _step = Step.Phone; _code = ""; }
 
     private void OnChanged() => InvokeAsync(StateHasChanged);
     public void Dispose() => Auth.Changed -= OnChanged;

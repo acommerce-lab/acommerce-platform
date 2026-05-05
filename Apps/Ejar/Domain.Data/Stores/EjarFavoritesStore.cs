@@ -22,8 +22,13 @@ public sealed class EjarFavoritesStore : IFavoritesStore
     {
         if (!Guid.TryParse(userId, out var uid)) return Array.Empty<object>();
 
+        // FavoritesController.ToggleListing يَكتب EntityType="Listing"
+        // (سَطر مَكتوب يَدويّاً، ليس nameof). الاستعلام كان يَستخدم
+        // nameof(ListingEntity) = "ListingEntity" ⇒ لا تَطابق ⇒ القائمة
+        // فارغة دائماً رغم وجود مفضّلات في DB. هذا كان السبب الفعليّ
+        // لـ "المفضلات معطّلة" منذ deploy السابق.
         var ids = await _db.Favorites.AsNoTracking()
-            .Where(f => f.UserId == uid && f.EntityType == nameof(ListingEntity))
+            .Where(f => f.UserId == uid && f.EntityType == "Listing")
             .Select(f => f.EntityId).ToListAsync(ct);
 
         if (ids.Count == 0) return Array.Empty<object>();
