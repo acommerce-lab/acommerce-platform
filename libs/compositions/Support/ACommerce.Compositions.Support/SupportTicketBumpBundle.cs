@@ -62,8 +62,7 @@ public sealed class SupportTicketBumpInterceptor : IOperationInterceptor
             var ticket = await supportStore.GetAsync(ticketId, ctx.CancellationToken);
             if (ticket is null) return AnalyzerResult.Pass();
 
-            _log.LogInformation("Support.TicketBump: ticket={TicketId} new reply (conv={ConvId})",
-                ticketId, ticket.ConversationId);
+            _log.LogInformation("Support.TicketBump: ticket={TicketId} new reply", ticketId);
         }
         catch (Exception ex)
         {

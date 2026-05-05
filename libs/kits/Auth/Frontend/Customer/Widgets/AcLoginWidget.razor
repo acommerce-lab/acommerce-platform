@@ -93,34 +93,55 @@
 
     private void RefreshAnalyzers()
     {
-        var phoneClean = new string(_phone.Where(c => char.IsDigit(c) || c == '+').ToArray());
+        // نَقبل أرقام عربيّة-هنديّة (٠-٩) ونُطَبِّعها لـ ASCII قبل التَحقّق.
+        // الصيغة مَقبولة سواء بدأت بـ + (دوليّة) أو 0 (محلّيّة) أو رَقم
+        // مباشَرة. السيرفر هو من يَقرّر التَفاصيل النهائيّة.
+        var normalized = NormalizeDigits(_phone);
+        var digits = normalized.Count(char.IsDigit);
+        var hasNonDigit = normalized.Any(c => !char.IsDigit(c) && c != '+' && c != ' ' && c != '-');
+
         _phoneAnalyzers = new[]
         {
             new OamAnalyzer("الرقم غير فارغ",
-                !string.IsNullOrEmpty(phoneClean) ? OamAnalyzerState.Pass : OamAnalyzerState.Idle),
-            new OamAnalyzer("صيغة دوليّة (يَبدأ بـ +)",
-                phoneClean.StartsWith("+") ? OamAnalyzerState.Pass : OamAnalyzerState.Fail),
+                digits > 0 ? OamAnalyzerState.Pass : OamAnalyzerState.Idle),
             new OamAnalyzer("الطول 9-15 رقم",
-                phoneClean.Count(char.IsDigit) is >= 9 and <= 15
-                    ? OamAnalyzerState.Pass : OamAnalyzerState.Fail),
+                digits is >= 9 and <= 15 ? OamAnalyzerState.Pass : OamAnalyzerState.Fail),
+            new OamAnalyzer("بدون رموز غريبة",
+                !hasNonDigit ? OamAnalyzerState.Pass : OamAnalyzerState.Fail),
         };
         _codeAnalyzers = new[]
         {
             new OamAnalyzer("الرمز ٤-٦ أرقام",
-                _code.Length is >= 4 and <= 6 && _code.All(char.IsDigit)
+                NormalizeDigits(_code).Length is >= 4 and <= 6 && NormalizeDigits(_code).All(char.IsDigit)
                     ? OamAnalyzerState.Pass : OamAnalyzerState.Idle),
         };
     }
 
+    /// <summary>يُحَوِّل أرقام ٠١٢٣٤٥٦٧٨٩ + ۰۱۲۳۴۵۶۷۸۹ إلى ASCII.</summary>
+    private static string NormalizeDigits(string s)
+    {
+        var sb = new System.Text.StringBuilder(s.Length);
+        foreach (var c in s)
+        {
+            sb.Append(c switch
+            {
+                >= '٠' and <= '٩' => (char)('0' + (c - '٠')),
+                >= '۰' and <= '۹' => (char)('0' + (c - '۰')),
+                _ => c,
+            });
+        }
+        return sb.ToString();
+    }
+
     private async Task RequestOtp()
     {
-        await Auth.RequestOtpAsync(_phone);
+        await Auth.RequestOtpAsync(NormalizeDigits(_phone));
         if (string.IsNullOrEmpty(Auth.LastError)) _step = Step.Code;
     }
 
     private async Task VerifyOtp()
     {
-        await Auth.VerifyOtpAsync(_phone, _code);
+        await Auth.VerifyOtpAsync(NormalizeDigits(_phone), NormalizeDigits(_code));
         if (Auth.IsAuthenticated)
         {
             // العودة إلى return param أو /

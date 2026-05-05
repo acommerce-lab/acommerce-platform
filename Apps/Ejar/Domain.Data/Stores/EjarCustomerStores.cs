@@ -124,11 +124,10 @@ public sealed class EjarCustomerChatStore : IChatStore
             return;
         }
 
-        // SenderPartyId قد يأتي بصيغة "User:GUID" (من ChatController) أو
-        // GUID خام (من المسار القديم AppendMessageAsync). نقبل الاثنين.
         var senderRaw = message.SenderPartyId;
         var idx = senderRaw.IndexOf(':');
         var senderId = idx >= 0 ? senderRaw[(idx + 1)..] : senderRaw;
+        Guid.TryParse(senderId, out var senderGuid);
 
         var msgId = Guid.TryParse(message.Id, out var mid) ? mid : Guid.NewGuid();
         var entity = new MessageEntity
@@ -140,10 +139,15 @@ public sealed class EjarCustomerChatStore : IChatStore
             Text           = message.Body,
             SentAt         = message.SentAt,
         };
-        _db.Messages.Add(entity);          // tracked
-        conv.LastAt      = message.SentAt;
-        conv.UnreadCount += 1;
-        // (F6) لا SaveChanges — ChatController.Send يضع .SaveAtEnd().
+        _db.Messages.Add(entity);
+        conv.LastAt = message.SentAt;
+
+        // عَدّاد per-side: رسالتي تَزيد عَدّاد الطَرف الآخر فقط، فلا
+        // تُحسَب على إيقوني ولا في قائمتي. لو المُرسِل ليس Owner ولا
+        // Partner (نادر — رسائل نظام مثلاً)، لا نَزيد.
+        if (senderGuid == conv.OwnerId)         conv.PartnerUnread += 1;
+        else if (senderGuid == conv.PartnerId)  conv.OwnerUnread   += 1;
+        // (F6) لا SaveChanges — ChatController.Send يَضع .SaveAtEnd().
     }
 
     public async Task<IReadOnlyList<IChatMessage>> GetMessagesAsync(
@@ -196,7 +200,8 @@ public sealed class EjarCustomerChatStore : IChatStore
             c,
             users.TryGetValue(c.OwnerId,   out var on) ? on : null,
             users.TryGetValue(c.PartnerId, out var pn) ? pn : c.PartnerName,
-            lastMsgs.TryGetValue(c.Id, out var last) ? last : null
+            lastMsgs.TryGetValue(c.Id, out var last) ? last : null,
+            viewerUserId: uid
         )).ToList();
     }
 
@@ -213,20 +218,29 @@ public sealed class EjarCustomerChatStore : IChatStore
 
         var conv = await _db.Conversations.FirstOrDefaultAsync(x => x.Id == cid, ct);
         if (conv is null) return;
-        // فقط من شارك في المحادثة يَستطيع تَصفير العَدّاد لنفسه. الـ schema
-        // الحاليّ يَحتفظ بعَدّاد واحد لكلّ محادثة (يَكفي لـ inbox 1-on-1).
-        if (conv.OwnerId != uid && conv.PartnerId != uid) return;
-        if (conv.UnreadCount == 0) return;
 
-        conv.UnreadCount = 0;
-        await _db.SaveChangesAsync(ct);
+        // كلّ طَرف يُصَفِّر عَدّاد جانبه فقط — رسائلي لا تُحسَب عليّ، فلا
+        // داعي لتَصفير الجانب الآخر.
+        var changed = false;
+        if (conv.OwnerId == uid && conv.OwnerUnread != 0)
+        {
+            conv.OwnerUnread = 0; changed = true;
+        }
+        else if (conv.PartnerId == uid && conv.PartnerUnread != 0)
+        {
+            conv.PartnerUnread = 0; changed = true;
+        }
+        if (changed) await _db.SaveChangesAsync(ct);
     }
 
     private async Task<ConversationView> BuildViewAsync(ConversationEntity c, CancellationToken ct)
     {
         var owner   = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == c.OwnerId, ct);
         var partner = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == c.PartnerId, ct);
-        return new ConversationView(c, owner?.FullName, partner?.FullName ?? c.PartnerName, lastMessage: null);
+        // viewerUserId غير مَعروف هنا (مَسار GET واحد للمحادثة) — نَعرض
+        // 0 افتراضياً، الـ caller الذي يَملك السياق يَختار العَدّاد المناسب.
+        return new ConversationView(c, owner?.FullName, partner?.FullName ?? c.PartnerName,
+            lastMessage: null, viewerUserId: Guid.Empty);
     }
 
     // ── views ──────────────────────────────────────────────────────────────
@@ -253,9 +267,13 @@ public sealed class EjarCustomerChatStore : IChatStore
     private sealed class ConversationView : IChatConversation
     {
         private readonly ConversationEntity _e;
-        public ConversationView(ConversationEntity e, string? ownerName, string? partnerName, string? lastMessage)
+        private readonly Guid _viewer;
+        public ConversationView(
+            ConversationEntity e, string? ownerName, string? partnerName,
+            string? lastMessage, Guid viewerUserId)
         {
             _e = e;
+            _viewer = viewerUserId;
             OwnerName   = ownerName ?? "—";
             PartnerName = partnerName ?? "—";
             LastMessage = lastMessage;
@@ -273,7 +291,11 @@ public sealed class EjarCustomerChatStore : IChatStore
         public string Subject     => _e.Subject;
         public string ListingId   => _e.ListingId.ToString();
         public DateTime LastAt    => _e.LastAt;
-        public int UnreadCount    => _e.UnreadCount;
+        /// <summary>عَدّاد per-side حسب المُشاهِد. رسائلي لا تُحسَب عليّ.</summary>
+        public int UnreadCount    =>
+            _viewer == _e.OwnerId    ? _e.OwnerUnread :
+            _viewer == _e.PartnerId  ? _e.PartnerUnread :
+            0;
         public string? LastMessage { get; }
     }
 }

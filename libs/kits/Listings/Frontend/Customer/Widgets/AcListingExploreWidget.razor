@@ -58,36 +58,39 @@
         <ul class="ejar-listings">
             @foreach (var l in Store.Visible)
             {
-                var lid = l.Id;
-                <li class="ejar-listing-row" @onclick="@(() => Open(lid))"
-                    role="button" tabindex="0">
-                    <div class="ejar-listing-thumb"
-                         style="@(string.IsNullOrEmpty(l.ThumbnailUrl) ? "" : $"background-image:url('{l.ThumbnailUrl}')")">
-                        @if (string.IsNullOrEmpty(l.ThumbnailUrl))
-                        {
-                            <span class="ejar-listing-thumb-glyph" aria-hidden="true">⌂</span>
-                        }
-                    </div>
-                    <div class="ejar-listing-body">
-                        <div class="ejar-listing-top">
-                            <span class="ejar-listing-title">@l.Title</span>
-                            @if (l.IsVerified)
+                // <a href> بدلاً من @onclick لِيَعمل النقل حتى قبل bind
+                // الـ JS interactivity (SSR + قبل اتّصال SignalR). الـ
+                // browser يَتَولّى التَنقّل أصلاً.
+                <li class="ejar-listing-row">
+                    <a class="ejar-listing-link" href="@(DetailUrl?.Invoke(l.Id) ?? $"/listings/{l.Id}")">
+                        <div class="ejar-listing-thumb"
+                             style="@(string.IsNullOrEmpty(l.ThumbnailUrl) ? "" : $"background-image:url('{l.ThumbnailUrl}')")">
+                            @if (string.IsNullOrEmpty(l.ThumbnailUrl))
                             {
-                                <OamStamp State="OamState.Executed" Compact="true" />
+                                <span class="ejar-listing-thumb-glyph" aria-hidden="true">⌂</span>
                             }
                         </div>
-                        <div class="ejar-listing-meta">
-                            <span class="oam-mono">@l.Price.ToString("0") @PriceUnit(l.TimeUnit)</span>
-                            <span class="ejar-listing-sep" aria-hidden="true">·</span>
-                            <span>@l.City@(string.IsNullOrEmpty(l.District) ? "" : $" — {l.District}")</span>
+                        <div class="ejar-listing-body">
+                            <div class="ejar-listing-top">
+                                <span class="ejar-listing-title">@l.Title</span>
+                                @if (l.IsVerified)
+                                {
+                                    <OamStamp State="OamState.Executed" Compact="true" />
+                                }
+                            </div>
+                            <div class="ejar-listing-meta">
+                                <span class="oam-mono">@l.Price.ToString("0") @PriceUnit(l.TimeUnit)</span>
+                                <span class="ejar-listing-sep" aria-hidden="true">·</span>
+                                <span>@l.City@(string.IsNullOrEmpty(l.District) ? "" : $" — {l.District}")</span>
+                            </div>
+                            <div class="ejar-listing-stats oam-mono">
+                                @if (l.BedroomCount > 0)  { <span>🛏 @l.BedroomCount</span> }
+                                @if (l.BathroomCount > 0) { <span>🛁 @l.BathroomCount</span> }
+                                @if (l.AreaSqm > 0)        { <span>@l.AreaSqm m²</span> }
+                            </div>
                         </div>
-                        <div class="ejar-listing-stats oam-mono">
-                            @if (l.BedroomCount > 0)  { <span>🛏 @l.BedroomCount</span> }
-                            @if (l.BathroomCount > 0) { <span>🛁 @l.BathroomCount</span> }
-                            @if (l.AreaSqm > 0)        { <span>@l.AreaSqm m²</span> }
-                        </div>
-                        @if (CardExtra is not null) { <div class="ac-slot-card-extra">@CardExtra(l)</div> }
-                    </div>
+                    </a>
+                    @if (CardExtra is not null) { <div class="ac-slot-card-extra">@CardExtra(l)</div> }
                 </li>
             }
         </ul>
@@ -119,9 +122,6 @@
             PropertyType: string.IsNullOrEmpty(_propertyType) ? null : _propertyType,
             Query: string.IsNullOrEmpty(_query) ? null : _query));
     }
-
-    private void Open(string id)
-        => Nav.NavigateTo(DetailUrl?.Invoke(id) ?? $"/listings/{id}");
 
     private static string PriceUnit(string timeUnit) => timeUnit switch
     {

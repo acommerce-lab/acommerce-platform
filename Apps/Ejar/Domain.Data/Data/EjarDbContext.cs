@@ -21,10 +21,10 @@ public sealed class EjarDbContext : DbContext
     public DbSet<UserPushTokenEntity> UserPushTokens => Set<UserPushTokenEntity>();
     public DbSet<Favorite>            Favorites      => Set<Favorite>();
     public DbSet<PlanEntity>          Plans          => Set<PlanEntity>();
-    // تذاكر الدعم (Support kit). الردود لا تعيش في جدول منفصل بعد الآن —
-    // كلّ تذكرة مرتبطة بـ ConversationEntity في Chat kit وكلّ الردود رسائل
-    // فيها. راجع libs/kits/Support/.../Domain/Entities.cs للتفاصيل.
-    public DbSet<SupportTicket>       SupportTickets => Set<SupportTicket>();
+    // تذاكر الدعم (Support kit) — مَعزولة عن Chat kit. الردود الآن في
+    // SupportMessages الخاصّ بالدعم، لا في جدول الدردشة.
+    public DbSet<SupportTicket>        SupportTickets  => Set<SupportTicket>();
+    public DbSet<SupportMessageEntity> SupportMessages => Set<SupportMessageEntity>();
     public DbSet<ReportEntity>        Reports        => Set<ReportEntity>();
     public DbSet<SubscriptionEntity>  Subscriptions  => Set<SubscriptionEntity>();
     public DbSet<InvoiceEntity>       Invoices       => Set<InvoiceEntity>();
@@ -43,10 +43,12 @@ public sealed class EjarDbContext : DbContext
             .HasForeignKey(m => m.ConversationId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        // SupportTicket: index على UserId (للقائمة per-user) + ConversationId
-        // (للـ JOIN مع Conversations عند جلب آخر رسالة/unread).
+        // SupportTicket: index على UserId. ConversationId يَبقى عمودَاً
+        // قديماً (لتوافق مع صفوف سابقة) لكنّ الكيت الآن يَستخدم
+        // SupportMessages بدله — لا index ضروريّ.
         b.Entity<SupportTicket>().HasIndex(t => t.UserId);
-        b.Entity<SupportTicket>().HasIndex(t => t.ConversationId).IsUnique();
+        b.Entity<SupportMessageEntity>().HasIndex(m => m.TicketId);
+        b.Entity<SupportMessageEntity>().HasQueryFilter(e => !e.IsDeleted);
 
         // Reports kit: index على ReporterId (للقائمة الشخصيّة) + EntityType+EntityId
         // (للبحث "كم بلاغاً على هذا الإعلان"). filter لاستبعاد المحذوفة.

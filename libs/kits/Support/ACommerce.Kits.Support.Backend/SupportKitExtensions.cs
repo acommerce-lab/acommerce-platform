@@ -5,15 +5,10 @@ namespace ACommerce.Kits.Support.Backend;
 
 /// <summary>
 /// تسجيل Support kit في DI. التطبيق يحقن <typeparamref name="TStore"/> الذي
-/// يُنفِّذ <see cref="ISupportStore"/> ويعرف شكل DB الفعليّ.
+/// يُنفِّذ <see cref="ISupportStore"/>.
 ///
-/// <para>المتطلّبات المسبقة في DI قبل استدعاء هذه الدالّة:
-/// <list type="bullet">
-///   <item><c>OpEngine</c> + <c>OperationInterceptorRegistry</c> (عبر <c>AddOpEngine</c>).</item>
-///   <item>Chat kit (<c>AddChatKit</c>) — Support's Reply يستهلك
-///         <c>IChatStore.AppendMessageAsync</c> داخل Execute body.</item>
-///   <item>JWT auth — الـ controller يقرأ <c>user_id</c> claim للـ scoping.</item>
-/// </list></para>
+/// <para>Support kit الآن مَعزول تماماً عن Chat kit — لا يَتَطلّب
+/// <c>IChatStore</c>. كلّ تذكرة + رسائلها في تخزين Support الخاصّ.</para>
 /// </summary>
 public static class SupportKitExtensions
 {

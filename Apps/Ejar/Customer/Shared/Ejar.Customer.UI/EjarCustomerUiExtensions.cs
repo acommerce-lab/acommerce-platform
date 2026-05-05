@@ -98,12 +98,14 @@ public static class EjarCustomerUiExtensions
 
         // ─── KitApi pipeline موحَّد ─────────────────────────────────────
         // analyzers (pre-flight) + interceptors (around) تَنطبق تلقائياً
-        // على كلّ kit api clients. تَطبيقات أخرى تَكتفي بإضافة analyzer
-        // واحد لتَنطبق القاعدة على كلّ الكيتس بدون تَعديلها — نَفس فلسفة
-        // backend interceptors لكن على الـ client.
+        // على كلّ kit api clients. التَطبيق يُضيف ما يُريد عبر:
+        //   .AddAnalyzer<MyAnalyzer>().AddInterceptor<MyInterceptor>()
+        //
+        // ملاحظة: لا نُسَجِّل RequiredAuthAnalyzer client-side — السيرفر
+        // يَفرض الـ JWT أصلاً، ومنع الطلبات قبل الإرسال يَكسر مسارات
+        // عامّة (cities/amenities/listings GET) بقائمة بيضاء قاصرة.
         services
             .AddKitApiPipeline(sp => sp.GetRequiredService<EjarCircuitHttp>().Client)
-            .AddAnalyzer<RequiredAuthAnalyzer>()
             .AddInterceptor<TelemetryInterceptor>();
 
         // ─── kit ApiClients (per-kit shape ownership) ──────────────────

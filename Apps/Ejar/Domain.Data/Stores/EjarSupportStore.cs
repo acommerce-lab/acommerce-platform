@@ -1,4 +1,3 @@
-using ACommerce.Kits.Chat.Backend;
 using ACommerce.Kits.Support.Backend;
 using ACommerce.Kits.Support.Domain;
 using ACommerce.Kits.Support.Operations;
@@ -8,24 +7,19 @@ using Microsoft.EntityFrameworkCore;
 namespace Ejar.Api.Stores;
 
 /// <summary>
-/// مخزن تذاكر الدعم — يربط Support kit بـ <see cref="EjarDbContext"/>.
-/// كلّ تذكرة = صفّ في <c>SupportTickets</c> + Conversation في Chat kit.
-/// كلّ رسالة (الجسم الأوّل + الردود + رسائل النظام عن تغيير الحالة) تمرّ
-/// على <see cref="IChatStore.AppendMessageAsync"/> فترث realtime broadcast
-/// + DB notification + FCM push بلا كود إضافيّ.
-///
-/// <para>التذرّيّة: فتح التذكرة يُنشئ Conversation + SupportTicket في
-/// نفس <c>SaveChangesAsync</c>. لو فشل أيّ منهما لا يتسرّب نصف-حالة لـ DB.</para>
+/// مخزن تذاكر الدعم — مَعزول تماماً عن Chat kit. كلّ تذكرة + كلّ
+/// رسائلها تَعيش في <c>SupportTickets</c> + <c>SupportMessages</c>،
+/// فلا تَظهر في <c>/conversations</c> ولا تُحَفِّز chat interceptors
+/// (FCM، broadcast، persistent-notif).
 /// </summary>
 public sealed class EjarSupportStore : ISupportStore
 {
     private readonly EjarDbContext _db;
-    private readonly IChatStore _chat;
     private readonly SupportKitOptions _options;
 
-    public EjarSupportStore(EjarDbContext db, IChatStore chat, SupportKitOptions options)
+    public EjarSupportStore(EjarDbContext db, SupportKitOptions options)
     {
-        _db = db; _chat = chat; _options = options;
+        _db = db; _options = options;
     }
 
     public async Task<bool> CanAccessAsync(string ticketId, string userId, CancellationToken ct)
@@ -53,56 +47,31 @@ public sealed class EjarSupportStore : ISupportStore
         return t;
     }
 
-    public async Task<ISupportTicket> OpenAsync(
-        string userId, string subject, string initialMessage, string priority,
-        string? relatedEntityId, CancellationToken ct)
+    public async Task<IReadOnlyList<ISupportMessage>> GetMessagesAsync(string ticketId, CancellationToken ct)
     {
-        // مسار قديم — يبني POCO ثمّ يُمرّره لـ AddNoSaveAsync (المسار الجديد).
-        var ticket = new InMemorySupportTicket(
-            Id:              Guid.NewGuid().ToString(),
-            UserId:          userId,
-            ConversationId:  Guid.NewGuid().ToString(),
-            Subject:         subject,
-            Status:          "open",
-            Priority:        priority,
-            RelatedEntityId: relatedEntityId,
-            AssignedAgentId: null,
-            CreatedAt:       DateTime.UtcNow);
-        await AddNoSaveAsync(ticket, initialMessage, ct);
-        return ticket;
+        if (!Guid.TryParse(ticketId, out var tid)) return Array.Empty<ISupportMessage>();
+        var rows = await _db.SupportMessages.AsNoTracking()
+            .Where(m => m.TicketId == tid)
+            .OrderBy(m => m.SentAt)
+            .ToListAsync(ct);
+        return rows.Select(m => (ISupportMessage)new SupportMessageView(m)).ToList();
     }
 
     public async Task AddNoSaveAsync(ISupportTicket ticket, string initialMessageBody, CancellationToken ct)
     {
         if (!Guid.TryParse(ticket.UserId, out var uid))
             throw new InvalidOperationException("invalid_user_id");
-        if (!Guid.TryParse(ticket.ConversationId, out var convId))
-            throw new InvalidOperationException("invalid_conversation_id");
         var ticketId = Guid.TryParse(ticket.Id, out var tid) ? tid : Guid.NewGuid();
-        var agentPool = ResolveAgentPoolId();
 
-        // ① Conversation: مالكها = الشاكي، شريكها = pool الدعم.
-        var conv = new ConversationEntity
-        {
-            Id          = convId,
-            CreatedAt   = ticket.CreatedAt,
-            OwnerId     = uid,
-            PartnerId   = agentPool,
-            ListingId   = Guid.Empty,             // لا تُربط بإعلان
-            PartnerName = _options.AgentPoolDisplayName,
-            Subject     = ticket.Subject.Length > 200 ? ticket.Subject[..200] : ticket.Subject,
-            LastAt      = ticket.CreatedAt,
-            UnreadCount = 0,
-        };
-        _db.Conversations.Add(conv);
-
-        // ② SupportTicket — يربط نفسه بالـ Conversation.
+        // ConversationId: عمود قديم لا يَستخدمه أحد بَعد. نَملؤه بـ
+        // Guid.NewGuid() لإرضاء أيّ unique index قديم باقٍ في DB. لاحقاً
+        // migration يُسقط العمود.
         var entity = new SupportTicket
         {
             Id              = ticketId,
             CreatedAt       = ticket.CreatedAt,
             UserId          = uid,
-            ConversationId  = convId,
+            ConversationId  = Guid.NewGuid(),
             Subject         = ticket.Subject.Length > 200 ? ticket.Subject[..200] : ticket.Subject,
             Status          = ticket.Status,
             Priority        = ticket.Priority,
@@ -110,17 +79,38 @@ public sealed class EjarSupportStore : ISupportStore
         };
         _db.SupportTickets.Add(entity);
 
-        // ③ الرسالة الأولى كحدث OAM أصيل (POCO) — تُمرَّر لـ Chat store
-        // tracker-only، نفس مسار ChatController.Send.
-        var initialMsg = new ACommerce.Chat.Operations.InMemoryChatMessage(
-            Id:             Guid.NewGuid().ToString(),
-            ConversationId: convId.ToString(),
-            SenderPartyId:  $"User:{uid}",
-            Body:           initialMessageBody,
-            SentAt:         ticket.CreatedAt);
-        await _chat.AppendNoSaveAsync(initialMsg, ct);
-        // (F6) لا SaveChangesAsync — SupportController.Open يضع .SaveAtEnd()
-        // يَحفظ Conversation + Ticket + الرسالة الأولى ذرّيّاً.
+        var initialMsg = new SupportMessageEntity
+        {
+            Id            = Guid.NewGuid(),
+            CreatedAt     = ticket.CreatedAt,
+            TicketId      = ticketId,
+            SenderPartyId = $"User:{uid}",
+            Body          = initialMessageBody,
+            SentAt        = ticket.CreatedAt,
+        };
+        _db.SupportMessages.Add(initialMsg);
+        await Task.CompletedTask;
+    }
+
+    public async Task AppendMessageNoSaveAsync(string ticketId, string senderPartyId, string body, CancellationToken ct)
+    {
+        if (!Guid.TryParse(ticketId, out var tid)) return;
+
+        var msg = new SupportMessageEntity
+        {
+            Id            = Guid.NewGuid(),
+            CreatedAt     = DateTime.UtcNow,
+            TicketId      = tid,
+            SenderPartyId = senderPartyId,
+            Body          = body,
+            SentAt        = DateTime.UtcNow,
+        };
+        _db.SupportMessages.Add(msg);
+
+        // bump ticket UpdatedAt — لِيُرَتَّب inbox الدعم من الأحدث.
+        var t = _db.SupportTickets.Local.FirstOrDefault(x => x.Id == tid)
+              ?? await _db.SupportTickets.FirstOrDefaultAsync(x => x.Id == tid, ct);
+        if (t is not null) t.UpdatedAt = DateTime.UtcNow;
     }
 
     public async Task<bool> SetStatusAsync(string ticketId, string newStatus, CancellationToken ct)
@@ -132,55 +122,31 @@ public sealed class EjarSupportStore : ISupportStore
         var oldStatus = t.Status;
         t.Status    = newStatus;
         t.UpdatedAt = DateTime.UtcNow;
-        // (F6) modify in-memory tracked entity. SaveAtEnd على القيد يحفظه.
 
-        // رسالة "نظام" داخل المحادثة — تُسلَّم للطرفَين عبر مسار chat.message
-        // المعتاد فيظهر لها toast + notification في DB + FCM. <System> هو
-        // userId ليتمكّن الواجهة من تمييز رسائل النظام بصرياً.
+        // رسالة "نظام" داخل التذكرة فقط — لا broadcast ولا FCM (مَعزول).
         var systemBody = $"[تغيّرت الحالة: {LabelStatus(oldStatus)} → {LabelStatus(newStatus)}]";
-        try
+        _db.SupportMessages.Add(new SupportMessageEntity
         {
-            var systemMsg = new ACommerce.Chat.Operations.InMemoryChatMessage(
-                Id:             Guid.NewGuid().ToString(),
-                ConversationId: t.ConversationId.ToString(),
-                SenderPartyId:  "User:00000000-0000-0000-0000-000000000000",
-                Body:           systemBody,
-                SentAt:         DateTime.UtcNow);
-            await _chat.AppendNoSaveAsync(systemMsg, ct);
-        }
-        catch { /* فشل بثّ الرسالة النظاميّة غير قاتل — التذكرة محفوظة. */ }
-
+            Id            = Guid.NewGuid(),
+            CreatedAt     = DateTime.UtcNow,
+            TicketId      = tid,
+            SenderPartyId = "System",
+            Body          = systemBody,
+            SentAt        = DateTime.UtcNow,
+        });
         return true;
     }
 
     public async Task<bool> AssignAgentAsync(string ticketId, string agentId, string agentDisplayName, CancellationToken ct)
     {
-        if (!Guid.TryParse(ticketId, out var tid))     return false;
-        if (!Guid.TryParse(agentId, out var aid))      return false;
+        if (!Guid.TryParse(ticketId, out var tid)) return false;
+        if (!Guid.TryParse(agentId, out var aid))  return false;
         var t = await _db.SupportTickets.FirstOrDefaultAsync(x => x.Id == tid, ct);
         if (t is null) return false;
 
         t.AssignedAgentId = aid;
         t.UpdatedAt       = DateTime.UtcNow;
-
-        // حدِّث المحادثة المرتبطة لتنعكس على inbox المستخدم بشكل سليم.
-        var conv = await _db.Conversations.FirstOrDefaultAsync(c => c.Id == t.ConversationId, ct);
-        if (conv is not null)
-        {
-            conv.PartnerId   = aid;
-            conv.PartnerName = agentDisplayName;
-            conv.UpdatedAt   = DateTime.UtcNow;
-        }
-        // (F6) modifications tracked in-memory. SaveAtEnd على القيد يحفظ.
         return true;
-    }
-
-    private Guid ResolveAgentPoolId()
-    {
-        if (_options.AgentPoolPartyId.HasValue) return _options.AgentPoolPartyId.Value;
-        // أرجع GUID ثابت يمثّل "pool الدعم" حتى يُكوَّن صراحةً في appsettings.
-        // قيمة محسوبة بدون state — كلّ التذاكر تُربط بنفس "المستلم" حتى يُخصَّص.
-        return new Guid("00000000-0000-0000-0000-00000000d000");
     }
 
     private static string LabelStatus(string s) => s switch
@@ -191,4 +157,15 @@ public sealed class EjarSupportStore : ISupportStore
         "closed"      => "مغلقة",
         _             => s,
     };
+
+    private sealed class SupportMessageView : ISupportMessage
+    {
+        private readonly SupportMessageEntity _e;
+        public SupportMessageView(SupportMessageEntity e) => _e = e;
+        public string Id            => _e.Id.ToString();
+        public string TicketId      => _e.TicketId.ToString();
+        public string SenderPartyId => _e.SenderPartyId;
+        public string Body          => _e.Body;
+        public DateTime SentAt      => _e.SentAt;
+    }
 }

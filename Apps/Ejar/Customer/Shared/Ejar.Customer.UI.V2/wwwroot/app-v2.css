@@ -408,16 +408,19 @@ p  { line-height: 1.65; color: var(--oam-ink); }
 .ejar-listings { list-style: none; padding: 0; margin: 0;
                  display: flex; flex-direction: column; gap: 0; }
 .ejar-listing-row {
-  display: flex; gap: .85rem; align-items: stretch;
-  padding: .85rem 1rem;
+  display: block;
   background: var(--oam-card);
   border-bottom: 1px solid var(--oam-line);
-  cursor: pointer;
-  transition: background .12s ease;
 }
 .ejar-listing-row:first-child { border-top: 1px solid var(--oam-line); }
-.ejar-listing-row:hover  { background: var(--oam-paper); }
-.ejar-listing-row:focus-visible {
+.ejar-listing-link {
+  display: flex; gap: .85rem; align-items: stretch;
+  padding: .85rem 1rem;
+  text-decoration: none; color: inherit;
+  transition: background .12s ease;
+}
+.ejar-listing-link:hover  { background: var(--oam-paper); }
+.ejar-listing-link:focus-visible {
   outline: 2px solid var(--oam-exec); outline-offset: -2px;
 }
 

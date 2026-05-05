@@ -66,17 +66,23 @@ public sealed class ConversationEntity : IBaseEntity
     public DateTime? UpdatedAt { get; set; }
     public bool IsDeleted { get; set; }
 
-    // OwnerId = من بدأ المحادثة. PartnerId = الطرف الآخر. كلا الطرفَين يجب
-    // أن يجدا المحادثة في /conversations عبر OwnerId == me OR PartnerId == me.
-    // قبل إضافة OwnerId كان الباحث الذي يبدأ المحادثة لا يجدها في قائمته
-    // (لأنّ معرّفه غير مخزَّن أصلاً)، والمالك يجدها فقط لأنّ معرّفه = PartnerId.
     public Guid OwnerId { get; set; }
     [MaxLength(120)] public string PartnerName { get; set; } = "";
     public Guid PartnerId { get; set; }
     public Guid ListingId { get; set; }
     [MaxLength(200)] public string Subject { get; set; } = "";
     public DateTime LastAt { get; set; }
+
+    /// <summary>عَدّاد قديم مُشتَرَك — لا يَستَخدِمه أحد بَعد. حلّ مَحلّه
+    /// <see cref="OwnerUnread"/> + <see cref="PartnerUnread"/>. يَبقى كعمود
+    /// لِيَنجح مَسار الـ EF بدون drop.</summary>
     public int UnreadCount { get; set; }
+
+    /// <summary>غير مَقروءة بنظر الـ Owner (= رسائل الـ Partner منذ آخر قراءة).</summary>
+    public int OwnerUnread   { get; set; }
+    /// <summary>غير مَقروءة بنظر الـ Partner (= رسائل الـ Owner منذ آخر قراءة).</summary>
+    public int PartnerUnread { get; set; }
+
     public List<MessageEntity> Messages { get; set; } = new();
 }
 
@@ -201,4 +207,23 @@ public sealed class AppVersionEntity : IBaseEntity
     public DateTime? SunsetAt { get; set; }
     public string? Notes { get; set; }
     public string? DownloadUrl { get; set; }
+}
+
+/// <summary>
+/// رسالة في تذكرة دعم — مَعزولة عن جدول رسائل الدردشة. تذاكر الدعم
+/// لها قناة تَخزين مُستقلّة فلا تَتسرّب إلى /conversations ولا تُحَفِّز
+/// chat-side interceptors (FCM، broadcast، persistent-notif).
+/// </summary>
+public sealed class SupportMessageEntity : IBaseEntity
+{
+    [Key] public Guid Id { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public DateTime? UpdatedAt { get; set; }
+    public bool IsDeleted { get; set; }
+
+    public Guid TicketId { get; set; }
+    /// <summary>"User:GUID" أو "System".</summary>
+    [MaxLength(64)] public string SenderPartyId { get; set; } = "";
+    public string Body { get; set; } = "";
+    public DateTime SentAt { get; set; }
 }

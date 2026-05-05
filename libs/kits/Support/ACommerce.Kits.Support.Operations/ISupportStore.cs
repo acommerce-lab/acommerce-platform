@@ -8,20 +8,35 @@ namespace ACommerce.Kits.Support.Operations;
 /// يستخدم هذه الأنواع بدل سلاسل، ليتمكّن أيّ interceptor من المطابقة
 /// المتطابقة عبر <c>op.Type == SupportOps.X</c>.
 ///
-/// <para>ملاحظة OAM: عند الردّ على تذكرة، Type = <c>MessageOps.Send</c>
-/// (نفس Chat kit) لا op خاصّ — لتُورِّث المعترضات المسجَّلة على رسائل
-/// الدردشة. للتمييز يضاف <see cref="SupportMarkers.IsTicketReply"/>.</para>
+/// <para>الردّ على تذكرة الآن نوع OAM مُستقلّ <c>"ticket.reply"</c> — لا
+/// يَرث chat interceptors (FCM, persistent-notif, broadcast). تذاكر الدعم
+/// مَعزولة تماماً عن الدردشة.</para>
 /// </summary>
 public static class SupportOps
 {
-    /// <summary>إنشاء تذكرة جديدة + محادثة + رسالة أولى.</summary>
+    /// <summary>إنشاء تذكرة جديدة + رسالة أولى.</summary>
     public static readonly OperationType TicketOpen         = new("ticket.open");
     /// <summary>تغيير حالة (open → in_progress → resolved → closed).</summary>
     public static readonly OperationType TicketStatusChange = new("ticket.status_change");
-    /// <summary>تخصيص وكيل (يُحدِّث PartnerId على المحادثة المرتبطة).</summary>
+    /// <summary>تخصيص وكيل.</summary>
     public static readonly OperationType TicketAssignAgent  = new("ticket.assign_agent");
-    /// <summary>الردّ على تذكرة = نفس النوع المُستخدم في Chat kit.</summary>
-    public static readonly OperationType TicketReply        = new("message.send");
+    /// <summary>الردّ على تذكرة — نوع مُستقلّ، مَعزول عن chat.message.send.</summary>
+    public static readonly OperationType TicketReply        = new("ticket.reply");
+}
+
+/// <summary>
+/// عقد رسالة دعم — مَعزول عن <c>IChatMessage</c>. كلّ رسالة في تذكرة
+/// (الجسم الأوّل + ردود) تَعيش في جدول <c>SupportMessages</c> الخاصّ
+/// بالدعم، لا في جدول الدردشة.
+/// </summary>
+public interface ISupportMessage
+{
+    string Id { get; }
+    string TicketId { get; }
+    /// <summary>"User:GUID" للمستخدِم/الوكيل، أو "System" لرسائل تَلقائيّة.</summary>
+    string SenderPartyId { get; }
+    string Body { get; }
+    DateTime SentAt { get; }
 }
 
 /// <summary>
@@ -56,59 +71,43 @@ public static class SupportMarkers
 
 /// <summary>
 /// عقد التخزين — الـ kit لا يفترض أيّ شكل DB. التطبيق يُنفِّذه في
-/// <c>EjarSupportStore</c> (أو ما يماثله). الـ store يدير:
-/// <list type="bullet">
-///   <item>إنشاء التذكرة + المحادثة المرتبطة + الرسالة الأولى ذرّياً.</item>
-///   <item>قراءة قائمة التذاكر (مع unread/last preview من Conversation).</item>
-///   <item>تغيير الحالة، تخصيص الوكيل.</item>
-/// </list>
-///
-/// <para>الردّ نفسه (نصّ من المستخدم/الوكيل) لا يمرّ هنا — يمرّ على
-/// <c>IChatStore.AppendMessageAsync</c> مع <c>ConversationId</c> الخاصّ
-/// بالتذكرة (الذي يحصل عليه الـ controller من <see cref="GetAsync"/>).</para>
+/// <c>EjarSupportStore</c> (أو ما يماثله). الـ store يدير كامل دورة الحياة
+/// للتذكرة + رسائلها — مَعزول تماماً عن <c>IChatStore</c>.
 /// </summary>
 public interface ISupportStore
 {
     /// <summary>هل هذه التذكرة تخصّ هذا المستخدم (للـ scoping)؟</summary>
     Task<bool> CanAccessAsync(string ticketId, string userId, CancellationToken ct);
 
-    /// <summary>قائمة تذاكر المستخدم — مرتّبة من الأحدث، مع آخر رسالة + unread إن أمكن.</summary>
+    /// <summary>قائمة تذاكر المستخدم — مرتّبة من الأحدث.</summary>
     Task<IReadOnlyList<ISupportTicket>> ListForUserAsync(string userId, CancellationToken ct);
 
     /// <summary>تذكرة واحدة (مع التحقّق من ملكيّة المستخدم في الـ controller).</summary>
     Task<ISupportTicket?> GetAsync(string ticketId, CancellationToken ct);
 
-    /// <summary>فتح تذكرة: ينشئ Conversation عبر مزوّد الدردشة، ثمّ Ticket
-    /// يُلصِقه عليها، ثمّ يضع <paramref name="initialMessage"/> رسالةً أولى.
-    /// مسار قديم — يبني الـ Ticket داخلياً.</summary>
-    [Obsolete("استعمل AddNoSaveAsync بدلاً منها — يقبل ISupportTicket مبنيّاً مسبقاً ولا يحفظ بنفسه (F6: SaveAtEnd على القيد).")]
-    Task<ISupportTicket> OpenAsync(
-        string userId,
-        string subject,
-        string initialMessage,
-        string priority,
-        string? relatedEntityId,
-        CancellationToken ct);
+    /// <summary>رسائل تذكرة — مُرتَّبة من الأقدم.</summary>
+    Task<IReadOnlyList<ISupportMessage>> GetMessagesAsync(string ticketId, CancellationToken ct);
 
     /// <summary>
-    /// يُسجِّل التذكرة + Conversation المرتبطة + الرسالة الأولى على tracker
-    /// (F6: لا <c>SaveChangesAsync</c>). المُتّصِل
-    /// (<c>SupportController.Open</c>) يبني <see cref="ISupportTicket"/> +
-    /// <c>IChatMessage</c> كـ POCOs أوّلاً، يضعهما على
-    /// <c>ctx.WithEntity</c>، ثمّ يستدعي هذه الدالّة لو أراد persistence.
-    /// default no-op يجعل <c>support.ticket.open</c> ينجح كحدث OAM حتّى
-    /// دون جداول SupportTickets/Conversations.
+    /// يُسجِّل التذكرة + الرسالة الأولى على tracker (F6: لا
+    /// <c>SaveChangesAsync</c>). default no-op يجعل <c>ticket.open</c> ينجح
+    /// كحدث OAM حتّى دون جدول.
     /// </summary>
     Task AddNoSaveAsync(
         ISupportTicket ticket,
         string initialMessageBody,
         CancellationToken ct) => Task.CompletedTask;
 
-    /// <summary>تغيير الحالة. يستدعي appendMessageAsync داخلياً لإنشاء رسالة
-    /// نظام في المحادثة (FromRole=system) ليصل الإشعار للمستخدم عبر مسار
-    /// chat.message دون كود إضافيّ.</summary>
+    /// <summary>يُلحق رسالة بالتذكرة على tracker (F6: لا SaveChanges).</summary>
+    Task AppendMessageNoSaveAsync(
+        string ticketId,
+        string senderPartyId,
+        string body,
+        CancellationToken ct) => Task.CompletedTask;
+
+    /// <summary>تغيير الحالة + رسالة نظام. F6: tracker فقط.</summary>
     Task<bool> SetStatusAsync(string ticketId, string newStatus, CancellationToken ct);
 
-    /// <summary>تخصيص وكيل. يُحدِّث AssignedAgentId + PartnerId على المحادثة.</summary>
+    /// <summary>تخصيص وكيل.</summary>
     Task<bool> AssignAgentAsync(string ticketId, string agentId, string agentDisplayName, CancellationToken ct);
 }

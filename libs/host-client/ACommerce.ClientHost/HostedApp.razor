@@ -1,4 +1,5 @@
 @using Microsoft.AspNetCore.Components.Authorization
+@implements IDisposable
 @inject KitPageRegistry Registry
 @inject NavigationManager Nav
 @inject AuthenticationStateProvider Auth
@@ -71,31 +72,41 @@
     private bool _shouldRedirectToLogin;
     private string _returnUrl = "/";
 
+    protected override void OnInitialized()
+    {
+        Auth.AuthenticationStateChanged += OnAuthChanged;
+    }
+
+    private async void OnAuthChanged(Task<AuthenticationState> task)
+    {
+        try
+        {
+            var state = await task;
+            _isAuthenticated = state.User.Identity?.IsAuthenticated == true;
+            // إذا تَوفّر JWT بَعد render سابق محجوز، نُلغي طَلب التَحويل.
+            if (_isAuthenticated) _shouldRedirectToLogin = false;
+            await InvokeAsync(StateHasChanged);
+        }
+        catch { /* لا حاجة لتَعطيل التَطبيق على فَشل state */ }
+    }
+
+    public void Dispose() => Auth.AuthenticationStateChanged -= OnAuthChanged;
+
     private async Task HandleNavigation(NavigationContext context)
     {
         var path = "/" + context.Path;
         _currentMatch = Registry.Resolve(path);
         _returnUrl = path;
 
+        // أعد ضبط الـ flag دائماً — مَسارات لا تَتطلّب auth يَجب ألا تَرث
+        // تَوجيهاً سابقاً. ثمّ احسبه حصراً للمُصَنَّف auth-required.
+        _shouldRedirectToLogin = false;
         if (_currentMatch?.Page.RequiresAuth == true)
         {
             var state = await Auth.GetAuthenticationStateAsync();
             _isAuthenticated = state.User.Identity?.IsAuthenticated == true;
-
-            // إذا غير مُصادَق، حَوِّل لـ /login. لا نَستدعي NavigateTo داخل
-            // HandleNavigation — يَقذف NavigationException يَظهر للمُصَحِّح
-            // كَ "unhandled" حتى لو الـ framework يَلتقطها لاحقاً. نَعتمد
-            // على _shouldRedirect flag ⇒ render branch يَكتب
-            // <_RedirectToLogin> ضمن LayoutView، الذي يُنفِّذ NavigateTo في
-            // OnAfterRenderAsync (interactive realm، آمن).
             if (!_isAuthenticated && !path.Equals(LoginRoute, StringComparison.OrdinalIgnoreCase))
-            {
                 _shouldRedirectToLogin = true;
-            }
-            else
-            {
-                _shouldRedirectToLogin = false;
-            }
         }
     }
 
