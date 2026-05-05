@@ -78,6 +78,10 @@ public static class EjarBootstrap
             logger?.LogInformation("Seeding initial data");
             DbInitializer.Seed(db);
         }
+        // بذور Discovery تَعمل بشكل مُستقلّ — لو DB قديم فيه Users لكن
+        // جداول Discovery أُضيفت لاحقاً، الـ Seed الرئيسيّ تَجاوزها (تَفحص
+        // Users.Any فقط). هذه تَملؤها حتميّاً.
+        DbInitializer.SeedDiscoveryIfMissing(db);
         DbInitializer.SeedAppVersionsIfMissing(db);
 
         // ④ ترقية إصدارات appsettings (غير قاتل لو فشل)

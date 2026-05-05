@@ -6,7 +6,7 @@
     AcLoginWidget — تَدَفّق OTP بـ analyzer-strip:
       - الخطوة ١: phone (هاتف) — analyzer يَفحص الصيغة قبل تَفعيل الزرّ
       - الخطوة ٢: code (٤-٦ خانات) — analyzer يَفحص الطول
-    OamStamp يَدلّ على حالة الجلسة (Pending → Executing → Executed/Rejected).
+    صيغة الهاتف يَمنيّة: 7XXXXXXXX محلّيّ أو +9677XXXXXXXX دوليّ.
 *@
 
 <section class="ejar-login">
@@ -17,7 +17,7 @@
             <p class="ejar-login-sub">
                 @(_step == Step.Phone
                     ? "أَدخِل رقم الجوال لاستلام رمز التَفعيل."
-                    : "أَدخلنا الرمز الـ ٦-أرقام إلى رقمك.")
+                    : "أَدخلنا الرمز إلى رقمك.")
             </p>
         </header>
 
@@ -26,16 +26,17 @@
             <label class="ejar-field">
                 <span>رقم الجوال</span>
                 <input class="ac-input oam-mono" type="tel" inputmode="tel"
-                       placeholder="+966500000001"
-                       value="@_phone"
-                       @oninput="@(e => { _phone = e.Value?.ToString() ?? ""; RefreshAnalyzers(); })" />
+                       placeholder="7XXXXXXXX"
+                       @bind="_phone"
+                       @bind:event="oninput"
+                       @bind:after="RefreshAnalyzers" />
             </label>
 
             <OamAnalyzerStrip OperationType="auth.otp.request"
                               Analyzers="@_phoneAnalyzers">
                 <Action>
                     <button class="oam-btn ejar-login-btn"
-                            disabled="@(!context || Auth.IsBusy)"
+                            disabled="@(!_phoneValid || Auth.IsBusy)"
                             @onclick="RequestOtp">
                         @(Auth.IsBusy ? "جاري الإرسال…" : "إرسال الرمز")
                     </button>
@@ -48,15 +49,16 @@
                 <span>الرمز</span>
                 <input class="ac-input oam-mono ejar-otp-input" type="text" inputmode="numeric"
                        maxlength="6" placeholder="●●●●●●"
-                       value="@_code"
-                       @oninput="@(e => { _code = e.Value?.ToString() ?? ""; RefreshAnalyzers(); })" />
+                       @bind="_code"
+                       @bind:event="oninput"
+                       @bind:after="RefreshAnalyzers" />
             </label>
 
             <OamAnalyzerStrip OperationType="auth.otp.verify"
                               Analyzers="@_codeAnalyzers">
                 <Action>
                     <button class="oam-btn ejar-login-btn"
-                            disabled="@(!context || Auth.IsBusy)"
+                            disabled="@(!_codeValid || Auth.IsBusy)"
                             @onclick="VerifyOtp">
                         @(Auth.IsBusy ? "جاري التحقّق…" : "تَأكيد الرمز")
                     </button>
@@ -64,7 +66,7 @@
             </OamAnalyzerStrip>
 
             <button class="oam-btn-ghost ejar-login-back" type="button"
-                    @onclick="@(() => { _step = Step.Phone; _code = ""; RefreshAnalyzers(); })">
+                    @onclick="BackToPhone">
                 ← تَغيير الرقم
             </button>
         }
@@ -84,6 +86,8 @@
 
     private OamAnalyzer[] _phoneAnalyzers = Array.Empty<OamAnalyzer>();
     private OamAnalyzer[] _codeAnalyzers  = Array.Empty<OamAnalyzer>();
+    private bool _phoneValid;
+    private bool _codeValid;
 
     protected override void OnInitialized()
     {
@@ -91,29 +95,42 @@
         RefreshAnalyzers();
     }
 
+    /// <summary>
+    /// يَتَحَقّق من صيغة الهاتف اليَمنيّة. يَقبل: <c>7XXXXXXXX</c> (٩ أرقام
+    /// محلّيّ يَبدأ بـ 7)، أو <c>9677XXXXXXXX</c> (١٢ رقم دوليّ)، أو
+    /// <c>+9677XXXXXXXX</c>. يُطَبِّع أرقام ٠-٩ العربيّة + ۰-۹ الفارسيّة.
+    /// </summary>
     private void RefreshAnalyzers()
     {
-        // نَقبل أرقام عربيّة-هنديّة (٠-٩) ونُطَبِّعها لـ ASCII قبل التَحقّق.
-        // الصيغة مَقبولة سواء بدأت بـ + (دوليّة) أو 0 (محلّيّة) أو رَقم
-        // مباشَرة. السيرفر هو من يَقرّر التَفاصيل النهائيّة.
-        var normalized = NormalizeDigits(_phone);
-        var digits = normalized.Count(char.IsDigit);
-        var hasNonDigit = normalized.Any(c => !char.IsDigit(c) && c != '+' && c != ' ' && c != '-');
+        var phone = NormalizeDigits(_phone).Trim();
+        var digitsOnly = new string(phone.Where(char.IsDigit).ToArray());
+
+        // محلّيّ يَمنيّ: ٩ أرقام يَبدأ بـ 7. دوليّ: 967 + 7XXXXXXXX = ١٢ رقم.
+        var localOk = digitsOnly.Length == 9 && digitsOnly.StartsWith("7");
+        var intlOk  = (digitsOnly.Length == 12 && digitsOnly.StartsWith("9677"))
+                   || (phone.StartsWith("+") && digitsOnly.Length == 12 && digitsOnly.StartsWith("9677"));
+        _phoneValid = localOk || intlOk;
 
         _phoneAnalyzers = new[]
         {
-            new OamAnalyzer("الرقم غير فارغ",
-                digits > 0 ? OamAnalyzerState.Pass : OamAnalyzerState.Idle),
-            new OamAnalyzer("الطول 9-15 رقم",
-                digits is >= 9 and <= 15 ? OamAnalyzerState.Pass : OamAnalyzerState.Fail),
-            new OamAnalyzer("بدون رموز غريبة",
-                !hasNonDigit ? OamAnalyzerState.Pass : OamAnalyzerState.Fail),
+            new OamAnalyzer("رقم يَمنيّ",
+                _phoneValid     ? OamAnalyzerState.Pass
+                : digitsOnly.Length == 0 ? OamAnalyzerState.Idle
+                : OamAnalyzerState.Fail),
+            new OamAnalyzer("صيغة 7XXXXXXXX أو +9677XXXXXXXX",
+                _phoneValid     ? OamAnalyzerState.Pass
+                : digitsOnly.Length == 0 ? OamAnalyzerState.Idle
+                : OamAnalyzerState.Fail),
         };
+
+        var code = NormalizeDigits(_code);
+        _codeValid = code.Length is >= 4 and <= 6 && code.All(char.IsDigit);
         _codeAnalyzers = new[]
         {
             new OamAnalyzer("الرمز ٤-٦ أرقام",
-                NormalizeDigits(_code).Length is >= 4 and <= 6 && NormalizeDigits(_code).All(char.IsDigit)
-                    ? OamAnalyzerState.Pass : OamAnalyzerState.Idle),
+                _codeValid                 ? OamAnalyzerState.Pass
+                : code.Length == 0         ? OamAnalyzerState.Idle
+                : OamAnalyzerState.Fail),
         };
     }
 
@@ -133,23 +150,39 @@
         return sb.ToString();
     }
 
+    /// <summary>يُحَوِّل أيّ صيغة مُدخَلة إلى E.164 يَمنيّ <c>+9677XXXXXXXX</c>.</summary>
+    private static string ToE164Yemen(string raw)
+    {
+        var digits = new string(NormalizeDigits(raw).Where(char.IsDigit).ToArray());
+        if (digits.Length == 9 && digits.StartsWith("7"))   return "+967" + digits;
+        if (digits.Length == 12 && digits.StartsWith("9677")) return "+" + digits;
+        if (digits.StartsWith("0"))                          return "+967" + digits.TrimStart('0');
+        return "+" + digits;
+    }
+
     private async Task RequestOtp()
     {
-        await Auth.RequestOtpAsync(NormalizeDigits(_phone));
+        await Auth.RequestOtpAsync(ToE164Yemen(_phone));
         if (string.IsNullOrEmpty(Auth.LastError)) _step = Step.Code;
     }
 
     private async Task VerifyOtp()
     {
-        await Auth.VerifyOtpAsync(NormalizeDigits(_phone), NormalizeDigits(_code));
+        await Auth.VerifyOtpAsync(ToE164Yemen(_phone), NormalizeDigits(_code));
         if (Auth.IsAuthenticated)
         {
-            // العودة إلى return param أو /
             var uri = new Uri(Nav.Uri);
             var q = System.Web.HttpUtility.ParseQueryString(uri.Query);
             var returnTo = q["return"];
             Nav.NavigateTo(string.IsNullOrEmpty(returnTo) ? "/" : returnTo);
         }
+    }
+
+    private void BackToPhone()
+    {
+        _step = Step.Phone;
+        _code = "";
+        RefreshAnalyzers();
     }
 
     private void OnChanged() => InvokeAsync(StateHasChanged);

@@ -94,6 +94,46 @@ public static class DbInitializer
     }
 
     /// <summary>
+    /// بذور Discovery idempotent (Categories + Regions + Amenities). تَعمل
+    /// عند كلّ إقلاع لتَغطية حالة DB القديم الذي فيه Users لكنّ جداول
+    /// Discovery أُضيفت لاحقاً (Seed الرئيسيّ يَتجاوزها لو Users.Any).
+    /// </summary>
+    public static void SeedDiscoveryIfMissing(EjarDbContext db)
+    {
+        var addedAny = false;
+
+        if (!db.DiscoveryCategories.Any())
+        {
+            foreach (var c in EjarSeed.Categories)
+                db.DiscoveryCategories.Add(new ACommerce.Kits.Discovery.Domain.DiscoveryCategory {
+                    Slug = c.Id, Label = c.Label, Icon = c.Emoji, Kind = c.Kind,
+                    CreatedAt = DateTime.UtcNow,
+                });
+            addedAny = true;
+        }
+
+        if (!db.DiscoveryRegions.Any())
+        {
+            foreach (var city in new[] { "إب", "صنعاء", "عدن", "تعز", "الحديدة", "المكلا" })
+                db.DiscoveryRegions.Add(new ACommerce.Kits.Discovery.Domain.DiscoveryRegion {
+                    Name = city, Level = 1, CreatedAt = DateTime.UtcNow,
+                });
+            addedAny = true;
+        }
+
+        if (!db.DiscoveryAmenities.Any())
+        {
+            foreach (var a in EjarSeed.Amenities)
+                db.DiscoveryAmenities.Add(new ACommerce.Kits.Discovery.Domain.DiscoveryAmenity {
+                    Slug = a.Id, Label = a.Label, CreatedAt = DateTime.UtcNow,
+                });
+            addedAny = true;
+        }
+
+        if (addedAny) db.SaveChanges();
+    }
+
+    /// <summary>
     /// بذرة إضافيّة idempotent لإصدارات التطبيق. تعمل عند كلّ بدء تشغيل لتغطّي
     /// قواعد البيانات القديمة. تضيف فقط <c>(platform, "1.0.0")</c> غير الموجودة.
     /// تستدعي <see cref="EnsureAppVersionsTable"/> أوّلاً لضمان وجود الجدول

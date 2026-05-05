@@ -45,9 +45,11 @@ public sealed class ListingsController : ControllerBase
 
     private string CallerPartyId(string id) => $"{_options.PartyKind}:{id}";
 
-    // ─── GET /listings + GET /home/explore (alias) ────────────────────────
+    // ─── GET /listings ────────────────────────────────────────────────────
+    // ملاحظة: <c>/home/explore</c> يَبقى مَعزولاً في HomeController
+    // (Apps/Ejar/...) بشكل مُسَطَّح (List<ListingDto>) ليَظلّ V1 يَعمل بدون
+    // كسر. الـ kit يُرجع dimensional wrapper { total, page, pageSize, items }.
     [HttpGet("/listings")]
-    [HttpGet("/home/explore")]
     [AllowAnonymous]
     public async Task<IActionResult> Search(
         [FromQuery] string? city,

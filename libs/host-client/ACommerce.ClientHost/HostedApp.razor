@@ -97,16 +97,23 @@
         var path = "/" + context.Path;
         _currentMatch = Registry.Resolve(path);
         _returnUrl = path;
-
-        // أعد ضبط الـ flag دائماً — مَسارات لا تَتطلّب auth يَجب ألا تَرث
-        // تَوجيهاً سابقاً. ثمّ احسبه حصراً للمُصَنَّف auth-required.
         _shouldRedirectToLogin = false;
+
         if (_currentMatch?.Page.RequiresAuth == true)
         {
             var state = await Auth.GetAuthenticationStateAsync();
             _isAuthenticated = state.User.Identity?.IsAuthenticated == true;
             if (!_isAuthenticated && !path.Equals(LoginRoute, StringComparison.OrdinalIgnoreCase))
-                _shouldRedirectToLogin = true;
+            {
+                // تَوجيه فوريّ — Blazor يَلتقط NavigationException ويُحَوِّل
+                // إلى /login (أثناء SSR ⇒ 302، أثناء interactive ⇒ تَنقّل
+                // داخل الـ circuit). الـ "Unhandled" في الـ debugger ظاهرة
+                // فقط، الـ framework يَتعامل معها كَنَتيجة عاديّة.
+                var loginUrl = $"{LoginRoute}?return={Uri.EscapeDataString(path)}";
+                Nav.NavigateTo(loginUrl, replace: true);
+                _shouldRedirectToLogin = true; // backup لو NavigateTo لم يَطرح
+                return;
+            }
         }
     }
 
