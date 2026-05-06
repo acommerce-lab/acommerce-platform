@@ -33,11 +33,16 @@ var app = builder.Build();
 if (!app.Environment.IsDevelopment())
     app.UseExceptionHandler("/Error");
 
-app.UseStaticFiles();
 app.UseAntiforgery();
 
 // Routes.razor (في Ejar.Customer.UI.V2 — نفس assembly App) يَحوي
 // @page "/" + @page "/{*Path:nonfile}". اكتشاف App's assembly كافٍ.
+//
+// MapStaticAssets (.NET 9+) يَخدم _framework/blazor.web.js + _content/*
+// ضمن endpoint routing. UseStaticFiles القديم لا يُسَجِّل الـ framework
+// assets في endpoint table فيَفشل blazor.web.js بـ 404 في بَعض الـ
+// configurations (مَع catch-all @page "/{*Path}").
+app.MapStaticAssets();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 

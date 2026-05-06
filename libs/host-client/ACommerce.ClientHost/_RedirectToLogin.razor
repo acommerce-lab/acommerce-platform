@@ -1,34 +1,47 @@
 @using Microsoft.JSInterop
 @inject IJSRuntime JS
+@inject NavigationManager Nav
 
 @*
-    تَوجيه بدون NavigationException وبدون حاجة لضغط مَرئيّ:
-      ١. الـ <script> inline ⇒ يَعمل في full page load (SSR initial).
-      ٢. JS.InvokeVoidAsync في OnAfterRenderAsync ⇒ يَعمل في SPA nav
-         (Blazor diffs لا تُنفِّذ <script>).
-    كلاهما يَستعمل window.location.replace ⇒ لا navigation exception.
-    الـ fallback link لو JS مُعَطَّل.
+    تَوجيه HTML خالص:
+      ١. data-* attribute على العنصر يَحوي URL (Blazor يُرَمِّزه إلى entities
+         تلقائياً، لكنّ DOM يُرجِعه نَصّاً عاديّاً عبر dataset).
+      ٢. inline <script> يَقرأ الـ data-url ثمّ window.location.replace.
+         لا تَضمّ @-expressions داخل <script> (Blazor كان يُرَمِّز " إلى
+         &quot; ⇒ SyntaxError).
+      ٣. JS.InvokeVoidAsync في OnAfterRenderAsync ⇒ يَعمل في SPA nav بَعد
+         اتّصال SignalR (الـ <script> تَنفُذ مرّة في full page load فقط).
 *@
 
-<div class="ejar-redirect-fallback">
+<div class="ejar-redirect-fallback" data-redirect-url="@Url" id="ejar-redirect">
     <p>تَحويل لتسجيل الدخول…</p>
     <a class="ejar-redirect-link" href="@Url">اضغط هنا لو لم يَنتقل</a>
 </div>
-<script>(function(){try{window.location.replace(@JsUrl);}catch(e){window.location.href=@JsUrl;}})();</script>
+<script>
+(function(){
+  var el = document.getElementById('ejar-redirect');
+  if (!el) return;
+  var u = el.getAttribute('data-redirect-url');
+  if (!u) return;
+  try { window.location.replace(u); } catch (e) { window.location.href = u; }
+})();
+</script>
 
 @code {
     [Parameter] public string Login  { get; set; } = "/login";
     [Parameter] public string Return { get; set; } = "/";
 
-    private string Url   => $"{Login}?return={Uri.EscapeDataString(Return)}";
-    private string JsUrl => System.Text.Json.JsonSerializer.Serialize(Url);
+    private string Url => $"{Login}?return={Uri.EscapeDataString(Return)}";
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        // SPA navigation: الـ <script> أعلاه لا يُنَفَّذ (Blazor diff)، فنُكَرِّر
-        // النَقل عبر JS interop. firstRender فقط — لا حلقات re-render.
         if (!firstRender) return;
-        try { await JS.InvokeVoidAsync("eval", $"window.location.replace({JsUrl})"); }
-        catch { /* JS غير مُتَوَفِّر (prerender) — الـ <script> يَكفي */ }
+        try
+        {
+            await JS.InvokeVoidAsync(
+                "eval",
+                $"(function(){{var u='{Url.Replace("'", "\\'")}';try{{window.location.replace(u);}}catch(e){{window.location.href=u;}}}})();");
+        }
+        catch { /* prerender أو SignalR لم يَتّصل بَعد — الـ <script> يَكفي */ }
     }
 }
