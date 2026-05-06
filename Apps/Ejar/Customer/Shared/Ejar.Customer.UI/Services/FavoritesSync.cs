@@ -1,46 +1,39 @@
-using ACommerce.Kits.Favorites.Frontend.Customer.Stores;
+using System.Text.Json.Serialization;
+using ACommerce.OperationEngine.Wire;
 using Ejar.Customer.UI.Store;
 
 namespace Ejar.Customer.UI.Services;
 
 /// <summary>
-/// يُزامن المفضّلات بين <see cref="AppStore.FavoriteListingIds"/> (محلّياً في
-/// localStorage) والخادم عبر <see cref="IFavoritesApiClient"/>:
-/// <list type="bullet">
-///   <item>نضغط القلب → نُحدّث المحلّيّ تفاؤليّاً + نستدعي الخادم. لو فشل
-///         الخادم نُرجع الحالة المحلّيّة + نُعلن الخطأ.</item>
-///   <item>عند بدء الجلسة (بعد <c>RestoreAsync</c> أو بعد تسجيل الدخول)
-///         نُحمّل القائمة من الخادم لتطغى على ما في localStorage — حتّى
-///         تظهر المفضّلات على كلّ الأجهزة.</item>
-/// </list>
+/// يُزامن المفضّلات بين <see cref="AppStore.FavoriteListingIds"/> والخادم
+/// عبر <see cref="ApiReader"/> مباشرة (مَسار V1 المُجَرَّب). الـ
+/// IFavoritesApiClient الجديد + KitHttpClient pipeline كانا يَفشلان في
+/// مَسار toggle بدون body — رَجَعنا للنَهج البَسيط.
 /// </summary>
 public sealed class FavoritesSync
 {
     private readonly AppStore _store;
-    private readonly IFavoritesApiClient _api;
+    private readonly ApiReader _api;
 
-    public FavoritesSync(AppStore store, IFavoritesApiClient api)
+    public FavoritesSync(AppStore store, ApiReader api)
     {
         _store = store;
         _api   = api;
     }
 
-    /// <summary>
-    /// آخر خطأ شبكيّ/خادم عند آخر نداء toggle. تُمسح في كلّ نداء جديد ناجح.
-    /// </summary>
     public string? LastError { get; private set; }
-
-    /// <summary>يُطلَق عند تغيّر <see cref="LastError"/>.</summary>
     public event Action? Changed;
 
     public async Task LoadFromServerAsync(CancellationToken ct = default)
     {
         if (!_store.Auth.IsAuthenticated) return;
-        var ids = await _api.ListAsync(ct);
+        var env = await _api.GetAsync<List<FavoriteRow>>("/favorites", ct: ct);
+        if (env.Operation.Status != "Success" || env.Data is null) return;
+
         _store.FavoriteListingIds.Clear();
-        foreach (var id in ids)
-            if (!string.IsNullOrEmpty(id))
-                _store.FavoriteListingIds.Add(id);
+        foreach (var row in env.Data)
+            if (!string.IsNullOrEmpty(row.Id))
+                _store.FavoriteListingIds.Add(row.Id);
         _store.NotifyChanged();
     }
 
@@ -49,38 +42,46 @@ public sealed class FavoritesSync
         if (string.IsNullOrEmpty(listingId)) return false;
         if (!_store.Auth.IsAuthenticated)
         {
-            // غير مصادَق — تَحديث محلّيّ فقط ريثما يَدخل المستخدم.
             var added = _store.FavoriteListingIds.Add(listingId);
             if (!added) _store.FavoriteListingIds.Remove(listingId);
             _store.NotifyChanged();
             return added;
         }
 
-        // تَحديث تفاؤليّ — يَقفز القلب فوراً.
         bool optimisticOn = _store.FavoriteListingIds.Add(listingId);
         if (!optimisticOn) _store.FavoriteListingIds.Remove(listingId);
         _store.NotifyChanged();
 
         SetError(null);
 
-        var res = await _api.ToggleListingAsync(listingId, ct);
-        if (!res.Success)
+        var env = await _api.PostAsync<ToggleResult>(
+            $"/listings/{Uri.EscapeDataString(listingId)}/favorite", body: null, ct: ct);
+
+        if (env.Operation.Status != "Success" || env.Data is null)
         {
-            // فَشِل — أرجع الحالة وأعلن الخطأ.
             if (optimisticOn) _store.FavoriteListingIds.Remove(listingId);
             else              _store.FavoriteListingIds.Add(listingId);
             _store.NotifyChanged();
-            SetError("تعذّر حفظ المفضّلة على الخادم — حاول مجدّداً.");
+
+            var code = env.Error?.Code ?? env.Operation?.FailedAnalyzer;
+            var msg  = env.Error?.Message ?? env.Operation?.ErrorMessage;
+            SetError((code, msg) switch
+            {
+                ("network_error",     var m) when m is not null => $"تعذّر الاتصال بالخادم: {m}",
+                ("listing_not_found", _)                        => "الإعلان لم يعد متوفّراً.",
+                (_, var m) when !string.IsNullOrWhiteSpace(m)   => m!,
+                (var c, _) when !string.IsNullOrWhiteSpace(c)   => $"تعذّر حفظ المفضّلة ({c}).",
+                _                                                => "تعذّر حفظ المفضّلة على الخادم — حاول مجدّداً."
+            });
             return !optimisticOn;
         }
 
-        // الخادم هو الحقيقة — اضبط المحلّيّ على ما أرجعه (في حال انحراف).
-        if (res.IsFavorited)
+        if (env.Data.IsFavorite)
             _store.FavoriteListingIds.Add(listingId);
         else
             _store.FavoriteListingIds.Remove(listingId);
         _store.NotifyChanged();
-        return res.IsFavorited;
+        return env.Data.IsFavorite;
     }
 
     private void SetError(string? msg)
@@ -89,4 +90,9 @@ public sealed class FavoritesSync
         LastError = msg;
         Changed?.Invoke();
     }
+
+    private sealed record FavoriteRow([property: JsonPropertyName("id")] string Id);
+    private sealed record ToggleResult(
+        [property: JsonPropertyName("id")] string Id,
+        [property: JsonPropertyName("isFavorite")] bool IsFavorite);
 }

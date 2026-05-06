@@ -13,6 +13,17 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" />
+    @*
+        widgets.css + templates-shared.css + Ejar.Customer.UI/app.css ⇒
+        يُعَرِّفون .ac-btn, .ac-input, .acs-page, .acm-wizard-title وكلّ
+        classes V1 الأساسيّة. بدونها، صفحات V1 المُعاد استعمالها (مثل
+        Login.razor الذي ربطناه على /login في V2) تَفقد التَنسيق ويَبدو
+        الزرّ بشكل غير سليم.
+    *@
+    <link rel="stylesheet" href="_content/ACommerce.Widgets/widgets.css" />
+    <link rel="stylesheet" href="_content/ACommerce.Templates.Shared/templates-shared.css" />
+    <link rel="stylesheet" href="_content/ACommerce.Templates.Marketplace/templates-marketplace.css" />
+    <link rel="stylesheet" href="_content/Ejar.Customer.UI/app.css" />
     <link rel="stylesheet" href="_content/ACommerce.Templates.OAM/oam-fingerprint.css" />
     <link rel="stylesheet" href="_content/Ejar.Customer.UI.V2/app-v2.css" />
     <HeadOutlet />
