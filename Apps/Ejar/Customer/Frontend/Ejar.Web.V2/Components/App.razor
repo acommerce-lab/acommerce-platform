@@ -1,8 +1,14 @@
 @*
-    App.razor — root SSR component. يَلفّ Routes (الذي يَحوي @page directives)
-    بـ @rendermode interactive — كلّ شيء داخل Routes يَكون Interactive، فلا
-    حدود serialize عبور.
+    App.razor — root SSR component، LOCAL في Ejar.Web.V2 (وليس في
+    المكتبة المُشتَرَكة). الـ Razor SDK يَحتاج رؤية Razor components
+    داخل host project لِيُسَجِّل _framework/blazor.web.js في الـ static
+    asset manifest. لو App.razor كان في مكتبة فقط، الـ manifest يَفتقد
+    الـ framework JS endpoint ⇒ 404.
+
+    Routes.razor يَبقى في المكتبة المُشتَرَكة (يُستورد عبر @using).
 *@
+@using Ejar.Customer.UI.V2.Components
+
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -13,13 +19,6 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" />
-    @*
-        widgets.css + templates-shared.css + Ejar.Customer.UI/app.css ⇒
-        يُعَرِّفون .ac-btn, .ac-input, .acs-page, .acm-wizard-title وكلّ
-        classes V1 الأساسيّة. بدونها، صفحات V1 المُعاد استعمالها (مثل
-        Login.razor الذي ربطناه على /login في V2) تَفقد التَنسيق ويَبدو
-        الزرّ بشكل غير سليم.
-    *@
     <link rel="stylesheet" href="_content/ACommerce.Widgets/widgets.css" />
     <link rel="stylesheet" href="_content/ACommerce.Templates.Shared/templates-shared.css" />
     <link rel="stylesheet" href="_content/ACommerce.Templates.Marketplace/templates-marketplace.css" />
@@ -29,13 +28,7 @@
     <HeadOutlet />
 </head>
 <body>
-    @*
-        prerender يَعمل: SSR يَرسم أوّل HTML كامل (مع .ejar-shell) فيُسرِع
-        الـ first paint و يَجعل verify-runtime.mjs يَجد الـ shell. الـ
-        _RedirectToLogin مُؤجَّل لـ OnAfterRender فلا يَقذف NavigationException
-        أثناء prerender.
-    *@
-    <Routes @rendermode="@(new Microsoft.AspNetCore.Components.Web.InteractiveServerRenderMode())" />
+    <Routes @rendermode="InteractiveServer" />
     <script src="_framework/blazor.web.js"></script>
 </body>
 </html>

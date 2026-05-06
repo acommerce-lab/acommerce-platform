@@ -2,7 +2,7 @@ using ACommerce.Kits.Versions.Templates;
 using Ejar.Customer.UI;                        // V1 services + AppVersionInfo
 using Ejar.Customer.UI.Interceptors;
 using Ejar.Customer.UI.V2.ClientHost;          // V2 host
-using App = Ejar.Customer.UI.V2.Components.App;
+using App = Ejar.Web.V2.Components.App;        // App محليّ في host (Razor SDK يَتَطلَّب ذلك لـ /_framework/* manifest)
 
 var builder = WebApplication.CreateBuilder(args);
 
