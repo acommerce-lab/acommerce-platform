@@ -44,6 +44,10 @@ app.UseAntiforgery();
 // configurations (مَع catch-all @page "/{*Path}").
 app.MapStaticAssets();
 app.MapRazorComponents<App>()
-    .AddInteractiveServerRenderMode();
+    .AddInteractiveServerRenderMode()
+    // Routes.razor (مع @page directives) في Ejar.Customer.UI.V2 — مكتبة
+    // مُشتَرَكة. بدون AddAdditionalAssemblies الـ Razor SDK لا يَمسحها فلا
+    // يَجد أيّ @page ⇒ كلّ المَسارات بما فيها / تُرجِع 404.
+    .AddAdditionalAssemblies(typeof(Ejar.Customer.UI.V2.Components.Routes).Assembly);
 
 app.Run();
