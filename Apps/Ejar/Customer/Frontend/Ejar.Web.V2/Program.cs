@@ -1,8 +1,6 @@
 using ACommerce.Kits.Versions.Templates;
-using Ejar.Customer.UI;                        // V1 services + AppVersionInfo
-using Ejar.Customer.UI.Interceptors;
-using Ejar.Customer.UI.V2.ClientHost;          // V2 host
-using App = Ejar.Web.V2.Components.App;        // App محليّ في host (Razor SDK يَتَطلَّب ذلك لـ /_framework/* manifest)
+using Ejar.Customer.UI.V2.ClientHost;
+using App = Ejar.Web.V2.Components.App;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -11,43 +9,25 @@ builder.WebHost.UseStaticWebAssets();
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
-// HTTP → Ejar.Api (نفس API V1)
 var apiBase = builder.Configuration["EjarApi:BaseUrl"] ?? "http://localhost:5300";
 var appVersion = builder.Configuration["App:Version"] ?? "2.0.0";
 builder.Services.AddSingleton(new AppVersionInfo(Platform: "web-v2", Version: appVersion));
 
+// HttpClient "ejar" بسيط — Bearer يَتم على EjarV2HttpClient عبر
+// DefaultRequestHeaders.Authorization. لا handler chain هنا.
 builder.Services.AddHttpClient("ejar", c =>
 {
     c.BaseAddress = new Uri(apiBase);
     c.Timeout = TimeSpan.FromSeconds(30);
-})
-.AddHttpMessageHandler<CultureHeadersHandler>()
-.AddHttpMessageHandler<AppVersionHeadersHandler>()
-.AddHttpMessageHandler<AuthHeadersHandler>();
+});
 
-// V2 يَستدعي AddEjarCustomerUI داخلياً + يَربط kit stores.
 builder.Services.AddEjarCustomerV2();
 
 var app = builder.Build();
-
-if (!app.Environment.IsDevelopment())
-    app.UseExceptionHandler("/Error");
-
+if (!app.Environment.IsDevelopment()) app.UseExceptionHandler("/Error");
 app.UseAntiforgery();
-
-// Routes.razor (في Ejar.Customer.UI.V2 — نفس assembly App) يَحوي
-// @page "/" + @page "/{*Path:nonfile}". اكتشاف App's assembly كافٍ.
-//
-// MapStaticAssets (.NET 9+) يَخدم _framework/blazor.web.js + _content/*
-// ضمن endpoint routing. UseStaticFiles القديم لا يُسَجِّل الـ framework
-// assets في endpoint table فيَفشل blazor.web.js بـ 404 في بَعض الـ
-// configurations (مَع catch-all @page "/{*Path}").
 app.MapStaticAssets();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode()
-    // Routes.razor (مع @page directives) في Ejar.Customer.UI.V2 — مكتبة
-    // مُشتَرَكة. بدون AddAdditionalAssemblies الـ Razor SDK لا يَمسحها فلا
-    // يَجد أيّ @page ⇒ كلّ المَسارات بما فيها / تُرجِع 404.
     .AddAdditionalAssemblies(typeof(Ejar.Customer.UI.V2.Components.Routes).Assembly);
-
 app.Run();

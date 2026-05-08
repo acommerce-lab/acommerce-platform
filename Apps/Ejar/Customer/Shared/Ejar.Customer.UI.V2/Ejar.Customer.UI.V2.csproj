@@ -8,11 +8,10 @@
     <PackageId>Ejar.Customer.UI.V2</PackageId>
     <Version>2.0.0</Version>
     <Description>
-      ا لنسخة V2 الـ kit-based لمكتبة عميل إيجار. لا صفحات بمنطق
-      نطاقيّ — كلّ الصفحات thin wrappers (@page + widget من kit
-      مناسب). الـ MainLayout يَستهلك kit widgets للشارات (chat unread،
-      notifications unread). تَستعمل نفس Bindings + AppStore +
-      الخدمات من Ejar.Customer.UI (V1) عبر ProjectReference.
+      تَطبيق إيجار V2 — نَحيف، مُستقلّ تَماماً عن V1. يَستهلك kits +
+      ClientHost فقط. كل خَدَمة مُشتَرَكة عَرَضيّة (FavoritesSync،
+      Realtime، Push، VersionPoll) مَوضوعها في الكيت أو composition،
+      ليست هنا.
     </Description>
     <RazorLangVersion>latest</RazorLangVersion>
   </PropertyGroup>
@@ -20,17 +19,11 @@
     <SupportedPlatform Include="browser" />
   </ItemGroup>
   <ItemGroup>
-    <!-- V1 يَملك الخدمات (AppStore، EjarChatClient، ApiReader، …) +
-         Bindings (EjarXxxStore). V2 يَستهلكها كما هي — لا تَكرار. -->
-    <ProjectReference Include="..\Ejar.Customer.UI\Ejar.Customer.UI.csproj" />
-
-    <!-- OAM design fingerprint (Ledger Theme) -->
+    <!-- لا اعتماد على V1 (Ejar.Customer.UI). -->
+    <ProjectReference Include="..\..\..\..\..\libs\host-client\ACommerce.ClientHost\ACommerce.ClientHost.csproj" />
     <ProjectReference Include="..\..\..\..\..\libs\templates\OAM\ACommerce.Templates.OAM\ACommerce.Templates.OAM.csproj" />
 
-    <!-- ClientHost (fluent builder) -->
-    <ProjectReference Include="..\..\..\..\..\libs\host-client\ACommerce.ClientHost\ACommerce.ClientHost.csproj" />
-
-    <!-- 8 kit Frontend.Customer projects — مصدر الـ widgets -->
+    <!-- ٨ kits Frontend.Customer — مَصدر الـ widgets + IXxxStore + api clients -->
     <ProjectReference Include="..\..\..\..\..\libs\kits\Auth\Frontend\Customer\ACommerce.Kits.Auth.Frontend.Customer.csproj" />
     <ProjectReference Include="..\..\..\..\..\libs\kits\Listings\Frontend\Customer\ACommerce.Kits.Listings.Frontend.Customer.csproj" />
     <ProjectReference Include="..\..\..\..\..\libs\kits\Chat\Frontend\Customer\ACommerce.Kits.Chat.Frontend.Customer.csproj" />
@@ -39,10 +32,20 @@
     <ProjectReference Include="..\..\..\..\..\libs\kits\Subscriptions\Frontend\Customer\ACommerce.Kits.Subscriptions.Frontend.Customer.csproj" />
     <ProjectReference Include="..\..\..\..\..\libs\kits\Support\Frontend\Customer\ACommerce.Kits.Support.Frontend.Customer.csproj" />
     <ProjectReference Include="..\..\..\..\..\libs\kits\Favorites\Frontend\Customer\ACommerce.Kits.Favorites.Frontend.Customer.csproj" />
+
+    <!-- Operations لـ IListing/IPlan/IChatMessage/IUserProfile interfaces -->
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Listings\ACommerce.Kits.Listings.Operations\ACommerce.Kits.Listings.Operations.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Chat\ACommerce.Chat.Operations\ACommerce.Chat.Operations.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Profiles\ACommerce.Kits.Profiles.Operations\ACommerce.Kits.Profiles.Operations.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Subscriptions\ACommerce.Subscriptions.Operations\ACommerce.Subscriptions.Operations.csproj" />
+
+    <!-- Versions Templates يَكشف AppVersionInfo + AppVersionHeadersHandler -->
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Versions\ACommerce.Kits.Versions.Templates\ACommerce.Kits.Versions.Templates.csproj" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Components.Authorization" Version="10.0.7" />
     <PackageReference Include="Microsoft.AspNetCore.Authorization" Version="10.0.7" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.7" />
+    <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.7" />
   </ItemGroup>
 </Project>
