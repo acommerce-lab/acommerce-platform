@@ -35,5 +35,10 @@
 
     <!-- OAM templates — atoms (OamLedger, OamReceipt, OamStamp...) لإعادَة الاستِخدام داخل widgets -->
     <ProjectReference Include="..\..\OAM\ACommerce.Templates.OAM\ACommerce.Templates.OAM.csproj" />
+
+    <!-- ACommerce.Widgets — atoms (AcInput, AcButton...) كانت transitive عَبر kits.
+         بَعد تَحويل kits إلى plain SDK + إِزالة dependency على Widgets، صارَت
+         direct reference هنا (الـ razor المَنقول يَستَخدِمها). -->
+    <ProjectReference Include="..\..\..\kits\Widgets\ACommerce.Widgets\ACommerce.Widgets.csproj" />
   </ItemGroup>
 </Project>

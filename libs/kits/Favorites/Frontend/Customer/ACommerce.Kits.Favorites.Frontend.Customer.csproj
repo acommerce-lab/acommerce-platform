@@ -1,17 +1,17 @@
-<Project Sdk="Microsoft.NET.Sdk.Razor">
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <PackageId>ACommerce.Kits.Favorites.Frontend.Customer</PackageId>
     <Version>1.0.0</Version>
-    <Description>Customer-facing UI for the Favorites kit: favorites list, IFavoritesStore reactive store, FavoritesPageBundle.</Description>
-    <RazorLangVersion>latest</RazorLangVersion>
+    <Description>Favorites kit customer-facing logic: IFavoritesStore + IFavoritesApiClient interfaces, DefaultFavoritesStore, HttpFavoritesApiClient. UI lives in libs/templates/Customer.Ledger.</Description>
   </PropertyGroup>
-  <ItemGroup><SupportedPlatform Include="browser" /></ItemGroup>
+  <ItemGroup>
+    <SupportedPlatform Include="browser" />
+  </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\ACommerce.Favorites.Operations\ACommerce.Favorites.Operations.csproj" />
     <ProjectReference Include="..\..\..\..\host-client\ACommerce.ClientHost\ACommerce.ClientHost.csproj" />
-    <ProjectReference Include="..\..\..\..\templates\OAM\ACommerce.Templates.OAM\ACommerce.Templates.OAM.csproj" />
   </ItemGroup>
 </Project>

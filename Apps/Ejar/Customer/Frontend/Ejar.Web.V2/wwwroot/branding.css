@@ -1,0 +1,60 @@
+/*
+  branding.css — تَخصيص ألوان إيجار V2 لِكَلاسات قالَب Customer.Ledger.
+  يُحَمَّل بَعد app-v2.css فيُغَلِّب القِيَم.
+
+  المَنهَج: لا نُعيد تَعريف ال markup ولا نَلمِس القالَب — نُعيد طِلاء
+  الكَلاسات التي يَكشِفها <c>LedgerClasses</c> فقط. أيّ تَطبيق آخَر
+  يَستهلِك Customer.Ledger يُمكنه عَمل نَفس الشَيء بألوانه.
+
+  مَرجِع: libs/templates/Customer.Ledger/.../LedgerClasses.cs
+*/
+
+:root {
+    /* لَوحة إيجار: green ledger */
+    --ejar-primary:        #156450;
+    --ejar-primary-hover:  #0f4d3e;
+    --ejar-accent:         #c9a049;
+    --ejar-bg-card:        #fafaf7;
+    --ejar-text-primary:   #1a2e22;
+    --ejar-border:         #d8d3c4;
+    --ejar-error:          #b3261e;
+}
+
+/* ─── Login: LedgerClasses.LoginCard / LoginButton / LoginField ──────── */
+.ledger-login-card {
+    background: var(--ejar-bg-card);
+    border: 1px solid var(--ejar-border);
+    border-radius: 4px;
+}
+
+.ledger-login-btn,
+.oam-btn {
+    background: var(--ejar-primary);
+    color: #fff;
+    border: 0;
+}
+
+.ledger-login-btn:hover:not([disabled]),
+.oam-btn:hover:not([disabled]) {
+    background: var(--ejar-primary-hover);
+}
+
+.oam-btn-ghost {
+    background: transparent;
+    color: var(--ejar-primary);
+    border: 1px solid var(--ejar-primary);
+}
+
+/* ─── Listing card: LedgerClasses.ListingCard / Title / Price ─────────── */
+.ledger-listing-card {
+    border-bottom: 1px solid var(--ejar-border);
+    background: #fff;
+}
+
+.ledger-listing-title { color: var(--ejar-text-primary); font-weight: 600; }
+.ledger-listing-price { color: var(--ejar-accent); font-weight: 700; }
+
+/* ─── Chat / Notifications / Errors ───────────────────────────────────── */
+.ledger-chat-bubble  { background: var(--ejar-bg-card); }
+.ac-badge            { background: var(--ejar-accent); color: #fff; }
+.ac-err              { color: var(--ejar-error); }

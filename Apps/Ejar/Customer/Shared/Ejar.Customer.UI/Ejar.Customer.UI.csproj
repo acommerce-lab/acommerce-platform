@@ -17,7 +17,8 @@
 
   <ItemGroup>
     <!-- Domain (entities + seed contracts) -->
-    <ProjectReference Include="..\..\..\..\..\libs\kits\Versions\ACommerce.Kits.Versions.Client\ACommerce.Kits.Versions.Client.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Versions\ACommerce.Kits.Versions.Operations\ACommerce.Kits.Versions.Operations.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Versions\ACommerce.Kits.Versions.Templates\ACommerce.Kits.Versions.Templates.csproj" />
     <ProjectReference Include="..\..\..\Domain\Ejar.Domain.csproj" />
   </ItemGroup>
 
