@@ -5,6 +5,7 @@ using ACommerce.Client.Operations.Interceptors;
 using ACommerce.Client.StateBridge;
 using ACommerce.ClientHost.Auth;
 using ACommerce.ClientHost.KitApi;
+using ACommerce.Compositions.Customer.Unread;
 using ACommerce.Culture.Abstractions;
 using ACommerce.Culture.Defaults;
 using ACommerce.Culture.Interceptors;
@@ -140,6 +141,7 @@ public static class EjarCustomerUiExtensions
         // ─── Realtime + Chat client ────────────────────────────────────
         services.AddScoped<EjarRealtimeService>();
         services.AddScoped<UnreadService>();
+        services.AddCustomerUnreadComposition();
         services.AddScoped<IChatClient, EjarChatClient>();
 
         return services;

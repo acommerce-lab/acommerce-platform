@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <PackageId>ACommerce.Compositions.Customer.Unread</PackageId>
+    <Description>
+      composition عَدَّاد مُوَحَّد لِلرَسائل + الإشعارات غير المَقروءة عَلى
+      جانِب العَميل. يَلفّ <c>IChatStore.UnreadTotal</c> + <c>INotificationsStore.UnreadCount</c>
+      ويُعطي شارَة واحدة لِلَّـ navbar/dashboard.
+    </Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <SupportedPlatform Include="browser" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\kits\Chat\Frontend\Customer\ACommerce.Kits.Chat.Frontend.Customer.csproj" />
+    <ProjectReference Include="..\..\..\kits\Notifications\Frontend\Customer\ACommerce.Kits.Notifications.Frontend.Customer.csproj" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.7" />
+  </ItemGroup>
+</Project>
