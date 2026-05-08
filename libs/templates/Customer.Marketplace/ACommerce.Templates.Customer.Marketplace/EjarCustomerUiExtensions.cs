@@ -6,10 +6,13 @@ using ACommerce.Client.StateBridge;
 using ACommerce.ClientHost.Auth;
 using ACommerce.ClientHost.KitApi;
 using ACommerce.ClientHost.Operations;
+using ACommerce.Compositions.Customer.Favorites.Realtime;
+using ACommerce.Compositions.Customer.Notifications.Realtime;
 using ACommerce.Compositions.Customer.Unread;
 using ACommerce.Culture.Abstractions;
 using ACommerce.Culture.Defaults;
 using ACommerce.Culture.Interceptors;
+using ACommerce.OperationEngine.Interceptors;
 using ACommerce.Kits.Auth.Frontend.Customer.Stores;
 using ACommerce.Kits.Chat.Frontend.Customer.Stores;
 using ACommerce.Kits.Favorites.Frontend.Customer.Stores;
@@ -148,8 +151,18 @@ public static class EjarCustomerUiExtensions
         // ─── Realtime + Chat client ────────────────────────────────────
         services.AddScoped<EjarRealtimeService>();
         services.AddScoped<UnreadService>();
-        services.AddCustomerUnreadComposition();
         services.AddScoped<IChatClient, EjarChatClient>();
+
+        // ─── Compositions (cross-kit + realtime) ───────────────────────
+        services.AddCustomerUnreadComposition();
+        services.AddNotificationsRealtimeComposition();
+        services.AddFavoritesRealtimeComposition();
+
+        // ─── OAM-seam cross-cutting interceptors ───────────────────────
+        // CultureLocalizationInterceptor يَعمَل عَلى كلّ http.send post-phase
+        // ⇒ تَعريب التَواريخ + العُملات في المَغلَّفات تلقائيّاً (ApiReader
+        // كانَت تَستَدعيه يَدويّاً في كلّ GET — الآن مُسَجَّل مرّة واحدة).
+        services.AddScoped<IOperationInterceptor, CultureLocalizationInterceptor>();
 
         return services;
     }

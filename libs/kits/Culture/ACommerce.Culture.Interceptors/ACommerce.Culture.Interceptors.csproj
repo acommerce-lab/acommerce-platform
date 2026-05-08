@@ -14,5 +14,7 @@
     <ProjectReference Include="..\ACommerce.Culture.Defaults\ACommerce.Culture.Defaults.csproj" />
     <!-- OperationEngine.Wire لـ CultureInterceptor (يَستَهلِك OperationEnvelope) -->
     <ProjectReference Include="..\..\..\core\OperationEngine\ACommerce.OperationEngine.Wire\ACommerce.OperationEngine.Wire.csproj" />
+    <ProjectReference Include="..\..\..\core\OperationEngine\ACommerce.OperationEngine\ACommerce.OperationEngine.csproj" />
+    <ProjectReference Include="..\..\..\core\OperationEngine\ACommerce.OperationEngine.Interceptors\ACommerce.OperationEngine.Interceptors.csproj" />
   </ItemGroup>
 </Project>

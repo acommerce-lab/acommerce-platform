@@ -79,6 +79,11 @@
 
     <!-- Customer.Unread composition — يَجمَع IChatStore + INotificationsStore unread counters -->
     <ProjectReference Include="..\..\..\compositions\Customer.Unread\ACommerce.Compositions.Customer.Unread\ACommerce.Compositions.Customer.Unread.csproj" />
+
+    <!-- Customer.Notifications.Realtime + Customer.Favorites.Realtime compositions —
+         tunnels for hub-pushed events into kit Stores via OAM seam -->
+    <ProjectReference Include="..\..\..\compositions\Customer.Notifications.Realtime\ACommerce.Compositions.Customer.Notifications.Realtime\ACommerce.Compositions.Customer.Notifications.Realtime.csproj" />
+    <ProjectReference Include="..\..\..\compositions\Customer.Favorites.Realtime\ACommerce.Compositions.Customer.Favorites.Realtime\ACommerce.Compositions.Customer.Favorites.Realtime.csproj" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Components.Authorization" Version="10.0.7" />
