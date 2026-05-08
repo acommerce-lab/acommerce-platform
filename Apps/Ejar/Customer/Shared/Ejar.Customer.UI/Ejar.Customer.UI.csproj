@@ -40,6 +40,10 @@
     <ProjectReference Include="..\..\..\..\..\libs\templates\Shared\ACommerce.Templates.Shared\ACommerce.Templates.Shared.csproj" />
     <ProjectReference Include="..\..\..\..\..\libs\templates\Marketplace\ACommerce.Templates.Marketplace\ACommerce.Templates.Marketplace.csproj" />
 
+    <!-- Customer.Ledger: transitional reference — V1 uses atomic badges defined here.
+         Future session: V1 migrates to Customer.Marketplace template; this reference drops. -->
+    <ProjectReference Include="..\..\..\..\..\libs\templates\Customer.Ledger\ACommerce.Templates.Customer.Ledger\ACommerce.Templates.Customer.Ledger.csproj" />
+
     <!-- Chat client -->
     <ProjectReference Include="..\..\..\..\..\libs\kits\Chat\ACommerce.Chat.Client.Blazor\ACommerce.Chat.Client.Blazor.csproj" />
 
