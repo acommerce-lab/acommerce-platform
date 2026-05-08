@@ -3,6 +3,7 @@ using ACommerce.Client.Http;
 using ACommerce.Client.Operations;
 using ACommerce.Client.Operations.Interceptors;
 using ACommerce.Client.StateBridge;
+using ACommerce.ClientHost.Auth;
 using ACommerce.ClientHost.KitApi;
 using ACommerce.Culture.Abstractions;
 using ACommerce.Culture.Defaults;
@@ -11,40 +12,41 @@ using ACommerce.OperationEngine.Core;
 using ACommerce.Subscriptions.Templates.Extensions;
 using ACommerce.Templates.Shared.Models;
 using Ejar.Customer.UI.Interceptors;
-using Ejar.Customer.UI.Interpreters;
-using Ejar.Customer.UI.Operations;
 using Ejar.Customer.UI.Services;
 using Ejar.Customer.UI.Store;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Microsoft.AspNetCore.Components.Authorization;
 
 namespace Ejar.Customer.UI;
 
 /// <summary>
-/// تسجيل DI الموحَّد لكل خدمات عميل إيجار المشتركة. يُستدعى من كل مضيف
-/// (Server / WebAssembly / MAUI) بعد تكوين <see cref="HttpClient"/> المسمّى
-/// "ejar" بالـ BaseAddress الصحيح للبيئة الحالية.
+/// تَسجيل DI الموحَّد لِكلّ خَدَمات قالَب Customer.Marketplace. يُسْتَدعى
+/// مِن المُضيف بَعد تَسجيل <see cref="HttpClient"/> المُسَمّى "ejar".
+///
+/// <para>F57: مَجموعَة Auth انتَقَلَت إلى <c>ClientHost.Auth</c> — لا
+/// EjarAuthenticationStateProvider، لا AuthHeadersHandler، لا EjarCircuitHttp،
+/// لا AuthInterpreter بَعد اليَوم. <c>AuthenticatedHttpClient</c> +
+/// <c>ClientAuthStateProvider</c> + <c>LocalStorageClientAuthPersistence</c>
+/// يَتَوَلَّون كلّ شَيء.</para>
 /// </summary>
 public static class EjarCustomerUiExtensions
 {
-    /// <summary>
-    /// يضيف خدمات الـ UI المشتركة. <strong>المتطلب المسبق</strong>:
-    /// المضيف يسجّل <c>HttpClient</c> مسمّى "ejar" بـ BaseAddress
-    /// مناسب (مثلاً <c>http://localhost:5300</c> للتطوير،
-    /// <c>https://api.ejar.ye</c> للإنتاج). تتعامل المكتبة معه فقط
-    /// عبر <see cref="IHttpClientFactory"/>.
-    /// </summary>
     public static IServiceCollection AddEjarCustomerUI(this IServiceCollection services)
     {
+        // ─── Auth machinery (ClientHost.Auth) ──────────────────────────
+        // مَفتاح localStorage = "ejar.auth" (تَوافُق مَع V1 OLD لِئلّا تَخرُج
+        // الجَلسات الحاليّة). scheme = "EjarAuth".
+        services.AddClientAuth(o =>
+        {
+            o.HttpClientName = "ejar";
+            o.StorageKey     = "ejar.auth";
+            o.Scheme         = "EjarAuth";
+        });
+
         // ─── Store + Translations ──────────────────────────────────────
         services.AddScoped<AppStore>();
         services.AddScoped<AppStorePersistence>();
         services.AddScoped<ITemplateStore>(sp => sp.GetRequiredService<AppStore>());
-        
-        // ─── Authentication ────────────────────────────────────────────
-        services.AddAuthorizationCore();
-        services.AddScoped<AuthenticationStateProvider, EjarAuthenticationStateProvider>();
 
         services.AddSingleton<ITranslationProvider, EmbeddedTranslationProvider>();
         services.AddScoped<L>();
@@ -52,36 +54,28 @@ public static class EjarCustomerUiExtensions
         services.AddScoped<ITimezoneProvider, JsTimezoneProvider>();
         services.AddSingleton<INumeralNormalizer, DefaultNumeralNormalizer>();
 
-        // ─── HTTP interceptors ─────────────────────────────────────────
+        // ─── HTTP interceptors المُتَبَقّية ────────────────────────────
         services.AddScoped<CultureInterceptor>();
         services.AddTransient<CultureHeadersHandler>();
-        services.AddTransient<AuthHeadersHandler>();
-        services.AddScoped<EjarCircuitHttp>();
 
         // ─── Versions Kit (frontend) ───────────────────────────────────
-        // المضيف يجب أن يسجّل AppVersionInfo singleton قبل استدعاء هذه الدالّة
-        // ويضيف AppVersionHeadersHandler على HttpClient "ejar" عبر AddHttpMessageHandler.
         services.AddVersionsTemplates(httpClientName: "ejar");
 
         // ─── Subscriptions Kit (frontend) ─────────────────────────────
-        // SubscriptionState يُحدَّث من التطبيق بعد التحقّق من الاشتراك.
         services.AddSubscriptionsTemplates();
 
-        // ─── OpEngine للعمليات المحلّية ────────────────────────────────
+        // ─── OpEngine للعَمَليّات المَحَلّيّة ──────────────────────────
         services.AddScoped<OpEngine>(sp =>
             new OpEngine(sp, sp.GetRequiredService<ILogger<OpEngine>>()));
 
         // ─── Routes registry + dispatcher + reader ────────────────────
-        // EjarOps.* tags drive client OAM dispatch — kit api clients
-        // own server-side route shapes; client routes are V1-specific
-        // and registered inline below per operation.
         services.AddSingleton(new HttpRouteRegistry());
 
         services.AddScoped<HttpDispatcher>(sp =>
         {
-            var circuit = sp.GetRequiredService<EjarCircuitHttp>();
+            var http = sp.GetRequiredService<AuthenticatedHttpClient>();
             return new HttpDispatcher(
-                circuit.Client,
+                http.Client,
                 sp.GetRequiredService<HttpRouteRegistry>(),
                 sp.GetRequiredService<OpEngine>(),
                 sp.GetRequiredService<ILogger<HttpDispatcher>>());
@@ -90,23 +84,18 @@ public static class EjarCustomerUiExtensions
 
         services.AddScoped<ApiReader>(sp =>
         {
-            var circuit = sp.GetRequiredService<EjarCircuitHttp>();
-            return new ApiReader(circuit.Client, sp.GetRequiredService<CultureInterceptor>());
+            var http = sp.GetRequiredService<AuthenticatedHttpClient>();
+            return new ApiReader(http.Client, sp.GetRequiredService<CultureInterceptor>());
         });
 
         services.AddScoped<FavoritesSync>();
         services.AddScoped<FirebasePushService>();
 
         // ─── KitApi pipeline موحَّد ─────────────────────────────────────
-        // pipeline pre-flight analyzers + around interceptors. التَطبيق
-        // يُضيف ما يُريد عَبر AddAnalyzer/AddInterceptor. لا analyzers
-        // client-side افتراضيّاً — السيرفر يَفرض JWT.
         services.AddKitApiPipeline(sp =>
-            sp.GetRequiredService<EjarCircuitHttp>().Client);
+            sp.GetRequiredService<AuthenticatedHttpClient>().Client);
 
         // ─── kit ApiClients (per-kit shape ownership) ──────────────────
-        // كلّ kit يَستهلك KitHttpClient الموحَّد ⇒ analyzers/interceptors
-        // مُسَجَّلة مرّة واحدة لكلّ الكيتس. لا تَكرار في bindings.
         services.AddScoped<ACommerce.Kits.Auth.Frontend.Customer.Stores.IAuthApiClient,
                           ACommerce.Kits.Auth.Frontend.Customer.Stores.HttpAuthApiClient>();
         services.AddScoped<ACommerce.Kits.Listings.Frontend.Customer.Stores.IListingsApiClient,
@@ -131,37 +120,18 @@ public static class EjarCustomerUiExtensions
                 sp.GetRequiredService<IStateApplier>()));
         services.AddScoped<ITemplateEngine>(sp => sp.GetRequiredService<ClientOpEngine>());
 
-        // ─── State bridge: interpreters ────────────────────────────────
-        // AuthInterpreter يَستهلِك envelope الـ auth ويُحَدِّث AppStore.Auth.
-        // باقي الـ interpreters (Ui...) كانَت dead code.
+        // ─── State bridge: empty registry (AuthInterpreter كان dead في F57) ──
         services.AddScoped<OperationInterpreterRegistry<AppStore>>(sp =>
-        {
-            var registry = new OperationInterpreterRegistry<AppStore>(
-                sp.GetRequiredService<ILogger<OperationInterpreterRegistry<AppStore>>>());
-            registry.Add(new AuthInterpreter());
-            return registry;
-        });
+            new OperationInterpreterRegistry<AppStore>(
+                sp.GetRequiredService<ILogger<OperationInterpreterRegistry<AppStore>>>()));
 
         services.AddScoped<AppStateApplier>();
         services.AddScoped<IStateApplier>(sp => sp.GetRequiredService<AppStateApplier>());
 
         // ─── Realtime + Chat client ────────────────────────────────────
         services.AddScoped<EjarRealtimeService>();
-
-        // عدّاد موحَّد للرسائل + الإشعارات غير المقروءة — يُغذِّي الشارات
-        // الحمراء على Bottom/Top nav. يُحدَّث realtime من EjarRealtimeService
-        // ودوريّاً عبر RefreshAsync من MainLayout.
         services.AddScoped<UnreadService>();
-
-        // VersionPoll يفحص /version.json دورياً ويُعلِم الواجهة بإصدار جديد
-        // مع زرّ تحديث ضمن التطبيق (بدلاً من إجبار auto-reload الذي قد يُربك
-        // المستخدم في وسط مهمّة).
         services.AddScoped<VersionPoll>();
-
-        // EjarChatClient يستخدم EjarCircuitHttp مباشرةً — يضمن أنّ Bearer token
-        // مرفق على /chat/{id}/enter و /conversations/{id}/messages. الكلاس
-        // الأصليّ ChatClient يطلب HttpClient من factory ويعتمد على
-        // AuthHeadersHandler الذي يفقد رؤية AppStore في WASM فيخرج بـ 401.
         services.AddScoped<IChatClient, EjarChatClient>();
 
         return services;

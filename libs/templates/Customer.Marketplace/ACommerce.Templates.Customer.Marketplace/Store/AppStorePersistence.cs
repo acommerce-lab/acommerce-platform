@@ -33,9 +33,8 @@ namespace Ejar.Customer.UI.Store;
 /// </summary>
 public sealed class AppStorePersistence : IAsyncDisposable
 {
-    private const string KeyAuth        = "ejar.auth";
-    // KeyFavorites أُسقط — الخادم هو الحقيقة الوحيدة. كان مفتاح "ejar.favorites"
-    // يُنشئ بقايا (heart مضاء بعد signout، مزامنة فاشلة بين الأجهزة).
+    // KeyAuth = "ejar.auth" — مَنقول إلى LocalStorageClientAuthPersistence
+    // (ClientHost.Auth). هذا المَلَفّ يَحفَظ Ui prefs + recent searches فقط.
     private const string KeyFavoritesLegacy = "ejar.favorites";
     private const string KeyRecent      = "ejar.recent";
     private const string KeyUi          = "ejar.ui";
@@ -75,9 +74,8 @@ public sealed class AppStorePersistence : IAsyncDisposable
         var sawJsInterop = false;
         try
         {
-            await TryRestoreAuth();
-            sawJsInterop = true;
             await PurgeLegacyFavoritesAsync();
+            sawJsInterop = true;
             await TryRestoreRecent();
             await TryRestoreUi();
         }
@@ -110,29 +108,16 @@ public sealed class AppStorePersistence : IAsyncDisposable
         if (_suspendSave || !_restored) return;
         try
         {
-            await SetItem(KeyAuth, new AuthSnapshot(
-                _store.Auth.UserId, _store.Auth.FullName,
-                _store.Auth.Phone,  _store.Auth.AccessToken));
-            // المفضّلات لم تعد تُحفَظ — الخادم هو المصدر، يُحضرها FavoritesSync
-            // بعد كلّ تسجيل دخول و كلّ بدء جلسة.
+            // Auth لَم يَعُد يُحفَظ هُنا — LocalStorageClientAuthPersistence
+            // (مِن ClientHost.Auth) يَحفَظ JWT في "ejar.auth" تَحت IClientAuthState.
             await SetItem(KeyRecent,    _store.RecentSearches.ToArray());
             await SetItem(KeyUi, new UiSnapshot(
                 _store.Ui.Theme, _store.Ui.Culture.Language, _store.Ui.City));
         }
         catch
         {
-            // فشل JSInterop غير قاتل — التغيير في الذاكرة يبقى ساري المفعول.
+            // فَشَل JSInterop غير قاتِل.
         }
-    }
-
-    private async Task TryRestoreAuth()
-    {
-        var s = await GetItem<AuthSnapshot>(KeyAuth);
-        if (s is null) return;
-        _store.Auth.UserId      = s.UserId;
-        _store.Auth.FullName    = s.FullName;
-        _store.Auth.Phone       = s.Phone;
-        _store.Auth.AccessToken = s.AccessToken;
     }
 
     /// <summary>
@@ -182,6 +167,5 @@ public sealed class AppStorePersistence : IAsyncDisposable
     private Task SetItem<T>(string key, T value) =>
         _js.InvokeVoidAsync("localStorage.setItem", key, JsonSerializer.Serialize(value)).AsTask();
 
-    private sealed record AuthSnapshot(Guid? UserId, string? FullName, string? Phone, string? AccessToken);
     private sealed record UiSnapshot(string Theme, string Language, string City);
 }

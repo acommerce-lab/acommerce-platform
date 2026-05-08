@@ -2,7 +2,7 @@
 @using ACommerce.Client.Operations
 @using Ejar.Customer.UI.Operations
 @using Ejar.Customer.UI.Services
-@using Ejar.Customer.UI.Interceptors
+@using ACommerce.ClientHost.Auth
 @using System.Net.Http.Json
 @inject AppStore Store
 @inject AppStateApplier Applier
@@ -10,7 +10,7 @@
 @inject NavigationManager Nav
 @inject ClientOpEngine Engine
 @inject FavoritesSync Favorites
-@inject EjarCircuitHttp Http
+@inject AuthenticatedHttpClient Http
 @inject L L
 @implements IDisposable
 

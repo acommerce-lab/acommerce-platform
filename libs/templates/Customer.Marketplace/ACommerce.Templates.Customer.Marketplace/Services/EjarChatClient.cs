@@ -1,39 +1,31 @@
 using System.Net.Http.Json;
 using ACommerce.Chat.Client.Blazor;
 using ACommerce.Chat.Operations;
-using Ejar.Customer.UI.Interceptors;
+using ACommerce.ClientHost.Auth;
 using Microsoft.Extensions.Logging;
 
 namespace Ejar.Customer.UI.Services;
 
 /// <summary>
-/// عميل دردشة بديل عن <see cref="ChatClient"/> الافتراضيّ. السبب: الافتراضيّ
-/// يطلب <see cref="HttpClient"/> من <see cref="IHttpClientFactory"/> عبر
-/// <c>CreateClient("ejar")</c> فيعتمد على <c>AuthHeadersHandler</c> الموجود
-/// في handler chain. هذا الـ handler يُحقَن من DI scope الخاصّ بـ
-/// <see cref="IHttpClientFactory"/> الذي قد لا يرى الـ <see cref="AppStore"/>
-/// الذي تمّ فيه حفظ الـ JWT بعد تسجيل الدخول. النتيجة: الطلبات بلا Bearer
-/// header → <c>POST /chat/{id}/enter → 401</c> → <c>SendAsync</c> يفشل بـ
-/// "No active conversation. Call EnterAsync first." لأنّ EnterAsync ابتلع
-/// الفشل صامتاً ولم يُحدّث <c>ActiveConversationId</c>.
-///
-/// <para><b>الحلّ هنا:</b> نمرّ عبر <see cref="EjarCircuitHttp.Client"/> الذي
-/// يحفظ التوكن في <c>DefaultRequestHeaders.Authorization</c> مباشرةً (يستمع
-/// لتغييرات <see cref="Store.AppStore.OnChanged"/>). كلّ طلب يخرج بالتوكن
-/// الصحيح بدون الاعتماد على الـ handler chain.</para>
+/// عَميل دَردَشَة بَديل عَن <see cref="ChatClient"/> الافتراضيّ. يَستَهلِك
+/// <see cref="AuthenticatedHttpClient"/> الذي يَحفَظ Bearer JWT في
+/// <c>DefaultRequestHeaders.Authorization</c> مُباشَرَةً (يَستَمِع لـ
+/// <c>IClientAuthState.OnChanged</c>). كلّ طَلَب يَخرُج بِالتَوكِن
+/// الصَحيح بدون الاعتماد عَلى handler chain (الذي يَفقِد الرُؤيَة
+/// في WASM).
 /// </summary>
 public sealed class EjarChatClient : IChatClient
 {
-    private readonly EjarCircuitHttp _circuit;
+    private readonly AuthenticatedHttpClient _http;
     private readonly ILogger<EjarChatClient> _logger;
     private readonly object _lock = new();
 
     public string? ActiveConversationId { get; private set; }
     public event Action<IChatMessage>? MessageReceived;
 
-    public EjarChatClient(EjarCircuitHttp circuit, ILogger<EjarChatClient> logger)
+    public EjarChatClient(AuthenticatedHttpClient http, ILogger<EjarChatClient> logger)
     {
-        _circuit = circuit;
+        _http = http;
         _logger  = logger;
     }
 
@@ -48,7 +40,7 @@ public sealed class EjarChatClient : IChatClient
             await LeaveAsync(ct);
 
         var path = $"/chat/{Uri.EscapeDataString(conversationId)}/enter";
-        var resp = await _circuit.Client.PostAsync(path, content: null, ct);
+        var resp = await _http.Client.PostAsync(path, content: null, ct);
         resp.EnsureSuccessStatusCode();
 
         lock (_lock) { ActiveConversationId = conversationId; }
@@ -64,7 +56,7 @@ public sealed class EjarChatClient : IChatClient
         try
         {
             var path = $"/chat/{Uri.EscapeDataString(convId)}/leave";
-            var resp = await _circuit.Client.PostAsync(path, content: null, ct);
+            var resp = await _http.Client.PostAsync(path, content: null, ct);
             resp.EnsureSuccessStatusCode();
         }
         catch (Exception ex)
@@ -81,7 +73,7 @@ public sealed class EjarChatClient : IChatClient
             throw new InvalidOperationException("No active conversation. Call EnterAsync first.");
 
         var path = $"/conversations/{Uri.EscapeDataString(convId)}/messages";
-        var resp = await _circuit.Client.PostAsJsonAsync(path, new { text = body }, ct);
+        var resp = await _http.Client.PostAsJsonAsync(path, new { text = body }, ct);
         resp.EnsureSuccessStatusCode();
     }
 

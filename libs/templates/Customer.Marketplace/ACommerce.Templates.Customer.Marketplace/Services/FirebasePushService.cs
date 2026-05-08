@@ -1,4 +1,4 @@
-using Ejar.Customer.UI.Interceptors;
+using ACommerce.ClientHost.Auth;
 using Ejar.Customer.UI.Store;
 using Microsoft.Extensions.Logging;
 using Microsoft.JSInterop;
@@ -26,7 +26,7 @@ namespace Ejar.Customer.UI.Services;
 public sealed class FirebasePushService
 {
     private readonly IJSRuntime _js;
-    private readonly EjarCircuitHttp _http;
+    private readonly AuthenticatedHttpClient _http;
     private readonly AppStore _store;
     private readonly ILogger<FirebasePushService> _log;
     private bool _initialized;
@@ -34,7 +34,7 @@ public sealed class FirebasePushService
 
     public FirebasePushService(
         IJSRuntime js,
-        EjarCircuitHttp http,
+        AuthenticatedHttpClient http,
         AppStore store,
         ILogger<FirebasePushService> log)
     {

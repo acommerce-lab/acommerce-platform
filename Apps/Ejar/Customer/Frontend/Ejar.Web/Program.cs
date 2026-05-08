@@ -15,14 +15,16 @@ var apiBase = builder.Configuration["EjarApi:BaseUrl"] ?? "http://localhost:5300
 var appVersion = builder.Configuration["App:Version"] ?? "1.0.0";
 builder.Services.AddSingleton(new AppVersionInfo(Platform: "web", Version: appVersion));
 
+// Bearer header يَأتي مِن AuthenticatedHttpClient (ClientHost.Auth) — لا
+// AuthHeadersHandler. CultureHeadersHandler + AppVersionHeadersHandler يَبقَيان
+// كَ message handlers لأنّهما لا يَحتاجان circuit-scoped state.
 builder.Services.AddHttpClient("ejar", c =>
 {
     c.BaseAddress = new Uri(apiBase);
     c.Timeout = TimeSpan.FromSeconds(30);
 })
 .AddHttpMessageHandler<CultureHeadersHandler>()
-.AddHttpMessageHandler<AppVersionHeadersHandler>()
-.AddHttpMessageHandler<AuthHeadersHandler>();
+.AddHttpMessageHandler<AppVersionHeadersHandler>();
 
 // نُقطة دَخول واحدة لِكامِل قالَب Customer.Marketplace (V1's original UI).
 builder.Services.AddEjarCustomer();
