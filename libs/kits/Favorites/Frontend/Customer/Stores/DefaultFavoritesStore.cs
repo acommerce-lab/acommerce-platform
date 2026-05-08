@@ -1,16 +1,17 @@
+using ACommerce.Client.Operations;
+
 namespace ACommerce.Kits.Favorites.Frontend.Customer.Stores;
 
 /// <summary>
-/// تَنفيذ افتراضيّ لـ <see cref="IFavoritesStore"/> يَدلّع لـ
-/// <see cref="IFavoritesApiClient"/>. التَطبيقات التي تَحتاج
-/// optimistic toggle أو sync بين أجهزة تَكتب Binding خاصّ.
+/// OAM-shaped (F61). favorite.toggle مَوسوم بـ realtime_broadcast فتَحقن
+/// composition Realtime مُعتَرضاً يُعلِم الأَجهزة الأُخرى لِنَفس المُستَخدِم.
 /// </summary>
 public sealed class DefaultFavoritesStore : IFavoritesStore
 {
-    private readonly IFavoritesApiClient _api;
+    private readonly ITemplateEngine _engine;
     private HashSet<string> _ids = new();
 
-    public DefaultFavoritesStore(IFavoritesApiClient api) => _api = api;
+    public DefaultFavoritesStore(ITemplateEngine engine) => _engine = engine;
 
     public IReadOnlyCollection<string> Ids => _ids;
     public bool IsLoading { get; private set; }
@@ -21,19 +22,31 @@ public sealed class DefaultFavoritesStore : IFavoritesStore
         IsLoading = true; Changed?.Invoke();
         try
         {
-            _ids = (await _api.ListAsync(ct)).ToHashSet();
+            var env = await _engine.ExecuteAsync<List<string>>(FavoritesOps.List(), ct: ct);
+            if (env.Operation.Status == "Success" && env.Data is not null)
+                _ids = env.Data.ToHashSet();
         }
         finally { IsLoading = false; Changed?.Invoke(); }
     }
 
     public async Task ToggleAsync(string targetId, CancellationToken ct = default)
     {
-        var res = await _api.ToggleListingAsync(targetId, ct);
-        if (!res.Success) return;
-        if (res.IsFavorited) _ids.Add(targetId);
-        else                  _ids.Remove(targetId);
+        var env = await _engine.ExecuteAsync<ToggleResultDto>(FavoritesOps.Toggle(targetId), ct: ct);
+        if (env.Operation.Status != "Success" || env.Data is null) return;
+        if (env.Data.IsFavorited) _ids.Add(targetId);
+        else                       _ids.Remove(targetId);
         Changed?.Invoke();
     }
 
     public bool IsFavorited(string targetId) => _ids.Contains(targetId);
+
+    /// <summary>مَدخَل realtime: composition تَدفَع تَغيُّراً مِن جِهاز آخَر.</summary>
+    public void IngestRealtimeToggle(string listingId, bool isFavorited)
+    {
+        if (isFavorited) _ids.Add(listingId);
+        else              _ids.Remove(listingId);
+        Changed?.Invoke();
+    }
+
+    private sealed record ToggleResultDto(bool IsFavorited, int Count);
 }

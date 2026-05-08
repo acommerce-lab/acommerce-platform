@@ -1,19 +1,16 @@
+using ACommerce.Client.Operations;
 using ACommerce.Kits.Listings.Domain;
 
 namespace ACommerce.Kits.Listings.Frontend.Customer.Stores;
 
-/// <summary>
-/// تَنفيذ افتراضيّ لـ <see cref="IListingsStore"/> يَدلّع لـ
-/// <see cref="IListingsApiClient"/>. التَطبيقات لا تَحتاج كتابة Binding
-/// إلا لو احتاجت كاش، optimistic update، أو مَصدر بَيانات إضافيّ.
-/// </summary>
+/// <summary>OAM-shaped (F61): DefaultListingsStore يُرسِل قُيود محاسبيّة عَبر ITemplateEngine.</summary>
 public sealed class DefaultListingsStore : IListingsStore
 {
-    private readonly IListingsApiClient _api;
+    private readonly ITemplateEngine _engine;
     private List<IListing> _visible = new();
     private List<IListing> _mine    = new();
 
-    public DefaultListingsStore(IListingsApiClient api) => _api = api;
+    public DefaultListingsStore(ITemplateEngine engine) => _engine = engine;
 
     public IReadOnlyList<IListing> Visible => _visible;
     public IReadOnlyList<IListing> Mine    => _mine;
@@ -27,19 +24,36 @@ public sealed class DefaultListingsStore : IListingsStore
         IsLoading = true; Changed?.Invoke();
         try
         {
-            var page = await _api.SearchAsync(filter, ct);
-            _visible = page.Items.ToList();
+            var env = await _engine.ExecuteAsync<ListingPageDto>(ListingsOps.Search(filter), ct: ct);
+            if (env.Operation.Status == "Success" && env.Data?.Items is { } items)
+                _visible = items.Cast<IListing>().ToList();
         }
         finally { IsLoading = false; Changed?.Invoke(); }
     }
 
-    public Task<IListing?> GetByIdAsync(string id, CancellationToken ct = default) =>
-        _api.GetAsync(id, ct);
+    public async Task<IListing?> GetByIdAsync(string id, CancellationToken ct = default)
+    {
+        var env = await _engine.ExecuteAsync<InMemoryListing>(ListingsOps.GetById(id), ct: ct);
+        return env.Operation.Status == "Success" ? env.Data : null;
+    }
 
     public async Task LoadMineAsync(CancellationToken ct = default)
     {
         IsLoading = true; Changed?.Invoke();
-        try   { _mine = (await _api.ListMineAsync(ct)).ToList(); }
+        try
+        {
+            var env = await _engine.ExecuteAsync<List<InMemoryListing>>(ListingsOps.ListMine(), ct: ct);
+            if (env.Operation.Status == "Success" && env.Data is not null)
+                _mine = env.Data.Cast<IListing>().ToList();
+        }
         finally { IsLoading = false; Changed?.Invoke(); }
+    }
+
+    private sealed class ListingPageDto
+    {
+        public List<InMemoryListing>? Items { get; set; }
+        public int Total { get; set; }
+        public int Page { get; set; }
+        public int PageSize { get; set; }
     }
 }

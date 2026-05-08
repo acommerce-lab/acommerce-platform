@@ -1,15 +1,13 @@
+using ACommerce.Client.Operations;
 using ACommerce.Kits.Profiles.Operations;
 
 namespace ACommerce.Kits.Profiles.Frontend.Customer.Stores;
 
-/// <summary>
-/// تَنفيذ افتراضيّ لـ <see cref="IProfileStore"/> يَدلّع لـ
-/// <see cref="IProfileApiClient"/>.
-/// </summary>
+/// <summary>OAM-shaped (F61) — profile.get_mine / profile.update عَبر ITemplateEngine.</summary>
 public sealed class DefaultProfileStore : IProfileStore
 {
-    private readonly IProfileApiClient _api;
-    public DefaultProfileStore(IProfileApiClient api) => _api = api;
+    private readonly ITemplateEngine _engine;
+    public DefaultProfileStore(ITemplateEngine engine) => _engine = engine;
 
     public IUserProfile? Current { get; private set; }
     public bool IsLoading { get; private set; }
@@ -20,16 +18,19 @@ public sealed class DefaultProfileStore : IProfileStore
         IsLoading = true; Changed?.Invoke();
         try
         {
-            var p = await _api.GetMineAsync(ct);
-            if (p is not null) Current = p;
+            var env = await _engine.ExecuteAsync<InMemoryUserProfile>(ProfilesOps.GetMine(), ct: ct);
+            if (env.Operation.Status == "Success" && env.Data is not null)
+                Current = env.Data;
         }
         finally { IsLoading = false; Changed?.Invoke(); }
     }
 
     public async Task UpdateAsync(IUserProfile next, CancellationToken ct = default)
     {
-        var p = await _api.UpdateAsync(next, ct);
-        if (p is not null) Current = p;
+        var env = await _engine.ExecuteAsync<InMemoryUserProfile>(
+            ProfilesOps.Update(), payload: next, ct: ct);
+        if (env.Operation.Status == "Success" && env.Data is not null)
+            Current = env.Data;
         Changed?.Invoke();
     }
 }

@@ -1,22 +1,24 @@
+using ACommerce.Client.Operations;
 using ACommerce.ClientHost.Auth;
 
 namespace ACommerce.Kits.Auth.Frontend.Customer.Stores;
 
 /// <summary>
-/// تَنفيذ افتراضيّ لـ <see cref="IAuthStore"/> يُحَوِّل المَطلَب لـ
-/// <see cref="IAuthApiClient"/> ويُحَدِّث <see cref="IClientAuthState"/>
-/// المُسَجَّل في الـ ClientHost. التَطبيقات لا تَحتاج كتابة Binding خاصّ
-/// إلا لو احتاجت سُلوكاً مُختلفاً (multi-tenant، MFA، …).
+/// تَنفيذ افتراضيّ لـ <see cref="IAuthStore"/> — OAM-shaped (F61).
+/// كلّ سُلوك يُمَثَّل بِقَيد محاسبيّ يُرسَل عَبر <see cref="ITemplateEngine"/>.
+/// مَكاسِب OAM: compositions تَحقن مُعتَرضات (telemetry، captcha، rate-limit،
+/// MFA prompt) عَلى op type بدون لَمس الـ store. الـ envelope يُحَدِّث
+/// <see cref="IClientAuthState"/> داخِليّاً عِند نَجاح verify.
 /// </summary>
 public sealed class DefaultAuthStore : IAuthStore, IDisposable
 {
+    private readonly ITemplateEngine _engine;
     private readonly IClientAuthState _state;
-    private readonly IAuthApiClient _api;
 
-    public DefaultAuthStore(IClientAuthState state, IAuthApiClient api)
+    public DefaultAuthStore(ITemplateEngine engine, IClientAuthState state)
     {
+        _engine = engine;
         _state = state;
-        _api = api;
         _state.OnChanged += FireChanged;
     }
 
@@ -32,8 +34,12 @@ public sealed class DefaultAuthStore : IAuthStore, IDisposable
         IsBusy = true; LastError = null; FireChanged();
         try
         {
-            var r = await _api.RequestOtpAsync(phone, ct);
-            if (!r.Success) LastError = r.Error ?? "otp_request_failed";
+            var env = await _engine.ExecuteAsync<OtpRequestDto>(
+                AuthOps.RequestOtp(phone),
+                payload: new { phone },
+                ct: ct);
+            if (env.Operation.Status != "Success")
+                LastError = env.Error?.Message ?? "otp_request_failed";
         }
         finally { IsBusy = false; FireChanged(); }
     }
@@ -43,17 +49,21 @@ public sealed class DefaultAuthStore : IAuthStore, IDisposable
         IsBusy = true; LastError = null; FireChanged();
         try
         {
-            var r = await _api.VerifyOtpAsync(phone, code, ct);
-            if (!r.Success || string.IsNullOrEmpty(r.Token) || string.IsNullOrEmpty(r.UserId))
+            var env = await _engine.ExecuteAsync<AuthVerifyDto>(
+                AuthOps.VerifyOtp(phone, code),
+                payload: new { phone, code },
+                ct: ct);
+            if (env.Operation.Status != "Success" || env.Data is null
+                || string.IsNullOrEmpty(env.Data.Token) || string.IsNullOrEmpty(env.Data.UserId))
             {
-                LastError = r.Error ?? "otp_verify_failed";
+                LastError = env.Error?.Message ?? "otp_verify_failed";
                 return;
             }
-            _state.UserId      = ParseUserGuid(r.UserId!);
-            _state.FullName    = r.FullName ?? "—";
+            _state.UserId      = ParseUserGuid(env.Data.UserId!);
+            _state.FullName    = env.Data.Name ?? "—";
             _state.Phone       = phone;
-            _state.AccessToken = r.Token!;
-            _state.Role        = r.Role;
+            _state.AccessToken = env.Data.Token!;
+            _state.Role        = env.Data.Role;
             _state.NotifyChanged();
         }
         finally { IsBusy = false; FireChanged(); }
@@ -64,7 +74,7 @@ public sealed class DefaultAuthStore : IAuthStore, IDisposable
         IsBusy = true; FireChanged();
         try
         {
-            try { await _api.LogoutAsync(ct); } catch { }
+            try { await _engine.ExecuteAsync<object>(AuthOps.SignOut(), ct: ct); } catch { }
             _state.UserId      = null;
             _state.FullName    = null;
             _state.Phone       = null;
@@ -87,4 +97,7 @@ public sealed class DefaultAuthStore : IAuthStore, IDisposable
 
     private void FireChanged() => Changed?.Invoke();
     public void Dispose() => _state.OnChanged -= FireChanged;
+
+    private sealed record OtpRequestDto(string? Masked, int? ExpiresInSeconds);
+    private sealed record AuthVerifyDto(string? Token, string? UserId, string? Name, string? Phone, string? Role);
 }

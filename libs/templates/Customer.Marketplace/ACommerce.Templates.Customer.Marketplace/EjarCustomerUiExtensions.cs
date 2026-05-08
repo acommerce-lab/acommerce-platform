@@ -5,10 +5,19 @@ using ACommerce.Client.Operations.Interceptors;
 using ACommerce.Client.StateBridge;
 using ACommerce.ClientHost.Auth;
 using ACommerce.ClientHost.KitApi;
+using ACommerce.ClientHost.Operations;
 using ACommerce.Compositions.Customer.Unread;
 using ACommerce.Culture.Abstractions;
 using ACommerce.Culture.Defaults;
 using ACommerce.Culture.Interceptors;
+using ACommerce.Kits.Auth.Frontend.Customer.Stores;
+using ACommerce.Kits.Chat.Frontend.Customer.Stores;
+using ACommerce.Kits.Favorites.Frontend.Customer.Stores;
+using ACommerce.Kits.Listings.Frontend.Customer.Stores;
+using ACommerce.Kits.Notifications.Frontend.Customer.Stores;
+using ACommerce.Kits.Profiles.Frontend.Customer.Stores;
+using ACommerce.Kits.Subscriptions.Frontend.Customer.Stores;
+using ACommerce.Kits.Support.Frontend.Customer.Stores;
 using ACommerce.Kits.Versions.Templates;
 using ACommerce.L10n.Blazor;
 using ACommerce.OperationEngine.Core;
@@ -74,24 +83,22 @@ public static class EjarCustomerUiExtensions
         // ─── Subscriptions Kit (frontend) ─────────────────────────────
         services.AddSubscriptionsTemplates();
 
-        // ─── OpEngine ──────────────────────────────────────────────────
-        services.AddScoped<OpEngine>(sp =>
-            new OpEngine(sp, sp.GetRequiredService<ILogger<OpEngine>>()));
+        // ─── OAM client engine + 8 kit routes ──────────────────────────
+        // ClientHost.Operations يَحقن: OpEngine + HttpRouteRegistry (factory)
+        // + HttpDispatcher + ClientOpEngine + ITemplateEngine. كلّ kit
+        // يُسَجِّل IRoutesRegistrar فتُجمَع في الـ registry تلقائيّاً.
+        services.AddClientOpEngine();
+        services.AddAuthRoutes();
+        services.AddListingsRoutes();
+        services.AddChatRoutes();
+        services.AddNotificationsRoutes();
+        services.AddProfilesRoutes();
+        services.AddSubscriptionsRoutes();
+        services.AddSupportRoutes();
+        services.AddFavoritesRoutes();
 
-        // ─── Routes registry + dispatcher + reader ────────────────────
-        services.AddSingleton(new HttpRouteRegistry());
-
-        services.AddScoped<HttpDispatcher>(sp =>
-        {
-            var http = sp.GetRequiredService<AuthenticatedHttpClient>();
-            return new HttpDispatcher(
-                http.Client,
-                sp.GetRequiredService<HttpRouteRegistry>(),
-                sp.GetRequiredService<OpEngine>(),
-                sp.GetRequiredService<ILogger<HttpDispatcher>>());
-        });
-        services.AddScoped<IOperationDispatcher>(sp => sp.GetRequiredService<HttpDispatcher>());
-
+        // ApiReader (V1 legacy) — pages تَستَهلِكه مُباشَرة لِنِداءات
+        // غير-OAM (cities، amenities، complaints…).
         services.AddScoped<ApiReader>(sp =>
         {
             var http = sp.GetRequiredService<AuthenticatedHttpClient>();

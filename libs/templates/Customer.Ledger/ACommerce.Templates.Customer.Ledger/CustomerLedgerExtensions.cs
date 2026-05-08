@@ -1,6 +1,7 @@
 using ACommerce.ClientHost;
 using ACommerce.ClientHost.Auth;
 using ACommerce.ClientHost.KitApi;
+using ACommerce.ClientHost.Operations;
 using ACommerce.ClientHost.Pages;
 using ACommerce.Kits.Auth.Frontend.Customer;
 using ACommerce.Kits.Auth.Frontend.Customer.Stores;
@@ -57,7 +58,20 @@ public static class CustomerLedgerExtensions
             });
         }
 
-        // ─── KitApi pipeline + kit api clients ───────────────────────────
+        // ─── OAM client engine + kit routes ─────────────────────────────
+        // كلّ Default<Kit>Store يَستَهلِك ITemplateEngine + يَدفَع قُيود
+        // محاسبيّة. compositions تَحقن مُعتَرضات بدون لَمس الكيتس.
+        services.AddClientOpEngine();
+        services.AddAuthRoutes();
+        services.AddListingsRoutes();
+        services.AddChatRoutes();
+        services.AddNotificationsRoutes();
+        services.AddProfilesRoutes();
+        services.AddSubscriptionsRoutes();
+        services.AddSupportRoutes();
+        services.AddFavoritesRoutes();
+
+        // ─── KitApi pipeline + ApiClients (legacy backwards-compat path) ─
         services.AddKitApiPipeline(sp => sp.GetRequiredService<AuthenticatedHttpClient>().Client);
         services.AddScoped<IAuthApiClient,          HttpAuthApiClient>();
         services.AddScoped<IListingsApiClient,      HttpListingsApiClient>();
