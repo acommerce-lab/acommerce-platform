@@ -1,42 +1,30 @@
 @*
-  مضيف Blazor Server لعميل إيجار. كل المكوّنات والصفحات تأتي من
-  Ejar.Customer.UI — هذا الملف يضع فقط HTML الخارجي + CSS/JS الخاصة
-  بالاستضافة على الويب + يحدّد @rendermode="InteractiveServer".
-
-  للنسخة WebAssembly (PWA) و MAUI Hybrid: لكلٍّ App.razor خاصّ به بنفس
-  هذا الشكل لكن بـ rendermode مختلف وسكربتات إقلاع مختلفة.
+    App.razor — root SSR component، LOCAL في Ejar.Web (نَفس بَنيَة V2's App.razor).
+    Razor SDK يَحتاج رؤية Razor components داخل host project لِيُسَجِّل
+    _framework/blazor.web.js في static asset manifest.
 *@
 @using Ejar.Customer.UI.Components
+
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
-
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <base href="/" />
-
+    <title>إيجار</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" />
-
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" />
     <link rel="stylesheet" href="_content/ACommerce.Widgets/widgets.css" />
     <link rel="stylesheet" href="_content/ACommerce.Templates.Shared/templates-shared.css" />
-    <link rel="stylesheet" href="_content/ACommerce.Templates.Marketplace/templates-marketplace.css" />
-    <link rel="stylesheet" href="_content/Ejar.Customer.UI/app.css" />
-
+    <link rel="stylesheet" href="_content/ACommerce.Templates.OAM/oam-fingerprint.css" />
+    <!-- branding.css آخر CSS ⇒ override كَلاسات Marketplace + Ledger
+         بِلَوحة V1. هذا هو الفَرق الوَحيد البَصَريّ بَين V1 و V2. -->
+    <link rel="stylesheet" href="branding.css" />
     <HeadOutlet />
 </head>
-
 <body>
     <Routes @rendermode="InteractiveServer" />
     <script src="_framework/blazor.web.js"></script>
-    <script src="_content/Ejar.Customer.UI/ui-prefs.js"></script>
-    <script src="_content/Ejar.Customer.UI/image-compressor.js"></script>
-    <script src="_content/Ejar.Customer.UI/notifications.js"></script>
-    <script src="_content/Ejar.Customer.UI/js/firebase-push.js" type="module"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.7/signalr.min.js"
-            integrity="sha512-7SRCYIJtR6F8ocwW7UxW6wGKqbSyqREDbfCORCbGLatU0iugBLwyOXpzhkPyHIFdBO0K2VCu57fvP2Twgx1o2A=="
-            crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 </body>
-
 </html>

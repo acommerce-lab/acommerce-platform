@@ -1,0 +1,58 @@
+@*
+    EjarDashboardWidget — لَوحَة V1. تَستَهلِك نَفس OAM atoms مِثل V2،
+    تَخَلَّفَت فقط بـ branding.css. البَيانات توضيحيّة (sample) — pass
+    لاحِق يُغَذّيها مِن Stores.
+*@
+
+<section class="mp-shell ejar-page-intro">
+    <h1>لوحة المعلومات</h1>
+    <p>ملخَّص حسابك على نَمَط القيد المحاسبيّ.</p>
+</section>
+
+<header class="ejar-section-head">
+    <h2 class="ejar-section-title">حسابي</h2>
+</header>
+
+<OamTAccount Title="ملخّص النَشاط"
+             Subtitle="user:current"
+             LeftHeader="مدين"
+             RightHeader="دائن"
+             Left="@_debitsList"
+             Right="@_creditsList"
+             Balanced="true" />
+
+<header class="ejar-section-head">
+    <h2 class="ejar-section-title">شارات</h2>
+</header>
+
+<a href="/chat" class="ejar-card">
+    <div>
+        <div class="ejar-card-title">المحادثات</div>
+        <div class="ejar-card-meta">رسائل غير مقروءة</div>
+    </div>
+    <AcChatUnreadBadgeWidget AriaLabel="رسائل غير مقروءة" />
+</a>
+
+<a href="/notifications" class="ejar-card">
+    <div>
+        <div class="ejar-card-title">الإشعارات</div>
+        <div class="ejar-card-meta">إشعارات غير مقروءة</div>
+    </div>
+    <AcNotificationsUnreadBadgeWidget AriaLabel="إشعارات غير مقروءة" />
+</a>
+
+@code {
+    private static readonly OamTAccountLine[] _debitsList =
+    {
+        new("إعلانات نَشَرتها", "3"),
+        new("رسائل أرسلتها",     "142"),
+        new("مفضّلات أضَفتَها",   "12"),
+    };
+
+    private static readonly OamTAccountLine[] _creditsList =
+    {
+        new("عقارات شُوهدت",   "47"),
+        new("إشعارات قُرِئت",   "23"),
+        new("اشتراكات",        "1"),
+    };
+}
