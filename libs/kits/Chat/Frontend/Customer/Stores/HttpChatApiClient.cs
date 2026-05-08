@@ -18,10 +18,14 @@ public sealed class HttpChatApiClient : IChatApiClient
 
     public async Task<IReadOnlyList<IChatMessage>> ListMessagesAsync(string conversationId, CancellationToken ct = default)
     {
-        var res = await _http.GetAsync<List<ChatMessageDto>>(Kit,
-            $"/conversations/{Uri.EscapeDataString(conversationId)}/messages", ct);
-        return res.Success && res.Data is not null
-            ? res.Data.Cast<IChatMessage>().ToList()
+        // ChatController يُرجع رسائل المحادثة ضِمن GET /conversations/{id}
+        // كحقل data.messages (مع data.conversation). لا يَوجد endpoint
+        // مُنفصل /conversations/{id}/messages على الخادم — كان طلب
+        // الـ kit الأصليّ يَفشل بـ 404 ⇒ "لا رسائل" دائماً.
+        var res = await _http.GetAsync<ConversationDetailsDto>(Kit,
+            $"/conversations/{Uri.EscapeDataString(conversationId)}", ct);
+        return res.Success && res.Data?.Messages is { } msgs
+            ? msgs.Cast<IChatMessage>().ToList()
             : Array.Empty<IChatMessage>();
     }
 
@@ -29,6 +33,13 @@ public sealed class HttpChatApiClient : IChatApiClient
     {
         var res = await _http.PostAsync<object>(Kit, $"/chat/{Uri.EscapeDataString(conversationId)}/enter", null, ct);
         return res.Success;
+    }
+
+    /// <summary>Wire shape لـ <c>GET /conversations/{id}</c>.</summary>
+    private sealed class ConversationDetailsDto
+    {
+        public object? Conversation { get; set; }
+        public List<ChatMessageDto>? Messages { get; set; }
     }
 
     /// <summary>DTO يُحقّق <see cref="IChatMessage"/> مباشرة (Law 6).</summary>
