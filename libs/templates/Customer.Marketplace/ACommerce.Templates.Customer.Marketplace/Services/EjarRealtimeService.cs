@@ -1,5 +1,8 @@
 using ACommerce.Chat.Client.Blazor;
 using ACommerce.Chat.Operations;
+using ACommerce.Compositions.Customer.Chat.Realtime;
+using ACommerce.Compositions.Customer.Notifications.Realtime;
+using ACommerce.Kits.Notifications.Frontend.Customer.Stores;
 using Ejar.Customer.UI.Store;
 using Microsoft.JSInterop;
 using System.Text.Json;
@@ -22,6 +25,9 @@ public sealed class EjarRealtimeService : IAsyncDisposable
     private readonly IJSRuntime _js;
     private readonly AppStore _store;
     private readonly IChatClient _chat;
+    // F63: ingestors يَدفَعون الأَحداث الواردة لِكيت Stores عَبر compositions
+    private readonly ChatRealtimeIngestor _chatIngestor;
+    private readonly NotificationsRealtimeIngestor _notifIngestor;
     private IJSObjectReference? _module;
     private DotNetObjectReference<EjarRealtimeService>? _self;
     private bool _connected;
@@ -36,11 +42,18 @@ public sealed class EjarRealtimeService : IAsyncDisposable
     /// </summary>
     public bool IsConnected => _connected;
 
-    public EjarRealtimeService(IJSRuntime js, AppStore store, IChatClient chat)
+    public EjarRealtimeService(
+        IJSRuntime js,
+        AppStore store,
+        IChatClient chat,
+        ChatRealtimeIngestor chatIngestor,
+        NotificationsRealtimeIngestor notifIngestor)
     {
         _js    = js;
         _store = store;
         _chat  = chat;
+        _chatIngestor  = chatIngestor;
+        _notifIngestor = notifIngestor;
         _store.OnChanged += OnAuthChanged;
     }
 
@@ -70,7 +83,20 @@ public sealed class EjarRealtimeService : IAsyncDisposable
     [JSInvokable] public void OnConnected()    => _connected = true;
     [JSInvokable] public void OnReconnected()  => _connected = true;
     [JSInvokable] public void OnMessage(string json)      => MessageReceived?.Invoke(json);
-    [JSInvokable] public void OnNotification(string json) => NotificationReceived?.Invoke(json);
+    [JSInvokable] public void OnNotification(string json)
+    {
+        NotificationReceived?.Invoke(json);
+        // F63: ingestor يَدفَع الإشعار إلى DefaultNotificationsStore فيَزيد
+        // UnreadComposition.NotifUnread + يَنبَعِث IChatStore.Changed event
+        // فتُحَدَّث الشارات في كلّ صَفحَة مُسْتَهلِكة.
+        try
+        {
+            var item = JsonSerializer.Deserialize<NotificationItem>(json,
+                new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            if (item is not null) _notifIngestor.OnNotificationReceived(item);
+        }
+        catch { /* غير قاتِل — V1 path يَستَمِرّ */ }
+    }
 
     /// <summary>Bridges chat.message payloads to the chat client.</summary>
     [JSInvokable]
@@ -82,6 +108,9 @@ public sealed class EjarRealtimeService : IAsyncDisposable
                 new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
             if (msg is null) return;
             _chat.OnRealtimeMessage(msg);
+            // F63: ingestor يَدفَع الرَسالَة لِـ DefaultChatStore فتَتَحَدَّث
+            // الحالة لِكلّ مُستَهلِك (UnreadComposition، صَفحات IChatStore-aware).
+            _chatIngestor.OnMessageReceived(msg);
 
             // إذا المستخدم خارج المحادثة المعنيّة (في صفحة أخرى أو محادثة
             // أخرى)، أظهر toast إشعار نظام التشغيل + نغمة تنبيه. هذه هي

@@ -6,6 +6,7 @@ using ACommerce.Client.StateBridge;
 using ACommerce.ClientHost.Auth;
 using ACommerce.ClientHost.KitApi;
 using ACommerce.ClientHost.Operations;
+using ACommerce.Compositions.Customer.Chat.Realtime;
 using ACommerce.Compositions.Customer.Favorites.Realtime;
 using ACommerce.Compositions.Customer.Notifications.Realtime;
 using ACommerce.Compositions.Customer.Unread;
@@ -133,12 +134,28 @@ public static class EjarCustomerUiExtensions
         services.AddScoped<ACommerce.Kits.Favorites.Frontend.Customer.Stores.IFavoritesApiClient,
                           ACommerce.Kits.Favorites.Frontend.Customer.Stores.HttpFavoritesApiClient>();
 
-        services.AddScoped<ClientOpEngine>(sp =>
-            new ClientOpEngine(
-                sp.GetRequiredService<IOperationDispatcher>(),
-                sp.GetRequiredService<ILogger<ClientOpEngine>>(),
-                sp.GetRequiredService<IStateApplier>()));
-        services.AddScoped<ITemplateEngine>(sp => sp.GetRequiredService<ClientOpEngine>());
+        // ─── kit IXxxStore bindings (Default<Kit>Stores OAM-driven) ────
+        // F63: تَطبيق إيجار V1 يُسَجِّل الكيتس Stores رَسميّاً ⇒
+        // compositions تَستَقبِلها (UnreadComposition، Realtime ingestors).
+        services.AddScoped<ACommerce.Kits.Auth.Frontend.Customer.Stores.IAuthStore,
+                          ACommerce.Kits.Auth.Frontend.Customer.Stores.DefaultAuthStore>();
+        services.AddScoped<ACommerce.Kits.Listings.Frontend.Customer.Stores.IListingsStore,
+                          ACommerce.Kits.Listings.Frontend.Customer.Stores.DefaultListingsStore>();
+        services.AddScoped<ACommerce.Kits.Chat.Frontend.Customer.Stores.IChatStore,
+                          ACommerce.Kits.Chat.Frontend.Customer.Stores.DefaultChatStore>();
+        services.AddScoped<ACommerce.Kits.Notifications.Frontend.Customer.Stores.INotificationsStore,
+                          ACommerce.Kits.Notifications.Frontend.Customer.Stores.DefaultNotificationsStore>();
+        services.AddScoped<ACommerce.Kits.Profiles.Frontend.Customer.Stores.IProfileStore,
+                          ACommerce.Kits.Profiles.Frontend.Customer.Stores.DefaultProfileStore>();
+        services.AddScoped<ACommerce.Kits.Subscriptions.Frontend.Customer.Stores.ISubscriptionsStore,
+                          ACommerce.Kits.Subscriptions.Frontend.Customer.Stores.DefaultSubscriptionsStore>();
+        services.AddScoped<ACommerce.Kits.Support.Frontend.Customer.Stores.ISupportStore,
+                          ACommerce.Kits.Support.Frontend.Customer.Stores.DefaultSupportStore>();
+        services.AddScoped<ACommerce.Kits.Favorites.Frontend.Customer.Stores.IFavoritesStore,
+                          ACommerce.Kits.Favorites.Frontend.Customer.Stores.DefaultFavoritesStore>();
+
+        // ClientOpEngine + AppStateApplier already registered by AddClientOpEngine
+        // above — duplicate manual registrations removed.
 
         // ─── State bridge: empty interpreter registry ─────────────────
         services.AddScoped<OperationInterpreterRegistry<AppStore>>(sp =>
@@ -153,8 +170,11 @@ public static class EjarCustomerUiExtensions
         services.AddScoped<UnreadService>();
         services.AddScoped<IChatClient, EjarChatClient>();
 
-        // ─── Compositions (cross-kit + realtime) ───────────────────────
+        // ─── Compositions (cross-kit + realtime ingestors) ─────────────
+        // V1's سيرفَر يَبُثّ عَبر SignalR Hub ⇒ لا حاجَة broadcaster client-side،
+        // فَقَط ingestors تَستَقبِل الأَحداث الواردة وتَدفَعها لِكيت Stores.
         services.AddCustomerUnreadComposition();
+        services.AddChatRealtimeIngestor();
         services.AddNotificationsRealtimeComposition();
         services.AddFavoritesRealtimeComposition();
 
