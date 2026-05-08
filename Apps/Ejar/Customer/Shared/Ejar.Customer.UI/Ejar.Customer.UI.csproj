@@ -8,20 +8,72 @@
     <PackageId>Ejar.Customer.UI</PackageId>
     <Version>1.0.0</Version>
     <Description>
-      مكتبة V1 الخاصّة بـ إيجار: صفحات @page (Login, Favorites, Explore...),
-      MainLayout V1، ClientHost wiring لـ V1. كلّ الخَدَمات المُشتَرَكة في
-      Ejar.Customer.Shared (مُستقلّة، يَستوردها V2 أيضاً).
+      المكتبة المشتركة لعميل إيجار. تحتوي كل صفحات الـ Razor، AppStore،
+      عمليات الـ OAM، الـ Interpreters، خدمات HTTP/Realtime/Chat. لا
+      تعتمد على بيئة استضافة معيّنة — تشغّلها قشرة Blazor Server (Ejar.Web)،
+      Blazor WebAssembly (Ejar.WebAssembly)، أو MAUI Hybrid (Ejar.Maui).
     </Description>
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- المكتبة المُشتَرَكة — كلّ AppStore/Bindings/Services/Interceptors هناك -->
-    <ProjectReference Include="..\Ejar.Customer.Shared\Ejar.Customer.Shared.csproj" />
+    <!-- Domain (entities + seed contracts) -->
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Versions\ACommerce.Kits.Versions.Client\ACommerce.Kits.Versions.Client.csproj" />
+    <ProjectReference Include="..\..\..\Domain\Ejar.Domain.csproj" />
   </ItemGroup>
 
   <ItemGroup>
+    <!-- OperationEngine core + Wire -->
+    <ProjectReference Include="..\..\..\..\..\libs\core\OperationEngine\ACommerce.OperationEngine\ACommerce.OperationEngine.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\core\OperationEngine\ACommerce.OperationEngine.Wire\ACommerce.OperationEngine.Wire.csproj" />
+
+    <!-- Client libraries: dispatcher + state bridge + interceptors -->
+    <ProjectReference Include="..\..\..\..\..\clients\ACommerce.Client.Operations\ACommerce.Client.Operations.csproj" />
+    <ProjectReference Include="..\..\..\..\..\clients\ACommerce.Client.Http\ACommerce.Client.Http.csproj" />
+    <ProjectReference Include="..\..\..\..\..\clients\ACommerce.Client.StateBridge\ACommerce.Client.StateBridge.csproj" />
+
+    <!-- Culture: numeral + phone normalization -->
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Culture\ACommerce.Culture.Abstractions\ACommerce.Culture.Abstractions.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Culture\ACommerce.Culture.Defaults\ACommerce.Culture.Defaults.csproj" />
+
+    <!-- Widgets + Marketplace templates -->
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Widgets\ACommerce.Widgets\ACommerce.Widgets.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\templates\Shared\ACommerce.Templates.Shared\ACommerce.Templates.Shared.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\templates\Marketplace\ACommerce.Templates.Marketplace\ACommerce.Templates.Marketplace.csproj" />
+
+    <!-- Chat client -->
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Chat\ACommerce.Chat.Client.Blazor\ACommerce.Chat.Client.Blazor.csproj" />
+
+    <!-- Versions Kit (templates + operations) -->
+
+    <!-- Auth Templates (AcAuthGate + AcLoginPage) -->
+
+    <!-- Subscriptions Templates (AcSubscriptionGate + SubscriptionState) -->
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Subscriptions\ACommerce.Subscriptions.Templates\ACommerce.Subscriptions.Templates.csproj" />
+
+    <!-- F1: ClientHost (fluent client-side host) -->
+    <ProjectReference Include="..\..\..\..\..\libs\host-client\ACommerce.ClientHost\ACommerce.ClientHost.csproj" />
+
+    <!-- F2+F3: per-kit Frontend.Customer projects (pages + IXxxStore + PageBundles) -->
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Listings\Frontend\Customer\ACommerce.Kits.Listings.Frontend.Customer.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Chat\Frontend\Customer\ACommerce.Kits.Chat.Frontend.Customer.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Notifications\Frontend\Customer\ACommerce.Kits.Notifications.Frontend.Customer.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Profiles\Frontend\Customer\ACommerce.Kits.Profiles.Frontend.Customer.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Auth\Frontend\Customer\ACommerce.Kits.Auth.Frontend.Customer.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Subscriptions\Frontend\Customer\ACommerce.Kits.Subscriptions.Frontend.Customer.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Support\Frontend\Customer\ACommerce.Kits.Support.Frontend.Customer.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Favorites\Frontend\Customer\ACommerce.Kits.Favorites.Frontend.Customer.csproj" />
+
+    <!-- Listings Operations (for IListing interface used by EjarListingsStore) -->
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Listings\ACommerce.Kits.Listings.Operations\ACommerce.Kits.Listings.Operations.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Embedded translations live as .resx in Resources/ -->
     <PackageReference Include="Microsoft.AspNetCore.Components.Authorization" Version="10.0.7" />
     <PackageReference Include="Microsoft.AspNetCore.Authorization" Version="10.0.7" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.7" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.7" />
+    <PackageReference Include="Microsoft.Extensions.Options" Version="10.0.7" />
+    <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.7" />
   </ItemGroup>
 </Project>

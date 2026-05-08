@@ -1,7 +1,8 @@
-using ACommerce.Kits.Versions.Templates;        // AppVersionInfo + AppVersionHeadersHandler
-using Ejar.Customer.UI.Interceptors;            // CultureHeadersHandler + AuthHeadersHandler (Shared assembly، نفس namespace القديم)
-using Ejar.Customer.UI.V2.ClientHost;           // AddEjarCustomerV2
-using App = Ejar.Web.V2.Components.App;
+using ACommerce.Kits.Versions.Templates;
+using Ejar.Customer.UI;                        // V1 services + AppVersionInfo
+using Ejar.Customer.UI.Interceptors;
+using Ejar.Customer.UI.V2.ClientHost;          // V2 host
+using App = Ejar.Web.V2.Components.App;        // App محليّ في host (Razor SDK يَتَطلَّب ذلك لـ /_framework/* manifest)
 
 var builder = WebApplication.CreateBuilder(args);
 

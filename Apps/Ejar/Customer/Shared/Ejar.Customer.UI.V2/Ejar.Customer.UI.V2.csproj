@@ -8,9 +8,11 @@
     <PackageId>Ejar.Customer.UI.V2</PackageId>
     <Version>2.0.0</Version>
     <Description>
-      مكتبة V2 الـ kit-based لِعميل إيجار. صفحاتها thin wrappers على kit
-      widgets. تَستهلك Ejar.Customer.Shared للخَدَمات (AppStore، Bindings،
-      EjarCircuitHttp، …) — لا اعتماد على V1 (Ejar.Customer.UI).
+      ا لنسخة V2 الـ kit-based لمكتبة عميل إيجار. لا صفحات بمنطق
+      نطاقيّ — كلّ الصفحات thin wrappers (@page + widget من kit
+      مناسب). الـ MainLayout يَستهلك kit widgets للشارات (chat unread،
+      notifications unread). تَستعمل نفس Bindings + AppStore +
+      الخدمات من Ejar.Customer.UI (V1) عبر ProjectReference.
     </Description>
     <RazorLangVersion>latest</RazorLangVersion>
   </PropertyGroup>
@@ -18,9 +20,9 @@
     <SupportedPlatform Include="browser" />
   </ItemGroup>
   <ItemGroup>
-    <!-- المكتبة المُشتَرَكة: AppStore + Bindings + Services + Interceptors +
-         KitApi pipeline + EjarRoutes registry. لا اعتماد على V1. -->
-    <ProjectReference Include="..\Ejar.Customer.Shared\Ejar.Customer.Shared.csproj" />
+    <!-- V1 يَملك الخدمات (AppStore، EjarChatClient، ApiReader، …) +
+         Bindings (EjarXxxStore). V2 يَستهلكها كما هي — لا تَكرار. -->
+    <ProjectReference Include="..\Ejar.Customer.UI\Ejar.Customer.UI.csproj" />
 
     <!-- OAM design fingerprint (Ledger Theme) -->
     <ProjectReference Include="..\..\..\..\..\libs\templates\OAM\ACommerce.Templates.OAM\ACommerce.Templates.OAM.csproj" />
