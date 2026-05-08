@@ -1,18 +1,16 @@
-using ACommerce.Kits.Favorites.Frontend.Customer.Stores;
-
-namespace Ejar.Customer.UI.V2.Bindings;
+namespace ACommerce.Kits.Favorites.Frontend.Customer.Stores;
 
 /// <summary>
-/// تَنفيذ V2 لـ <see cref="IFavoritesStore"/>. يَدلّع لـ
-/// <see cref="IFavoritesApiClient"/> الكيتيّ — لا FavoritesSync ولا
-/// optimistic update في الـ app (سُلوك الـ kit يُغطّي هذا داخلياً).
+/// تَنفيذ افتراضيّ لـ <see cref="IFavoritesStore"/> يَدلّع لـ
+/// <see cref="IFavoritesApiClient"/>. التَطبيقات التي تَحتاج
+/// optimistic toggle أو sync بين أجهزة تَكتب Binding خاصّ.
 /// </summary>
-public sealed class EjarV2FavoritesStore : IFavoritesStore
+public sealed class DefaultFavoritesStore : IFavoritesStore
 {
     private readonly IFavoritesApiClient _api;
     private HashSet<string> _ids = new();
 
-    public EjarV2FavoritesStore(IFavoritesApiClient api) => _api = api;
+    public DefaultFavoritesStore(IFavoritesApiClient api) => _api = api;
 
     public IReadOnlyCollection<string> Ids => _ids;
     public bool IsLoading { get; private set; }

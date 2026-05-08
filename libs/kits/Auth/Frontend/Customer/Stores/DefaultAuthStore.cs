@@ -1,29 +1,29 @@
-using ACommerce.Kits.Auth.Frontend.Customer.Stores;
-using Ejar.Customer.UI.V2.Services;
+using ACommerce.ClientHost.Auth;
 
-namespace Ejar.Customer.UI.V2.Bindings;
+namespace ACommerce.Kits.Auth.Frontend.Customer.Stores;
 
 /// <summary>
-/// تَنفيذ V2 لـ <see cref="IAuthStore"/>. يُحَوِّل المَطلَب لـ
-/// <see cref="IAuthApiClient"/> الكيتيّ ويُحَدِّث
-/// <see cref="EjarV2AppStore"/>.
+/// تَنفيذ افتراضيّ لـ <see cref="IAuthStore"/> يُحَوِّل المَطلَب لـ
+/// <see cref="IAuthApiClient"/> ويُحَدِّث <see cref="IClientAuthState"/>
+/// المُسَجَّل في الـ ClientHost. التَطبيقات لا تَحتاج كتابة Binding خاصّ
+/// إلا لو احتاجت سُلوكاً مُختلفاً (multi-tenant، MFA، …).
 /// </summary>
-public sealed class EjarV2AuthStore : IAuthStore, IDisposable
+public sealed class DefaultAuthStore : IAuthStore, IDisposable
 {
-    private readonly EjarV2AppStore _app;
+    private readonly IClientAuthState _state;
     private readonly IAuthApiClient _api;
 
-    public EjarV2AuthStore(EjarV2AppStore app, IAuthApiClient api)
+    public DefaultAuthStore(IClientAuthState state, IAuthApiClient api)
     {
-        _app = app;
+        _state = state;
         _api = api;
-        _app.OnChanged += FireChanged;
+        _state.OnChanged += FireChanged;
     }
 
-    public bool IsAuthenticated => _app.Auth.IsAuthenticated;
-    public string? UserId      => _app.Auth.UserId?.ToString();
-    public string? FullName    => _app.Auth.FullName;
-    public bool IsBusy { get; private set; }
+    public bool    IsAuthenticated => _state.IsAuthenticated;
+    public string? UserId          => _state.UserId?.ToString();
+    public string? FullName        => _state.FullName;
+    public bool    IsBusy   { get; private set; }
     public string? LastError { get; private set; }
     public event Action? Changed;
 
@@ -49,11 +49,12 @@ public sealed class EjarV2AuthStore : IAuthStore, IDisposable
                 LastError = r.Error ?? "otp_verify_failed";
                 return;
             }
-            _app.Auth.UserId      = ParseUserGuid(r.UserId!);
-            _app.Auth.FullName    = r.FullName ?? "—";
-            _app.Auth.Phone       = phone;
-            _app.Auth.AccessToken = r.Token!;
-            _app.NotifyChanged();
+            _state.UserId      = ParseUserGuid(r.UserId!);
+            _state.FullName    = r.FullName ?? "—";
+            _state.Phone       = phone;
+            _state.AccessToken = r.Token!;
+            _state.Role        = r.Role;
+            _state.NotifyChanged();
         }
         finally { IsBusy = false; FireChanged(); }
     }
@@ -64,11 +65,12 @@ public sealed class EjarV2AuthStore : IAuthStore, IDisposable
         try
         {
             try { await _api.LogoutAsync(ct); } catch { }
-            _app.Auth.UserId      = null;
-            _app.Auth.FullName    = null;
-            _app.Auth.Phone       = null;
-            _app.Auth.AccessToken = null;
-            _app.NotifyChanged();
+            _state.UserId      = null;
+            _state.FullName    = null;
+            _state.Phone       = null;
+            _state.AccessToken = null;
+            _state.Role        = null;
+            _state.NotifyChanged();
         }
         finally { IsBusy = false; FireChanged(); }
     }
@@ -84,5 +86,5 @@ public sealed class EjarV2AuthStore : IAuthStore, IDisposable
     }
 
     private void FireChanged() => Changed?.Invoke();
-    public void Dispose() => _app.OnChanged -= FireChanged;
+    public void Dispose() => _state.OnChanged -= FireChanged;
 }

@@ -13,7 +13,7 @@ var apiBase = builder.Configuration["EjarApi:BaseUrl"] ?? "http://localhost:5300
 var appVersion = builder.Configuration["App:Version"] ?? "2.0.0";
 builder.Services.AddSingleton(new AppVersionInfo(Platform: "web-v2", Version: appVersion));
 
-// HttpClient "ejar" بسيط — Bearer يَتم على EjarV2HttpClient عبر
+// HttpClient "ejar" بسيط — Bearer يَتم على AuthenticatedHttpClient عبر
 // DefaultRequestHeaders.Authorization. لا handler chain هنا.
 builder.Services.AddHttpClient("ejar", c =>
 {

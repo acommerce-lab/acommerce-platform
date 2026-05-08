@@ -1,68 +1,70 @@
 using ACommerce.ClientHost;
+using ACommerce.ClientHost.Auth;
 using ACommerce.ClientHost.KitApi;
 using ACommerce.Kits.Auth.Frontend.Customer;
+using ACommerce.Kits.Auth.Frontend.Customer.Stores;
 using ACommerce.Kits.Chat.Frontend.Customer;
+using ACommerce.Kits.Chat.Frontend.Customer.Stores;
 using ACommerce.Kits.Favorites.Frontend.Customer;
+using ACommerce.Kits.Favorites.Frontend.Customer.Stores;
 using ACommerce.Kits.Listings.Frontend.Customer;
+using ACommerce.Kits.Listings.Frontend.Customer.Stores;
 using ACommerce.Kits.Notifications.Frontend.Customer;
+using ACommerce.Kits.Notifications.Frontend.Customer.Stores;
 using ACommerce.Kits.Profiles.Frontend.Customer;
+using ACommerce.Kits.Profiles.Frontend.Customer.Stores;
 using ACommerce.Kits.Subscriptions.Frontend.Customer;
+using ACommerce.Kits.Subscriptions.Frontend.Customer.Stores;
 using ACommerce.Kits.Support.Frontend.Customer;
-using Ejar.Customer.UI.V2.Bindings;
+using ACommerce.Kits.Support.Frontend.Customer.Stores;
 using Ejar.Customer.UI.V2.Components.Pages;
-using Ejar.Customer.UI.V2.Services;
-using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Ejar.Customer.UI.V2.ClientHost;
 
 /// <summary>
-/// V2 thin host — مُستقلّ تماماً عن V1. يَحوي فقط:
+/// V2 thin host — مُستقلّ تماماً عن V1. كلّ ما هو app-specific محصور هنا:
 /// <list type="bullet">
-///   <item>AppStore + Persistence + HttpClient (٣ خَدَمات)</item>
-///   <item>AuthenticationStateProvider</item>
-///   <item>KitApi pipeline (HttpClient → كل kit api clients)</item>
-///   <item>٨ Bindings (واحدة لكل kit، تَدلّع لـ api client)</item>
-///   <item>تَسجيل routes الكيتس</item>
+///   <item>اسم الـ HttpClient ("ejar")</item>
+///   <item>مَفتاح localStorage ("ejar.v2.auth")</item>
+///   <item>اسم scheme المُصادَقة ("EjarV2Auth")</item>
+///   <item>قائمة المُضيفين المسموح بها</item>
+///   <item>خَريطة الـ routes (URL → widget)</item>
+///   <item>صَفحَتا التَطبيق المخصّصتان (EjarHomeWidget، EjarDashboardWidget)</item>
 /// </list>
 ///
-/// <para>الخَدَمات العَرَضيّة (FavoritesSync، UnreadService، FirebasePush،
-/// Realtime، VersionPoll) <b>ليست</b> هنا — مَنطقها cross-cutting يَجب أن
-/// يَكون داخل الكيت أو composition، لا في كل تطبيق.</para>
+/// <para>كلّ شَيء آخَر — Auth state، Persistence، AuthStateProvider،
+/// AuthenticatedHttpClient، تَنفيذ كلّ <see cref="IAuthStore"/>،
+/// <see cref="IListingsStore"/>… <see cref="IFavoritesStore"/> — يَأتي من
+/// ClientHost والكيتس مُباشرةً (Default<i>X</i>Store).</para>
+///
+/// <para>التَطبيق يَستبدل أيّ Default store ببنفسه فقط حين يَحتاج سُلوكاً
+/// مُختلفاً (realtime، optimistic update، sync). حالياً لا يَحتاج.</para>
 /// </summary>
 public static class EjarV2CustomerHostExtensions
 {
     public static IServiceCollection AddEjarCustomerV2(this IServiceCollection services)
     {
-        // ─── الحالة + الاستعادة + HTTP ────────────────────────────────
-        services.AddScoped<EjarV2AppStore>();
-        services.AddScoped<EjarV2Persistence>();
-        services.AddScoped<EjarV2HttpClient>();
+        // ─── Auth machinery (state + persistence + provider + http client) ──
+        services.AddClientAuth(o =>
+        {
+            o.HttpClientName = "ejar";
+            o.StorageKey     = "ejar.v2.auth";
+            o.Scheme         = "EjarV2Auth";
+        });
 
-        // ─── Authentication ────────────────────────────────────────────
-        services.AddAuthorizationCore();
-        services.AddScoped<AuthenticationStateProvider, EjarV2AuthStateProvider>();
+        // ─── KitApi pipeline + kit api clients ────────────────────────────
+        services.AddKitApiPipeline(sp => sp.GetRequiredService<AuthenticatedHttpClient>().Client);
+        services.AddScoped<IAuthApiClient,          HttpAuthApiClient>();
+        services.AddScoped<IListingsApiClient,      HttpListingsApiClient>();
+        services.AddScoped<IChatApiClient,          HttpChatApiClient>();
+        services.AddScoped<INotificationsApiClient, HttpNotificationsApiClient>();
+        services.AddScoped<IProfileApiClient,       HttpProfileApiClient>();
+        services.AddScoped<ISubscriptionsApiClient, HttpSubscriptionsApiClient>();
+        services.AddScoped<ISupportApiClient,       HttpSupportApiClient>();
+        services.AddScoped<IFavoritesApiClient,     HttpFavoritesApiClient>();
 
-        // ─── KitApi pipeline + kit api clients ────────────────────────
-        services.AddKitApiPipeline(sp => sp.GetRequiredService<EjarV2HttpClient>().Client);
-        services.AddScoped<ACommerce.Kits.Auth.Frontend.Customer.Stores.IAuthApiClient,
-                          ACommerce.Kits.Auth.Frontend.Customer.Stores.HttpAuthApiClient>();
-        services.AddScoped<ACommerce.Kits.Listings.Frontend.Customer.Stores.IListingsApiClient,
-                          ACommerce.Kits.Listings.Frontend.Customer.Stores.HttpListingsApiClient>();
-        services.AddScoped<ACommerce.Kits.Chat.Frontend.Customer.Stores.IChatApiClient,
-                          ACommerce.Kits.Chat.Frontend.Customer.Stores.HttpChatApiClient>();
-        services.AddScoped<ACommerce.Kits.Notifications.Frontend.Customer.Stores.INotificationsApiClient,
-                          ACommerce.Kits.Notifications.Frontend.Customer.Stores.HttpNotificationsApiClient>();
-        services.AddScoped<ACommerce.Kits.Profiles.Frontend.Customer.Stores.IProfileApiClient,
-                          ACommerce.Kits.Profiles.Frontend.Customer.Stores.HttpProfileApiClient>();
-        services.AddScoped<ACommerce.Kits.Subscriptions.Frontend.Customer.Stores.ISubscriptionsApiClient,
-                          ACommerce.Kits.Subscriptions.Frontend.Customer.Stores.HttpSubscriptionsApiClient>();
-        services.AddScoped<ACommerce.Kits.Support.Frontend.Customer.Stores.ISupportApiClient,
-                          ACommerce.Kits.Support.Frontend.Customer.Stores.HttpSupportApiClient>();
-        services.AddScoped<ACommerce.Kits.Favorites.Frontend.Customer.Stores.IFavoritesApiClient,
-                          ACommerce.Kits.Favorites.Frontend.Customer.Stores.HttpFavoritesApiClient>();
-
-        // ─── Routes + Layout + Bindings ────────────────────────────────
+        // ─── Routes + Layout + Default Bindings ──────────────────────────
         services.AddACommerceClientHost(client => client
             .UseUrlAllowlist(a => a.Add(
                 "cdn.ejar.sa",
@@ -86,14 +88,14 @@ public static class EjarV2CustomerHostExtensions
                 .Add("/support",          SupportWidgets.Tickets,   requiresAuth: true)
                 .Add("/favorites",        FavoritesWidgets.List,    requiresAuth: true))
             .AddDomainBindings(b => b
-                .Use<ACommerce.Kits.Auth.Frontend.Customer.Stores.IAuthStore,                       EjarV2AuthStore>()
-                .Use<ACommerce.Kits.Listings.Frontend.Customer.Stores.IListingsStore,               EjarV2ListingsStore>()
-                .Use<ACommerce.Kits.Chat.Frontend.Customer.Stores.IChatStore,                       EjarV2ChatStore>()
-                .Use<ACommerce.Kits.Notifications.Frontend.Customer.Stores.INotificationsStore,     EjarV2NotificationsStore>()
-                .Use<ACommerce.Kits.Profiles.Frontend.Customer.Stores.IProfileStore,                EjarV2ProfileStore>()
-                .Use<ACommerce.Kits.Subscriptions.Frontend.Customer.Stores.ISubscriptionsStore,     EjarV2SubscriptionsStore>()
-                .Use<ACommerce.Kits.Support.Frontend.Customer.Stores.ISupportStore,                 EjarV2SupportStore>()
-                .Use<ACommerce.Kits.Favorites.Frontend.Customer.Stores.IFavoritesStore,             EjarV2FavoritesStore>()));
+                .Use<IAuthStore,          DefaultAuthStore>()
+                .Use<IListingsStore,      DefaultListingsStore>()
+                .Use<IChatStore,          DefaultChatStore>()
+                .Use<INotificationsStore, DefaultNotificationsStore>()
+                .Use<IProfileStore,       DefaultProfileStore>()
+                .Use<ISubscriptionsStore, DefaultSubscriptionsStore>()
+                .Use<ISupportStore,       DefaultSupportStore>()
+                .Use<IFavoritesStore,     DefaultFavoritesStore>()));
 
         return services;
     }

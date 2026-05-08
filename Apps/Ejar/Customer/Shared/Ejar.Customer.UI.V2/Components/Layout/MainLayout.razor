@@ -1,12 +1,12 @@
 @inherits LayoutComponentBase
-@inject Ejar.Customer.UI.V2.Services.EjarV2Persistence Persistence
+@inject ACommerce.ClientHost.Auth.IClientAuthPersistence Persistence
 
 @*
     قشرة V2 — top bar محاسبيّ بسيط مع لوحة هويّة ledger، body، bottom nav.
     OnAfterRenderAsync(firstRender) يَستدعي Persistence.RestoreAsync فور
-    تَوَفّر JSInterop (بَعد interactive bind). بدونه
-    EjarAuthenticationStateProvider يَفشل في قراءة JWT من localStorage
-    عند reload فيَطلب login مَجدّداً حتى لو الـ JWT مَحفوظ.
+    تَوَفّر JSInterop (بَعد interactive bind). بدونه ClientAuthStateProvider
+    يَفشل في قراءة JWT من localStorage عند reload فيَطلب login مَجدّداً
+    حتى لو الـ JWT مَحفوظ.
 *@
 
 <div class="ejar-shell">

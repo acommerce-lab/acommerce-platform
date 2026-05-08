@@ -1,12 +1,15 @@
-using ACommerce.Kits.Profiles.Frontend.Customer.Stores;
 using ACommerce.Kits.Profiles.Operations;
 
-namespace Ejar.Customer.UI.V2.Bindings;
+namespace ACommerce.Kits.Profiles.Frontend.Customer.Stores;
 
-public sealed class EjarV2ProfileStore : IProfileStore
+/// <summary>
+/// تَنفيذ افتراضيّ لـ <see cref="IProfileStore"/> يَدلّع لـ
+/// <see cref="IProfileApiClient"/>.
+/// </summary>
+public sealed class DefaultProfileStore : IProfileStore
 {
     private readonly IProfileApiClient _api;
-    public EjarV2ProfileStore(IProfileApiClient api) => _api = api;
+    public DefaultProfileStore(IProfileApiClient api) => _api = api;
 
     public IUserProfile? Current { get; private set; }
     public bool IsLoading { get; private set; }

@@ -1,21 +1,20 @@
 using ACommerce.Chat.Operations;
-using ACommerce.Kits.Chat.Frontend.Customer.Stores;
 
-namespace Ejar.Customer.UI.V2.Bindings;
+namespace ACommerce.Kits.Chat.Frontend.Customer.Stores;
 
 /// <summary>
-/// تَنفيذ V2 لـ <see cref="IChatStore"/>. لا realtime — V2 يَستهلك
-/// <see cref="IChatApiClient"/> فقط (REST). إضافة realtime مُستقبلاً
-/// تَتمّ على مُستوى Chat kit نَفسه (broadcast hub) لا في الـ app.
+/// تَنفيذ افتراضيّ لـ <see cref="IChatStore"/> يَدلّع لـ
+/// <see cref="IChatApiClient"/> فقط — REST بدون realtime. التَطبيقات
+/// التي تَحتاج SignalR/hub تَكتب Binding خاصّ يَلفّ هذا أو يَستبدله.
 /// </summary>
-public sealed class EjarV2ChatStore : IChatStore
+public sealed class DefaultChatStore : IChatStore
 {
     private readonly IChatApiClient _api;
     private readonly List<IChatMessage> _msgs = new();
     private List<ConversationSummary> _conversations = new();
     private string? _currentConvId;
 
-    public EjarV2ChatStore(IChatApiClient api) => _api = api;
+    public DefaultChatStore(IChatApiClient api) => _api = api;
 
     public IReadOnlyList<ConversationSummary> Conversations => _conversations;
     public IReadOnlyList<IChatMessage> CurrentMessages => _msgs;
@@ -42,9 +41,7 @@ public sealed class EjarV2ChatStore : IChatStore
     }
 
     public Task SendAsync(string body, CancellationToken ct = default) =>
-        // POST عبر kit api client سيَأتي مُستقبلاً — حالياً V2 يَكتب من
-        // خلال مَسار kit api client مُباشرة (TODO: إضافة SendAsync لـ
-        // IChatApiClient).
+        // POST عبر kit api client سيَأتي مُستقبلاً — حالياً لا send REST.
         Task.CompletedTask;
 
     public async Task MarkReadAsync(string conversationId, CancellationToken ct = default)

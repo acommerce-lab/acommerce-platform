@@ -1,13 +1,16 @@
-using ACommerce.Kits.Subscriptions.Frontend.Customer.Stores;
 using ACommerce.Subscriptions.Operations.Abstractions;
 
-namespace Ejar.Customer.UI.V2.Bindings;
+namespace ACommerce.Kits.Subscriptions.Frontend.Customer.Stores;
 
-public sealed class EjarV2SubscriptionsStore : ISubscriptionsStore
+/// <summary>
+/// تَنفيذ افتراضيّ لـ <see cref="ISubscriptionsStore"/> يَدلّع لـ
+/// <see cref="ISubscriptionsApiClient"/>.
+/// </summary>
+public sealed class DefaultSubscriptionsStore : ISubscriptionsStore
 {
     private readonly ISubscriptionsApiClient _api;
     private List<IPlan> _plans = new();
-    public EjarV2SubscriptionsStore(ISubscriptionsApiClient api) => _api = api;
+    public DefaultSubscriptionsStore(ISubscriptionsApiClient api) => _api = api;
 
     public IReadOnlyList<IPlan> Plans => _plans;
     public ISubscription? Active { get; private set; }

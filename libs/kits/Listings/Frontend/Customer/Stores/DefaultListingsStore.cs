@@ -1,15 +1,19 @@
 using ACommerce.Kits.Listings.Domain;
-using ACommerce.Kits.Listings.Frontend.Customer.Stores;
 
-namespace Ejar.Customer.UI.V2.Bindings;
+namespace ACommerce.Kits.Listings.Frontend.Customer.Stores;
 
-public sealed class EjarV2ListingsStore : IListingsStore
+/// <summary>
+/// تَنفيذ افتراضيّ لـ <see cref="IListingsStore"/> يَدلّع لـ
+/// <see cref="IListingsApiClient"/>. التَطبيقات لا تَحتاج كتابة Binding
+/// إلا لو احتاجت كاش، optimistic update، أو مَصدر بَيانات إضافيّ.
+/// </summary>
+public sealed class DefaultListingsStore : IListingsStore
 {
     private readonly IListingsApiClient _api;
     private List<IListing> _visible = new();
     private List<IListing> _mine    = new();
 
-    public EjarV2ListingsStore(IListingsApiClient api) => _api = api;
+    public DefaultListingsStore(IListingsApiClient api) => _api = api;
 
     public IReadOnlyList<IListing> Visible => _visible;
     public IReadOnlyList<IListing> Mine    => _mine;

@@ -1,13 +1,15 @@
-using ACommerce.Kits.Notifications.Frontend.Customer.Stores;
+namespace ACommerce.Kits.Notifications.Frontend.Customer.Stores;
 
-namespace Ejar.Customer.UI.V2.Bindings;
-
-public sealed class EjarV2NotificationsStore : INotificationsStore
+/// <summary>
+/// تَنفيذ افتراضيّ لـ <see cref="INotificationsStore"/> يَدلّع لـ
+/// <see cref="INotificationsApiClient"/>.
+/// </summary>
+public sealed class DefaultNotificationsStore : INotificationsStore
 {
     private readonly INotificationsApiClient _api;
     private List<NotificationItem> _items = new();
 
-    public EjarV2NotificationsStore(INotificationsApiClient api) => _api = api;
+    public DefaultNotificationsStore(INotificationsApiClient api) => _api = api;
 
     public IReadOnlyList<NotificationItem> Items => _items;
     public int UnreadCount => _items.Count(i => !i.IsRead);

@@ -1,12 +1,14 @@
-using ACommerce.Kits.Support.Frontend.Customer.Stores;
+namespace ACommerce.Kits.Support.Frontend.Customer.Stores;
 
-namespace Ejar.Customer.UI.V2.Bindings;
-
-public sealed class EjarV2SupportStore : ISupportStore
+/// <summary>
+/// تَنفيذ افتراضيّ لـ <see cref="ISupportStore"/> يَدلّع لـ
+/// <see cref="ISupportApiClient"/>.
+/// </summary>
+public sealed class DefaultSupportStore : ISupportStore
 {
     private readonly ISupportApiClient _api;
     private List<SupportTicketSummary> _tickets = new();
-    public EjarV2SupportStore(ISupportApiClient api) => _api = api;
+    public DefaultSupportStore(ISupportApiClient api) => _api = api;
 
     public IReadOnlyList<SupportTicketSummary> Tickets => _tickets;
     public bool IsLoading { get; private set; }
