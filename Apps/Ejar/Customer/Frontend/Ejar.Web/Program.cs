@@ -1,7 +1,7 @@
+using ACommerce.Culture.Defaults;
 using ACommerce.Kits.Versions.Templates;
 using Ejar.Customer.UI;
 using Ejar.Customer.UI.ClientHost;
-using Ejar.Customer.UI.Interceptors;
 using App = Ejar.Web.Components.App;
 
 var builder = WebApplication.CreateBuilder(args);

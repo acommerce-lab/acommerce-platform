@@ -7,11 +7,12 @@ using ACommerce.ClientHost.Auth;
 using ACommerce.ClientHost.KitApi;
 using ACommerce.Culture.Abstractions;
 using ACommerce.Culture.Defaults;
+using ACommerce.Culture.Interceptors;
 using ACommerce.Kits.Versions.Templates;
+using ACommerce.L10n.Blazor;
 using ACommerce.OperationEngine.Core;
 using ACommerce.Subscriptions.Templates.Extensions;
 using ACommerce.Templates.Shared.Models;
-using Ejar.Customer.UI.Interceptors;
 using Ejar.Customer.UI.Services;
 using Ejar.Customer.UI.Store;
 using Microsoft.Extensions.DependencyInjection;
@@ -20,22 +21,23 @@ using Microsoft.Extensions.Logging;
 namespace Ejar.Customer.UI;
 
 /// <summary>
-/// تَسجيل DI الموحَّد لِكلّ خَدَمات قالَب Customer.Marketplace. يُسْتَدعى
-/// مِن المُضيف بَعد تَسجيل <see cref="HttpClient"/> المُسَمّى "ejar".
+/// تَسجيل DI الموحَّد لِكلّ خَدَمات قالَب Customer.Marketplace.
 ///
-/// <para>F57: مَجموعَة Auth انتَقَلَت إلى <c>ClientHost.Auth</c> — لا
-/// EjarAuthenticationStateProvider، لا AuthHeadersHandler، لا EjarCircuitHttp،
-/// لا AuthInterpreter بَعد اليَوم. <c>AuthenticatedHttpClient</c> +
-/// <c>ClientAuthStateProvider</c> + <c>LocalStorageClientAuthPersistence</c>
-/// يَتَوَلَّون كلّ شَيء.</para>
+/// <para>F57: Auth → ClientHost.Auth.</para>
+/// <para>F58: VersionPoll → Versions.Templates kit.</para>
+/// <para>F59: Culture handlers + interceptors + L10n → kits:
+/// <list type="bullet">
+///   <item><c>CultureHeadersHandler</c> ← Culture.Defaults (يَستَهلِك ICultureContext)</item>
+///   <item><c>CultureInterceptor</c> ← Culture.Interceptors (يَستَهلِك ICultureContext)</item>
+///   <item><c>L</c> + <c>ITranslationProvider</c> + <c>ILanguageContext</c> ← L10n.Blazor</item>
+///   <item><c>AppStoreCultureContext</c> adapter يَكشِف AppStore.Ui كَ ICultureContext + ILanguageContext</item>
+/// </list></para>
 /// </summary>
 public static class EjarCustomerUiExtensions
 {
     public static IServiceCollection AddEjarCustomerUI(this IServiceCollection services)
     {
         // ─── Auth machinery (ClientHost.Auth) ──────────────────────────
-        // مَفتاح localStorage = "ejar.auth" (تَوافُق مَع V1 OLD لِئلّا تَخرُج
-        // الجَلسات الحاليّة). scheme = "EjarAuth".
         services.AddClientAuth(o =>
         {
             o.HttpClientName = "ejar";
@@ -43,28 +45,35 @@ public static class EjarCustomerUiExtensions
             o.Scheme         = "EjarAuth";
         });
 
-        // ─── Store + Translations ──────────────────────────────────────
+        // ─── Store ─────────────────────────────────────────────────────
         services.AddScoped<AppStore>();
         services.AddScoped<AppStorePersistence>();
         services.AddScoped<ITemplateStore>(sp => sp.GetRequiredService<AppStore>());
 
-        services.AddSingleton<ITranslationProvider, EmbeddedTranslationProvider>();
+        // ─── Culture: AppStore adapter يَخدِم ICultureContext + ILanguageContext ─
+        services.AddScoped<AppStoreCultureContext>();
+        services.AddScoped<ICultureContext>(sp => sp.GetRequiredService<AppStoreCultureContext>());
+        services.AddScoped<ILanguageContext>(sp => sp.GetRequiredService<AppStoreCultureContext>());
+
+        // ─── L10n: L10n.Blazor's L + Ejar's resx-backed provider ────────
+        services.AddScoped<ITranslationProvider, EjarTranslationProvider>();
         services.AddScoped<L>();
 
+        // ─── Culture utilities (timezone / numerals) ───────────────────
         services.AddScoped<ITimezoneProvider, JsTimezoneProvider>();
-        services.AddSingleton<INumeralNormalizer, DefaultNumeralNormalizer>();
+        services.AddSingleton<ACommerce.Culture.Abstractions.INumeralNormalizer, DefaultNumeralNormalizer>();
 
-        // ─── HTTP interceptors المُتَبَقّية ────────────────────────────
-        services.AddScoped<CultureInterceptor>();
+        // ─── HTTP handlers مِن الكيتس ─────────────────────────────────
         services.AddTransient<CultureHeadersHandler>();
+        services.AddScoped<CultureInterceptor>();
 
-        // ─── Versions Kit (frontend) ───────────────────────────────────
+        // ─── Versions Kit (Templates + Poll + Headers handler) ─────────
         services.AddVersionsTemplates(httpClientName: "ejar");
 
         // ─── Subscriptions Kit (frontend) ─────────────────────────────
         services.AddSubscriptionsTemplates();
 
-        // ─── OpEngine للعَمَليّات المَحَلّيّة ──────────────────────────
+        // ─── OpEngine ──────────────────────────────────────────────────
         services.AddScoped<OpEngine>(sp =>
             new OpEngine(sp, sp.GetRequiredService<ILogger<OpEngine>>()));
 
@@ -91,11 +100,11 @@ public static class EjarCustomerUiExtensions
         services.AddScoped<FavoritesSync>();
         services.AddScoped<FirebasePushService>();
 
-        // ─── KitApi pipeline موحَّد ─────────────────────────────────────
+        // ─── KitApi pipeline ────────────────────────────────────────────
         services.AddKitApiPipeline(sp =>
             sp.GetRequiredService<AuthenticatedHttpClient>().Client);
 
-        // ─── kit ApiClients (per-kit shape ownership) ──────────────────
+        // ─── kit ApiClients ────────────────────────────────────────────
         services.AddScoped<ACommerce.Kits.Auth.Frontend.Customer.Stores.IAuthApiClient,
                           ACommerce.Kits.Auth.Frontend.Customer.Stores.HttpAuthApiClient>();
         services.AddScoped<ACommerce.Kits.Listings.Frontend.Customer.Stores.IListingsApiClient,
@@ -120,7 +129,7 @@ public static class EjarCustomerUiExtensions
                 sp.GetRequiredService<IStateApplier>()));
         services.AddScoped<ITemplateEngine>(sp => sp.GetRequiredService<ClientOpEngine>());
 
-        // ─── State bridge: empty registry (AuthInterpreter كان dead في F57) ──
+        // ─── State bridge: empty interpreter registry ─────────────────
         services.AddScoped<OperationInterpreterRegistry<AppStore>>(sp =>
             new OperationInterpreterRegistry<AppStore>(
                 sp.GetRequiredService<ILogger<OperationInterpreterRegistry<AppStore>>>()));
@@ -131,8 +140,6 @@ public static class EjarCustomerUiExtensions
         // ─── Realtime + Chat client ────────────────────────────────────
         services.AddScoped<EjarRealtimeService>();
         services.AddScoped<UnreadService>();
-        // VersionPoll مَنقول إلى Versions.Templates kit (F58) — يُسَجَّل
-        // مَع AddVersionsTemplates أَعلاه.
         services.AddScoped<IChatClient, EjarChatClient>();
 
         return services;

@@ -1,6 +1,6 @@
 using System.Text.Json;
 using ACommerce.OperationEngine.Wire;
-using Ejar.Customer.UI.Interceptors;
+using ACommerce.Culture.Interceptors;
 
 namespace Ejar.Customer.UI.Store;
 

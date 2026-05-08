@@ -1,6 +1,6 @@
+using ACommerce.Culture.Defaults;
 using ACommerce.Kits.Versions.Templates;
 using Ejar.Customer.UI.ClientHost;
-using Ejar.Customer.UI.Interceptors;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 

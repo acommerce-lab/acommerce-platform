@@ -1,14 +1,20 @@
 using System.Collections;
 using System.Reflection;
+using ACommerce.Culture.Abstractions;
 using ACommerce.OperationEngine.Wire;
-using Ejar.Customer.UI.Store;
 
-namespace Ejar.Customer.UI.Interceptors;
+namespace ACommerce.Culture.Interceptors;
 
+/// <summary>
+/// يَلتَقِط المَغلَّفات المُوَسَّمة بـ <c>localize_times / localize_money /
+/// translate_content</c> ويُحَوِّل DateTime UTC إلى timezone المُستَخدِم
+/// المُسجَّل في <see cref="ICultureContext"/>. يُستَخدَم client-side عَن
+/// طَريق <see cref="ApiReader"/> أو ما يُكافِئه.
+/// </summary>
 public sealed class CultureInterceptor
 {
-    private readonly AppStore _store;
-    public CultureInterceptor(AppStore store) => _store = store;
+    private readonly ICultureContext _ctx;
+    public CultureInterceptor(ICultureContext ctx) => _ctx = ctx;
 
     public bool AppliesTo<T>(OperationEnvelope<T> env, bool forced)
     {
@@ -22,22 +28,14 @@ public sealed class CultureInterceptor
     {
         if (envelope is null || envelope.Data is null) return Task.CompletedTask;
         if (!AppliesTo(envelope, forced)) return Task.CompletedTask;
-        var culture = _store.Ui.Culture;
-        var tz = ResolveTimeZone(culture.TimeZone);
-        Walk(envelope.Data, culture, tz);
+        Walk(envelope.Data, _ctx.TimeZone);
         return Task.CompletedTask;
     }
 
     private static bool Has(IDictionary<string, string> tags, string key)
         => tags.TryGetValue(key, out var v) && v == "true";
 
-    private static TimeZoneInfo? ResolveTimeZone(string id)
-    {
-        try { return TimeZoneInfo.FindSystemTimeZoneById(id); }
-        catch { return null; }
-    }
-
-    private void Walk(object? node, UserCulture culture, TimeZoneInfo? tz, HashSet<object>? seen = null)
+    private void Walk(object? node, TimeZoneInfo? tz, HashSet<object>? seen = null)
     {
         if (node is null) return;
         var t = node.GetType();
@@ -48,7 +46,7 @@ public sealed class CultureInterceptor
 
         if (node is IEnumerable enumerable)
         {
-            foreach (var item in enumerable) Walk(item, culture, tz, seen);
+            foreach (var item in enumerable) Walk(item, tz, seen);
             return;
         }
 
@@ -67,7 +65,7 @@ public sealed class CultureInterceptor
             if (pt.IsPrimitive || pt.IsEnum || pt == typeof(string) || pt == typeof(decimal)) continue;
 
             var child = p.GetValue(node);
-            if (child is not null) Walk(child, culture, tz, seen);
+            if (child is not null) Walk(child, tz, seen);
         }
     }
 

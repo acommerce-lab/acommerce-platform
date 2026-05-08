@@ -1,14 +1,16 @@
 using ACommerce.Client.Operations;
 using ACommerce.ClientHost.Auth;
+using ACommerce.Culture.Abstractions;
+using ACommerce.Culture.Defaults;
+using ACommerce.L10n.Blazor;
 
 namespace Ejar.Customer.UI.Store;
 
 /// <summary>
-/// AppStore — V1 application state. بَعد F57: AuthState صار façade فوق
-/// <see cref="IClientAuthState"/> (مِن ClientHost.Auth). تَخزين JWT
-/// + Bearer header + AuthenticationStateProvider كلّها مِن ClientHost الآن.
-/// V1 pages تَستَمِرّ في كتابة <c>Store.Auth.UserId = ...</c> و
-/// <c>Store.NotifyChanged()</c> بدون تَغيير.
+/// AppStore — V1 application state. بَعد F57: AuthState فاضول façade فوق
+/// <see cref="IClientAuthState"/>. بَعد F59: <see cref="UiState"/> يَكشِف
+/// <see cref="ICultureContext"/> عَبر adapter داخِليّ، وَ <see cref="L10n.Blazor.ILanguageContext"/>
+/// يَقرأ مِنه. كلّ مَنطِق Auth + Culture + L10n مُوَحَّد عَبر تَجريدات الكيتس.
 /// </summary>
 public class AppStore : ITemplateStore
 {
@@ -21,10 +23,6 @@ public class AppStore : ITemplateStore
 
     public event Action? OnChanged;
 
-    /// <summary>
-    /// يُعلِم المُستَهلِكين + ClientHost.Auth (لأنّ AuthenticatedHttpClient
-    /// يَتَزامَن مَع IClientAuthState.OnChanged فيُحَدِّث Bearer header فَوراً).
-    /// </summary>
     public void NotifyChanged()
     {
         _authState.NotifyChanged();
@@ -51,9 +49,9 @@ public class AppStore : ITemplateStore
     public void RemoveRecentSearch(string q) { RecentSearches.Remove(q); NotifyChanged(); }
     public void ClearRecentSearches()        { RecentSearches.Clear();  NotifyChanged(); }
 
-    public void SetCulture(UserCulture c) { Ui.Culture = c; NotifyChanged(); }
-    public void SetTheme(string theme)    { Ui.Theme = theme; NotifyChanged(); }
-    public void SetCity(string city)      { Ui.City = city;   NotifyChanged(); }
+    public void SetCulture(EjarUserCulture c) { Ui.Culture = c; NotifyChanged(); }
+    public void SetTheme(string theme)        { Ui.Theme = theme; NotifyChanged(); }
+    public void SetCity(string city)          { Ui.City = city;   NotifyChanged(); }
 
     // ── ITemplateStore ─────────────────────────────────────────────────
     bool ITemplateStore.IsAuthenticated => Auth.IsAuthenticated;
@@ -65,7 +63,7 @@ public class AppStore : ITemplateStore
 
 public class UiState
 {
-    public UserCulture Culture { get; set; } = UserCulture.Default;
+    public EjarUserCulture Culture { get; set; } = EjarUserCulture.Default;
     public string Theme { get; set; } = "light";
     public string City { get; set; } = "إب";
 
@@ -74,6 +72,12 @@ public class UiState
     public bool IsRtl => IsArabic;
     public bool IsDark => Theme == "dark";
     public bool HideChrome { get; set; }
+}
+
+/// <summary>POCO V1: language + timezone + currency. اسم EjarUserCulture لِتَجَنُّب تَعارُض مَع UserCulture المَحذوف.</summary>
+public sealed record EjarUserCulture(string Language, string TimeZone, string Currency)
+{
+    public static EjarUserCulture Default => new("ar", "Asia/Aden", "YER");
 }
 
 /// <summary>façade فوق IClientAuthState — V1 pages تَستَخدِمه كَأنّه AuthState قَديم.</summary>
@@ -107,4 +111,22 @@ public class DraftListing
         CategoryId = null; City = null; District = null;
         BedroomCount = 0; Amenities.Clear();
     }
+}
+
+/// <summary>
+/// adapter يَكشِف <c>AppStore.Ui</c> كَ <see cref="ICultureContext"/> + <see cref="ILanguageContext"/>
+/// لِيَستَهلِكها <c>CultureHeadersHandler</c> + <c>CultureInterceptor</c> + <c>L</c> (مِن L10n.Blazor)
+/// + أيّ مُكَوِّن آخَر يَعتَمِد عَلى الكيتس.
+/// </summary>
+public sealed class AppStoreCultureContext : ICultureContext, ILanguageContext
+{
+    private readonly AppStore _store;
+    public AppStoreCultureContext(AppStore store) => _store = store;
+
+    public string TimeZoneId    => _store.Ui.Culture.TimeZone;
+    public string Language      => _store.Ui.Culture.Language;
+    public string NumeralSystem => _store.Ui.Culture.Language == "ar" ? "arabic-indic" : "latin";
+    public TimeZoneInfo TimeZone => StaticCultureContext.ResolveTz(_store.Ui.Culture.TimeZone);
+    public string Currency      => _store.Ui.Culture.Currency;
+    public bool   IsRtl         => _store.Ui.IsRtl;
 }

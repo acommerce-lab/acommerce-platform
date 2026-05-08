@@ -38,6 +38,10 @@
     <!-- Culture -->
     <ProjectReference Include="..\..\..\kits\Culture\ACommerce.Culture.Abstractions\ACommerce.Culture.Abstractions.csproj" />
     <ProjectReference Include="..\..\..\kits\Culture\ACommerce.Culture.Defaults\ACommerce.Culture.Defaults.csproj" />
+    <ProjectReference Include="..\..\..\kits\Culture\ACommerce.Culture.Interceptors\ACommerce.Culture.Interceptors.csproj" />
+
+    <!-- L10n.Blazor — L + ITranslationProvider + ILanguageContext (مَكان V1's L.cs) -->
+    <ProjectReference Include="..\..\..\kits\L10n\ACommerce.L10n.Blazor\ACommerce.L10n.Blazor.csproj" />
 
     <!-- Widgets + Marketplace + Shared templates -->
     <ProjectReference Include="..\..\..\kits\Widgets\ACommerce.Widgets\ACommerce.Widgets.csproj" />
