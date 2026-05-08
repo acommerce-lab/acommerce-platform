@@ -24,6 +24,9 @@ public static class VersionsTemplatesExtensions
         services.AddTransient<AppVersionHeadersHandler>();
         services.AddSingleton(new VersionStateOptions { HttpClientName = httpClientName });
         services.AddSingleton<VersionState>();
+        // VersionPoll: poller دَوريّ يَفحَص /version.json. scoped لأنّ كلّ
+        // circuit (Blazor Server) يَحتاج حالة مُستَقِلّة لِبانَر التَّحديث.
+        services.AddScoped<VersionPoll>();
         return services;
     }
 }

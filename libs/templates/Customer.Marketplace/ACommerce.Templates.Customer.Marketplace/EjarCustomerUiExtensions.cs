@@ -131,7 +131,8 @@ public static class EjarCustomerUiExtensions
         // ─── Realtime + Chat client ────────────────────────────────────
         services.AddScoped<EjarRealtimeService>();
         services.AddScoped<UnreadService>();
-        services.AddScoped<VersionPoll>();
+        // VersionPoll مَنقول إلى Versions.Templates kit (F58) — يُسَجَّل
+        // مَع AddVersionsTemplates أَعلاه.
         services.AddScoped<IChatClient, EjarChatClient>();
 
         return services;

@@ -1,7 +1,6 @@
-using ACommerce.Kits.Versions.Templates;
 using Microsoft.JSInterop;
 
-namespace Ejar.Customer.UI.Services;
+namespace ACommerce.Kits.Versions.Templates;
 
 /// <summary>
 /// تتبّع توفّر إصدار أحدث أثناء تشغيل التطبيق. الـ <c>version-check.js</c>
