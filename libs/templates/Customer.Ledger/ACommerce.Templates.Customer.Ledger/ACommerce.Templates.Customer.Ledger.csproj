@@ -1,0 +1,39 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <PackageId>ACommerce.Templates.Customer.Ledger</PackageId>
+    <Version>1.0.0</Version>
+    <Description>
+      قالَب Customer Ledger — يَجمَع صَفحات OAM Ledger الكاملة لِنَكهة "العميل":
+      Login، Explore، Details، Mine، Create، Inbox، Room، Notifications، Profile،
+      Plans، Support، Favorites. القالَب يُسَجِّل routes + bindings + classes
+      الإجباريّة في استدعاء واحد. التَطبيقات تُبَدِّل أيّ route أو binding
+      عَبر مُعَدِّل options دون لَمس القالَب.
+    </Description>
+    <RazorLangVersion>latest</RazorLangVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <SupportedPlatform Include="browser" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- ClientHost — KitPageRegistry + AddClientAuth -->
+    <ProjectReference Include="..\..\..\host-client\ACommerce.ClientHost\ACommerce.ClientHost.csproj" />
+
+    <!-- ٨ kits Frontend.Customer — مَصدر الـ widgets + IXxxStore + Default<Kit>Store + ApiClients -->
+    <ProjectReference Include="..\..\..\kits\Auth\Frontend\Customer\ACommerce.Kits.Auth.Frontend.Customer.csproj" />
+    <ProjectReference Include="..\..\..\kits\Listings\Frontend\Customer\ACommerce.Kits.Listings.Frontend.Customer.csproj" />
+    <ProjectReference Include="..\..\..\kits\Chat\Frontend\Customer\ACommerce.Kits.Chat.Frontend.Customer.csproj" />
+    <ProjectReference Include="..\..\..\kits\Notifications\Frontend\Customer\ACommerce.Kits.Notifications.Frontend.Customer.csproj" />
+    <ProjectReference Include="..\..\..\kits\Profiles\Frontend\Customer\ACommerce.Kits.Profiles.Frontend.Customer.csproj" />
+    <ProjectReference Include="..\..\..\kits\Subscriptions\Frontend\Customer\ACommerce.Kits.Subscriptions.Frontend.Customer.csproj" />
+    <ProjectReference Include="..\..\..\kits\Support\Frontend\Customer\ACommerce.Kits.Support.Frontend.Customer.csproj" />
+    <ProjectReference Include="..\..\..\kits\Favorites\Frontend\Customer\ACommerce.Kits.Favorites.Frontend.Customer.csproj" />
+
+    <!-- OAM templates — atoms (OamLedger, OamReceipt, OamStamp...) لإعادَة الاستِخدام داخل widgets -->
+    <ProjectReference Include="..\..\OAM\ACommerce.Templates.OAM\ACommerce.Templates.OAM.csproj" />
+  </ItemGroup>
+</Project>
