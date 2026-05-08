@@ -43,10 +43,10 @@ public static class EjarV2CustomerHostExtensions
                 .Add("/",                 typeof(EjarHomeWidget))
                 .Add("/dashboard",        typeof(EjarDashboardWidget), requiresAuth: true)
 
-                // Auth — نَستعمل V1 Login.razor الذي يَعمل (AcInput +
-                // ValueChanged + AcButton + Disabled). AcLoginWidget كان
-                // يَفشل في تَفعيل الزرّ ضِمن DynamicComponent + InteractiveServer.
-                .Add("/login",            typeof(Ejar.Customer.UI.Components.Pages.Login))
+                // Auth — استعَدنا تَصميم AcLoginWidget بهويّة OAM Ledger
+                // المحاسبيّة. الـ blocker السابق كان _framework/blazor.web.js
+                // 404 (F44 + F45) لا الـ widget نَفسه.
+                .Add("/login",            AuthWidgets.Login)
 
                 // Listings — يَربط الـ widget إلى /listings/{id} hardcoded،
                 // فنُسَجِّل المسار حرفيّاً. /properties alias للوصول من الـ

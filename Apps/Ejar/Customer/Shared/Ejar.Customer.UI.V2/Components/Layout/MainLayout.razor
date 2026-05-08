@@ -1,7 +1,12 @@
 @inherits LayoutComponentBase
+@inject Ejar.Customer.UI.Store.AppStorePersistence Persistence
 
 @*
     قشرة V2 — top bar محاسبيّ بسيط مع لوحة هويّة ledger، body، bottom nav.
+    OnAfterRenderAsync(firstRender) يَستدعي Persistence.RestoreAsync فور
+    تَوَفّر JSInterop (بَعد interactive bind). بدونه
+    EjarAuthenticationStateProvider يَفشل في قراءة JWT من localStorage
+    عند reload فيَطلب login مَجدّداً حتى لو الـ JWT مَحفوظ.
 *@
 
 <div class="ejar-shell">
@@ -32,3 +37,14 @@
 
     <BottomNav />
 </div>
+
+@code {
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try { await Persistence.RestoreAsync(); }
+            catch { /* غير قاتل */ }
+        }
+    }
+}

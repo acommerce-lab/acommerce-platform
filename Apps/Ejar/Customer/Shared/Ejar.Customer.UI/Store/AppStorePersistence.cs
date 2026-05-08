@@ -72,26 +72,31 @@ public sealed class AppStorePersistence : IAsyncDisposable
     {
         if (_restored) return;
         _suspendSave = true;
+        var sawJsInterop = false;
         try
         {
             await TryRestoreAuth();
+            sawJsInterop = true;
             await PurgeLegacyFavoritesAsync();
             await TryRestoreRecent();
             await TryRestoreUi();
         }
         catch
         {
-            // فشل JSInterop (مثلاً قبل اكتمال render في Blazor Server) — نتجاهل،
-            // المُستدعي يستطيع المحاولة مرّة أخرى. لا نُعلِم RestoreCompleted
-            // حتى يتمكّن AuthenticationStateProvider من إعادة المحاولة لاحقاً.
+            // فشل JSInterop (SSR/prerender — JS غير مُتَوَفِّر بَعد). لا
+            // نُعلِم TCS حتى يَعيد AuthenticationStateProvider المُحاولة بعد
+            // اكتمال interactive bind.
             _suspendSave = false;
             return;
         }
 
         _suspendSave = false;
-        _restored = true;
-        _restoreTcs.TrySetResult(true);
-        _store.NotifyChanged();
+        _restored = sawJsInterop;
+        if (_restored)
+        {
+            _restoreTcs.TrySetResult(true);
+            _store.NotifyChanged();
+        }
     }
 
     public async ValueTask DisposeAsync()

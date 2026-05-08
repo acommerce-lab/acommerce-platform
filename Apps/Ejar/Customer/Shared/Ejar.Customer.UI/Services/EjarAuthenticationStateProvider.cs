@@ -14,7 +14,6 @@ public class EjarAuthenticationStateProvider : AuthenticationStateProvider, IDis
 {
     private readonly AppStore _store;
     private readonly AppStorePersistence _persistence;
-    private bool _kickedOff;
 
     public EjarAuthenticationStateProvider(AppStore store, AppStorePersistence persistence)
     {
@@ -25,19 +24,15 @@ public class EjarAuthenticationStateProvider : AuthenticationStateProvider, IDis
 
     public override async Task<AuthenticationState> GetAuthenticationStateAsync()
     {
-        // أوّل استدعاء يبدأ الاستعادة (في WASM ينجح فوراً، في Blazor Server
-        // قد يفشل JSInterop أثناء prerender — وفي تلك الحالة نُجيب بـ "غير
-        // مصادَق عليه" مؤقتاً ثمّ نُحدِّث عبر MainLayout.OnAfterRenderAsync).
-        if (!_kickedOff)
-        {
-            _kickedOff = true;
+        // كلّ استدعاء يُحاول الاستعادة ما لم تَنجح بَعد — Blazor Server يُنفِّذ
+        // SSR أولاً (JSInterop غير مُتَوَفِّر، RestoreAsync يَفشل صامتاً ولا
+        // يَضع TCS) ثمّ يُعاد الاستدعاء بَعد interactive bind فيَنجح. الـ flag
+        // _kickedOff السابق كان يَمنع المحاولة الثانية ⇒ بَعد reload يَبقى
+        // "غير مُصادَق" حتى لو JWT مَحفوظ في localStorage.
+        if (!_persistence.RestoreCompleted.IsCompleted)
             _ = _persistence.RestoreAsync();
-        }
 
-        // ننتظر اكتمال الاستعادة بحدّ أقصى ثانيتَين — يكفي لـ WASM (فوريّ)
-        // ولا نُعلِق UI لو فشل JSInterop في Blazor Server (يكمل لاحقاً عبر
-        // OnAfterRenderAsync و NotifyAuthenticationStateChanged).
-        await Task.WhenAny(_persistence.RestoreCompleted, Task.Delay(2000));
+        await Task.WhenAny(_persistence.RestoreCompleted, Task.Delay(3000));
 
         var identity = _store.Auth.IsAuthenticated
             ? new ClaimsIdentity(new[]
