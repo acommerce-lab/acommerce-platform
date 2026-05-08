@@ -72,9 +72,10 @@ public static class EjarCustomerUiExtensions
             new OpEngine(sp, sp.GetRequiredService<ILogger<OpEngine>>()));
 
         // ─── Routes registry + dispatcher + reader ────────────────────
-        var routeRegistry = new HttpRouteRegistry();
-        EjarRoutes.Register(routeRegistry);
-        services.AddSingleton(routeRegistry);
+        // EjarOps.* tags drive client OAM dispatch — kit api clients
+        // own server-side route shapes; client routes are V1-specific
+        // and registered inline below per operation.
+        services.AddSingleton(new HttpRouteRegistry());
 
         services.AddScoped<HttpDispatcher>(sp =>
         {
@@ -97,16 +98,11 @@ public static class EjarCustomerUiExtensions
         services.AddScoped<FirebasePushService>();
 
         // ─── KitApi pipeline موحَّد ─────────────────────────────────────
-        // analyzers (pre-flight) + interceptors (around) تَنطبق تلقائياً
-        // على كلّ kit api clients. التَطبيق يُضيف ما يُريد عبر:
-        //   .AddAnalyzer<MyAnalyzer>().AddInterceptor<MyInterceptor>()
-        //
-        // ملاحظة: لا نُسَجِّل RequiredAuthAnalyzer client-side — السيرفر
-        // يَفرض الـ JWT أصلاً، ومنع الطلبات قبل الإرسال يَكسر مسارات
-        // عامّة (cities/amenities/listings GET) بقائمة بيضاء قاصرة.
-        services
-            .AddKitApiPipeline(sp => sp.GetRequiredService<EjarCircuitHttp>().Client)
-            .AddInterceptor<TelemetryInterceptor>();
+        // pipeline pre-flight analyzers + around interceptors. التَطبيق
+        // يُضيف ما يُريد عَبر AddAnalyzer/AddInterceptor. لا analyzers
+        // client-side افتراضيّاً — السيرفر يَفرض JWT.
+        services.AddKitApiPipeline(sp =>
+            sp.GetRequiredService<EjarCircuitHttp>().Client);
 
         // ─── kit ApiClients (per-kit shape ownership) ──────────────────
         // كلّ kit يَستهلك KitHttpClient الموحَّد ⇒ analyzers/interceptors
@@ -136,11 +132,12 @@ public static class EjarCustomerUiExtensions
         services.AddScoped<ITemplateEngine>(sp => sp.GetRequiredService<ClientOpEngine>());
 
         // ─── State bridge: interpreters ────────────────────────────────
+        // AuthInterpreter يَستهلِك envelope الـ auth ويُحَدِّث AppStore.Auth.
+        // باقي الـ interpreters (Ui...) كانَت dead code.
         services.AddScoped<OperationInterpreterRegistry<AppStore>>(sp =>
         {
             var registry = new OperationInterpreterRegistry<AppStore>(
                 sp.GetRequiredService<ILogger<OperationInterpreterRegistry<AppStore>>>());
-            registry.Add(new UiInterpreter());
             registry.Add(new AuthInterpreter());
             return registry;
         });
