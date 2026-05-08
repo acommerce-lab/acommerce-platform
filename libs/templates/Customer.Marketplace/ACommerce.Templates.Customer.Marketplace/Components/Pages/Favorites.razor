@@ -1,0 +1,87 @@
+@page "/favorites"
+@attribute [Authorize]
+@using Ejar.Customer.UI.Operations
+@using Ejar.Customer.UI.Services
+@inject AppStore Store
+@inject AppStateApplier Applier
+@inject ApiReader Api
+@inject NavigationManager Nav
+@inject FavoritesSync FavoritesSvc
+@inject L L
+@implements IDisposable
+
+<PageTitle>@(L["nav.favorites"]) - @(L["app.name"])</PageTitle>
+
+<div class="acs-page">
+    <h1 class="acm-wizard-title">@(L["nav.favorites"])</h1>
+    @if (_loading) { <AcLoadingState /> }
+    else if (_items.Count == 0) { <AcEmptyState IconName="heart" Message="لا توجد مفضلة بعد" /> }
+    else
+    {
+        <div class="acm-home-grid">
+            @foreach (var l in _items)
+            {
+                var lid = l.Id;
+                <AcSpaceCard Title="@l.Title"
+                             ImageUrl="@l.FirstImage"
+                             Location="@($"{l.City} — {l.District}")"
+                             Capacity="@(l.BedroomCount == 0 ? null : l.BedroomCount)"
+                             PriceLabel="@($"{l.Price:0} ر.ي")"
+                             IsFavorite="true"
+                             OnOpen="@(() => Open(lid))"
+                             OnToggleFavorite="@(on => Toggle(lid, on))" />
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private List<ListingDto> _items = new();
+    private bool _loading = true;
+
+    protected override void OnInitialized() => Store.OnChanged += OnChange;
+
+    protected override async Task OnAfterRenderAsync(bool first) { if (first) { await FavoritesSvc.LoadFromServerAsync(); await Load(); } }
+
+    /// <summary>
+    /// تحميل المفضّلات مباشرةً من <c>GET /favorites</c> — الخادم هو الحقيقة.
+    /// كان السابق يجلب <c>/home/explore?sort=newest</c> ويُفلتر بـ
+    /// FavoriteListingIds المحلّيّة، وذلك يفشل عندما يكون الإعلان المفضّل
+    /// خارج أوّل ٦٠ نتيجة، أو بعد signout عندما تكون الـ Set فارغة لكنّ DB
+    /// ما زال يحوي الصفوف.
+    /// </summary>
+    private async Task Load()
+    {
+        var env = await Api.GetAsync<List<ListingDto>>("/favorites");
+        _items = env.Data ?? new();
+        _loading = false;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void Open(string id) => Nav.NavigateTo($"/listings/{id}");
+
+    /// <summary>
+    /// إلغاء تفضيل من هذه الصفحة: نُحدّث الخادم ثمّ نُزيل العنصر محلّياً
+    /// فوراً بدل انتظار reload كامل (يبقى ما بقي بدون فلاش).
+    /// </summary>
+    private async Task Toggle(string id, bool on)
+    {
+        await FavoritesSvc.ToggleAsync(id);
+        // الـ Set أصبحت لا تحتوي id (لو إلغاء)؛ أزل الكرت من القائمة بدون
+        // إعادة الجلب الكامل.
+        if (!Store.FavoriteListingIds.Contains(id))
+            _items = _items.Where(x => x.Id != id).ToList();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void OnChange() => InvokeAsync(StateHasChanged);
+    public void Dispose() => Store.OnChanged -= OnChange;
+
+    // شكل الـ row من /favorites — أعمدة المختصرة فقط (كافية لـ AcSpaceCard).
+    // لا حاجة للـ Lat/Lng/Amenities/Views… التي يُرجعها /home/explore.
+    private sealed record ListingDto(
+        string Id, string Title, decimal Price, string TimeUnit,
+        string PropertyType, string City, string District,
+        bool IsVerified, string? FirstImage,
+        int BedroomCount = 0);
+}

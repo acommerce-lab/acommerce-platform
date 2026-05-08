@@ -1,26 +1,88 @@
-<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk.Razor">
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>Ejar.Customer.UI</RootNamespace>
+    <AssemblyName>ACommerce.Templates.Customer.Marketplace</AssemblyName>
     <PackageId>ACommerce.Templates.Customer.Marketplace</PackageId>
     <Version>1.0.0</Version>
     <Description>
-      قالَب Customer Marketplace — يَرِث Customer.Ledger (نَفس صَفحات Login/
-      Listings/Chat/Notifications/Profile/Plans/Support/Favorites) ويُعيد
-      الطِلاء عَبر MarketplaceClasses + CSS فقط. هذا تَطبيق فِعليّ لِفِكرة
-      "وراثَة القَوالِب": template جَديد يُعيد استِخدام كلّ Razor + Stores
-      من template أَب، ويَتَخَصَّص بـ class names + ألوان فقط.
-      عِندَما يُريد Marketplace صَفَحة structural مُختَلِفة (مَثلاً
-      checkout-wizard يَختَلف عَن Ledger plans)، تُضاف هنا وتَطغى عَلى
-      نَظيرَتِها في Ledger عَبر StoreOverrides أو ExtraPages.
+      قالَب Customer Marketplace — التَّصميم الكامِل المُعَتَمَد لـ V1
+      (إيجار): pages + services + bindings + interceptors + interpreters
+      مَنقولة مِن V1 الأَصلي. تَطبيقات تَستَهلِك القالَب عَبر
+      AddTemplate_Customer_Marketplace فتَحصُل عَلى نَفس تَجربة V1
+      البَصَريّة دون أن تَحتاج كتابَة pages في طَبَقَة التَطبيق.
+      RootNamespace=Ejar.Customer.UI لِلتَّوافُق مَع الكود المُسَتَورَد
+      (يَحفَظ namespaces فلا تَكسِر cross-refs).
     </Description>
+    <RazorLangVersion>latest</RazorLangVersion>
+    <StaticWebAssetBasePath>_content/ACommerce.Templates.Customer.Marketplace</StaticWebAssetBasePath>
   </PropertyGroup>
   <ItemGroup>
     <SupportedPlatform Include="browser" />
   </ItemGroup>
   <ItemGroup>
-    <!-- وراثَة من Customer.Ledger — يَنقُل ٢٥+ مَلَفّ Razor + 8 XxxWidgets transitively -->
+    <!-- Domain (entities + seed contracts) — needed by V1 services -->
+    <ProjectReference Include="..\..\..\..\Apps\Ejar\Domain\Ejar.Domain.csproj" />
+
+    <!-- OperationEngine core + Wire -->
+    <ProjectReference Include="..\..\..\core\OperationEngine\ACommerce.OperationEngine\ACommerce.OperationEngine.csproj" />
+    <ProjectReference Include="..\..\..\core\OperationEngine\ACommerce.OperationEngine.Wire\ACommerce.OperationEngine.Wire.csproj" />
+
+    <!-- Client libs -->
+    <ProjectReference Include="..\..\..\..\clients\ACommerce.Client.Operations\ACommerce.Client.Operations.csproj" />
+    <ProjectReference Include="..\..\..\..\clients\ACommerce.Client.Http\ACommerce.Client.Http.csproj" />
+    <ProjectReference Include="..\..\..\..\clients\ACommerce.Client.StateBridge\ACommerce.Client.StateBridge.csproj" />
+
+    <!-- Culture -->
+    <ProjectReference Include="..\..\..\kits\Culture\ACommerce.Culture.Abstractions\ACommerce.Culture.Abstractions.csproj" />
+    <ProjectReference Include="..\..\..\kits\Culture\ACommerce.Culture.Defaults\ACommerce.Culture.Defaults.csproj" />
+
+    <!-- Widgets + Marketplace + Shared templates -->
+    <ProjectReference Include="..\..\..\kits\Widgets\ACommerce.Widgets\ACommerce.Widgets.csproj" />
+    <ProjectReference Include="..\..\Shared\ACommerce.Templates.Shared\ACommerce.Templates.Shared.csproj" />
+    <ProjectReference Include="..\..\Marketplace\ACommerce.Templates.Marketplace\ACommerce.Templates.Marketplace.csproj" />
+
+    <!-- Chat client -->
+    <ProjectReference Include="..\..\..\kits\Chat\ACommerce.Chat.Client.Blazor\ACommerce.Chat.Client.Blazor.csproj" />
+
+    <!-- Subscriptions Templates -->
+    <ProjectReference Include="..\..\..\kits\Subscriptions\ACommerce.Subscriptions.Templates\ACommerce.Subscriptions.Templates.csproj" />
+
+    <!-- Versions Templates (replaces deleted Versions.Client meta) -->
+    <ProjectReference Include="..\..\..\kits\Versions\ACommerce.Kits.Versions.Operations\ACommerce.Kits.Versions.Operations.csproj" />
+    <ProjectReference Include="..\..\..\kits\Versions\ACommerce.Kits.Versions.Templates\ACommerce.Kits.Versions.Templates.csproj" />
+
+    <!-- ClientHost (fluent client-side host) -->
+    <ProjectReference Include="..\..\..\host-client\ACommerce.ClientHost\ACommerce.ClientHost.csproj" />
+
+    <!-- per-kit Frontend.Customer (Stores: IXxxStore + Default<Kit>Store + ApiClients) -->
+    <ProjectReference Include="..\..\..\kits\Listings\Frontend\Customer\ACommerce.Kits.Listings.Frontend.Customer.csproj" />
+    <ProjectReference Include="..\..\..\kits\Chat\Frontend\Customer\ACommerce.Kits.Chat.Frontend.Customer.csproj" />
+    <ProjectReference Include="..\..\..\kits\Notifications\Frontend\Customer\ACommerce.Kits.Notifications.Frontend.Customer.csproj" />
+    <ProjectReference Include="..\..\..\kits\Profiles\Frontend\Customer\ACommerce.Kits.Profiles.Frontend.Customer.csproj" />
+    <ProjectReference Include="..\..\..\kits\Auth\Frontend\Customer\ACommerce.Kits.Auth.Frontend.Customer.csproj" />
+    <ProjectReference Include="..\..\..\kits\Subscriptions\Frontend\Customer\ACommerce.Kits.Subscriptions.Frontend.Customer.csproj" />
+    <ProjectReference Include="..\..\..\kits\Support\Frontend\Customer\ACommerce.Kits.Support.Frontend.Customer.csproj" />
+    <ProjectReference Include="..\..\..\kits\Favorites\Frontend\Customer\ACommerce.Kits.Favorites.Frontend.Customer.csproj" />
+
+    <!-- Listings Operations (for IListing interface) -->
+    <ProjectReference Include="..\..\..\kits\Listings\ACommerce.Kits.Listings.Operations\ACommerce.Kits.Listings.Operations.csproj" />
+
+    <!-- Customer.Ledger — atomic badges (AcChat/NotificationsUnreadBadgeWidget) used by V1 OLD pages -->
     <ProjectReference Include="..\..\Customer.Ledger\ACommerce.Templates.Customer.Ledger\ACommerce.Templates.Customer.Ledger.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Components.Authorization" Version="10.0.7" />
+    <PackageReference Include="Microsoft.AspNetCore.Authorization" Version="10.0.7" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.7" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.7" />
+    <PackageReference Include="Microsoft.Extensions.Options" Version="10.0.7" />
+    <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.7" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Update="Resources\Strings.resx" Generator="ResXFileCodeGenerator" LastGenOutput="Strings.Designer.cs" />
+    <EmbeddedResource Update="Resources\Strings.ar.resx" />
   </ItemGroup>
 </Project>

@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+
+  <data name="app.name" xml:space="preserve"><value>إيجار</value></data>
+
+  <data name="common.search" xml:space="preserve"><value>بحث</value></data>
+  <data name="common.cancel" xml:space="preserve"><value>إلغاء</value></data>
+  <data name="common.save" xml:space="preserve"><value>حفظ</value></data>
+  <data name="common.submit" xml:space="preserve"><value>تأكيد</value></data>
+  <data name="common.retry" xml:space="preserve"><value>إعادة المحاولة</value></data>
+  <data name="common.close" xml:space="preserve"><value>إغلاق</value></data>
+  <data name="common.loading" xml:space="preserve"><value>جارٍ التحميل…</value></data>
+  <data name="common.empty" xml:space="preserve"><value>لا توجد عناصر</value></data>
+  <data name="common.next" xml:space="preserve"><value>التالي</value></data>
+  <data name="common.prev" xml:space="preserve"><value>السابق</value></data>
+  <data name="common.confirm" xml:space="preserve"><value>تأكيد</value></data>
+  <data name="common.all" xml:space="preserve"><value>الكل</value></data>
+  <data name="common.sar" xml:space="preserve"><value>ريال</value></data>
+  <data name="common.filter" xml:space="preserve"><value>تصفية</value></data>
+  <data name="common.reset" xml:space="preserve"><value>إعادة تعيين</value></data>
+  <data name="common.apply" xml:space="preserve"><value>تطبيق</value></data>
+
+  <data name="home.title" xml:space="preserve"><value>ابحث عن عقارك المثالي</value></data>
+  <data name="home.subtitle" xml:space="preserve"><value>تطبيق الإيجار الأول في اليمن</value></data>
+  <data name="home.search.placeholder" xml:space="preserve"><value>ابحث عن شقة، فيلا، محل…</value></data>
+  <data name="home.categories.title" xml:space="preserve"><value>الفئات</value></data>
+  <data name="home.featured.title" xml:space="preserve"><value>إعلانات مميّزة</value></data>
+  <data name="home.new.title" xml:space="preserve"><value>أُضيف حديثاً</value></data>
+  <data name="home.cta.title" xml:space="preserve"><value>لديك عقار للإيجار؟</value></data>
+  <data name="home.cta.subtitle" xml:space="preserve"><value>أضف إعلانك الآن وابدأ بتأجير عقارك</value></data>
+  <data name="home.view_all" xml:space="preserve"><value>عرض الكل</value></data>
+  <data name="home.city" xml:space="preserve"><value>المدينة</value></data>
+
+  <data name="nav.home" xml:space="preserve"><value>الرئيسية</value></data>
+  <data name="nav.search" xml:space="preserve"><value>بحث</value></data>
+  <data name="nav.favorites" xml:space="preserve"><value>المفضلة</value></data>
+  <data name="nav.chats" xml:space="preserve"><value>الرسائل</value></data>
+  <data name="nav.profile" xml:space="preserve"><value>حسابي</value></data>
+  <data name="nav.notifications" xml:space="preserve"><value>الإشعارات</value></data>
+  <data name="nav.bookings" xml:space="preserve"><value>الحجوزات</value></data>
+
+  <data name="auth.login.title" xml:space="preserve"><value>تسجيل الدخول</value></data>
+  <data name="auth.phone" xml:space="preserve"><value>رقم الجوّال</value></data>
+  <data name="auth.otp" xml:space="preserve"><value>رمز التحقق</value></data>
+  <data name="auth.send_otp" xml:space="preserve"><value>إرسال الرمز</value></data>
+  <data name="auth.verify" xml:space="preserve"><value>تحقّق</value></data>
+  <data name="auth.signed_out" xml:space="preserve"><value>تمّ تسجيل الخروج</value></data>
+  <data name="auth.phone.hint" xml:space="preserve"><value>أدخل رقم جوّالك للمتابعة</value></data>
+  <data name="auth.otp.hint" xml:space="preserve"><value>أدخل رمز التحقق المكوّن من 6 أرقام</value></data>
+  <data name="auth.otp.demo" xml:space="preserve"><value>رمز التجربة: 123456</value></data>
+  <data name="auth.login.success" xml:space="preserve"><value>تمّ تسجيل الدخول بنجاح</value></data>
+
+  <data name="listing.amenities" xml:space="preserve"><value>المرافق والخصائص</value></data>
+  <data name="listing.description" xml:space="preserve"><value>الوصف</value></data>
+  <data name="listing.owner" xml:space="preserve"><value>المُعلن</value></data>
+  <data name="listing.no_results" xml:space="preserve"><value>لا توجد إعلانات</value></data>
+  <data name="listing.price" xml:space="preserve"><value>السعر</value></data>
+  <data name="listing.monthly" xml:space="preserve"><value>شهرياً</value></data>
+  <data name="listing.yearly" xml:space="preserve"><value>سنوياً</value></data>
+  <data name="listing.daily" xml:space="preserve"><value>يومياً</value></data>
+  <data name="listing.hourly" xml:space="preserve"><value>بالساعة</value></data>
+  <data name="listing.bedrooms" xml:space="preserve"><value>غرف النوم</value></data>
+  <data name="listing.area" xml:space="preserve"><value>المساحة</value></data>
+  <data name="listing.verified" xml:space="preserve"><value>موثَّق</value></data>
+  <data name="listing.views" xml:space="preserve"><value>مشاهدة</value></data>
+  <data name="listing.contact" xml:space="preserve"><value>تواصل مع المُعلن</value></data>
+  <data name="listing.favorite.add" xml:space="preserve"><value>أضف للمفضلة</value></data>
+  <data name="listing.favorite.remove" xml:space="preserve"><value>أزل من المفضلة</value></data>
+  <data name="listing.share" xml:space="preserve"><value>مشاركة</value></data>
+
+  <data name="listing.create.title" xml:space="preserve"><value>أضف إعلانك</value></data>
+  <data name="listing.create.field.title" xml:space="preserve"><value>عنوان الإعلان</value></data>
+  <data name="listing.create.field.description" xml:space="preserve"><value>الوصف</value></data>
+  <data name="listing.create.field.price" xml:space="preserve"><value>السعر</value></data>
+  <data name="listing.create.field.timeUnit" xml:space="preserve"><value>وحدة الزمن</value></data>
+  <data name="listing.create.field.city" xml:space="preserve"><value>المدينة</value></data>
+  <data name="listing.create.field.district" xml:space="preserve"><value>الحيّ</value></data>
+  <data name="listing.create.field.category" xml:space="preserve"><value>نوع العقار</value></data>
+  <data name="listing.create.field.bedrooms" xml:space="preserve"><value>عدد غرف النوم</value></data>
+  <data name="listing.create.field.bathrooms" xml:space="preserve"><value>عدد دورات المياه</value></data>
+  <data name="listing.create.field.area" xml:space="preserve"><value>المساحة (م²)</value></data>
+
+  <data name="filter.city" xml:space="preserve"><value>المدينة</value></data>
+  <data name="filter.district" xml:space="preserve"><value>الحيّ</value></data>
+  <data name="filter.type" xml:space="preserve"><value>نوع العقار</value></data>
+  <data name="filter.time_unit" xml:space="preserve"><value>مدة الإيجار</value></data>
+  <data name="filter.price_min" xml:space="preserve"><value>أقل سعر</value></data>
+  <data name="filter.price_max" xml:space="preserve"><value>أعلى سعر</value></data>
+  <data name="filter.sort" xml:space="preserve"><value>الترتيب</value></data>
+  <data name="filter.sort.views" xml:space="preserve"><value>الأكثر مشاهدة</value></data>
+  <data name="filter.sort.price_asc" xml:space="preserve"><value>السعر: من الأقل</value></data>
+  <data name="filter.sort.price_desc" xml:space="preserve"><value>السعر: من الأعلى</value></data>
+
+  <data name="chat.title" xml:space="preserve"><value>المحادثات</value></data>
+  <data name="chat.new_message" xml:space="preserve"><value>اكتب رسالتك…</value></data>
+  <data name="chat.send" xml:space="preserve"><value>إرسال</value></data>
+  <data name="chat.start" xml:space="preserve"><value>بدء محادثة</value></data>
+  <data name="chat.about_listing" xml:space="preserve"><value>حول الإعلان</value></data>
+
+  <data name="notification.title" xml:space="preserve"><value>الإشعارات</value></data>
+  <data name="notification.mark_read" xml:space="preserve"><value>تحديد كمقروء</value></data>
+  <data name="notification.mark_all_read" xml:space="preserve"><value>تحديد الكل كمقروء</value></data>
+  <data name="notification.empty" xml:space="preserve"><value>لا توجد إشعارات</value></data>
+
+  <data name="complaint.title" xml:space="preserve"><value>الشكاوى</value></data>
+  <data name="complaint.new" xml:space="preserve"><value>شكوى جديدة</value></data>
+  <data name="complaint.subject" xml:space="preserve"><value>الموضوع</value></data>
+  <data name="complaint.body" xml:space="preserve"><value>التفاصيل</value></data>
+  <data name="complaint.send" xml:space="preserve"><value>إرسال</value></data>
+  <data name="complaint.reply" xml:space="preserve"><value>رد</value></data>
+  <data name="complaint.status.open" xml:space="preserve"><value>مفتوحة</value></data>
+  <data name="complaint.status.resolved" xml:space="preserve"><value>محلولة</value></data>
+  <data name="complaint.status.closed" xml:space="preserve"><value>مغلقة</value></data>
+
+  <data name="plans.title" xml:space="preserve"><value>الباقات والخطط</value></data>
+  <data name="plans.subscribe" xml:space="preserve"><value>اشترك الآن</value></data>
+  <data name="plans.current" xml:space="preserve"><value>الخطة الحالية</value></data>
+  <data name="plans.listings_limit" xml:space="preserve"><value>إعلان</value></data>
+  <data name="plans.free" xml:space="preserve"><value>مجاناً</value></data>
+
+  <data name="subscription.title" xml:space="preserve"><value>اشتراكي</value></data>
+  <data name="subscription.days_remaining" xml:space="preserve"><value>يوم متبقّي</value></data>
+  <data name="subscription.renew" xml:space="preserve"><value>تجديد</value></data>
+  <data name="subscription.change" xml:space="preserve"><value>تغيير الخطّة</value></data>
+  <data name="subscription.invoices" xml:space="preserve"><value>الفواتير</value></data>
+  <data name="subscription.usage" xml:space="preserve"><value>إعلانات مستخدمة</value></data>
+
+  <data name="favorites.title" xml:space="preserve"><value>المفضلة</value></data>
+  <data name="favorites.empty" xml:space="preserve"><value>لم تضف أي إعلان للمفضلة بعد</value></data>
+
+  <data name="my_listings.title" xml:space="preserve"><value>إعلاناتي</value></data>
+  <data name="my_listings.add" xml:space="preserve"><value>أضف إعلاناً</value></data>
+  <data name="my_listings.empty" xml:space="preserve"><value>لا توجد إعلانات بعد</value></data>
+  <data name="my_listings.active" xml:space="preserve"><value>نشط</value></data>
+  <data name="my_listings.paused" xml:space="preserve"><value>موقوف</value></data>
+  <data name="my_listings.toggle" xml:space="preserve"><value>تغيير الحالة</value></data>
+  <data name="my_listings.delete" xml:space="preserve"><value>حذف</value></data>
+
+  <data name="profile.edit" xml:space="preserve"><value>تعديل الملفّ الشخصيّ</value></data>
+  <data name="profile.name" xml:space="preserve"><value>الاسم الكامل</value></data>
+  <data name="profile.phone" xml:space="preserve"><value>رقم الجوّال</value></data>
+  <data name="profile.email" xml:space="preserve"><value>البريد الإلكتروني</value></data>
+  <data name="profile.city" xml:space="preserve"><value>المدينة</value></data>
+  <data name="profile.verified" xml:space="preserve"><value>موثَّق</value></data>
+  <data name="profile.save" xml:space="preserve"><value>حفظ التغييرات</value></data>
+
+  <data name="settings.title" xml:space="preserve"><value>الإعدادات</value></data>
+  <data name="settings.theme" xml:space="preserve"><value>السمة</value></data>
+  <data name="settings.theme.light" xml:space="preserve"><value>فاتح</value></data>
+  <data name="settings.theme.dark" xml:space="preserve"><value>داكن</value></data>
+  <data name="settings.language" xml:space="preserve"><value>اللغة</value></data>
+  <data name="settings.sign_out" xml:space="preserve"><value>تسجيل الخروج</value></data>
+
+  <data name="legal.privacy" xml:space="preserve"><value>سياسة الخصوصيّة</value></data>
+  <data name="legal.terms" xml:space="preserve"><value>الشروط والأحكام</value></data>
+  <data name="legal.refund" xml:space="preserve"><value>سياسة الاسترداد</value></data>
+  <data name="legal.return" xml:space="preserve"><value>سياسة الإرجاع</value></data>
+
+  <data name="version.required" xml:space="preserve"><value>تحديث مطلوب</value></data>
+  <data name="version.required_body" xml:space="preserve"><value>يجب تحديث التطبيق للاستمرار في استخدامه</value></data>
+  <data name="version.download" xml:space="preserve"><value>تنزيل الإصدار الجديد</value></data>
+  <data name="version.current" xml:space="preserve"><value>الإصدار الحالي</value></data>
+  <data name="version.latest" xml:space="preserve"><value>الإصدار المتاح</value></data>
+
+  <data name="help.title" xml:space="preserve"><value>المساعدة والدعم</value></data>
+  <data name="help.faq" xml:space="preserve"><value>الأسئلة الشائعة</value></data>
+  <data name="help.contact" xml:space="preserve"><value>تواصل معنا</value></data>
+</root>

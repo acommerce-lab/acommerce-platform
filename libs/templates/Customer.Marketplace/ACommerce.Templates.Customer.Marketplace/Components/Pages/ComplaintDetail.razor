@@ -1,0 +1,144 @@
+@page "/complaints/{Id}"
+@attribute [Authorize]
+@inject ApiReader Api
+@inject NavigationManager Nav
+@using ACommerce.Client.Operations
+@using Ejar.Customer.UI.Operations
+@inject ClientOpEngine Engine
+@inject L L
+
+<PageTitle>تفاصيل الشكوى — @(L["app.name"])</PageTitle>
+
+<div class="acs-page acs-complaint-thread">
+    @if (_loading) { <AcLoadingState /> }
+    else if (_t is null) { <AcEmptyState IconName="alert-circle" Message="الشكوى غير موجودة" /> }
+    else
+    {
+        <h1 class="acm-wizard-title">@_t.Subject</h1>
+        <AcCard>
+            <ChildContent>
+                <div class="acm-checkout-line"><span>الحالة:</span><AcBadge Variant="@StatusVariant(_t.Status)" Text="@StatusLabel(_t.Status)" /></div>
+                <div class="acm-checkout-line"><span>الأولويّة:</span><strong>@_t.Priority</strong></div>
+                @if (!string.IsNullOrEmpty(_t.RelatedEntityId))
+                {
+                    <div class="acm-checkout-line"><span>مرتبطة بـ:</span><strong>@_t.RelatedEntityId</strong></div>
+                }
+                <div class="acm-checkout-line"><span>أُنشئت:</span><strong>@_t.CreatedAt.ToString("yyyy-MM-dd HH:mm")</strong></div>
+            </ChildContent>
+        </AcCard>
+
+        <h3 style="margin-top:16px;">المحادثة</h3>
+        <div class="acs-chat-messages">
+            @foreach (var m in _messages)
+            {
+                // SenderPartyId له شكل "User:{guid}". رسائل النظام (تغيير الحالة)
+                // ترسل من Guid.Empty فنُميِّزها كـ system bubble.
+                var sender = m.SenderPartyId ?? "";
+                var senderId = sender.StartsWith("User:") ? sender[5..] : sender;
+                var isSystem = senderId == "00000000-0000-0000-0000-000000000000";
+                var isMine   = !isSystem && _t.UserId == senderId;
+                var cls = isSystem ? "acs-bubble-system"
+                         : isMine ? "acs-bubble-mine"
+                                  : "acs-bubble-other acs-bubble-staff";
+                <div class="acs-bubble @cls">
+                    @if (!isMine && !isSystem)
+                    {
+                        <small style="display:block; font-weight:700; color:var(--ac-primary);">
+                            <AcIcon Name="shield" Size="14" /> موظّف دعم
+                        </small>
+                    }
+                    <div>@m.Body</div>
+                    <small style="display:block; opacity:.6;">@m.SentAt.ToString("yyyy-MM-dd HH:mm")</small>
+                </div>
+            }
+        </div>
+
+        @if (_t.Status is "open" or "in_progress")
+        {
+            <div style="display:flex; gap:8px; margin-top:12px;">
+                <AcInput Value="@_draft" ValueChanged="@(v => _draft = v ?? string.Empty)" Placeholder="اكتب ردّك…" />
+                <AcButton Variant="primary" Text="إرسال" OnClick="@Send"
+                          Disabled="@(string.IsNullOrWhiteSpace(_draft) || _sending)" />
+            </div>
+        }
+        else
+        {
+            <AcAlert Variant="secondary" Message="الشكوى مغلقة — لا يمكن إضافة ردود." />
+        }
+
+        <div style="margin-top:12px;">
+            <AcButton Variant="ghost" Text="رجوع" OnClick="@GoBack" />
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public string Id { get; set; } = "";
+
+    private TicketDto? _t;
+    private List<MessageDto> _messages = new();
+    private bool _loading = true;
+    private string _draft = "";
+    private bool _sending;
+
+    protected override async Task OnAfterRenderAsync(bool first)
+    {
+        if (!first) return;
+        await Reload();
+    }
+
+    private async Task Reload()
+    {
+        // Support kit يُرجع { ticket, messages } — رسائل من Chat kit (IChatMessage).
+        var env = await Api.GetAsync<DetailsDto>($"/support/tickets/{Id}");
+        _t = env.Data?.Ticket;
+        _messages = env.Data?.Messages ?? new();
+        _loading = false;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task Send()
+    {
+        if (string.IsNullOrWhiteSpace(_draft) || _t is null) return;
+        _sending = true;
+        try
+        {
+            var env = await Engine.ExecuteAsync<object>(
+                EjarOps.ReplyTicket(Id, _draft),
+                payload: new { Text = _draft });
+            if (env?.Operation.Status == "Success")
+            {
+                _draft = "";
+                await Reload();
+            }
+        }
+        finally { _sending = false; }
+    }
+
+    private void GoBack() => Nav.NavigateTo("/complaints");
+
+    private static string StatusLabel(string s) => s switch
+    {
+        "open" => "مفتوحة", "in_progress" => "قيد المعالجة",
+        "resolved" => "محلولة", "closed" => "مغلقة",
+        _ => s
+    };
+
+    private static string StatusVariant(string s) => s switch
+    {
+        "open" => "warning", "in_progress" => "secondary",
+        "resolved" => "success", "closed" => "secondary",
+        _ => "secondary"
+    };
+
+    // shapes تطابق ISupportTicket (kit) + IChatMessage (kit).
+    private sealed record TicketDto(string Id, string UserId, string ConversationId,
+        string Subject, string Status, string Priority,
+        string? RelatedEntityId, string? AssignedAgentId,
+        DateTime CreatedAt, DateTime? UpdatedAt);
+
+    private sealed record MessageDto(string Id, string ConversationId,
+        string SenderPartyId, string Body, DateTime SentAt, DateTime? ReadAt);
+
+    private sealed record DetailsDto(TicketDto Ticket, List<MessageDto> Messages);
+}

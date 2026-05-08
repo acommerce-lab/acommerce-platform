@@ -1,11 +1,11 @@
 using ACommerce.Kits.Versions.Templates;
 using Ejar.Customer.UI.ClientHost;
+using Ejar.Customer.UI.Interceptors;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 
-// نُقطَة جَذر المُكَوِّنات — نَفس Routes الذي يَستَخدِمه Ejar.Web (server).
 builder.RootComponents.Add<Ejar.Customer.UI.Components.Routes>("#app");
 builder.RootComponents.Add<HeadOutlet>("head::after");
 
@@ -17,8 +17,15 @@ builder.Services.AddHttpClient("ejar", c =>
 {
     c.BaseAddress = new Uri(apiBase);
     c.Timeout = TimeSpan.FromSeconds(30);
-});
+})
+.AddHttpMessageHandler<CultureHeadersHandler>()
+.AddHttpMessageHandler<AppVersionHeadersHandler>()
+.AddHttpMessageHandler<AuthHeadersHandler>();
+
+builder.Services.AddScoped(sp => sp.GetRequiredService<IHttpClientFactory>().CreateClient("ejar"));
 
 builder.Services.AddEjarCustomer();
 
-await builder.Build().RunAsync();
+var host = builder.Build();
+await host.Services.GetRequiredService<Ejar.Customer.UI.Store.AppStorePersistence>().RestoreAsync();
+await host.RunAsync();

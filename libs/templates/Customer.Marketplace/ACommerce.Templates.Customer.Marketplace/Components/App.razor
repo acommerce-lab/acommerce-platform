@@ -1,17 +1,10 @@
-@*
-    App.razor — root SSR shell لـ V1. كلّ الـ pages والـ Layout يَأتيان مِن
-    قالَب Customer.Marketplace (المَنقول مِن V1 OLD). هذا المَلَفّ يَحوي
-    HTML الإطار + سَلسَلَة CSS + scripts الإقلاع.
-*@
-@using Ejar.Customer.UI.Components
-
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
+
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <base href="/" />
-    <title>إيجار</title>
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -20,20 +13,18 @@
     <link rel="stylesheet" href="_content/ACommerce.Widgets/widgets.css" />
     <link rel="stylesheet" href="_content/ACommerce.Templates.Shared/templates-shared.css" />
     <link rel="stylesheet" href="_content/ACommerce.Templates.Marketplace/templates-marketplace.css" />
-    <link rel="stylesheet" href="_content/ACommerce.Templates.Customer.Marketplace/app.css" />
-    <link rel="stylesheet" href="branding.css" />
+    <link rel="stylesheet" href="app.css" />
 
     <HeadOutlet />
 </head>
+
 <body>
     <Routes @rendermode="InteractiveServer" />
     <script src="_framework/blazor.web.js"></script>
-    <script src="_content/ACommerce.Templates.Customer.Marketplace/ui-prefs.js"></script>
-    <script src="_content/ACommerce.Templates.Customer.Marketplace/image-compressor.js"></script>
-    <script src="_content/ACommerce.Templates.Customer.Marketplace/notifications.js"></script>
-    <script src="_content/ACommerce.Templates.Customer.Marketplace/js/firebase-push.js" type="module"></script>
+    <script src="ui-prefs.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.7/signalr.min.js"
-            integrity="sha512-7SRCYIJtR6F8ocwW7UxW6wGKqbSyqREDbfCORCbGLatU0iugBLwyOXpzhkPyHIFdBO0K2VCu57fvP2Twgx1o2A=="
+            integrity="sha512-7SRCYIJtR6F8ocwW7UxW6wGKqbSyqREDbfCORCNGarvHiAIzNh7pBnFAw4QcVBSzQMbLp0bOGv7TFfvqBL3qg=="
             crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 </body>
+
 </html>

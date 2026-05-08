@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk.Razor">
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
@@ -8,27 +8,13 @@
     <PackageId>Ejar.Customer.UI</PackageId>
     <Version>1.0.0</Version>
     <Description>
-      تَطبيق إيجار V1 — بَعد التَّوحيد (F54) يَستَهلِك قالَب
-      Customer.Marketplace كَنُقطة دَخول وَحيدة. نَفس شَكل V2 تَماماً —
-      القالَب المُختَلِف + branding.css هُما الفَرق الوَحيد. لا app
-      services، لا app stores، لا app pages مُكَرَّرة لِما يَعرِضه القالَب.
+      تَطبيق إيجار V1 — مَكتَبة عَميل نَحيفَة بَعد F55. كلّ الـ pages
+      والـ services الأَصليّة مَنقولة إلى قالَب Customer.Marketplace
+      ومُحَافَظ عَلى تَصميمها وأَدائها كَما كانَت. هذا المَشروع يَحوي فقط
+      نُقطة الدَّخول EjarCustomerHost التي تُفَوِّض لِلقالَب.
     </Description>
-    <RazorLangVersion>latest</RazorLangVersion>
   </PropertyGroup>
   <ItemGroup>
-    <SupportedPlatform Include="browser" />
-  </ItemGroup>
-  <ItemGroup>
-    <!-- قالَب Customer.Marketplace — مَصدر كلّ pages + bindings + api clients (يَرِث Customer.Ledger) -->
     <ProjectReference Include="..\..\..\..\..\libs\templates\Customer.Marketplace\ACommerce.Templates.Customer.Marketplace\ACommerce.Templates.Customer.Marketplace.csproj" />
-
-    <!-- Versions Templates يَكشف AppVersionInfo + AppVersionHeadersHandler -->
-    <ProjectReference Include="..\..\..\..\..\libs\kits\Versions\ACommerce.Kits.Versions.Templates\ACommerce.Kits.Versions.Templates.csproj" />
-  </ItemGroup>
-  <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.Components.Authorization" Version="10.0.7" />
-    <PackageReference Include="Microsoft.AspNetCore.Authorization" Version="10.0.7" />
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.7" />
-    <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.7" />
   </ItemGroup>
 </Project>

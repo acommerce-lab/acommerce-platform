@@ -1,0 +1,141 @@
+@page "/subscribe"
+@attribute [Authorize]
+@inject AppStore Store
+@inject ApiReader Api
+@inject NavigationManager Nav
+@inject L L
+
+@*
+  تفعيل الاشتراك — بدون بطاقة دفع. اليمن لا يملك بنية تحتيّة لبطاقات الائتمان
+  منتشرة، فحلّ "اضغط ادفع بالبطاقة" غير عمليّ. الحلّ الحاليّ:
+
+  1. خطّة مجانيّة (المجموع = 0) → زرّ "تفعيل" واحد يستدعي مباشرةً
+     /subscriptions/activate ويُحوّل إلى /me/subscription.
+
+  2. خطّة مدفوعة → نفس زرّ "تفعيل"، مع ملاحظة بأنّ تفاصيل السداد ستُرسَل
+     لاحقاً (تكامل Floosak / OneCash / تحصيل ميدانيّ يأتي لاحقاً).
+     لا نطلب بطاقة، ولا نُظهر نموذجاً للبطاقة، فالشاشة لن تخدع المستخدم.
+
+  هذا يبدّل صفحة /subscribe القديمة التي كانت تعرض AcPaymentForm وفشلها
+  في "ادفع 0 ر.ي" بلا توضيح.
+*@
+
+<PageTitle>تفعيل الاشتراك — @(L["app.name"])</PageTitle>
+
+<div class="acs-page acs-subscribe-page">
+    <h1 class="acm-wizard-title">تفعيل الاشتراك</h1>
+
+    @if (_loading) { <AcLoadingState /> }
+    else if (_done)
+    {
+        <AcCard>
+            <ChildContent>
+                <div style="text-align:center; padding:16px 0;">
+                    <AcIcon Name="check-circle" Size="48" />
+                    <h3 style="margin:12px 0 4px;">تمّ تفعيل اشتراكك</h3>
+                    <p style="color:var(--ac-text-muted); margin:0 0 16px;">
+                        تستطيع الآن نشر إعلاناتك حسب حدود الباقة.
+                    </p>
+                    <AcButton Variant="primary" Class="ac-btn-block" Text="انتقل إلى اشتراكي"
+                              OnClick="@(() => Nav.NavigateTo("/my-subscription"))" />
+                </div>
+            </ChildContent>
+        </AcCard>
+    }
+    else
+    {
+        <AcCard>
+            <ChildContent>
+                <h3 style="margin-top:0;">@(_plan?.Name ?? "الخطّة")</h3>
+                @if (_plan is not null && !string.IsNullOrWhiteSpace(_plan.Description))
+                {
+                    <p style="color:var(--ac-text-muted);">@_plan.Description</p>
+                }
+                <div class="acm-checkout-line"><span>المجموع:</span>
+                    <strong>@(IsFree ? "مجّاناً" : $"{_baseAmount:0} ر.ي")</strong></div>
+                @if (!IsFree)
+                {
+                    <AcAlert Variant="info"
+                             Message="السداد للباقات المدفوعة يتمّ يدوياً عبر التواصل مع الإدارة. سيُفعَّل اشتراكك مباشرةً، وسنرسل تعليمات السداد لاحقاً." />
+                }
+            </ChildContent>
+        </AcCard>
+
+        @if (!string.IsNullOrEmpty(_error))
+        {
+            <AcAlert Variant="danger" Message="@_error" />
+        }
+
+        <AcStickyActionBar>
+            <AcButton Variant="ghost" Text="رجوع" OnClick="@(() => Nav.NavigateTo("/plans"))" Disabled="@_busy" />
+            <AcButton Variant="primary" Class="ac-btn-block"
+                      Text="@(_busy ? "جارٍ التفعيل…" : "تفعيل الاشتراك")"
+                      OnClick="@Activate" Disabled="@_busy" />
+        </AcStickyActionBar>
+    }
+</div>
+
+@code {
+    [SupplyParameterFromQuery] public string? Type { get; set; }
+    [SupplyParameterFromQuery] public string? Id { get; set; }
+    [SupplyParameterFromQuery] public decimal Amount { get; set; }
+
+    private PlanDto? _plan;
+    private decimal _baseAmount;
+    private bool _loading = true;
+    private bool _busy;
+    private bool _done;
+    private string? _error;
+
+    private bool IsFree => _baseAmount <= 0;
+
+    protected override async Task OnAfterRenderAsync(bool first)
+    {
+        if (!first) return;
+        if (Type == "plan" && !string.IsNullOrEmpty(Id))
+        {
+            var env = await Api.GetAsync<List<PlanDto>>("/plans");
+            _plan = env.Data?.FirstOrDefault(p => p.Id == Id);
+            _baseAmount = _plan?.Price ?? Amount;
+        }
+        else
+        {
+            _baseAmount = Amount;
+        }
+        _loading = false;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task Activate()
+    {
+        if (string.IsNullOrEmpty(Id)) { _error = "خطّة غير محدّدة."; return; }
+        _busy = true; _error = null;
+        try
+        {
+            var env = await Api.PostAsync<object>("/subscriptions/activate", new { planId = Id });
+            if (env.Operation.Status == "Success")
+            {
+                _done = true;
+            }
+            else
+            {
+                var code = env.Error?.Code ?? env.Operation?.FailedAnalyzer;
+                var msg  = env.Error?.Message ?? env.Operation?.ErrorMessage;
+                _error = (code, msg) switch
+                {
+                    ("invalid_plan_id", _) => "معرّف الخطّة غير صالح.",
+                    ("plan_not_found",  _) => "الخطّة غير موجودة.",
+                    (_, var m) when !string.IsNullOrWhiteSpace(m) => m!,
+                    (var c, _) when !string.IsNullOrWhiteSpace(c) => $"تعذّر التفعيل ({c}).",
+                    _ => "تعذّر تفعيل الاشتراك. حاول مجدّداً."
+                };
+            }
+        }
+        catch (Exception ex) { _error = $"خطأ غير متوقّع: {ex.Message}"; }
+        finally { _busy = false; await InvokeAsync(StateHasChanged); }
+    }
+
+    private sealed record PlanDto(string Id, string Name, string Description,
+        decimal Price, string Unit, int ListingQuota, int FeaturedQuota,
+        int ImagesPerListing, bool Popular, List<string> Features);
+}

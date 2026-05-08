@@ -1,0 +1,59 @@
+@page "/legal"
+@page "/legal/{Key}"
+@inject ApiReader Api
+@inject NavigationManager Nav
+@inject L L
+
+<PageTitle>@(L["legal.terms"]) — @(L["app.name"])</PageTitle>
+
+<div class="acs-page acs-legal-page">
+    <h1 class="acm-wizard-title">المستندات القانونيّة</h1>
+
+    @if (_loading) { <AcLoadingState /> }
+    else if (_docs.Count == 0) { <AcEmptyState IconName="info" Message="لا توجد مستندات" /> }
+    else
+    {
+        <div style="display:flex; flex-direction:column; gap:8px;">
+            @foreach (var d in _docs)
+            {
+                var key = d.Key;
+                var open = _openKey == key;
+                <AcCard>
+                    <ChildContent>
+                        <button type="button" class="acs-accordion-head"
+                                @onclick="@(() => Toggle(key))">
+                            <strong>@d.Title</strong>
+                            <AcIcon Name="@(open ? "chevron-up" : "chevron-down")" Size="16" />
+                        </button>
+                        @if (open)
+                        {
+                            <div class="acs-legal-body"><pre>@d.Body</pre></div>
+                        }
+                    </ChildContent>
+                </AcCard>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public string? Key { get; set; }
+
+    private List<DocDto> _docs = new();
+    private bool _loading = true;
+    private string? _openKey;
+
+    protected override async Task OnAfterRenderAsync(bool first)
+    {
+        if (!first) return;
+        var env = await Api.GetAsync<List<DocDto>>("/legal");
+        _docs    = env.Data ?? new();
+        _openKey = Key ?? _docs.FirstOrDefault()?.Key;
+        _loading = false;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void Toggle(string k) => _openKey = _openKey == k ? null : k;
+
+    private sealed record DocDto(string Key, string Title, string Body);
+}
