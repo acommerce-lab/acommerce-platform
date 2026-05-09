@@ -26,14 +26,17 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IOperationInterceptor, JournalInterceptor>();
 
         // إذا لم يُستدعَ AddOperationInterceptors بعد، تأكد من وجود registry ومصدر للمعترضات
-        services.TryAddSingleton<OperationInterceptorRegistry>(sp =>
+        // Scoped (لا Singleton) لِيَتَوافَق مَع IOperationInterceptors الـ scoped
+        // (مَثَل CultureLocalizationInterceptor) — وإلّا تَنشَأ
+        // DirectScopedResolvedFromRootException في WASM dev.
+        services.TryAddScoped<OperationInterceptorRegistry>(sp =>
         {
             var registry = new OperationInterceptorRegistry();
             foreach (var interceptor in sp.GetServices<IOperationInterceptor>())
                 registry.Register(interceptor);
             return registry;
         });
-        services.TryAddSingleton<IInterceptorSource>(sp => sp.GetRequiredService<OperationInterceptorRegistry>());
+        services.TryAddScoped<IInterceptorSource>(sp => sp.GetRequiredService<OperationInterceptorRegistry>());
 
         // سجّل IAccountQuery لاستعلامات الحسابات
         services.TryAddScoped<IAccountQuery, JournalAccountQuery>();
