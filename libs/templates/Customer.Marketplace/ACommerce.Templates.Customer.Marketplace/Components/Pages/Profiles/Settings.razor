@@ -1,6 +1,7 @@
 @page "/settings"
 @attribute [Authorize]
-@inject AppStore Store
+@inject IUiPreferences Prefs
+@inject IClientCultureController Culture
 @inject NavigationManager Nav
 @inject L L
 
@@ -15,18 +16,18 @@
                 <span>@(L["settings.theme"])</span>
                 <div style="display:inline-flex; gap:8px;">
                     <AcFilterChip Label="@(L["settings.theme.light"])"
-                                  Active="@(Store.Ui.Theme == "light")"
+                                  Active="@(Prefs.Theme == "light")"
                                   OnClick="@SetLight" />
                     <AcFilterChip Label="@(L["settings.theme.dark"])"
-                                  Active="@(Store.Ui.Theme == "dark")"
+                                  Active="@(Prefs.Theme == "dark")"
                                   OnClick="@SetDark" />
                 </div>
             </div>
             <div class="acm-checkout-line">
                 <span>@(L["settings.language"])</span>
                 <div style="display:inline-flex; gap:8px;">
-                    <AcFilterChip Label="العربيّة" Active="@(Store.Ui.Language == "ar")" OnClick="@SetAr" />
-                    <AcFilterChip Label="English"  Active="@(Store.Ui.Language == "en")" OnClick="@SetEn" />
+                    <AcFilterChip Label="العربيّة" Active="@(Prefs.Language == "ar")" OnClick="@SetAr" />
+                    <AcFilterChip Label="English"  Active="@(Prefs.Language == "en")" OnClick="@SetEn" />
                 </div>
             </div>
         </ChildContent>
@@ -43,10 +44,10 @@
 </div>
 
 @code {
-    private Task SetLight() => Task.Run(() => Store.SetTheme("light"));
-    private Task SetDark()  => Task.Run(() => Store.SetTheme("dark"));
-    private Task SetAr()    => Task.Run(() => Store.SetCulture(Store.Ui.Culture with { Language = "ar" }));
-    private Task SetEn()    => Task.Run(() => Store.SetCulture(Store.Ui.Culture with { Language = "en" }));
+    private Task SetLight() => Culture.SetThemeAsync("light");
+    private Task SetDark()  => Culture.SetThemeAsync("dark");
+    private Task SetAr()    => Culture.SetLanguageAsync("ar");
+    private Task SetEn()    => Culture.SetLanguageAsync("en");
     private void GoPrivacy() => Nav.NavigateTo("/legal/privacy");
     private void GoTerms()   => Nav.NavigateTo("/legal/terms");
     private void GoRefund()  => Nav.NavigateTo("/legal/refund");

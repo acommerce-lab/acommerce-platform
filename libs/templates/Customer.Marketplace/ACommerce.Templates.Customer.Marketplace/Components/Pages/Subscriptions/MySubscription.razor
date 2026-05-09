@@ -1,6 +1,6 @@
 @page "/my-subscription"
 @attribute [Authorize]
-@inject ApiReader Api
+@inject ITemplateEngine Engine
 @inject NavigationManager Nav
 @inject L L
 
@@ -127,10 +127,15 @@
     protected override async Task OnAfterRenderAsync(bool first)
     {
         if (!first) return;
-        var s = await Api.GetAsync<SubDto>("/me/subscription");
+        // OAM-pure: subscription.get_active op (kit-defined) عَبر engine.
+        // الشَكل الكامِل لا يَتَّسِع لِـ ISubscriptionsStore.Active (Guid Id فَقَط)
+        // فنَستَعمِل DTO مَحَلّيّ يَلتَقِط الـ wire shape كامِلاً.
+        var s = await Engine.ExecuteAsync<SubDto>(SubscriptionsOps.GetActive());
         _sub = s.Data;
-        var inv = await Api.GetAsync<List<InvoiceDto>>("/me/invoices");
+
+        var inv = await Engine.ExecuteAsync<List<InvoiceDto>>(SubscriptionsOps.ListInvoices());
         _invoices = inv.Data ?? new();
+
         _loading = false;
         await InvokeAsync(StateHasChanged);
     }

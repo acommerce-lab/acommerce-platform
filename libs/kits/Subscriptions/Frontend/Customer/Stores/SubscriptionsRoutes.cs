@@ -20,5 +20,6 @@ internal sealed class SubscriptionsRoutesRegistrar : IRoutesRegistrar
         routes.Map("subscriptions.plans.list",  HttpMethod.Get,  "/plans");
         routes.Map("subscription.get_active",   HttpMethod.Get,  "/me/subscription");
         routes.Map("subscription.activate",     HttpMethod.Post, "/subscriptions/activate");
+        routes.Map("invoices.list_mine",        HttpMethod.Get,  "/me/invoices");
     }
 }

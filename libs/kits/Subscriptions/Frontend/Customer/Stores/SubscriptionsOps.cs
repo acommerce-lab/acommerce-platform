@@ -23,4 +23,10 @@ public static class SubscriptionsOps
         .To($"Plan:{planId}",        1, ("role", "subject"))
         .Tag("planId", planId)
         .Build();
+
+    public static Operation ListInvoices() => Entry
+        .Create("invoices.list_mine")
+        .From("User:current",        1, ("role", "subscriber"))
+        .To("Server:subscriptions",  1, ("role", "source"))
+        .Build();
 }

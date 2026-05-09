@@ -1,6 +1,6 @@
 @page "/plans"
 @attribute [Authorize]
-@inject ApiReader Api
+@inject ITemplateEngine Engine
 @inject NavigationManager Nav
 @inject L L
 
@@ -90,7 +90,11 @@
     protected override async Task OnAfterRenderAsync(bool first)
     {
         if (!first) return;
-        var env = await Api.GetAsync<List<PlanDto>>("/plans");
+        // OAM-pure: نَدفَع نَفس op الـ kit (subscriptions.plans.list) عَبر
+        // ITemplateEngine ⇒ نَفس الـ route / interceptors. الـ DTO المَحَلّيّ
+        // يَلتَقِط الشَكل الكامِل (Description/Features/Quotas) الذي يَفقِده
+        // ISubscriptionsStore.Plans (الذي يَلتَقِط Id/Slug/Name فَقَط).
+        var env = await Engine.ExecuteAsync<List<PlanDto>>(SubscriptionsOps.ListPlans());
         _plans = env.Data ?? new();
         _loading = false;
         await InvokeAsync(StateHasChanged);
