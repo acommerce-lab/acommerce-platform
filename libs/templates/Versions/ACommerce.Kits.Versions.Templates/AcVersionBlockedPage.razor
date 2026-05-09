@@ -1,0 +1,48 @@
+@*
+  Full-screen panel shown when the version is Unsupported. Replaces the entire
+  app content. Provides the latest version, sunset date if any, notes, and a
+  download link if the backend supplied one.
+*@
+
+@using ACommerce.Kits.Versions.Operations
+
+<div class="ac-version-block-page" role="alert" aria-live="assertive">
+    <div class="ac-version-block-card">
+        <div class="ac-version-block-icon">⚠️</div>
+        <h1 class="ac-version-block-title">@(Title ?? "حدّث التطبيق للمتابعة")</h1>
+        <p class="ac-version-block-msg">
+            @(Message ?? "إصدارك الحالي لم يعد مدعوماً. الرجاء تحديث التطبيق للاستمرار في الاستخدام.")
+        </p>
+
+        <dl class="ac-version-block-meta">
+            <div><dt>إصدارك</dt><dd>@Result.Version</dd></div>
+            @if (!string.IsNullOrEmpty(Result.Latest))
+            {
+                <div><dt>الأحدث</dt><dd>@Result.Latest</dd></div>
+            }
+            @if (Result.SunsetAt is { } s)
+            {
+                <div><dt>تاريخ الإلغاء</dt><dd>@s.ToString("yyyy-MM-dd")</dd></div>
+            }
+        </dl>
+
+        @if (!string.IsNullOrEmpty(Result.Notes))
+        {
+            <p class="ac-version-block-notes">@Result.Notes</p>
+        }
+
+        @if (!string.IsNullOrEmpty(Result.DownloadUrl))
+        {
+            <a class="ac-version-block-cta" href="@Result.DownloadUrl" target="_blank" rel="noopener">
+                @(DownloadLabel ?? "تحديث الآن")
+            </a>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public VersionCheckResult Result { get; set; } = default!;
+    [Parameter] public string? Title { get; set; }
+    [Parameter] public string? Message { get; set; }
+    [Parameter] public string? DownloadLabel { get; set; }
+}

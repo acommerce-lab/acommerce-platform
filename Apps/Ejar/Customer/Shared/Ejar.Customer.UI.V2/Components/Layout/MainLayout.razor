@@ -1,0 +1,50 @@
+@inherits LayoutComponentBase
+@inject ACommerce.ClientHost.Auth.IClientAuthPersistence Persistence
+
+@*
+    قشرة V2 — top bar محاسبيّ بسيط مع لوحة هويّة ledger، body، bottom nav.
+    OnAfterRenderAsync(firstRender) يَستدعي Persistence.RestoreAsync فور
+    تَوَفّر JSInterop (بَعد interactive bind). بدونه ClientAuthStateProvider
+    يَفشل في قراءة JWT من localStorage عند reload فيَطلب login مَجدّداً
+    حتى لو الـ JWT مَحفوظ.
+*@
+
+<div class="ejar-shell">
+    <header class="ejar-topbar">
+        <a href="/" class="ejar-brand" aria-label="إيجار">
+            <span class="ejar-brand-mark" aria-hidden="true">E</span>
+            <span class="ejar-brand-text">إيجار</span>
+            <span class="ejar-brand-meta">· ledger</span>
+        </a>
+        <nav class="ejar-topbar-actions" aria-label="إجراءات سريعة">
+            <a href="/dashboard" title="لوحة المعلومات" aria-label="لوحة المعلومات">
+                <span aria-hidden="true">▦</span>
+            </a>
+            <a href="/notifications" title="الإشعارات" aria-label="الإشعارات">
+                <span aria-hidden="true">◔</span>
+                <AcNotificationsUnreadBadgeWidget />
+            </a>
+            <a href="/chat" title="المحادثات" aria-label="المحادثات">
+                <span aria-hidden="true">✉</span>
+                <AcChatUnreadBadgeWidget />
+            </a>
+        </nav>
+    </header>
+
+    <main class="ejar-body">
+        @Body
+    </main>
+
+    <BottomNav />
+</div>
+
+@code {
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try { await Persistence.RestoreAsync(); }
+            catch { /* غير قاتل */ }
+        }
+    }
+}

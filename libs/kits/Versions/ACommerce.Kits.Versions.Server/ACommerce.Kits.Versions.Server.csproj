@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <PackageId>ACommerce.Kits.Versions.Server</PackageId>
+    <Version>1.0.0</Version>
+    <Description>
+      Versions — server-side meta package: Operations + Backend.
+      For backend services that host VersionsController + AdminVersionsController +
+      VersionGateInterceptor. Does NOT pull Versions.Templates.
+    </Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\ACommerce.Kits.Versions.Operations\ACommerce.Kits.Versions.Operations.csproj" />
+    <ProjectReference Include="..\ACommerce.Kits.Versions.Backend\ACommerce.Kits.Versions.Backend.csproj" />
+  </ItemGroup>
+</Project>

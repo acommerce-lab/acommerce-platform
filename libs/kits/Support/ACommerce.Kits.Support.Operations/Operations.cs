@@ -1,22 +1,12 @@
+// Legacy shim — استعمل ‍SupportOps المُكتَّب في ISupportStore.cs.
 using ACommerce.OperationEngine.Core;
 
 namespace ACommerce.Kits.Support.Operations;
 
+/// <summary>توافق خلفيّ — استخدم <see cref="SupportOps"/>.</summary>
 public static class SupportOperations
 {
-    public const string FileTicket = "support.ticket.file";
-    public const string ReplyTicket = "support.ticket.reply";
-    public const string ResolveTicket = "support.ticket.resolve";
+    public static readonly OperationType FileTicket    = SupportOps.TicketOpen;
+    public static readonly OperationType ReplyTicket   = SupportOps.TicketReply;
+    public static readonly OperationType ResolveTicket = SupportOps.TicketStatusChange;
 }
-
-public record FileTicketCommand(
-    string Subject,
-    string Body,
-    string? Priority = "normal",
-    string? RelatedEntityId = null
-);
-
-public record ReplyTicketCommand(
-    Guid TicketId,
-    string Message
-);

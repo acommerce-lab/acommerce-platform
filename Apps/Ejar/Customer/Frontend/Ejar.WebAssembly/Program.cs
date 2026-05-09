@@ -1,31 +1,32 @@
-using Ejar.Customer.UI;
-using Ejar.Customer.UI.Components.Layout;
-using Ejar.Customer.UI.Interceptors;
+using ACommerce.Culture.Defaults;
+using ACommerce.Kits.Versions.Templates;
+using Ejar.Customer.UI.ClientHost;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 
-// نقطة جذر المكوّنات. WASM لا يحتاج <Routes> إضافي — نُحمِّل MainLayout
-// مع Router داخلي عبر <App> لا. الأبسط: نضع Routes مباشرةً.
 builder.RootComponents.Add<Ejar.Customer.UI.Components.Routes>("#app");
 builder.RootComponents.Add<HeadOutlet>("head::after");
 
-// HTTP → Ejar.Api. BaseAddress يأتي من appsettings.json (مع override
-// عبر appsettings.Development.json) — نفس آلية Ejar.Web بالضبط.
-var apiBase = builder.Configuration["EjarApi:BaseUrl"]
-              ?? builder.HostEnvironment.BaseAddress;
+var appVersion = builder.Configuration["App:Version"] ?? "1.0.0";
+builder.Services.AddSingleton(new AppVersionInfo(Platform: "wasm", Version: appVersion));
+
+var apiBase = builder.Configuration["EjarApi:BaseUrl"] ?? builder.HostEnvironment.BaseAddress;
+// Bearer header يَأتي مِن AuthenticatedHttpClient (ClientHost.Auth) — لا
+// AuthHeadersHandler.
 builder.Services.AddHttpClient("ejar", c =>
 {
     c.BaseAddress = new Uri(apiBase);
     c.Timeout = TimeSpan.FromSeconds(30);
 })
-.AddHttpMessageHandler<CultureHeadersHandler>();
+.AddHttpMessageHandler<CultureHeadersHandler>()
+.AddHttpMessageHandler<AppVersionHeadersHandler>();
 
-// HttpClient الافتراضي (للمكوّنات التي تحقن HttpClient بدون اسم)
-builder.Services.AddScoped(sp =>
-    sp.GetRequiredService<IHttpClientFactory>().CreateClient("ejar"));
+builder.Services.AddScoped(sp => sp.GetRequiredService<IHttpClientFactory>().CreateClient("ejar"));
 
-builder.Services.AddEjarCustomerUI();
+builder.Services.AddEjarCustomer();
 
-await builder.Build().RunAsync();
+var host = builder.Build();
+await host.Services.GetRequiredService<Ejar.Customer.UI.Store.AppStorePersistence>().RestoreAsync();
+await host.RunAsync();

@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <PackageId>ACommerce.Kits.Auth.Server</PackageId>
+    <Version>1.0.0</Version>
+    <Description>
+      Auth — server-side meta package: Operations + Backend.
+      For backend services (Ejar.Api, Order.Api, …) that need IAuthFlow contracts +
+      AuthController + JWT issuance. Does NOT pull Auth.Templates (which is Razor +
+      Components.* and brings unwanted Razor SDK behavior into pure server projects).
+    </Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\ACommerce.Kits.Auth.Operations\ACommerce.Kits.Auth.Operations.csproj" />
+    <ProjectReference Include="..\ACommerce.Kits.Auth.Backend\ACommerce.Kits.Auth.Backend.csproj" />
+  </ItemGroup>
+</Project>

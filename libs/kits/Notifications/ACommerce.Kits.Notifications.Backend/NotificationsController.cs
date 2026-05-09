@@ -11,7 +11,7 @@ namespace ACommerce.Kits.Notifications.Backend;
 /// identity comes from the token.
 /// </summary>
 [ApiController]
-[Authorize]
+[Authorize(Policy = NotificationsKitPolicies.Authenticated)]
 [Route("notifications")]
 public class NotificationsController : ControllerBase
 {

@@ -1,0 +1,128 @@
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.Routing
+@implements IDisposable
+@inject KitPageRegistry Registry
+@inject NavigationManager Nav
+@inject AuthenticationStateProvider Auth
+
+@*
+    HostedApp — يَستعمل NavigationManager.LocationChanged مباشرةً (لا
+    Router داخليّ، لا OnNavigateAsync). السَبب: Router الإطاريّ يَتَطلَّب
+    @page directives للعمل، ولو وَضعنا @page "/{*Path:nonfile}" على
+    Routes.razor فإنّ ASP.NET يُنشئ endpoint catch-all يَعترض
+    /_framework/blazor.web.js رغم القيد، فيَفشل تَحميل Blazor JS و تُشلّ
+    كلّ تَفاعليّة الصفحة (الزرّ المُعَطَّل، التَفضيل لا يُحفَظ، …).
+
+    الحلّ: HostedApp يَستمع LocationChanged + يَحلّ المَسار عبر
+    KitPageRegistry. App.razor يَحوي شاشة V1 الأصليّة، Routes.razor تَكون
+    مُجَرَّد wrapper لـ HostedApp بدون @page.
+*@
+
+<CascadingAuthenticationState>
+    @if (_resolving)
+    {
+        <LayoutView Layout="@DefaultLayout">
+            <div class="ejar-loading" role="status" aria-busy="true">@LoadingMessage</div>
+        </LayoutView>
+    }
+    else if (_currentMatch is null)
+    {
+        <LayoutView Layout="@DefaultLayout">
+            <div class="ejar-notfound">
+                <h1>@NotFoundTitle</h1>
+                <p>@NotFoundMessage <a href="/">الرئيسيّة</a>.</p>
+            </div>
+        </LayoutView>
+    }
+    else if (_shouldRedirectToLogin)
+    {
+        <LayoutView Layout="@DefaultLayout">
+            <div class="ejar-loading" role="status" aria-busy="true">@LoadingMessage</div>
+            <_RedirectToLogin Login="@LoginRoute" Return="@_returnUrl" />
+        </LayoutView>
+    }
+    else
+    {
+        <LayoutView Layout="@DefaultLayout">
+            <DynamicComponent Type="@_currentMatch.Page.Component"
+                              Parameters="@BuildParameters(_currentMatch)" />
+        </LayoutView>
+    }
+</CascadingAuthenticationState>
+
+@code {
+    [Parameter] public System.Reflection.Assembly? AppAssembly { get; set; }
+    [Parameter] public Type? DefaultLayout { get; set; }
+    [Parameter] public string LoginRoute     { get; set; } = "/login";
+    [Parameter] public string LoadingMessage { get; set; } = "جاري التحميل…";
+    [Parameter] public string NotFoundTitle  { get; set; } = "الصفحة غير موجودة";
+    [Parameter] public string NotFoundMessage{ get; set; } = "تأكّد من الرابط أو عُد للرئيسيّة.";
+
+    private PageMatch? _currentMatch;
+    private bool _isAuthenticated;
+    private bool _shouldRedirectToLogin;
+    private bool _resolving = true;
+    private string _returnUrl = "/";
+
+    protected override async Task OnInitializedAsync()
+    {
+        Auth.AuthenticationStateChanged += OnAuthChanged;
+        Nav.LocationChanged += OnLocationChanged;
+        await ResolveAsync();
+    }
+
+    private async void OnLocationChanged(object? sender, LocationChangedEventArgs e)
+    {
+        await ResolveAsync();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async void OnAuthChanged(Task<AuthenticationState> task)
+    {
+        try
+        {
+            var state = await task;
+            _isAuthenticated = state.User.Identity?.IsAuthenticated == true;
+            if (_isAuthenticated) _shouldRedirectToLogin = false;
+            await InvokeAsync(StateHasChanged);
+        }
+        catch { }
+    }
+
+    private async Task ResolveAsync()
+    {
+        _resolving = true;
+        var path = new Uri(Nav.Uri).AbsolutePath;
+        _currentMatch = Registry.Resolve(path);
+        _returnUrl = path;
+        _shouldRedirectToLogin = false;
+
+        if (_currentMatch?.Page.RequiresAuth == true)
+        {
+            var state = await Auth.GetAuthenticationStateAsync();
+            _isAuthenticated = state.User.Identity?.IsAuthenticated == true;
+            if (!_isAuthenticated && !path.Equals(LoginRoute, StringComparison.OrdinalIgnoreCase))
+                _shouldRedirectToLogin = true;
+        }
+        _resolving = false;
+    }
+
+    public void Dispose()
+    {
+        Auth.AuthenticationStateChanged -= OnAuthChanged;
+        Nav.LocationChanged -= OnLocationChanged;
+    }
+
+    private static IDictionary<string, object?> BuildParameters(PageMatch match)
+    {
+        var dict = new Dictionary<string, object?>(match.RouteParameters.Count, StringComparer.Ordinal);
+        foreach (var kvp in match.RouteParameters)
+        {
+            var key = kvp.Key;
+            if (key.Length > 0 && char.IsLower(key[0]))
+                key = char.ToUpperInvariant(key[0]) + key[1..];
+            dict[key] = kvp.Value;
+        }
+        return dict;
+    }
+}

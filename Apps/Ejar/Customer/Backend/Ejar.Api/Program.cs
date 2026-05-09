@@ -1,145 +1,109 @@
-using System.Reflection;
-using ACommerce.Kits.Auth;
-using ACommerce.Kits.Auth.TwoFactor.AsAuth;
-using ACommerce.Authentication.TwoFactor.Providers.Sms.Mock.Extensions;
-using ACommerce.Kits.Chat;
-using ACommerce.Kits.Discovery.Backend;
-using ACommerce.Realtime.Providers.InMemory.Extensions;
-using ACommerce.Realtime.Providers.SignalR.Extensions;
-using ACommerce.OperationEngine.Core;
-using ACommerce.OperationEngine.Extensions;
-using ACommerce.OperationEngine.Interceptors.Extensions;
-using ACommerce.OperationEngine.Wire.Http;
-using ACommerce.SharedKernel.Infrastructure.EFCores.Extensions;
-using ACommerce.SharedKernel.Repositories.Interfaces;
-using ACommerce.SharedKernel.Domain.Entities;
-using ACommerce.Kits.Support.Domain;
-using ACommerce.Kits.Discovery.Domain;
-using ACommerce.Favorites.Operations.Entities;
+using ACommerce.Chat.Operations;
+using ACommerce.Kits.Auth.Operations;
+using ACommerce.OperationEngine.Interceptors;
+using ACommerce.ServiceHost;
 using Ejar.Api.Data;
+using Ejar.Api.Diagnostics;
 using Ejar.Api.Interceptors;
 using Ejar.Api.Middleware;
+using Ejar.Api.Realtime;
+using Ejar.Api.Stores;
+using Microsoft.AspNetCore.Http.Connections;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
-using ACommerce.Kits.Support.Backend;
-using ACommerce.Favorites.Backend;
-using ACommerce.OperationEngine.DataInterceptors;
-using ACommerce.OperationEngine.Interceptors;
-using ACommerce.Realtime.Providers.SignalR;
-using Ejar.Domain;
-using Ejar.Api.Stores;
-using ACommerce.Kits.Auth.Backend;
-using ACommerce.Kits.Chat.Backend;
-using ACommerce.Kits.Auth.Operations;
-using ACommerce.SharedKernel.Infrastructure.EFCores.Context;
-using ACommerce.SharedKernel.Infrastructure.EFCore.Factories;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// 1. Logging (Serilog)
-Log.Logger = new LoggerConfiguration()
-    .ReadFrom.Configuration(builder.Configuration)
-    .Enrich.FromLogContext()
-    .WriteTo.Console()
-    .WriteTo.File("logs/ejar-.log", rollingInterval: RollingInterval.Day)
-    .CreateLogger();
+// JWT متطابق بين AuthKit (يُصدِر التوكن) و JwtAuthModule (يتحقّق منه).
+const string JwtSecret = "ejar_secret_key_12345678901234567890";
 
-builder.Host.UseSerilog();
+// EjarDatabase له منطق provider switching خاصّ — يُستدعى مباشرةً قبل
+// UseDatabase الذي يضيف الـ glue (DbContext العام، UoW، Repositories).
+builder.Services.AddEjarDatabase(builder.Configuration, builder.Environment);
 
-// 2. Database (SQLite for dev)
-var conn = builder.Configuration.GetConnectionString("Default") 
-           ?? "Data Source=../../../../../data/ejar-customer-dev.db";
+builder.AddACommerceServiceHost(host => host
+    // ── البنية التحتيّة العامّة ────────────────────────────────────────
+    .UseSerilog("ejar")
+    .UseDatabase<EjarDbContext>()
+    .UseOperationEngine(typeof(Program).Assembly)
+    .UseJwtAuthentication(jwt => { jwt.Secret = JwtSecret; jwt.Issuer = "ejar.api"; jwt.Audience = "ejar.mobile"; })
+    .UseRealtime<EjarSignalRTransport, EjarRealtimeHub>()
+    .UseControllers()
+    // EntityDiscoveryRegistry يَحتاج كلّ entity يَستهلكها CrudActionInterceptor
+    // (مَسار /cities و /amenities و /categories مَثَلاً). assembly الـ
+    // EjarDbContext يَحوي Listing/User/etc.، لكن DiscoveryRegion +
+    // DiscoveryAmenity + DiscoveryCategory + SupportTicket في assemblies
+    // أخرى. نُسَجّلها هنا.
+    .RegisterEntities(
+        typeof(EjarDbContext).Assembly,
+        typeof(ACommerce.Kits.Discovery.Domain.DiscoveryRegion).Assembly,
+        typeof(ACommerce.Kits.Support.Domain.SupportTicket).Assembly,
+        typeof(ACommerce.Favorites.Operations.Entities.Favorite).Assembly)
 
-// تسجيل EjarDbContext مباشرة
-builder.Services.AddDbContext<EjarDbContext>(options => options.UseSqlite(conn));
-// تسجيله كـ DbContext عام للمستودعات
-builder.Services.AddScoped<DbContext>(sp => sp.GetRequiredService<EjarDbContext>());
-builder.Services.AddScoped<IRepositoryFactory, RepositoryFactory>();
+    // ── الكيتس ──────────────────────────────────────────────────────────
+    .AddKits(kits => kits
+        .AddAuth<EjarCustomerAuthUserStore>(
+            new AuthKitJwtConfig(JwtSecret, "ejar.api", "ejar.mobile", "user", "User", AccessTokenLifetimeDays: 30),
+            auth => auth.AddTwoFactor(tf => tf.UseMockSmsProvider()))
+        .AddChat<EjarCustomerChatStore>()
+        .AddChatPresenceProbe<EjarChatPresenceProbe>()
+        .AddDiscovery()
+        .AddSupport<EjarSupportStore>(opts =>
+        {
+            opts.PartyKind = "User";
+            opts.AgentPoolDisplayName = "فريق دعم إيجار";
+            var poolStr = builder.Configuration["Support:AgentPoolId"];
+            if (Guid.TryParse(poolStr, out var poolGuid)) opts.AgentPoolPartyId = poolGuid;
+        })
+        .AddReports<EjarReportStore>(opts => opts.PartyKind = "User")
+        .AddFavorites<EjarFavoritesStore>()
+        .AddNotifications<EjarCustomerNotificationStore>(notif => notif
+            .UseInAppProvider()
+            .UseFirebaseProvider<EjarDeviceTokenStore>())
+        .AddVersions<EjarVersionStore>()
+        .AddSubscriptions<EjarSubscriptionStore, EjarPlanStore, EjarInvoiceStore>(
+            opts => opts.OpenAccess = builder.Configuration.GetValue("Trial:OpenAccess", true))
+        .AddListings<EjarListingStore>()
+        .AddProfiles<EjarProfileStore>())
 
-// 3. Operation Engine & Interceptors
-builder.Services.AddOperationEngine();
-builder.Services.AddOperationInterceptors(registry => {
-    registry.Register(new CrudActionInterceptor());
-});
+    // ── التراكيب ────────────────────────────────────────────────────────
+    .AddCompositions(c => c
+        .Add<ACommerce.Compositions.Support.SupportComposition>()
+        .Add<ACommerce.Compositions.Chat.WithNotifications.ChatNotificationsComposition>()
+        .Add<ACommerce.Compositions.Auth.WithSmsOtp.AuthSmsOtpComposition>()
+        .Add<ACommerce.Compositions.Marketplace.MarketplaceComposition>())
+);
+
+// ── Ejar-specific extras ─────────────────────────────────────────────────
+builder.Services.AddSingleton<IUserIdProvider, EjarUserIdProvider>();
 builder.Services.AddSingleton<IOperationInterceptor, OperationLogInterceptor>();
-
-// 4. MediatR
-builder.Services.AddMediatR(cfg => {
-    cfg.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly());
-});
-
-// 5. Kits Registration
-builder.Services.AddAuthKit<EjarCustomerAuthUserStore>(new AuthKitJwtConfig(
-    "ejar_secret_key_12345678901234567890",
-    "ejar.api",
-    "ejar.mobile",
-    "user",
-    "User",
-    30
-))
-    .AddMockSmsTwoFactor()
-    .AddTwoFactorAsAuth();
-
-builder.Services.AddSignalRRealtimeTransport()
-    .AddInMemoryRealtimeTransport();
-builder.Services.AddChatKit<EjarCustomerChatStore>();
-
-builder.Services.AddDiscoveryKit();
-builder.Services.AddSupportKit();
-builder.Services.AddFavoritesKit();
-
-// 6. Controllers & Swagger
-builder.Services.AddControllers();
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
-
-// 7. Entity Discovery Registration
-EntityDiscoveryRegistry.RegisterEntity<UserEntity>();
-EntityDiscoveryRegistry.RegisterEntity<ListingEntity>();
-EntityDiscoveryRegistry.RegisterEntity<ConversationEntity>();
-EntityDiscoveryRegistry.RegisterEntity<MessageEntity>();
-EntityDiscoveryRegistry.RegisterEntity<NotificationEntity>();
-EntityDiscoveryRegistry.RegisterEntity<PlanEntity>();
-EntityDiscoveryRegistry.RegisterEntity<SubscriptionEntity>();
-EntityDiscoveryRegistry.RegisterEntity<InvoiceEntity>();
-EntityDiscoveryRegistry.RegisterEntity<DiscoveryCategory>();
-EntityDiscoveryRegistry.RegisterEntity<DiscoveryRegion>();
-EntityDiscoveryRegistry.RegisterEntity<DiscoveryAmenity>();
-EntityDiscoveryRegistry.RegisterEntity<Favorite>();
-EntityDiscoveryRegistry.RegisterEntity<SupportTicket>();
-EntityDiscoveryRegistry.RegisterEntity<SupportReply>();
+builder.Services.AddScoped<ACommerce.Kits.Listings.Backend.IListingDetailEnricher, EjarListingDetailEnricher>();
 
 var app = builder.Build();
 
-// 8. DB Schema Ensure & Seed
+// ─── DB Migrate + Seed + Versions promotion ─────────────────────────────
 using (var scope = app.Services.CreateScope())
-{
-    var db = scope.ServiceProvider.GetRequiredService<EjarDbContext>();
-    if (db.Database.EnsureCreated())
-    {
-        Log.Information("Ejar.Db: schema ensured ({Provider})", db.Database.ProviderName);
-        DbInitializer.Seed(db);
-        Log.Information("Ejar.Db: seeding complete");
-    }
-}
+    await Ejar.Api.Bootstrap.EjarBootstrap.MigrateAndSeedAsync(scope.ServiceProvider, builder.Configuration);
 
-// 9. Middleware Pipeline
+// ─── Pipeline ────────────────────────────────────────────────────────────
 app.UseMiddleware<GlobalExceptionMiddleware>();
 
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
+app.UseCors(opt => opt
+    .SetIsOriginAllowed(_ => true).AllowAnyHeader().AllowAnyMethod().AllowCredentials());
 
-app.UseCors(opt => opt.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod());
-app.UseAuthentication();
+app.UseACommerceServiceHost();        // Auth + Authorization + Controllers + Swagger
+
 app.UseMiddleware<CurrentUserMiddleware>();
 app.UseMiddleware<CurrentCultureMiddleware>();
-app.UseAuthorization();
 
-app.MapControllers();
-app.MapHub<AShareHub>("/realtime");
+app.MapHub<EjarRealtimeHub>("/realtime", options =>
+    options.Transports = HttpTransportType.ServerSentEvents | HttpTransportType.LongPolling);
+
+app.Services.WireChatNotificationCoupling();
+
+app.MapHealthEndpoints<EjarDbContext>("Ejar.Api");
+app.MapEjarDiagnostics();
 
 Log.Information("Ejar API ready [{Env}]", app.Environment.EnvironmentName);
 app.Run();

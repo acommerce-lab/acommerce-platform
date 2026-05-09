@@ -50,22 +50,22 @@ public static class EjarSeed
     };
 
     // ── المزايا (Amenities) ──────────────────────────────────────────────
-    public static readonly dynamic[] Amenities = new dynamic[]
+    public static readonly IReadOnlyList<AmenitySeed> Amenities = new[]
     {
-        new { Id = "ac",       Label = "تكييف",      Icon = "wind" },
-        new { Id = "wifi",     Label = "إنترنت",     Icon = "wifi" },
-        new { Id = "kitchen",  Label = "مطبخ",      Icon = "coffee" },
-        new { Id = "parking",  Label = "موقف",      Icon = "truck" },
-        new { Id = "elevator", Label = "مصعد",      Icon = "arrow-up" },
-        new { Id = "garden",   Label = "حديقة",     Icon = "sun" },
-        new { Id = "pool",     Label = "مسبح",      Icon = "droplet" },
-        new { Id = "furnished",Label = "مفروش",     Icon = "archive" },
-        new { Id = "generator",Label = "مولّد",     Icon = "zap" },
-        new { Id = "security", Label = "حراسة",     Icon = "shield" },
-        new { Id = "cctv",     Label = "كاميرات",    Icon = "video" },
-        new { Id = "balcony",  Label = "بلكونة",     Icon = "layout" },
-        new { Id = "laundry",  Label = "غسيل",      Icon = "refresh-cw" },
-        new { Id = "private_bath", Label = "حمام خاص", Icon = "bath" },
+        new AmenitySeed("ac",          "تكييف",     "wind"),
+        new AmenitySeed("wifi",        "إنترنت",    "wifi"),
+        new AmenitySeed("kitchen",     "مطبخ",     "coffee"),
+        new AmenitySeed("parking",     "موقف",     "truck"),
+        new AmenitySeed("elevator",    "مصعد",     "arrow-up"),
+        new AmenitySeed("garden",      "حديقة",    "sun"),
+        new AmenitySeed("pool",        "مسبح",     "droplet"),
+        new AmenitySeed("furnished",   "مفروش",    "archive"),
+        new AmenitySeed("generator",   "مولّد",    "zap"),
+        new AmenitySeed("security",    "حراسة",    "shield"),
+        new AmenitySeed("cctv",        "كاميرات",   "video"),
+        new AmenitySeed("balcony",     "بلكونة",    "layout"),
+        new AmenitySeed("laundry",     "غسيل",     "refresh-cw"),
+        new AmenitySeed("private_bath","حمام خاص", "bath"),
     };
 
     // ── الإعلانات ─────────────────────────────────────────────────────────
@@ -274,6 +274,8 @@ public static class EjarSeed
     public record CategorySeed(
         string Id, string Label, string Emoji,
         string Kind, IReadOnlyList<string> TimeUnits);
+
+    public record AmenitySeed(string Id, string Label, string Icon);
 
     public record ListingSeed(
         string Id, string Title, string Description,

@@ -28,3 +28,8 @@ scripts/package-lock.json
 .env.Production
 .env.local
 *.env.local
+
+# Firebase service-account JSON — مفاتيح خاصّة، توضع يدوياً على الخادم
+# (راجع Apps/Ejar/Customer/Backend/Ejar.Api/Secrets/README.md). الملف
+# .example.json آمن للالتزام كنموذج فقط.
+**/Secrets/firebase-service-account.json

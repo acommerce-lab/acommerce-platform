@@ -1,0 +1,136 @@
+@page "/chats"
+@attribute [Authorize]
+@using Ejar.Customer.UI.Services
+@using Ejar.Customer.UI.Store
+@inject AppStore Store
+@inject ApiReader Api
+@inject NavigationManager Nav
+@inject ITimezoneProvider Tz
+@inject UnreadService Unread
+@inject L L
+@implements IDisposable
+
+<PageTitle>@(L["chat.title"]) — @(L["app.name"])</PageTitle>
+
+<div class="acs-page acs-chats-page">
+    <header class="ejar-chats-head">
+        <h1>@(L["chat.title"])</h1>
+    </header>
+
+    <AcSearchBox Value="@_search" ValueChanged="@(v => _search = v ?? string.Empty)"
+                 Placeholder="ابحث في المحادثات…" />
+
+    @if (_loading) { <AcLoadingState /> }
+    else
+    {
+        var list = _items.Where(c =>
+            string.IsNullOrWhiteSpace(_search) ||
+            (OtherName(c).Contains(_search, StringComparison.OrdinalIgnoreCase)) ||
+            (c.Subject?.Contains(_search, StringComparison.OrdinalIgnoreCase) ?? false) ||
+            (c.LastMessage?.Contains(_search, StringComparison.OrdinalIgnoreCase) ?? false)).ToList();
+
+        @if (list.Count == 0) { <AcEmptyState IconName="message" Message="لا توجد محادثات" /> }
+        else
+        {
+            <ul class="ejar-chat-list">
+                @foreach (var c in list)
+                {
+                    var cid = c.Id;
+                    var name = OtherName(c);
+                    var hasUnread = c.UnreadCount > 0;
+                    <li class="ejar-chat-row @(hasUnread ? "ejar-chat-row-unread" : "")"
+                        @onclick="@(() => Open(cid))"
+                        role="button" tabindex="0">
+
+                        <AcAvatar Name="@name" ImageUrl="@OtherAvatar(c)" Size="48" />
+
+                        <div class="ejar-chat-row-body">
+                            <div class="ejar-chat-row-top">
+                                <span class="ejar-chat-name">@name</span>
+                                <span class="ejar-chat-time">@Tz.FormatRelative(c.LastAt)</span>
+                            </div>
+                            <div class="ejar-chat-row-bot">
+                                <span class="ejar-chat-preview">
+                                    @(string.IsNullOrEmpty(c.LastMessage)
+                                        ? (c.Subject ?? "—")
+                                        : Truncate(c.LastMessage, 80))
+                                </span>
+                                @if (hasUnread)
+                                {
+                                    <span class="ejar-chat-unread"
+                                          aria-label="@($"{c.UnreadCount} رسالة غير مقروءة")">
+                                        @(c.UnreadCount > 99 ? "99+" : c.UnreadCount.ToString())
+                                    </span>
+                                }
+                            </div>
+                        </div>
+                    </li>
+                }
+            </ul>
+        }
+    }
+</div>
+
+@code {
+    private List<ConvDto> _items = new();
+    private bool _loading = true;
+    private string _search = "";
+
+    protected override async Task OnAfterRenderAsync(bool first)
+    {
+        if (!first) return;
+        await Tz.InitAsync();
+        Unread.Changed += OnUnreadChanged;
+        var env  = await Api.GetAsync<List<ConvDto>>("/conversations", localize: true);
+        _items   = env.Data ?? new();
+        _loading = false;
+        // تَحديث العَدّاد العامّ من الـ list الجديدة (في حال الـ realtime
+        // فات على رسالة).
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void OnUnreadChanged() => InvokeAsync(StateHasChanged);
+    public void Dispose() => Unread.Changed -= OnUnreadChanged;
+
+    private void Open(string id)
+    {
+        // فتح المحادثة ⇒ نُحَدِّد الرسائل التي فيها كمَقروءة في الـ UI فوراً
+        // (الـ backend يَفعل ذلك بعد الـ enter). يُخفِّف وميض شارة Bottom-nav.
+        var conv = _items.FirstOrDefault(x => x.Id == id);
+        if (conv is { UnreadCount: > 0 })
+        {
+            // عرض ضمنيّ — الـ backend يَتولّى الحالة النهائيّة.
+        }
+        Nav.NavigateTo($"/chat/{id}");
+    }
+
+    private string OtherName(ConvDto c)
+    {
+        var myId = Store.Auth.UserId?.ToString();
+        return string.Equals(c.OwnerId, myId, StringComparison.OrdinalIgnoreCase)
+            ? c.PartnerName ?? "—"
+            : c.OwnerName ?? "—";
+    }
+
+    private string? OtherAvatar(ConvDto c)
+    {
+        var myId = Store.Auth.UserId?.ToString();
+        return string.Equals(c.OwnerId, myId, StringComparison.OrdinalIgnoreCase)
+            ? c.PartnerAvatar
+            : c.OwnerAvatar;
+    }
+
+    private static string Truncate(string s, int max)
+        => s.Length <= max ? s : s[..max].TrimEnd() + "…";
+
+    /// <summary>
+    /// شَكل الرَدّ من <c>EjarCustomerChatStore.ConversationView</c>. الحقول
+    /// الإضافيّة (PartnerAvatar/OwnerAvatar) قد لا يُرسلها كلّ خادم — null
+    /// يَسقط لـ AcAvatar الذي يَستخدم initials كـ fallback.
+    /// </summary>
+    private sealed record ConvDto(string Id,
+        string? OwnerId, string? OwnerName, string? OwnerAvatar,
+        string? PartnerId, string? PartnerName, string? PartnerAvatar,
+        string? Subject, string? ListingId,
+        DateTime LastAt, int UnreadCount, string? LastMessage);
+}

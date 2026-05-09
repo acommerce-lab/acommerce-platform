@@ -1,0 +1,119 @@
+@inject INotificationsStore Store
+@inject IRichTextSanitizer Sanitizer
+@inject NavigationManager Nav
+@implements IDisposable
+
+@*
+    AcNotificationsInboxWidget — مَجموعة إشعارات بـ ledger:
+      - شريط رأس مع زرّ "تحديد الكلّ كَمَقروء" (يَختفي لو كلّها مقروءة)
+      - قائمة بَطاقات: title (bold للـ unread)، body (sanitized)، زمن
+        relative (mono)، OamStamp يَدلّ على الحالة
+      - تَجميع بـ "اليوم"/"أمس"/"أقدم" بصِلَة بصريّة
+*@
+
+<section class="ac-notifications-inbox">
+    <header class="ejar-section-head">
+        <h2 class="ejar-section-title">الإشعارات</h2>
+        <span class="ejar-section-meta oam-mono">/ inbox · @Store.Items.Count</span>
+    </header>
+
+    @if (Store.UnreadCount > 0)
+    {
+        <div class="ejar-notifs-bar">
+            <span class="ejar-notifs-bar-text">@Store.UnreadCount غير مَقروء</span>
+            <button class="oam-btn oam-btn-ghost" @onclick="MarkAll">تحديد الكلّ كَمَقروء</button>
+        </div>
+    }
+
+    @if (Store.IsLoading)
+    {
+        <p class="ejar-loading">جاري التحميل…</p>
+    }
+    else if (Store.Items.Count == 0)
+    {
+        <div class="ejar-empty">
+            <span class="ejar-empty-glyph" aria-hidden="true">◔</span>
+            <h3>لا توجد إشعارات</h3>
+            <p>تظهر هنا تَنبيهات الرسائل والإعلانات والنَظام.</p>
+        </div>
+    }
+    else
+    {
+        @foreach (var grp in Store.Items.GroupBy(GroupLabel))
+        {
+            <h4 class="ejar-notif-group">@grp.Key</h4>
+            <ul class="ejar-notif-list">
+                @foreach (var n in grp)
+                {
+                    var nid = n.Id;
+                    <li class="ejar-notif-row @(n.IsRead ? "ejar-notif-row-read" : "ejar-notif-row-unread")"
+                        @onclick="@(() => Open(n))" role="button" tabindex="0">
+                        <div class="ejar-notif-icon" aria-hidden="true">
+                            @KindGlyph(n.Kind)
+                        </div>
+                        <div class="ejar-notif-body">
+                            <div class="ejar-notif-top">
+                                <span class="ejar-notif-title">@n.Title</span>
+                                <span class="ejar-notif-time oam-mono">@FormatTime(n.CreatedAt)</span>
+                            </div>
+                            <p class="ejar-notif-text">@Sanitizer.Sanitize(n.Body)</p>
+                        </div>
+                        @if (!n.IsRead)
+                        {
+                            <span class="ejar-notif-dot" aria-label="غير مَقروء"></span>
+                        }
+                    </li>
+                }
+            </ul>
+        }
+    }
+</section>
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        Store.Changed += OnChanged;
+        await Store.LoadAsync();
+    }
+
+    private async Task MarkAll() => await Store.MarkAllReadAsync();
+
+    private async Task Open(NotificationItem n)
+    {
+        if (!n.IsRead) await Store.MarkReadAsync(n.Id);
+        if (!string.IsNullOrEmpty(n.DeepLinkUrl)) Nav.NavigateTo(n.DeepLinkUrl);
+    }
+
+    private static string GroupLabel(NotificationItem n)
+    {
+        var local = n.CreatedAt.ToLocalTime();
+        var diff  = DateTime.Now - local;
+        if (diff.TotalDays < 1) return "اليوم";
+        if (diff.TotalDays < 2) return "أمس";
+        if (diff.TotalDays < 7) return "هذا الأسبوع";
+        return "أقدم";
+    }
+
+    private static string FormatTime(DateTime utc)
+    {
+        var local = utc.ToLocalTime();
+        var diff  = DateTime.Now - local;
+        if (diff.TotalMinutes < 1)  return "الآن";
+        if (diff.TotalMinutes < 60) return $"{(int)diff.TotalMinutes}د";
+        if (diff.TotalHours   < 24) return $"{(int)diff.TotalHours}س";
+        return local.ToString("MM-dd HH:mm");
+    }
+
+    private static string KindGlyph(string? kind) => kind switch
+    {
+        "message"      => "✉",
+        "listing"      => "⌂",
+        "system"       => "⚙",
+        "subscription" => "▣",
+        "support"      => "?",
+        _              => "◔",
+    };
+
+    private void OnChanged() => InvokeAsync(StateHasChanged);
+    public void Dispose() => Store.Changed -= OnChanged;
+}

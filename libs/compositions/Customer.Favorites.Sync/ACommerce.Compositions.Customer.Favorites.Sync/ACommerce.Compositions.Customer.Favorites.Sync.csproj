@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <PackageId>ACommerce.Compositions.Customer.Favorites.Sync</PackageId>
+    <Description>
+      composition تَزامُن المُفَضَّلات بَين الواجِهة + الخادم لَ V1 apps.
+      تَستَهلِك ApiReader (مَوروث) أَو IFavoritesStore (الكيت OAM) لِجَلب
+      القائمة. تَستَخدِم optimistic updates عَلى DefaultFavoritesStore
+      عَبر IngestRealtimeToggle.
+    </Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <SupportedPlatform Include="browser" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\core\OperationEngine\ACommerce.OperationEngine.Wire\ACommerce.OperationEngine.Wire.csproj" />
+    <ProjectReference Include="..\..\..\..\clients\ACommerce.Client.Http\ACommerce.Client.Http.csproj" />
+    <ProjectReference Include="..\..\..\kits\Favorites\Frontend\Customer\ACommerce.Kits.Favorites.Frontend.Customer.csproj" />
+  </ItemGroup>
+</Project>

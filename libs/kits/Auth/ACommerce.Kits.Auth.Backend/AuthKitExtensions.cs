@@ -32,6 +32,7 @@ public static class AuthKitExtensions
         services.AddSingleton(jwt);
         services.AddScoped<IAuthUserStore, TStore>();
         services.AddControllers().AddApplicationPart(typeof(AuthController).Assembly);
+        services.AddAuthKitPolicies();
         return services;
     }
 }

@@ -1,0 +1,168 @@
+@*
+  Admin page template — drop into any admin app to manage versions:
+
+      @page "/admin/versions"
+      @using ACommerce.Kits.Versions.Templates
+      <AcAdminVersionsPage HttpClientName="admin-api" />
+
+  The page calls /admin/versions endpoints exposed by AdminVersionsController.
+  Authorization is enforced server-side; UI assumes the caller is admin.
+*@
+
+@using System.Net.Http.Json
+@using ACommerce.Kits.Versions.Operations
+@using ACommerce.OperationEngine.Wire
+@inject IHttpClientFactory Http
+
+<div class="ac-admin-versions">
+    <header class="ac-admin-versions-header">
+        <h1>@(Title ?? "إدارة الإصدارات")</h1>
+        <select @bind="_selectedPlatform" @bind:after="LoadAsync">
+            <option value="">كلّ المنصّات</option>
+            @foreach (var p in Platforms)
+            {
+                <option value="@p">@p</option>
+            }
+        </select>
+    </header>
+
+    @if (_loading)
+    {
+        <p class="ac-admin-versions-loading">جارٍ التحميل…</p>
+    }
+    else if (_rows is null || _rows.Count == 0)
+    {
+        <p class="ac-admin-versions-empty">لا توجد إصدارات مسجَّلة.</p>
+    }
+    else
+    {
+        <table class="ac-admin-versions-table">
+            <thead>
+                <tr>
+                    <th>المنصّة</th><th>الإصدار</th><th>الحالة</th>
+                    <th>تاريخ الإلغاء</th><th>ملاحظات</th><th></th>
+                </tr>
+            </thead>
+            <tbody>
+            @foreach (var v in _rows)
+            {
+                <tr>
+                    <td>@v.Platform</td>
+                    <td>@v.Version</td>
+                    <td>
+                        @{ var captured = v; }
+                        <select value="@v.Status"
+                                @onchange="@((ChangeEventArgs e) => OnStatusChanged(captured, e))">
+                            @foreach (var s in Enum.GetValues<VersionStatus>())
+                            {
+                                <option value="@s">@s</option>
+                            }
+                        </select>
+                    </td>
+                    <td>@(v.SunsetAt?.ToString("yyyy-MM-dd") ?? "—")</td>
+                    <td>@(v.Notes ?? "")</td>
+                    <td><button class="ac-btn ac-btn-danger" @onclick="@(() => DeleteAsync(v))">حذف</button></td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    }
+
+    <section class="ac-admin-versions-add">
+        <h2>إضافة / تحديث إصدار</h2>
+        <input placeholder="منصّة (web/mobile/admin)" @bind="_newPlatform" />
+        <input placeholder="إصدار (1.2.3)"            @bind="_newVersion" />
+        <select @bind="_newStatus">
+            @foreach (var s in Enum.GetValues<VersionStatus>())
+            {
+                <option value="@s">@s</option>
+            }
+        </select>
+        <input type="date"                         @bind="_newSunset" />
+        <input placeholder="ملاحظات اختياريّة"      @bind="_newNotes" />
+        <input placeholder="رابط التحديث (اختياريّ)" @bind="_newDownloadUrl" />
+        <button class="ac-btn ac-btn-primary" @onclick="UpsertAsync">حفظ</button>
+        @if (!string.IsNullOrEmpty(_msg))
+        {
+            <p class="ac-admin-versions-msg">@_msg</p>
+        }
+    </section>
+</div>
+
+@code {
+    [Parameter] public string? Title { get; set; }
+    [Parameter, EditorRequired] public string HttpClientName { get; set; } = default!;
+
+    /// <summary>قائمة منصّات تظهر في الفلتر — التطبيق يقدّم القائمة الخاصّة به.</summary>
+    [Parameter] public IReadOnlyList<string> Platforms { get; set; } =
+        new[] { "web", "mobile", "admin" };
+
+    private string _selectedPlatform = "";
+    private bool _loading;
+    private List<AppVersion>? _rows;
+
+    private string _newPlatform = "";
+    private string _newVersion  = "";
+    private VersionStatus _newStatus = VersionStatus.Active;
+    private DateTime? _newSunset;
+    private string? _newNotes;
+    private string? _newDownloadUrl;
+    private string? _msg;
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        _loading = true; _msg = null;
+        try
+        {
+            var url = string.IsNullOrEmpty(_selectedPlatform)
+                ? "admin/versions"
+                : $"admin/versions?platform={Uri.EscapeDataString(_selectedPlatform)}";
+            var env = await Http.CreateClient(HttpClientName)
+                .GetFromJsonAsync<OperationEnvelope<List<AppVersion>>>(url);
+            _rows = env?.Data ?? new();
+        }
+        catch (Exception ex) { _msg = $"فشل التحميل: {ex.Message}"; }
+        finally { _loading = false; }
+    }
+
+    private async Task UpsertAsync()
+    {
+        _msg = null;
+        try
+        {
+            var body = new
+            {
+                Platform    = _newPlatform,
+                Version     = _newVersion,
+                Status      = _newStatus,
+                SunsetAt    = _newSunset,
+                Notes       = _newNotes,
+                DownloadUrl = _newDownloadUrl
+            };
+            var resp = await Http.CreateClient(HttpClientName)
+                .PostAsJsonAsync("admin/versions", body);
+            if (!resp.IsSuccessStatusCode) { _msg = $"فشل الحفظ: {resp.StatusCode}"; return; }
+            await LoadAsync();
+        }
+        catch (Exception ex) { _msg = $"خطأ: {ex.Message}"; }
+    }
+
+    private async Task OnStatusChanged(AppVersion v, ChangeEventArgs e)
+    {
+        if (!Enum.TryParse<VersionStatus>(e.Value?.ToString(), out var status)) return;
+        var body = new { Status = status, SunsetAt = v.SunsetAt };
+        var url  = $"admin/versions/{Uri.EscapeDataString(v.Platform)}/{Uri.EscapeDataString(v.Version)}/status";
+        await Http.CreateClient(HttpClientName).PostAsJsonAsync(url, body);
+        await LoadAsync();
+    }
+
+    private async Task DeleteAsync(AppVersion v)
+    {
+        var url = $"admin/versions/{Uri.EscapeDataString(v.Platform)}/{Uri.EscapeDataString(v.Version)}";
+        var resp = await Http.CreateClient(HttpClientName).DeleteAsync(url);
+        if (resp.IsSuccessStatusCode) await LoadAsync();
+        else _msg = $"فشل الحذف: {resp.StatusCode}";
+    }
+}

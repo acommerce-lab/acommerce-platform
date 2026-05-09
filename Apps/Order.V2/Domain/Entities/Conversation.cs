@@ -1,5 +1,5 @@
 using ACommerce.Chat.Operations;
-using ACommerce.SharedKernel.Abstractions.Entities;
+using ACommerce.SharedKernel.Domain.Entities;
 
 namespace Order.V2.Domain;
 

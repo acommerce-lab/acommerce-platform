@@ -1,4 +1,4 @@
-using ACommerce.SharedKernel.Abstractions.Entities;
+using ACommerce.SharedKernel.Domain.Entities;
 
 namespace Ashare.V2.Domain;
 

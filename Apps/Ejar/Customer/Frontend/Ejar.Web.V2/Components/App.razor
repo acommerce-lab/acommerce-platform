@@ -1,0 +1,37 @@
+@*
+    App.razor — root SSR component، LOCAL في Ejar.Web.V2 (وليس في
+    المكتبة المُشتَرَكة). الـ Razor SDK يَحتاج رؤية Razor components
+    داخل host project لِيُسَجِّل _framework/blazor.web.js في الـ static
+    asset manifest. لو App.razor كان في مكتبة فقط، الـ manifest يَفتقد
+    الـ framework JS endpoint ⇒ 404.
+
+    Routes.razor يَبقى في المكتبة المُشتَرَكة (يُستورد عبر @using).
+*@
+@using Ejar.Customer.UI.V2.Components
+
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <base href="/" />
+    <title>إيجار</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" />
+    <link rel="stylesheet" href="_content/ACommerce.Widgets/widgets.css" />
+    <link rel="stylesheet" href="_content/ACommerce.Templates.Shared/templates-shared.css" />
+    <link rel="stylesheet" href="_content/ACommerce.Templates.Marketplace/templates-marketplace.css" />
+    <link rel="stylesheet" href="_content/ACommerce.Templates.OAM/oam-fingerprint.css" />
+    <link rel="stylesheet" href="_content/ACommerce.Templates.Customer.Ledger/template.css" />
+    <!-- branding.css آخر CSS يُحمَّل ⇒ override كَلاسات Customer.Ledger
+         (LedgerClasses.*) بألوان إيجار. هذا هو نُقطة التَّخصيص الوَحيدة
+         التي يَحتاجها التَّطبيق لِتَلوين القالَب. -->
+    <link rel="stylesheet" href="branding.css" />
+    <HeadOutlet />
+</head>
+<body>
+    <Routes @rendermode="InteractiveServer" />
+    <script src="_framework/blazor.web.js"></script>
+</body>
+</html>

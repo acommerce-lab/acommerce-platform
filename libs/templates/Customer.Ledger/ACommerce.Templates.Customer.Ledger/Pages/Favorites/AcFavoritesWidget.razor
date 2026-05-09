@@ -1,0 +1,66 @@
+@inject IFavoritesStore Store
+@implements IDisposable
+
+@*
+    AcFavoritesWidget — قائمة معرّفات المفضّلات. الكيت حياديّ عن نَوع
+    الكيان (Law 6) فيَعرض ids بـ chips. التَطبيق يُمَرِّر BasePath
+    (/listings افتراضياً) ⇒ النَقر يَنتقل لـ {BasePath}/{id}.
+*@
+
+<section class="ac-favorites">
+    <header class="ejar-section-head">
+        <h2 class="ejar-section-title">المفضّلة</h2>
+        <span class="ejar-section-meta oam-mono">/ favorites · @Store.Ids.Count</span>
+    </header>
+
+    @if (Store.IsLoading)
+    {
+        <p class="ejar-loading">جاري التحميل…</p>
+    }
+    else if (Store.Ids.Count == 0)
+    {
+        <div class="ejar-empty">
+            <span class="ejar-empty-glyph" aria-hidden="true">♥</span>
+            <h3>لا توجد مفضّلات</h3>
+            <p>اضغط ♡ على أيّ إعلان لإضافته هنا.</p>
+        </div>
+    }
+    else
+    {
+        <ul class="ejar-fav-list">
+            @foreach (var id in Store.Ids)
+            {
+                var lid = id;
+                <li class="ejar-fav-row">
+                    <a class="ejar-fav-link" href="@(BasePath.TrimEnd('/') + "/" + Uri.EscapeDataString(lid))">
+                        <span class="ejar-fav-glyph" aria-hidden="true">♥</span>
+                        <span class="ejar-fav-id oam-mono">@lid</span>
+                    </a>
+                    <button class="oam-btn-ghost ejar-fav-remove"
+                            @onclick="@(() => Remove(lid))"
+                            aria-label="إزالة">إزالة</button>
+                </li>
+            }
+        </ul>
+    }
+</section>
+
+@code {
+    /// <summary>
+    /// الـ base path الذي يَنتقل له النقر. <c>/listings</c> افتراضيّاً —
+    /// التطبيق يُمكن أن يُمرّر <c>/products</c> أو غيره ليتلاءم مع هويّة
+    /// الكيان المُفَضَّل.
+    /// </summary>
+    [Parameter] public string BasePath { get; set; } = "/listings";
+
+    protected override async Task OnInitializedAsync()
+    {
+        Store.Changed += OnChanged;
+        await Store.LoadAsync();
+    }
+
+    private async Task Remove(string id) => await Store.ToggleAsync(id);
+
+    private void OnChanged() => InvokeAsync(StateHasChanged);
+    public void Dispose() => Store.Changed -= OnChanged;
+}

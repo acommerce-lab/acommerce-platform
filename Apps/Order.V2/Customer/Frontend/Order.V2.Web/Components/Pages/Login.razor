@@ -13,7 +13,6 @@
              PhonePayload="@(phone => new { phoneNumber = phone })"
              VerifyPayload="@((uid, cid, code) => new { userId = uid, challengeId = cid, code })"
              RedirectUrl="@(string.IsNullOrEmpty(ReturnUrl) ? "/" : ReturnUrl)"
-             BrandIcon="🍔"
              BrandName="@(L["app.name"])"
              BrandTagline="@(L["app.tagline"])"
              PhoneStepTitle="@(L["auth.welcome"])"

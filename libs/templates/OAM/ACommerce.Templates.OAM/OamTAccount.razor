@@ -1,0 +1,81 @@
+@*
+              ━━━━━ User:4521 ━━━━━
+              مدين │ دائن
+              ─────┼─────
+   إعلانات نَشرها  3 │ 47   مفضّلات لديه
+   رسائل أرسلها  142 │ 23   إشعارات مقروءة
+              ─────┴─────
+              التَوازن:   مفعَّل ✓
+
+    عرض حالة كيان كـ T-account: عمودان منفصلان بخطّ عَموديّ، رأس
+    موحَّد، خاتمة بتَوازن.
+*@
+
+<section class="oam-t-account">
+    <header class="oam-t-account-head">
+        @if (!string.IsNullOrEmpty(Title))
+        {
+            <h2 class="oam-t-account-title">@Title</h2>
+        }
+        @if (!string.IsNullOrEmpty(Subtitle))
+        {
+            <p class="oam-t-account-sub oam-mono">@Subtitle</p>
+        }
+    </header>
+
+    <div class="oam-t-account-grid">
+        <div class="oam-t-account-col">
+            <h3 class="oam-t-account-col-head">@LeftHeader</h3>
+            @if (Left is { Count: > 0 })
+            {
+                @foreach (var line in Left)
+                {
+                    <div class="oam-t-account-line">
+                        <span class="oam-t-account-label">@line.Label</span>
+                        <span class="oam-t-account-amount oam-mono">@line.Amount</span>
+                    </div>
+                }
+            }
+            else { <p class="oam-t-account-empty">—</p> }
+        </div>
+
+        <div class="oam-t-account-col">
+            <h3 class="oam-t-account-col-head">@RightHeader</h3>
+            @if (Right is { Count: > 0 })
+            {
+                @foreach (var line in Right)
+                {
+                    <div class="oam-t-account-line">
+                        <span class="oam-t-account-label">@line.Label</span>
+                        <span class="oam-t-account-amount oam-mono">@line.Amount</span>
+                    </div>
+                }
+            }
+            else { <p class="oam-t-account-empty">—</p> }
+        </div>
+    </div>
+
+    @if (ShowBalance)
+    {
+        <footer class="oam-t-account-foot">
+            <OamStamp State="@(Balanced ? OamState.Executed : OamState.Rejected)"
+                      Compact="true" />
+            <span class="oam-t-account-balance-label">
+                @(Balanced ? BalancedLabel : UnbalancedLabel)
+            </span>
+        </footer>
+    }
+</section>
+
+@code {
+    [Parameter] public string? Title { get; set; }
+    [Parameter] public string? Subtitle { get; set; }
+    [Parameter] public string LeftHeader  { get; set; } = "مدين";
+    [Parameter] public string RightHeader { get; set; } = "دائن";
+    [Parameter] public IReadOnlyList<OamTAccountLine>? Left { get; set; }
+    [Parameter] public IReadOnlyList<OamTAccountLine>? Right { get; set; }
+    [Parameter] public bool ShowBalance { get; set; } = true;
+    [Parameter] public bool Balanced { get; set; } = true;
+    [Parameter] public string BalancedLabel   { get; set; } = "التَوازن مُحقَّق";
+    [Parameter] public string UnbalancedLabel { get; set; } = "التَوازن غير مُحقَّق";
+}

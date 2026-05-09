@@ -1,0 +1,873 @@
+/* ─────────────────────────────────────────────────────────────────────────
+ *  Ejar V2 — Ledger Theme
+ *
+ *  يَبني فوق oam-fingerprint.css. نَستعمل OAM tokens + Cairo body font،
+ *  ونَكتب shell + bottom-nav + cards بإيقاع ledger.
+ * ──────────────────────────────────────────────────────────────────────── */
+
+* { box-sizing: border-box; }
+html, body {
+  margin: 0; padding: 0;
+  font-family: var(--oam-font-body, "Cairo", system-ui, sans-serif);
+  background: var(--oam-paper);
+  color: var(--oam-ink);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+a {
+  color: var(--oam-exec);
+  text-decoration: none;
+  transition: color .15s ease;
+}
+a:hover { filter: brightness(1.1); }
+
+h1 {
+  margin: 0 0 1rem;
+  font-weight: 600;
+  font-size: 1.35rem;
+  color: var(--oam-ink);
+  letter-spacing: -0.01em;
+}
+h2 { font-weight: 600; font-size: 1.1rem; color: var(--oam-ink); }
+p  { line-height: 1.65; color: var(--oam-ink); }
+
+/* ─── shell ─────────────────────────────────────────────────────────────── */
+.ejar-shell {
+  display: flex; flex-direction: column;
+  min-height: 100vh;
+  max-width: 760px; margin: 0 auto;
+  background: var(--oam-paper);
+}
+
+/* ─── topbar — يَشبه ترويسة ledger ───────────────────────────────────────── */
+.ejar-topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 1rem 1.25rem .85rem;
+  background: var(--oam-paper);
+  position: sticky; top: 0; z-index: 20;
+  border-bottom: 1px solid var(--oam-line-strong);
+}
+.ejar-topbar::after {
+  /* خطّ ledger ثاني تحت الأوّل */
+  content: ""; position: absolute; bottom: -3px; left: 0; right: 0;
+  height: 1px; background: var(--oam-line);
+}
+
+.ejar-brand {
+  display: flex; align-items: baseline; gap: .5rem;
+  font-weight: 700; font-size: 1rem;          /* 16px on scale */
+  color: var(--oam-ink);
+  letter-spacing: -0.01em;
+}
+.ejar-brand-mark {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 1.6rem; height: 1.6rem;
+  border: 1.5px solid var(--oam-exec);
+  border-radius: var(--oam-radius-sm);
+  color: var(--oam-exec);
+  font-family: var(--oam-font-mono);
+  font-size: .8rem; font-weight: 700;
+}
+.ejar-brand-text  { color: var(--oam-ink); }
+.ejar-brand-meta  { color: var(--oam-ink-mute); font-size: .72rem; font-weight: 500; }
+
+.ejar-topbar-actions { display: flex; align-items: center; gap: .5rem; }
+.ejar-topbar-actions a {
+  position: relative;
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 2.2rem; height: 2.2rem;
+  color: var(--oam-ink-mute);
+  border-radius: var(--oam-radius-sm);
+  transition: background .15s ease;
+}
+.ejar-topbar-actions a:hover { background: var(--oam-card); color: var(--oam-ink); }
+
+/* ─── body ──────────────────────────────────────────────────────────────── */
+.ejar-body {
+  flex: 1;
+  padding: 1.25rem 1.25rem 5.5rem;     /* مساحة للـ bottom nav */
+  width: 100%;
+}
+
+/* ─── bottom nav — كأنّه جدول قيود ─────────────────────────────────────── */
+.ejar-bottomnav {
+  position: fixed; bottom: 0; right: 0; left: 0;
+  display: flex; justify-content: space-around;
+  background: var(--oam-card);
+  border-top: 1px solid var(--oam-line-strong);
+  padding: .5rem 0;                /* 8px على شبكة 4-pt */
+  z-index: 10;
+  max-width: 760px; margin: 0 auto;
+}
+.ejar-bottomnav a {
+  flex: 1;
+  display: flex; flex-direction: column; align-items: center; gap: .15rem;
+  padding: .35rem .25rem;
+  color: var(--oam-ink-mute);
+  position: relative;
+  transition: color .15s ease;
+}
+.ejar-bottomnav a.active { color: var(--oam-exec); }
+.ejar-bottomnav a.active::before {
+  content: ""; position: absolute; top: -1px; left: 25%; right: 25%;
+  height: 2px; background: var(--oam-exec); border-radius: 2px;
+}
+.ejar-bn-icon  { font-size: 1.15rem; line-height: 1; }
+.ejar-bn-label { font-size: .68rem; font-weight: 500; }
+
+/* ─── cards (في home, dashboard) — إيصالات صغيرة ───────────────────────── */
+.ejar-card {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 1rem 1.15rem;
+  background: var(--oam-card);
+  border: 1px solid var(--oam-line);
+  border-radius: var(--oam-radius);
+  box-shadow: var(--oam-shadow);
+  margin-bottom: .65rem;
+  text-decoration: none;
+  transition: transform .12s ease, border-color .12s ease;
+}
+.ejar-card:hover {
+  border-color: var(--oam-line-strong);
+  transform: translateY(-1px);
+}
+.ejar-card-title {
+  font-weight: 500; font-size: .95rem; color: var(--oam-ink);
+}
+.ejar-card-meta {
+  font-size: .78rem; color: var(--oam-ink-mute); margin-top: .2rem;
+}
+
+/* ─── badges (kit unread) — أختام صغيرة ─────────────────────────────────── */
+.ac-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 1.35rem; height: 1.35rem;
+  padding: 0 .4rem;
+  border-radius: var(--oam-radius-pill);
+  font-family: var(--oam-font-mono);
+  font-size: .72rem; font-weight: 600;
+  background: var(--oam-exec); color: #fff;
+  letter-spacing: 0;
+}
+.ac-badge-chat          { background: var(--oam-exec); }
+.ac-badge-notifications { background: var(--oam-pend); color: #fff; }
+
+.ejar-bottomnav .ac-badge {
+  position: absolute; top: 0; right: calc(50% - 22px);
+  min-width: 1.1rem; height: 1.1rem; font-size: .65rem;
+}
+.ejar-topbar-actions .ac-badge {
+  position: absolute; top: -.15rem; right: -.25rem;
+  min-width: 1.1rem; height: 1.1rem; font-size: .65rem;
+}
+
+/* ─── home + dashboard ──────────────────────────────────────────────────── */
+.ejar-page-intro {
+  margin-bottom: 1.5rem;
+  padding: .85rem 1rem;
+  background: var(--oam-card);
+  border: 1px solid var(--oam-line);
+  border-radius: var(--oam-radius);
+  border-inline-start: 3px solid var(--oam-exec);
+}
+.ejar-page-intro h1 {
+  margin: 0 0 .35rem;
+  font-size: 1.1rem;
+}
+.ejar-page-intro p {
+  margin: 0;
+  font-size: .85rem;
+  color: var(--oam-ink-mute);
+  line-height: 1.55;
+}
+
+.ejar-section-head {
+  display: flex; justify-content: space-between; align-items: baseline;
+  margin: 1.5rem 0 .65rem;
+  padding-bottom: .4rem;
+  border-bottom: 1px solid var(--oam-line);
+}
+.ejar-section-title {
+  font-size: .72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .12em;
+  color: var(--oam-ink-mute);
+  margin: 0;
+}
+.ejar-section-meta {
+  font-family: var(--oam-font-mono);
+  font-size: .7rem;
+  color: var(--oam-ink-faint);
+}
+
+/* ─── login + states ────────────────────────────────────────────────────── */
+.ejar-loading {
+  display: flex; align-items: center; justify-content: center;
+  padding: 4rem 1.5rem;
+  color: var(--oam-ink-mute);
+  font-size: .9rem;
+}
+.ejar-notfound {
+  text-align: center;
+  padding: 3rem 1.5rem;
+  color: var(--oam-ink);
+}
+.ejar-notfound h1 { margin-bottom: .5rem; }
+.ejar-notfound p { color: var(--oam-ink-mute); }
+
+/* ─── kit widget bare elements — Ledger Theme ──────────────────────────── */
+.ac-listings-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: .65rem;
+  padding: 0; list-style: none;
+  margin: 0;
+}
+.ac-listings-grid li a {
+  display: block;
+  padding: .85rem;
+  background: var(--oam-card);
+  border: 1px solid var(--oam-line);
+  border-radius: var(--oam-radius);
+  color: var(--oam-ink);
+  box-shadow: var(--oam-shadow);
+}
+.ac-listings-grid li a strong { display: block; margin-bottom: .25rem; }
+.ac-listings-grid li a span {
+  font-family: var(--oam-font-mono);
+  color: var(--oam-ink-mute);
+  font-size: .85rem;
+}
+
+.ac-messages {
+  list-style: none; padding: 0; margin: 0 0 1rem;
+  display: flex; flex-direction: column; gap: .35rem;
+}
+.ac-messages li {
+  background: var(--oam-card);
+  padding: .65rem .85rem;
+  border: 1px solid var(--oam-line);
+  border-radius: var(--oam-radius);
+}
+.ac-from {
+  font-family: var(--oam-font-mono);
+  font-size: .68rem;
+  color: var(--oam-ink-mute);
+  display: block;
+  margin-bottom: .2rem;
+}
+
+.ac-chat-composer {
+  display: flex; gap: .5rem;
+  padding: .75rem;
+  background: var(--oam-card);
+  border: 1px solid var(--oam-line);
+  border-radius: var(--oam-radius);
+}
+.ac-chat-composer .ac-input {
+  flex: 1; padding: .5rem .75rem;
+  border: 1px solid var(--oam-line); border-radius: var(--oam-radius-sm);
+  font: inherit; background: var(--oam-paper);
+}
+.ac-chat-composer .ac-input:focus {
+  outline: none; border-color: var(--oam-exec); background: var(--oam-card);
+}
+.ac-chat-composer .ac-btn {
+  padding: .5rem 1rem;
+  background: var(--oam-exec); color: #fff;
+  border: 0; border-radius: var(--oam-radius-sm);
+  cursor: pointer; font: 500 .9rem var(--oam-font-body);
+}
+.ac-chat-composer .ac-btn:disabled {
+  opacity: .4; cursor: not-allowed;
+}
+
+/* ─── login widget polish ───────────────────────────────────────────────── */
+.ac-login {
+  max-width: 380px; margin: 2rem auto;
+  padding: 2rem 1.5rem;
+  background: var(--oam-card);
+  border: 1px solid var(--oam-line);
+  border-radius: var(--oam-radius);
+  box-shadow: var(--oam-shadow);
+}
+.ac-login h1 { margin: 0 0 1rem; text-align: center; }
+.ac-login input {
+  display: block; width: 100%;
+  padding: .6rem .85rem;
+  margin-bottom: .85rem;
+  border: 1px solid var(--oam-line);
+  border-radius: var(--oam-radius-sm);
+  font: inherit; background: var(--oam-paper);
+}
+.ac-login input:focus {
+  outline: none; border-color: var(--oam-exec);
+}
+.ac-login button {
+  display: block; width: 100%;
+  padding: .65rem;
+  background: var(--oam-exec); color: #fff;
+  border: 0; border-radius: var(--oam-radius-sm);
+  font: 500 .95rem var(--oam-font-body); cursor: pointer;
+}
+.ac-login button:disabled { opacity: .5; cursor: not-allowed; }
+.ac-err { color: var(--oam-fail); font-size: .85rem; margin-top: .65rem; text-align: center; }
+
+/* ─── notification + ticket lists ───────────────────────────────────────── */
+.ac-notifications-inbox ul, .ac-tickets ul,
+.ac-chat-inbox ul, .ac-favorites ul {
+  list-style: none; padding: 0; margin: 0;
+  display: flex; flex-direction: column; gap: .4rem;
+}
+.ac-notifications-inbox li, .ac-tickets li,
+.ac-chat-inbox li, .ac-favorites li {
+  background: var(--oam-card);
+  border: 1px solid var(--oam-line);
+  border-radius: var(--oam-radius);
+  padding: .85rem 1rem;
+  box-shadow: var(--oam-shadow);
+}
+.ac-notifications-inbox .ac-unread {
+  border-inline-start: 3px solid var(--oam-pend);
+  background: var(--oam-pend-bg);
+}
+.ac-notifications-inbox header {
+  display: flex; justify-content: space-between; align-items: baseline;
+  margin-bottom: .65rem; padding-bottom: .35rem;
+  border-bottom: 1px solid var(--oam-line);
+}
+.ac-notifications-inbox header h1 { margin: 0; }
+.ac-notifications-inbox header button {
+  font: 500 .8rem var(--oam-font-body);
+  padding: .3rem .75rem;
+  background: transparent;
+  border: 1px solid var(--oam-line-strong);
+  border-radius: var(--oam-radius-sm);
+  color: var(--oam-exec);
+  cursor: pointer;
+}
+
+/* ─── kit widget classes — Layer 2 baseline ─────────────────────────────
+ * كلاسات تَستعملها kit widgets الافتراضيّة. أبسط styling — bottom-up
+ * elegant: padding، borders، colors من OAM tokens.
+ * ─────────────────────────────────────────────────────────────────────── */
+.ac-chat-room        { display: flex; flex-direction: column; gap: .65rem; }
+.ac-create-listing   { padding: 1rem 0; }
+.ac-listing-details  { padding: 1rem 0; }
+.ac-listings-explore { padding: .25rem 0; }
+.ac-my-listings      { padding: 0; }
+.ac-my-listings header {
+  display: flex; justify-content: space-between; align-items: baseline;
+  margin-bottom: .65rem; padding-bottom: .35rem;
+  border-bottom: 1px solid var(--oam-line);
+}
+.ac-my-listings header h1 { margin: 0; font-size: 1.1rem; }
+.ac-profile          { padding: 1.25rem; background: var(--oam-card);
+                       border: 1px solid var(--oam-line); border-radius: var(--oam-radius);
+                       box-shadow: var(--oam-shadow); }
+.ac-profile h1       { margin: 0 0 .35rem; font-size: 1.1rem; }
+.ac-profile p        { margin: 0; color: var(--oam-ink-mute);
+                       font-family: var(--oam-font-mono); font-size: .85rem; }
+
+.ac-plans            { display: flex; flex-direction: column; gap: .85rem;
+                       padding: .25rem 0; }
+.ac-plans-grid       { list-style: none; padding: 0; margin: 0;
+                       display: grid; grid-template-columns: 1fr; gap: .5rem; }
+.ac-plans-grid li    { background: var(--oam-card); border: 1px solid var(--oam-line);
+                       border-radius: var(--oam-radius); padding: 1rem 1.15rem;
+                       box-shadow: var(--oam-shadow); }
+.ac-plans-grid li h2 { margin: 0 0 .25rem; font-size: 1rem; }
+.ac-plans-grid li button {
+  margin-top: .5rem; padding: .4rem .85rem;
+  background: var(--oam-exec); color: #fff;
+  border: 0; border-radius: var(--oam-radius-sm);
+  cursor: pointer; font: 500 .85rem var(--oam-font-body);
+}
+
+.ac-price            { font-family: var(--oam-font-mono);
+                       font-size: 1.1rem; font-weight: 600;
+                       color: var(--oam-exec); margin: .35rem 0; }
+.ac-location         { font-size: .9rem; color: var(--oam-ink-mute); margin-bottom: .5rem; }
+.ac-description      { line-height: 1.7; color: var(--oam-ink); }
+
+/* ─── Listings widgets — Ledger Theme expanded ───────────────────────── */
+.ac-listings-filters {
+  display: flex; gap: .5rem; margin-bottom: 1rem; flex-wrap: wrap;
+}
+.ejar-filter-input {
+  flex: 1; min-width: 140px;
+  padding: .5rem .75rem;
+  background: var(--oam-card);
+  border: 1px solid var(--oam-line);
+  border-radius: var(--oam-radius-sm);
+  font: inherit; color: var(--oam-ink);
+}
+.ejar-filter-input:focus { outline: none; border-color: var(--oam-exec); }
+
+.ejar-listings { list-style: none; padding: 0; margin: 0;
+                 display: flex; flex-direction: column; gap: 0; }
+.ejar-listing-row {
+  display: block;
+  background: var(--oam-card);
+  border-bottom: 1px solid var(--oam-line);
+}
+.ejar-listing-row:first-child { border-top: 1px solid var(--oam-line); }
+.ejar-listing-link {
+  display: flex; gap: .85rem; align-items: stretch;
+  padding: .85rem 1rem;
+  text-decoration: none; color: inherit;
+  transition: background .12s ease;
+}
+.ejar-listing-link:hover  { background: var(--oam-paper); }
+.ejar-listing-link:focus-visible {
+  outline: 2px solid var(--oam-exec); outline-offset: -2px;
+}
+
+.ejar-listing-thumb {
+  flex-shrink: 0;
+  width: 72px; height: 72px;
+  background: var(--oam-paper);
+  border: 1px solid var(--oam-line);
+  border-radius: var(--oam-radius-sm);
+  background-size: cover; background-position: center;
+  display: flex; align-items: center; justify-content: center;
+}
+.ejar-listing-thumb-glyph {
+  font-size: 1.85rem; color: var(--oam-ink-faint);
+}
+
+.ejar-listing-body { flex: 1; min-width: 0;
+                     display: flex; flex-direction: column; gap: .25rem;
+                     justify-content: center; }
+.ejar-listing-top  { display: flex; gap: .5rem; align-items: center;
+                     justify-content: space-between; }
+.ejar-listing-title {
+  font-weight: 600; font-size: .95rem; color: var(--oam-ink);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.ejar-listing-meta { font-size: .85rem; color: var(--oam-ink); }
+.ejar-listing-meta .oam-mono { font-weight: 600; color: var(--oam-exec); }
+.ejar-listing-sep  { margin: 0 .35rem; color: var(--oam-ink-faint); }
+.ejar-listing-stats {
+  display: flex; gap: .85rem; font-size: .78rem;
+  color: var(--oam-ink-mute); margin-top: .15rem;
+}
+
+/* listing details */
+.ejar-listing-gallery {
+  position: relative; margin-bottom: 1rem;
+  border-radius: var(--oam-radius); overflow: hidden;
+  background: var(--oam-paper);
+  aspect-ratio: 16 / 10; max-height: 380px;
+}
+.ejar-listing-gallery img { width: 100%; height: 100%; object-fit: cover; }
+.ejar-listing-gallery-dots {
+  position: absolute; bottom: .65rem; left: 50%; transform: translateX(-50%);
+  display: flex; gap: .35rem;
+}
+.ejar-listing-gallery-dots button {
+  width: 8px; height: 8px; padding: 0; border: 0;
+  border-radius: 50%; background: rgba(255,255,255,.45); cursor: pointer;
+}
+.ejar-listing-gallery-dots button.active { background: #fff; }
+
+.ejar-listing-detail-title { margin: 0 0 .25rem; font-size: 1.15rem; }
+.ejar-listing-detail-price {
+  margin: 0 0 .85rem; font-size: 1.1rem; font-weight: 700;
+  color: var(--oam-exec);
+}
+.ejar-listing-detail-desc {
+  white-space: pre-wrap; line-height: 1.7;
+  color: var(--oam-ink); margin: 0 0 .85rem;
+}
+.ejar-listing-detail-amenities {
+  display: flex; flex-wrap: wrap; gap: .35rem;
+  padding-top: .75rem; border-top: 1px solid var(--oam-line);
+}
+.ejar-amenity-chip {
+  display: inline-block; padding: .15rem .55rem;
+  background: var(--oam-paper);
+  border: 1px solid var(--oam-line);
+  border-radius: var(--oam-radius-pill);
+  font-size: .75rem; color: var(--oam-ink);
+}
+
+/* my-listings + create */
+.ejar-add-btn { font-size: .85rem; padding: .35rem .85rem; text-decoration: none; }
+
+.ejar-create-form { display: flex; flex-direction: column; gap: .85rem;
+                    margin-bottom: 1rem; }
+.ejar-field { display: flex; flex-direction: column; gap: .35rem; }
+.ejar-field > span { font-size: .78rem; color: var(--oam-ink-mute);
+                     text-transform: uppercase; letter-spacing: .06em; }
+.ejar-field-row { display: grid; grid-template-columns: 1fr 1fr;
+                  gap: .85rem; }
+.ac-input {
+  padding: .55rem .75rem;
+  background: var(--oam-card);
+  border: 1px solid var(--oam-line);
+  border-radius: var(--oam-radius-sm);
+  font: inherit; color: var(--oam-ink);
+}
+.ac-input:focus { outline: none; border-color: var(--oam-exec); }
+
+/* empty-state for kits */
+.ejar-empty {
+  text-align: center; padding: 2.5rem 1.5rem;
+  background: var(--oam-card);
+  border: 1px dashed var(--oam-line-strong);
+  border-radius: var(--oam-radius);
+}
+.ejar-empty-glyph {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 3rem; height: 3rem;
+  border: 2px solid var(--oam-line-strong);
+  border-radius: 50%;
+  font-size: 1.3rem; color: var(--oam-ink-faint);
+  margin-bottom: .65rem;
+}
+.ejar-empty h3 { margin: .25rem 0; font-size: 1rem; }
+.ejar-empty p  { margin: 0; color: var(--oam-ink-mute); font-size: .85rem; }
+
+/* ─── Chat inbox — modernised ─────────────────────────────────────── */
+.ejar-chat-list { list-style: none; padding: 0; margin: 0;
+                  display: flex; flex-direction: column; }
+.ejar-chat-row {
+  display: flex; gap: .85rem; align-items: center;
+  padding: .85rem 1rem;
+  background: var(--oam-card);
+  border-bottom: 1px solid var(--oam-line);
+  cursor: pointer;
+  transition: background .12s ease;
+}
+.ejar-chat-row:first-child { border-top: 1px solid var(--oam-line); }
+.ejar-chat-row:hover { background: var(--oam-paper); }
+.ejar-chat-row-unread { background: rgba(31, 77, 61, 0.04); }
+.ejar-chat-row-body { flex: 1; min-width: 0;
+                      display: flex; flex-direction: column; gap: .2rem; }
+.ejar-chat-row-top, .ejar-chat-row-bot {
+  display: flex; gap: .5rem; align-items: center; min-width: 0;
+}
+.ejar-chat-row-top { justify-content: space-between; }
+.ejar-chat-name {
+  font-weight: 600; font-size: .95rem; color: var(--oam-ink);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.ejar-chat-time { font-size: .72rem; color: var(--oam-ink-mute); flex-shrink: 0; }
+.ejar-chat-preview {
+  flex: 1; min-width: 0;
+  font-size: .85rem; color: var(--oam-ink-mute);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  line-height: 1.4;
+}
+.ejar-chat-row-unread .ejar-chat-preview {
+  color: var(--oam-ink); font-weight: 500;
+}
+.ejar-chat-unread {
+  flex-shrink: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 22px; height: 22px;
+  padding: 0 7px;
+  background: #dc2626; color: #fff;
+  border-radius: 9999px;
+  font: 700 .72rem var(--oam-font-mono);
+}
+
+/* ─── Chat room — bubbles ─────────────────────────────────────────── */
+.ejar-chatroom { display: flex; flex-direction: column;
+                 min-height: calc(100vh - 200px); }
+.ejar-chatroom-head {
+  display: flex; align-items: center; gap: .5rem;
+  padding: .5rem 0; margin-bottom: .85rem;
+  border-bottom: 1px solid var(--oam-line);
+}
+.ejar-chatroom-back {
+  display: inline-flex; width: 2rem; height: 2rem;
+  align-items: center; justify-content: center;
+  border-radius: var(--oam-radius-sm);
+  color: var(--oam-ink); font-size: 1.25rem;
+}
+.ejar-chatroom-back:hover { background: var(--oam-paper); }
+.ejar-chatroom-title { font-weight: 600; font-size: 1rem; }
+
+.ejar-chatroom-msgs {
+  list-style: none; padding: 0; margin: 0 0 1rem;
+  display: flex; flex-direction: column; gap: .5rem;
+  flex: 1;
+}
+.ejar-bubble {
+  max-width: 75%;
+  padding: .55rem .85rem;
+  border-radius: var(--oam-radius);
+  border: 1px solid var(--oam-line);
+  background: var(--oam-card);
+  position: relative;
+}
+.ejar-bubble-mine {
+  align-self: flex-end;
+  background: var(--oam-exec-bg);
+  border-color: var(--oam-exec);
+}
+.ejar-bubble-other { align-self: flex-start; }
+.ejar-bubble-body  { margin: 0; line-height: 1.55; color: var(--oam-ink);
+                     white-space: pre-wrap; word-break: break-word; }
+.ejar-bubble-time  { display: block; margin-top: .15rem;
+                     font-size: .65rem; color: var(--oam-ink-mute);
+                     text-align: end; }
+
+/* ─── Notifications inbox ─────────────────────────────────────────── */
+.ejar-notifs-bar {
+  display: flex; justify-content: space-between; align-items: center;
+  gap: .65rem; padding: .65rem 1rem;
+  background: var(--oam-pend-bg);
+  border: 1px solid var(--oam-pend);
+  color: var(--oam-pend);
+  border-radius: var(--oam-radius);
+  margin-bottom: 1rem;
+  font-size: .85rem; font-weight: 500;
+}
+.oam-btn-ghost {
+  background: transparent; color: var(--oam-exec);
+  border: 1px solid var(--oam-line-strong);
+  padding: .35rem .85rem; border-radius: var(--oam-radius-sm);
+  font: 500 .82rem var(--oam-font-body); cursor: pointer;
+}
+.oam-btn-ghost:hover { background: var(--oam-card); }
+
+.ejar-notif-group {
+  font-size: .68rem; text-transform: uppercase; letter-spacing: .12em;
+  color: var(--oam-ink-mute); font-weight: 600;
+  margin: 1.25rem 0 .35rem;
+}
+.ejar-notif-list { list-style: none; padding: 0; margin: 0; }
+.ejar-notif-row {
+  display: flex; gap: .85rem; align-items: flex-start;
+  padding: .85rem 1rem;
+  background: var(--oam-card);
+  border-bottom: 1px solid var(--oam-line);
+  cursor: pointer;
+  transition: background .12s ease;
+  position: relative;
+}
+.ejar-notif-row:first-child { border-top: 1px solid var(--oam-line); }
+.ejar-notif-row:hover { background: var(--oam-paper); }
+.ejar-notif-row-unread { background: rgba(184,134,11,0.04); }
+
+.ejar-notif-icon {
+  flex-shrink: 0;
+  width: 32px; height: 32px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--oam-paper);
+  border: 1px solid var(--oam-line);
+  border-radius: 50%;
+  font-size: 1rem; color: var(--oam-ink-mute);
+}
+.ejar-notif-row-unread .ejar-notif-icon {
+  background: var(--oam-pend-bg); color: var(--oam-pend); border-color: var(--oam-pend);
+}
+.ejar-notif-body { flex: 1; min-width: 0;
+                   display: flex; flex-direction: column; gap: .2rem; }
+.ejar-notif-top  { display: flex; gap: .5rem; align-items: baseline;
+                   justify-content: space-between; }
+.ejar-notif-title {
+  font-weight: 600; font-size: .9rem; color: var(--oam-ink);
+}
+.ejar-notif-row-unread .ejar-notif-title { color: var(--oam-ink); }
+.ejar-notif-row-read   .ejar-notif-title { font-weight: 500; color: var(--oam-ink-mute); }
+.ejar-notif-time { font-size: .68rem; color: var(--oam-ink-mute); flex-shrink: 0; }
+.ejar-notif-text {
+  margin: 0; font-size: .82rem; color: var(--oam-ink-mute);
+  line-height: 1.5;
+}
+.ejar-notif-dot {
+  position: absolute; top: .85rem; inset-inline-end: .85rem;
+  width: 8px; height: 8px; background: #dc2626; border-radius: 50%;
+}
+
+/* ─── Profile ──────────────────────────────────────────────────────── */
+.ejar-profile-card {
+  display: flex; gap: 1rem; align-items: center;
+  padding: 1.25rem;
+  background: var(--oam-card);
+  border: 1px solid var(--oam-line);
+  border-radius: var(--oam-radius);
+  box-shadow: var(--oam-shadow);
+  margin-bottom: 1rem;
+}
+.ejar-profile-card-body { flex: 1; min-width: 0; }
+.ejar-profile-name { margin: 0 0 .25rem; font-size: 1.15rem; font-weight: 700; }
+.ejar-profile-since { margin: 0; font-size: .78rem; color: var(--oam-ink-mute); }
+
+.ejar-identity-list { list-style: none; padding: 0; margin: 0; }
+.ejar-identity-row {
+  display: flex; gap: .85rem; align-items: center;
+  padding: .85rem 1rem;
+  background: var(--oam-card);
+  border-bottom: 1px solid var(--oam-line);
+}
+.ejar-identity-row:first-child { border-top: 1px solid var(--oam-line); }
+.ejar-identity-label {
+  flex-shrink: 0; min-width: 4rem;
+  font-size: .72rem; text-transform: uppercase; letter-spacing: .08em;
+  color: var(--oam-ink-mute); font-weight: 600;
+}
+.ejar-identity-value { flex: 1; color: var(--oam-ink); font-size: .9rem; }
+
+.ejar-profile-actions {
+  display: flex; gap: .65rem; margin-top: 1rem; flex-wrap: wrap;
+}
+.ejar-profile-actions .oam-btn { text-decoration: none; }
+
+/* ─── Login (OTP) ─────────────────────────────────────────────────── */
+.ejar-login {
+  display: flex; align-items: flex-start; justify-content: center;
+  padding: 1rem;
+}
+.ejar-login-card {
+  width: 100%; max-width: 420px;
+  background: var(--oam-card);
+  border: 1px solid var(--oam-line);
+  border-radius: var(--oam-radius);
+  box-shadow: var(--oam-shadow);
+  padding: 1.5rem 1.5rem 1.25rem;
+  margin-top: 1rem;
+}
+.ejar-login-head { text-align: center; margin-bottom: 1.25rem; }
+.ejar-login-glyph {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 3rem; height: 3rem;
+  border: 2px solid var(--oam-exec);
+  border-radius: var(--oam-radius);
+  color: var(--oam-exec);
+  font-size: 1.25rem; font-weight: 700;
+  margin-bottom: .5rem;
+}
+.ejar-login-head h1 { margin: 0 0 .35rem; font-size: 1.15rem; }
+.ejar-login-sub    { margin: 0; font-size: .85rem; color: var(--oam-ink-mute); }
+
+.ejar-login-btn { width: 100%; }
+.ejar-login-back {
+  display: block; width: 100%; margin-top: .75rem; text-align: center;
+  background: transparent; border: 0; color: var(--oam-ink-mute);
+  font: 500 .85rem var(--oam-font-body); cursor: pointer; padding: .5rem;
+}
+.ejar-otp-input {
+  text-align: center; letter-spacing: .35em;
+  font-size: 1.25rem;
+}
+
+/* ─── Favorites list ──────────────────────────────────────────────── */
+.ejar-fav-list { list-style: none; padding: 0; margin: 0;
+                 display: flex; flex-direction: column; }
+.ejar-fav-row {
+  display: flex; align-items: center; gap: .65rem;
+  padding: .65rem 1rem;
+  background: var(--oam-card);
+  border-bottom: 1px solid var(--oam-line);
+}
+.ejar-fav-row:first-child { border-top: 1px solid var(--oam-line); }
+.ejar-fav-link {
+  flex: 1; min-width: 0;
+  display: flex; align-items: center; gap: .65rem;
+  color: var(--oam-ink); text-decoration: none;
+  padding: .35rem 0;
+}
+.ejar-fav-glyph { color: #dc2626; font-size: 1.1rem; }
+.ejar-fav-id {
+  font-size: .82rem; color: var(--oam-ink-mute);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.ejar-fav-remove { font-size: .75rem; padding: .25rem .65rem; }
+
+/* ─── Subscriptions plans ────────────────────────────────────────── */
+.ejar-current-plan {
+  margin-bottom: 1rem; padding: 1rem 1.15rem;
+  background: var(--oam-exec-bg);
+  border: 1px solid var(--oam-exec);
+  border-radius: var(--oam-radius);
+}
+.ejar-current-plan-row { display: flex; align-items: center; gap: .5rem; }
+.ejar-current-plan-label {
+  font-size: .72rem; text-transform: uppercase; letter-spacing: .1em;
+  color: var(--oam-exec); font-weight: 600;
+}
+.ejar-current-plan-name { margin: .35rem 0 .15rem; font-size: 1.05rem;
+                          font-weight: 700; color: var(--oam-ink); }
+.ejar-current-plan-period { margin: 0; font-size: .78rem;
+                            color: var(--oam-ink-mute); }
+
+.ejar-plans-grid {
+  list-style: none; padding: 0; margin: 0;
+  display: grid; grid-template-columns: 1fr; gap: .75rem;
+}
+@media (min-width: 600px) {
+  .ejar-plans-grid { grid-template-columns: repeat(2, 1fr); }
+}
+.ejar-plan-card {
+  background: var(--oam-card);
+  border: 1px solid var(--oam-line);
+  border-radius: var(--oam-radius);
+  box-shadow: var(--oam-shadow);
+  padding: 1rem 1.15rem;
+  display: flex; flex-direction: column; gap: .5rem;
+}
+.ejar-plan-card-active {
+  border-color: var(--oam-exec); border-width: 2px;
+}
+.ejar-plan-head { display: flex; justify-content: space-between;
+                  align-items: center; }
+.ejar-plan-head h3 { margin: 0; font-size: 1rem; font-weight: 700; }
+.ejar-plan-slug   { margin: 0; font-size: .75rem; color: var(--oam-ink-mute); }
+
+.ejar-plan-quotas { list-style: none; padding: 0; margin: .35rem 0 0;
+                    display: flex; flex-direction: column; gap: .25rem;
+                    border-top: 1px dashed var(--oam-line); padding-top: .65rem; }
+.ejar-plan-quotas li {
+  display: flex; justify-content: space-between; align-items: center;
+  font-size: .82rem;
+}
+.ejar-plan-quota-key { color: var(--oam-ink-mute); }
+.ejar-plan-quota-val { color: var(--oam-ink); font-weight: 600; }
+
+.ejar-plan-btn { margin-top: .65rem; }
+.ejar-plan-btn:disabled {
+  background: var(--oam-exec-bg); color: var(--oam-exec);
+  border: 1px solid var(--oam-exec);
+}
+
+/* ─── Support tickets ──────────────────────────────────────────── */
+.ejar-tickets { list-style: none; padding: 0; margin: 0;
+                display: flex; flex-direction: column; }
+.ejar-ticket-row {
+  display: flex; gap: .85rem; align-items: center;
+  padding: .85rem 1rem;
+  background: var(--oam-card);
+  border-bottom: 1px solid var(--oam-line);
+  cursor: pointer;
+  transition: background .12s ease;
+}
+.ejar-ticket-row:first-child { border-top: 1px solid var(--oam-line); }
+.ejar-ticket-row:hover { background: var(--oam-paper); }
+.ejar-ticket-body { flex: 1; min-width: 0;
+                    display: flex; flex-direction: column; gap: .25rem; }
+.ejar-ticket-top  { display: flex; justify-content: space-between;
+                    align-items: center; gap: .5rem; }
+.ejar-ticket-subject {
+  font-weight: 600; font-size: .95rem; color: var(--oam-ink);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.ejar-ticket-meta {
+  display: flex; gap: .85rem; font-size: .72rem;
+  color: var(--oam-ink-mute);
+}
+.ejar-ticket-id { color: var(--oam-ink-faint); }
+.ejar-ticket-unread {
+  flex-shrink: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 22px; height: 22px;
+  padding: 0 7px;
+  background: #dc2626; color: #fff;
+  border-radius: 9999px;
+  font: 700 .72rem var(--oam-font-mono);
+}

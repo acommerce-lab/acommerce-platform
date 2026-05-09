@@ -9,9 +9,15 @@ using ACommerce.OperationEngine.Patterns;
 namespace ACommerce.Kits.Discovery.Backend;
 
 /// <summary>
-/// متحكم الاستكشاف — يعتمد بالكامل على المعترض العام للبيانات والتاجات القياسية.
+/// متحكم الاستكشاف — يعتمد بالكامل على المعترض العام للبيانات والتاجات
+/// القياسية. يكشف ٣ نقاط قراءة عامّة (لا يلزم تسجيل دخول):
+///   <c>GET /categories</c>، <c>GET /cities</c>، <c>GET /amenities</c>.
+///
+/// <para>المسارات بلا prefix لتطابق سوق الـ marketplace التطبيقاتيّ
+/// (إيجار، عشير، الخ.). تطبيقات تريد namespace أخرى تكتب controller
+/// خاصّاً يستدعي نفس الـ ops.</para>
 /// </summary>
-[ApiController, Route("api/discovery")]
+[ApiController]
 public class DiscoveryController : ControllerBase
 {
     private readonly OpEngine _engine;
@@ -21,10 +27,9 @@ public class DiscoveryController : ControllerBase
         _engine = engine;
     }
 
-    [HttpGet("categories")]
+    [HttpGet("/categories")]
     public async Task<IActionResult> Categories()
     {
-        // استخدام التاجات القياسية من مكتبة المعترضات
         var op = Entry.Create("discovery.categories.list")
             .Tag(OperationTags.DbAction, DataOperationTypes.ReadAll)
             .Tag(OperationTags.TargetEntity, nameof(DiscoveryCategory))
@@ -40,7 +45,7 @@ public class DiscoveryController : ControllerBase
         return Ok(env);
     }
 
-    [HttpGet("cities")]
+    [HttpGet("/cities")]
     public async Task<IActionResult> Cities()
     {
         var op = Entry.Create("discovery.cities.list")
@@ -56,7 +61,7 @@ public class DiscoveryController : ControllerBase
         return Ok(env);
     }
 
-    [HttpGet("amenities")]
+    [HttpGet("/amenities")]
     public async Task<IActionResult> Amenities()
     {
         var op = Entry.Create("discovery.amenities.list")

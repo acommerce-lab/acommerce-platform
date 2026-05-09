@@ -7,6 +7,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#1d4ed8" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="إيجار" />
     <meta name="application-name" content="إيجار" />
@@ -48,20 +49,50 @@
          version-check.js أوّلاً ودائماً — يفحص version.json قبل أي شيء
          آخر، يفرض حذف SW + caches إذا كانت النسخة المحفوظة محلياً قديمة،
          ثم يعيد التحميل ضارباً عرض الحائط بأي cache على CDN/proxy. -->
-    <script src="version-check.js?v=20260427"></script>
-    <script src="api-diagnostics.js?v=20260427"></script>
+    <script src="version-check.js?v=20260502c"></script>
+    <script src="api-diagnostics.js?v=20260502c"></script>
+    <!-- signalr.min.js قبل blazor.webassembly.js: على الهاتف الشبكة أبطأ
+         فيبدأ Blazor تنفيذ EjarRealtimeService.start قبل ما ينتهي تحميل
+         signalr من cloudflare CDN، فيخرج "signalR is not defined".
+         وضعه قبل blazor يضمن synchronous parse: blazor لا يبدأ حتى ينتهي
+         signalr (السكربتات بدون async/defer متسلسلة). -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.7/signalr.min.js"
+            integrity="sha512-7SRCYIJtR6F8ocwW7UxW6wGKqbSyqREDbfCORCbGLatU0iugBLwyOXpzhkPyHIFdBO0K2VCu57fvP2Twgx1o2A=="
+            crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <!-- Eruda mobile console — تُحمَّل فقط لو ?debug=1 في الـ URL أو
+         ejarDebug=1 في localStorage. تُعطي console + network + DOM
+         inspector على الهاتف بدون كابل USB. لا تُحمَّل للمستخدمين
+         العاديّين فلا تأثير على الأداء. -->
+    <script>
+      (function () {
+        try {
+          var qs = new URLSearchParams(location.search);
+          var on = qs.get('debug') === '1' || localStorage.getItem('ejarDebug') === '1';
+          if (qs.get('debug') === '1') localStorage.setItem('ejarDebug', '1');
+          if (qs.get('debug') === '0') { localStorage.removeItem('ejarDebug'); on = false; }
+          if (!on) return;
+          var s = document.createElement('script');
+          s.src = 'https://cdn.jsdelivr.net/npm/eruda';
+          s.onload = function () { try { eruda.init(); } catch (_) {} };
+          document.head.appendChild(s);
+        } catch (_) { /* noop */ }
+      })();
+    </script>
     <script src="_framework/blazor.webassembly.js"></script>
     <script src="_content/Ejar.Customer.UI/ui-prefs.js"></script>
-    <script src="install-prompt.js?v=20260427"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.7/signalr.min.js"
-            integrity="sha512-7SRCYIJtR6F8ocwW7UxW6wGKqbSyqREDbfCORCNGarvHiAIzNh7pBnFAw4QcVBSzQMbLp0bOGv7TFfvqBL3qg=="
-            crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="_content/Ejar.Customer.UI/image-compressor.js"></script>
+    <script src="_content/Ejar.Customer.UI/notifications.js"></script>
+    <script src="_content/Ejar.Customer.UI/js/firebase-push.js" type="module"></script>
+    <script src="install-prompt.js?v=20260501a"></script>
 
     <script>
       // SW registration + auto-update عند نشر إصدار جديد:
       // إذا تغيّر VERSION داخل service-worker.js → نُجبر تحديث + reload.
+      // updateViaCache: 'none' يمنع متصفّحات Chrome/Edge من خدمة الـ SW القديم
+      // من HTTP cache — يُجبر استعلام الشبكة كلّ مرّة، فلا يبقى SW مكسور
+      // عالقاً عبر النشرات.
       if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('service-worker.js')
+        navigator.serviceWorker.register('service-worker.js', { updateViaCache: 'none' })
           .then(reg => {
             // افحص التحديثات كل 60 ثانية + عند العودة للتبويب
             setInterval(() => reg.update(), 60_000);

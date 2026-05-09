@@ -1,0 +1,34 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>Ejar.Customer.UI.V2</RootNamespace>
+    <AssemblyName>Ejar.Customer.UI.V2</AssemblyName>
+    <PackageId>Ejar.Customer.UI.V2</PackageId>
+    <Version>2.0.0</Version>
+    <Description>
+      تَطبيق إيجار V2 — يَستَهلِك قالَب Customer.Ledger كَنُقطة دَخول
+      وَحيدة. لا bindings، لا api clients، لا route registration هنا —
+      كلّ ذلك في القالَب. هذا المَلَفّ يَحوي فقط: app pages مَخصّصة
+      (Home, Dashboard) + Layout + branding.
+    </Description>
+    <RazorLangVersion>latest</RazorLangVersion>
+  </PropertyGroup>
+  <ItemGroup>
+    <SupportedPlatform Include="browser" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- قالَب Customer.Ledger — مَصدر كلّ pages + bindings + api clients -->
+    <ProjectReference Include="..\..\..\..\..\libs\templates\Customer.Ledger\ACommerce.Templates.Customer.Ledger\ACommerce.Templates.Customer.Ledger.csproj" />
+
+    <!-- Versions Templates يَكشف AppVersionInfo + AppVersionHeadersHandler -->
+    <ProjectReference Include="..\..\..\..\..\libs\templates\Versions\ACommerce.Kits.Versions.Templates\ACommerce.Kits.Versions.Templates.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Components.Authorization" Version="10.0.7" />
+    <PackageReference Include="Microsoft.AspNetCore.Authorization" Version="10.0.7" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.7" />
+    <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.7" />
+  </ItemGroup>
+</Project>

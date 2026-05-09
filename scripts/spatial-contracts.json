@@ -156,7 +156,7 @@
       "selector": "body > div, body > main, .act-shell, .adm-shell, .acs-page, .ord-shell, .vnd-shell",
       "rule": "top-level-shell-styled",
       "description": "Every rendered page's top-level wrapper must be one of the approved shell classes AND receive non-default computed styles (background or border). Unstyled <nav>/<div> indicates missing template CSS.",
-      "approved_shell_selectors": [".act-shell", ".adm-shell", ".acs-page", ".acs-auth-page", ".ord-shell", ".vnd-shell"]
+      "approved_shell_selectors": [".act-shell", ".adm-shell", ".acs-page", ".acs-auth-page", ".ord-shell", ".vnd-shell", ".ejar-shell", ".acs-auth-card"]
     }
   ],
 

@@ -1,0 +1,73 @@
+@*
+   listing.create
+   ─────────────────────────────
+    ✓ user authenticated
+    ✓ title required
+    ✓ price > 0
+    ✓ quota: subscription allows
+    ⏳ analyzer: balance...
+    ─                               ← shake لو فشل
+    [ تَنفيذ ]                       ← مُعَطَّل حتى يكتمل
+
+   شَريط analyzers قبل التَنفيذ. كلّ analyzer سطر، ✓/✗/⏳ كرمز.
+   ChildContent عادةً <button> — يُعَطَّل ما لم تَكن كلّ الـ analyzers Pass.
+*@
+
+<div class="oam-analyzer-strip">
+    @if (!string.IsNullOrEmpty(OperationType))
+    {
+        <header class="oam-analyzer-strip-head">
+            <span class="oam-analyzer-strip-op">@OperationType</span>
+        </header>
+    }
+    <ul class="oam-analyzer-strip-list">
+        @foreach (var a in Analyzers ?? Array.Empty<OamAnalyzer>())
+        {
+            <li class="oam-analyzer oam-analyzer-@StateClass(a.State)">
+                <span class="oam-analyzer-glyph" aria-hidden="true">@Glyph(a.State)</span>
+                <span class="oam-analyzer-label">@a.Label</span>
+                @if (!string.IsNullOrEmpty(a.Hint))
+                {
+                    <span class="oam-analyzer-hint">@a.Hint</span>
+                }
+            </li>
+        }
+    </ul>
+    @if (Action is not null)
+    {
+        <div class="oam-analyzer-strip-action">
+            @Action(AllPass)
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public string? OperationType { get; set; }
+    [Parameter] public IReadOnlyList<OamAnalyzer>? Analyzers { get; set; }
+    /// <summary>
+    /// زرّ التَنفيذ — يَستقبل bool (canExecute) ⇒ التطبيق يُعطي
+    /// <c>disabled</c> attribute لو false.
+    /// </summary>
+    [Parameter] public RenderFragment<bool>? Action { get; set; }
+
+    private bool AllPass =>
+        Analyzers is not null && Analyzers.All(a => a.State == OamAnalyzerState.Pass);
+
+    private static string StateClass(OamAnalyzerState s) => s switch
+    {
+        OamAnalyzerState.Idle     => "idle",
+        OamAnalyzerState.Checking => "go",
+        OamAnalyzerState.Pass     => "ok",
+        OamAnalyzerState.Fail     => "fail",
+        _ => "idle",
+    };
+
+    private static string Glyph(OamAnalyzerState s) => s switch
+    {
+        OamAnalyzerState.Idle     => "○",
+        OamAnalyzerState.Checking => "◐",
+        OamAnalyzerState.Pass     => "✓",
+        OamAnalyzerState.Fail     => "✗",
+        _ => "·",
+    };
+}

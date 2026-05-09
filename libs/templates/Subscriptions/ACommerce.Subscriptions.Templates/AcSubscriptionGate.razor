@@ -1,0 +1,70 @@
+@*
+  Top-level wrapper that gates content based on the user's subscription
+  state. Mirrors AcAppVersionGate from the Versions Kit:
+    - Loaded = false                -> render ChildContent (don't flicker).
+    - HasActive = true              -> render ChildContent.
+    - HasActive = false + Blocked   -> render NoSubscription RenderFragment
+                                       (apps supply their own "subscribe"
+                                       page or AcSubscriptionPage from
+                                       Templates.Marketplace).
+    - HasActive = false + !Blocked  -> render ChildContent + show banner.
+
+  Usage:
+
+      <AcSubscriptionGate Blocked="true">
+          <ChildContent>
+              @Body
+          </ChildContent>
+          <NoSubscription>
+              <a href="/subscription">اشترك للمتابعة</a>
+          </NoSubscription>
+      </AcSubscriptionGate>
+*@
+
+@inject SubscriptionState State
+@implements IDisposable
+
+@if (!State.Loaded || State.HasActive == true)
+{
+    @ChildContent
+}
+else if (Blocked)
+{
+    @if (NoSubscription is not null) { @NoSubscription }
+    else
+    {
+        <div class="ac-sub-blocked" role="alert">
+            <p>الميزة تتطلّب اشتراكاً نشطاً.</p>
+        </div>
+    }
+}
+else
+{
+    <div class="ac-sub-banner" role="status">
+        <span>اشتراكك غير نشط — بعض الميزات قد لا تعمل.</span>
+    </div>
+    @ChildContent
+}
+
+@code {
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>
+    /// محتوى يُعرَض بدلاً من <see cref="ChildContent"/> عند رفض الوصول
+    /// (Blocked=true + لا اشتراك نشط). عادةً لينك إلى صفحة الاشتراك أو
+    /// <c>AcSubscriptionPage</c>.
+    /// </summary>
+    [Parameter] public RenderFragment? NoSubscription { get; set; }
+
+    /// <summary>
+    /// لو <c>true</c>: غياب الاشتراك يحجب المحتوى تماماً (يستبدله بـ
+    /// <see cref="NoSubscription"/>). لو <c>false</c>: يعرض شريط تنبيه فقط
+    /// مع المحتوى. القرار يعتمد على نوع الصفحة (dashboard مدفوع → true،
+    /// إعلان عام → false).
+    /// </summary>
+    [Parameter] public bool Blocked { get; set; } = true;
+
+    protected override void OnInitialized() => State.Changed += OnChanged;
+    private void OnChanged() => InvokeAsync(StateHasChanged);
+    public void Dispose() => State.Changed -= OnChanged;
+}

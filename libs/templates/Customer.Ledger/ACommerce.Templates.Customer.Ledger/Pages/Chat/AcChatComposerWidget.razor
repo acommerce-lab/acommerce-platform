@@ -1,0 +1,41 @@
+@*
+    AcChatComposerWidget — input بسيط لكتابة رسالة + زرّ إرسال.
+
+    قابل للاستعمال:
+      - داخل AcChatRoomWidget كحقل سفليّ.
+      - بشكل مستقلّ في side-drawer أو modal.
+      - في تطبيقات تُمرّر OnSend خاصّ بها (مثلاً يُسجّل draft قبل الإرسال).
+
+    لا route، لا state عالميّ — يَأخذ ConversationId و OnSend عبر Parameters.
+*@
+
+<form class="ac-chat-composer" @onsubmit="HandleSend" @onsubmit:preventDefault>
+    <input class="ac-input"
+           type="text"
+           placeholder="@Placeholder"
+           value="@_draft"
+           @oninput="@(e => _draft = e.Value?.ToString() ?? "")"
+           disabled="@Disabled" />
+    <button class="ac-btn" type="submit" disabled="@(Disabled || string.IsNullOrWhiteSpace(_draft))">
+        @SendLabel
+    </button>
+</form>
+
+@code {
+    [Parameter] public string Placeholder { get; set; } = "Type a message…";
+    [Parameter] public string SendLabel  { get; set; } = "Send";
+    [Parameter] public bool   Disabled    { get; set; }
+
+    /// <summary>يُستدعى عند submit نصّ غير فارغ. الـ widget يَمسح الـ draft تلقائياً.</summary>
+    [Parameter] public EventCallback<string> OnSend { get; set; }
+
+    private string _draft = "";
+
+    private async Task HandleSend()
+    {
+        var body = _draft.Trim();
+        if (body.Length == 0) return;
+        _draft = "";
+        if (OnSend.HasDelegate) await OnSend.InvokeAsync(body);
+    }
+}

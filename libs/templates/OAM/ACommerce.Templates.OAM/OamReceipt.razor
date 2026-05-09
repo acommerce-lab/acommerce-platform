@@ -1,0 +1,71 @@
+@*
+    ┌───────────────── listing.create ─┐
+    │  ⏱ 2026-05-03  11:42             │
+    │                                  │   ← OamReceipt: بطاقة إيصال بـ
+    │  من   ←  المستخدِم #4521         │      header + parties + tags + stamp
+    │  إلى  ←  الإعلان #X              │
+    │  ──────── البنود ────────       │
+    │   • title :  شقّة الزهور          │
+    │   • price :  1500                │
+    │                                  │
+    │   ▣ نُفِّذ                          │
+    └──────────────────────────────────┘
+*@
+
+<article class="oam-receipt">
+    <header class="oam-receipt-head">
+        <span class="oam-receipt-type">@OperationType</span>
+        @if (Time is { } t)
+        {
+            <time class="oam-mono oam-receipt-time" datetime="@t.ToString("o")">
+                @t.ToString("yyyy-MM-dd  HH:mm")
+            </time>
+        }
+    </header>
+
+    <dl class="oam-receipt-parties">
+        <div>
+            <dt>من</dt>
+            <dd>@From</dd>
+        </div>
+        <div>
+            <dt>إلى</dt>
+            <dd>@To</dd>
+        </div>
+    </dl>
+
+    @if (Tags is { Count: > 0 })
+    {
+        <ul class="oam-receipt-tags">
+            @foreach (var tg in Tags)
+            {
+                <li>
+                    <span class="oam-receipt-tag-key">@tg.Key</span>
+                    <span class="oam-receipt-tag-sep" aria-hidden="true">·</span>
+                    <span class="oam-receipt-tag-value oam-mono">@tg.Value</span>
+                </li>
+            }
+        </ul>
+    }
+
+    @if (ChildContent is not null)
+    {
+        <div class="oam-receipt-body">@ChildContent</div>
+    }
+
+    <footer class="oam-receipt-foot">
+        <OamStamp State="@State" Time="@Time" Compact="true" />
+        @if (FooterExtra is not null) { <div class="oam-receipt-foot-extra">@FooterExtra</div> }
+    </footer>
+</article>
+
+@code {
+    [Parameter, EditorRequired] public string OperationType { get; set; } = "";
+    [Parameter] public string? From { get; set; }
+    [Parameter] public string? To { get; set; }
+    [Parameter] public DateTime? Time { get; set; }
+    [Parameter] public OamState State { get; set; } = OamState.Executed;
+    [Parameter] public IReadOnlyList<OamTag>? Tags { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter] public RenderFragment? FooterExtra { get; set; }
+}

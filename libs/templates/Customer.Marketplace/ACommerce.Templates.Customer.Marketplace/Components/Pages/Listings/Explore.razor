@@ -1,0 +1,217 @@
+@page "/explore"
+@using Ejar.Customer.UI.Operations
+@using Ejar.Customer.UI.Services
+@inject AppStore Store
+@inject ApiReader Api
+@inject ITemplateEngine Engine
+@inject NavigationManager Nav
+@inject FavoritesSync Favorites
+@implements IDisposable
+
+<PageTitle>استكشف - @Store.Auth?.FullName</PageTitle>
+
+@if (HasAnyFilter)
+{
+    <div class="acs-clear-filters-bar" style="display:flex; justify-content:flex-end; padding:8px 12px;">
+        <AcButton Variant="ghost" Text="إلغاء كلّ الفلاتر" OnClick="@ClearAllFilters" />
+    </div>
+}
+
+<AcListingExplorePage Title="استكشف"
+                      Data="_listings"
+                      MapListings="_mapListings"
+                      Categories="_categories"
+                      Cities="_cities"
+                      SelectedCategoryId="@_categoryId"
+                      Sort="@_sort"
+                      View="@_view"
+                      Filters="_filters"
+                      FavoriteIds="Store.FavoriteListingIds"
+                      Engine="Engine"
+                      Store="Store"
+                      OnCategorySelected="OnCategorySelected"
+                      OnSortChanged="OnSortChanged"
+                      OnViewChanged="OnViewChanged"
+                      OnListingOpen="OnListingOpen"
+                      OnFavoriteToggled="OnFavoriteToggled"
+                      OnFiltersApplied="OnFiltersApplied" />
+
+@code {
+    private IReadOnlyList<ListingRowDto>? _listings;
+    private IReadOnlyList<AcListingMapPage.MapListingDto> _mapListings = Array.Empty<AcListingMapPage.MapListingDto>();
+    private IReadOnlyList<CategoryTileDto> _categories = Array.Empty<CategoryTileDto>();
+    private IReadOnlyList<string> _cities = Array.Empty<string>();
+    private string? _categoryId;
+    private string? _query;
+    private string _sort = "newest";
+    private string _view = "list";
+    // يُهيَّأ في OnInitialized بمدينة الصفحة الرئيسيّة (طلب صاحب المصلحة).
+    // C# لا يسمح لمُهيِّئ الحقل باستدعاء method instance، فنبدأ فاضياً.
+    private AcListingExplorePage.ExploreFilters _filters = new(null, null, null, null, 0, 0);
+
+    /// <summary>
+    /// قيم الفلتر الافتراضيّة: المدينة = اختيار المستخدم على الصفحة الرئيسيّة
+    /// (Store.Ui.City) — طلب صاحب المصلحة. لو غيّرها المستخدم في الـ modal،
+    /// تُحفَظ في _filters مباشرةً. زرّ "إلغاء كلّ الفلاتر" يعيدنا لهذه القيم.
+    /// </summary>
+    private AcListingExplorePage.ExploreFilters NewDefaultFilters() =>
+        new(string.IsNullOrWhiteSpace(Store.Ui.City) ? null : Store.Ui.City,
+            null, null, null, 0, 0);
+
+    protected override void OnInitialized()
+    {
+        Store.OnChanged += OnChange;
+        var qs = System.Web.HttpUtility.ParseQueryString(new Uri(Nav.Uri).Query);
+
+        // ?reset=1 من Home.OnViewAll → حالة نظيفة. مدينة الصفحة الرئيسيّة
+        // تبقى الافتراضيّة (طلب صاحب المصلحة).
+        if (qs.Get("reset") == "1")
+        {
+            _categoryId = null;
+            _query      = null;
+            _sort       = "newest";
+            _filters    = NewDefaultFilters();
+            Nav.NavigateTo("/explore", replace: true);
+            return;
+        }
+
+        _categoryId = qs.Get("category");
+        _query      = qs.Get("q");
+
+        // المدينة + الحيّ من URL إن وُجدا (للمشاركة/الـ deep linking)،
+        // وإلّا المدينة من الصفحة الرئيسيّة كافتراضيّ.
+        var urlCity     = qs.Get("city");
+        var urlDistrict = qs.Get("district");
+        var defaultCity = string.IsNullOrWhiteSpace(Store.Ui.City) ? null : Store.Ui.City;
+        var initialCity = !string.IsNullOrEmpty(urlCity) ? urlCity : defaultCity;
+        _filters = _filters with { City = initialCity, District = urlDistrict };
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await LoadCategoriesAsync();
+            await LoadListingsAsync();
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task LoadCategoriesAsync()
+    {
+        var env = await Api.GetAsync<HomeResponse>("/home/view");
+        if (env.Data is not null)
+        {
+            _categories = env.Data.Categories.Select(c =>
+                new CategoryTileDto { Id = c.Id, Label = c.Label, Icon = c.Icon }).ToList();
+        }
+        // قائمة المدن للـ city dropdown داخل modal الفلتر.
+        var citiesEnv = await Api.GetAsync<List<string>>("/cities");
+        _cities = citiesEnv.Data ?? new();
+    }
+
+    private async Task LoadListingsAsync()
+    {
+        var qs = BuildQueryString();
+        var env = await Api.GetAsync<List<ListingDto>>($"/home/explore{qs}");
+        var items = env.Data ?? new();
+        _listings = items.Select(ToRow).ToList();
+        _mapListings = items.Where(i => i.Lat != 0 && i.Lng != 0)
+            .Select(i => new AcListingMapPage.MapListingDto(ToRow(i), i.Lat, i.Lng))
+            .ToList();
+    }
+
+    private string BuildQueryString()
+    {
+        var parts = new List<string>();
+        if (!string.IsNullOrEmpty(_categoryId))      parts.Add($"category={Uri.EscapeDataString(_categoryId)}");
+        if (!string.IsNullOrEmpty(_query))           parts.Add($"q={Uri.EscapeDataString(_query)}");
+        if (!string.IsNullOrEmpty(_filters.City))    parts.Add($"city={Uri.EscapeDataString(_filters.City)}");
+        if (!string.IsNullOrEmpty(_filters.District)) parts.Add($"district={Uri.EscapeDataString(_filters.District)}");
+        if (_filters.MinPrice.HasValue)              parts.Add($"priceMin={_filters.MinPrice}");
+        if (_filters.MaxPrice.HasValue)              parts.Add($"priceMax={_filters.MaxPrice}");
+        if (_filters.Capacity > 0)                   parts.Add($"capacity={_filters.Capacity}");
+        if (_filters.MinRating > 0)                  parts.Add($"minRating={_filters.MinRating}");
+        parts.Add($"sort={_sort}");
+        return "?" + string.Join("&", parts);
+    }
+
+    private bool HasAnyFilter =>
+        !string.IsNullOrEmpty(_categoryId)
+        || !string.IsNullOrEmpty(_query)
+        || !string.IsNullOrEmpty(_filters.District)
+        || (!string.IsNullOrEmpty(_filters.City) && _filters.City != Store.Ui.City)
+        || _filters.MinPrice.HasValue || _filters.MaxPrice.HasValue
+        || _filters.Capacity > 0 || _filters.MinRating > 0
+        || _sort != "newest";
+
+    private async Task OnCategorySelected(string? id)
+    {
+        _categoryId = id;
+        // اختيار "الكل" (id == null) يمسح <i>كلّ</i> الفلاتر — البحث النصّيّ
+        // والترتيب أيضاً، ليطابق سلوك ClearAllFilters. مدينة الصفحة الرئيسيّة
+        // تبقى الافتراضيّة (طلب صاحب المصلحة).
+        if (id is null)
+        {
+            _query   = null;
+            _sort    = "newest";
+            _filters = NewDefaultFilters();
+        }
+        await ApplyAndSyncAsync();
+    }
+
+    private async Task OnSortChanged    (string? sort)  { _sort = sort ?? "newest";  await ApplyAndSyncAsync(); }
+    private void      OnViewChanged     (string? view)  { _view = view ?? "list";    StateHasChanged(); }
+    private async Task OnFiltersApplied (AcListingExplorePage.ExploreFilters f) { _filters = f; await ApplyAndSyncAsync(); }
+
+    private async Task ClearAllFilters()
+    {
+        _categoryId = null;
+        _query      = null;
+        _sort       = "newest";
+        _filters    = NewDefaultFilters();
+        await ApplyAndSyncAsync();
+    }
+
+    /// <summary>
+    /// يحدّث URL ليعكس الـ category/sort/q/filters الحاليّة (replace: true لئلّا
+    /// تتراكم في تاريخ المتصفّح)، ثمّ يعيد تحميل القائمة. بدون هذا كانت الـ URL
+    /// تبقى ثابتة على القيمة الأوليّة، فلا يستطيع المستخدم نسخ/مشاركة الفلاتر.
+    /// </summary>
+    private async Task ApplyAndSyncAsync()
+    {
+        var qs = BuildQueryString();
+        Nav.NavigateTo($"/explore{qs}", replace: true);
+        await LoadListingsAsync();
+        StateHasChanged();
+    }
+
+    private void OnListingOpen(ListingRowDto l) => Nav.NavigateTo($"/listings/{Uri.EscapeDataString(l.Id)}");
+
+    private Task OnFavoriteToggled((ListingRowDto Listing, bool On) e)
+    {
+        if (!Store.Auth.IsAuthenticated) { Nav.NavigateTo("/login"); return Task.CompletedTask; }
+        return Favorites.ToggleAsync(e.Listing.Id);
+    }
+
+    private static ListingRowDto ToRow(ListingDto l) => new()
+    {
+        Id = l.Id, Title = l.Title,
+        Price = l.Price, Currency = "YER", TimeUnit = l.TimeUnitLabel,
+        City = l.City, District = l.District, Status = 1, IsFeatured = l.IsVerified,
+        ThumbnailUrl = l.FirstImage,
+        Capacity = l.BedroomCount == 0 ? null : l.BedroomCount
+    };
+
+    private void OnChange() => InvokeAsync(StateHasChanged);
+    public void Dispose() => Store.OnChanged -= OnChange;
+
+    private sealed record HomeResponse(List<CategoryDto> Categories, List<ListingDto> Featured, List<ListingDto> New);
+    private sealed record CategoryDto(string Id, string Label, string Icon);
+
+    private sealed record ListingDto(
+        string Id, string Title, decimal Price, string TimeUnit, string TimeUnitLabel,
+        string PropertyType, string PropertyTypeLabel, string City, string District,
+        double Lat, double Lng, int BedroomCount, double AreaSqm, bool IsVerified,
+        int ViewsCount, bool IsFavorite, List<string>? Amenities, string? FirstImage);
+}

@@ -9,6 +9,6 @@
     <Description>Lightweight i18n façade for ACommerce Blazor apps. Provides ITranslationProvider contract, ILanguageContext abstraction, L indexer, and an EmbeddedTranslationProvider base class. Each app derives its own dictionary; swap the provider to move to CMS/Resx without touching pages.</Description>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.0" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.7" />
   </ItemGroup>
 </Project>

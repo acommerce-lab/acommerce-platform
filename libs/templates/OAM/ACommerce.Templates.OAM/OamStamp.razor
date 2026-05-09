@@ -1,0 +1,56 @@
+@*
+    ╔═══════════╗
+    ║  EXECUTED ║   ← OamStamp: pill بختم محاسبيّ
+    ║  11:42 UTC║
+    ╚═══════════╝
+
+    State يُغيِّر اللون والنصّ. Time اختياريّ — يَظهر بـ monospace.
+    Compact=true ⇒ بدون الـ time (للقوائم المُكتظّة).
+*@
+
+<span class="oam-stamp oam-stamp-@StateClass @(Compact ? "oam-stamp-compact" : "")"
+      role="status" aria-label="@AriaLabel">
+    <span class="oam-stamp-glyph" aria-hidden="true">@Glyph</span>
+    <span class="oam-stamp-state">@StateText</span>
+    @if (!Compact && Time is { } t)
+    {
+        <time class="oam-stamp-time oam-mono" datetime="@t.ToString("o")">
+            @t.ToString("HH:mm")
+        </time>
+    }
+</span>
+
+@code {
+    [Parameter] public OamState State { get; set; } = OamState.Executed;
+    [Parameter] public DateTime? Time { get; set; }
+    [Parameter] public bool Compact { get; set; }
+
+    private string StateClass => State switch
+    {
+        OamState.Pending   => "pending",
+        OamState.Executing => "executing",
+        OamState.Executed  => "executed",
+        OamState.Rejected  => "rejected",
+        _ => "executed",
+    };
+
+    private string Glyph => State switch
+    {
+        OamState.Pending   => "○",
+        OamState.Executing => "◐",
+        OamState.Executed  => "✓",
+        OamState.Rejected  => "✗",
+        _ => "·",
+    };
+
+    private string StateText => State switch
+    {
+        OamState.Pending   => "قيد الإعداد",
+        OamState.Executing => "تَنفيذ",
+        OamState.Executed  => "نُفِّذ",
+        OamState.Rejected  => "رُفض",
+        _ => "",
+    };
+
+    private string AriaLabel => $"حالة العمليّة: {StateText}";
+}

@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <PackageId>ACommerce.Kits.Auth.Frontend.Customer</PackageId>
+    <Version>1.0.0</Version>
+    <Description>Auth kit customer-facing logic: IAuthStore + IAuthApiClient interfaces, DefaultAuthStore, HttpAuthApiClient. UI lives in libs/templates/Customer.Ledger.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <SupportedPlatform Include="browser" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\ACommerce.Kits.Auth.Operations\ACommerce.Kits.Auth.Operations.csproj" />
+    <ProjectReference Include="..\..\..\..\host-client\ACommerce.ClientHost\ACommerce.ClientHost.csproj" />
+  </ItemGroup>
+</Project>

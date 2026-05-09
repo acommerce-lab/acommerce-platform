@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <PackageId>ACommerce.Templates.OAM</PackageId>
+    <Version>1.0.0</Version>
+    <Description>
+      The OAM design fingerprint — cream-paper Ledger theme that visually
+      reflects the Operation-Accounting Model. Six primitives (Stamp,
+      Receipt, Ledger, TAccount, Balance, AnalyzerStrip) plus a single CSS
+      file (oam-fingerprint.css). Pure presentation — no kit, no app, no
+      domain coupling. Apps opt in by referencing this package and using
+      its components.
+    </Description>
+    <RazorLangVersion>latest</RazorLangVersion>
+  </PropertyGroup>
+  <ItemGroup><SupportedPlatform Include="browser" /></ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="10.0.7" />
+  </ItemGroup>
+</Project>

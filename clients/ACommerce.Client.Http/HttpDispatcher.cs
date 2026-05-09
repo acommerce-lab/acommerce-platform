@@ -53,10 +53,27 @@ public class HttpDispatcher : IOperationDispatcher
 
         OperationEnvelope<T>? envelope = null;
 
-        // استبدال معاملات القالب من tags العملية — {booking_id} → قيمة tag
+        // استبدال مَعاملات القالَب مِن tags العَمَليّة:
+        //   {booking_id} → قيمة tag (path placeholder)
+        //   tags بِبادِئَة "qs." تُضاف كَ query string parameters
         var resolvedUrl = route.UrlTemplate;
+        var qsTags = new List<KeyValuePair<string, string>>();
         foreach (var tag in embeddedOp.Tags)
+        {
+            if (tag.Key.StartsWith("qs.", StringComparison.Ordinal))
+            {
+                if (!string.IsNullOrEmpty(tag.Value))
+                    qsTags.Add(new KeyValuePair<string, string>(tag.Key.Substring(3), tag.Value));
+                continue;
+            }
             resolvedUrl = resolvedUrl.Replace("{" + tag.Key + "}", Uri.EscapeDataString(tag.Value));
+        }
+        if (qsTags.Count > 0)
+        {
+            var sep = resolvedUrl.Contains('?') ? '&' : '?';
+            resolvedUrl += sep + string.Join("&", qsTags.Select(kv =>
+                $"{Uri.EscapeDataString(kv.Key)}={Uri.EscapeDataString(kv.Value)}"));
+        }
 
         // قيد نقل http.send - محاسبي بذاته
         var transportOp = Entry.Create("http.send")

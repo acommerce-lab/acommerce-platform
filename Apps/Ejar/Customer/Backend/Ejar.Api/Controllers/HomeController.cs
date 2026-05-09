@@ -1,131 +1,146 @@
-using ACommerce.OperationEngine.Core;
-using ACommerce.OperationEngine.Wire;
-using ACommerce.OperationEngine.Wire.Http;
-using ACommerce.OperationEngine.DataInterceptors;
-using ACommerce.OperationEngine.Patterns;
-using ACommerce.Kits.Discovery.Domain;
 using ACommerce.Favorites.Operations.Entities;
+using ACommerce.Kits.Discovery.Domain;
+using ACommerce.OperationEngine.Wire.Http;
 using Ejar.Api.Data;
+using Ejar.Domain;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace Ejar.Api.Controllers;
 
 /// <summary>
-/// نقاط نهاية عامة — تتبع نهج التاجات القياسية للتواصل مع المعترض العام CRUD.
+/// نقاط النهاية العامّة (لا تتطلّب مصادقة) — مسارات يتوقّعها التطبيق المشترك
+/// (Web/WASM/MAUI). راجع <c>docs/EJAR-API-CONTRACT.md</c> للقائمة الكاملة.
+///
+/// المسارات هنا ليست مسبوقة بـ <c>/api</c> لتطابق ما تستدعيه واجهات الـ Razor
+/// مباشرةً (مثل <c>Api.GetAsync("/home/view")</c>).
 /// </summary>
-[ApiController, Route("api")]
-public class HomeController : ControllerBase
+[ApiController]
+public sealed class HomeController : ControllerBase
 {
-    private readonly OpEngine _engine;
+    private readonly EjarDbContext _db;
+    public HomeController(EjarDbContext db) => _db = db;
 
-    public HomeController(OpEngine engine)
+    // ── /home/view ─────────────────────────────────────────────────────────
+    [HttpGet("/home/view")]
+    public async Task<IActionResult> HomeView([FromQuery] string? city, CancellationToken ct)
     {
-        _engine = engine;
+        var listings   = await _db.Listings.AsNoTracking()
+            .Where(l => l.Status == 1 && (string.IsNullOrEmpty(city) || l.City == city))
+            .ToListAsync(ct);
+        var categories = await _db.DiscoveryCategories.AsNoTracking().ToListAsync(ct);
+
+        return this.OkEnvelope("home.view", new {
+            categories = categories.Select(c => new { id = c.Slug, label = c.Label, icon = c.Icon }),
+            featured   = listings.Where(l => l.IsVerified).Select(l => MapSummary(l, categories)).ToList(),
+            @new       = listings.Where(l => !l.IsVerified).Take(6).Select(l => MapSummary(l, categories)).ToList(),
+            city
+        });
     }
 
-    [HttpGet("listings")]
-    public async Task<IActionResult> Listings(
+    // ── /home/explore (V1 legacy shape: List<ListingDto> مَسطَّحة) ───────
+    // V1 (Apps/Ejar/Customer/Shared/Ejar.Customer.UI/Components/Pages/Explore.razor)
+    // يَتَوَقَّع <c>data: List&lt;ListingDto&gt;</c> مع الحقول الكاملة
+    // (firstImage, propertyTypeLabel, isFavorite, amenities). الـ kit الجديد
+    // (ListingsController.Search) يُرجع <c>data: { total, page, pageSize, items }</c>
+    // مع IListing فقط (لا labels ولا firstImage) — كَسَر V1.
+    //
+    // هذا الـ endpoint يَبقى لـ V1 backward-compat. V2 + apps حديثة
+    // تَستَهلِك /listings مباشرة.
+    [HttpGet("/home/explore")]
+    public async Task<IActionResult> Explore(
         [FromQuery] string? city,
-        [FromQuery] string? district,
+        [FromQuery] string? category,        // alias لـ propertyType
         [FromQuery] string? propertyType,
-        [FromQuery] string? timeUnit,
-        [FromQuery] decimal? minPrice,
-        [FromQuery] decimal? maxPrice,
         [FromQuery] string? q,
-        [FromQuery] double? lat, [FromQuery] double? lng, [FromQuery] double? radius,
-        [FromQuery] string? sort,
-        [FromQuery] int page = 1, [FromQuery] int pageSize = 20)
+        [FromQuery] int minBedrooms = 0,
+        [FromQuery(Name = "minPrice")]  decimal? minPrice  = null,
+        [FromQuery(Name = "maxPrice")]  decimal? maxPrice  = null,
+        [FromQuery] string? sort = null,
+        CancellationToken ct = default)
     {
-        // استخدام التاجات القياسية
-        var op = Entry.Create("listing.list")
-            .Tag(OperationTags.DbAction, DataOperationTypes.ReadAll)
-            .Tag(OperationTags.TargetEntity, nameof(ListingEntity))
-            .Build();
+        var typeFilter = propertyType ?? category;
+        var query = _db.Listings.AsNoTracking().Where(l => l.Status == 1);
+        if (!string.IsNullOrWhiteSpace(city))         query = query.Where(l => l.City == city);
+        if (!string.IsNullOrWhiteSpace(typeFilter))   query = query.Where(l => l.PropertyType == typeFilter);
+        if (minPrice is { } minP)                     query = query.Where(l => l.Price >= minP);
+        if (maxPrice is { } maxP)                     query = query.Where(l => l.Price <= maxP);
+        if (minBedrooms > 0)                          query = query.Where(l => l.BedroomCount >= minBedrooms);
+        if (!string.IsNullOrWhiteSpace(q))
+        {
+            var s = q.Trim();
+            query = query.Where(l =>
+                l.Title.Contains(s) || l.Description.Contains(s) ||
+                l.City.Contains(s)  || l.District.Contains(s));
+        }
+        query = sort switch
+        {
+            "newest"     => query.OrderByDescending(l => l.CreatedAt),
+            "price_asc"  => query.OrderBy(l => l.Price),
+            "price_desc" => query.OrderByDescending(l => l.Price),
+            _            => query.OrderByDescending(l => l.IsVerified).ThenByDescending(l => l.CreatedAt),
+        };
 
-        var catOp = Entry.Create("aux.categories")
-            .Tag(OperationTags.DbAction, DataOperationTypes.ReadAll)
-            .Tag(OperationTags.TargetEntity, nameof(DiscoveryCategory))
-            .Build();
+        var rows = await query.Take(60).ToListAsync(ct);
+        var categories = await _db.DiscoveryCategories.AsNoTracking().ToListAsync(ct);
 
-        var env = await _engine.ExecuteEnvelopeAsync(op, async ctx => {
-            var items = ctx.Get<IReadOnlyList<ListingEntity>>("db_result") ?? new List<ListingEntity>();
-            
-            var catResult = await _engine.ExecuteAsync(catOp);
-            var categories = catResult.Context!.Get<IReadOnlyList<DiscoveryCategory>>("db_result") ?? new List<DiscoveryCategory>();
+        var items = rows.Select(l => new
+        {
+            id                = l.Id,
+            title             = l.Title,
+            price             = l.Price,
+            timeUnit          = l.TimeUnit,
+            timeUnitLabel     = l.TimeUnit switch
+            {
+                "monthly" => "شهرياً",
+                "yearly"  => "سنوياً",
+                "daily"   => "يومياً",
+                _ => l.TimeUnit,
+            },
+            propertyType      = l.PropertyType,
+            propertyTypeLabel = categories.FirstOrDefault(c => c.Slug == l.PropertyType)?.Label ?? l.PropertyType,
+            city              = l.City,
+            district          = l.District,
+            lat               = l.Lat,
+            lng               = l.Lng,
+            bedroomCount      = l.BedroomCount,
+            areaSqm           = l.AreaSqm,
+            isVerified        = l.IsVerified,
+            viewsCount        = l.ViewsCount,
+            isFavorite        = false,           // V1 يَملأها من FavoriteListingIds محلّياً
+            amenities         = (string?[])Array.Empty<string?>(),
+            firstImage        = l.ThumbnailUrl
+                              ?? l.ImagesCsv?.Split('|', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault(),
+        }).ToList();
 
-            // تصفية محلية
-            var filtered = items.Where(l => l.Status == 1 &&
-                 (string.IsNullOrEmpty(city) || l.City.Contains(city)) &&
-                 (string.IsNullOrEmpty(district) || l.District.Contains(district)) &&
-                 (string.IsNullOrEmpty(propertyType) || l.PropertyType == propertyType) &&
-                 (string.IsNullOrEmpty(timeUnit) || l.TimeUnit == timeUnit) &&
-                 (!minPrice.HasValue || l.Price >= minPrice.Value) &&
-                 (!maxPrice.HasValue || l.Price <= maxPrice.Value) &&
-                 (string.IsNullOrEmpty(q) || l.Title.Contains(q!) || l.Description.Contains(q!) || l.City.Contains(q!) || l.District.Contains(q!))
-            ).ToList();
-
-            var total = filtered.Count;
-            
-            filtered = sort switch {
-                "price_asc"  => filtered.OrderBy(l => l.Price).ToList(),
-                "price_desc" => filtered.OrderByDescending(l => l.Price).ToList(),
-                _            => filtered.OrderByDescending(l => l.ViewsCount).ToList()
-            };
-
-            var pagedItems = filtered.Skip((page - 1) * pageSize).Take(pageSize).ToList();
-            var favIds = new List<Guid>();
-
-            return new {
-                total, page, pageSize,
-                items = pagedItems.Select(l => MapSummary(l, favIds, categories))
-            };
-        });
-
-        return Ok(env);
+        return this.OkEnvelope("home.explore", items);
     }
 
-    [HttpGet("home/view")]
-    public async Task<IActionResult> HomeView([FromQuery] string? city = null)
-    {
-        var op = Entry.Create("home.view")
-            .Tag(OperationTags.DbAction, DataOperationTypes.ReadAll)
-            .Tag(OperationTags.TargetEntity, nameof(ListingEntity))
-            .Build();
-
-        var catOp = Entry.Create("home.cats")
-            .Tag(OperationTags.DbAction, DataOperationTypes.ReadAll)
-            .Tag(OperationTags.TargetEntity, nameof(DiscoveryCategory))
-            .Build();
-
-        var env = await _engine.ExecuteEnvelopeAsync(op, async ctx => {
-            var items = ctx.Get<IReadOnlyList<ListingEntity>>("db_result") ?? new List<ListingEntity>();
-            
-            var catRes = await _engine.ExecuteAsync(catOp);
-            var categories = catRes.Context!.Get<IReadOnlyList<DiscoveryCategory>>("db_result") ?? new List<DiscoveryCategory>();
-
-            var filtered = items.Where(l => l.Status == 1 && (string.IsNullOrEmpty(city) || l.City == city)).ToList();
-            var favIds = new List<Guid>();
-
-            return new {
-                categories = categories.Select(c => new { id = c.Slug, label = c.Label, icon = c.Icon }),
-                featured = filtered.Where(l => l.IsVerified).Select(l => MapSummary(l, favIds, categories)).ToList(),
-                @new = filtered.Where(l => !l.IsVerified).Take(6).Select(l => MapSummary(l, favIds, categories)).ToList(),
-                city
-            };
+    // ── /home/search/suggestions ───────────────────────────────────────────
+    [HttpGet("/home/search/suggestions")]
+    public IActionResult Suggestions() =>
+        this.OkEnvelope("home.search.suggestions", new {
+            recent  = Array.Empty<string>(),
+            popular = new[] { "إب", "فيلا", "شقة مفروشة", "مكتب", "استراحة" }
         });
 
-        return Ok(env);
-    }
+    // ── ملاحظة: /listings و /listings/{id} في Listings.Backend kit.
+    //   /home/explore يَبقى هنا (V1 legacy shape).
+    //   /cities و /amenities و /categories → Discovery.Backend.
+    //   /plans → Subscriptions.Backend.
 
-    [HttpGet("version/check")]
-    public IActionResult VersionCheck() =>
-        this.OkEnvelope("app.version.check", new {
-            current = "1.0.0", latest = "1.0.0",
-            isBlocked = false, supportEmail = "support@ejar.ye"
+    // ── /legal ─────────────────────────────────────────────────────────────
+    [HttpGet("/legal")]
+    public IActionResult Legal() =>
+        this.OkEnvelope("legal.list", new[]
+        {
+            new { key = "terms",    label = "الشروط والأحكام" },
+            new { key = "privacy",  label = "سياسة الخصوصية" },
+            new { key = "refund",   label = "سياسة الاسترداد" },
         });
 
-    private static object MapSummary(ListingEntity l, List<Guid> favIds, IReadOnlyList<DiscoveryCategory> categories) => new
+    // ── helper ─────────────────────────────────────────────────────────────
+    private static object MapSummary(ListingEntity l, IReadOnlyList<DiscoveryCategory> categories) => new
     {
         id = l.Id, title = l.Title,
         price = l.Price, timeUnit = l.TimeUnit,
@@ -134,7 +149,8 @@ public class HomeController : ControllerBase
         city = l.City, district = l.District,
         bedroomCount = l.BedroomCount, areaSqm = l.AreaSqm,
         isVerified = l.IsVerified, viewsCount = l.ViewsCount,
-        isFavorite = favIds.Contains(l.Id),
-        firstImage = l.ImagesCsv?.Split(',').FirstOrDefault()
+        // المُصغّر للبطاقات (~30KB)؛ fallback على أوّل صورة في ImagesCsv
+        // للإعلانات القديمة قبل إضافة ThumbnailUrl.
+        firstImage = l.ThumbnailUrl ?? l.ImagesCsv?.Split('|').FirstOrDefault()
     };
 }

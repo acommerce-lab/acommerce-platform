@@ -1,0 +1,30 @@
+@namespace Ejar.Customer.UI.Pages
+@using ACommerce.Kits.Chat.Frontend.Customer.Widgets
+@using ACommerce.Kits.Notifications.Frontend.Customer.Widgets
+
+@*
+    EjarDashboardPage — تَركيب على مستوى التطبيق يَجمع widgets من Chat +
+    Notifications kits. لا توجد PageBundle تَفرض هذا الشكل — التطبيق
+    يَختار أن يَدمج الشارتَين هنا. تطبيق آخر قد يُفضِّل عرضهما في الـ
+    navbar فقط، أو في side-drawer، أو فصلهما في صفحتَين منفصلتَين.
+
+    هذا الملف هو Razor file عاديّ — لا API جديد، لا framework خاصّ.
+    الـ widgets مكوّنات Razor بدون @page، فيُمكن استعمالها كأيّ مكوّن.
+    تَسجيل route لهذه الصفحة يَحدث في EjarCustomerHost عبر AddAppPages.
+*@
+
+<section class="ejar-dashboard">
+    <h1>لوحة المعلومات</h1>
+
+    <div class="ejar-dashboard-stats">
+        <a href="/chat" class="ejar-dashboard-card">
+            <span class="ejar-dashboard-card-label">المحادثات</span>
+            <AcChatUnreadBadgeWidget AriaLabel="رسائل غير مقروءة" />
+        </a>
+
+        <a href="/notifications" class="ejar-dashboard-card">
+            <span class="ejar-dashboard-card-label">الإشعارات</span>
+            <AcNotificationsUnreadBadgeWidget AriaLabel="إشعارات غير مقروءة" />
+        </a>
+    </div>
+</section>

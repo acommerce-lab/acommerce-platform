@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <PackageId>ACommerce.Kits.Versions.Templates</PackageId>
+    <Version>1.0.0</Version>
+    <Description>
+      Versions Kit — Razor templates. Provides:
+        - AcAppVersionGate: top-level wrapper that calls /version/check on
+          first render, stores the result, and chooses between Block / Banner
+          / Pass. Auto-wired via VersionState (no manual parameters).
+        - AcVersionBlockedPage: full-screen "please update" panel.
+        - AcVersionBanner: soft top banner for NearSunset / Deprecated.
+        - AcAdminVersionsPage: admin CRUD table for managing versions.
+        - AppVersionHeadersHandler: DelegatingHandler that adds X-App-Version
+          and X-App-Platform to every outgoing HTTP request.
+    </Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <SupportedPlatform Include="browser" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\kits\Versions\ACommerce.Kits.Versions.Operations\ACommerce.Kits.Versions.Operations.csproj" />
+    <ProjectReference Include="..\..\..\kits\Widgets\ACommerce.Widgets\ACommerce.Widgets.csproj" />
+    <ProjectReference Include="..\..\..\core\OperationEngine\ACommerce.OperationEngine\ACommerce.OperationEngine.csproj" />
+    <ProjectReference Include="..\..\..\core\OperationEngine\ACommerce.OperationEngine.Wire\ACommerce.OperationEngine.Wire.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- Razor templates only use Components.Web (Blazor side) + Extensions.Http
+         (IHttpClientFactory in VersionState). NO FrameworkReference
+         Microsoft.AspNetCore.App — that would cascade into WASM and trigger NETSDK1082. -->
+    <PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="10.0.7" />
+    <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.7" />
+  </ItemGroup>
+</Project>

@@ -10,22 +10,22 @@ namespace Order.V2.Web.Store;
 ///   @inject L L
 ///   <h1>@(L["order.title"])</h1>
 /// </summary>
-public class L
-{
-    private readonly AppStore _store;
-    private readonly ITranslationProvider _provider;
+//public class L
+//{
+//    private readonly AppStore _store;
+//    private readonly ITranslationProvider _provider;
 
-    public L(AppStore store, ITranslationProvider provider)
-    {
-        _store = store;
-        _provider = provider;
-    }
+//    public L(AppStore store, ITranslationProvider provider)
+//    {
+//        _store = store;
+//        _provider = provider;
+//    }
 
-    public string this[string key] => _provider.Translate(key, _store.Ui.Language);
+//    public string this[string key] => _provider.Translate(key, _store.Ui.Language);
 
-    public bool IsRtl => _store.Ui.IsRtl;
-    public string Lang => _store.Ui.Language;
-}
+//    public bool IsRtl => _store.Ui.IsRtl;
+//    public string Lang => _store.Ui.Language;
+//}
 
 /// <summary>
 /// Reads translations from compiled .NET resource files

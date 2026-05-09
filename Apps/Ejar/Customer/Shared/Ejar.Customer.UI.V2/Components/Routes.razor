@@ -1,0 +1,47 @@
+@*
+    Routes — قائمة @page صريحة لكلّ مسار مَعروف. مُطابقة لقائمة
+    EjarV2CustomerHost.AddAppPages. لا catch-all
+    @page "/{*Path:nonfile}" لأنّ Blazor 10 لا يَستثني فعليّاً
+    /_framework/blazor.web.js رغم القيد فيَلتقطه فيَفشل تَحميل JS.
+
+    HostedApp يَستعمل NavigationManager.LocationChanged + KitPageRegistry
+    للتَوجيه الديناميكيّ — فالمَسارات المُسَجَّلة هنا (id، Path) لا تُمَرَّر
+    كـ parameters؛ تُقرأ من Nav.Uri.
+*@
+
+@page "/"
+@page "/login"
+@page "/me"
+@page "/dashboard"
+
+@page "/listings"
+@page "/listings/{Id}"
+@page "/properties"
+@page "/properties/{Id}"
+@page "/my-listings"
+@page "/my-listings/new"
+
+@page "/chat"
+@page "/chat/{Id}"
+
+@page "/notifications"
+@page "/plans"
+@page "/support"
+@page "/favorites"
+
+@using ACommerce.ClientHost
+@using Ejar.Customer.UI.V2.Components.Layout
+
+<HostedApp DefaultLayout="@typeof(MainLayout)"
+           LoginRoute="/login"
+           LoadingMessage="جاري التحميل…"
+           NotFoundTitle="الصفحة غير موجودة"
+           NotFoundMessage="عُد إلى" />
+
+@code {
+    /// <summary>
+    /// مَلجأ لـ {Id} في @page directives — Blazor يَتَطلّب [Parameter]
+    /// لكلّ placeholder. القيمة لا تُستهلَك؛ HostedApp يَقرأ Nav.Uri.
+    /// </summary>
+    [Parameter] public string? Id { get; set; }
+}

@@ -18,4 +18,12 @@
       here, never in Auth.Backend.
     </Description>
   </PropertyGroup>
+  <ItemGroup>
+    <!-- Pure contracts: IAuthFlow + IAuthUserStore + AuthTagKeys.
+         No Microsoft.AspNetCore.App needed (interceptor + DI extensions live
+         in Auth.Backend). FrameworkReference would propagate into WASM
+         consumers (Customer.UI → WebAssembly) and trigger NETSDK1082. -->
+    <ProjectReference Include="..\..\..\core\OperationEngine\ACommerce.OperationEngine\ACommerce.OperationEngine.csproj" />
+    <ProjectReference Include="..\..\..\core\OperationEngine\ACommerce.OperationEngine.Interceptors\ACommerce.OperationEngine.Interceptors.csproj" />
+  </ItemGroup>
 </Project>

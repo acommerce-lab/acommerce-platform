@@ -1,0 +1,157 @@
+@using ACommerce.Widgets
+@inject IAuthStore Auth
+@inject NavigationManager Nav
+@implements IDisposable
+
+@*
+    AcLoginWidget — يَتَّبع نَمط Ejar V1 الذي يَعمل: AcInput + ValueChanged
+    EventCallback (لا @oninput lambda، لا analyzer-strip). تَفعيل الزرّ
+    حصراً عند ≥٨ أرقام. السيرفر يَفرض الصيغة النهائيّة.
+*@
+
+<section class="ejar-login">
+    <div class="ejar-login-card">
+        <header class="ejar-login-head">
+            <span class="ejar-login-glyph" aria-hidden="true">▣</span>
+            <h1>@(_step == Step.Phone ? "تَسجيل الدخول" : "أَدخِل الرمز")</h1>
+            <p class="ejar-login-sub">
+                @(_step == Step.Phone
+                    ? "أَدخِل رقم جوالك لاستلام رمز التَفعيل."
+                    : "أَدخل الرمز الذي وَصلك.")
+            </p>
+        </header>
+
+        @if (_step == Step.Phone)
+        {
+            <div @onkeydown="OnPhoneKey">
+                <label class="ejar-field">
+                    <span>رقم الجوال</span>
+                    <AcInput Type="tel" Value="@_phone"
+                             ValueChanged="OnPhoneChanged"
+                             Placeholder="7XXXXXXXX" />
+                </label>
+
+                <button class="oam-btn ejar-login-btn"
+                        disabled="@(_phone.Length < 8 || Auth.IsBusy)"
+                        @onclick="RequestOtp">
+                    @(Auth.IsBusy ? "جاري الإرسال…" : "إرسال الرمز")
+                </button>
+            </div>
+        }
+        else
+        {
+            <div @onkeydown="OnCodeKey">
+                <label class="ejar-field">
+                    <span>الرمز</span>
+                    <AcInput Type="tel" Value="@_code"
+                             ValueChanged="OnCodeChanged"
+                             Placeholder="●●●●●●" />
+                </label>
+
+                <button class="oam-btn ejar-login-btn"
+                        disabled="@(_code.Length < 4 || Auth.IsBusy)"
+                        @onclick="VerifyOtp">
+                    @(Auth.IsBusy ? "جاري التحقّق…" : "تَأكيد الرمز")
+                </button>
+
+                <button class="oam-btn-ghost ejar-login-back" type="button"
+                        @onclick="BackToPhone">
+                    ← تَغيير الرقم
+                </button>
+            </div>
+        }
+
+        @if (!string.IsNullOrEmpty(Auth.LastError))
+        {
+            <p class="ac-err">⚠ @Auth.LastError</p>
+        }
+    </div>
+</section>
+
+@code {
+    private enum Step { Phone, Code }
+    private Step _step = Step.Phone;
+    private string _phone = "";
+    private string _code  = "";
+
+    protected override void OnInitialized()
+    {
+        Auth.Changed += OnChanged;
+    }
+
+    private void OnPhoneChanged(string? v)
+    {
+        _phone = NormalizeDigits(v ?? "").Trim();
+        // لا StateHasChanged هنا — Blazor يُعيد render تلقائياً بَعد
+        // EventCallback. كان الصرف اليَدويّ يَتعارَض مع DynamicComponent
+        // أحياناً ⇒ الزرّ يَبقى مُعَطّلاً رغم تَغَيّر القيمة.
+    }
+
+    private void OnCodeChanged(string? v)
+    {
+        _code = NormalizeDigits(v ?? "").Trim();
+    }
+
+    private async Task OnPhoneKey(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && _phone.Length >= 8 && !Auth.IsBusy)
+            await RequestOtp();
+    }
+
+    private async Task OnCodeKey(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && _code.Length >= 4 && !Auth.IsBusy)
+            await VerifyOtp();
+    }
+
+    /// <summary>يُحَوِّل أرقام ٠١٢٣٤٥٦٧٨٩ + ۰۱۲۳۴۵۶۷۸۹ إلى ASCII.</summary>
+    private static string NormalizeDigits(string s)
+    {
+        var sb = new System.Text.StringBuilder(s.Length);
+        foreach (var c in s)
+        {
+            sb.Append(c switch
+            {
+                >= '٠' and <= '٩' => (char)('0' + (c - '٠')),
+                >= '۰' and <= '۹' => (char)('0' + (c - '۰')),
+                _ => c,
+            });
+        }
+        return sb.ToString();
+    }
+
+    /// <summary>
+    /// يُحَوِّل أيّ صيغة مُدخَلة إلى E.164 يَمنيّ <c>+9677XXXXXXXX</c>.
+    /// </summary>
+    private static string ToE164Yemen(string raw)
+    {
+        var digits = new string(raw.Where(char.IsDigit).ToArray());
+        if (digits.StartsWith("00"))  digits = digits[2..];
+        if (digits.StartsWith("967")) return "+" + digits;
+        if (digits.StartsWith("0"))   return "+967" + digits.TrimStart('0');
+        return "+967" + digits;
+    }
+
+    private async Task RequestOtp()
+    {
+        await Auth.RequestOtpAsync(ToE164Yemen(_phone));
+        if (string.IsNullOrEmpty(Auth.LastError)) _step = Step.Code;
+    }
+
+    private async Task VerifyOtp()
+    {
+        await Auth.VerifyOtpAsync(ToE164Yemen(_phone), _code);
+        if (Auth.IsAuthenticated)
+        {
+            var uri = new Uri(Nav.Uri);
+            var q = System.Web.HttpUtility.ParseQueryString(uri.Query);
+            var returnTo = q["return"];
+            Nav.NavigateTo(string.IsNullOrEmpty(returnTo) ? "/" : returnTo);
+        }
+    }
+
+    private void BackToPhone() { _step = Step.Phone; _code = ""; }
+
+    private void OnChanged() => InvokeAsync(StateHasChanged);
+    public void Dispose() => Auth.Changed -= OnChanged;
+}

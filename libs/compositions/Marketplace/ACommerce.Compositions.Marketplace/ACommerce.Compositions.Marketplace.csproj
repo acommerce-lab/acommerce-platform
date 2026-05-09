@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <PackageId>ACommerce.Compositions.Marketplace</PackageId>
+    <Version>1.0.0</Version>
+    <Description>Marketplace composition: requires Listings + Discovery + Favorites + Profiles kits to be registered. Future bundles (notify-watchers on listing.create, etc.) plug here.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\ACommerce.Compositions.Core\ACommerce.Compositions.Core.csproj" />
+    <ProjectReference Include="..\..\..\kits\Listings\ACommerce.Kits.Listings.Backend\ACommerce.Kits.Listings.Backend.csproj" />
+    <ProjectReference Include="..\..\..\kits\Discovery\ACommerce.Kits.Discovery.Backend\ACommerce.Kits.Discovery.Backend.csproj" />
+    <ProjectReference Include="..\..\..\kits\Favorites\ACommerce.Favorites.Backend\ACommerce.Favorites.Backend.csproj" />
+    <ProjectReference Include="..\..\..\kits\Profiles\ACommerce.Kits.Profiles.Backend\ACommerce.Kits.Profiles.Backend.csproj" />
+  </ItemGroup>
+</Project>

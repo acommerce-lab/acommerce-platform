@@ -49,7 +49,16 @@ loading procedure (includes the dotnet install prerequisite).
 6. **`docs/I18N.md`** — the bilingual (Arabic/English) translation system
    used across all V2 frontends. Read before writing any user-facing text
    in a Razor page.
-7. **`docs/ROADMAP.md`** — what's done, what's next, modification plan.
+7. **`docs/PITFALLS.md`** — concrete mistakes we hit in this codebase
+   and how to avoid them: provider lock-in, Singleton↔Scoped lifetime
+   mismatches, SW breaking CORS, BaseAddress traps, mobile-only
+   Notification API restrictions, version-bump checklist. Read before
+   any task touching DI, realtime, or PWA shell.
+8. **`docs/COMPOSITION-MODEL.md`** — the target architecture: pure-OAM
+   kits + external compositions via interceptor bundles + strongly typed
+   OAM (no string magic). Required reading before refactoring any kit
+   or wiring kits together. Roadmap with phases A-E.
+9. **`docs/ROADMAP.md`** — what's done, what's next, modification plan.
 
 Reference apps (read the smallest first):
 - `Apps/Order.Api` + `Apps/Order.Web` — cafe deals, cleanest example.
@@ -161,6 +170,86 @@ text.
 | **ProviderContract** | Mandatory external dependency | `IMessageStore`, `IPaymentGateway` |
 | **Sealed** (`.Sealed()`) | Block ALL interceptors | Sensitive internal operations |
 | **ExcludeInterceptor** | Block ONE interceptor by name | Skip audit on health checks |
+
+## Frontend constraint vocabulary — when to use what (client side)
+
+The backend uses Analyzers / Interceptors / Compositions / ProviderContracts.
+Frontend has its own parallel vocabulary, equally important. Apps that mix
+them up grow ugly: pages doing HTTP, stores doing UI, interceptors doing
+business logic.
+
+| Tool | When | When NOT |
+|---|---|---|
+| **`IXxxStore`** (kit) | Reactive state shared across pages or pushed by realtime (Listings, Chat, Notifications, Auth) | Static page (About, ToS) — just render directly. Per-render-only state — use `[Parameter]` or `[CascadingParameter]`. |
+| **Page-level Validator** | Form validation tied to one submit (`required`, `min-length`, `regex`) | Cross-form rule, async DB check ⇒ Client Interceptor on the dispatched op. |
+| **Client Interceptor** (`IClientOperationInterceptor`) | Cross-cutting around `IClientOpEngine.DispatchAsync` (optimistic update, retry-on-401, telemetry, offline queue) | Pure UI logic ⇒ component. Validation that's local to one form ⇒ Validator. |
+| **Composition** (client) | UI that fuses ≥2 kits into one widget (UnifiedInbox = chat unread + notif unread; HomeShell = listings recommended + active subscription badge) | Single-kit UI ⇒ that kit's page. |
+| **`<Kit>PageBundle`** | Kit ships ≥1 routable page | Kit is purely an OAM/Operations kit (Cache, Files internals). |
+| **App-only page** in `<App>.Customer.UI/Pages/` | App-specific copy (terms, about, marketing landing) | Domain content (browsing listings, profile editing) — that's a kit page. |
+| **`IRichTextSanitizer`** | Any user-supplied or server-supplied text rendered as more than plain text | Plain text from a typed `record` field — Blazor's default `@text` is already safe. |
+| **`IUrlAllowlist`** | Binding `<img src>` / `<a href>` to a URL that came from JSON/storage | Static asset path (`/assets/logo.png`) — no allowlist needed. |
+
+### Frontend law: pages talk to interfaces, never to entities or HTTP
+
+Kit pages depend on **`IXxxStore` interfaces only**. They do not import
+`HttpClient`, never reference an app's domain entity, never call EF, never
+build URLs by hand. The store interface is the single integration seam:
+
+```csharp
+// libs/kits/Listings/Frontend/Customer/Pages/AcListingExplorePage.razor
+@inject IListingsStore Store
+@foreach (var l in Store.Visible) { … }   // l is IListing — interface only
+```
+
+The app implements `IListingsStore` against whatever data shape it uses
+(EF entity, REST DTO, GraphQL fragment) and registers it once via
+`AddDomainBindings(b => b.Use<IListingsStore, EjarListingsStore>())`. Reuse
+across apps becomes free — change the binding, keep the pages.
+
+### XSS prevention is structural, not optional
+
+Two laws, both enforced at the type level:
+
+1. **Never `MarkupString`.** If you find yourself reaching for it, either
+   (a) the text is plain — use `@text` (Blazor escapes by default), or
+   (b) it's rich — pass it through `IRichTextSanitizer.Sanitize(...)` first.
+   Templates that violate this fail review on principle, not on a CVE.
+
+2. **Never bind external URLs without `IUrlAllowlist`.** The platform's
+   `ClientHostBuilder.UseUrlAllowlist(a => a.Add("cdn.example.com"))`
+   registers the allowlist. Components that render `<img src>` from
+   server-supplied URLs call `Allowlist.IsAllowed(url)` and fall back to
+   a placeholder when the host isn't whitelisted.
+
+The default `IRichTextSanitizer` strips ALL HTML — apps that want
+markdown register `MarkdownSanitizer` (Markdig + bleach config) explicitly.
+This is the OWASP A03 (Injection) defence at the framework level rather
+than per-page diligence.
+
+### Frontend layout (parallel to backend ServiceHost)
+
+```
+Apps/<X>/Customer/
+├── Domain/                     pure entities (implement kit interfaces)
+├── Domain.Data/                EF mappings only
+├── Backend/<X>.Api/            Program.cs uses ServiceHost
+├── Shared/<X>.Customer.UI/     AddXCustomer() — Bindings, Branding, Nav
+└── Frontend/
+    ├── <X>.Web/                Program.cs ≈ 50 lines (HttpClient + AddXCustomer)
+    └── <X>.Maui/               MauiProgram.cs ≈ 50 lines
+
+libs/
+├── core/                       OperationEngine + SharedKernel
+├── host/                       ACommerce.ServiceHost (backend)
+├── host-client/                ACommerce.ClientHost (frontend)
+├── kits/<Kit>/
+│   ├── Operations/             pure-OAM domain
+│   ├── Backend/                Controllers + IXxxStore (server-side port)
+│   └── Frontend/Customer/      Pages + IXxxStore (client-side reactive) + PageBundle
+├── providers/                  infra adapters
+├── templates/                  cross-kit UI shells
+└── compositions/               cross-kit interceptor + UI bundles
+```
 
 ## Tool-call discipline — preventing "انتهاء زمن الاتصال"
 
@@ -282,6 +371,47 @@ The corresponding frontend must set the same URL in its own `appsettings.json`:
 If the ports diverge (e.g. backend starts on 5000 instead of the expected port),
 the cause is almost always a missing `"Urls"` in `appsettings.Development.json`.
 Fix it there — do NOT rely on `.env.Development` alone.
+
+### Rule T7 — Register every new .csproj in ACommerce.Platform.sln
+
+`dotnet new classlib` and writing a `.csproj` directly do NOT add the project
+to the solution file. `dotnet build` on the CLI still works (it follows
+`<ProjectReference>` regardless of the .sln), so the omission is invisible
+to anyone using the CLI. But Visual Studio on Windows fails immediately:
+
+```
+NU1105: Unable to find project information for 'C:\...\<NewProject>.csproj'.
+The project may be unloaded or not part of the current solution.
+```
+
+**Always run `dotnet sln add` immediately after creating a new csproj**,
+before adding `<ProjectReference>` consumers.
+
+```bash
+dotnet sln ACommerce.Platform.sln add \
+  libs/kits/<NewKit>/<Project1>/<Project1>.csproj \
+  libs/kits/<NewKit>/<Project2>/<Project2>.csproj \
+  --solution-folder "libs/kits/<NewKit>"
+```
+
+`--solution-folder` groups them under a Solution Folder so VS shows them
+nested correctly; without it they pile in the root.
+
+**Verification** (run before any commit that adds projects):
+
+```bash
+diff <(find . -name "*.csproj" -not -path "./bin/*" -not -path "*/bin/*" \
+              -not -path "*/obj/*" -not -path "./.git/*" \
+       | sed 's|^\./||' | sort) \
+     <(grep -oP '(?<=, ")[^"]+\.csproj' ACommerce.Platform.sln | tr '\\' '/' | sort)
+```
+
+Lines prefixed `<` = csproj on disk but NOT in the .sln (you forgot
+`dotnet sln add`). Lines prefixed `>` = csproj in the .sln but file
+deleted (you forgot `dotnet sln remove`). Both indicate broken state;
+fix before committing.
+
+This is documented in detail in **`docs/PITFALLS.md` → P13**.
 
 ## Boundaries
 

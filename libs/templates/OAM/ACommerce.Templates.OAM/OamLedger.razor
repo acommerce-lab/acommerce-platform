@@ -1,0 +1,61 @@
+@*
+    ⏱            عمليّة             مِن            إلى            مقدار
+    ────────  ─────────────────  ────────────  ────────────  ──────
+    11:42    listing.create     User:4521     Listing:X     +1
+    11:48    favorite.toggle    User:4521     Listing:X     ±1
+    11:55    chat.send          User:4521     Conv:Y        +1msg
+
+    قائمة بنمط الـ ledger التَقليديّ. monospace للزمن والمقدار، خطوط
+    أفقيّة 1px بين الصفوف.
+*@
+
+<table class="oam-ledger" role="table">
+    <thead>
+        <tr>
+            <th class="oam-ledger-time" scope="col">⏱</th>
+            <th scope="col">@OpHeader</th>
+            <th scope="col">@FromHeader</th>
+            <th scope="col">@ToHeader</th>
+            <th class="oam-ledger-amount" scope="col">@AmountHeader</th>
+        </tr>
+    </thead>
+    <tbody>
+        @if (Rows is { Count: > 0 })
+        {
+            @foreach (var r in Rows)
+            {
+                <tr class="oam-ledger-row oam-ledger-row-@StateClass(r.State)">
+                    <td class="oam-mono oam-ledger-time">@r.Time</td>
+                    <td class="oam-ledger-op">@r.Operation</td>
+                    <td class="oam-ledger-party">@r.From</td>
+                    <td class="oam-ledger-party">@r.To</td>
+                    <td class="oam-mono oam-ledger-amount">@r.Amount</td>
+                </tr>
+            }
+        }
+        else
+        {
+            <tr class="oam-ledger-empty">
+                <td colspan="5">@EmptyMessage</td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+@code {
+    [Parameter] public IReadOnlyList<OamLedgerEntry>? Rows { get; set; }
+    [Parameter] public string OpHeader { get; set; } = "عمليّة";
+    [Parameter] public string FromHeader { get; set; } = "من";
+    [Parameter] public string ToHeader { get; set; } = "إلى";
+    [Parameter] public string AmountHeader { get; set; } = "مقدار";
+    [Parameter] public string EmptyMessage { get; set; } = "لا توجد قيود.";
+
+    private static string StateClass(OamState s) => s switch
+    {
+        OamState.Executed => "exec",
+        OamState.Rejected => "fail",
+        OamState.Executing => "go",
+        OamState.Pending => "pend",
+        _ => "exec",
+    };
+}

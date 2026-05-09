@@ -38,6 +38,7 @@ public static class ChatKitExtensions
         // ApplicationParts (common in our backends).
         services.AddControllers()
             .AddApplicationPart(typeof(ChatController).Assembly);
+        services.AddChatKitPolicies();
 
         return services;
     }

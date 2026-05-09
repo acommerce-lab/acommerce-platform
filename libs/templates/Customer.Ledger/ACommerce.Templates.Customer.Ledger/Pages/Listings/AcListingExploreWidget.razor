@@ -1,0 +1,136 @@
+@inject IListingsStore Store
+@inject NavigationManager Nav
+@implements IDisposable
+
+@*
+    AcListingExploreWidget — قائمة تَصفّح بإيقاع ledger.
+
+    Extension points (slots) — لا تَعديل في الكيت:
+      [Parameter] BeforeFilters   — مَحتوى أعلى شَريط الفلاتر (banner، إلخ)
+      [Parameter] ExtraFilters    — حقول فلاتر إضافيّة (city، sort، …)
+      [Parameter] BeforeListings  — مَحتوى قبل القائمة (recommendations…)
+      [Parameter] AfterListings   — مَحتوى بعد القائمة (load-more، إلخ)
+      [Parameter] CardExtra       — مَحتوى يُحقَن داخل كلّ card (tags…)
+      [Parameter] DetailUrl       — Func يُحَوِّل id إلى URL (default /listings/{id})
+
+    التَطبيق يُمَرِّر RenderFragment لأيّ slot دون تَعديل الكيت.
+*@
+
+<section class="ac-listings-explore">
+    @if (BeforeFilters is not null) { <div class="ac-slot-before-filters">@BeforeFilters</div> }
+    <header class="ejar-section-head">
+        <h2 class="ejar-section-title">العقارات المتاحة</h2>
+        <span class="ejar-section-meta oam-mono">/ listings · @Store.Visible.Count</span>
+    </header>
+
+    <form class="ac-listings-filters" @onsubmit="OnFilter" @onsubmit:preventDefault>
+        <input class="ac-input ejar-filter-input"
+               type="search"
+               placeholder="ابحث (المدينة، الحيّ، نوع العقار…)"
+               value="@_query"
+               @oninput="@(e => _query = e.Value?.ToString() ?? "")" />
+        <select class="ac-input ejar-filter-input" @bind="_propertyType">
+            <option value="">كلّ الأنواع</option>
+            <option value="apartment">شقّة</option>
+            <option value="villa">فيلا</option>
+            <option value="studio">استوديو</option>
+            <option value="office">مكتب</option>
+        </select>
+        @if (ExtraFilters is not null) { @ExtraFilters }
+        <button class="oam-btn" type="submit">تَطبيق</button>
+    </form>
+    @if (BeforeListings is not null) { <div class="ac-slot-before-listings">@BeforeListings</div> }
+
+    @if (Store.IsLoading)
+    {
+        <p class="ejar-loading">جاري التحميل…</p>
+    }
+    else if (Store.Visible.Count == 0)
+    {
+        <div class="ejar-empty">
+            <span class="ejar-empty-glyph" aria-hidden="true">⌘</span>
+            <h3>لا توجد إعلانات تُطابق البحث</h3>
+            <p>جَرِّب تَوسيع الفلتر أو إعادة المحاولة لاحقاً.</p>
+        </div>
+    }
+    else
+    {
+        <ul class="ejar-listings">
+            @foreach (var l in Store.Visible)
+            {
+                // <a href> بدلاً من @onclick لِيَعمل النقل حتى قبل bind
+                // الـ JS interactivity (SSR + قبل اتّصال SignalR). الـ
+                // browser يَتَولّى التَنقّل أصلاً.
+                <li class="ejar-listing-row">
+                    <a class="ejar-listing-link" href="@(DetailUrl?.Invoke(l.Id) ?? $"/listings/{l.Id}")">
+                        <div class="ejar-listing-thumb"
+                             style="@(string.IsNullOrEmpty(l.ThumbnailUrl) ? "" : $"background-image:url('{l.ThumbnailUrl}')")">
+                            @if (string.IsNullOrEmpty(l.ThumbnailUrl))
+                            {
+                                <span class="ejar-listing-thumb-glyph" aria-hidden="true">⌂</span>
+                            }
+                        </div>
+                        <div class="ejar-listing-body">
+                            <div class="ejar-listing-top">
+                                <span class="ejar-listing-title">@l.Title</span>
+                                @if (l.IsVerified)
+                                {
+                                    <OamStamp State="OamState.Executed" Compact="true" />
+                                }
+                            </div>
+                            <div class="ejar-listing-meta">
+                                <span class="oam-mono">@l.Price.ToString("0") @PriceUnit(l.TimeUnit)</span>
+                                <span class="ejar-listing-sep" aria-hidden="true">·</span>
+                                <span>@l.City@(string.IsNullOrEmpty(l.District) ? "" : $" — {l.District}")</span>
+                            </div>
+                            <div class="ejar-listing-stats oam-mono">
+                                @if (l.BedroomCount > 0)  { <span>🛏 @l.BedroomCount</span> }
+                                @if (l.BathroomCount > 0) { <span>🛁 @l.BathroomCount</span> }
+                                @if (l.AreaSqm > 0)        { <span>@l.AreaSqm m²</span> }
+                            </div>
+                        </div>
+                    </a>
+                    @if (CardExtra is not null) { <div class="ac-slot-card-extra">@CardExtra(l)</div> }
+                </li>
+            }
+        </ul>
+        @if (AfterListings is not null) { <div class="ac-slot-after-listings">@AfterListings</div> }
+    }
+</section>
+
+@code {
+    [Parameter] public RenderFragment? BeforeFilters { get; set; }
+    [Parameter] public RenderFragment? ExtraFilters { get; set; }
+    [Parameter] public RenderFragment? BeforeListings { get; set; }
+    [Parameter] public RenderFragment? AfterListings { get; set; }
+    [Parameter] public RenderFragment<IListing>? CardExtra { get; set; }
+    [Parameter] public Func<string, string>? DetailUrl { get; set; }
+
+    private string _query = "";
+    private string _propertyType = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        Store.Changed += OnChanged;
+        await Store.ApplyFilterAsync(ListingFilter.Empty);
+    }
+
+    private async Task OnFilter()
+    {
+        await Store.ApplyFilterAsync(new ListingFilter(
+            City: null,
+            PropertyType: string.IsNullOrEmpty(_propertyType) ? null : _propertyType,
+            Query: string.IsNullOrEmpty(_query) ? null : _query));
+    }
+
+    private static string PriceUnit(string timeUnit) => timeUnit switch
+    {
+        "monthly" => "/شهر",
+        "yearly"  => "/سنة",
+        "daily"   => "/يوم",
+        _ => $"/{timeUnit}",
+    };
+
+    private void OnChanged() => InvokeAsync(StateHasChanged);
+    public void Dispose() => Store.Changed -= OnChanged;
+}
