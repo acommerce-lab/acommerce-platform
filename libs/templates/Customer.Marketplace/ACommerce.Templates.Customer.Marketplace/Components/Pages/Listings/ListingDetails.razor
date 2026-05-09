@@ -1,15 +1,9 @@
 @page "/listings/{Id}"
-@using ACommerce.Client.Operations
-@using Ejar.Customer.UI.Operations
-@using Ejar.Customer.UI.Services
-@using ACommerce.ClientHost.Auth
-@using System.Net.Http.Json
-@inject AppStore Store
-@inject ApiReader Api
+@inject ITemplateEngine Engine
+@inject IClientAuthState Auth
+@inject IFavoritesStore Favorites
+@inject IChatStore Chat
 @inject NavigationManager Nav
-@inject ClientOpEngine Engine
-@inject FavoritesSync Favorites
-@inject AuthenticatedHttpClient Http
 @inject L L
 @implements IDisposable
 
@@ -101,8 +95,6 @@
                                 <span>عضو منذ @_listing.Owner.MemberSince</span>
                             }
                         </div>
-                        @* زرّ المراسلة الموحَّد موجود في AcStickyActionBar أسفل
-                           الصفحة — لا حاجة لتكراره داخل بطاقة المالك. *@
                     </div>
                 </ChildContent>
             </AcCard>
@@ -111,10 +103,6 @@
         @if (!string.IsNullOrEmpty(_chatError))
         {
             <AcAlert Variant="danger" Message="@_chatError" />
-        }
-        @if (!string.IsNullOrEmpty(Favorites.LastError))
-        {
-            <AcAlert Variant="danger" Message="@Favorites.LastError" />
         }
 
         @if (IsMine)
@@ -133,7 +121,7 @@
         }
         @* زرّ "إبلاغ عن الإعلان" — AcButton(ghost) widget. AcButton.Icon
            يرسم النصّ خام لذا نستخدم ChildContent مع AcIcon. *@
-        @if (!IsMine && Store.Auth.IsAuthenticated && _listing is not null)
+        @if (!IsMine && Auth.IsAuthenticated && _listing is not null)
         {
             <div class="acs-report-link-wrap">
                 <AcButton Variant="ghost" Size="sm" OnClick="@OpenReport">
@@ -186,7 +174,7 @@
                 <AcButton Variant="outline-primary" Class="ac-btn-block" Text="إدارة إعلاناتي"
                           OnClick="@(() => Nav.NavigateTo("/my-listings"))" />
             }
-            else if (Store.Auth.IsAuthenticated)
+            else if (Auth.IsAuthenticated)
             {
                 <AcButton Variant="primary" Class="ac-btn-block" Text="@(L["listing.contact"])"
                           OnClick="@StartChat" Disabled="@_startingChat" />
@@ -231,25 +219,27 @@
         _reportAlert = null;
         try
         {
-            var resp = await Http.Client.PostAsJsonAsync("/reports", new
-            {
-                EntityType = "listing",
-                EntityId   = _listing.Id,
-                Reason     = _reportReason,
-                Body       = string.IsNullOrWhiteSpace(_reportBody) ? null : _reportBody,
-            });
-            if (resp.IsSuccessStatusCode)
+            var env = await Engine.ExecuteAsync<object>(
+                ReportsOps.Create(),
+                payload: new
+                {
+                    EntityType = "listing",
+                    EntityId   = _listing.Id,
+                    Reason     = _reportReason,
+                    Body       = string.IsNullOrWhiteSpace(_reportBody) ? null : _reportBody,
+                });
+            if (env.Operation.Status == "Success")
             {
                 _reportAlert = "تمّ إرسال البلاغ. شكراً لمساعدتك في المحافظة على المنصّة.";
                 _reportAlertVariant = "success";
                 _reportReason = "";
                 _reportBody = "";
-                // أغلق النموذج بعد ٣ ثوانٍ.
+                // أَغلِق النَموذَج بَعد ٣ ثَوانٍ.
                 _ = Task.Delay(3000).ContinueWith(_ => InvokeAsync(() => { _showReport = false; StateHasChanged(); }));
             }
             else
             {
-                _reportAlert = $"فشل إرسال البلاغ ({(int)resp.StatusCode}).";
+                _reportAlert = env.Error?.Message ?? env.Operation.ErrorMessage ?? "فشل إرسال البلاغ.";
                 _reportAlertVariant = "danger";
             }
         }
@@ -260,11 +250,9 @@
         }
         finally { _reportSending = false; }
     }
-    private bool _isFav => _listing is not null && Store.FavoriteListingIds.Contains(_listing.Id);
-    private bool IsMine => _listing is not null && Store.Auth.IsAuthenticated
-                           && _listing.OwnerId == Store.Auth.UserId?.ToString();
-
-    private void EditListing() => Nav.NavigateTo($"/create-listing?edit={_listing?.Id}");
+    private bool _isFav => _listing is not null && Favorites.IsFavorited(_listing.Id);
+    private bool IsMine => _listing is not null && Auth.IsAuthenticated
+                           && _listing.OwnerId == Auth.UserId?.ToString();
 
     private IReadOnlyList<AcMapSim.MapPin> MapPins =>
         _listing is null ? Array.Empty<AcMapSim.MapPin>()
@@ -272,14 +260,16 @@
 
     protected override void OnInitialized()
     {
-        Store.OnChanged += OnChange;
         Favorites.Changed += OnChange;
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (!firstRender) return;
-        var env  = await Api.GetAsync<ListingDetailDto>($"/listings/{Id}");
+        // OAM-pure: نَدفَع listings.get op (kit-defined) عَبر engine بِـ DTO
+        // مَحَلّيّ يَلتَقِط الشَكل الكامِل (Description/Owner/Amenities labels)
+        // الذي يَفقِده IListing kit interface.
+        var env = await Engine.ExecuteAsync<ListingDetailDto>(ListingsOps.GetById(Id));
         _listing = env.Data;
         _loading = false;
         await InvokeAsync(StateHasChanged);
@@ -288,47 +278,29 @@
     private async Task ToggleFavorite()
     {
         if (_listing is null) return;
-        if (!Store.Auth.IsAuthenticated) { Nav.NavigateTo("/login"); return; }
-        // FavoritesSync يُحدّث المحلّيّ تفاؤليّاً ثمّ يُزامن مع الخادم.
-        // بدونه كانت المفضّلات تبقى في localStorage فقط ولا تظهر على أجهزة أخرى.
+        if (!Auth.IsAuthenticated) { Nav.NavigateTo("/login"); return; }
+        // IFavoritesStore.ToggleAsync = optimistic + OAM-pure (favorite.toggle op
+        // مَع realtime_broadcast tag ⇒ composition Realtime تُعلِم الأَجهزة الأُخرى).
         await Favorites.ToggleAsync(_listing.Id);
     }
 
     private async Task StartChat()
     {
         if (_listing is null) return;
-        if (!Store.Auth.IsAuthenticated) { Nav.NavigateTo("/login?returnUrl=" + Uri.EscapeDataString($"/listings/{_listing.Id}")); return; }
+        if (!Auth.IsAuthenticated) { Nav.NavigateTo("/login?returnUrl=" + Uri.EscapeDataString($"/listings/{_listing.Id}")); return; }
         _startingChat = true; _chatError = null;
         try
         {
-            // استدعاء مباشر بدل الذهاب عبر OpEngine — أبسط، ويضمن أنّ env.Data
-            // يحوي {Id, Created} الذي يُرجعه /conversations/start فعلاً.
+            // OAM-pure: kit-defined chat.conversation.start op. الـ store يَتَوَلّى
+            // wire shape ({ListingId, Text}) داخِليّاً.
             var text = $"مرحباً، أنا مهتمّ بـ \"{_listing.Title}\".";
-            var env = await Api.PostAsync<StartChatData>(
-                "/conversations/start",
-                new { ListingId = _listing.Id, Text = text });
-
-            if (env?.Data is not null && !string.IsNullOrEmpty(env.Data.Id))
+            var convId = await Chat.StartConversationAsync(_listing.Id, text);
+            if (!string.IsNullOrEmpty(convId))
             {
-                Nav.NavigateTo($"/chat/{env.Data.Id}");
+                Nav.NavigateTo($"/chat/{convId}");
                 return;
             }
-
-            // فشل /conversations/start — لا تنقل المستخدم بصمت إلى /chats، اعرض
-            // السبب الحقيقيّ من الـ envelope (cannot_chat_with_self / listing_not_found
-            // / network_error / 500…). السابق كان يخفي الخطأ والمستخدم يحتار.
-            var code = env?.Error?.Code ?? env?.Operation?.FailedAnalyzer;
-            var msg  = env?.Error?.Message ?? env?.Operation?.ErrorMessage;
-            _chatError = (code, msg) switch
-            {
-                ("cannot_chat_with_self",          _) => "لا يمكنك بدء محادثة مع نفسك.",
-                ("listing_not_found",              _) => "الإعلان لم يعد متوفّراً.",
-                ("missing_or_invalid_listing_id",  _) => "بيانات الإعلان غير صالحة.",
-                ("network_error",                  var m) when m is not null => $"تعذّر الاتصال بالخادم: {m}",
-                (_, var m) when !string.IsNullOrWhiteSpace(m) => m!,
-                (var c, _) when !string.IsNullOrWhiteSpace(c) => $"تعذّر بدء المحادثة ({c}).",
-                _                                              => "تعذّر بدء المحادثة — حاول لاحقاً."
-            };
+            _chatError = "تعذّر بدء المحادثة — حاول لاحقاً.";
         }
         finally { _startingChat = false; }
     }
@@ -336,11 +308,7 @@
     private void GoBack() => Nav.NavigateTo("/search");
 
     private void OnChange() => InvokeAsync(StateHasChanged);
-    public void Dispose()
-    {
-        Store.OnChanged -= OnChange;
-        Favorites.Changed -= OnChange;
-    }
+    public void Dispose() => Favorites.Changed -= OnChange;
 
     private sealed record AmenityDto(string Key, string Label);
     private sealed record OwnerDto(string Name, string? MemberSince);
@@ -352,5 +320,4 @@
         int BedroomCount, int BathroomCount,
         double AreaSqm, bool IsVerified, int ViewsCount, int Status, bool IsFavorite,
         List<string>? Images);
-    private sealed record StartChatData(string Id, bool Created);
 }

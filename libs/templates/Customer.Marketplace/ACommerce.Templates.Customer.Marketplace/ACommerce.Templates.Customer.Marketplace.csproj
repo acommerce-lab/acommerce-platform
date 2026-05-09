@@ -71,6 +71,7 @@
     <ProjectReference Include="..\..\..\kits\Support\Frontend\Customer\ACommerce.Kits.Support.Frontend.Customer.csproj" />
     <ProjectReference Include="..\..\..\kits\Favorites\Frontend\Customer\ACommerce.Kits.Favorites.Frontend.Customer.csproj" />
     <ProjectReference Include="..\..\..\kits\Discovery\Frontend\Customer\ACommerce.Kits.Discovery.Frontend.Customer.csproj" />
+    <ProjectReference Include="..\..\..\kits\Reports\Frontend\Customer\ACommerce.Kits.Reports.Frontend.Customer.csproj" />
 
     <!-- Listings Operations (for IListing interface) -->
     <ProjectReference Include="..\..\..\kits\Listings\ACommerce.Kits.Listings.Operations\ACommerce.Kits.Listings.Operations.csproj" />

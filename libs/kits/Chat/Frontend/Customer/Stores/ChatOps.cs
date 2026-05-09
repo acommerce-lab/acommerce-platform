@@ -44,4 +44,15 @@ public static class ChatOps
         .Tag("body", body)
         .Tag("realtime_broadcast", "true")
         .Build();
+
+    /// <summary>
+    /// قَيد بَدء مُحادَثة جَديدة حَول subjectId (إعلان/طَلَب). الباك يَتَوَلّى
+    /// التَحَقُّق إن كانَت مَوجودَة سابِقاً (يَردّ نَفس الـ id) أَو يَخلِق جَديدَة.
+    /// </summary>
+    public static Operation StartConversation(string subjectId, string text) => Entry
+        .Create("chat.conversation.start")
+        .From("User:current",        1, ("role", "initiator"))
+        .To($"Listing:{subjectId}",  1, ("role", "subject"))
+        .Tag("subject_id", subjectId)
+        .Build();
 }

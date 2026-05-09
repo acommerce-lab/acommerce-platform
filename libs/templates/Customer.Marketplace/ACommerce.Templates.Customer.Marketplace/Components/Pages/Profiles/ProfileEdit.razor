@@ -1,12 +1,9 @@
 @page "/profile/edit"
 @attribute [Authorize]
-@inject ApiReader Api
-@inject AppStore Store
+@using ACommerce.Kits.Profiles.Operations
+@inject IProfileStore Profiles
+@inject IDiscoveryStore Discovery
 @inject NavigationManager Nav
-@using ACommerce.Client.Operations
-@using Ejar.Customer.UI.Operations
-@using ACommerce.Kits.Profiles.Frontend.Customer.Stores
-@inject ClientOpEngine Engine
 @inject L L
 @inject INumeralNormalizer Numerals
 
@@ -57,7 +54,7 @@
                 <AcField Label="@(L["auth.phone"])">
                     <div style="display:flex; gap:8px; align-items:center;">
                         <AcInput Type="tel" Value="@_data!.Phone"
-                                 ValueChanged="@(v => _data = _data with { Phone = Numerals.ToLatin(v), PhoneVerified = false })" />
+                                 ValueChanged="@(v => _data = _data with { Phone = Numerals.ToLatin(v) ?? string.Empty, PhoneVerified = false })" />
                         @if (_data.PhoneVerified)
                         {
                             <AcBadge Variant="success" Text="موثَّق" />
@@ -71,7 +68,7 @@
 
                 <AcField Label="البريد الإلكترونيّ">
                     <div style="display:flex; gap:8px; align-items:center;">
-                        <AcInput Type="email" Value="@_data!.Email"
+                        <AcInput Type="email" Value="@(_data!.Email ?? string.Empty)"
                                  ValueChanged="@(v => _data = _data with { Email = v ?? string.Empty, EmailVerified = false })" />
                         @if (_data.EmailVerified)
                         {
@@ -87,7 +84,7 @@
                 <AcField Label="المدينة">
                     <select class="ac-input" value="@_data!.City"
                             @onchange="@(e => _data = _data with { City = e.Value?.ToString() ?? _data.City })">
-                        @foreach (var c in _cities)
+                        @foreach (var c in Discovery.Cities)
                         {
                             <option value="@c">@c</option>
                         }
@@ -109,8 +106,7 @@
 </div>
 
 @code {
-    private ProfileDto? _data;
-    private IReadOnlyList<string> _cities = Array.Empty<string>();
+    private InMemoryUserProfile? _data;
     private bool _loading = true;
     private bool _saving;
     private string? _alert;
@@ -120,10 +116,18 @@
     protected override async Task OnAfterRenderAsync(bool first)
     {
         if (!first) return;
-        var p = await Api.GetAsync<ProfileDto>("/me/profile");
-        _data = p.Data ?? new ProfileDto("U-1", "", "", false, "", false, "إب", null, DateTime.UtcNow);
-        var c = await Api.GetAsync<List<string>>("/cities");
-        _cities = c.Data ?? new() { "إب" };
+        await System.Threading.Tasks.Task.WhenAll(
+            Profiles.LoadAsync(),
+            Discovery.LoadCitiesAsync());
+
+        // IUserProfile interface is read-only — نُحَوِّل لِـ POCO mutable
+        // (InMemoryUserProfile الـ kit) لِنَتَمَكَّن مِن with-clones.
+        var p = Profiles.Current;
+        _data = p is not null
+            ? new InMemoryUserProfile(p.Id, p.FullName, p.Phone, p.PhoneVerified,
+                p.Email, p.EmailVerified, p.City, p.AvatarUrl, p.MemberSince)
+            : new InMemoryUserProfile("U-1", "", "", false, "", false, "إب", null, DateTime.UtcNow);
+        _avatarDataUrl = _data.AvatarUrl;
         _loading = false;
         await InvokeAsync(StateHasChanged);
     }
@@ -164,39 +168,25 @@
         _saving = true;
         try
         {
-            // أدرِج صورة البروفايل (إن اختيرت) كـ data URL في طلب الحفظ. الخادم
-            // يخزّنها في UserEntity.AvatarUrl. بدون هذا الحقل تُمسح الصورة كلّ
-            // مرّة يُعاد تحميل الصفحة لأنّها تبقى محلّياً فقط.
-            var req = new {
-                FullName = _data.FullName,
-                Email    = _data.Email,
-                Phone    = _data.Phone,
-                City     = _data.City,
-                AvatarUrl = _avatarDataUrl ?? _data.AvatarUrl,
-            };
-            var env = await Engine.ExecuteAsync<object>(
-                ProfilesOps.Update(),
-                payload: req);
-            if (env?.Operation.Status == "Success")
-            {
-                Store.Auth.FullName = _data.FullName;
-                Store.Auth.Phone = _data.Phone;
-                Store.NotifyChanged();
-                _alert = "تمّ الحفظ"; _alertVariant = "success";
-                await Task.Delay(500);
-                Nav.NavigateTo("/me");
-            }
-            else
-            {
-                _alert = env?.Error?.Message ?? "فشل الحفظ";
-                _alertVariant = "danger";
-            }
+            // أَدرِج صورة البروفايل (إن اختيرت) كَ data URL في طَلَب الحَفظ.
+            // الـ Profile interface لا يَحوي حَقل avatar بِالاسم — نُمَرِّره
+            // عَبر <c>with</c> clone حَفاظاً عَلى wire shape مَطلوب الباك.
+            var next = _data with { AvatarUrl = _avatarDataUrl ?? _data.AvatarUrl };
+            await Profiles.UpdateAsync(next);
+            // IClientAuthState يَتَزامَن تلقائيّاً عَبر post-interceptors لاحِقاً
+            // (Phase F). مُؤَقَّتاً نَتَوَقَّع أنّ DefaultProfileStore.Current
+            // قَد تَحَدَّث بَعد UpdateAsync ⇒ لا حاجة لِتَزامُن يَدويّ.
+            _alert = "تمّ الحفظ"; _alertVariant = "success";
+            await Task.Delay(500);
+            Nav.NavigateTo("/me");
+        }
+        catch (Exception ex)
+        {
+            _alert = "فشل الحفظ: " + ex.Message;
+            _alertVariant = "danger";
         }
         finally { _saving = false; }
     }
 
     private void GoBack() => Nav.NavigateTo("/me");
-
-    private sealed record ProfileDto(string Id, string FullName, string Email, bool EmailVerified,
-        string Phone, bool PhoneVerified, string City, string? AvatarUrl, DateTime MemberSince);
 }

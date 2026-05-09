@@ -1,8 +1,12 @@
 @page "/me"
 @attribute [Authorize]
 @using ACommerce.Kits.Versions.Templates
-@inject AppStore Store
-@inject ApiReader Api
+@inject IClientAuthState AuthState
+@inject IAuthStore Auth
+@inject IProfileStore Profiles
+@inject IListingsStore Listings
+@inject ISupportStore Support
+@inject IFavoritesStore Favorites
 @inject NavigationManager Nav
 @inject AppVersionInfo AppVersion
 @inject L L
@@ -17,12 +21,12 @@
             <div class="acm-details-owner">
                 <span class="acm-details-owner-avatar"><AcIcon Name="user" Size="24" /></span>
                 <div class="acm-details-owner-info" style="flex:1;">
-                    <h3 style="margin:0;">@(_profile?.FullName ?? Store.Auth.FullName ?? "زائر")</h3>
-                    <span>@(_profile?.Phone ?? Store.Auth.Phone ?? "")</span>
-                    @if (_profile is not null)
+                    <h3 style="margin:0;">@(Profiles.Current?.FullName ?? AuthState.FullName ?? "زائر")</h3>
+                    <span>@(Profiles.Current?.Phone ?? AuthState.Phone ?? "")</span>
+                    @if (Profiles.Current is not null)
                     {
                         <small style="display:block; color:var(--ac-text-muted);">
-                            عضو منذ @_profile.MemberSince.ToString("yyyy-MM-dd") • @_profile.City
+                            عضو منذ @Profiles.Current.MemberSince.ToString("yyyy-MM-dd") • @Profiles.Current.City
                         </small>
                     }
                 </div>
@@ -31,19 +35,19 @@
         </ChildContent>
     </AcCard>
 
-    @if (_stats is not null)
+    @if (_statsLoaded)
     {
         <div class="acm-home-grid" style="margin-top:12px;">
             <AcCard><ChildContent>
-                <strong>@_stats.Listings</strong>
+                <strong>@Listings.Mine.Count</strong>
                 <div style="color:var(--ac-text-muted);">إعلاناتي</div>
             </ChildContent></AcCard>
             <AcCard><ChildContent>
-                <strong>@_stats.Favorites</strong>
+                <strong>@Favorites.Ids.Count</strong>
                 <div style="color:var(--ac-text-muted);">مفضّلتي</div>
             </ChildContent></AcCard>
             <AcCard><ChildContent>
-                <strong>@_stats.Complaints</strong>
+                <strong>@Support.Tickets.Count</strong>
                 <div style="color:var(--ac-text-muted);">شكاواي</div>
             </ChildContent></AcCard>
         </div>
@@ -72,23 +76,20 @@
 </div>
 
 @code {
-    private ProfileDto? _profile;
-    private StatsDto? _stats;
+    private bool _statsLoaded;
 
     protected override async Task OnAfterRenderAsync(bool first)
     {
         if (!first) return;
-        var p = await Api.GetAsync<ProfileDto>("/me/profile");
-        _profile = p.Data;
-
-        var listings   = await Api.GetAsync<List<object>>("/my-listings");
-        var complaints = await Api.GetAsync<List<object>>("/complaints");
-
-        _stats = new StatsDto(
-            Listings:   listings.Data?.Count ?? 0,
-            Favorites:  Store.FavoriteListingIds.Count,
-            Complaints: complaints.Data?.Count ?? 0);
-
+        // كلّ نِداء كَيت Store عَبر OAM. الإحصاءات الثَلاث تَأتي مِن
+        // Stores مُختَلِفَة (Listings.Mine.Count، Favorites.Ids.Count،
+        // Support.Tickets.Count) ⇒ لا حاجة لِنَداء /complaints المَيِّت.
+        await System.Threading.Tasks.Task.WhenAll(
+            Profiles.LoadAsync(),
+            Listings.LoadMineAsync(),
+            Support.LoadAsync(),
+            Favorites.LoadAsync());
+        _statsLoaded = true;
         await InvokeAsync(StateHasChanged);
     }
 
@@ -101,26 +102,14 @@
     private void GoSettings()   => Nav.NavigateTo("/settings");
     private void GoPlans()      => Nav.NavigateTo("/plans");
 
-    private void SignOut()
+    private async Task SignOut()
     {
-        // امسح كلّ ما يخصّ المستخدم الحاليّ — وإلّا يرى المستخدم التالي على
-        // نفس المتصفّح المفضّلات والبحث الحديث والمسوّدة الخاصّة بصاحبه السابق.
-        // كان هذا يحدث بالفعل: تسجيل الخروج يخرج المستخدم لكنّ القلوب تبقى
-        // مضاءة على الإعلانات. AuthInterpreter.SignOut يفعل ذلك للعمليّة عبر
-        // OpEngine، لكنّ هذا الزرّ يعدّل Auth مباشرةً فيتجاوز المعترض.
-        Store.Auth.UserId = null;
-        Store.Auth.AccessToken = null;
-        Store.Auth.FullName = null;
-        Store.Auth.Phone = null;
-        Store.FavoriteListingIds.Clear();
-        Store.RecentSearches.Clear();
-        Store.ActiveQuickFilterIds.Clear();
-        Store.Draft.Clear();
-        Store.NotifyChanged();
+        // SignOut عَبر IAuthStore.LogoutAsync — يَدفَع auth.sign_out op
+        // ويَمسَح IClientAuthState (UserId/Token/...) داخِليّاً. أَيّ مَنطِق
+        // إضافيّ (مَسح المُفَضَّلات المَحَلّيّة، …) يَنتَقِل لِـ post-interceptor
+        // عَلى auth.sign_out في composition (لاحِقاً)؛ مُؤَقَّتاً نَحفَظ
+        // السُلوك القَديم بِالتَنظيف هُنا.
+        await Auth.LogoutAsync();
         Nav.NavigateTo("/login");
     }
-
-    private sealed record ProfileDto(string Id, string FullName, string Email, bool EmailVerified,
-        string Phone, bool PhoneVerified, string City, string? AvatarUrl, DateTime MemberSince);
-    private sealed record StatsDto(int Listings, int Favorites, int Complaints);
 }

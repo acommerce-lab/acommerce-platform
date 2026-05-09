@@ -17,6 +17,7 @@ using ACommerce.Culture.Abstractions;
 using ACommerce.Culture.Defaults;
 using ACommerce.Culture.Interceptors;
 using ACommerce.Kits.Discovery.Frontend.Customer.Stores;
+using ACommerce.Kits.Reports.Frontend.Customer.Stores;
 using ACommerce.OperationEngine.Interceptors;
 using ACommerce.OperationEngine.Interceptors.Extensions;
 using ACommerce.Kits.Auth.Frontend.Customer.Stores;
@@ -106,6 +107,7 @@ public static class EjarCustomerUiExtensions
         services.AddSupportRoutes();
         services.AddFavoritesRoutes();
         services.AddDiscoveryRoutes();
+        services.AddReportsRoutes();
         services.AddCustomerMarketplaceHomeComposition();
 
         // ─── UI Preferences (ClientHost) — F66 Phase A ────────────────────
