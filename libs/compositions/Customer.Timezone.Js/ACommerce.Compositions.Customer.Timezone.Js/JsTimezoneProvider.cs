@@ -1,15 +1,12 @@
 using Microsoft.JSInterop;
 
-namespace Ejar.Customer.UI.Store;
+namespace ACommerce.Compositions.Customer.Timezone.Js;
 
-public interface ITimezoneProvider
-{
-    Task InitAsync();
-    DateTime ToLocal(DateTime utc);
-    string FormatTime(DateTime utc);
-    string FormatRelative(DateTime utc);
-}
-
+/// <summary>
+/// تَنفيذ <see cref="ITimezoneProvider"/> مَدعوم بِـ JS interop. يَجلب
+/// المُتَصَفِّح offset (دَقائق) + اسم timezone (Intl) عَبر <c>acTz</c> module
+/// المُحَمَّل تلقائيّاً مِن static web asset لِهذه الـ composition.
+/// </summary>
 public sealed class JsTimezoneProvider : ITimezoneProvider
 {
     private readonly IJSRuntime _js;
@@ -23,8 +20,8 @@ public sealed class JsTimezoneProvider : ITimezoneProvider
         if (_offsetMinutes.HasValue) return;
         try
         {
-            _offsetMinutes = await _js.InvokeAsync<int>("ejarTz.offset");
-            _name          = await _js.InvokeAsync<string?>("ejarTz.name");
+            _offsetMinutes = await _js.InvokeAsync<int>("acTz.offset");
+            _name          = await _js.InvokeAsync<string?>("acTz.name");
         }
         catch
         {

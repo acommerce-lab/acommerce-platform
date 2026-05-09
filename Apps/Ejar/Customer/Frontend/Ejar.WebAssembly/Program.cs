@@ -1,3 +1,5 @@
+using ACommerce.ClientHost.Auth;
+using ACommerce.ClientHost.Preferences;
 using ACommerce.Culture.Defaults;
 using ACommerce.Kits.Versions.Templates;
 using Ejar.Customer.UI.ClientHost;
@@ -28,5 +30,10 @@ builder.Services.AddScoped(sp => sp.GetRequiredService<IHttpClientFactory>().Cre
 builder.Services.AddEjarCustomer();
 
 var host = builder.Build();
-await host.Services.GetRequiredService<Ejar.Customer.UI.Store.AppStorePersistence>().RestoreAsync();
+// F71: AppStorePersistence مَحذوف. Auth + UI prefs لِكلّ منهما persistence
+// مُستَقِلّ في ClientHost. MainLayout يَستَدعيهما بَعد أَوّل render، لكن
+// نَستَدعيهما هنا أيضاً (boot-time) لِكَي يَستَعيد ClientAuthStateProvider
+// الـ JWT قَبل أيّ component يَفحَص IsAuthenticated.
+await host.Services.GetRequiredService<IClientAuthPersistence>().RestoreAsync();
+await host.Services.GetRequiredService<LocalStorageUiPersistence>().RestoreAsync();
 await host.RunAsync();

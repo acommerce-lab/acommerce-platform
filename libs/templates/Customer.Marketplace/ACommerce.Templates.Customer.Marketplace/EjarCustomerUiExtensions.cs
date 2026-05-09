@@ -1,8 +1,6 @@
 using ACommerce.Chat.Client.Blazor;
-using ACommerce.Client.Http;
 using ACommerce.Client.Operations;
-using ACommerce.Client.Operations.Interceptors;
-using ACommerce.Client.StateBridge;
+using ACommerce.ClientHost;
 using ACommerce.ClientHost.Auth;
 using ACommerce.ClientHost.Culture;
 using ACommerce.ClientHost.KitApi;
@@ -10,48 +8,40 @@ using ACommerce.ClientHost.Operations;
 using ACommerce.ClientHost.Preferences;
 using ACommerce.Compositions.Customer.Chat.Realtime;
 using ACommerce.Compositions.Customer.Favorites.Realtime;
+using ACommerce.Compositions.Customer.L10n.Resx;
 using ACommerce.Compositions.Customer.Marketplace.Home;
 using ACommerce.Compositions.Customer.Notifications.Realtime;
+using ACommerce.Compositions.Customer.Timezone.Js;
 using ACommerce.Compositions.Customer.Unread;
 using ACommerce.Culture.Abstractions;
 using ACommerce.Culture.Defaults;
 using ACommerce.Culture.Interceptors;
-using ACommerce.Kits.Discovery.Frontend.Customer.Stores;
-using ACommerce.Kits.Reports.Frontend.Customer.Stores;
-using ACommerce.OperationEngine.Interceptors;
-using ACommerce.OperationEngine.Interceptors.Extensions;
 using ACommerce.Kits.Auth.Frontend.Customer.Stores;
 using ACommerce.Kits.Chat.Frontend.Customer.Stores;
+using ACommerce.Kits.Discovery.Frontend.Customer.Stores;
 using ACommerce.Kits.Favorites.Frontend.Customer.Stores;
 using ACommerce.Kits.Listings.Frontend.Customer.Stores;
 using ACommerce.Kits.Notifications.Frontend.Customer.Stores;
 using ACommerce.Kits.Profiles.Frontend.Customer.Stores;
+using ACommerce.Kits.Reports.Frontend.Customer.Stores;
 using ACommerce.Kits.Subscriptions.Frontend.Customer.Stores;
 using ACommerce.Kits.Support.Frontend.Customer.Stores;
 using ACommerce.Kits.Versions.Templates;
 using ACommerce.L10n.Blazor;
-using ACommerce.OperationEngine.Core;
+using ACommerce.OperationEngine.Interceptors;
+using ACommerce.OperationEngine.Interceptors.Extensions;
 using ACommerce.Subscriptions.Templates.Extensions;
-using ACommerce.Templates.Shared.Models;
 using Ejar.Customer.UI.Services;
-using Ejar.Customer.UI.Store;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 
 namespace Ejar.Customer.UI;
 
 /// <summary>
-/// تَسجيل DI الموحَّد لِكلّ خَدَمات قالَب Customer.Marketplace.
-///
-/// <para>F57: Auth → ClientHost.Auth.</para>
-/// <para>F58: VersionPoll → Versions.Templates kit.</para>
-/// <para>F59: Culture handlers + interceptors + L10n → kits:
-/// <list type="bullet">
-///   <item><c>CultureHeadersHandler</c> ← Culture.Defaults (يَستَهلِك ICultureContext)</item>
-///   <item><c>CultureInterceptor</c> ← Culture.Interceptors (يَستَهلِك ICultureContext)</item>
-///   <item><c>L</c> + <c>ITranslationProvider</c> + <c>ILanguageContext</c> ← L10n.Blazor</item>
-///   <item><c>AppStoreCultureContext</c> adapter يَكشِف AppStore.Ui كَ ICultureContext + ILanguageContext</item>
-/// </list></para>
+/// تَسجيل DI الموحَّد لِكلّ خَدَمات قالَب Customer.Marketplace — pure-OAM
+/// بَعد F71. كلّ V1 services (AppStore، ApiReader، UnreadService،
+/// AppStateApplier، EjarOps، AppStorePersistence) مَحذوفَة. القالَب يَحوي
+/// الآن: Pages + Resources/.resx + EjarCustomerUiExtensions (هذا المَلَفّ)
+/// فَقَط — كلّ المَنطِق في kits + compositions + ClientHost.
 /// </summary>
 public static class EjarCustomerUiExtensions
 {
@@ -65,23 +55,29 @@ public static class EjarCustomerUiExtensions
             o.Scheme         = "EjarAuth";
         });
 
-        // ─── Store ─────────────────────────────────────────────────────
-        services.AddScoped<AppStore>();
-        services.AddScoped<AppStorePersistence>();
-        services.AddScoped<ITemplateStore>(sp => sp.GetRequiredService<AppStore>());
+        // ─── UI Preferences + ITemplateStore adapter ──────────────────
+        // ejar.ui يَحفَظ Theme + Language + City + RecentSearches + ActiveQuickFilterIds
+        // عَبر LocalStorageUiPersistence. ClientStateTemplateStore adapter يَكشِف
+        // IClientAuthState + IUiPreferences كَ ITemplateStore لِيَستَهلِكها widgets
+        // (AcMarketplaceHomePage، AcListingExplorePage) دون لَمس AppStore المَحذوف.
+        services.AddUiPreferences("ejar.ui");
+        services.AddScoped<ITemplateStore, ClientStateTemplateStore>();
 
-        // ─── Culture: AppStore adapter يَخدِم ICultureContext + ILanguageContext ─
-        services.AddScoped<AppStoreCultureContext>();
-        services.AddScoped<ICultureContext>(sp => sp.GetRequiredService<AppStoreCultureContext>());
-        services.AddScoped<ILanguageContext>(sp => sp.GetRequiredService<AppStoreCultureContext>());
+        // ─── Culture: ICultureContext + ILanguageContext من IUiPreferences ─
+        // كانَت سابِقاً مِن AppStoreCultureContext. الآن adapter داخِليّ يَقرأ
+        // مِن IUiPreferences (Language) + StaticCultureContext لِلباقي.
+        services.AddScoped<ICultureContext, UiPreferencesCultureContext>();
+        services.AddScoped<ILanguageContext>(sp => (ILanguageContext)sp.GetRequiredService<ICultureContext>());
 
-        // ─── L10n: L10n.Blazor's L + Ejar's resx-backed provider ────────
-        services.AddScoped<ITranslationProvider, EjarTranslationProvider>();
+        // ─── L10n: ResxTranslationProvider مِن composition + L ───────────
+        services.AddResxTranslationProvider(
+            typeof(EjarCustomerUiExtensions).Assembly,
+            baseName: "Ejar.Customer.UI.Resources.Strings");
         services.AddScoped<L>();
 
-        // ─── Culture utilities (timezone / numerals) ───────────────────
-        services.AddScoped<ITimezoneProvider, JsTimezoneProvider>();
-        services.AddSingleton<ACommerce.Culture.Abstractions.INumeralNormalizer, DefaultNumeralNormalizer>();
+        // ─── Culture utilities (timezone composition / numerals) ───────
+        services.AddJsTimezoneProvider();
+        services.AddSingleton<INumeralNormalizer, DefaultNumeralNormalizer>();
 
         // ─── HTTP handlers مِن الكيتس ─────────────────────────────────
         services.AddTransient<CultureHeadersHandler>();
@@ -93,10 +89,7 @@ public static class EjarCustomerUiExtensions
         // ─── Subscriptions Kit (frontend) ─────────────────────────────
         services.AddSubscriptionsTemplates();
 
-        // ─── OAM client engine + 8 kit routes ──────────────────────────
-        // ClientHost.Operations يَحقن: OpEngine + HttpRouteRegistry (factory)
-        // + HttpDispatcher + ClientOpEngine + ITemplateEngine. كلّ kit
-        // يُسَجِّل IRoutesRegistrar فتُجمَع في الـ registry تلقائيّاً.
+        // ─── OAM client engine + kit routes ────────────────────────────
         services.AddClientOpEngine();
         services.AddAuthRoutes();
         services.AddListingsRoutes();
@@ -110,31 +103,16 @@ public static class EjarCustomerUiExtensions
         services.AddReportsRoutes();
         services.AddCustomerMarketplaceHomeComposition();
 
-        // ─── UI Preferences (ClientHost) — F66 Phase A ────────────────────
-        // مَوَنَة افتراضيّاً تَحت "ejar.ui" — نَفس مِفتاح V1's AppStorePersistence
-        // (يَحفَظ Theme + Language + City + RecentSearches + ActiveQuickFilterIds).
-        // V1 pages تَنتَقِل لاحِقاً (Phase B/C/D) لِتَستَهلِك IUiPreferences
-        // بَدَل AppStore.Ui. الـ AppStoreCultureContext يَبقى مُؤَقَّتاً لِكَي
-        // لا تَكسِر الصَفحات الحاليّة.
-        services.AddUiPreferences("ejar.ui");
-
-        // ─── Listing draft (Listings kit) — لِصَفحَة CreateListing ────────
+        // ─── Listing draft (Listings kit) — لِصَفحَة CreateListing ────
         services.AddListingDraft();
 
-        // ─── Discovery store (cities/amenities/categories) ────────────────
+        // ─── Discovery store (cities/amenities/categories) ────────────
         services.AddDiscoveryStore();
 
-        // ─── Culture controller — OAM-driven setLanguage/setTheme/setCity ─
+        // ─── Culture controller — OAM-driven setLanguage/setTheme/setCity
         services.AddClientCultureController();
 
-        // ApiReader (V1 legacy) — pages تَستَهلِكه مُباشَرة لِنِداءات
-        // غير-OAM (cities، amenities، complaints…).
-        services.AddScoped<ApiReader>(sp =>
-        {
-            var http = sp.GetRequiredService<AuthenticatedHttpClient>();
-            return new ApiReader(http.Client, sp.GetRequiredService<CultureInterceptor>());
-        });
-
+        // ─── FavoritesSync + FirebasePush (compositions/providers) ────
         services.AddScoped<FavoritesSync>();
         services.AddScoped<FirebasePushService>();
 
@@ -143,78 +121,59 @@ public static class EjarCustomerUiExtensions
             sp.GetRequiredService<AuthenticatedHttpClient>().Client);
 
         // ─── kit ApiClients ────────────────────────────────────────────
-        services.AddScoped<ACommerce.Kits.Auth.Frontend.Customer.Stores.IAuthApiClient,
-                          ACommerce.Kits.Auth.Frontend.Customer.Stores.HttpAuthApiClient>();
-        services.AddScoped<ACommerce.Kits.Listings.Frontend.Customer.Stores.IListingsApiClient,
-                          ACommerce.Kits.Listings.Frontend.Customer.Stores.HttpListingsApiClient>();
-        services.AddScoped<ACommerce.Kits.Chat.Frontend.Customer.Stores.IChatApiClient,
-                          ACommerce.Kits.Chat.Frontend.Customer.Stores.HttpChatApiClient>();
-        services.AddScoped<ACommerce.Kits.Notifications.Frontend.Customer.Stores.INotificationsApiClient,
-                          ACommerce.Kits.Notifications.Frontend.Customer.Stores.HttpNotificationsApiClient>();
-        services.AddScoped<ACommerce.Kits.Profiles.Frontend.Customer.Stores.IProfileApiClient,
-                          ACommerce.Kits.Profiles.Frontend.Customer.Stores.HttpProfileApiClient>();
-        services.AddScoped<ACommerce.Kits.Subscriptions.Frontend.Customer.Stores.ISubscriptionsApiClient,
-                          ACommerce.Kits.Subscriptions.Frontend.Customer.Stores.HttpSubscriptionsApiClient>();
-        services.AddScoped<ACommerce.Kits.Support.Frontend.Customer.Stores.ISupportApiClient,
-                          ACommerce.Kits.Support.Frontend.Customer.Stores.HttpSupportApiClient>();
-        services.AddScoped<ACommerce.Kits.Favorites.Frontend.Customer.Stores.IFavoritesApiClient,
-                          ACommerce.Kits.Favorites.Frontend.Customer.Stores.HttpFavoritesApiClient>();
+        services.AddScoped<IAuthApiClient,          HttpAuthApiClient>();
+        services.AddScoped<IListingsApiClient,      HttpListingsApiClient>();
+        services.AddScoped<IChatApiClient,          HttpChatApiClient>();
+        services.AddScoped<INotificationsApiClient, HttpNotificationsApiClient>();
+        services.AddScoped<IProfileApiClient,       HttpProfileApiClient>();
+        services.AddScoped<ISubscriptionsApiClient, HttpSubscriptionsApiClient>();
+        services.AddScoped<ISupportApiClient,       HttpSupportApiClient>();
+        services.AddScoped<IFavoritesApiClient,     HttpFavoritesApiClient>();
 
         // ─── kit IXxxStore bindings (Default<Kit>Stores OAM-driven) ────
-        // F63: تَطبيق إيجار V1 يُسَجِّل الكيتس Stores رَسميّاً ⇒
-        // compositions تَستَقبِلها (UnreadComposition، Realtime ingestors).
-        services.AddScoped<ACommerce.Kits.Auth.Frontend.Customer.Stores.IAuthStore,
-                          ACommerce.Kits.Auth.Frontend.Customer.Stores.DefaultAuthStore>();
-        services.AddScoped<ACommerce.Kits.Listings.Frontend.Customer.Stores.IListingsStore,
-                          ACommerce.Kits.Listings.Frontend.Customer.Stores.DefaultListingsStore>();
-        services.AddScoped<ACommerce.Kits.Chat.Frontend.Customer.Stores.IChatStore,
-                          ACommerce.Kits.Chat.Frontend.Customer.Stores.DefaultChatStore>();
-        services.AddScoped<ACommerce.Kits.Notifications.Frontend.Customer.Stores.INotificationsStore,
-                          ACommerce.Kits.Notifications.Frontend.Customer.Stores.DefaultNotificationsStore>();
-        services.AddScoped<ACommerce.Kits.Profiles.Frontend.Customer.Stores.IProfileStore,
-                          ACommerce.Kits.Profiles.Frontend.Customer.Stores.DefaultProfileStore>();
-        services.AddScoped<ACommerce.Kits.Subscriptions.Frontend.Customer.Stores.ISubscriptionsStore,
-                          ACommerce.Kits.Subscriptions.Frontend.Customer.Stores.DefaultSubscriptionsStore>();
-        services.AddScoped<ACommerce.Kits.Support.Frontend.Customer.Stores.ISupportStore,
-                          ACommerce.Kits.Support.Frontend.Customer.Stores.DefaultSupportStore>();
-        services.AddScoped<ACommerce.Kits.Favorites.Frontend.Customer.Stores.IFavoritesStore,
-                          ACommerce.Kits.Favorites.Frontend.Customer.Stores.DefaultFavoritesStore>();
+        services.AddScoped<IAuthStore,          DefaultAuthStore>();
+        services.AddScoped<IListingsStore,      DefaultListingsStore>();
+        services.AddScoped<IChatStore,          DefaultChatStore>();
+        services.AddScoped<INotificationsStore, DefaultNotificationsStore>();
+        services.AddScoped<IProfileStore,       DefaultProfileStore>();
+        services.AddScoped<ISubscriptionsStore, DefaultSubscriptionsStore>();
+        services.AddScoped<ISupportStore,       DefaultSupportStore>();
+        services.AddScoped<IFavoritesStore,     DefaultFavoritesStore>();
 
-        // ─── State bridge: empty interpreter registry + AppStateApplier ─
-        // Pages still inject AppStateApplier (will be removed in a future
-        // page-by-page cleanup). The registry is empty; ApplyAsync is no-op.
-        services.AddScoped<OperationInterpreterRegistry<AppStore>>(sp =>
-            new OperationInterpreterRegistry<AppStore>(
-                sp.GetRequiredService<ILogger<OperationInterpreterRegistry<AppStore>>>()));
-        services.AddScoped<AppStateApplier>();
-        services.AddScoped<IStateApplier>(sp => sp.GetRequiredService<AppStateApplier>());
-
-        // ─── Realtime + Chat client ────────────────────────────────────
+        // ─── Realtime + Chat client (Customer.SignalR composition) ────
         services.AddScoped<EjarRealtimeService>();
-        services.AddScoped<UnreadService>();
         services.AddScoped<IChatClient, EjarChatClient>();
 
         // ─── Compositions (cross-kit + realtime ingestors) ─────────────
-        // V1's سيرفَر يَبُثّ عَبر SignalR Hub ⇒ لا حاجَة broadcaster client-side،
-        // فَقَط ingestors تَستَقبِل الأَحداث الواردة وتَدفَعها لِكيت Stores.
         services.AddCustomerUnreadComposition();
         services.AddChatRealtimeIngestor();
         services.AddNotificationsRealtimeComposition();
         services.AddFavoritesRealtimeComposition();
 
         // ─── OAM-seam cross-cutting interceptors ───────────────────────
-        // CultureLocalizationInterceptor يَعمَل عَلى كلّ http.send post-phase
-        // ⇒ تَعريب التَواريخ + العُملات في المَغلَّفات تلقائيّاً (ApiReader
-        // كانَت تَستَدعيه يَدويّاً في كلّ GET — الآن مُسَجَّل مرّة واحدة).
         services.AddScoped<IOperationInterceptor, CultureLocalizationInterceptor>();
-
-        // F66 Phase A: تَسجيل IInterceptorSource عَلى جانِب العَميل لِيُمَرِّر
-        // OpEngine كلّ IOperationInterceptor المُسَجَّل في DI (مَثَل
-        // CultureLocalizationInterceptor أَعلاه) إلى pre/post phases. بدونه
-        // OpEngine يَجِد IInterceptorSource = null فلا يُشَغِّل أيّ interceptor
-        // (كانَ هذا حالة V1 — interceptors مُسَجَّلة لكن لا تَفعَل شَيئاً).
         services.AddOperationInterceptors();
 
         return services;
     }
+}
+
+/// <summary>
+/// Adapter يَكشِف <see cref="IUiPreferences"/> + StaticCultureContext كَـ
+/// <see cref="ICultureContext"/> + <see cref="ILanguageContext"/>. حَلَّ
+/// مَحَلّ <c>AppStoreCultureContext</c> الـ V1 المَحذوف. يَقرأ Language مِن
+/// <see cref="IUiPreferences"/>؛ تَفاصيل timezone/currency تَأتي مِن defaults
+/// (يُمكِن لاحِقاً جَعلها مِن IUiPreferences أيضاً عِند الحاجة).
+/// </summary>
+internal sealed class UiPreferencesCultureContext : ICultureContext, ILanguageContext
+{
+    private readonly IUiPreferences _prefs;
+    public UiPreferencesCultureContext(IUiPreferences prefs) => _prefs = prefs;
+
+    public string Language       => string.IsNullOrEmpty(_prefs.Language) ? "ar" : _prefs.Language;
+    public string TimeZoneId     => "Asia/Aden";
+    public string NumeralSystem  => Language == "ar" ? "arabic-indic" : "latin";
+    public TimeZoneInfo TimeZone => StaticCultureContext.ResolveTz(TimeZoneId);
+    public string Currency       => "YER";
+    public bool   IsRtl          => Language == "ar";
 }

@@ -98,6 +98,10 @@
 
     <!-- F66 Phase A: Customer.Marketplace.Home composition -->
     <ProjectReference Include="..\..\..\compositions\Customer.Marketplace.Home\ACommerce.Compositions.Customer.Marketplace.Home\ACommerce.Compositions.Customer.Marketplace.Home.csproj" />
+
+    <!-- F71 Phase F: extracted compositions (Resx provider + JS Tz provider) -->
+    <ProjectReference Include="..\..\..\compositions\Customer.L10n.Resx\ACommerce.Compositions.Customer.L10n.Resx\ACommerce.Compositions.Customer.L10n.Resx.csproj" />
+    <ProjectReference Include="..\..\..\compositions\Customer.Timezone.Js\ACommerce.Compositions.Customer.Timezone.Js\ACommerce.Compositions.Customer.Timezone.Js.csproj" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Components.Authorization" Version="10.0.7" />
