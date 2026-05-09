@@ -43,6 +43,24 @@ public sealed class UnreadComposition : IDisposable
     /// <summary>الإجماليّ — لِشارَة واحدة جامِعَة.</summary>
     public int Total => ChatUnread + NotifUnread;
 
+    /// <summary>
+    /// id المُحادَثة المَفتوحَة حاليّاً (أَو null). يُستَخدَم في الـ realtime
+    /// ingestor: رَسائل واصِلَة لِنَفس الـ id لا تُزيد العَدّاد لأنّ
+    /// المُستَخدِم يَراها مُباشَرَةً. صَفحَة <c>ChatRoom</c> تَكتُبها عِند الدُخول
+    /// وتَمسَحها عِند المُغادَرَة.
+    /// </summary>
+    public string? ActiveConversationId { get; set; }
+
+    /// <summary>
+    /// يَرتِقي المَنبَع: يَستَدعي <c>IChatStore.LoadConversationsAsync</c> +
+    /// <c>INotificationsStore.LoadAsync</c> بِالتَوازي. شارات navbar تَستَدعيه
+    /// عِند تَسجيل الدُخول أَو re-mount لِلـ shell بَعد reconnect.
+    /// </summary>
+    public Task RefreshAsync(CancellationToken ct = default) =>
+        Task.WhenAll(
+            _chat.LoadConversationsAsync(ct),
+            _notif.LoadAsync(ct));
+
     public event Action? Changed;
 
     private void OnChanged() => Changed?.Invoke();

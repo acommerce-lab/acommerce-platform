@@ -70,9 +70,13 @@
     <ProjectReference Include="..\..\..\kits\Subscriptions\Frontend\Customer\ACommerce.Kits.Subscriptions.Frontend.Customer.csproj" />
     <ProjectReference Include="..\..\..\kits\Support\Frontend\Customer\ACommerce.Kits.Support.Frontend.Customer.csproj" />
     <ProjectReference Include="..\..\..\kits\Favorites\Frontend\Customer\ACommerce.Kits.Favorites.Frontend.Customer.csproj" />
+    <ProjectReference Include="..\..\..\kits\Discovery\Frontend\Customer\ACommerce.Kits.Discovery.Frontend.Customer.csproj" />
 
     <!-- Listings Operations (for IListing interface) -->
     <ProjectReference Include="..\..\..\kits\Listings\ACommerce.Kits.Listings.Operations\ACommerce.Kits.Listings.Operations.csproj" />
+
+    <!-- OperationEngine.Interceptors — IOperationInterceptor + AddOperationInterceptors -->
+    <ProjectReference Include="..\..\..\core\OperationEngine\ACommerce.OperationEngine.Interceptors\ACommerce.OperationEngine.Interceptors.csproj" />
 
     <!-- Customer.Ledger — atomic badges (AcChat/NotificationsUnreadBadgeWidget) used by V1 OLD pages -->
     <ProjectReference Include="..\..\Customer.Ledger\ACommerce.Templates.Customer.Ledger\ACommerce.Templates.Customer.Ledger.csproj" />
@@ -90,6 +94,9 @@
     <ProjectReference Include="..\..\..\compositions\Customer.Favorites.Sync\ACommerce.Compositions.Customer.Favorites.Sync\ACommerce.Compositions.Customer.Favorites.Sync.csproj" />
     <ProjectReference Include="..\..\..\compositions\Customer.SignalR\ACommerce.Compositions.Customer.SignalR\ACommerce.Compositions.Customer.SignalR.csproj" />
     <ProjectReference Include="..\..\..\..\libs\providers\Notifications\Firebase.Web\ACommerce.Notification.Providers.Firebase.Web\ACommerce.Notification.Providers.Firebase.Web.csproj" />
+
+    <!-- F66 Phase A: Customer.Marketplace.Home composition -->
+    <ProjectReference Include="..\..\..\compositions\Customer.Marketplace.Home\ACommerce.Compositions.Customer.Marketplace.Home\ACommerce.Compositions.Customer.Marketplace.Home.csproj" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Components.Authorization" Version="10.0.7" />
