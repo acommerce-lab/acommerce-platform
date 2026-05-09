@@ -1,14 +1,9 @@
 @page "/notifications"
 @attribute [Authorize]
-@using ACommerce.Client.Operations
-@using Ejar.Customer.UI.Operations
-@using ACommerce.Kits.Notifications.Frontend.Customer.Stores
-@using Ejar.Customer.UI.Services
-@inject AppStore Store
-@inject ApiReader Api
+@using Ejar.Customer.UI.Store
+@inject INotificationsStore Notifs
+@inject UnreadComposition Unread
 @inject ITimezoneProvider Tz
-@inject ClientOpEngine Engine
-@inject UnreadService Unread
 @inject L L
 @implements IDisposable
 
@@ -24,10 +19,10 @@
         <AcFilterChip Label="نظام"    Active="@(_filter == "system")"  OnClick="@(() => SetFilter("system"))" />
     </div>
 
-    @if (_loading) { <AcLoadingState /> }
+    @if (Notifs.IsLoading) { <AcLoadingState /> }
     else
     {
-        var filtered = _items.Where(n => string.IsNullOrEmpty(_filter) || n.Type == _filter).ToList();
+        var filtered = Notifs.Items.Where(n => string.IsNullOrEmpty(_filter) || n.Kind == _filter).ToList();
 
         @if (filtered.Count == 0) { <AcEmptyState IconName="bell" Message="لا توجد إشعارات" /> }
         else
@@ -47,7 +42,7 @@
                                         @if (!n.IsRead) { <AcBadge Variant="primary" Text="جديد" /> }
                                     </div>
                                     <div class="acm-complaint-body">@n.Body</div>
-                                    <small>@Tz.FormatRelative(n.CreatedAt) — @TypeLabel(n.Type)</small>
+                                    <small>@Tz.FormatRelative(n.CreatedAt) — @TypeLabel(n.Kind)</small>
                                 </button>
                             </ChildContent>
                         </AcCard>
@@ -59,45 +54,29 @@
 </div>
 
 @code {
-    private List<NotifDto> _items = new();
-    private bool _loading = true;
     private string _filter = "";
 
-    protected override void OnInitialized() => Store.OnChanged += OnChange;
+    protected override void OnInitialized() => Notifs.Changed += OnChange;
 
     protected override async Task OnAfterRenderAsync(bool first)
     {
         if (!first) return;
         await Tz.InitAsync();
-        var env = await Api.GetAsync<List<NotifDto>>("/notifications", localize: true);
-        _items   = env.Data ?? new();
-        _loading = false;
+        await Notifs.LoadAsync();
         await InvokeAsync(StateHasChanged);
     }
 
     private void SetFilter(string f) { _filter = f; StateHasChanged(); }
 
-    private async Task OnClick(string id)
-    {
-        var ix = _items.FindIndex(x => x.Id == id);
-        if (ix < 0 || _items[ix].IsRead) return;
-        _items[ix] = _items[ix] with { IsRead = true };
-        await Engine.ExecuteAsync<object>(NotificationsOps.MarkRead(id));
-        // العَدّاد في الـ navbar يُحَدَّث فوراً بدون انتظار realtime echo.
-        Unread.NotifUnread = Math.Max(0, _items.Count(n => !n.IsRead));
-        Unread.RaiseChanged();
-    }
+    /// <summary>
+    /// نَقرة عَلى إشعار: يُرسِل <c>notification.mark_read</c> op عَبر الـ kit
+    /// store. الـ store يَتَوَلّى تَحديث IsRead داخِليّاً + إطلاق Changed.
+    /// UnreadComposition تَلتَقِط التَغيير تلقائيّاً (يَستَهلِك
+    /// INotificationsStore.UnreadCount كَ derived state).
+    /// </summary>
+    private Task OnClick(string id) => Notifs.MarkReadAsync(id);
 
-    private async Task MarkAllRead()
-    {
-        // ١. تَحديث محلّيّ تَفاؤليّ + إعادة render فوريّة قبل الاستجابة من
-        //    الخادم (الـ "جديد" badges تَختفي مباشرةً، لا انتظار).
-        _items = _items.Select(n => n with { IsRead = true }).ToList();
-        Unread.ClearNotif();
-        StateHasChanged();
-        // ٢. الـ server يَدوِّن الحدث. لو فشل، نَترك الـ UI كما هو (تَفاؤليّ).
-        await Engine.ExecuteAsync<object>(NotificationsOps.MarkAllRead());
-    }
+    private Task MarkAllRead() => Notifs.MarkAllReadAsync();
 
     private string GroupLabel(DateTime localDt)
     {
@@ -119,8 +98,5 @@
     };
 
     private void OnChange() => InvokeAsync(StateHasChanged);
-    public void Dispose() => Store.OnChanged -= OnChange;
-
-    private sealed record NotifDto(string Id, string Title, string Body, string? Type,
-                                   bool IsRead, DateTime CreatedAt);
+    public void Dispose() => Notifs.Changed -= OnChange;
 }

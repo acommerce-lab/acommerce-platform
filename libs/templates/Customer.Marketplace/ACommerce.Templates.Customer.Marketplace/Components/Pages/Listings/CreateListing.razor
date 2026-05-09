@@ -1,7 +1,10 @@
 @page "/create-listing"
 @attribute [Authorize]
-@inject AppStore Store
-@inject ApiReader Api
+@inject ITemplateEngine Engine
+@inject IUiPreferences Prefs
+@inject IListingDraft Draft
+@inject IListingsStore Listings
+@inject IDiscoveryStore Discovery
 @inject NavigationManager Nav
 @inject IJSRuntime JS
 @inject L L
@@ -18,9 +21,8 @@
     }
     else if (_subscription is null)
     {
-        @* لا يوجد اشتراك نشط — أوقف عند البوابة بدل السماح بإكمال المعالج
-           ثمّ رفض الخادم. السابق كان يسمح بكلّ الخطوات والمستخدم يكتشف الفشل
-           فقط عند زرّ "نشر". *@
+        @* لا يوجد اشتراك نشط — أَوقِف عِند البَوّابَة بَدَل السَماح بِإكمال
+           المُعالِج ثُمّ رَفض الخادم. *@
         <AcCard>
             <ChildContent>
                 <div style="text-align:center; padding:16px 0;">
@@ -52,11 +54,11 @@
             <ChildContent>
                 <h3 style="margin-top:0;">اختر فئة الإعلان</h3>
                 <div class="acm-home-grid">
-                    @foreach (var c in _categories)
+                    @foreach (var c in Discovery.Categories)
                     {
                         var cat = c;
-                        <button type="button" class="acs-cat-pick @(Store.Draft.CategoryId == cat.Id ? "active" : "")"
-                                @onclick="@(() => { Store.Draft.CategoryId = cat.Id; })">
+                        <button type="button" class="acs-cat-pick @(Draft.CategoryId == cat.Id ? "active" : "")"
+                                @onclick="@(() => { Draft.CategoryId = cat.Id; Draft.NotifyChanged(); })">
                             <AcIcon Name="@cat.Icon" Size="24" />
                             <span>@cat.Label</span>
                         </button>
@@ -64,7 +66,7 @@
                 </div>
                 <AcButton Variant="primary" Class="ac-btn-block" Text="التالي"
                           OnClick="@(() => _step = 2)"
-                          Disabled="@(string.IsNullOrEmpty(Store.Draft.CategoryId))" />
+                          Disabled="@(string.IsNullOrEmpty(Draft.CategoryId))" />
             </ChildContent>
         </AcCard>
     }
@@ -74,21 +76,24 @@
             <ChildContent>
                 <h3 style="margin-top:0;">تفاصيل الإعلان</h3>
                 <AcField Label="@(L["listing.create.field.title"])" Required="true">
-                    <AcInput Value="@Store.Draft.Title"
-                             ValueChanged="@(v => Store.Draft.Title = v ?? string.Empty)"
+                    <AcInput Value="@Draft.Title"
+                             ValueChanged="@(v => { Draft.Title = v ?? string.Empty; Draft.NotifyChanged(); })"
                              Placeholder="مثلاً: شقة مفروشة في حيّ السبل" />
                 </AcField>
                 <AcField Label="@(L["listing.create.field.description"])" Required="true">
-                    <textarea class="ac-input" rows="4" @bind="Store.Draft.Description"
+                    <textarea class="ac-input" rows="4"
+                              value="@Draft.Description"
+                              @oninput="@(e => { Draft.Description = e.Value?.ToString() ?? string.Empty; Draft.NotifyChanged(); })"
                               placeholder="اذكر المساحة، الغرف، الميزات…"></textarea>
                 </AcField>
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
                     <AcField Label="@(L["listing.create.field.price"])" Required="true">
-                        <AcInput Type="number" Value="@Store.Draft.Price.ToString()"
-                                 ValueChanged="@(v => Store.Draft.Price = decimal.TryParse(Numerals.ToLatin(v), out var p) ? p : 0)" />
+                        <AcInput Type="number" Value="@Draft.Price.ToString()"
+                                 ValueChanged="@(v => { Draft.Price = decimal.TryParse(Numerals.ToLatin(v), out var p) ? p : 0; Draft.NotifyChanged(); })" />
                     </AcField>
                     <AcField Label="@(L["listing.create.field.timeUnit"])">
-                        <select class="ac-input" @bind="Store.Draft.TimeUnit">
+                        <select class="ac-input" value="@Draft.TimeUnit"
+                                @onchange="@(e => { Draft.TimeUnit = e.Value?.ToString() ?? "monthly"; Draft.NotifyChanged(); })">
                             <option value="monthly">شهري</option>
                             <option value="yearly">سنوي</option>
                             <option value="daily">يومي</option>
@@ -97,17 +102,17 @@
                     </AcField>
                 </div>
                 <AcField Label="عدد الغرف (اختياريّ)">
-                    <AcInput Type="number" Value="@Store.Draft.BedroomCount.ToString()"
-                             ValueChanged="@(v => Store.Draft.BedroomCount = int.TryParse(Numerals.ToLatin(v), out var n) ? n : 0)" />
+                    <AcInput Type="number" Value="@Draft.BedroomCount.ToString()"
+                             ValueChanged="@(v => { Draft.BedroomCount = int.TryParse(Numerals.ToLatin(v), out var n) ? n : 0; Draft.NotifyChanged(); })" />
                 </AcField>
 
                 <AcField Label="@(L["listing.amenities"])">
                     <div class="acs-amenity-chips">
-                        @foreach (var a in _amenities)
+                        @foreach (var a in Discovery.Amenities)
                         {
                             var am = a;
                             <AcFilterChip Label="@am.Label"
-                                          Active="@Store.Draft.Amenities.Contains(am.Key)"
+                                          Active="@Draft.Amenities.Contains(am.Key)"
                                           OnClick="@(() => ToggleAmenity(am.Key))" />
                         }
                     </div>
@@ -116,7 +121,7 @@
                     <AcButton Variant="ghost" Text="رجوع" OnClick="@(() => _step = 1)" />
                     <AcButton Variant="primary" Class="ac-btn-block" Text="التالي"
                               OnClick="@(() => _step = 3)"
-                              Disabled="@(string.IsNullOrWhiteSpace(Store.Draft.Title) || Store.Draft.Price <= 0)" />
+                              Disabled="@(string.IsNullOrWhiteSpace(Draft.Title) || Draft.Price <= 0)" />
                 </div>
             </ChildContent>
         </AcCard>
@@ -187,13 +192,14 @@
             <ChildContent>
                 <h3 style="margin-top:0;">موقع الإعلان</h3>
                 <AcField Label="@(L["listing.create.field.city"])" Required="true">
-                    <select class="ac-input" @bind="Store.Draft.City">
-                        @foreach (var c in _cities) { <option value="@c">@c</option> }
+                    <select class="ac-input" value="@Draft.City"
+                            @onchange="@(e => { Draft.City = e.Value?.ToString() ?? string.Empty; Draft.NotifyChanged(); })">
+                        @foreach (var c in Discovery.Cities) { <option value="@c">@c</option> }
                     </select>
                 </AcField>
                 <AcField Label="@(L["listing.create.field.district"])" Required="true">
-                    <AcInput Value="@Store.Draft.District"
-                             ValueChanged="@(v => Store.Draft.District = v ?? string.Empty)"
+                    <AcInput Value="@Draft.District"
+                             ValueChanged="@(v => { Draft.District = v ?? string.Empty; Draft.NotifyChanged(); })"
                              Placeholder="مثلاً: السبل" />
                 </AcField>
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
@@ -217,7 +223,7 @@
                     <AcButton Variant="primary" Class="ac-btn-block"
                               Text="@(_publishing ? "جارٍ النشر…" : "نشر الإعلان")"
                               OnClick="@Publish"
-                              Disabled="@(_publishing || string.IsNullOrWhiteSpace(Store.Draft.City) || string.IsNullOrWhiteSpace(Store.Draft.District))" />
+                              Disabled="@(_publishing || string.IsNullOrWhiteSpace(Draft.City) || string.IsNullOrWhiteSpace(Draft.District))" />
                 </div>
             </ChildContent>
         </AcCard>
@@ -235,10 +241,6 @@
     private string? _publishError;
     private string? _imgError;
     private List<PickedImage> _images = new();
-    private List<CategoryDto> _categories = new();
-    private sealed record HomeResponse(List<CategoryDto> Categories, object? Featured, object? New);
-    private List<AmenityDto> _amenities = new();
-    private List<string> _cities = new();
     private double _lat = 24.7136;
     private double _lng = 46.6753;
 
@@ -248,13 +250,13 @@
     protected override async Task OnAfterRenderAsync(bool first)
     {
         if (!first) return;
-        if (string.IsNullOrEmpty(Store.Draft.City)) Store.Draft.City = Store.Ui.City;
+        if (string.IsNullOrEmpty(Draft.City)) Draft.City = Prefs.City;
 
-        // افحص الاشتراك أولاً — لو لم يوجد، نعرض بوّابة "اشترك بباقة" بدل
-        // المعالج. هذا يطابق تحقّق الخادم في POST /my-listings ويمنع
-        // المستخدم من إكمال أربع خطوات ليُفاجأ بـ no_active_subscription
-        // عند الضغط على "نشر".
-        var sub = await Api.GetAsync<SubDto>("/me/subscription");
+        // افحَص الاشتِراك أَوَّلاً — نَدفَع subscription.get_active op كَ
+        // OAM-pure (kit-defined). الـ DTO المَحَلّيّ يَلتَقِط الـ wire shape
+        // الكامِل (PlanId/Status/ImagesPerListing) لأنّ ISubscriptionsStore.Active
+        // يَكشِف ISubscription فَقَط (Guid Id فَقَط).
+        var sub = await Engine.ExecuteAsync<SubDto>(SubscriptionsOps.GetActive());
         _subscription = sub.Data;
         _subLoading = false;
         if (_subscription is null)
@@ -264,18 +266,16 @@
         }
         _maxImages = _subscription.ImagesPerListing > 0 ? _subscription.ImagesPerListing : 10;
 
-        var home = await Api.GetAsync<HomeResponse>("/home/view");
-        _categories = home.Data?.Categories ?? new();
-        var am = await Api.GetAsync<List<AmenityDto>>("/amenities");
-        var ci = await Api.GetAsync<List<string>>("/cities");
-        _amenities = am.Data ?? new();
-        _cities    = ci.Data ?? new() { "إب" };
+        // Discovery store يَجلب categories + amenities + cities بِالتَوازي.
+        await Discovery.LoadAsync();
         await InvokeAsync(StateHasChanged);
     }
 
     private void ToggleAmenity(string key)
     {
-        if (!Store.Draft.Amenities.Add(key)) Store.Draft.Amenities.Remove(key);
+        if (Draft.Amenities.Contains(key)) Draft.Amenities.Remove(key);
+        else                                Draft.Amenities.Add(key);
+        Draft.NotifyChanged();
     }
 
     private async Task OnImagesPicked(InputFileChangeEventArgs e)
@@ -285,11 +285,6 @@
         await InvokeAsync(StateHasChanged);
         try
         {
-            // الضغط في المتصفّح عبر Canvas: نُمرّر JSObjectReference للـ Browser
-            // File، ضغط JPEG على بُعد أقصى 1600 وجودة 0.8 للصورة الكاملة، و400
-            // وجودة 0.7 للمصغّر. النتيجة: data URL واحد للكاملة و آخر للمصغّر.
-            // قبل هذا كنّا نُرسل الملفّ الخامّ (5MB+ على هاتف حديث) في
-            // ImagesCsv، فيتعطّل /my-listings وتفجّر صفحات القائمة الباندويث.
             foreach (var f in e.GetMultipleFiles(_maxImages - _images.Count))
             {
                 if (f.Size > 20 * 1024 * 1024)
@@ -299,10 +294,6 @@
                 }
                 try
                 {
-                    // اقرأ الملفّ الخامّ مرّة واحدة → base64 dataURL → مرّره
-                    // إلى JS الذي يفكّ ترميزه عبر <img>، يضغطه على Canvas،
-                    // ويُرجع نسختين (كاملة + مُصغّر). كانت الواجهة سابقاً تُرسل
-                    // الملفّ الخامّ مباشرةً.
                     using var s  = f.OpenReadStream(maxAllowedSize: 20 * 1024 * 1024);
                     using var ms = new MemoryStream();
                     await s.CopyToAsync(ms);
@@ -341,68 +332,45 @@
         _publishing = true; _publishError = null;
         try
         {
-            var req = new
+            // OAM-pure: نَبني ListingDraftPayload (DTO الكِيت) ونَدفَع
+            // listings.create op عَبر IListingsStore. الـ store يَتَوَلّى
+            // بِناء payload + dispatch + تَحديث Mine list.
+            var payload = new ListingDraftPayload(
+                Title:         Draft.Title ?? "",
+                Description:   Draft.Description,
+                Price:         Draft.Price,
+                TimeUnit:      Draft.TimeUnit,
+                PropertyType:  Draft.CategoryId,
+                City:          Draft.City ?? "",
+                District:      Draft.District,
+                Lat:           _lat,
+                Lng:           _lng,
+                BedroomCount:  Draft.BedroomCount,
+                BathroomCount: 0,
+                AreaSqm:       0,
+                Amenities:     Draft.Amenities.ToList(),
+                Images:        _images.Select(i => i.DataUrl).ToList(),
+                Thumbnail:     _images.Count > 0 ? _images[0].ThumbUrl : null);
+
+            var created = await Listings.CreateAsync(payload);
+            if (created is not null)
             {
-                title         = Store.Draft.Title,
-                description   = Store.Draft.Description,
-                price         = Store.Draft.Price,
-                timeUnit      = Store.Draft.TimeUnit,
-                propertyType  = Store.Draft.CategoryId,
-                city          = Store.Draft.City,
-                district      = Store.Draft.District,
-                lat           = _lat,
-                lng           = _lng,
-                bedroomCount  = Store.Draft.BedroomCount,
-                bathroomCount = 0,
-                areaSqm       = 0,
-                amenities     = Store.Draft.Amenities.ToList(),
-                // الصور تُرسَل كقائمة data URLs (base64) مضغوطة بـ Canvas.
-                // الخادم يحفظها CSV داخل ListingEntity.ImagesCsv. مُصغّر الصورة
-                // الرئيسيّة يُرسَل منفصلاً ليُخزَّن في ThumbnailUrl ويُرجَع في
-                // البطاقات بدل تنزيل الصورة الكاملة في كلّ مرّة.
-                images        = _images.Select(i => i.DataUrl).ToList(),
-                thumbnail     = _images.Count > 0 ? _images[0].ThumbUrl : null,
-            };
-            var env = await Api.PostAsync<object>("/my-listings", req);
-            if (env.Data is not null || env.Operation?.Status == "Success")
-            {
-                Store.Draft.Clear();
+                Draft.Clear();
                 _images.Clear();
                 Nav.NavigateTo("/my-listings");
+                return;
             }
-            else
-            {
-                // اعرض السبب الحقيقيّ من الـ envelope: قد يكون
-                // no_active_subscription, listings_quota_exceeded, images_quota_exceeded,
-                // missing_fields، أو نصّ الخطأ الخام من الخادم.
-                var code   = env.Error?.Code ?? env.Operation?.FailedAnalyzer;
-                var msg    = env.Error?.Message ?? env.Operation?.ErrorMessage;
-                _publishError = (code, msg) switch
-                {
-                    ("no_active_subscription",    _)              => "لا يوجد اشتراك نشط — اشترك بباقة قبل نشر إعلان.",
-                    ("listings_quota_exceeded",   var m) when m is not null => m,
-                    ("images_quota_exceeded",     var m) when m is not null => m,
-                    ("missing_fields",            _)              => "الحقول المطلوبة (العنوان والمدينة) ناقصة.",
-                    (_, var m) when !string.IsNullOrWhiteSpace(m) => m!,
-                    (var c, _) when !string.IsNullOrWhiteSpace(c) => $"فشل النشر ({c}).",
-                    _                                             => "فشل نشر الإعلان — تحقّق من اشتراكك ثمّ حاول مجدّداً."
-                };
-            }
+
+            _publishError = "فشل نشر الإعلان — تحقّق من اشتراكك ثمّ حاول مجدّداً.";
         }
         catch (Exception ex) { _publishError = $"حدث خطأ أثناء النشر: {ex.Message}"; }
         finally { _publishing = false; }
     }
 
-    private sealed record CategoryDto(string Id, string Label, string Icon);
     private sealed record SubDto(string Id, string PlanId, string PlanName, string Status,
         DateTime StartDate, DateTime EndDate, int DaysRemaining,
         int ListingsUsed, int ListingsLimit, int FeaturedUsed, int FeaturedLimit, int ImagesPerListing);
-    private sealed record AmenityDto(string Key, string Label);
-    /// <summary>
-    /// صورة مختارة بعد ضغطها: <see cref="DataUrl"/> هي الكاملة المخزّنة في
-    /// ImagesCsv و<see cref="ThumbUrl"/> هي المُصغّر الصغير لعرضها في
-    /// البطاقات. الاسم للأخطاء فقط.
-    /// </summary>
+
     private sealed record PickedImage(string DataUrl, string ThumbUrl, string Name);
     private sealed record CompressResult(string Full, string? Thumb);
 }

@@ -1,11 +1,7 @@
 @page "/complaints/{Id}"
 @attribute [Authorize]
-@inject ApiReader Api
+@inject ITemplateEngine Engine
 @inject NavigationManager Nav
-@using ACommerce.Client.Operations
-@using Ejar.Customer.UI.Operations
-@using ACommerce.Kits.Support.Frontend.Customer.Stores
-@inject ClientOpEngine Engine
 @inject L L
 
 <PageTitle>تفاصيل الشكوى — @(L["app.name"])</PageTitle>
@@ -32,8 +28,6 @@
         <div class="acs-chat-messages">
             @foreach (var m in _messages)
             {
-                // SenderPartyId له شكل "User:{guid}". رسائل النظام (تغيير الحالة)
-                // ترسل من Guid.Empty فنُميِّزها كـ system bubble.
                 var sender = m.SenderPartyId ?? "";
                 var senderId = sender.StartsWith("User:") ? sender[5..] : sender;
                 var isSystem = senderId == "00000000-0000-0000-0000-000000000000";
@@ -90,8 +84,9 @@
 
     private async Task Reload()
     {
-        // Support kit يُرجع { ticket, messages } — رسائل من Chat kit (IChatMessage).
-        var env = await Api.GetAsync<DetailsDto>($"/support/tickets/{Id}");
+        // OAM-pure: support.ticket.get op (kit-defined). يَردّ
+        // { ticket, messages } — نَلتَقِطه بِـ DetailsDto مَحَلّيّ.
+        var env = await Engine.ExecuteAsync<DetailsDto>(SupportOps.GetTicket(Id));
         _t = env.Data?.Ticket;
         _messages = env.Data?.Messages ?? new();
         _loading = false;
@@ -107,7 +102,7 @@
             var env = await Engine.ExecuteAsync<object>(
                 SupportOps.Reply(Id),
                 payload: new { Text = _draft });
-            if (env?.Operation.Status == "Success")
+            if (env.Operation.Status == "Success")
             {
                 _draft = "";
                 await Reload();
@@ -132,7 +127,6 @@
         _ => "secondary"
     };
 
-    // shapes تطابق ISupportTicket (kit) + IChatMessage (kit).
     private sealed record TicketDto(string Id, string UserId, string ConversationId,
         string Subject, string Status, string Priority,
         string? RelatedEntityId, string? AssignedAgentId,

@@ -1,11 +1,12 @@
 @page "/"
-@using Ejar.Customer.UI.Operations
-@using ACommerce.Kits.Favorites.Frontend.Customer.Stores
-@inject AppStore Store
-@inject ApiReader Api
+@inject ITemplateStore Store
 @inject ITemplateEngine Engine
+@inject IUiPreferences Prefs
+@inject IMarketplaceHomeStore HomeStore
+@inject IDiscoveryStore Discovery
+@inject IClientCultureController Culture
+@inject IFavoritesStore Favs
 @inject NavigationManager Nav
-@inject IFavoritesStore Favorites
 @inject L L
 @implements IDisposable
 
@@ -14,7 +15,7 @@
 <AcMarketplaceHomePage Data="_data"
                        Engine="Engine"
                        Store="Store"
-                       FavoriteIds="Store.FavoriteListingIds"
+                       FavoriteIds="@FavSet"
                        QuickActions="_quickActions"
                        Title="@(L["home.title"])"
                        Subtitle="@(L["home.subtitle"])"
@@ -39,7 +40,7 @@
             </span>
             <span class="acm-brand-text">@(L["app.name"])</span>
             <div class="acm-brand-city">
-                <AcCityPicker Cities="_cities" Value="@Store.Ui.City" ValueChanged="OnCityChanged" />
+                <AcCityPicker Cities="@Discovery.Cities" Value="@Prefs.City" ValueChanged="OnCityChanged" />
             </div>
         </div>
     </LogoContent>
@@ -47,7 +48,6 @@
 
 @code {
     private MarketplaceHomeDto? _data;
-    private IReadOnlyList<string> _cities = Array.Empty<string>();
 
     private static readonly IReadOnlyList<QuickActionDto> _quickActions =
     [
@@ -55,44 +55,47 @@
         new("my-listings", "إعلاناتي",     "building",     "secondary")
     ];
 
-    protected override void OnInitialized() => Store.OnChanged += OnChange;
+    private ISet<string> FavSet => new HashSet<string>(Favs.Ids);
+
+    protected override void OnInitialized()
+    {
+        Prefs.OnChanged    += OnChange;
+        Discovery.Changed  += OnChange;
+        HomeStore.Changed  += OnChange;
+        Favs.Changed       += OnChange;
+    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
-            var citiesEnv = await Api.GetAsync<List<string>>("/cities");
-            _cities = citiesEnv.Data ?? new();
+            await Discovery.LoadCitiesAsync();
             await LoadHome();
         }
     }
 
     private async Task LoadHome()
     {
-        var path = string.IsNullOrEmpty(Store.Ui.City)
-            ? "/home/view"
-            : $"/home/view?city={Uri.EscapeDataString(Store.Ui.City)}";
-        var env = await Api.GetAsync<HomeResponse>(path);
-        if (env.Data is not null)
-        {
-            _data = new MarketplaceHomeDto
-            {
-                Categories = env.Data.Categories.Select(c =>
-                    new CategoryTileDto { Id = c.Id, Label = c.Label, Icon = c.Icon }).ToList(),
-                Featured = env.Data.Featured.Select(ToRow).ToList(),
-                New = env.Data.New.Select(ToRow).ToList()
-            };
-        }
-        else
-        {
-            _data = new MarketplaceHomeDto
-            {
-                Categories = Array.Empty<CategoryTileDto>(),
-                Featured = Array.Empty<ListingRowDto>(),
-                New = Array.Empty<ListingRowDto>()
-            };
-        }
+        await HomeStore.LoadHomeAsync(string.IsNullOrEmpty(Prefs.City) ? null : Prefs.City);
+        _data = MapHomeView(HomeStore.Home);
         await InvokeAsync(StateHasChanged);
+    }
+
+    private static MarketplaceHomeDto MapHomeView(HomeView? v)
+    {
+        if (v is null) return new MarketplaceHomeDto
+        {
+            Categories = Array.Empty<CategoryTileDto>(),
+            Featured   = Array.Empty<ListingRowDto>(),
+            New        = Array.Empty<ListingRowDto>()
+        };
+        return new MarketplaceHomeDto
+        {
+            Categories = v.Categories.Select(c =>
+                new CategoryTileDto { Id = c.Id, Label = c.Label, Icon = c.Icon ?? "" }).ToList(),
+            Featured = v.Featured.Select(ToRow).ToList(),
+            New      = v.New.Select(ToRow).ToList()
+        };
     }
 
     // البحث المُمتلِك نصّاً → صفحة الاقتراحات (recent + popular). البحث
@@ -122,38 +125,34 @@
     });
 
     // "مشاهدة الكل" من قسم المميَّزة/الجديدة على Home → /explore بفلاتر
-    // نظيفة (طلب صاحب المصلحة). نُمرِّر ?reset=1 ليتأكّد Explore من إعادة
-    // ضبط حالته حتى لو كانت المكوّنة محفوظة في cache (Blazor router
-    // يُعيد إنشاء المكوّن لكن الاحتياط أرخص من المفاجأة). فلتر القسم
-    // (مميّز/جديد) لا يصل للـ backend حالياً — نتركه لمستقبل قريب.
+    // نظيفة (طلب صاحب المصلحة).
     private void OnViewAll(string section) => Nav.NavigateTo("/explore?reset=1");
 
     private async Task OnCityChanged(string city)
     {
-        Store.SetCity(city);
+        await Culture.SetCityAsync(city);
         await LoadHome();
     }
 
     private async Task OnFavoriteToggled((ListingRowDto Listing, bool On) e)
-        => await Favorites.ToggleAsync(e.Listing.Id);
+        => await Favs.ToggleAsync(e.Listing.Id);
 
-    private static ListingRowDto ToRow(ListingDto l) => new()
+    private static ListingRowDto ToRow(HomeListingCard l) => new()
     {
         Id = l.Id, Title = l.Title,
-        Price = l.Price, Currency = "YER", TimeUnit = l.TimeUnitLabel,
-        City = l.City, District = l.District, Status = 1, IsFeatured = l.IsVerified,
+        Price = l.Price, Currency = "YER", TimeUnit = l.TimeUnitLabel ?? l.TimeUnit ?? "",
+        City = l.City ?? "", District = l.District ?? "", Status = 1, IsFeatured = l.IsVerified,
         ThumbnailUrl = l.FirstImage,
         Capacity = l.BedroomCount == 0 ? null : l.BedroomCount
     };
 
     private void OnChange() => InvokeAsync(StateHasChanged);
-    public void Dispose() => Store.OnChanged -= OnChange;
 
-    private sealed record HomeResponse(List<CategoryDto> Categories, List<ListingDto> Featured, List<ListingDto> New);
-    private sealed record CategoryDto(string Id, string Label, string Icon);
-    private sealed record ListingDto(
-        string Id, string Title, decimal Price, string TimeUnit, string TimeUnitLabel,
-        string PropertyType, string PropertyTypeLabel, string City, string District,
-        double Lat, double Lng, int BedroomCount, double AreaSqm, bool IsVerified,
-        int ViewsCount, bool IsFavorite, List<string>? Amenities, string? FirstImage);
+    public void Dispose()
+    {
+        Prefs.OnChanged    -= OnChange;
+        Discovery.Changed  -= OnChange;
+        HomeStore.Changed  -= OnChange;
+        Favs.Changed       -= OnChange;
+    }
 }

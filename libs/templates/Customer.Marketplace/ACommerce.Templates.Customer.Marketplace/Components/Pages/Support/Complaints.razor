@@ -1,10 +1,6 @@
 @page "/complaints"
 @attribute [Authorize]
-@using ACommerce.Client.Operations
-@using Ejar.Customer.UI.Operations
-@using ACommerce.Kits.Support.Frontend.Customer.Stores
-@inject ApiReader Api
-@inject ClientOpEngine Engine
+@inject ITemplateEngine Engine
 @inject NavigationManager Nav
 @inject L L
 
@@ -92,9 +88,10 @@
 
     private async Task Reload()
     {
-        // Support kit يُعيد قائمة ISupportTicket — حقول id/subject/status/priority/createdAt
-        // متطابقة مع ComplaintDto الحاليّ، فما زال الـ DTO يعمل بدون تعديل.
-        var env = await Api.GetAsync<List<ComplaintDto>>("/support/tickets");
+        // OAM-pure: support.tickets.list op (kit-defined). Wire shape غَنيّ
+        // (Priority/RelatedEntityId/CreatedAt) فنَستَخدِم DTO مَحَلّيّ
+        // (SupportTicketSummary لا يَحوي هذه الحُقول).
+        var env = await Engine.ExecuteAsync<List<ComplaintDto>>(SupportOps.ListTickets());
         _items = env.Data ?? new();
         _loading = false;
         await InvokeAsync(StateHasChanged);
@@ -112,7 +109,7 @@
             var env = await Engine.ExecuteAsync<object>(
                 SupportOps.CreateTicket(_subject),
                 payload: new { Subject = _subject, Body = _body, Priority = _priority, RelatedEntityId = _related });
-            if (env?.Operation.Status == "Success")
+            if (env.Operation.Status == "Success")
             {
                 _alert = "تمّ إرسال الشكوى"; _alertVariant = "success";
                 _subject = ""; _body = ""; _related = ""; _showNew = false;
@@ -120,7 +117,7 @@
             }
             else
             {
-                _alert = env?.Error?.Message ?? "فشل الإرسال";
+                _alert = env.Error?.Message ?? "فشل الإرسال";
                 _alertVariant = "danger";
             }
         }
@@ -140,8 +137,6 @@
         "resolved" => "success", "closed" => "secondary",
         _ => "secondary"
     };
-
-    private static string Truncate(string s, int n) => s.Length <= n ? s : s[..n] + "…";
 
     private sealed record ComplaintDto(string Id, string Subject, DateTime CreatedAt,
         string Status, string Priority, string? RelatedEntityId);
