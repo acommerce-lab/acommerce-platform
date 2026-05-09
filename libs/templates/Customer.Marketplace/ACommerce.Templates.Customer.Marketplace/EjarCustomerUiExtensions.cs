@@ -154,14 +154,12 @@ public static class EjarCustomerUiExtensions
         services.AddScoped<ACommerce.Kits.Favorites.Frontend.Customer.Stores.IFavoritesStore,
                           ACommerce.Kits.Favorites.Frontend.Customer.Stores.DefaultFavoritesStore>();
 
-        // ClientOpEngine + AppStateApplier already registered by AddClientOpEngine
-        // above — duplicate manual registrations removed.
-
-        // ─── State bridge: empty interpreter registry ─────────────────
+        // ─── State bridge: empty interpreter registry + AppStateApplier ─
+        // Pages still inject AppStateApplier (will be removed in a future
+        // page-by-page cleanup). The registry is empty; ApplyAsync is no-op.
         services.AddScoped<OperationInterpreterRegistry<AppStore>>(sp =>
             new OperationInterpreterRegistry<AppStore>(
                 sp.GetRequiredService<ILogger<OperationInterpreterRegistry<AppStore>>>()));
-
         services.AddScoped<AppStateApplier>();
         services.AddScoped<IStateApplier>(sp => sp.GetRequiredService<AppStateApplier>());
 

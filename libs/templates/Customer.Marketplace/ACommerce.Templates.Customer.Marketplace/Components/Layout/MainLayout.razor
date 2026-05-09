@@ -76,9 +76,9 @@
                 </BrandContent>
                 <RightActions>
                     <AcThemeToggle IsDark="@Store.Ui.IsDark"
-                                   IsDarkChanged="@(async v => await Applier.ApplyLocalAsync(EjarOps.SetTheme(v ? "dark" : "light")))" />
+                                   IsDarkChanged="@(v => { Store.SetTheme(v ? "dark" : "light"); return Task.CompletedTask; })" />
                     <AcLanguageToggle IsArabic="@Store.Ui.IsArabic"
-                                      IsArabicChanged="@(async v => await Applier.ApplyLocalAsync(EjarOps.SetLanguage(v ? "ar" : "en")))" />
+                                      IsArabicChanged="@(v => { Store.SetCulture(Store.Ui.Culture with { Language = v ? "ar" : "en" }); return Task.CompletedTask; })" />
                 </RightActions>
             </AcTopNav>
         </div>

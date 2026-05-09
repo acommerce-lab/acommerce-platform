@@ -1,10 +1,12 @@
 @page "/"
 @using Ejar.Customer.UI.Operations
+@using ACommerce.Kits.Favorites.Frontend.Customer.Stores
 @inject AppStore Store
 @inject AppStateApplier Applier
 @inject ApiReader Api
 @inject ITemplateEngine Engine
 @inject NavigationManager Nav
+@inject IFavoritesStore Favorites
 @inject L L
 @implements IDisposable
 
@@ -129,12 +131,12 @@
 
     private async Task OnCityChanged(string city)
     {
-        await Applier.ApplyLocalAsync(EjarOps.SetCity(city));
+        Store.SetCity(city);
         await LoadHome();
     }
 
     private async Task OnFavoriteToggled((ListingRowDto Listing, bool On) e)
-        => await Applier.ApplyLocalAsync(EjarOps.ToggleFavorite(e.Listing.Id));
+        => await Favorites.ToggleAsync(e.Listing.Id);
 
     private static ListingRowDto ToRow(ListingDto l) => new()
     {

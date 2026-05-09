@@ -5,6 +5,7 @@
 @inject NavigationManager Nav
 @using ACommerce.Client.Operations
 @using Ejar.Customer.UI.Operations
+@using ACommerce.Kits.Profiles.Frontend.Customer.Stores
 @inject ClientOpEngine Engine
 @inject L L
 @inject INumeralNormalizer Numerals
@@ -174,7 +175,7 @@
                 AvatarUrl = _avatarDataUrl ?? _data.AvatarUrl,
             };
             var env = await Engine.ExecuteAsync<object>(
-                EjarOps.UpdateProfile(_data.FullName, _data.Email, _data.Phone, _data.City),
+                ProfilesOps.Update(),
                 payload: req);
             if (env?.Operation.Status == "Success")
             {

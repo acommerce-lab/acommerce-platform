@@ -2,6 +2,7 @@
 @attribute [Authorize]
 @using ACommerce.Client.Operations
 @using Ejar.Customer.UI.Operations
+@using ACommerce.Kits.Notifications.Frontend.Customer.Stores
 @using Ejar.Customer.UI.Services
 @inject AppStore Store
 @inject ApiReader Api
@@ -81,7 +82,7 @@
         var ix = _items.FindIndex(x => x.Id == id);
         if (ix < 0 || _items[ix].IsRead) return;
         _items[ix] = _items[ix] with { IsRead = true };
-        await Engine.ExecuteAsync<object>(EjarOps.ReadNotification(id));
+        await Engine.ExecuteAsync<object>(NotificationsOps.MarkRead(id));
         // العَدّاد في الـ navbar يُحَدَّث فوراً بدون انتظار realtime echo.
         Unread.NotifUnread = Math.Max(0, _items.Count(n => !n.IsRead));
         Unread.RaiseChanged();
@@ -95,7 +96,7 @@
         Unread.ClearNotif();
         StateHasChanged();
         // ٢. الـ server يَدوِّن الحدث. لو فشل، نَترك الـ UI كما هو (تَفاؤليّ).
-        await Engine.ExecuteAsync<object>(EjarOps.ReadAllNotifications());
+        await Engine.ExecuteAsync<object>(NotificationsOps.MarkAllRead());
     }
 
     private string GroupLabel(DateTime localDt)

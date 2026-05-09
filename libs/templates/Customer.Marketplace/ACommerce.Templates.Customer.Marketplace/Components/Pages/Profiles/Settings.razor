@@ -44,10 +44,10 @@
 </div>
 
 @code {
-    private Task SetLight() => Applier.ApplyLocalAsync(EjarOps.SetTheme("light"));
-    private Task SetDark()  => Applier.ApplyLocalAsync(EjarOps.SetTheme("dark"));
-    private Task SetAr()    => Applier.ApplyLocalAsync(EjarOps.SetLanguage("ar"));
-    private Task SetEn()    => Applier.ApplyLocalAsync(EjarOps.SetLanguage("en"));
+    private Task SetLight() => Task.Run(() => Store.SetTheme("light"));
+    private Task SetDark()  => Task.Run(() => Store.SetTheme("dark"));
+    private Task SetAr()    => Task.Run(() => Store.SetCulture(Store.Ui.Culture with { Language = "ar" }));
+    private Task SetEn()    => Task.Run(() => Store.SetCulture(Store.Ui.Culture with { Language = "en" }));
     private void GoPrivacy() => Nav.NavigateTo("/legal/privacy");
     private void GoTerms()   => Nav.NavigateTo("/legal/terms");
     private void GoRefund()  => Nav.NavigateTo("/legal/refund");

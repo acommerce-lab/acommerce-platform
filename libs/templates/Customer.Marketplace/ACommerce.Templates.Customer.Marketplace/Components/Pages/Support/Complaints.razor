@@ -2,6 +2,7 @@
 @attribute [Authorize]
 @using ACommerce.Client.Operations
 @using Ejar.Customer.UI.Operations
+@using ACommerce.Kits.Support.Frontend.Customer.Stores
 @inject ApiReader Api
 @inject ClientOpEngine Engine
 @inject NavigationManager Nav
@@ -109,7 +110,7 @@
         try
         {
             var env = await Engine.ExecuteAsync<object>(
-                EjarOps.OpenTicket(_subject, _body, _priority, _related),
+                SupportOps.CreateTicket(_subject),
                 payload: new { Subject = _subject, Body = _body, Priority = _priority, RelatedEntityId = _related });
             if (env?.Operation.Status == "Success")
             {

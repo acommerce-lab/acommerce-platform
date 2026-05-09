@@ -4,6 +4,7 @@
 @inject NavigationManager Nav
 @using ACommerce.Client.Operations
 @using Ejar.Customer.UI.Operations
+@using ACommerce.Kits.Support.Frontend.Customer.Stores
 @inject ClientOpEngine Engine
 @inject L L
 
@@ -104,7 +105,7 @@
         try
         {
             var env = await Engine.ExecuteAsync<object>(
-                EjarOps.ReplyTicket(Id, _draft),
+                SupportOps.Reply(Id),
                 payload: new { Text = _draft });
             if (env?.Operation.Status == "Success")
             {
