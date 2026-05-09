@@ -35,4 +35,30 @@ public static class ListingsOps
         .From("User:current",  1, ("role", "owner"))
         .To("Server:listings", 1, ("role", "source"))
         .Build();
+
+    /// <summary>قَيد إنشاء إعلان جَديد. السيرفر يَلتَقِطه عَبر POST /my-listings.</summary>
+    public static Operation Create(ListingDraftPayload p) => Entry
+        .Create("listings.create")
+        .From("User:current",  1, ("role", "owner"))
+        .To("Server:listings", 1, ("role", "created"))
+        .Tag("title",        p.Title)
+        .Tag("city",         p.City)
+        .Tag("propertyType", p.PropertyType ?? "")
+        .Build();
+
+    /// <summary>قَيد تَبديل حالة إعلان (نَشِط ↔ مُتَوَقِّف).</summary>
+    public static Operation ToggleStatus(string id) => Entry
+        .Create("listings.toggle")
+        .From("User:current",     1, ("role", "owner"))
+        .To($"Listing:{id}",      1, ("role", "toggled"))
+        .Tag("id", id)
+        .Build();
+
+    /// <summary>قَيد حَذف إعلان يَملِكه المُستَخدِم.</summary>
+    public static Operation Delete(string id) => Entry
+        .Create("listings.delete")
+        .From("User:current",     1, ("role", "owner"))
+        .To($"Listing:{id}",     -1, ("role", "deleted"))
+        .Tag("id", id)
+        .Build();
 }

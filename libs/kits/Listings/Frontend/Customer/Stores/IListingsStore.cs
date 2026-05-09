@@ -36,7 +36,42 @@ public interface IListingsStore
 
     /// <summary>يَجلب قائمة الـ "إعلاناتي" للمستخدِم الحاليّ.</summary>
     Task LoadMineAsync(CancellationToken ct = default);
+
+    /// <summary>
+    /// يَنشُر إعلاناً جَديداً. التَطبيق يَبني <see cref="ListingDraftPayload"/>
+    /// مِن مَصدَر مَحَلّيّ (مَثَل <c>IListingDraft</c>) ويُمَرِّره. يَنجح ⇒
+    /// يُضيف الإعلان لِـ <see cref="Mine"/> ويُطلِق Changed.
+    /// </summary>
+    Task<IListing?> CreateAsync(ListingDraftPayload payload, CancellationToken ct = default);
+
+    /// <summary>يُبَدِّل حالة إعلان (نَشِط ↔ مُتَوَقِّف). يُحَدِّث <see cref="Mine"/>.</summary>
+    Task ToggleStatusAsync(string id, CancellationToken ct = default);
+
+    /// <summary>يَحذِف إعلاناً يَملِكه المُستَخدِم. يُزيله مِن <see cref="Mine"/>.</summary>
+    Task DeleteAsync(string id, CancellationToken ct = default);
 }
+
+/// <summary>
+/// حُمولة إنشاء إعلان — DTO مَكشوفَة عَلى مُستوى الـ kit. تَطبيقات تَبنيها
+/// مِن واجِهَتِها (مَثَل <c>IListingDraft</c>) وتُمَرِّرها للـ Store. كلّ
+/// الحقول مُطابِقَة لِـ <c>ListingsController.CreateBody</c>.
+/// </summary>
+public sealed record ListingDraftPayload(
+    string  Title,
+    string? Description,
+    decimal Price,
+    string  TimeUnit,
+    string? PropertyType,
+    string  City,
+    string? District,
+    double? Lat,
+    double? Lng,
+    int     BedroomCount,
+    int     BathroomCount,
+    int     AreaSqm,
+    IReadOnlyList<string> Amenities,
+    IReadOnlyList<string> Images,
+    string? Thumbnail);
 
 /// <summary>فلتر بحث/استكشاف للإعلانات. POCO قابل للـ serialize.</summary>
 public sealed record ListingFilter(

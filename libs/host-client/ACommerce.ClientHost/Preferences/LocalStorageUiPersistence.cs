@@ -39,11 +39,15 @@ public sealed class LocalStorageUiPersistence
                 var s = JsonSerializer.Deserialize<UiSnapshot>(raw);
                 if (s is not null)
                 {
-                    _prefs.Theme = s.Theme ?? _prefs.Theme;
-                    if (!string.IsNullOrEmpty(s.City)) _prefs.City = s.City;
+                    _prefs.Theme    = s.Theme    ?? _prefs.Theme;
+                    if (!string.IsNullOrEmpty(s.Language)) _prefs.Language = s.Language;
+                    if (!string.IsNullOrEmpty(s.City))     _prefs.City     = s.City;
                     _prefs.RecentSearches.Clear();
                     if (s.RecentSearches is not null)
                         foreach (var r in s.RecentSearches) _prefs.RecentSearches.Add(r);
+                    _prefs.ActiveQuickFilterIds.Clear();
+                    if (s.ActiveQuickFilterIds is not null)
+                        foreach (var f in s.ActiveQuickFilterIds) _prefs.ActiveQuickFilterIds.Add(f);
                 }
             }
             _suspendSave = false;
@@ -63,14 +67,20 @@ public sealed class LocalStorageUiPersistence
         try
         {
             var json = JsonSerializer.Serialize(new UiSnapshot(
-                _prefs.Theme, _prefs.City,
-                _prefs.RecentSearches.ToArray()));
+                _prefs.Theme, _prefs.Language, _prefs.City,
+                _prefs.RecentSearches.ToArray(),
+                _prefs.ActiveQuickFilterIds.ToArray()));
             await _js.InvokeVoidAsync("localStorage.setItem", _key, json);
         }
         catch { }
     }
 
-    private sealed record UiSnapshot(string? Theme, string? City, string[]? RecentSearches);
+    private sealed record UiSnapshot(
+        string?   Theme,
+        string?   Language,
+        string?   City,
+        string[]? RecentSearches,
+        string[]? ActiveQuickFilterIds);
 }
 
 public sealed record UiPreferencesOptions(string StorageKey);

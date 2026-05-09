@@ -19,6 +19,13 @@ namespace ACommerce.ClientHost.Preferences;
 public interface IUiPreferences
 {
     string  Theme    { get; set; }
+    /// <summary>
+    /// لُغَة الواجِهَة (ISO-639: "ar" / "en"). Setter لا يُحَدِّث ICultureContext
+    /// مُباشَرَةً — التَطبيق يَدفَع <c>CultureOps.SetLanguage(...)</c> عَبر
+    /// <c>IClientCultureController</c> أَو ما يُعادِله، فيَستَدعي هذا الـ
+    /// setter داخِل ExecuteFunc الـ op (لِيَحفَظ التَتَبُّع OAM).
+    /// </summary>
+    string  Language { get; set; }
     string  City     { get; set; }
     bool    HideChrome { get; set; }
     IList<string> RecentSearches { get; }
@@ -32,6 +39,7 @@ public interface IUiPreferences
 public sealed class DefaultUiPreferences : IUiPreferences
 {
     public string Theme      { get; set; } = "light";
+    public string Language   { get; set; } = "ar";
     public string City       { get; set; } = "";
     public bool   HideChrome { get; set; }
     public IList<string> RecentSearches       { get; } = new List<string>();

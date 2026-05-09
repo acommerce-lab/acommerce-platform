@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <PackageId>ACommerce.Kits.Discovery.Frontend.Customer</PackageId>
+    <Version>1.0.0</Version>
+    <Description>Discovery kit customer-facing frontend: IDiscoveryStore (Cities + Amenities + Categories) + DiscoveryOps + Routes + DefaultStore via ITemplateEngine. Wraps GET /cities, /amenities, /categories provided by Discovery.Backend.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <SupportedPlatform Include="browser" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\..\host-client\ACommerce.ClientHost\ACommerce.ClientHost.csproj" />
+    <ProjectReference Include="..\..\..\..\core\OperationEngine\ACommerce.OperationEngine.Wire\ACommerce.OperationEngine.Wire.csproj" />
+  </ItemGroup>
+</Project>

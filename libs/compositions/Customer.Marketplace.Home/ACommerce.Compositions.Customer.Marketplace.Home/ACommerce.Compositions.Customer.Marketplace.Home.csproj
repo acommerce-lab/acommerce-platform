@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <PackageId>ACommerce.Compositions.Customer.Marketplace.Home</PackageId>
+    <Description>
+      composition تَجميعات الـ marketplace home عَلى جانِب العَميل: Featured/Recent/Popular
+      مِن /home/view + Explore filtered + Search suggestions + Legal docs. تَستَهلِك
+      ITemplateEngine — كلّ نِداء يَخرُج كَ OAM op لِيَستَفيد مِن interceptors المُسَجَّلة.
+      نَظير ACommerce.Compositions.Marketplace في الباك-إند.
+    </Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <SupportedPlatform Include="browser" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\kits\Listings\Frontend\Customer\ACommerce.Kits.Listings.Frontend.Customer.csproj" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.7" />
+  </ItemGroup>
+</Project>

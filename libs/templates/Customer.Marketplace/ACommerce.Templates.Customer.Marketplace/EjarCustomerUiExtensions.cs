@@ -4,16 +4,21 @@ using ACommerce.Client.Operations;
 using ACommerce.Client.Operations.Interceptors;
 using ACommerce.Client.StateBridge;
 using ACommerce.ClientHost.Auth;
+using ACommerce.ClientHost.Culture;
 using ACommerce.ClientHost.KitApi;
 using ACommerce.ClientHost.Operations;
+using ACommerce.ClientHost.Preferences;
 using ACommerce.Compositions.Customer.Chat.Realtime;
 using ACommerce.Compositions.Customer.Favorites.Realtime;
+using ACommerce.Compositions.Customer.Marketplace.Home;
 using ACommerce.Compositions.Customer.Notifications.Realtime;
 using ACommerce.Compositions.Customer.Unread;
 using ACommerce.Culture.Abstractions;
 using ACommerce.Culture.Defaults;
 using ACommerce.Culture.Interceptors;
+using ACommerce.Kits.Discovery.Frontend.Customer.Stores;
 using ACommerce.OperationEngine.Interceptors;
+using ACommerce.OperationEngine.Interceptors.Extensions;
 using ACommerce.Kits.Auth.Frontend.Customer.Stores;
 using ACommerce.Kits.Chat.Frontend.Customer.Stores;
 using ACommerce.Kits.Favorites.Frontend.Customer.Stores;
@@ -100,6 +105,25 @@ public static class EjarCustomerUiExtensions
         services.AddSubscriptionsRoutes();
         services.AddSupportRoutes();
         services.AddFavoritesRoutes();
+        services.AddDiscoveryRoutes();
+        services.AddCustomerMarketplaceHomeComposition();
+
+        // ─── UI Preferences (ClientHost) — F66 Phase A ────────────────────
+        // مَوَنَة افتراضيّاً تَحت "ejar.ui" — نَفس مِفتاح V1's AppStorePersistence
+        // (يَحفَظ Theme + Language + City + RecentSearches + ActiveQuickFilterIds).
+        // V1 pages تَنتَقِل لاحِقاً (Phase B/C/D) لِتَستَهلِك IUiPreferences
+        // بَدَل AppStore.Ui. الـ AppStoreCultureContext يَبقى مُؤَقَّتاً لِكَي
+        // لا تَكسِر الصَفحات الحاليّة.
+        services.AddUiPreferences("ejar.ui");
+
+        // ─── Listing draft (Listings kit) — لِصَفحَة CreateListing ────────
+        services.AddListingDraft();
+
+        // ─── Discovery store (cities/amenities/categories) ────────────────
+        services.AddDiscoveryStore();
+
+        // ─── Culture controller — OAM-driven setLanguage/setTheme/setCity ─
+        services.AddClientCultureController();
 
         // ApiReader (V1 legacy) — pages تَستَهلِكه مُباشَرة لِنِداءات
         // غير-OAM (cities، amenities، complaints…).
@@ -181,6 +205,13 @@ public static class EjarCustomerUiExtensions
         // ⇒ تَعريب التَواريخ + العُملات في المَغلَّفات تلقائيّاً (ApiReader
         // كانَت تَستَدعيه يَدويّاً في كلّ GET — الآن مُسَجَّل مرّة واحدة).
         services.AddScoped<IOperationInterceptor, CultureLocalizationInterceptor>();
+
+        // F66 Phase A: تَسجيل IInterceptorSource عَلى جانِب العَميل لِيُمَرِّر
+        // OpEngine كلّ IOperationInterceptor المُسَجَّل في DI (مَثَل
+        // CultureLocalizationInterceptor أَعلاه) إلى pre/post phases. بدونه
+        // OpEngine يَجِد IInterceptorSource = null فلا يُشَغِّل أيّ interceptor
+        // (كانَ هذا حالة V1 — interceptors مُسَجَّلة لكن لا تَفعَل شَيئاً).
+        services.AddOperationInterceptors();
 
         return services;
     }
