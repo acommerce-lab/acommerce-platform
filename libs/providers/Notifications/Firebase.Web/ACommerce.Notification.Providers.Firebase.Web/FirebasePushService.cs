@@ -1,10 +1,11 @@
 using ACommerce.ClientHost.Auth;
-using Ejar.Customer.UI.Store;
 using Microsoft.Extensions.Logging;
 using Microsoft.JSInterop;
 using System.Net.Http.Json;
 using System.Text.Json;
 
+// Namespace kept as Ejar.Customer.UI.Services for V1 page compat (Phase 4
+// rewrites pages off this; until then the legacy namespace stays).
 namespace Ejar.Customer.UI.Services;
 
 /// <summary>
@@ -27,7 +28,7 @@ public sealed class FirebasePushService
 {
     private readonly IJSRuntime _js;
     private readonly AuthenticatedHttpClient _http;
-    private readonly AppStore _store;
+    private readonly IClientAuthState _auth;
     private readonly ILogger<FirebasePushService> _log;
     private bool _initialized;
     private FirebaseClientConfig? _cachedCfg;
@@ -35,12 +36,12 @@ public sealed class FirebasePushService
     public FirebasePushService(
         IJSRuntime js,
         AuthenticatedHttpClient http,
-        AppStore store,
+        IClientAuthState auth,
         ILogger<FirebasePushService> log)
     {
         _js = js;
         _http = http;
-        _store = store;
+        _auth = auth;
         _log = log;
     }
 
@@ -53,7 +54,7 @@ public sealed class FirebasePushService
     {
         try
         {
-            if (string.IsNullOrEmpty(_store.Auth.AccessToken)) return;
+            if (string.IsNullOrEmpty(_auth.AccessToken)) return;
 
             // اقرأ الإعداد + هيّئ SDK كلّه من JS على same-origin. الـ HttpClient
             // المحقون "ejar" BaseAddress = ejarapi.runasp.net، فلو طلبنا منه

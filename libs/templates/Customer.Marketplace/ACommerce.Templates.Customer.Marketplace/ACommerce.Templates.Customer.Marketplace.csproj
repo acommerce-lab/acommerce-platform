@@ -85,6 +85,11 @@
     <ProjectReference Include="..\..\..\compositions\Customer.Chat.Realtime\ACommerce.Compositions.Customer.Chat.Realtime\ACommerce.Compositions.Customer.Chat.Realtime.csproj" />
     <ProjectReference Include="..\..\..\compositions\Customer.Notifications.Realtime\ACommerce.Compositions.Customer.Notifications.Realtime\ACommerce.Compositions.Customer.Notifications.Realtime.csproj" />
     <ProjectReference Include="..\..\..\compositions\Customer.Favorites.Realtime\ACommerce.Compositions.Customer.Favorites.Realtime\ACommerce.Compositions.Customer.Favorites.Realtime.csproj" />
+
+    <!-- F64 Phase 2: services moved out of template into compositions/providers -->
+    <ProjectReference Include="..\..\..\compositions\Customer.Favorites.Sync\ACommerce.Compositions.Customer.Favorites.Sync\ACommerce.Compositions.Customer.Favorites.Sync.csproj" />
+    <ProjectReference Include="..\..\..\compositions\Customer.SignalR\ACommerce.Compositions.Customer.SignalR\ACommerce.Compositions.Customer.SignalR.csproj" />
+    <ProjectReference Include="..\..\..\..\libs\providers\Notifications\Firebase.Web\ACommerce.Notification.Providers.Firebase.Web\ACommerce.Notification.Providers.Firebase.Web.csproj" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Components.Authorization" Version="10.0.7" />

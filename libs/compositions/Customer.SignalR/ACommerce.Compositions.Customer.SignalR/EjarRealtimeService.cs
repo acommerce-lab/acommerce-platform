@@ -3,7 +3,7 @@ using ACommerce.Chat.Operations;
 using ACommerce.Compositions.Customer.Chat.Realtime;
 using ACommerce.Compositions.Customer.Notifications.Realtime;
 using ACommerce.Kits.Notifications.Frontend.Customer.Stores;
-using Ejar.Customer.UI.Store;
+using ACommerce.ClientHost.Auth;
 using Microsoft.JSInterop;
 using System.Text.Json;
 
@@ -23,7 +23,7 @@ namespace Ejar.Customer.UI.Services;
 public sealed class EjarRealtimeService : IAsyncDisposable
 {
     private readonly IJSRuntime _js;
-    private readonly AppStore _store;
+    private readonly IClientAuthState _auth;
     private readonly IChatClient _chat;
     // F63: ingestors يَدفَعون الأَحداث الواردة لِكيت Stores عَبر compositions
     private readonly ChatRealtimeIngestor _chatIngestor;
@@ -44,28 +44,28 @@ public sealed class EjarRealtimeService : IAsyncDisposable
 
     public EjarRealtimeService(
         IJSRuntime js,
-        AppStore store,
+        IClientAuthState auth,
         IChatClient chat,
         ChatRealtimeIngestor chatIngestor,
         NotificationsRealtimeIngestor notifIngestor)
     {
         _js    = js;
-        _store = store;
+        _auth = auth;
         _chat  = chat;
         _chatIngestor  = chatIngestor;
         _notifIngestor = notifIngestor;
-        _store.OnChanged += OnAuthChanged;
+        _auth.OnChanged += OnAuthChanged;
     }
 
     public async Task ConnectAsync(string hubUrl)
     {
-        if (_connected || string.IsNullOrEmpty(_store.Auth.AccessToken)) return;
+        if (_connected || string.IsNullOrEmpty(_auth.AccessToken)) return;
         try
         {
             _module ??= await _js.InvokeAsync<IJSObjectReference>(
-                "import", "./_content/Ejar.Customer.UI/js/realtime.js");
+                "import", "./_content/ACommerce.Compositions.Customer.SignalR/js/realtime.js");
             _self ??= DotNetObjectReference.Create(this);
-            await _module.InvokeVoidAsync("start", hubUrl, _store.Auth.AccessToken, _self);
+            await _module.InvokeVoidAsync("start", hubUrl, _auth.AccessToken, _self);
             await _module.InvokeVoidAsync("registerBeforeUnload", _self);
         }
         catch (Exception ex)
@@ -76,7 +76,7 @@ public sealed class EjarRealtimeService : IAsyncDisposable
 
     private void OnAuthChanged()
     {
-        if (!_store.Auth.IsAuthenticated && _connected)
+        if (!_auth.IsAuthenticated && _connected)
             _ = DisconnectAsync();
     }
 
@@ -149,7 +149,7 @@ public sealed class EjarRealtimeService : IAsyncDisposable
         if (_chat.ActiveConversationId is { } convId && _module is not null)
         {
             var path = $"/chat/{Uri.EscapeDataString(convId)}/leave";
-            await _module.InvokeVoidAsync("leaveChatBeacon", path, _store.Auth.AccessToken);
+            await _module.InvokeVoidAsync("leaveChatBeacon", path, _auth.AccessToken);
         }
     }
 
@@ -165,7 +165,7 @@ public sealed class EjarRealtimeService : IAsyncDisposable
 
     public async ValueTask DisposeAsync()
     {
-        _store.OnChanged -= OnAuthChanged;
+        _auth.OnChanged -= OnAuthChanged;
         _self?.Dispose();
         if (_module is not null)
         {

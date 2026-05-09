@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <PackageId>ACommerce.Compositions.Customer.SignalR</PackageId>
+    <Description>
+      composition SignalR-driven realtime لِجانِب العَميل. تَلفّ:
+        - EjarRealtimeService: JS hub manager (يَفتَح SignalR connection
+          مَع الخادم، يَستَقبِل chat / notification events).
+        - EjarChatClient: تَنفيذ IChatClient الذي يَستَخدِم AuthenticatedHttpClient
+          لِضَمان Bearer header في WASM.
+      تَدفَع الأَحداث الواردة عَبر ChatRealtimeIngestor +
+      NotificationsRealtimeIngestor إلى DefaultChatStore + DefaultNotificationsStore.
+    </Description>
+  <StaticWebAssetBasePath>_content/ACommerce.Compositions.Customer.SignalR</StaticWebAssetBasePath></PropertyGroup>
+  <ItemGroup>
+    <SupportedPlatform Include="browser" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\host-client\ACommerce.ClientHost\ACommerce.ClientHost.csproj" />
+    <ProjectReference Include="..\..\..\kits\Chat\ACommerce.Chat.Client.Blazor\ACommerce.Chat.Client.Blazor.csproj" />
+    <ProjectReference Include="..\..\..\kits\Chat\ACommerce.Chat.Operations\ACommerce.Chat.Operations.csproj" />
+    <ProjectReference Include="..\..\..\kits\Notifications\Frontend\Customer\ACommerce.Kits.Notifications.Frontend.Customer.csproj" />
+    <ProjectReference Include="..\..\Customer.Chat.Realtime\ACommerce.Compositions.Customer.Chat.Realtime\ACommerce.Compositions.Customer.Chat.Realtime.csproj" />
+    <ProjectReference Include="..\..\Customer.Notifications.Realtime\ACommerce.Compositions.Customer.Notifications.Realtime\ACommerce.Compositions.Customer.Notifications.Realtime.csproj" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.7" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="10.0.7" />
+  </ItemGroup>
+</Project>

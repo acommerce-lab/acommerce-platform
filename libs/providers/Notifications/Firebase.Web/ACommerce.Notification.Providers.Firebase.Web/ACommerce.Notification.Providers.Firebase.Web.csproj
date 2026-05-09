@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <PackageId>ACommerce.Notification.Providers.Firebase.Web</PackageId>
+    <Description>
+      Firebase Web Push provider — جانِب العَميل (يُكَمِّل
+      ACommerce.Notification.Providers.Firebase الخادِميّ). يَقرأ
+      firebase-config.json، يُهَيِّئ FCM SDK عَبر JS، يَطلُب device token،
+      يُرسِله إلى /me/push-subscription. يَستَهلِك AuthenticatedHttpClient
+      (مِن ClientHost.Auth) لِلوُصول.
+    </Description>
+  <StaticWebAssetBasePath>_content/ACommerce.Notification.Providers.Firebase.Web</StaticWebAssetBasePath></PropertyGroup>
+  <ItemGroup>
+    <SupportedPlatform Include="browser" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\..\host-client\ACommerce.ClientHost\ACommerce.ClientHost.csproj" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="10.0.7" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.7" />
+  </ItemGroup>
+</Project>
