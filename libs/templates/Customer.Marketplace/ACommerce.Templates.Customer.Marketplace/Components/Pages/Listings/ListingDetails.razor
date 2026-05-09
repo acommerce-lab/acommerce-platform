@@ -7,7 +7,7 @@
 @inject L L
 @implements IDisposable
 
-<PageTitle>@(_listing?.Title ?? L["app.name"])</PageTitle>
+<PageTitle>@(_listing?.Title ?? L[TemplateStrings.AppName])</PageTitle>
 
 <div class="acs-page acs-space-details">
     @if (_loading) { <AcLoadingState /> }
@@ -36,11 +36,11 @@
             }
             @if (_listing.BedroomCount > 0)
             {
-                <span><AcIcon Name="home" Size="14" /> @_listing.BedroomCount @(L["listing.bedrooms"])</span>
+                <span><AcIcon Name="home" Size="14" /> @_listing.BedroomCount @(L[TemplateStrings.ListingBedrooms])</span>
             }
             @if (_listing.IsVerified)
             {
-                <AcBadge Variant="success" Text="@(L["listing.verified"])" />
+                <AcBadge Variant="success" Text="@(L[TemplateStrings.ListingVerified])" />
             }
         </div>
 
@@ -53,7 +53,7 @@
         {
             <AcCard>
                 <ChildContent>
-                    <h3 style="margin-top:0;">@(L["listing.description"])</h3>
+                    <h3 style="margin-top:0;">@(L[TemplateStrings.ListingDescription])</h3>
                     <p>@_listing.Description</p>
                 </ChildContent>
             </AcCard>
@@ -63,7 +63,7 @@
         {
             <AcCard>
                 <ChildContent>
-                    <h3 style="margin-top:0;">@(L["listing.amenities"])</h3>
+                    <h3 style="margin-top:0;">@(L[TemplateStrings.ListingAmenities])</h3>
                     <div class="acs-amenity-chips">
                         @foreach (var a in _listing.Amenities)
                         {
@@ -176,7 +176,7 @@
             }
             else if (Auth.IsAuthenticated)
             {
-                <AcButton Variant="primary" Class="ac-btn-block" Text="@(L["listing.contact"])"
+                <AcButton Variant="primary" Class="ac-btn-block" Text="@(L[TemplateStrings.ListingContact])"
                           OnClick="@StartChat" Disabled="@_startingChat" />
             }
             else

@@ -19,7 +19,7 @@
     [SupplyParameterFromQuery] public string? ReturnUrl { get; set; }
 }
 
-<PageTitle>@(L["auth.login.title"]) — @(L["app.name"])</PageTitle>
+<PageTitle>@(L[TemplateStrings.AuthLoginTitle]) — @(L[TemplateStrings.AppName])</PageTitle>
 
 <div class="acs-page acs-auth-page">
     <div class="acs-nafath-head">
@@ -35,7 +35,7 @@
                    وُلِد عبر AcInput ويُشغّل زرّ الإرسال — كان زرّ Enter لا يفعل
                    شيئاً، فيضطرّ المستخدم لرفع يده من المفاتيح والنقر بالماوس. *@
                 <div @onkeydown="OnPhoneKey">
-                    <AcField Label="@(L["auth.phone"])" Required="true">
+                    <AcField Label="@(L[TemplateStrings.AuthPhone])" Required="true">
                         <AcInput Type="tel" Value="@_phone" id="login-phone"
                                  ValueChanged="@(v => _phone = (Numerals.ToLatin(v) ?? string.Empty).Trim())"
                                  Placeholder="7XXXXXXXX" />
@@ -47,7 +47,7 @@
                     }
 
                     <AcButton Variant="primary" Size="lg" Class="ac-btn-block mt-2"
-                              Text="@(L["auth.send_otp"])"
+                              Text="@(L[TemplateStrings.AuthSendOtp])"
                               OnClick="@RequestOtp"
                               Disabled="@(_phone.Length < 9 || Auth.IsBusy)" />
                 </div>
@@ -55,9 +55,9 @@
             else
             {
                 <div @onkeydown="OnCodeKey">
-                    <p class="acs-nafath-instruction">@(L["auth.otp.hint"])</p>
+                    <p class="acs-nafath-instruction">@(L[TemplateStrings.AuthOtpHint])</p>
 
-                    <AcField Label="@(L["auth.otp"])" Required="true">
+                    <AcField Label="@(L[TemplateStrings.AuthOtp])" Required="true">
                         <AcInput Type="tel" Value="@_code" id="login-code"
                                  ValueChanged="@(v => _code = (Numerals.ToLatin(v) ?? string.Empty).Trim())"
                                  Placeholder="123456" />
@@ -65,7 +65,7 @@
 
                     <div class="acs-nafath-state acs-nafath-state--ok mt-2">
                         <AcIcon Name="check-circle" Size="16" />
-                        <span>@(L["auth.otp.demo"])</span>
+                        <span>@(L[TemplateStrings.AuthOtpDemo])</span>
                     </div>
 
                     @if (_error is not null)
@@ -74,7 +74,7 @@
                     }
 
                     <AcButton Variant="primary" Size="lg" Class="ac-btn-block mt-2"
-                              Text="@(L["auth.verify"])"
+                              Text="@(L[TemplateStrings.AuthVerify])"
                               OnClick="@VerifyOtp"
                               Disabled="@(_code.Length < 6 || Auth.IsBusy)" />
                     <AcButton Variant="ghost" Class="ac-btn-block"

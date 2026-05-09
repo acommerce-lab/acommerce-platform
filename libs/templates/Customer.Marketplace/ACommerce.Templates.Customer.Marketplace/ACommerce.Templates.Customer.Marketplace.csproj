@@ -18,7 +18,16 @@
     </Description>
     <RazorLangVersion>latest</RazorLangVersion>
     <StaticWebAssetBasePath>_content/ACommerce.Templates.Customer.Marketplace</StaticWebAssetBasePath>
+    <!-- L10n Source Generator config (G3) -->
+    <L10nClassName>TemplateStrings</L10nClassName>
+    <L10nNamespace>Ejar.Customer.UI.Resources</L10nNamespace>
   </PropertyGroup>
+  <ItemGroup>
+    <!-- Expose msbuild props لِلـ Source Generator -->
+    <CompilerVisibleProperty Include="L10nClassName" />
+    <CompilerVisibleProperty Include="L10nNamespace" />
+    <CompilerVisibleProperty Include="RootNamespace" />
+  </ItemGroup>
   <ItemGroup>
     <SupportedPlatform Include="browser" />
   </ItemGroup>
@@ -102,6 +111,16 @@
     <!-- F71 Phase F: extracted compositions (Resx provider + JS Tz provider) -->
     <ProjectReference Include="..\..\..\compositions\Customer.L10n.Resx\ACommerce.Compositions.Customer.L10n.Resx\ACommerce.Compositions.Customer.L10n.Resx.csproj" />
     <ProjectReference Include="..\..\..\compositions\Customer.Timezone.Js\ACommerce.Compositions.Customer.Timezone.Js\ACommerce.Compositions.Customer.Timezone.Js.csproj" />
+
+    <!-- G3: L10n Source Generator (analyzer-only, no runtime dep) -->
+    <ProjectReference Include="..\..\..\kits\L10n\ACommerce.L10n.SourceGenerator\ACommerce.L10n.SourceGenerator.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- AdditionalFiles لِيَقرأها Source Generator. NEUTRAL فَقَط (Strings.resx)؛
+         Strings.ar.resx + أيّ culture أُخرى تُتَجاهَل (تُقرَأ runtime عَبر ResourceManager). -->
+    <AdditionalFiles Include="Resources\Strings.resx" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Components.Authorization" Version="10.0.7" />

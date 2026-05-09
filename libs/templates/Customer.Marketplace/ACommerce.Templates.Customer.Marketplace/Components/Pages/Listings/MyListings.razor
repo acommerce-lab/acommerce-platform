@@ -5,10 +5,10 @@
 @inject L L
 @implements IDisposable
 
-<PageTitle>@(L["my_listings.title"]) — @(L["app.name"])</PageTitle>
+<PageTitle>@(L[TemplateStrings.MyListingsTitle]) — @(L[TemplateStrings.AppName])</PageTitle>
 
 <div class="acs-page acs-my-listings">
-    <AcSectionHeader Title="@(L["my_listings.title"])" ActionLabel="@(L["my_listings.add"])" OnAction="@GoCreate" />
+    <AcSectionHeader Title="@(L[TemplateStrings.MyListingsTitle])" ActionLabel="@(L[TemplateStrings.MyListingsAdd])" OnAction="@GoCreate" />
 
     <div class="acs-filter-chips">
         <AcFilterChip Label="الكلّ"    Active="@(_filter == 0)" OnClick="@(() => SetFilter(0))" />
@@ -36,7 +36,7 @@
                             <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
                                 <strong>@l.Title</strong>
                                 <AcBadge Variant="@(active ? "success" : "secondary")"
-                                         Text="@(active ? L["my_listings.active"] : L["my_listings.paused"])" />
+                                         Text="@(active ? L[TemplateStrings.MyListingsActive] : L[TemplateStrings.MyListingsPaused])" />
                             </div>
                             <small style="color:var(--ac-text-muted);">@l.City — @l.District</small>
                             <div style="margin-top:8px; display:flex; gap:12px; font-size:13px; color:var(--ac-text-muted);">

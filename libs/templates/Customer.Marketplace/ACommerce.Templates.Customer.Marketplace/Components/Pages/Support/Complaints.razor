@@ -4,19 +4,19 @@
 @inject NavigationManager Nav
 @inject L L
 
-<PageTitle>@(L["complaint.title"]) — @(L["app.name"])</PageTitle>
+<PageTitle>@(L[TemplateStrings.ComplaintTitle]) — @(L[TemplateStrings.AppName])</PageTitle>
 
 <div class="acs-page acs-complaints-page">
-    <AcSectionHeader Title="@(L["complaint.title"])" ActionLabel="@(L["complaint.new"])" OnAction="@ToggleNew" />
+    <AcSectionHeader Title="@(L[TemplateStrings.ComplaintTitle])" ActionLabel="@(L[TemplateStrings.ComplaintNew])" OnAction="@ToggleNew" />
 
     @if (_showNew)
     {
         <AcCard>
             <ChildContent>
-                <AcField Label="@(L["complaint.subject"])" Required="true">
+                <AcField Label="@(L[TemplateStrings.ComplaintSubject])" Required="true">
                     <AcInput Value="@_subject" ValueChanged="@(v => _subject = v ?? string.Empty)" />
                 </AcField>
-                <AcField Label="@(L["complaint.body"])" Required="true">
+                <AcField Label="@(L[TemplateStrings.ComplaintBody])" Required="true">
                     <textarea class="ac-input" rows="4" @bind="_body"
                               @bind:event="oninput" placeholder="اشرح المشكلة بالتفصيل…"></textarea>
                 </AcField>
@@ -32,9 +32,9 @@
                              Placeholder="رقم الإعلان أو الطلب" />
                 </AcField>
                 <div style="display:flex; gap:8px;">
-                    <AcButton Variant="primary" Text="@(L["complaint.send"])" OnClick="@Submit"
+                    <AcButton Variant="primary" Text="@(L[TemplateStrings.ComplaintSend])" OnClick="@Submit"
                               Disabled="@(string.IsNullOrWhiteSpace(_subject) || string.IsNullOrWhiteSpace(_body) || _saving)" />
-                    <AcButton Variant="ghost" Text="@(L["common.cancel"])" OnClick="@ToggleNew" />
+                    <AcButton Variant="ghost" Text="@(L[TemplateStrings.CommonCancel])" OnClick="@ToggleNew" />
                 </div>
                 @if (!string.IsNullOrEmpty(_alert))
                 {

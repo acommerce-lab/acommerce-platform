@@ -69,10 +69,14 @@ public static class EjarCustomerUiExtensions
         services.AddScoped<ICultureContext, UiPreferencesCultureContext>();
         services.AddScoped<ILanguageContext>(sp => (ILanguageContext)sp.GetRequiredService<ICultureContext>());
 
-        // ─── L10n: ResxTranslationProvider مِن composition + L ───────────
-        services.AddResxTranslationProvider(
+        // ─── L10n: layered translation (G3) ──────────────────────────────
+        // طَبَقَة القالَب neutral (الأَدنى — apps يُعَلون فَوقها بِـ AddTranslationLayer
+        // إضافيّ مِن Program.cs الخاصّ بِالتَطبيق). كلّ layer مُعَرَّف بِـ
+        // .resx + companion class مُولَّدَة بِـ Source Generator (TemplateStrings).
+        services.AddTranslationLayer(
             typeof(EjarCustomerUiExtensions).Assembly,
             baseName: "Ejar.Customer.UI.Resources.Strings");
+        services.AddLayeredTranslation();   // wraps كلّ ITranslationProvider في wrapper وَحيد
         services.AddScoped<L>();
 
         // ─── Culture utilities (timezone composition / numerals) ───────

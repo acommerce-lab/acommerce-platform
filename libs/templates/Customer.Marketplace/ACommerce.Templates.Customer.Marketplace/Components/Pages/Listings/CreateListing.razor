@@ -10,10 +10,10 @@
 @inject L L
 @inject INumeralNormalizer Numerals
 
-<PageTitle>@(L["listing.create.title"]) — @(L["app.name"])</PageTitle>
+<PageTitle>@(L[TemplateStrings.ListingCreateTitle]) — @(L[TemplateStrings.AppName])</PageTitle>
 
 <div class="acs-page acs-create-listing">
-    <h1 class="acm-wizard-title">@(L["listing.create.title"])</h1>
+    <h1 class="acm-wizard-title">@(L[TemplateStrings.ListingCreateTitle])</h1>
 
     @if (_subLoading)
     {
@@ -75,23 +75,23 @@
         <AcCard>
             <ChildContent>
                 <h3 style="margin-top:0;">تفاصيل الإعلان</h3>
-                <AcField Label="@(L["listing.create.field.title"])" Required="true">
+                <AcField Label="@(L[TemplateStrings.ListingCreateFieldTitle])" Required="true">
                     <AcInput Value="@Draft.Title"
                              ValueChanged="@(v => { Draft.Title = v ?? string.Empty; Draft.NotifyChanged(); })"
                              Placeholder="مثلاً: شقة مفروشة في حيّ السبل" />
                 </AcField>
-                <AcField Label="@(L["listing.create.field.description"])" Required="true">
+                <AcField Label="@(L[TemplateStrings.ListingCreateFieldDescription])" Required="true">
                     <textarea class="ac-input" rows="4"
                               value="@Draft.Description"
                               @oninput="@(e => { Draft.Description = e.Value?.ToString() ?? string.Empty; Draft.NotifyChanged(); })"
                               placeholder="اذكر المساحة، الغرف، الميزات…"></textarea>
                 </AcField>
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
-                    <AcField Label="@(L["listing.create.field.price"])" Required="true">
+                    <AcField Label="@(L[TemplateStrings.ListingCreateFieldPrice])" Required="true">
                         <AcInput Type="number" Value="@Draft.Price.ToString()"
                                  ValueChanged="@(v => { Draft.Price = decimal.TryParse(Numerals.ToLatin(v), out var p) ? p : 0; Draft.NotifyChanged(); })" />
                     </AcField>
-                    <AcField Label="@(L["listing.create.field.timeUnit"])">
+                    <AcField Label="@(L[TemplateStrings.ListingCreateFieldTimeUnit])">
                         <select class="ac-input" value="@Draft.TimeUnit"
                                 @onchange="@(e => { Draft.TimeUnit = e.Value?.ToString() ?? "monthly"; Draft.NotifyChanged(); })">
                             <option value="monthly">شهري</option>
@@ -106,7 +106,7 @@
                              ValueChanged="@(v => { Draft.BedroomCount = int.TryParse(Numerals.ToLatin(v), out var n) ? n : 0; Draft.NotifyChanged(); })" />
                 </AcField>
 
-                <AcField Label="@(L["listing.amenities"])">
+                <AcField Label="@(L[TemplateStrings.ListingAmenities])">
                     <div class="acs-amenity-chips">
                         @foreach (var a in Discovery.Amenities)
                         {
@@ -191,13 +191,13 @@
         <AcCard>
             <ChildContent>
                 <h3 style="margin-top:0;">موقع الإعلان</h3>
-                <AcField Label="@(L["listing.create.field.city"])" Required="true">
+                <AcField Label="@(L[TemplateStrings.ListingCreateFieldCity])" Required="true">
                     <select class="ac-input" value="@Draft.City"
                             @onchange="@(e => { Draft.City = e.Value?.ToString() ?? string.Empty; Draft.NotifyChanged(); })">
                         @foreach (var c in Discovery.Cities) { <option value="@c">@c</option> }
                     </select>
                 </AcField>
-                <AcField Label="@(L["listing.create.field.district"])" Required="true">
+                <AcField Label="@(L[TemplateStrings.ListingCreateFieldDistrict])" Required="true">
                     <AcInput Value="@Draft.District"
                              ValueChanged="@(v => { Draft.District = v ?? string.Empty; Draft.NotifyChanged(); })"
                              Placeholder="مثلاً: السبل" />

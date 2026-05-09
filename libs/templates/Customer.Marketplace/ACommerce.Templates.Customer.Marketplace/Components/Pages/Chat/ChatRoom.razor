@@ -11,7 +11,7 @@
 @inject L L
 @implements IAsyncDisposable
 
-<PageTitle>@(L["chat.title"]) — @(L["app.name"])</PageTitle>
+<PageTitle>@(L[TemplateStrings.ChatTitle]) — @(L[TemplateStrings.AppName])</PageTitle>
 
 <div class="acs-page acs-chat-page">
     @if (_loading) { <AcLoadingState /> }
@@ -58,8 +58,8 @@
         <div class="acs-chat-composer" @onkeydown="OnComposerKey">
             <AcInput Value="@_draft" id="chat-composer"
                      ValueChanged="@(v => _draft = v ?? string.Empty)"
-                     Placeholder="@(L["chat.new_message"])" />
-            <AcButton Variant="primary" Text="@(L["chat.send"])" OnClick="@Send"
+                     Placeholder="@(L[TemplateStrings.ChatNewMessage])" />
+            <AcButton Variant="primary" Text="@(L[TemplateStrings.ChatSend])" OnClick="@Send"
                       Disabled="@(_sending || string.IsNullOrWhiteSpace(_draft))" />
         </div>
     }

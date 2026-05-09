@@ -7,7 +7,7 @@
 @inject L L
 @inject INumeralNormalizer Numerals
 
-<PageTitle>تعديل البروفايل - @(L["app.name"])</PageTitle>
+<PageTitle>تعديل البروفايل - @(L[TemplateStrings.AppName])</PageTitle>
 
 <div class="acs-page acs-profile-edit-page">
     <h1 class="acm-wizard-title">تعديل الملفّ الشخصيّ</h1>
@@ -51,7 +51,7 @@
                              ValueChanged="@(v => _data = _data with { FullName = v ?? string.Empty })" />
                 </AcField>
 
-                <AcField Label="@(L["auth.phone"])">
+                <AcField Label="@(L[TemplateStrings.AuthPhone])">
                     <div style="display:flex; gap:8px; align-items:center;">
                         <AcInput Type="tel" Value="@_data!.Phone"
                                  ValueChanged="@(v => _data = _data with { Phone = Numerals.ToLatin(v) ?? string.Empty, PhoneVerified = false })" />

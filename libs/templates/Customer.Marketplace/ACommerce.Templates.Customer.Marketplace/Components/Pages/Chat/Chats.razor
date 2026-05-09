@@ -8,11 +8,11 @@
 @inject L L
 @implements IDisposable
 
-<PageTitle>@(L["chat.title"]) — @(L["app.name"])</PageTitle>
+<PageTitle>@(L[TemplateStrings.ChatTitle]) — @(L[TemplateStrings.AppName])</PageTitle>
 
 <div class="acs-page acs-chats-page">
     <header class="ejar-chats-head">
-        <h1>@(L["chat.title"])</h1>
+        <h1>@(L[TemplateStrings.ChatTitle])</h1>
     </header>
 
     <AcSearchBox Value="@_search" ValueChanged="@(v => _search = v ?? string.Empty)"

@@ -4,10 +4,10 @@
 @inject NavigationManager Nav
 @inject L L
 
-<PageTitle>@(L["plans.title"]) — @(L["app.name"])</PageTitle>
+<PageTitle>@(L[TemplateStrings.PlansTitle]) — @(L[TemplateStrings.AppName])</PageTitle>
 
 <div class="acs-page acs-plans-page">
-    <h1 class="acm-wizard-title">@(L["plans.title"])</h1>
+    <h1 class="acm-wizard-title">@(L[TemplateStrings.PlansTitle])</h1>
     <p style="color:var(--ac-text-muted);">اختر الخطّة المناسبة لنشاطك — يمكنك الترقية أو التخفيض في أيّ وقت.</p>
 
     @if (_loading) { <AcLoadingState /> }

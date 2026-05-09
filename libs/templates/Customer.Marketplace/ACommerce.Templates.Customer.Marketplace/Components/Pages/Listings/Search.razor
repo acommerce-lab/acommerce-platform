@@ -6,7 +6,7 @@
 @inject L L
 @implements IDisposable
 
-<PageTitle>@(L["common.search"]) — @(L["app.name"])</PageTitle>
+<PageTitle>@(L[TemplateStrings.CommonSearch]) — @(L[TemplateStrings.AppName])</PageTitle>
 
 <div class="acs-page acs-search-page">
     <AcSearchBox Value="@_query" ValueChanged="@(v => _query = v ?? string.Empty)"

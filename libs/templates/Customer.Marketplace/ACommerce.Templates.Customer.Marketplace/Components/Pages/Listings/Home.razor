@@ -10,22 +10,22 @@
 @inject L L
 @implements IDisposable
 
-<PageTitle>@(L["app.name"])</PageTitle>
+<PageTitle>@(L[TemplateStrings.AppName])</PageTitle>
 
 <AcMarketplaceHomePage Data="_data"
                        Engine="Engine"
                        Store="Store"
                        FavoriteIds="@FavSet"
                        QuickActions="_quickActions"
-                       Title="@(L["home.title"])"
-                       Subtitle="@(L["home.subtitle"])"
-                       SearchPlaceholder="@(L["home.search.placeholder"])"
-                       CategoriesTitle="@(L["home.categories.title"])"
-                       FeaturedTitle="@(L["home.featured.title"])"
-                       NewTitle="@(L["home.new.title"])"
-                       ViewAllLabel="@(L["home.view_all"])"
-                       CtaTitle="@(L["home.cta.title"])"
-                       CtaSubtitle="@(L["home.cta.subtitle"])"
+                       Title="@(L[TemplateStrings.HomeTitle])"
+                       Subtitle="@(L[TemplateStrings.HomeSubtitle])"
+                       SearchPlaceholder="@(L[TemplateStrings.HomeSearchPlaceholder])"
+                       CategoriesTitle="@(L[TemplateStrings.HomeCategoriesTitle])"
+                       FeaturedTitle="@(L[TemplateStrings.HomeFeaturedTitle])"
+                       NewTitle="@(L[TemplateStrings.HomeNewTitle])"
+                       ViewAllLabel="@(L[TemplateStrings.HomeViewAll])"
+                       CtaTitle="@(L[TemplateStrings.HomeCtaTitle])"
+                       CtaSubtitle="@(L[TemplateStrings.HomeCtaSubtitle])"
                        OnSearch="OnSearch"
                        OnCategorySelected="OnCategorySelected"
                        OnListingOpen="OnListingOpen"
@@ -38,7 +38,7 @@
             <span class="acm-brand-mark" aria-hidden="true">
                 <AcIcon Name="home" Size="24" />
             </span>
-            <span class="acm-brand-text">@(L["app.name"])</span>
+            <span class="acm-brand-text">@(L[TemplateStrings.AppName])</span>
             <div class="acm-brand-city">
                 <AcCityPicker Cities="@Discovery.Cities" Value="@Prefs.City" ValueChanged="OnCityChanged" />
             </div>
