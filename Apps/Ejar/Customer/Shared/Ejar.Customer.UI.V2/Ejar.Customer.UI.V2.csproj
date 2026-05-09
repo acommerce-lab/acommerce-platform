@@ -23,7 +23,7 @@
     <ProjectReference Include="..\..\..\..\..\libs\templates\Customer.Ledger\ACommerce.Templates.Customer.Ledger\ACommerce.Templates.Customer.Ledger.csproj" />
 
     <!-- Versions Templates يَكشف AppVersionInfo + AppVersionHeadersHandler -->
-    <ProjectReference Include="..\..\..\..\..\libs\kits\Versions\ACommerce.Kits.Versions.Templates\ACommerce.Kits.Versions.Templates.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\templates\Versions\ACommerce.Kits.Versions.Templates\ACommerce.Kits.Versions.Templates.csproj" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Components.Authorization" Version="10.0.7" />

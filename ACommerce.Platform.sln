@@ -289,7 +289,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACommerce.Kits.Auth.Backend
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACommerce.Kits.Auth.Operations", "libs\kits\Auth\ACommerce.Kits.Auth.Operations\ACommerce.Kits.Auth.Operations.csproj", "{1CEC3280-E7DF-4A4F-BCB0-3ACD737EC354}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACommerce.Kits.Auth.Templates", "libs\kits\Auth\ACommerce.Kits.Auth.Templates\ACommerce.Kits.Auth.Templates.csproj", "{46691545-0210-4E47-8D63-C69C41E232E9}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACommerce.Kits.Auth.Templates", "libs\templates\Auth\ACommerce.Kits.Auth.Templates\ACommerce.Kits.Auth.Templates.csproj", "{46691545-0210-4E47-8D63-C69C41E232E9}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACommerce.Authentication.Providers.Token", "libs\providers\Auth\Token\ACommerce.Authentication.Providers.Token\ACommerce.Authentication.Providers.Token.csproj", "{79F66E29-E934-4E09-A7F5-F0AC735F6C82}"
 EndProject
@@ -325,7 +325,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACommerce.Chat.Operations",
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACommerce.Kits.Chat.Backend", "libs\kits\Chat\ACommerce.Kits.Chat.Backend\ACommerce.Kits.Chat.Backend.csproj", "{1E4B9A6C-EB45-41DB-8A3B-083B7E426C5A}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACommerce.Kits.Chat.Templates", "libs\kits\Chat\ACommerce.Kits.Chat.Templates\ACommerce.Kits.Chat.Templates.csproj", "{96A9A39B-61DF-4F5D-B066-ADA9479C8141}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACommerce.Kits.Chat.Templates", "libs\templates\Chat\ACommerce.Kits.Chat.Templates\ACommerce.Kits.Chat.Templates.csproj", "{96A9A39B-61DF-4F5D-B066-ADA9479C8141}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACommerce.OperationEngine", "libs\core\OperationEngine\ACommerce.OperationEngine\ACommerce.OperationEngine.csproj", "{E3F0B68A-472F-4FFF-BB5A-ED73CDDA6C1D}"
 EndProject
@@ -449,9 +449,9 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACommerce.Kits.Versions.Ope
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACommerce.Kits.Versions.Backend", "libs\kits\Versions\ACommerce.Kits.Versions.Backend\ACommerce.Kits.Versions.Backend.csproj", "{92564EF1-4B9E-4500-8B79-0258D5DD230A}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACommerce.Kits.Versions.Templates", "libs\kits\Versions\ACommerce.Kits.Versions.Templates\ACommerce.Kits.Versions.Templates.csproj", "{5DBFEA3B-A799-4CC0-B8F4-2624A2CB3CC1}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACommerce.Kits.Versions.Templates", "libs\templates\Versions\ACommerce.Kits.Versions.Templates\ACommerce.Kits.Versions.Templates.csproj", "{5DBFEA3B-A799-4CC0-B8F4-2624A2CB3CC1}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACommerce.Subscriptions.Templates", "libs\kits\Subscriptions\ACommerce.Subscriptions.Templates\ACommerce.Subscriptions.Templates.csproj", "{4FDBE881-F81B-4CE2-BB91-E7632F4872DB}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACommerce.Subscriptions.Templates", "libs\templates\Subscriptions\ACommerce.Subscriptions.Templates\ACommerce.Subscriptions.Templates.csproj", "{4FDBE881-F81B-4CE2-BB91-E7632F4872DB}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACommerce.Kits.Auth.Server", "libs\kits\Auth\ACommerce.Kits.Auth.Server\ACommerce.Kits.Auth.Server.csproj", "{89271CEF-A76B-49A0-8FB1-0A501A4C3E1E}"
 EndProject

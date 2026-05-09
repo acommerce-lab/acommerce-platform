@@ -52,11 +52,11 @@
     <ProjectReference Include="..\..\..\kits\Chat\ACommerce.Chat.Client.Blazor\ACommerce.Chat.Client.Blazor.csproj" />
 
     <!-- Subscriptions Templates -->
-    <ProjectReference Include="..\..\..\kits\Subscriptions\ACommerce.Subscriptions.Templates\ACommerce.Subscriptions.Templates.csproj" />
+    <ProjectReference Include="..\..\..\templates\Subscriptions\ACommerce.Subscriptions.Templates\ACommerce.Subscriptions.Templates.csproj" />
 
     <!-- Versions Templates (replaces deleted Versions.Client meta) -->
     <ProjectReference Include="..\..\..\kits\Versions\ACommerce.Kits.Versions.Operations\ACommerce.Kits.Versions.Operations.csproj" />
-    <ProjectReference Include="..\..\..\kits\Versions\ACommerce.Kits.Versions.Templates\ACommerce.Kits.Versions.Templates.csproj" />
+    <ProjectReference Include="..\..\..\templates\Versions\ACommerce.Kits.Versions.Templates\ACommerce.Kits.Versions.Templates.csproj" />
 
     <!-- ClientHost (fluent client-side host) -->
     <ProjectReference Include="..\..\..\host-client\ACommerce.ClientHost\ACommerce.ClientHost.csproj" />
