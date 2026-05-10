@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RollForward>LatestMajor</RollForward>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>Ashare.V3.Web</RootNamespace>
+    <AssemblyName>Ashare.V3.Web</AssemblyName>
+    <UserSecretsId>ashare-v3-web</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Ashare V3 thin overlay — يَجلِب Ejar V1 host transitively (= قالَب
+         Customer.Marketplace + كُلّ الصَفحات والخَدَمات) ثُمّ يُضيف
+         طَبَقَة تَرجَمات Ashare. لا حاجَة لِـ ProjectReference إضافيّ هُنا. -->
+    <ProjectReference Include="..\..\Shared\Ashare.V3.Customer.UI\Ashare.V3.Customer.UI.csproj" />
+  </ItemGroup>
+</Project>
