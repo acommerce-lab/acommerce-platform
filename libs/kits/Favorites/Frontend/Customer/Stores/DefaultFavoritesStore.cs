@@ -1,3 +1,4 @@
+using System.Text.Json;
 using ACommerce.Client.Operations;
 
 namespace ACommerce.Kits.Favorites.Frontend.Customer.Stores;
@@ -22,12 +23,28 @@ public sealed class DefaultFavoritesStore : IFavoritesStore
         IsLoading = true; Changed?.Invoke();
         try
         {
-            var env = await _engine.ExecuteAsync<List<string>>(FavoritesOps.List(), ct: ct);
+            // الباك يَردّ rows غَنيّة (Id + Title + Price + …) لا List<string>
+            // عاريَة. نَقبَل الشَكلَين عَبر JsonElement: سَلسِلَة (List<string>)
+            // أو كائنات لَها حَقل "Id" / "id". الاكتِفاء بِـ List<string> كان
+            // يَكسِر LoadAsync مَع InvalidCast→StartObject، فَتَبقى Ids فارِغَة
+            // وَلا يَتَلَوَّن قَلب أَيّ بِطاقَة بِالأَحمَر إلّا في صَفحَة
+            // /favorites التي تُنفِّذ deserialization مُستَقِلّاً.
+            var env = await _engine.ExecuteAsync<List<JsonElement>>(FavoritesOps.List(), ct: ct);
             if (env.Operation.Status == "Success" && env.Data is not null)
-                _ids = env.Data.ToHashSet();
+                _ids = env.Data.Select(ExtractId).Where(x => x is not null).Cast<string>().ToHashSet();
         }
         finally { IsLoading = false; Changed?.Invoke(); }
     }
+
+    private static string? ExtractId(JsonElement el) => el.ValueKind switch
+    {
+        JsonValueKind.String => el.GetString(),
+        JsonValueKind.Object =>
+            el.TryGetProperty("Id", out var pid) ? pid.GetString()
+            : el.TryGetProperty("id", out var lid) ? lid.GetString()
+            : null,
+        _ => null,
+    };
 
     public async Task ToggleAsync(string targetId, CancellationToken ct = default)
     {
