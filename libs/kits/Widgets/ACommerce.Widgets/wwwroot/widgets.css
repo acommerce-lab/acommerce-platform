@@ -1013,6 +1013,10 @@ textarea.form-control, textarea.form-input { min-height: 6rem; resize: vertical;
     cursor: pointer;
 }
 .ac-space-fav:hover { color: var(--ac-primary, #0d6efd); }
+/* الحالَة المُفَضَّلَة: قَلب أَحمَر مَملوء (مُتَطابِق مَع .acs-fav-btn.active في
+   قالَب Customer.Marketplace + .ejar-fav-glyph في قالَب Customer.Ledger). */
+.ac-space-fav.is-fav,
+.ac-space-fav.is-fav:hover { color: var(--ac-danger, #dc2626); }
 .ac-space-body {
     display: flex;
     flex-direction: column;

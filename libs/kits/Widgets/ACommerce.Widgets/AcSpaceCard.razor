@@ -38,8 +38,9 @@
         @if (ShowFavorite)
         {
             <button type="button"
-                    class="ac-space-fav"
+                    class="ac-space-fav @(IsFavorite ? "is-fav" : "")"
                     aria-label="@(IsFavorite ? RemoveFavoriteAriaLabel : AddFavoriteAriaLabel)"
+                    aria-pressed="@(IsFavorite ? "true" : "false")"
                     @onclick="ToggleFavoriteInternal"
                     @onclick:stopPropagation="true">
                 <AcIcon Name="heart" Filled="@IsFavorite" Size="18" />
