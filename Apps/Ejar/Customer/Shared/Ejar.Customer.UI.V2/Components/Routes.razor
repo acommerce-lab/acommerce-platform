@@ -31,12 +31,13 @@
 
 @using ACommerce.ClientHost
 @using Ejar.Customer.UI.V2.Components.Layout
+@inject L L
 
 <HostedApp DefaultLayout="@typeof(MainLayout)"
            LoginRoute="/login"
-           LoadingMessage="جاري التحميل…"
-           NotFoundTitle="الصفحة غير موجودة"
-           NotFoundMessage="عُد إلى" />
+           LoadingMessage="@(L[EjarV2Strings.RoutesLoading])"
+           NotFoundTitle="@(L[EjarV2Strings.RoutesNotFoundTitle])"
+           NotFoundMessage="@(L[EjarV2Strings.RoutesNotFoundMessage])" />
 
 @code {
     /// <summary>

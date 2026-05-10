@@ -1,5 +1,6 @@
 @inherits LayoutComponentBase
 @inject ACommerce.ClientHost.Auth.IClientAuthPersistence Persistence
+@inject L L
 
 @*
     قشرة V2 — top bar محاسبيّ بسيط مع لوحة هويّة ledger، body، bottom nav.
@@ -11,20 +12,20 @@
 
 <div class="ejar-shell">
     <header class="ejar-topbar">
-        <a href="/" class="ejar-brand" aria-label="إيجار">
+        <a href="/" class="ejar-brand" aria-label="@(L[EjarV2Strings.LayoutBrandAria])">
             <span class="ejar-brand-mark" aria-hidden="true">E</span>
-            <span class="ejar-brand-text">إيجار</span>
-            <span class="ejar-brand-meta">· ledger</span>
+            <span class="ejar-brand-text">@(L[EjarV2Strings.AppName])</span>
+            <span class="ejar-brand-meta">@(L[EjarV2Strings.AppBrandMeta])</span>
         </a>
-        <nav class="ejar-topbar-actions" aria-label="إجراءات سريعة">
-            <a href="/dashboard" title="لوحة المعلومات" aria-label="لوحة المعلومات">
+        <nav class="ejar-topbar-actions" aria-label="@(L[EjarV2Strings.LayoutTopbarActionsAria])">
+            <a href="/dashboard" title="@(L[EjarV2Strings.LayoutDashboard])" aria-label="@(L[EjarV2Strings.LayoutDashboard])">
                 <span aria-hidden="true">▦</span>
             </a>
-            <a href="/notifications" title="الإشعارات" aria-label="الإشعارات">
+            <a href="/notifications" title="@(L[EjarV2Strings.LayoutNotifications])" aria-label="@(L[EjarV2Strings.LayoutNotifications])">
                 <span aria-hidden="true">◔</span>
                 <AcNotificationsUnreadBadgeWidget />
             </a>
-            <a href="/chat" title="المحادثات" aria-label="المحادثات">
+            <a href="/chat" title="@(L[EjarV2Strings.LayoutChats])" aria-label="@(L[EjarV2Strings.LayoutChats])">
                 <span aria-hidden="true">✉</span>
                 <AcChatUnreadBadgeWidget />
             </a>

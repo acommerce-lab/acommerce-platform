@@ -7,27 +7,28 @@
 
     البيانات هنا توضيحيّة (sample). pass لاحق يُغذّيها من Stores.
 *@
+@inject L L
 
 <section class="ejar-page-intro">
-    <h1>لوحة المعلومات</h1>
-    <p>ملخَّص حسابك على نَمَط القيد المحاسبيّ.</p>
+    <h1>@(L[EjarV2Strings.DashboardTitle])</h1>
+    <p>@(L[EjarV2Strings.DashboardSubtitle])</p>
 </section>
 
 <header class="ejar-section-head">
-    <h2 class="ejar-section-title">حسابي</h2>
+    <h2 class="ejar-section-title">@(L[EjarV2Strings.DashboardAccountSection])</h2>
     <span class="ejar-section-meta oam-mono">/ T-account</span>
 </header>
 
-<OamTAccount Title="ملخّص النَشاط"
+<OamTAccount Title="@(L[EjarV2Strings.DashboardTaccountTitle])"
              Subtitle="user:current"
-             LeftHeader="مدين"
-             RightHeader="دائن"
-             Left="@_debitsList"
-             Right="@_creditsList"
+             LeftHeader="@(L[EjarV2Strings.DashboardTaccountLeft])"
+             RightHeader="@(L[EjarV2Strings.DashboardTaccountRight])"
+             Left="@DebitsList"
+             Right="@CreditsList"
              Balanced="true" />
 
 <header class="ejar-section-head">
-    <h2 class="ejar-section-title">آخر عمليّة</h2>
+    <h2 class="ejar-section-title">@(L[EjarV2Strings.DashboardLastOp])</h2>
     <span class="ejar-section-meta oam-mono">/ receipt</span>
 </header>
 
@@ -36,59 +37,61 @@
             To="listing:apt-zhour"
             Time="@_lastOpTime"
             State="OamState.Executed"
-            Tags="@_lastOpTags" />
+            Tags="@LastOpTags" />
 
 <header class="ejar-section-head">
-    <h2 class="ejar-section-title">اليوميّة</h2>
-    <span class="ejar-section-meta oam-mono">/ ledger · أخيرة</span>
+    <h2 class="ejar-section-title">@(L[EjarV2Strings.DashboardLedger])</h2>
+    <span class="ejar-section-meta oam-mono">@(L[EjarV2Strings.DashboardLedgerMeta])</span>
 </header>
 
 <OamLedger Rows="@_ledger" />
 
 <header class="ejar-section-head">
-    <h2 class="ejar-section-title">شارات</h2>
+    <h2 class="ejar-section-title">@(L[EjarV2Strings.DashboardBadges])</h2>
     <span class="ejar-section-meta oam-mono">/ kit composition</span>
 </header>
 
 <a href="/chat" class="ejar-card">
     <div>
-        <div class="ejar-card-title">المحادثات</div>
-        <div class="ejar-card-meta">رسائل غير مقروءة</div>
+        <div class="ejar-card-title">@(L[EjarV2Strings.LayoutChats])</div>
+        <div class="ejar-card-meta">@(L[EjarV2Strings.DashboardCardChatsMeta])</div>
     </div>
-    <AcChatUnreadBadgeWidget AriaLabel="رسائل غير مقروءة" />
+    <AcChatUnreadBadgeWidget AriaLabel="@(L[EjarV2Strings.DashboardChatUnreadAria])" />
 </a>
 
 <a href="/notifications" class="ejar-card">
     <div>
-        <div class="ejar-card-title">الإشعارات</div>
-        <div class="ejar-card-meta">إشعارات غير مقروءة</div>
+        <div class="ejar-card-title">@(L[EjarV2Strings.LayoutNotifications])</div>
+        <div class="ejar-card-meta">@(L[EjarV2Strings.DashboardCardNotificationsMeta])</div>
     </div>
-    <AcNotificationsUnreadBadgeWidget AriaLabel="إشعارات غير مقروءة" />
+    <AcNotificationsUnreadBadgeWidget AriaLabel="@(L[EjarV2Strings.DashboardNotifUnreadAria])" />
 </a>
 
 @code {
-    private static readonly OamTAccountLine[] _debitsList =
-    {
-        new("إعلانات نَشَرتها", "3"),
-        new("رسائل أرسلتها",     "142"),
-        new("مفضّلات أضَفتَها",   "12"),
-    };
+    // ‹L› مَحقون كَـ instance — لا يَجوز static readonly initializer.
+    // العَناصر تُحسَب على كلّ render (رَخيصَة).
+    private OamTAccountLine[] DebitsList =>
+    [
+        new(L[EjarV2Strings.DashboardDemoListingsPublished], "3"),
+        new(L[EjarV2Strings.DashboardDemoMessagesSent],     "142"),
+        new(L[EjarV2Strings.DashboardDemoFavoritesAdded],   "12"),
+    ];
 
-    private static readonly OamTAccountLine[] _creditsList =
-    {
-        new("عقارات شُوهدت",   "47"),
-        new("إشعارات قُرِئت",   "23"),
-        new("اشتراكات",        "1"),
-    };
+    private OamTAccountLine[] CreditsList =>
+    [
+        new(L[EjarV2Strings.DashboardDemoPropertiesViewed], "47"),
+        new(L[EjarV2Strings.DashboardDemoNotificationsRead], "23"),
+        new(L[EjarV2Strings.DashboardDemoSubscriptions],     "1"),
+    ];
 
     private static readonly DateTime _lastOpTime = DateTime.UtcNow.AddMinutes(-12);
 
-    private static readonly OamTag[] _lastOpTags =
-    {
-        new("title", "شقّة الزهور"),
+    private OamTag[] LastOpTags =>
+    [
+        new("title", L[EjarV2Strings.DashboardDemoListingTitle]),
         new("price", "1500"),
-        new("city",  "إب"),
-    };
+        new("city",  L[EjarV2Strings.DashboardDemoListingCity]),
+    ];
 
     private static readonly OamLedgerEntry[] _ledger =
     {
