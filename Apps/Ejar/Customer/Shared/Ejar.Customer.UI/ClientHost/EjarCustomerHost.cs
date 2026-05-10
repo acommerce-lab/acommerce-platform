@@ -12,10 +12,19 @@ namespace Ejar.Customer.UI.ClientHost;
 public static class EjarCustomerHostExtensions
 {
     /// <summary>
-    /// يُسَجِّل كلّ خَدَمات القالَب. <strong>المُتَطَلَّب</strong>: أن يَكون
-    /// <c>HttpClient</c> مُسَجَّلاً باسم <c>"ejar"</c> + <c>AppVersionInfo</c>
-    /// singleton قَبل الاستدعاء (تماماً كَما كانَ V1 OLD).
+    /// يُسَجِّل كلّ خَدَمات القالَب + طَبَقَة تَرجَمات Ejar V1 (overrides).
+    /// <strong>المُتَطَلَّب</strong>: أن يَكون <c>HttpClient</c> مُسَجَّلاً باسم
+    /// <c>"ejar"</c> + <c>AppVersionInfo</c> singleton قَبل الاستدعاء.
+    ///
+    /// <para><b>تَرتيب الطَبَقات (G4)</b>: AddEjarCustomerUI يُسَجِّل
+    /// طَبَقَة القالَب (الأَدنى) + AddLayeredTranslation. ثُمّ
+    /// AddEjarV1Translations يُضيف طَبَقَة Ejar V1 فَوقها (الأَعلى) ⇒
+    /// مَفاتيح Ejar تَفوز، الباقي يَنزَلِق لِلقالَب.</para>
     /// </summary>
     public static IServiceCollection AddEjarCustomer(this IServiceCollection services)
-        => services.AddEjarCustomerUI();
+    {
+        services.AddEjarCustomerUI();
+        services.AddEjarV1Translations();
+        return services;
+    }
 }

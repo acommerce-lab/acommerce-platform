@@ -5,7 +5,7 @@
   <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
   <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
 
-  <data name="app.name" xml:space="preserve"><value>إيجار</value></data>
+  <data name="app.name" xml:space="preserve"><value>السوق</value></data>
 
   <data name="common.search" xml:space="preserve"><value>بحث</value></data>
   <data name="common.cancel" xml:space="preserve"><value>إلغاء</value></data>
@@ -25,12 +25,12 @@
   <data name="common.apply" xml:space="preserve"><value>تطبيق</value></data>
 
   <data name="home.title" xml:space="preserve"><value>ابحث عن عقارك المثالي</value></data>
-  <data name="home.subtitle" xml:space="preserve"><value>تطبيق الإيجار الأول في اليمن</value></data>
+  <data name="home.subtitle" xml:space="preserve"><value>تَصَفَّح، أَعلِن، وَتَواصَل مَحَلّيّاً</value></data>
   <data name="home.search.placeholder" xml:space="preserve"><value>ابحث عن شقة، فيلا، محل…</value></data>
   <data name="home.categories.title" xml:space="preserve"><value>الفئات</value></data>
   <data name="home.featured.title" xml:space="preserve"><value>إعلانات مميّزة</value></data>
   <data name="home.new.title" xml:space="preserve"><value>أُضيف حديثاً</value></data>
-  <data name="home.cta.title" xml:space="preserve"><value>لديك عقار للإيجار؟</value></data>
+  <data name="home.cta.title" xml:space="preserve"><value>لَدَيك ما تَعرضه؟</value></data>
   <data name="home.cta.subtitle" xml:space="preserve"><value>أضف إعلانك الآن وابدأ بتأجير عقارك</value></data>
   <data name="home.view_all" xml:space="preserve"><value>عرض الكل</value></data>
   <data name="home.city" xml:space="preserve"><value>المدينة</value></data>

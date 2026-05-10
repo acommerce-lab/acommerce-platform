@@ -8,13 +8,37 @@
     <PackageId>Ejar.Customer.UI</PackageId>
     <Version>1.0.0</Version>
     <Description>
-      تَطبيق إيجار V1 — مَكتَبة عَميل نَحيفَة بَعد F55. كلّ الـ pages
-      والـ services الأَصليّة مَنقولة إلى قالَب Customer.Marketplace
-      ومُحَافَظ عَلى تَصميمها وأَدائها كَما كانَت. هذا المَشروع يَحوي فقط
-      نُقطة الدَّخول EjarCustomerHost التي تُفَوِّض لِلقالَب.
+      تَطبيق إيجار V1 — مَكتَبة عَميل نَحيفَة. تَحوي:
+      - EjarCustomerHost (نُقطَة الدُخول التي تُفَوِّض لِلقالَب)
+      - Resources/Strings.{resx,ar.resx} (G4: app-level translation overlay
+        فَوق neutral defaults القالَب — مَثَلاً Brand: "إيجار" بَدَل "السوق").
+      أيّ مِفتاح غير مَوجود هُنا يَنزَلِق تلقائيّاً لِلقالَب.
     </Description>
+    <!-- L10n Source Generator config (G4) -->
+    <L10nClassName>EjarV1Strings</L10nClassName>
+    <L10nNamespace>Ejar.Customer.UI.Resources</L10nNamespace>
   </PropertyGroup>
   <ItemGroup>
+    <CompilerVisibleProperty Include="L10nClassName" />
+    <CompilerVisibleProperty Include="L10nNamespace" />
+    <CompilerVisibleProperty Include="RootNamespace" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\..\..\..\..\libs\templates\Customer.Marketplace\ACommerce.Templates.Customer.Marketplace\ACommerce.Templates.Customer.Marketplace.csproj" />
+
+    <!-- G4: SG لِتَوليد EjarV1Strings مِن Resources/Strings.resx -->
+    <ProjectReference Include="..\..\..\..\..\libs\kits\L10n\ACommerce.L10n.SourceGenerator\ACommerce.L10n.SourceGenerator.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false" />
+
+    <!-- L10n.Resx composition لِـ AddTranslationLayer extension method -->
+    <ProjectReference Include="..\..\..\..\..\libs\compositions\Customer.L10n.Resx\ACommerce.Compositions.Customer.L10n.Resx\ACommerce.Compositions.Customer.L10n.Resx.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- AdditionalFiles لِيَقرأها SG. NEUTRAL فَقَط (.ar.resx مُتَجاهَل ⇒ يُقرَأ runtime) -->
+    <AdditionalFiles Include="Resources\Strings.resx" />
+    <!-- EmbeddedResource لِـ ResourceManager runtime — كلّ النُسَخ -->
+    <EmbeddedResource Update="Resources\Strings.resx" />
+    <EmbeddedResource Update="Resources\Strings.ar.resx" />
   </ItemGroup>
 </Project>
