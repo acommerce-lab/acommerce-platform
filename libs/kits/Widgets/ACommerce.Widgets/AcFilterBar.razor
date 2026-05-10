@@ -4,7 +4,7 @@
     @LeadingFilters
     <input class="form-control form-control-sm"
            style="flex:1"
-           placeholder="@(SearchPlaceholder ?? "بحث...")"
+           placeholder="@(SearchPlaceholder ?? "Search...")"
            value="@SearchValue"
            @oninput="e => OnSearchChange.InvokeAsync(e.Value?.ToString())" />
     @TrailingFilters

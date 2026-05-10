@@ -16,27 +16,27 @@
 <div class="ac-sms-verifier">
     @if (_step == Step.Phone)
     {
-        <label class="ac-label">@(PhoneLabel ?? "رقم الجوّال")</label>
+        <label class="ac-label">@(PhoneLabel ?? "Mobile number")</label>
         <input class="ac-input" type="tel" inputmode="tel"
                @bind="_phone" placeholder="@(PhonePlaceholder ?? "+9665XXXXXXXX")" />
         <button class="ac-btn ac-btn-primary"
                 disabled="@(_busy || string.IsNullOrWhiteSpace(_phone))"
                 @onclick="@RequestOtp">
-            @(SendLabel ?? "إرسال الرمز")
+            @(SendLabel ?? "Send code")
         </button>
     }
     else if (_step == Step.Code)
     {
-        <p class="ac-sms-hint">@(CodeHint ?? $"أدخل الرمز المُرسَل إلى {_maskedPhone}")</p>
+        <p class="ac-sms-hint">@(CodeHint ?? string.Format(CodeHintFormat ?? "Enter the code sent to {0}", _maskedPhone))</p>
         <input class="ac-input" type="text" inputmode="numeric" maxlength="6"
-               @bind="_code" placeholder="6 أرقام" />
+               @bind="_code" placeholder="@(CodePlaceholder ?? "6 digits")" />
         <button class="ac-btn ac-btn-primary"
                 disabled="@(_busy || _code.Length != 6)"
                 @onclick="@VerifyOtp">
-            @(VerifyLabel ?? "تحقّق")
+            @(VerifyLabel ?? "Verify")
         </button>
         <button class="ac-btn ac-btn-ghost" @onclick="@(() => _step = Step.Phone)">
-            @(ChangeLabel ?? "تغيير الرقم")
+            @(ChangeLabel ?? "Change number")
         </button>
     }
 
@@ -53,6 +53,11 @@
     [Parameter] public string? VerifyLabel      { get; set; }
     [Parameter] public string? ChangeLabel      { get; set; }
     [Parameter] public string? CodeHint         { get; set; }
+    /// <summary>Format for the masked-phone hint. Default: "Enter the code sent to {0}".</summary>
+    [Parameter] public string? CodeHintFormat   { get; set; }
+    [Parameter] public string? CodePlaceholder  { get; set; }
+    [Parameter] public string? RequestErrorMessage { get; set; }
+    [Parameter] public string? VerifyErrorMessage  { get; set; }
 
     /// <summary>Where to navigate on successful verify. Default: "/".</summary>
     [Parameter] public string  RedirectUrl { get; set; } = "/";
@@ -76,7 +81,7 @@
         try
         {
             var resp = await Http.PostAsJsonAsync("/auth/otp/request", new { phone = _phone });
-            if (!resp.IsSuccessStatusCode) { _error = "تعذّر إرسال الرمز"; return; }
+            if (!resp.IsSuccessStatusCode) { _error = RequestErrorMessage ?? "Couldn't send the code"; return; }
             _maskedPhone = _phone[^4..].PadLeft(_phone.Length, '*');
             _step = Step.Code;
         }
@@ -90,7 +95,7 @@
         {
             var resp = await Http.PostAsJsonAsync("/auth/otp/verify",
                 new { phone = _phone, code = _code });
-            if (!resp.IsSuccessStatusCode) { _error = "رمز غير صحيح"; return; }
+            if (!resp.IsSuccessStatusCode) { _error = VerifyErrorMessage ?? "Invalid code"; return; }
             var data = await resp.Content.ReadFromJsonAsync<AuthVerifyResponse>();
             if (data is not null && OnVerified.HasDelegate) await OnVerified.InvokeAsync(data);
             Nav.NavigateTo(RedirectUrl);

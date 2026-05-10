@@ -13,7 +13,7 @@
 @code {
     [Parameter] public bool IsArabic { get; set; }
     [Parameter] public EventCallback<bool> IsArabicChanged { get; set; }
-    [Parameter] public string AriaLabel { get; set; } = "تبديل اللغة";
+    [Parameter] public string AriaLabel { get; set; } = "Toggle language";
     [Parameter] public string? Class { get; set; }
 
     private Task Toggle()

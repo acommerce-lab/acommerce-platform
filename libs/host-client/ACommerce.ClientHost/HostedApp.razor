@@ -30,7 +30,7 @@
         <LayoutView Layout="@DefaultLayout">
             <div class="ejar-notfound">
                 <h1>@NotFoundTitle</h1>
-                <p>@NotFoundMessage <a href="/">الرئيسيّة</a>.</p>
+                <p>@NotFoundMessage <a href="/">@NotFoundHomeLink</a>.</p>
             </div>
         </LayoutView>
     }
@@ -38,7 +38,9 @@
     {
         <LayoutView Layout="@DefaultLayout">
             <div class="ejar-loading" role="status" aria-busy="true">@LoadingMessage</div>
-            <_RedirectToLogin Login="@LoginRoute" Return="@_returnUrl" />
+            <_RedirectToLogin Login="@LoginRoute" Return="@_returnUrl"
+                              RedirectingMessage="@RedirectingMessage"
+                              FallbackLinkText="@RedirectFallbackLink" />
         </LayoutView>
     }
     else
@@ -54,9 +56,13 @@
     [Parameter] public System.Reflection.Assembly? AppAssembly { get; set; }
     [Parameter] public Type? DefaultLayout { get; set; }
     [Parameter] public string LoginRoute     { get; set; } = "/login";
-    [Parameter] public string LoadingMessage { get; set; } = "جاري التحميل…";
-    [Parameter] public string NotFoundTitle  { get; set; } = "الصفحة غير موجودة";
-    [Parameter] public string NotFoundMessage{ get; set; } = "تأكّد من الرابط أو عُد للرئيسيّة.";
+    // افتِراضات إنجليزيَّة (المُستَهلِك يُمَرِّر مَفاتيح L مُتَرجَمَة عِند الحاجَة)
+    [Parameter] public string LoadingMessage { get; set; } = "Loading…";
+    [Parameter] public string NotFoundTitle  { get; set; } = "Page not found";
+    [Parameter] public string NotFoundMessage{ get; set; } = "Check the URL or return to";
+    [Parameter] public string NotFoundHomeLink { get; set; } = "Home";
+    [Parameter] public string RedirectingMessage  { get; set; } = "Redirecting to sign in…";
+    [Parameter] public string RedirectFallbackLink { get; set; } = "Click here if not redirected";
 
     private PageMatch? _currentMatch;
     private bool _isAuthenticated;

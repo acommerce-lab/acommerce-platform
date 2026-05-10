@@ -21,7 +21,7 @@
                 <h3 class="ac-modal-title">@Title</h3>
                 <div class="ac-modal-header-actions">
                     @HeaderActions
-                    <button type="button" class="ac-modal-close" aria-label="إغلاق" @onclick="Close">
+                    <button type="button" class="ac-modal-close" aria-label="@CloseAriaLabel" @onclick="Close">
                         <AcIcon Name="x" Size="20" />
                     </button>
                 </div>
@@ -43,6 +43,7 @@
     [Parameter] public RenderFragment? ChildContent { get; set; }
     [Parameter] public RenderFragment? Footer { get; set; }
     [Parameter] public string? Class { get; set; }
+    [Parameter] public string CloseAriaLabel { get; set; } = "Close";
 
     private async Task Close()
     {

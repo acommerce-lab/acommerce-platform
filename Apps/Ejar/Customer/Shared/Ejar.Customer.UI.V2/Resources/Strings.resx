@@ -17,6 +17,9 @@
   <data name="routes.loading" xml:space="preserve"><value>Loading…</value></data>
   <data name="routes.not_found_title" xml:space="preserve"><value>Page not found</value></data>
   <data name="routes.not_found_message" xml:space="preserve"><value>Go back to</value></data>
+  <data name="routes.not_found_home_link" xml:space="preserve"><value>Home</value></data>
+  <data name="routes.redirecting" xml:space="preserve"><value>Redirecting to sign in…</value></data>
+  <data name="routes.redirect_fallback" xml:space="preserve"><value>Click here if not redirected</value></data>
 
   <!-- Layout / navigation -->
   <data name="layout.brand_aria" xml:space="preserve"><value>Ejar</value></data>

@@ -39,7 +39,7 @@
         {
             <button type="button"
                     class="ac-space-fav"
-                    aria-label="@(IsFavorite ? "إلغاء المفضلة" : "أضف إلى المفضلة")"
+                    aria-label="@(IsFavorite ? RemoveFavoriteAriaLabel : AddFavoriteAriaLabel)"
                     @onclick="ToggleFavoriteInternal"
                     @onclick:stopPropagation="true">
                 <AcIcon Name="heart" Filled="@IsFavorite" Size="18" />
@@ -85,6 +85,8 @@
     [Parameter] public EventCallback OnOpen { get; set; }
     [Parameter] public EventCallback<bool> OnToggleFavorite { get; set; }
     [Parameter] public string? Class { get; set; }
+    [Parameter] public string AddFavoriteAriaLabel    { get; set; } = "Add to favorites";
+    [Parameter] public string RemoveFavoriteAriaLabel { get; set; } = "Remove from favorites";
 
     private Task OnOpenInternal() => OnOpen.InvokeAsync();
 

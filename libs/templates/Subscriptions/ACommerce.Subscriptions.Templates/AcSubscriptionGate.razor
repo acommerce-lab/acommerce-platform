@@ -34,14 +34,14 @@ else if (Blocked)
     else
     {
         <div class="ac-sub-blocked" role="alert">
-            <p>الميزة تتطلّب اشتراكاً نشطاً.</p>
+            <p>@(BlockedMessage ?? "This feature requires an active subscription.")</p>
         </div>
     }
 }
 else
 {
     <div class="ac-sub-banner" role="status">
-        <span>اشتراكك غير نشط — بعض الميزات قد لا تعمل.</span>
+        <span>@(InactiveBannerMessage ?? "Your subscription is inactive — some features may not work.")</span>
     </div>
     @ChildContent
 }
@@ -63,6 +63,12 @@ else
     /// إعلان عام → false).
     /// </summary>
     [Parameter] public bool Blocked { get; set; } = true;
+
+    /// <summary>Shown when Blocked + no NoSubscription supplied. Default: English.</summary>
+    [Parameter] public string? BlockedMessage { get; set; }
+
+    /// <summary>Shown as soft banner when subscription is inactive but not blocked.</summary>
+    [Parameter] public string? InactiveBannerMessage { get; set; }
 
     protected override void OnInitialized() => State.Changed += OnChanged;
     private void OnChanged() => InvokeAsync(StateHasChanged);

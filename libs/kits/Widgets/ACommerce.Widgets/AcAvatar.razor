@@ -12,7 +12,7 @@
 
 <div class="ac-avatar @(ExtraClass ?? "")"
      style="width:@(Size)px; height:@(Size)px;@(IsImage ? "" : $" background:{_gradient};")"
-     role="img" aria-label="@(Name ?? "صورة")">
+     role="img" aria-label="@(Name ?? FallbackAriaLabel)">
     @if (IsImage)
     {
         <img class="ac-avatar-img" src="@ImageUrl" alt="@(Name ?? "")" loading="lazy" />
@@ -28,6 +28,7 @@
     [Parameter] public string? ImageUrl { get; set; }
     [Parameter] public int Size { get; set; } = 40;
     [Parameter] public string? ExtraClass { get; set; }
+    [Parameter] public string FallbackAriaLabel { get; set; } = "Avatar";
 
     private bool IsImage => !string.IsNullOrWhiteSpace(ImageUrl);
 

@@ -11,6 +11,9 @@
   <data name="routes.loading" xml:space="preserve"><value>جاري التحميل…</value></data>
   <data name="routes.not_found_title" xml:space="preserve"><value>الصفحة غير موجودة</value></data>
   <data name="routes.not_found_message" xml:space="preserve"><value>عُد إلى</value></data>
+  <data name="routes.not_found_home_link" xml:space="preserve"><value>الرئيسيّة</value></data>
+  <data name="routes.redirecting" xml:space="preserve"><value>تَحويل لتسجيل الدخول…</value></data>
+  <data name="routes.redirect_fallback" xml:space="preserve"><value>اضغط هنا لو لم يَنتقل</value></data>
 
   <data name="layout.brand_aria" xml:space="preserve"><value>إيجار</value></data>
   <data name="layout.topbar_actions_aria" xml:space="preserve"><value>إجراءات سريعة</value></data>
