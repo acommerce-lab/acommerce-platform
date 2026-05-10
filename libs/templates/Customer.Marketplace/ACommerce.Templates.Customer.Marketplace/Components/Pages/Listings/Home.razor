@@ -49,10 +49,12 @@
 @code {
     private MarketplaceHomeDto? _data;
 
-    private static readonly IReadOnlyList<QuickActionDto> _quickActions =
+    // ‹L› مَحقون كَـ instance، فالحَقل لا يُمكِن أن يَكون static. استَبدَلناه
+    // بِـ property بِـ getter لِيُعيد الحساب لُغَويّاً عَلى كُلّ render — رَخيص.
+    private IReadOnlyList<QuickActionDto> _quickActions =>
     [
-        new("find-place",  "ابحث عن سكن", "search-heart", "primary"),
-        new("my-listings", "إعلاناتي",     "building",     "secondary")
+        new("find-place",  L[TemplateStrings.SearchFindPlace],   "search-heart", "primary"),
+        new("my-listings", L[TemplateStrings.MyListingsHeading], "building",     "secondary")
     ];
 
     private ISet<string> FavSet => new HashSet<string>(Favs.Ids);

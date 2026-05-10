@@ -7,10 +7,10 @@
 @inject L L
 @inject INumeralNormalizer Numerals
 
-<PageTitle>تعديل البروفايل - @(L[TemplateStrings.AppName])</PageTitle>
+<PageTitle>@($"{L[TemplateStrings.ProfileEditTitle]} — {L[TemplateStrings.AppName]}")</PageTitle>
 
 <div class="acs-page acs-profile-edit-page">
-    <h1 class="acm-wizard-title">تعديل الملفّ الشخصيّ</h1>
+    <h1 class="acm-wizard-title">@(L[TemplateStrings.ProfileEditTitle])</h1>
 
     @if (_loading) { <AcLoadingState /> }
     else
@@ -30,14 +30,14 @@
                     </span>
                     <div class="acm-details-owner-info">
                         <strong>@(_data!.FullName)</strong>
-                        <span>عضو منذ @_data.MemberSince.ToString("yyyy-MM-dd")</span>
+                        <span>@(L[TemplateStrings.CommonMemberSince]) @_data.MemberSince.ToString("yyyy-MM-dd")</span>
                     </div>
                 </div>
 
                 <div style="margin-top:12px;">
                     <label class="ac-btn ac-btn-ghost ac-btn-block" style="display:inline-flex; align-items:center; gap:8px; cursor:pointer;">
                         <AcIcon Name="camera" Size="16" />
-                        <span>تغيير الصورة</span>
+                        <span>@(L[TemplateStrings.ProfileEditChangeAvatar])</span>
                         <InputFile OnChange="OnAvatarPicked" accept="image/*" style="display:none;" />
                     </label>
                 </div>
@@ -46,7 +46,7 @@
 
         <AcCard>
             <ChildContent>
-                <AcField Label="الاسم الكامل" Required="true">
+                <AcField Label="@(L[TemplateStrings.ProfileEditFullName])" Required="true">
                     <AcInput Value="@_data!.FullName"
                              ValueChanged="@(v => _data = _data with { FullName = v ?? string.Empty })" />
                 </AcField>
@@ -57,31 +57,31 @@
                                  ValueChanged="@(v => _data = _data with { Phone = Numerals.ToLatin(v) ?? string.Empty, PhoneVerified = false })" />
                         @if (_data.PhoneVerified)
                         {
-                            <AcBadge Variant="success" Text="موثَّق" />
+                            <AcBadge Variant="success" Text="@(L[TemplateStrings.CommonVerified])" />
                         }
                         else
                         {
-                            <AcButton Variant="ghost" Text="تحقّق" OnClick="@VerifyPhone" />
+                            <AcButton Variant="ghost" Text="@(L[TemplateStrings.CommonVerify])" OnClick="@VerifyPhone" />
                         }
                     </div>
                 </AcField>
 
-                <AcField Label="البريد الإلكترونيّ">
+                <AcField Label="@(L[TemplateStrings.ProfileEditEmail])">
                     <div style="display:flex; gap:8px; align-items:center;">
                         <AcInput Type="email" Value="@(_data!.Email ?? string.Empty)"
                                  ValueChanged="@(v => _data = _data with { Email = v ?? string.Empty, EmailVerified = false })" />
                         @if (_data.EmailVerified)
                         {
-                            <AcBadge Variant="success" Text="موثَّق" />
+                            <AcBadge Variant="success" Text="@(L[TemplateStrings.CommonVerified])" />
                         }
                         else
                         {
-                            <AcButton Variant="ghost" Text="تحقّق" OnClick="@VerifyEmail" />
+                            <AcButton Variant="ghost" Text="@(L[TemplateStrings.CommonVerify])" OnClick="@VerifyEmail" />
                         }
                     </div>
                 </AcField>
 
-                <AcField Label="المدينة">
+                <AcField Label="@(L[TemplateStrings.ProfileEditCity])">
                     <select class="ac-input" value="@_data!.City"
                             @onchange="@(e => _data = _data with { City = e.Value?.ToString() ?? _data.City })">
                         @foreach (var c in Discovery.Cities)
@@ -99,8 +99,8 @@
         }
 
         <div style="display:flex; gap:8px; margin-top:12px;">
-            <AcButton Variant="primary" Class="ac-btn-block" Text="حفظ التغييرات" OnClick="@Save" Disabled="@_saving" />
-            <AcButton Variant="ghost" Text="إلغاء" OnClick="@GoBack" />
+            <AcButton Variant="primary" Class="ac-btn-block" Text="@(L[TemplateStrings.ProfileEditSave])" OnClick="@Save" Disabled="@_saving" />
+            <AcButton Variant="ghost" Text="@(L[TemplateStrings.CommonCancel])" OnClick="@GoBack" />
         </div>
     }
 </div>
@@ -126,7 +126,7 @@
         _data = p is not null
             ? new InMemoryUserProfile(p.Id, p.FullName, p.Phone, p.PhoneVerified,
                 p.Email, p.EmailVerified, p.City, p.AvatarUrl, p.MemberSince)
-            : new InMemoryUserProfile("U-1", "", "", false, "", false, "إب", null, DateTime.UtcNow);
+            : new InMemoryUserProfile("U-1", "", "", false, "", false, L[TemplateStrings.CommonDefaultCity], null, DateTime.UtcNow);
         _avatarDataUrl = _data.AvatarUrl;
         _loading = false;
         await InvokeAsync(StateHasChanged);
@@ -138,7 +138,7 @@
         if (f is null) return;
         if (f.Size > 2 * 1024 * 1024)
         {
-            _alert = "حجم الصورة أقصى 2MB"; _alertVariant = "danger"; return;
+            _alert = L[TemplateStrings.ProfileEditAvatarTooBig]; _alertVariant = "danger"; return;
         }
         using var s = f.OpenReadStream(maxAllowedSize: 2 * 1024 * 1024);
         using var ms = new MemoryStream();
@@ -151,14 +151,14 @@
     private void VerifyPhone()
     {
         _data = _data! with { PhoneVerified = true };
-        _alert = "تمّ إرسال رمز التحقّق — تمّ التأكيد (محاكاة)";
+        _alert = L[TemplateStrings.ProfileEditPhoneVerifiedDemo];
         _alertVariant = "success";
     }
 
     private void VerifyEmail()
     {
         _data = _data! with { EmailVerified = true };
-        _alert = "تمّ إرسال رابط التحقّق — تمّ التأكيد (محاكاة)";
+        _alert = L[TemplateStrings.ProfileEditEmailVerifiedDemo];
         _alertVariant = "success";
     }
 
@@ -176,13 +176,13 @@
             // IClientAuthState يَتَزامَن تلقائيّاً عَبر post-interceptors لاحِقاً
             // (Phase F). مُؤَقَّتاً نَتَوَقَّع أنّ DefaultProfileStore.Current
             // قَد تَحَدَّث بَعد UpdateAsync ⇒ لا حاجة لِتَزامُن يَدويّ.
-            _alert = "تمّ الحفظ"; _alertVariant = "success";
+            _alert = L[TemplateStrings.ProfileEditSaved]; _alertVariant = "success";
             await Task.Delay(500);
             Nav.NavigateTo("/me");
         }
         catch (Exception ex)
         {
-            _alert = "فشل الحفظ: " + ex.Message;
+            _alert = string.Format(L[TemplateStrings.ProfileSaveFailedFormat], ex.Message);
             _alertVariant = "danger";
         }
         finally { _saving = false; }

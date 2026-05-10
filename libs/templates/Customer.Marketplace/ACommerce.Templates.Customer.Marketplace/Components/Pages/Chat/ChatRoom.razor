@@ -18,13 +18,13 @@
     else if (_loadError is not null)
     {
         <AcEmptyState IconName="alert-circle" Message="@_loadError" />
-        <AcButton Variant="ghost" Class="ac-btn-block" Text="رجوع للمحادثات"
+        <AcButton Variant="ghost" Class="ac-btn-block" Text="@(L[TemplateStrings.ChatsBackToList])"
                   OnClick="@(() => Nav.NavigateTo("/chats"))" />
     }
     else if (_conv is null)
     {
-        <AcEmptyState IconName="info" Message="المحادثة غير متوفّرة." />
-        <AcButton Variant="ghost" Class="ac-btn-block" Text="رجوع للمحادثات"
+        <AcEmptyState IconName="info" Message="@(L[TemplateStrings.ChatUnavailable])" />
+        <AcButton Variant="ghost" Class="ac-btn-block" Text="@(L[TemplateStrings.ChatsBackToList])"
                   OnClick="@(() => Nav.NavigateTo("/chats"))" />
     }
     else
@@ -34,7 +34,7 @@
                 <h1 class="acm-wizard-title" style="margin-bottom:4px;">@OtherName</h1>
                 <small style="color:var(--ac-text-muted);">@(_conv.Subject ?? "")</small>
             </div>
-            <AcButton Variant="ghost" Text="رجوع" OnClick="@GoBack" />
+            <AcButton Variant="ghost" Text="@(L[TemplateStrings.CommonBack])" OnClick="@GoBack" />
         </div>
 
         <div class="acs-chat-messages" id="acs-chat-msgs">
@@ -105,12 +105,12 @@
             var msg  = env.Error?.Message ?? env.Operation?.ErrorMessage;
             _loadError = (code, msg) switch
             {
-                ("conversation_not_found", _) => "المحادثة غير موجودة أو ليست لك.",
-                ("not_a_participant",      _) => "لست مشاركاً في هذه المحادثة.",
-                ("network_error", var m) when m is not null => $"تعذّر الاتصال: {m}",
+                ("conversation_not_found", _) => L[TemplateStrings.ChatNotFound],
+                ("not_a_participant",      _) => L[TemplateStrings.ChatNotParticipant],
+                ("network_error", var m) when m is not null => string.Format(L[TemplateStrings.ChatConnectionFailedFormat], m),
                 (_, var m) when !string.IsNullOrWhiteSpace(m) => m!,
-                (var c, _) when !string.IsNullOrWhiteSpace(c) => $"تعذّر تحميل المحادثة ({c}).",
-                _ => "تعذّر تحميل المحادثة. حاول لاحقاً."
+                (var c, _) when !string.IsNullOrWhiteSpace(c) => string.Format(L[TemplateStrings.ChatLoadFailedCodeFormat], c),
+                _ => L[TemplateStrings.ChatLoadFailedGeneric]
             };
         }
         else
@@ -199,7 +199,7 @@
         catch (Exception ex)
         {
             _messages.RemoveAll(m => m.Body == pending && m.Id.StartsWith("local-"));
-            _sendError = $"تعذّر إرسال الرسالة: {ex.Message}";
+            _sendError = string.Format(L[TemplateStrings.ChatSendFailedFormat], ex.Message);
             _draft = pending;
         }
         finally { _sending = false; await InvokeAsync(StateHasChanged); }

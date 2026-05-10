@@ -10,18 +10,18 @@
 
 <div class="acs-page acs-search-page">
     <AcSearchBox Value="@_query" ValueChanged="@(v => _query = v ?? string.Empty)"
-                 Placeholder="ابحث عن إعلان…" OnSubmit="Submit" />
+                 Placeholder="@(L[TemplateStrings.SearchPlaceholder])" OnSubmit="Submit" />
 
     @if (Prefs.RecentSearches.Count > 0)
     {
-        <AcSectionHeader Title="بحث حديث" ActionLabel="مسح" OnAction="@ClearRecent" />
+        <AcSectionHeader Title="@(L[TemplateStrings.SearchRecent])" ActionLabel="@(L[TemplateStrings.CommonClear])" OnAction="@ClearRecent" />
         <div class="acs-filter-chips">
             @foreach (var r in Prefs.RecentSearches.ToList())
             {
                 var rq = r;
                 <span class="acs-recent-chip">
                     <button type="button" @onclick="@(() => PickRecent(rq))">@rq</button>
-                    <button type="button" class="rm" @onclick="@(() => Remove(rq))" title="حذف">×</button>
+                    <button type="button" class="rm" @onclick="@(() => Remove(rq))" title="@(L[TemplateStrings.CommonDelete])">×</button>
                 </span>
             }
         </div>
@@ -29,7 +29,7 @@
 
     @if (Home.Suggestions?.Popular is { Count: > 0 })
     {
-        <AcSectionHeader Title="الأكثر بحثاً" />
+        <AcSectionHeader Title="@(L[TemplateStrings.SearchPopular])" />
         <div class="acs-filter-chips">
             @foreach (var p in Home.Suggestions.Popular)
             {
@@ -41,7 +41,7 @@
 
     @if (Discovery.Categories.Count > 0)
     {
-        <AcSectionHeader Title="تصفّح بالفئات" />
+        <AcSectionHeader Title="@(L[TemplateStrings.SearchBrowseByCategory])" />
         @* قائمة طوليّة (rows) — كلّ فئة سطر كامل بأيقونة + نصّ + سهم. أوضح
            من شبكة على الموبايل ويمنح الفئات الأطول عنواناً عرضاً أوسع. *@
         <div class="acs-category-list">

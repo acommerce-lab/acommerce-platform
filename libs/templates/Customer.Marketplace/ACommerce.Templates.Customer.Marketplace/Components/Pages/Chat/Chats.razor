@@ -16,7 +16,7 @@
     </header>
 
     <AcSearchBox Value="@_search" ValueChanged="@(v => _search = v ?? string.Empty)"
-                 Placeholder="ابحث في المحادثات…" />
+                 Placeholder="@(L[TemplateStrings.ChatsSearchPlaceholder])" />
 
     @if (_loading) { <AcLoadingState /> }
     else
@@ -27,7 +27,7 @@
             (c.Subject?.Contains(_search, StringComparison.OrdinalIgnoreCase) ?? false) ||
             (c.LastMessage?.Contains(_search, StringComparison.OrdinalIgnoreCase) ?? false)).ToList();
 
-        @if (list.Count == 0) { <AcEmptyState IconName="message" Message="لا توجد محادثات" /> }
+        @if (list.Count == 0) { <AcEmptyState IconName="message" Message="@(L[TemplateStrings.ChatsEmpty])" /> }
         else
         {
             <ul class="ejar-chat-list">
@@ -56,7 +56,7 @@
                                 @if (hasUnread)
                                 {
                                     <span class="ejar-chat-unread"
-                                          aria-label="@($"{c.UnreadCount} رسالة غير مقروءة")">
+                                          aria-label="@(string.Format(L[TemplateStrings.ChatUnreadAriaFormat], c.UnreadCount))">
                                         @(c.UnreadCount > 99 ? "99+" : c.UnreadCount.ToString())
                                     </span>
                                 }

@@ -11,7 +11,7 @@
 
 <div class="acs-page acs-space-details">
     @if (_loading) { <AcLoadingState /> }
-    else if (_listing is null) { <AcEmptyState IconName="info" Message="الإعلان غير موجود" /> }
+    else if (_listing is null) { <AcEmptyState IconName="info" Message="@(L[TemplateStrings.ListingNotFound])" /> }
     else
     {
         <div class="acs-gallery-wrap">
@@ -45,7 +45,7 @@
         </div>
 
         <div class="acm-checkout-line">
-            <strong style="font-size:20px;">@_listing.Price.ToString("N0") ر.ي</strong>
+            <strong style="font-size:20px;">@_listing.Price.ToString("N0") @(L[TemplateStrings.CommonCurrencyShort])</strong>
             <span>/ @_listing.TimeUnitLabel</span>
         </div>
 
@@ -76,7 +76,7 @@
 
         <AcCard>
             <ChildContent>
-                <h3 style="margin-top:0;">الموقع</h3>
+                <h3 style="margin-top:0;">@(L[TemplateStrings.ListingLocation])</h3>
                 <AcMapSim Pins="@MapPins" />
             </ChildContent>
         </AcCard>
@@ -85,14 +85,14 @@
         {
             <AcCard>
                 <ChildContent>
-                    <h3 style="margin-top:0;">المؤجّر</h3>
+                    <h3 style="margin-top:0;">@(L[TemplateStrings.ListingOwner])</h3>
                     <div class="acm-details-owner">
                         <span class="acm-details-owner-avatar"><AcIcon Name="user" Size="20" /></span>
                         <div class="acm-details-owner-info">
                             <strong>@_listing.Owner.Name</strong>
                             @if (!string.IsNullOrEmpty(_listing.Owner.MemberSince))
                             {
-                                <span>عضو منذ @_listing.Owner.MemberSince</span>
+                                <span>@(L[TemplateStrings.CommonMemberSince]) @_listing.Owner.MemberSince</span>
                             }
                         </div>
                     </div>
@@ -114,7 +114,7 @@
                 <ChildContent>
                     <div style="display:flex; align-items:center; gap:8px;">
                         <AcIcon Name="check-circle" Size="20" />
-                        <strong>هذا إعلانك</strong>
+                        <strong>@(L[TemplateStrings.ListingIsYours])</strong>
                     </div>
                 </ChildContent>
             </AcCard>
@@ -127,7 +127,7 @@
                 <AcButton Variant="ghost" Size="sm" OnClick="@OpenReport">
                     <ChildContent>
                         <AcIcon Name="flag" Size="16" />
-                        <span style="margin-inline-start:6px;">إبلاغ عن هذا الإعلان</span>
+                        <span style="margin-inline-start:6px;">@(L[TemplateStrings.ListingReportLink])</span>
                     </ChildContent>
                 </AcButton>
             </div>
@@ -137,41 +137,41 @@
         {
             <AcCard>
                 <ChildContent>
-                    <h3 style="margin-top:0;">إبلاغ عن إعلان</h3>
-                    <AcField Label="السبب" Required="true">
+                    <h3 style="margin-top:0;">@(L[TemplateStrings.ListingReportModalTitle])</h3>
+                    <AcField Label="@(L[TemplateStrings.ReportFieldReason])" Required="true">
                         <select class="ac-input" @bind="_reportReason">
-                            <option value="">— اختر سبباً —</option>
-                            <option value="spam">إعلان مزعج / spam</option>
-                            <option value="scam">احتيال</option>
-                            <option value="inappropriate_images">صور غير لائقة</option>
-                            <option value="wrong_info">معلومات خاطئة</option>
-                            <option value="duplicate">إعلان مكرَّر</option>
-                            <option value="offensive">محتوى مسيء</option>
-                            <option value="other">سبب آخر</option>
+                            <option value="">@(L[TemplateStrings.ReportChooseReason])</option>
+                            <option value="spam">@(L[TemplateStrings.ReportReasonSpam])</option>
+                            <option value="scam">@(L[TemplateStrings.ReportReasonScam])</option>
+                            <option value="inappropriate_images">@(L[TemplateStrings.ReportReasonImages])</option>
+                            <option value="wrong_info">@(L[TemplateStrings.ReportReasonWrongInfo])</option>
+                            <option value="duplicate">@(L[TemplateStrings.ReportReasonDuplicate])</option>
+                            <option value="offensive">@(L[TemplateStrings.ReportReasonOffensive])</option>
+                            <option value="other">@(L[TemplateStrings.ReportReasonOther])</option>
                         </select>
                     </AcField>
-                    <AcField Label="تفاصيل (اختياريّ)">
+                    <AcField Label="@(L[TemplateStrings.ReportFieldDetails])">
                         <textarea class="ac-input" rows="3" @bind="_reportBody"
-                                  @bind:event="oninput" placeholder="أضف تفاصيل…"></textarea>
+                                  @bind:event="oninput" placeholder="@(L[TemplateStrings.ReportDetailsPlaceholder])"></textarea>
                     </AcField>
                     @if (!string.IsNullOrEmpty(_reportAlert))
                     {
                         <AcAlert Variant="@_reportAlertVariant" Message="@_reportAlert" />
                     }
                     <div style="display:flex; gap:8px;">
-                        <AcButton Variant="primary" Text="إرسال البلاغ" OnClick="@SubmitReport"
+                        <AcButton Variant="primary" Text="@(L[TemplateStrings.ReportSubmit])" OnClick="@SubmitReport"
                                   Disabled="@(string.IsNullOrEmpty(_reportReason) || _reportSending)" />
-                        <AcButton Variant="ghost" Text="إلغاء" OnClick="@(() => _showReport = false)" />
+                        <AcButton Variant="ghost" Text="@(L[TemplateStrings.CommonCancel])" OnClick="@(() => _showReport = false)" />
                     </div>
                 </ChildContent>
             </AcCard>
         }
 
         <AcStickyActionBar>
-            <AcButton Variant="ghost" Text="رجوع" OnClick="@GoBack" />
+            <AcButton Variant="ghost" Text="@(L[TemplateStrings.CommonBack])" OnClick="@GoBack" />
             @if (IsMine)
             {
-                <AcButton Variant="outline-primary" Class="ac-btn-block" Text="إدارة إعلاناتي"
+                <AcButton Variant="outline-primary" Class="ac-btn-block" Text="@(L[TemplateStrings.ListingManageMine])"
                           OnClick="@(() => Nav.NavigateTo("/my-listings"))" />
             }
             else if (Auth.IsAuthenticated)
@@ -181,7 +181,7 @@
             }
             else
             {
-                <AcButton Variant="primary" Class="ac-btn-block" Text="سجّل دخولك للتواصل"
+                <AcButton Variant="primary" Class="ac-btn-block" Text="@(L[TemplateStrings.ListingSigninToContact])"
                           OnClick="@(() => Nav.NavigateTo("/login"))" />
             }
         </AcStickyActionBar>
@@ -230,7 +230,7 @@
                 });
             if (env.Operation.Status == "Success")
             {
-                _reportAlert = "تمّ إرسال البلاغ. شكراً لمساعدتك في المحافظة على المنصّة.";
+                _reportAlert = L[TemplateStrings.ReportSuccess];
                 _reportAlertVariant = "success";
                 _reportReason = "";
                 _reportBody = "";
@@ -239,13 +239,13 @@
             }
             else
             {
-                _reportAlert = env.Error?.Message ?? env.Operation.ErrorMessage ?? "فشل إرسال البلاغ.";
+                _reportAlert = env.Error?.Message ?? env.Operation.ErrorMessage ?? L[TemplateStrings.ReportFailed];
                 _reportAlertVariant = "danger";
             }
         }
         catch (Exception ex)
         {
-            _reportAlert = "خطأ شبكيّ: " + ex.Message;
+            _reportAlert = L[TemplateStrings.ListingsReportNetworkErrorPrefix] + ex.Message;
             _reportAlertVariant = "danger";
         }
         finally { _reportSending = false; }
@@ -293,14 +293,14 @@
         {
             // OAM-pure: kit-defined chat.conversation.start op. الـ store يَتَوَلّى
             // wire shape ({ListingId, Text}) داخِليّاً.
-            var text = $"مرحباً، أنا مهتمّ بـ \"{_listing.Title}\".";
+            var text = string.Format(L[TemplateStrings.ListingsContactMessageFormat], _listing.Title);
             var convId = await Chat.StartConversationAsync(_listing.Id, text);
             if (!string.IsNullOrEmpty(convId))
             {
                 Nav.NavigateTo($"/chat/{convId}");
                 return;
             }
-            _chatError = "تعذّر بدء المحادثة — حاول لاحقاً.";
+            _chatError = L[TemplateStrings.ChatStartFailed];
         }
         finally { _startingChat = false; }
     }

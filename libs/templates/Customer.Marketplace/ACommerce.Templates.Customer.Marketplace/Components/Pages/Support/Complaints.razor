@@ -18,18 +18,18 @@
                 </AcField>
                 <AcField Label="@(L[TemplateStrings.ComplaintBody])" Required="true">
                     <textarea class="ac-input" rows="4" @bind="_body"
-                              @bind:event="oninput" placeholder="اشرح المشكلة بالتفصيل…"></textarea>
+                              @bind:event="oninput" placeholder="@(L[TemplateStrings.ComplaintBodyPlaceholder])"></textarea>
                 </AcField>
-                <AcField Label="الأولويّة">
+                <AcField Label="@(L[TemplateStrings.ComplaintPriorityField])">
                     <select class="ac-input" @bind="_priority">
-                        <option value="عادي">عادي</option>
-                        <option value="عالي">عالي</option>
-                        <option value="عاجل">عاجل</option>
+                        <option value="@(L[TemplateStrings.PriorityNormal])">@(L[TemplateStrings.PriorityNormal])</option>
+                        <option value="@(L[TemplateStrings.PriorityHigh])">@(L[TemplateStrings.PriorityHigh])</option>
+                        <option value="@(L[TemplateStrings.PriorityUrgent])">@(L[TemplateStrings.PriorityUrgent])</option>
                     </select>
                 </AcField>
-                <AcField Label="مرتبطة بـ (اختياريّ)">
+                <AcField Label="@(L[TemplateStrings.ComplaintRelatedFieldOptional])">
                     <AcInput Value="@_related" ValueChanged="@(v => _related = v ?? string.Empty)"
-                             Placeholder="رقم الإعلان أو الطلب" />
+                             Placeholder="@(L[TemplateStrings.ComplaintRelatedPlaceholder])" />
                 </AcField>
                 <div style="display:flex; gap:8px;">
                     <AcButton Variant="primary" Text="@(L[TemplateStrings.ComplaintSend])" OnClick="@Submit"
@@ -45,7 +45,7 @@
     }
 
     @if (_loading) { <AcLoadingState /> }
-    else if (_items.Count == 0) { <AcEmptyState IconName="alert-circle" Message="لا توجد شكاوى" /> }
+    else if (_items.Count == 0) { <AcEmptyState IconName="alert-circle" Message="@(L[TemplateStrings.ComplaintEmpty])" /> }
     else
     {
         <div style="display:flex; flex-direction:column; gap:8px;">
@@ -59,7 +59,7 @@
                                 <strong>@c.Subject</strong>
                                 <AcBadge Variant="@StatusVariant(c.Status)" Text="@StatusLabel(c.Status)" />
                             </div>
-                            <small>@c.CreatedAt.ToString("yyyy-MM-dd HH:mm") — الأولويّة: @c.Priority</small>
+                            <small>@c.CreatedAt.ToString("yyyy-MM-dd HH:mm") — @(string.Format(L[TemplateStrings.ComplaintsPriorityFormat], c.Priority))</small>
                         </button>
                     </ChildContent>
                 </AcCard>
@@ -75,10 +75,17 @@
     private bool _saving;
     private string _subject = "";
     private string _body = "";
-    private string _priority = "عادي";
+    private string _priority = "";
     private string _related = "";
     private string? _alert;
     private string _alertVariant = "success";
+
+    protected override void OnInitialized()
+    {
+        // قِيمَة افتِراضيَّة لا تُستَطيع في field initializer لِأَنّ ‹L›
+        // مَحقون كَـ instance.
+        _priority = L[TemplateStrings.PriorityNormal];
+    }
 
     protected override async Task OnAfterRenderAsync(bool first)
     {
@@ -111,23 +118,24 @@
                 payload: new { Subject = _subject, Body = _body, Priority = _priority, RelatedEntityId = _related });
             if (env.Operation.Status == "Success")
             {
-                _alert = "تمّ إرسال الشكوى"; _alertVariant = "success";
+                _alert = L[TemplateStrings.ComplaintSent]; _alertVariant = "success";
                 _subject = ""; _body = ""; _related = ""; _showNew = false;
                 await Reload();
             }
             else
             {
-                _alert = env.Error?.Message ?? "فشل الإرسال";
+                _alert = env.Error?.Message ?? L[TemplateStrings.ComplaintSendFailed];
                 _alertVariant = "danger";
             }
         }
         finally { _saving = false; }
     }
 
-    private static string StatusLabel(string s) => s switch
+    // غَير static: تَحتاج ‹L› المَحقون.
+    private string StatusLabel(string s) => s switch
     {
-        "open" => "مفتوحة", "in_progress" => "قيد المعالجة",
-        "resolved" => "محلولة", "closed" => "مغلقة",
+        "open" => L[TemplateStrings.StatusOpen], "in_progress" => L[TemplateStrings.StatusInProgress],
+        "resolved" => L[TemplateStrings.StatusResolved], "closed" => L[TemplateStrings.StatusClosed],
         _ => s
     };
 

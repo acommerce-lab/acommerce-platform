@@ -8,7 +8,7 @@
 
 <div class="acs-page acs-plans-page">
     <h1 class="acm-wizard-title">@(L[TemplateStrings.PlansTitle])</h1>
-    <p style="color:var(--ac-text-muted);">اختر الخطّة المناسبة لنشاطك — يمكنك الترقية أو التخفيض في أيّ وقت.</p>
+    <p style="color:var(--ac-text-muted);">@(L[TemplateStrings.PlansIntro])</p>
 
     @if (_loading) { <AcLoadingState /> }
     else
@@ -21,13 +21,13 @@
                     <ChildContent>
                         <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
                             <h3 style="margin:0;">@plan.Name</h3>
-                            @if (plan.Popular) { <AcBadge Variant="secondary" Text="الأشهر" /> }
+                            @if (plan.Popular) { <AcBadge Variant="secondary" Text="@(L[TemplateStrings.PlansPopularBadge])" /> }
                         </div>
                         <p style="color:var(--ac-text-muted); font-size:13px;">@plan.Description</p>
 
                         <div style="font-size:24px; font-weight:700; margin:8px 0;">
-                            @if (plan.Price == 0) { <span>مجّاني</span> }
-                            else { <span>@plan.Price ر.ي</span><small style="font-size:13px; color:var(--ac-text-muted);"> / @plan.Unit</small> }
+                            @if (plan.Price == 0) { <span>@(L[TemplateStrings.PlansFree])</span> }
+                            else { <span>@plan.Price @(L[TemplateStrings.CommonCurrencyShort])</span><small style="font-size:13px; color:var(--ac-text-muted);"> / @plan.Unit</small> }
                         </div>
 
                         <ul style="list-style:none; padding:0; margin:8px 0 12px;">
@@ -42,38 +42,38 @@
 
                         <AcButton Variant="@(plan.Popular ? "primary" : "outline-primary")"
                                   Class="ac-btn-block"
-                                  Text="@(plan.Price == 0 ? "ابدأ مجّاناً" : "اشترك")"
+                                  Text="@(plan.Price == 0 ? L[TemplateStrings.PlansStartFree] : L[TemplateStrings.PlansSubscribe])"
                                   OnClick="@(() => Subscribe(plan))" />
                     </ChildContent>
                 </AcCard>
             }
         </div>
 
-        <h3 style="margin-top:16px;">مقارنة الخطط</h3>
+        <h3 style="margin-top:16px;">@(L[TemplateStrings.PlansCompareHeading])</h3>
         <AcCard>
             <ChildContent>
                 <table class="acs-plans-compare">
                     <thead>
                         <tr>
-                            <th>الميزة</th>
+                            <th>@(L[TemplateStrings.PlansFeatureCol])</th>
                             @foreach (var p in _plans) { <th>@p.Name</th> }
                         </tr>
                     </thead>
                     <tbody>
                         <tr>
-                            <td>إعلانات فعّالة</td>
+                            <td>@(L[TemplateStrings.PlansFeatureActiveListings])</td>
                             @foreach (var p in _plans) { <td>@(p.ListingQuota == 99 ? "∞" : p.ListingQuota.ToString())</td> }
                         </tr>
                         <tr>
-                            <td>إعلانات مميّزة</td>
+                            <td>@(L[TemplateStrings.PlansFeatureFeaturedListings])</td>
                             @foreach (var p in _plans) { <td>@p.FeaturedQuota</td> }
                         </tr>
                         <tr>
-                            <td>صور لكلّ إعلان</td>
+                            <td>@(L[TemplateStrings.PlansFeatureImagesPerListing])</td>
                             @foreach (var p in _plans) { <td>@p.ImagesPerListing</td> }
                         </tr>
                         <tr>
-                            <td>الدعم</td>
+                            <td>@(L[TemplateStrings.PlansFeatureSupport])</td>
                             @foreach (var p in _plans) { <td>@SupportLevel(p.Id)</td> }
                         </tr>
                     </tbody>
@@ -105,11 +105,11 @@
     private void Subscribe(PlanDto p) => Nav.NavigateTo(
         $"/subscribe?type=plan&id={p.Id}&amount={p.Price.ToString(System.Globalization.CultureInfo.InvariantCulture)}");
 
-    private static string SupportLevel(string id) => id switch
+    private string SupportLevel(string id) => id switch
     {
-        "plan-basic"   => "بريد",
-        "plan-pro"     => "أولويّة",
-        "plan-premium" => "مدير حساب",
+        "plan-basic"   => L[TemplateStrings.PlansSupportEmail],
+        "plan-pro"     => L[TemplateStrings.PlansSupportPriority],
+        "plan-premium" => L[TemplateStrings.PlansSupportAccountManager],
         _              => "—"
     };
 

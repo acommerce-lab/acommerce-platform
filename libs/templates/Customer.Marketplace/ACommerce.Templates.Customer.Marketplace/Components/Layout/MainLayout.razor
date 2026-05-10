@@ -27,12 +27,12 @@
                              display:flex; gap:12px; align-items:center;
                              justify-content:center; flex-wrap:wrap;
                              font-family:Cairo,sans-serif;">
-        <span>إصدار جديد متاح (@VersionPoll.AvailableVersion). أعد التحميل لتثبيته.</span>
+        <span>@(string.Format(L[TemplateStrings.LayoutVersionAvailableFormat], VersionPoll.AvailableVersion))</span>
         <button type="button"
                 style="background:#fff; color:#1d4ed8; border:0; padding:6px 14px;
                        border-radius:6px; font-weight:700; cursor:pointer;"
                 @onclick="ApplyAppUpdate">
-            تحديث الآن
+            @(L[TemplateStrings.LayoutUpdateNow])
         </button>
     </div>
 }
@@ -41,15 +41,15 @@
         <nav class="acm-mobile-nav">
             <div class="acm-mobile-nav-inner">
                 <div class="acm-mobile-nav-brand">
-                    <span class="acm-brand-text" style="font-size:1.3rem;font-weight:700;color:var(--ac-primary);">إيجار</span>
+                    <span class="acm-brand-text" style="font-size:1.3rem;font-weight:700;color:var(--ac-primary);">@(L[TemplateStrings.AppName])</span>
                 </div>
                 <div class="acm-mobile-nav-actions">
-                    <button class="acm-mobile-nav-btn" @onclick="@(() => Nav.NavigateTo("/search"))" aria-label="بحث">
+                    <button class="acm-mobile-nav-btn" @onclick="@(() => Nav.NavigateTo("/search"))" aria-label="@(L[TemplateStrings.CommonSearchAria])">
                         <AcIcon Name="search" Size="28" />
                     </button>
                     <button class="acm-mobile-nav-btn ejar-icon-with-badge"
                             @onclick="@(() => Nav.NavigateTo("/notifications"))"
-                            aria-label="@($"إشعارات{(Unread.NotifUnread > 0 ? $" ({Unread.NotifUnread} غير مقروء)" : "")}")">
+                            aria-label="@(string.Format(L[TemplateStrings.LayoutNotificationsAriaFormat], Unread.NotifUnread > 0 ? string.Format(L[TemplateStrings.LayoutUnreadAriaSuffixFormat], Unread.NotifUnread) : ""))">
                         <AcIcon Name="bell" Size="28" />
                         @if (Unread.NotifUnread > 0)
                         {
@@ -66,7 +66,7 @@
             <AcTopNav Items="_topItems">
                 <BrandContent>
                     <div class="acm-brand">
-                        <span style="font-size:1.4rem;font-weight:700;color:var(--ac-primary);">إيجار</span>
+                        <span style="font-size:1.4rem;font-weight:700;color:var(--ac-primary);">@(L[TemplateStrings.AppName])</span>
                     </div>
                 </BrandContent>
                 <RightActions>
@@ -96,22 +96,22 @@
     /// <summary>عَنصُر مُسَطَّح لِـ AcBottomNav.</summary>
     private IReadOnlyList<BottomNavItemDto> _bottomItems => new[]
     {
-        new BottomNavItemDto { Href = "/",          Label = "الرئيسية", IconName = "home",    Exact = true },
-        new BottomNavItemDto { Href = "/explore",   Label = "استكشاف",  IconName = "compass" },
-        new BottomNavItemDto { Href = "/favorites", Label = "المفضلة",  IconName = "heart" },
-        new BottomNavItemDto { Href = "/chats",     Label = "الرسائل",  IconName = "message",
+        new BottomNavItemDto { Href = "/",          Label = L[TemplateStrings.NavHome], IconName = "home",    Exact = true },
+        new BottomNavItemDto { Href = "/explore",   Label = L[TemplateStrings.NavExplore],  IconName = "compass" },
+        new BottomNavItemDto { Href = "/favorites", Label = L[TemplateStrings.NavFavorites],  IconName = "heart" },
+        new BottomNavItemDto { Href = "/chats",     Label = L[TemplateStrings.NavMessages],  IconName = "message",
                                Badge = Unread.ChatUnread > 0 ? Unread.ChatUnread : null },
-        new BottomNavItemDto { Href = "/me",        Label = "حسابي",    IconName = "user" }
+        new BottomNavItemDto { Href = "/me",        Label = L[TemplateStrings.NavAccount],    IconName = "user" }
     };
 
     private IReadOnlyList<AcTopNav.TopNavItem> _topItems => new[]
     {
-        new AcTopNav.TopNavItem("/",              "الرئيسية",  "home",    null, true),
-        new AcTopNav.TopNavItem("/explore",       "استكشاف",   "compass"),
-        new AcTopNav.TopNavItem("/favorites",     "المفضلة",   "heart"),
-        new AcTopNav.TopNavItem("/chats",         "الرسائل",   "message", Unread.ChatUnread > 0 ? Unread.ChatUnread : (int?)null),
-        new AcTopNav.TopNavItem("/notifications", "الإشعارات", "bell",    Unread.NotifUnread > 0 ? Unread.NotifUnread : (int?)null),
-        new AcTopNav.TopNavItem("/me",            "حسابي",     "user")
+        new AcTopNav.TopNavItem("/",              L[TemplateStrings.NavHome],  "home",    null, true),
+        new AcTopNav.TopNavItem("/explore",       L[TemplateStrings.NavExplore],   "compass"),
+        new AcTopNav.TopNavItem("/favorites",     L[TemplateStrings.NavFavorites],   "heart"),
+        new AcTopNav.TopNavItem("/chats",         L[TemplateStrings.NavMessages],   "message", Unread.ChatUnread > 0 ? Unread.ChatUnread : (int?)null),
+        new AcTopNav.TopNavItem("/notifications", L[TemplateStrings.NotificationsTitle], "bell",    Unread.NotifUnread > 0 ? Unread.NotifUnread : (int?)null),
+        new AcTopNav.TopNavItem("/me",            L[TemplateStrings.NavAccount],     "user")
     };
 
     private string? _appliedTheme;
@@ -207,7 +207,7 @@
         {
             using var doc = System.Text.Json.JsonDocument.Parse(json);
             var root = doc.RootElement;
-            string title = TryGet(root, "title") ?? "إيجار";
+            string title = TryGet(root, "title") ?? L[TemplateStrings.AppName];
             string body  = TryGet(root, "body")  ?? TryGet(root, "text") ?? "";
             string? url  = TryGet(root, "url");
             _ = JS.InvokeVoidAsync("ejarNotify.show", title, body, new { url });

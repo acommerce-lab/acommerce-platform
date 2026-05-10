@@ -24,7 +24,7 @@
 <div class="acs-page acs-auth-page">
     <div class="acs-nafath-head">
         <AcIcon Name="smartphone" Size="48" />
-        <h1 class="acm-wizard-title">إيجار</h1>
+        <h1 class="acm-wizard-title">@(L[TemplateStrings.AppName])</h1>
     </div>
 
     <AcCard>
@@ -78,7 +78,7 @@
                               OnClick="@VerifyOtp"
                               Disabled="@(_code.Length < 6 || Auth.IsBusy)" />
                     <AcButton Variant="ghost" Class="ac-btn-block"
-                              Text="تغيير رقم الجوّال" OnClick="@Reset" />
+                              Text="@(L[TemplateStrings.LoginChangePhone])" OnClick="@Reset" />
                 </div>
             }
         </ChildContent>
@@ -119,7 +119,7 @@
         _error = null;
         await Auth.RequestOtpAsync(_phone);
         if (Auth.LastError is null) _otpSent = true;
-        else _error = Auth.LastError ?? "فشل إرسال الرمز";
+        else _error = Auth.LastError ?? L[TemplateStrings.LoginSendOtpFailed];
         await InvokeAsync(StateHasChanged);
     }
 
@@ -145,7 +145,7 @@
         }
         else
         {
-            _error = Auth.LastError ?? "رمز التحقق غير صحيح";
+            _error = Auth.LastError ?? L[TemplateStrings.LoginInvalidOtp];
         }
         await InvokeAsync(StateHasChanged);
     }

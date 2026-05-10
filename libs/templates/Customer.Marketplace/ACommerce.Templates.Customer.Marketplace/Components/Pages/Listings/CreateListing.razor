@@ -27,13 +27,13 @@
             <ChildContent>
                 <div style="text-align:center; padding:16px 0;">
                     <AcIcon Name="package" Size="48" />
-                    <h3 style="margin:12px 0 4px;">يلزمك اشتراك نشط لنشر الإعلانات</h3>
+                    <h3 style="margin:12px 0 4px;">@(L[TemplateStrings.CreateListingNoSubTitle])</h3>
                     <p style="color:var(--ac-text-muted); margin:0 0 16px;">
-                        اختر باقة تناسبك وابدأ بنشر إعلاناتك خلال دقائق.
+                        @(L[TemplateStrings.CreatelistingNoSubscriptionCallToAction])
                     </p>
-                    <AcButton Variant="primary" Class="ac-btn-block" Text="تصفّح الباقات"
+                    <AcButton Variant="primary" Class="ac-btn-block" Text="@(L[TemplateStrings.PlansBrowseAction])"
                               OnClick="@(() => Nav.NavigateTo("/plans"))" />
-                    <AcButton Variant="ghost" Class="ac-btn-block" Text="رجوع"
+                    <AcButton Variant="ghost" Class="ac-btn-block" Text="@(L[TemplateStrings.CommonBack])"
                               OnClick="@(() => Nav.NavigateTo("/me"))" />
                 </div>
             </ChildContent>
@@ -42,17 +42,17 @@
     else
     {
     <div class="acs-step-indicator">
-        <span class="@(_step >= 1 ? "active" : "")">١ الفئة</span>
-        <span class="@(_step >= 2 ? "active" : "")">٢ التفاصيل</span>
-        <span class="@(_step >= 3 ? "active" : "")">٣ الصور</span>
-        <span class="@(_step >= 4 ? "active" : "")">٤ الموقع</span>
+        <span class="@(_step >= 1 ? "active" : "")">@(L[TemplateStrings.CreatelistingStep1Category])</span>
+        <span class="@(_step >= 2 ? "active" : "")">@(L[TemplateStrings.CreatelistingStep2Details])</span>
+        <span class="@(_step >= 3 ? "active" : "")">@(L[TemplateStrings.CreatelistingStep3Images])</span>
+        <span class="@(_step >= 4 ? "active" : "")">@(L[TemplateStrings.CreatelistingStep4Location])</span>
     </div>
 
     @if (_step == 1)
     {
         <AcCard>
             <ChildContent>
-                <h3 style="margin-top:0;">اختر فئة الإعلان</h3>
+                <h3 style="margin-top:0;">@(L[TemplateStrings.CreateListingCategoryHeading])</h3>
                 <div class="acm-home-grid">
                     @foreach (var c in Discovery.Categories)
                     {
@@ -64,7 +64,7 @@
                         </button>
                     }
                 </div>
-                <AcButton Variant="primary" Class="ac-btn-block" Text="التالي"
+                <AcButton Variant="primary" Class="ac-btn-block" Text="@(L[TemplateStrings.CommonNext])"
                           OnClick="@(() => _step = 2)"
                           Disabled="@(string.IsNullOrEmpty(Draft.CategoryId))" />
             </ChildContent>
@@ -74,17 +74,17 @@
     {
         <AcCard>
             <ChildContent>
-                <h3 style="margin-top:0;">تفاصيل الإعلان</h3>
+                <h3 style="margin-top:0;">@(L[TemplateStrings.CreateListingDetailsHeading])</h3>
                 <AcField Label="@(L[TemplateStrings.ListingCreateFieldTitle])" Required="true">
                     <AcInput Value="@Draft.Title"
                              ValueChanged="@(v => { Draft.Title = v ?? string.Empty; Draft.NotifyChanged(); })"
-                             Placeholder="مثلاً: شقة مفروشة في حيّ السبل" />
+                             Placeholder="@(L[TemplateStrings.CreateListingTitlePlaceholder])" />
                 </AcField>
                 <AcField Label="@(L[TemplateStrings.ListingCreateFieldDescription])" Required="true">
                     <textarea class="ac-input" rows="4"
                               value="@Draft.Description"
                               @oninput="@(e => { Draft.Description = e.Value?.ToString() ?? string.Empty; Draft.NotifyChanged(); })"
-                              placeholder="اذكر المساحة، الغرف، الميزات…"></textarea>
+                              placeholder="@(L[TemplateStrings.CreateListingBodyPlaceholder])"></textarea>
                 </AcField>
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
                     <AcField Label="@(L[TemplateStrings.ListingCreateFieldPrice])" Required="true">
@@ -94,14 +94,14 @@
                     <AcField Label="@(L[TemplateStrings.ListingCreateFieldTimeUnit])">
                         <select class="ac-input" value="@Draft.TimeUnit"
                                 @onchange="@(e => { Draft.TimeUnit = e.Value?.ToString() ?? "monthly"; Draft.NotifyChanged(); })">
-                            <option value="monthly">شهري</option>
-                            <option value="yearly">سنوي</option>
-                            <option value="daily">يومي</option>
-                            <option value="hourly">بالساعة</option>
+                            <option value="monthly">@(L[TemplateStrings.TimeUnitMonthly])</option>
+                            <option value="yearly">@(L[TemplateStrings.TimeUnitYearly])</option>
+                            <option value="daily">@(L[TemplateStrings.TimeUnitDaily])</option>
+                            <option value="hourly">@(L[TemplateStrings.TimeUnitHourly])</option>
                         </select>
                     </AcField>
                 </div>
-                <AcField Label="عدد الغرف (اختياريّ)">
+                <AcField Label="@(L[TemplateStrings.CreateListingBedroomsOptional])">
                     <AcInput Type="number" Value="@Draft.BedroomCount.ToString()"
                              ValueChanged="@(v => { Draft.BedroomCount = int.TryParse(Numerals.ToLatin(v), out var n) ? n : 0; Draft.NotifyChanged(); })" />
                 </AcField>
@@ -118,8 +118,8 @@
                     </div>
                 </AcField>
                 <div style="display:flex; gap:8px;">
-                    <AcButton Variant="ghost" Text="رجوع" OnClick="@(() => _step = 1)" />
-                    <AcButton Variant="primary" Class="ac-btn-block" Text="التالي"
+                    <AcButton Variant="ghost" Text="@(L[TemplateStrings.CommonBack])" OnClick="@(() => _step = 1)" />
+                    <AcButton Variant="primary" Class="ac-btn-block" Text="@(L[TemplateStrings.CommonNext])"
                               OnClick="@(() => _step = 3)"
                               Disabled="@(string.IsNullOrWhiteSpace(Draft.Title) || Draft.Price <= 0)" />
                 </div>
@@ -130,15 +130,15 @@
     {
         <AcCard>
             <ChildContent>
-                <h3 style="margin-top:0;">صور الإعلان <small style="color:var(--ac-text-muted); font-weight:normal;">(اختياريّ)</small></h3>
+                <h3 style="margin-top:0;">@(L[TemplateStrings.CreatelistingImagesHeading]) <small style="color:var(--ac-text-muted); font-weight:normal;">@(L[TemplateStrings.CommonOptionalParen])</small></h3>
                 <p style="color:var(--ac-text-muted); font-size:13px;">
-                    حتّى @_maxImages صور • نضغط الصور تلقائياً قبل الرفع لتقليل الباندويث • الصورة الأولى هي الرئيسيّة.
+                    @(string.Format(L[TemplateStrings.CreatelistingImagesHelpFormat], _maxImages))
                 </p>
 
                 <label class="ac-btn ac-btn-outline-primary ac-btn-block"
                        style="cursor:pointer; display:inline-flex; align-items:center; gap:8px; justify-content:center;">
                     <AcIcon Name="camera" Size="16" />
-                    <span>@(_compressing ? "جارٍ الضغط…" : "إضافة صور")</span>
+                    <span>@(_compressing ? L[TemplateStrings.CreatelistingCompressing] : L[TemplateStrings.CreatelistingAddImages])</span>
                     <InputFile OnChange="OnImagesPicked" accept="image/*" multiple style="display:none;"
                                disabled="@_compressing" />
                 </label>
@@ -152,15 +152,15 @@
                             var img = _images[idx];
                             <div class="acs-image-thumb @(idx == 0 ? "main" : "")">
                                 <img src="@img.ThumbUrl" alt="img-@idx" />
-                                @if (idx == 0) { <span class="acs-image-badge">رئيسيّة</span> }
+                                @if (idx == 0) { <span class="acs-image-badge">@(L[TemplateStrings.CreateListingMainBadge])</span> }
                                 <div class="acs-image-actions">
                                     @if (idx > 0)
                                     {
-                                        <button type="button" title="اجعلها رئيسيّة" @onclick="@(() => MakeMain(idx))">
+                                        <button type="button" title="@(L[TemplateStrings.CreateListingMakeMain])" @onclick="@(() => MakeMain(idx))">
                                             <AcIcon Name="star" Size="14" />
                                         </button>
                                     }
-                                    <button type="button" title="حذف" @onclick="@(() => Remove(idx))">
+                                    <button type="button" title="@(L[TemplateStrings.CommonDelete])" @onclick="@(() => Remove(idx))">
                                         <AcIcon Name="x" Size="14" />
                                     </button>
                                 </div>
@@ -176,11 +176,11 @@
                 }
 
                 <div style="display:flex; gap:8px; margin-top:12px;">
-                    <AcButton Variant="ghost" Text="رجوع" OnClick="@(() => _step = 2)" />
-                    @* الصور أصبحت اختياريّة — زرّ "التالي" مفتوح حتّى بصفر صور.
+                    <AcButton Variant="ghost" Text="@(L[TemplateStrings.CommonBack])" OnClick="@(() => _step = 2)" />
+                    @* الصور أصبحت اختياريّة — زرّ L[TemplateStrings.CommonNext] مفتوح حتّى بصفر صور.
                        نُظهر "تخطّي الصور" عند صفر للوضوح. *@
                     <AcButton Variant="primary" Class="ac-btn-block"
-                              Text="@(_images.Count == 0 ? "متابعة بدون صور" : "التالي")"
+                              Text="@(_images.Count == 0 ? L[TemplateStrings.CreatelistingContinueNoImages] : L[TemplateStrings.CommonNext])"
                               OnClick="@(() => _step = 4)" Disabled="@_compressing" />
                 </div>
             </ChildContent>
@@ -190,7 +190,7 @@
     {
         <AcCard>
             <ChildContent>
-                <h3 style="margin-top:0;">موقع الإعلان</h3>
+                <h3 style="margin-top:0;">@(L[TemplateStrings.CreateListingLocationHeading])</h3>
                 <AcField Label="@(L[TemplateStrings.ListingCreateFieldCity])" Required="true">
                     <select class="ac-input" value="@Draft.City"
                             @onchange="@(e => { Draft.City = e.Value?.ToString() ?? string.Empty; Draft.NotifyChanged(); })">
@@ -200,14 +200,14 @@
                 <AcField Label="@(L[TemplateStrings.ListingCreateFieldDistrict])" Required="true">
                     <AcInput Value="@Draft.District"
                              ValueChanged="@(v => { Draft.District = v ?? string.Empty; Draft.NotifyChanged(); })"
-                             Placeholder="مثلاً: السبل" />
+                             Placeholder="@(L[TemplateStrings.CreateListingDistrictPlaceholder])" />
                 </AcField>
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
-                    <AcField Label="خط العرض (اختياريّ)">
+                    <AcField Label="@(L[TemplateStrings.CreateListingLatOptional])">
                         <AcInput Type="number" Value="@_lat.ToString("0.######")"
                                  ValueChanged="@(v => _lat = double.TryParse(Numerals.ToLatin(v), out var d) ? d : _lat)" />
                     </AcField>
-                    <AcField Label="خط الطول (اختياريّ)">
+                    <AcField Label="@(L[TemplateStrings.CreateListingLngOptional])">
                         <AcInput Type="number" Value="@_lng.ToString("0.######")"
                                  ValueChanged="@(v => _lng = double.TryParse(Numerals.ToLatin(v), out var d) ? d : _lng)" />
                     </AcField>
@@ -219,9 +219,9 @@
                     <AcAlert Variant="danger" Message="@_publishError" />
                 }
                 <div style="display:flex; gap:8px; margin-top:12px;">
-                    <AcButton Variant="ghost" Text="رجوع" OnClick="@(() => _step = 3)" Disabled="@_publishing" />
+                    <AcButton Variant="ghost" Text="@(L[TemplateStrings.CommonBack])" OnClick="@(() => _step = 3)" Disabled="@_publishing" />
                     <AcButton Variant="primary" Class="ac-btn-block"
-                              Text="@(_publishing ? "جارٍ النشر…" : "نشر الإعلان")"
+                              Text="@(_publishing ? L[TemplateStrings.CreatelistingPublishing] : L[TemplateStrings.CreatelistingPublish])"
                               OnClick="@Publish"
                               Disabled="@(_publishing || string.IsNullOrWhiteSpace(Draft.City) || string.IsNullOrWhiteSpace(Draft.District))" />
                 </div>
@@ -245,7 +245,7 @@
     private double _lng = 46.6753;
 
     private IReadOnlyList<AcMapSim.MapPin> MapPins =>
-        new[] { new AcMapSim.MapPin("loc", "الموقع", _lat, _lng) };
+        new[] { new AcMapSim.MapPin("loc", L[TemplateStrings.CreatelistingLocationPinLabel], _lat, _lng) };
 
     protected override async Task OnAfterRenderAsync(bool first)
     {
@@ -289,7 +289,7 @@
             {
                 if (f.Size > 20 * 1024 * 1024)
                 {
-                    _imgError = $"الصورة {f.Name} أكبر من 20MB — تُخطَّى.";
+                    _imgError = string.Format(L[TemplateStrings.CreatelistingImageTooBigFormat], f.Name);
                     continue;
                 }
                 try
@@ -303,14 +303,14 @@
                         "ejarImg.compressDataUrl", rawDataUrl, 1600, 0.8, 400, 0.7);
                     if (bundle is null || string.IsNullOrEmpty(bundle.Full))
                     {
-                        _imgError = $"تعذّر معالجة {f.Name} — تخطّيها.";
+                        _imgError = string.Format(L[TemplateStrings.CreatelistingImageProcessingFailedFormat], f.Name);
                         continue;
                     }
                     _images.Add(new PickedImage(bundle.Full, bundle.Thumb ?? bundle.Full, f.Name));
                 }
                 catch (Exception ex)
                 {
-                    _imgError = $"خطأ في معالجة {f.Name}: {ex.Message}";
+                    _imgError = string.Format(L[TemplateStrings.CreatelistingImageErrorFormat], f.Name, ex.Message);
                 }
             }
         }
@@ -361,9 +361,9 @@
                 return;
             }
 
-            _publishError = "فشل نشر الإعلان — تحقّق من اشتراكك ثمّ حاول مجدّداً.";
+            _publishError = L[TemplateStrings.CreateListingPublishFailed];
         }
-        catch (Exception ex) { _publishError = $"حدث خطأ أثناء النشر: {ex.Message}"; }
+        catch (Exception ex) { _publishError = string.Format(L[TemplateStrings.CreatelistingPublishErrorFormat], ex.Message); }
         finally { _publishing = false; }
     }
 

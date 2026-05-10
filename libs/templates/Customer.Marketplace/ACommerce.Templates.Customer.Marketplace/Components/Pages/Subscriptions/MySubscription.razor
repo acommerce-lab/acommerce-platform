@@ -4,14 +4,14 @@
 @inject NavigationManager Nav
 @inject L L
 
-<PageTitle>اشتراكي — @(L[TemplateStrings.AppName])</PageTitle>
+<PageTitle>@($"{L[TemplateStrings.MeStatsSubscription]} — {L[TemplateStrings.AppName]}")</PageTitle>
 
 <div class="acs-page acs-my-subscription">
     <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
-        <h1 class="acm-wizard-title" style="margin:0;">اشتراكي النشط</h1>
+        <h1 class="acm-wizard-title" style="margin:0;">@(L[TemplateStrings.MySubActiveHeading])</h1>
         @* اختصار دائم إلى الخطط — كان مدفوناً تحت بطاقات الفواتير، الآن
            ظاهر فوراً سواء وُجد اشتراك أم لا. *@
-        <AcButton Variant="outline-primary" Text="تصفّح الباقات"
+        <AcButton Variant="outline-primary" Text="@(L[TemplateStrings.PlansBrowseAction])"
                   OnClick="@(() => Nav.NavigateTo("/plans"))" />
     </div>
     @if (_loading) { <AcLoadingState /> }
@@ -21,11 +21,11 @@
             <ChildContent>
                 <div style="text-align:center; padding:16px 0;">
                     <AcIcon Name="package" Size="48" />
-                    <h3 style="margin:12px 0 4px;">لا يوجد اشتراك نشط</h3>
+                    <h3 style="margin:12px 0 4px;">@(L[TemplateStrings.MySubNoneActive])</h3>
                     <p style="color:var(--ac-text-muted); margin:0 0 16px;">
-                        اشترك بباقة لتتمكّن من نشر الإعلانات والوصول إلى المزيد من الميزات.
+                        @(L[TemplateStrings.MysubSubscribeToPublish])
                     </p>
-                    <AcButton Variant="primary" Class="ac-btn-block" Text="اختر باقة"
+                    <AcButton Variant="primary" Class="ac-btn-block" Text="@(L[TemplateStrings.MySubPickPlan])"
                               OnClick="@(() => Nav.NavigateTo("/plans"))" />
                 </div>
             </ChildContent>
@@ -37,48 +37,48 @@
             <ChildContent>
                 <div style="display:flex; justify-content:space-between; align-items:center;">
                     <div>
-                        <h2 style="margin:0;">خطة @_sub.PlanName</h2>
-                        <small>@_sub.Status — ينتهي في @_sub.EndDate.ToString("yyyy-MM-dd")</small>
+                        <h2 style="margin:0;">@(string.Format(L[TemplateStrings.MysubPlanLabelFormat], _sub.PlanName))</h2>
+                        <small>@(string.Format(L[TemplateStrings.MysubExpiresFormat], _sub.Status, _sub.EndDate.ToString("yyyy-MM-dd")))</small>
                     </div>
                     <AcBadge Variant="@(_sub.DaysRemaining <= 7 ? "warning" : "success")"
-                             Text="@($"{_sub.DaysRemaining} يوم متبقّي")" />
+                             Text="@(string.Format(L[TemplateStrings.MysubDaysRemainingFormat], _sub.DaysRemaining))" />
                 </div>
 
                 @if (_sub.DaysRemaining <= 7)
                 {
-                    <AcAlert Variant="warning" Message="اشتراكك ينتهي قريباً — جدّد قبل الانتهاء لتفادي تعطّل الإعلانات." />
+                    <AcAlert Variant="warning" Message="@(L[TemplateStrings.MySubExpiringSoon])" />
                 }
 
-                <div class="acm-checkout-line"><span>تاريخ البدء:</span><strong>@_sub.StartDate.ToString("yyyy-MM-dd")</strong></div>
-                <div class="acm-checkout-line"><span>تاريخ الانتهاء:</span><strong>@_sub.EndDate.ToString("yyyy-MM-dd")</strong></div>
+                <div class="acm-checkout-line"><span>@(L[TemplateStrings.MySubStartLabel])</span><strong>@_sub.StartDate.ToString("yyyy-MM-dd")</strong></div>
+                <div class="acm-checkout-line"><span>@(L[TemplateStrings.MySubEndLabel])</span><strong>@_sub.EndDate.ToString("yyyy-MM-dd")</strong></div>
             </ChildContent>
         </AcCard>
 
-        <h3 style="margin-top:16px;">استهلاك الكوتا</h3>
+        <h3 style="margin-top:16px;">@(L[TemplateStrings.MySubUsageHeading])</h3>
         <div class="acm-home-grid">
             <AcCard>
                 <ChildContent>
-                    <strong>الإعلانات</strong>
-                    <div class="acm-checkout-line"><span>مستخدَم:</span><strong>@_sub.ListingsUsed / @_sub.ListingsLimit</strong></div>
+                    <strong>@(L[TemplateStrings.MySubUsageListings])</strong>
+                    <div class="acm-checkout-line"><span>@(L[TemplateStrings.CommonUsedLabel])</span><strong>@_sub.ListingsUsed / @_sub.ListingsLimit</strong></div>
                     <div class="acs-progress"><div class="acs-progress-bar" style="width:@(Pct(_sub.ListingsUsed, _sub.ListingsLimit))%"></div></div>
                 </ChildContent>
             </AcCard>
             <AcCard>
                 <ChildContent>
-                    <strong>التمييز</strong>
-                    <div class="acm-checkout-line"><span>مستخدَم:</span><strong>@_sub.FeaturedUsed / @_sub.FeaturedLimit</strong></div>
+                    <strong>@(L[TemplateStrings.MySubUsageFeatured])</strong>
+                    <div class="acm-checkout-line"><span>@(L[TemplateStrings.CommonUsedLabel])</span><strong>@_sub.FeaturedUsed / @_sub.FeaturedLimit</strong></div>
                     <div class="acs-progress"><div class="acs-progress-bar" style="width:@(Pct(_sub.FeaturedUsed, _sub.FeaturedLimit))%"></div></div>
                 </ChildContent>
             </AcCard>
             <AcCard>
                 <ChildContent>
-                    <strong>الصور لكلّ إعلان</strong>
-                    <div class="acm-checkout-line"><span>الحد:</span><strong>@_sub.ImagesPerListing</strong></div>
+                    <strong>@(L[TemplateStrings.MysubImagesPerListing])</strong>
+                    <div class="acm-checkout-line"><span>@(L[TemplateStrings.CommonLimitLabel])</span><strong>@_sub.ImagesPerListing</strong></div>
                 </ChildContent>
             </AcCard>
         </div>
 
-        <h3 style="margin-top:16px;">مزايا الخطّة</h3>
+        <h3 style="margin-top:16px;">@(L[TemplateStrings.MySubPlanFeatures])</h3>
         <AcCard>
             <ChildContent>
                 <ul style="list-style:none; padding:0; margin:0;">
@@ -93,8 +93,8 @@
             </ChildContent>
         </AcCard>
 
-        <h3 style="margin-top:16px;">الفواتير</h3>
-        @if (_invoices.Count == 0) { <AcEmptyState IconName="receipt" Message="لا توجد فواتير" /> }
+        <h3 style="margin-top:16px;">@(L[TemplateStrings.MySubInvoices])</h3>
+        @if (_invoices.Count == 0) { <AcEmptyState IconName="receipt" Message="@(L[TemplateStrings.MySubNoInvoices])" /> }
         else
         {
             <AcCard>
@@ -103,7 +103,7 @@
                     {
                         <div class="acm-checkout-line">
                             <span>@i.Id — @i.Date.ToString("yyyy-MM-dd")</span>
-                            <strong>@i.Amount ر.ي</strong>
+                            <strong>@i.Amount @(L[TemplateStrings.CommonCurrencyShort])</strong>
                             <AcBadge Variant="@(i.Status == "paid" ? "success" : "warning")" Text="@i.Status" />
                         </div>
                     }
@@ -112,9 +112,9 @@
         }
 
         <div style="display:flex; gap:8px; margin-top:12px;">
-            <AcButton Variant="primary" Text="تجديد الاشتراك" OnClick="@Renew" />
-            <AcButton Variant="outline-primary" Text="تغيير الخطّة" OnClick="@ChangePlan" />
-            <AcButton Variant="ghost" Text="إلغاء الاشتراك" OnClick="@CancelSub" />
+            <AcButton Variant="primary" Text="@(L[TemplateStrings.MySubRenew])" OnClick="@Renew" />
+            <AcButton Variant="outline-primary" Text="@(L[TemplateStrings.MySubChange])" OnClick="@ChangePlan" />
+            <AcButton Variant="ghost" Text="@(L[TemplateStrings.MySubCancelSub])" OnClick="@CancelSub" />
         </div>
     }
 </div>

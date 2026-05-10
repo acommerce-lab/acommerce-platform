@@ -1,16 +1,17 @@
 @namespace Ejar.Customer.UI.Components.Shared
 @inject IJSRuntime JS
+@inject L L
 
 @if (_visible)
 {
-    <div class="acm-consent-bar" role="alertdialog" aria-label="موافقة ملفات الارتباط">
+    <div class="acm-consent-bar" role="alertdialog" aria-label="@(L[TemplateStrings.CookieTitle])">
         <p class="acm-consent-text">
-            نستخدم ملفّات ارتباط لتحسين تجربتك. بالاستمرار توافق على
-            <a href="/legal/privacy" class="acm-consent-link">سياسة الخصوصيّة</a>.
+            @(L[TemplateStrings.CookieBannerText])
+            <a href="/legal/privacy" class="acm-consent-link">@(L[TemplateStrings.CookiePrivacyLink])</a>.
         </p>
         <div class="acm-consent-actions">
-            <button class="ac-btn ac-btn-sm ac-btn-outline-primary" @onclick="Decline">رفض</button>
-            <button class="ac-btn ac-btn-sm ac-btn-primary" @onclick="Accept">موافق</button>
+            <button class="ac-btn ac-btn-sm ac-btn-outline-primary" @onclick="Decline">@(L[TemplateStrings.CommonReject])</button>
+            <button class="ac-btn ac-btn-sm ac-btn-primary" @onclick="Accept">@(L[TemplateStrings.CommonOk])</button>
         </div>
     </div>
 }

@@ -4,43 +4,43 @@
 @inject NavigationManager Nav
 @inject L L
 
-<PageTitle>نتيجة الدفع — @(L[TemplateStrings.AppName])</PageTitle>
+<PageTitle>@($"{L[TemplateStrings.PaymentResultTitle]} — {L[TemplateStrings.AppName]}")</PageTitle>
 
 <div class="acs-page acs-payment-callback" style="text-align:center; padding:32px 16px;">
     @if (Status == "success")
     {
         <div style="color:var(--ac-success);"><AcIcon Name="check-circle" Filled="true" Size="48" /></div>
-        <h1 class="acm-wizard-title">تمّ الدفع بنجاح</h1>
-        <p>شكراً لك — تمّت معالجة طلبك.</p>
+        <h1 class="acm-wizard-title">@(L[TemplateStrings.PaymentSuccess])</h1>
+        <p>@(L[TemplateStrings.PaymentSuccessBody])</p>
 
         <AcCard>
             <ChildContent>
-                <div class="acm-checkout-line"><span>رقم المعاملة:</span><strong>@_txnId</strong></div>
+                <div class="acm-checkout-line"><span>@(L[TemplateStrings.PaymentTransactionLabel])</span><strong>@_txnId</strong></div>
                 @if (!string.IsNullOrEmpty(Id))
                 {
-                    <div class="acm-checkout-line"><span>@(Type == "booking" ? "رقم الحجز" : "رقم الخطّة")</span><strong>@Id</strong></div>
+                    <div class="acm-checkout-line"><span>@(Type == "booking" ? L[TemplateStrings.PaymentNoteBookingId] : L[TemplateStrings.PaymentNotePlanId])</span><strong>@Id</strong></div>
                 }
                 @if (Amount > 0)
                 {
-                    <div class="acm-checkout-line"><span>المبلغ:</span><strong>@Amount ر.ي</strong></div>
+                    <div class="acm-checkout-line"><span>@(L[TemplateStrings.PaymentAmountLabel])</span><strong>@Amount @(L[TemplateStrings.CommonCurrencyShort])</strong></div>
                 }
-                <div class="acm-checkout-line"><span>التاريخ:</span><strong>@DateTime.Now.ToString("yyyy-MM-dd HH:mm")</strong></div>
+                <div class="acm-checkout-line"><span>@(L[TemplateStrings.PaymentDateLabel])</span><strong>@DateTime.Now.ToString("yyyy-MM-dd HH:mm")</strong></div>
             </ChildContent>
         </AcCard>
 
         <div style="display:flex; gap:8px; margin-top:16px; justify-content:center;">
-            <AcButton Variant="primary" Text="اشتراكي" OnClick="@GoMySub" />
-            <AcButton Variant="ghost"   Text="الرئيسيّة" OnClick="@GoHome" />
+            <AcButton Variant="primary" Text="@(L[TemplateStrings.MeStatsSubscription])" OnClick="@GoMySub" />
+            <AcButton Variant="ghost"   Text="@(L[TemplateStrings.NavHomeAlt])" OnClick="@GoHome" />
         </div>
     }
     else
     {
         <div style="color:var(--ac-danger);"><AcIcon Name="x-circle" Filled="true" Size="48" /></div>
-        <h1 class="acm-wizard-title">فشل الدفع</h1>
-        <p>لم تكتمل عمليّة الدفع. حاول مرّة أخرى أو استخدم بطاقة مختلفة.</p>
+        <h1 class="acm-wizard-title">@(L[TemplateStrings.PaymentFailed])</h1>
+        <p>@(L[TemplateStrings.PaymentFailedBody])</p>
         <div style="display:flex; gap:8px; margin-top:16px; justify-content:center;">
-            <AcButton Variant="primary" Text="المحاولة مجدّداً" OnClick="@Retry" />
-            <AcButton Variant="ghost"   Text="الرئيسيّة" OnClick="@GoHome" />
+            <AcButton Variant="primary" Text="@(L[TemplateStrings.PaymentRetry])" OnClick="@Retry" />
+            <AcButton Variant="ghost"   Text="@(L[TemplateStrings.NavHomeAlt])" OnClick="@GoHome" />
         </div>
     }
 </div>

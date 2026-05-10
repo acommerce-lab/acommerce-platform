@@ -1,6 +1,7 @@
 @namespace Ejar.Customer.UI.Pages
 @using ACommerce.Kits.Chat.Frontend.Customer.Widgets
 @using ACommerce.Kits.Notifications.Frontend.Customer.Widgets
+@inject L L
 
 @*
     EjarDashboardPage — تَركيب على مستوى التطبيق يَجمع widgets من Chat +
@@ -14,17 +15,17 @@
 *@
 
 <section class="ejar-dashboard">
-    <h1>لوحة المعلومات</h1>
+    <h1>@(L[TemplateStrings.NavDashboard])</h1>
 
     <div class="ejar-dashboard-stats">
         <a href="/chat" class="ejar-dashboard-card">
-            <span class="ejar-dashboard-card-label">المحادثات</span>
-            <AcChatUnreadBadgeWidget AriaLabel="رسائل غير مقروءة" />
+            <span class="ejar-dashboard-card-label">@(L[TemplateStrings.DashboardChats])</span>
+            <AcChatUnreadBadgeWidget AriaLabel="@(L[TemplateStrings.DashboardChatUnreadAria])" />
         </a>
 
         <a href="/notifications" class="ejar-dashboard-card">
-            <span class="ejar-dashboard-card-label">الإشعارات</span>
-            <AcNotificationsUnreadBadgeWidget AriaLabel="إشعارات غير مقروءة" />
+            <span class="ejar-dashboard-card-label">@(L[TemplateStrings.NotificationsTitle])</span>
+            <AcNotificationsUnreadBadgeWidget AriaLabel="@(L[TemplateStrings.DashboardNotifUnreadAria])" />
         </a>
     </div>
 </section>

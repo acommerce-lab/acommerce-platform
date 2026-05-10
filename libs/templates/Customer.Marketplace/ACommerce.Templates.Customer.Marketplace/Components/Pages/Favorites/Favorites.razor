@@ -12,7 +12,7 @@
 <div class="acs-page">
     <h1 class="acm-wizard-title">@(L[TemplateStrings.NavFavorites])</h1>
     @if (_loading) { <AcLoadingState /> }
-    else if (_items.Count == 0) { <AcEmptyState IconName="heart" Message="لا توجد مفضلة بعد" /> }
+    else if (_items.Count == 0) { <AcEmptyState IconName="heart" Message="@(L[TemplateStrings.FavoritesEmpty])" /> }
     else
     {
         <div class="acm-home-grid">
@@ -23,7 +23,7 @@
                              ImageUrl="@l.FirstImage"
                              Location="@($"{l.City} — {l.District}")"
                              Capacity="@(l.BedroomCount == 0 ? null : l.BedroomCount)"
-                             PriceLabel="@($"{l.Price:0} ر.ي")"
+                             PriceLabel="@($"{l.Price:0} {L[TemplateStrings.CommonCurrencyShort]}")"
                              IsFavorite="true"
                              OnOpen="@(() => Open(lid))"
                              OnToggleFavorite="@(on => Toggle(lid, on))" />

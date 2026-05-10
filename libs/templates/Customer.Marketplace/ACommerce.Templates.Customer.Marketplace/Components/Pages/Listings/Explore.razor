@@ -7,18 +7,19 @@
 @inject IDiscoveryStore Discovery
 @inject IFavoritesStore Favs
 @inject NavigationManager Nav
+@inject L L
 @implements IDisposable
 
-<PageTitle>استكشف</PageTitle>
+<PageTitle>@(L[TemplateStrings.NavExploreVerb])</PageTitle>
 
 @if (HasAnyFilter)
 {
     <div class="acs-clear-filters-bar" style="display:flex; justify-content:flex-end; padding:8px 12px;">
-        <AcButton Variant="ghost" Text="إلغاء كلّ الفلاتر" OnClick="@ClearAllFilters" />
+        <AcButton Variant="ghost" Text="@(L[TemplateStrings.FilterClearAll])" OnClick="@ClearAllFilters" />
     </div>
 }
 
-<AcListingExplorePage Title="استكشف"
+<AcListingExplorePage Title="@(L[TemplateStrings.NavExploreVerb])"
                       Data="_listings"
                       MapListings="_mapListings"
                       Categories="_categories"
@@ -54,7 +55,7 @@
     /// <summary>
     /// قيم الفلتر الافتراضيّة: المدينة = اختيار المستخدم على الصفحة الرئيسيّة
     /// (Prefs.City) — طلب صاحب المصلحة. لو غيّرها المستخدم في الـ modal،
-    /// تُحفَظ في _filters مباشرةً. زرّ "إلغاء كلّ الفلاتر" يعيدنا لهذه القيم.
+    /// تُحفَظ في _filters مباشرةً. زرّ L[TemplateStrings.FilterClearAll] يعيدنا لهذه القيم.
     /// </summary>
     private AcListingExplorePage.ExploreFilters NewDefaultFilters() =>
         new(string.IsNullOrWhiteSpace(Prefs.City) ? null : Prefs.City,

@@ -26,7 +26,7 @@
             <div class="acm-checkout-line">
                 <span>@(L[TemplateStrings.SettingsLanguage])</span>
                 <div style="display:inline-flex; gap:8px;">
-                    <AcFilterChip Label="العربيّة" Active="@(Prefs.Language == "ar")" OnClick="@SetAr" />
+                    <AcFilterChip Label="@(L[TemplateStrings.LangArabicSelf])" Active="@(Prefs.Language == "ar")" OnClick="@SetAr" />
                     <AcFilterChip Label="English"  Active="@(Prefs.Language == "en")" OnClick="@SetEn" />
                 </div>
             </div>
@@ -35,7 +35,7 @@
 
     <AcCard>
         <ChildContent>
-            <h3 style="margin-top:0;">المستندات القانونيّة</h3>
+            <h3 style="margin-top:0;">@(L[TemplateStrings.LegalHeading])</h3>
             <AcButton Variant="ghost" Class="ac-btn-block" Text="@(L[TemplateStrings.LegalPrivacy])" OnClick="@GoPrivacy" />
             <AcButton Variant="ghost" Class="ac-btn-block" Text="@(L[TemplateStrings.LegalTerms])"   OnClick="@GoTerms" />
             <AcButton Variant="ghost" Class="ac-btn-block" Text="@(L[TemplateStrings.LegalReturn])"  OnClick="@GoRefund" />

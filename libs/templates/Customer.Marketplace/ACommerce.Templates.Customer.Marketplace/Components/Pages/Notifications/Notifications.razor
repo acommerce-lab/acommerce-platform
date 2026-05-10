@@ -6,16 +6,16 @@
 @inject L L
 @implements IDisposable
 
-<PageTitle>الإشعارات — @(L[TemplateStrings.AppName])</PageTitle>
+<PageTitle>@($"{L[TemplateStrings.NotificationsTitle]} — {L[TemplateStrings.AppName]}")</PageTitle>
 
 <div class="acs-page acs-notifications-page">
-    <AcSectionHeader Title="الإشعارات" ActionLabel="قراءة الكلّ" OnAction="@MarkAllRead" />
+    <AcSectionHeader Title="@(L[TemplateStrings.NotificationsTitle])" ActionLabel="@(L[TemplateStrings.NotificationsMarkAllRead])" OnAction="@MarkAllRead" />
 
     <div class="acs-filter-chips">
-        <AcFilterChip Label="الكلّ"   Active="@(_filter == "")"        OnClick="@(() => SetFilter(""))" />
-        <AcFilterChip Label="رسائل"   Active="@(_filter == "message")" OnClick="@(() => SetFilter("message"))" />
-        <AcFilterChip Label="إعلانات" Active="@(_filter == "listing")" OnClick="@(() => SetFilter("listing"))" />
-        <AcFilterChip Label="نظام"    Active="@(_filter == "system")"  OnClick="@(() => SetFilter("system"))" />
+        <AcFilterChip Label="@(L[TemplateStrings.CommonAll])"   Active="@(_filter == "")"        OnClick="@(() => SetFilter(""))" />
+        <AcFilterChip Label="@(L[TemplateStrings.NotificationsKindMessage])"   Active="@(_filter == "message")" OnClick="@(() => SetFilter("message"))" />
+        <AcFilterChip Label="@(L[TemplateStrings.NotificationsKindListing])" Active="@(_filter == "listing")" OnClick="@(() => SetFilter("listing"))" />
+        <AcFilterChip Label="@(L[TemplateStrings.NotificationsKindSystem])"    Active="@(_filter == "system")"  OnClick="@(() => SetFilter("system"))" />
     </div>
 
     @if (Notifs.IsLoading) { <AcLoadingState /> }
@@ -23,7 +23,7 @@
     {
         var filtered = Notifs.Items.Where(n => string.IsNullOrEmpty(_filter) || n.Kind == _filter).ToList();
 
-        @if (filtered.Count == 0) { <AcEmptyState IconName="bell" Message="لا توجد إشعارات" /> }
+        @if (filtered.Count == 0) { <AcEmptyState IconName="bell" Message="@(L[TemplateStrings.NotificationsEmpty])" /> }
         else
         {
             @foreach (var group in filtered.GroupBy(n => GroupLabel(n.CreatedAt)))
@@ -38,7 +38,7 @@
                                 <button type="button" class="acm-complaint-btn" @onclick="@(() => OnClick(nid))">
                                     <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
                                         <strong>@n.Title</strong>
-                                        @if (!n.IsRead) { <AcBadge Variant="primary" Text="جديد" /> }
+                                        @if (!n.IsRead) { <AcBadge Variant="primary" Text="@(L[TemplateStrings.CommonNewBadge])" /> }
                                     </div>
                                     <div class="acm-complaint-body">@n.Body</div>
                                     <small>@Tz.FormatRelative(n.CreatedAt) — @TypeLabel(n.Kind)</small>
@@ -81,18 +81,18 @@
     {
         var nowLocal = Tz.ToLocal(DateTime.UtcNow);
         var days = (nowLocal - localDt).TotalDays;
-        if (days < 1) return "اليوم";
-        if (days < 2) return "أمس";
-        if (days < 7) return "هذا الأسبوع";
-        return "أقدم";
+        if (days < 1) return L[TemplateStrings.TimeToday];
+        if (days < 2) return L[TemplateStrings.TimeYesterday];
+        if (days < 7) return L[TemplateStrings.TimeThisWeek];
+        return L[TemplateStrings.TimeOlder];
     }
 
-    private static string TypeLabel(string? t) => t switch
+    private string TypeLabel(string? t) => t switch
     {
-        "message" => "رسالة",
-        "listing" => "إعلان",
-        "promo"   => "عرض",
-        "system"  => "نظام",
+        "message" => L[TemplateStrings.NotificationsLabelMessage],
+        "listing" => L[TemplateStrings.NotificationsLabelListing],
+        "promo"   => L[TemplateStrings.NotificationsKindPromo],
+        "system"  => L[TemplateStrings.NotificationsKindSystem],
         _         => t ?? ""
     };
 

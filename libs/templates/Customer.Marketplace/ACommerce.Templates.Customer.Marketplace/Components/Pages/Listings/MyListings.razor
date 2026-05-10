@@ -11,9 +11,9 @@
     <AcSectionHeader Title="@(L[TemplateStrings.MyListingsTitle])" ActionLabel="@(L[TemplateStrings.MyListingsAdd])" OnAction="@GoCreate" />
 
     <div class="acs-filter-chips">
-        <AcFilterChip Label="الكلّ"    Active="@(_filter == 0)" OnClick="@(() => SetFilter(0))" />
-        <AcFilterChip Label="نشطة"     Active="@(_filter == 1)" OnClick="@(() => SetFilter(1))" />
-        <AcFilterChip Label="موقوفة"   Active="@(_filter == 2)" OnClick="@(() => SetFilter(2))" />
+        <AcFilterChip Label="@(L[TemplateStrings.CommonAll])"    Active="@(_filter == 0)" OnClick="@(() => SetFilter(0))" />
+        <AcFilterChip Label="@(L[TemplateStrings.StatusActive])"     Active="@(_filter == 1)" OnClick="@(() => SetFilter(1))" />
+        <AcFilterChip Label="@(L[TemplateStrings.StatusPaused])"   Active="@(_filter == 2)" OnClick="@(() => SetFilter(2))" />
     </div>
 
     @if (Listings.IsLoading) { <AcLoadingState /> }
@@ -23,7 +23,7 @@
             ? Listings.Mine
             : Listings.Mine.Where(l => l.Status == _filter).ToList();
 
-        @if (list.Count == 0) { <AcEmptyState IconName="building" Message="لا توجد إعلانات" /> }
+        @if (list.Count == 0) { <AcEmptyState IconName="building" Message="@(L[TemplateStrings.ListingsEmpty])" /> }
         else
         {
             <div class="acm-home-grid" style="margin-top:12px;">
@@ -40,14 +40,14 @@
                             </div>
                             <small style="color:var(--ac-text-muted);">@l.City — @l.District</small>
                             <div style="margin-top:8px; display:flex; gap:12px; font-size:13px; color:var(--ac-text-muted);">
-                                <span><AcIcon Name="eye" Size="14" /> @l.ViewsCount مشاهدة</span>
+                                <span><AcIcon Name="eye" Size="14" /> @(string.Format(L[TemplateStrings.MylistingsViewsCountFormat], l.ViewsCount))</span>
                             </div>
                             <div style="margin-top:8px; font-size:16px;">
-                                <strong>@l.Price.ToString("N0") ر.ي</strong> / @l.TimeUnit
+                                <strong>@l.Price.ToString("N0") @(L[TemplateStrings.CommonCurrencyShort])</strong> / @l.TimeUnit
                             </div>
                             <div style="display:flex; gap:8px; margin-top:12px; flex-wrap:wrap;">
-                                <AcButton Variant="outline-primary" Text="عرض" OnClick="@(() => Open(lid))" />
-                                <AcButton Variant="ghost" Text="@(active ? "إيقاف" : "نشر")" OnClick="@(() => Toggle(lid))" />
+                                <AcButton Variant="outline-primary" Text="@(L[TemplateStrings.NotificationsKindPromo])" OnClick="@(() => Open(lid))" />
+                                <AcButton Variant="ghost" Text="@(active ? L[TemplateStrings.CommonPause] : L[TemplateStrings.CommonPublish])" OnClick="@(() => Toggle(lid))" />
                             </div>
                         </ChildContent>
                     </AcCard>

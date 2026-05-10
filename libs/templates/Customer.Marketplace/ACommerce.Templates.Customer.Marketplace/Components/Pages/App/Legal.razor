@@ -7,10 +7,10 @@
 <PageTitle>@(L[TemplateStrings.LegalTerms]) — @(L[TemplateStrings.AppName])</PageTitle>
 
 <div class="acs-page acs-legal-page">
-    <h1 class="acm-wizard-title">المستندات القانونيّة</h1>
+    <h1 class="acm-wizard-title">@(L[TemplateStrings.LegalHeading])</h1>
 
     @if (_loading) { <AcLoadingState /> }
-    else if (_docs.Count == 0) { <AcEmptyState IconName="info" Message="لا توجد مستندات" /> }
+    else if (_docs.Count == 0) { <AcEmptyState IconName="info" Message="@(L[TemplateStrings.LegalEmpty])" /> }
     else
     {
         <div style="display:flex; flex-direction:column; gap:8px;">
