@@ -3,6 +3,7 @@ using ACommerce.ClientHost.Auth;
 using ACommerce.ClientHost.KitApi;
 using ACommerce.ClientHost.Operations;
 using ACommerce.ClientHost.Pages;
+using ACommerce.Compositions.Customer.L10n.Resx;
 using ACommerce.Kits.Auth.Frontend.Customer;
 using ACommerce.Kits.Auth.Frontend.Customer.Stores;
 using ACommerce.Kits.Chat.Frontend.Customer;
@@ -19,6 +20,7 @@ using ACommerce.Kits.Subscriptions.Frontend.Customer;
 using ACommerce.Kits.Subscriptions.Frontend.Customer.Stores;
 using ACommerce.Kits.Support.Frontend.Customer;
 using ACommerce.Kits.Support.Frontend.Customer.Stores;
+using ACommerce.L10n.Blazor;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace ACommerce.Templates.Customer.Ledger;
@@ -57,6 +59,19 @@ public static class CustomerLedgerExtensions
                 o.Scheme         = opts.Scheme;
             });
         }
+
+        // ─── L10n: layered translation (G7-A) ────────────────────────────
+        // طَبَقَة القالَب neutral (الأَدنى — apps يُعَلون فَوقها بِـ
+        // AddTranslationLayer إضافيّ). ILanguageContext افتِراضيّ ثابِت
+        // يُعيد "ar" — التَطبيق يَستَطيع تَجاوُزه بِـ AddScoped<ILanguageContext>
+        // مُخَصَّص (مَثَلاً مَربوط بِـ IUiPreferences.Language). L مُسَجَّل كَ
+        // Scoped لِيَستَهلِكه أَيّ widget عَبر @inject L L.
+        services.AddScoped<ILanguageContext, StaticLanguageContext>();
+        services.AddTranslationLayer(
+            typeof(CustomerLedgerExtensions).Assembly,
+            baseName: "ACommerce.Templates.Customer.Ledger.Resources.Strings");
+        services.AddLayeredTranslation();
+        services.AddScoped<L>();
 
         // ─── OAM client engine + kit routes ─────────────────────────────
         // كلّ Default<Kit>Store يَستَهلِك ITemplateEngine + يَدفَع قُيود
@@ -150,4 +165,15 @@ public static class CustomerLedgerExtensions
         else
             b.Use<TInterface, TDefault>();
     }
+}
+
+/// <summary>
+/// <see cref="ILanguageContext"/> ثابِت افتِراضيّ يُعيد "ar". التَطبيق الذي
+/// يَحوي تَفضيل لُغَة المُستَخدِم (مَثَلاً <c>IUiPreferences.Language</c>)
+/// يُسَجِّل بَديلاً Scoped يَتَجاوَز هذا.
+/// </summary>
+internal sealed class StaticLanguageContext : ILanguageContext
+{
+    public string Language => "ar";
+    public bool   IsRtl    => true;
 }
