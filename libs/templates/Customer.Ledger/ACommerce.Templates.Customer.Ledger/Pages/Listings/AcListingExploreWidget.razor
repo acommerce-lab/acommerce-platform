@@ -1,5 +1,6 @@
 @inject IListingsStore Store
 @inject NavigationManager Nav
+@inject L L
 @implements IDisposable
 
 @*
@@ -19,38 +20,38 @@
 <section class="ac-listings-explore">
     @if (BeforeFilters is not null) { <div class="ac-slot-before-filters">@BeforeFilters</div> }
     <header class="ejar-section-head">
-        <h2 class="ejar-section-title">العقارات المتاحة</h2>
+        <h2 class="ejar-section-title">@(L[LedgerStrings.ListingsExploreTitle])</h2>
         <span class="ejar-section-meta oam-mono">/ listings · @Store.Visible.Count</span>
     </header>
 
     <form class="ac-listings-filters" @onsubmit="OnFilter" @onsubmit:preventDefault>
         <input class="ac-input ejar-filter-input"
                type="search"
-               placeholder="ابحث (المدينة، الحيّ، نوع العقار…)"
+               placeholder="@(L[LedgerStrings.ListingsSearchPlaceholder])"
                value="@_query"
                @oninput="@(e => _query = e.Value?.ToString() ?? "")" />
         <select class="ac-input ejar-filter-input" @bind="_propertyType">
-            <option value="">كلّ الأنواع</option>
-            <option value="apartment">شقّة</option>
-            <option value="villa">فيلا</option>
-            <option value="studio">استوديو</option>
-            <option value="office">مكتب</option>
+            <option value="">@(L[LedgerStrings.ListingsAllTypes])</option>
+            <option value="apartment">@(L[LedgerStrings.PropertytypeApartment])</option>
+            <option value="villa">@(L[LedgerStrings.PropertytypeVilla])</option>
+            <option value="studio">@(L[LedgerStrings.PropertytypeStudio])</option>
+            <option value="office">@(L[LedgerStrings.PropertytypeOffice])</option>
         </select>
         @if (ExtraFilters is not null) { @ExtraFilters }
-        <button class="oam-btn" type="submit">تَطبيق</button>
+        <button class="oam-btn" type="submit">@(L[LedgerStrings.ListingsApplyFilter])</button>
     </form>
     @if (BeforeListings is not null) { <div class="ac-slot-before-listings">@BeforeListings</div> }
 
     @if (Store.IsLoading)
     {
-        <p class="ejar-loading">جاري التحميل…</p>
+        <p class="ejar-loading">@(L[LedgerStrings.CommonLoading])</p>
     }
     else if (Store.Visible.Count == 0)
     {
         <div class="ejar-empty">
             <span class="ejar-empty-glyph" aria-hidden="true">⌘</span>
-            <h3>لا توجد إعلانات تُطابق البحث</h3>
-            <p>جَرِّب تَوسيع الفلتر أو إعادة المحاولة لاحقاً.</p>
+            <h3>@(L[LedgerStrings.ListingsNoResultsTitle])</h3>
+            <p>@(L[LedgerStrings.ListingsNoResultsBody])</p>
         </div>
     }
     else
@@ -123,11 +124,11 @@
             Query: string.IsNullOrEmpty(_query) ? null : _query));
     }
 
-    private static string PriceUnit(string timeUnit) => timeUnit switch
+    private string PriceUnit(string timeUnit) => timeUnit switch
     {
-        "monthly" => "/شهر",
-        "yearly"  => "/سنة",
-        "daily"   => "/يوم",
+        "monthly" => L[LedgerStrings.PriceunitMonthly],
+        "yearly"  => L[LedgerStrings.PriceunitYearly],
+        "daily"   => L[LedgerStrings.PriceunitDaily],
         _ => $"/{timeUnit}",
     };
 

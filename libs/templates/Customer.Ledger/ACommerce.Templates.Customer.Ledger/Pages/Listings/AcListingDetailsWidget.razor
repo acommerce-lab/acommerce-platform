@@ -1,6 +1,7 @@
 @inject IListingsStore Store
 @inject IRichTextSanitizer Sanitizer
 @inject NavigationManager Nav
+@inject L L
 
 @*
     AcListingDetailsWidget — صفحة تَفاصيل بمَظهر إيصال محاسبيّ كامل.
@@ -16,14 +17,14 @@
 <section class="ac-listing-details">
     @if (_loading)
     {
-        <p class="ejar-loading">جاري التحميل…</p>
+        <p class="ejar-loading">@(L[LedgerStrings.CommonLoading])</p>
     }
     else if (_listing is null)
     {
         <div class="ejar-empty">
             <span class="ejar-empty-glyph" aria-hidden="true">∅</span>
-            <h3>الإعلان غير متوفّر</h3>
-            <p>قد يَكون مَحذوفاً أو الرابط غير صحيح.</p>
+            <h3>@(L[LedgerStrings.ListingdetailsUnavailableTitle])</h3>
+            <p>@(L[LedgerStrings.ListingdetailsUnavailableBody])</p>
         </div>
     }
     else
@@ -40,7 +41,7 @@
                             var idx = i;
                             <button class="@(idx == _imgIdx ? "active" : "")"
                                     @onclick="@(() => _imgIdx = idx)"
-                                    aria-label="@($"صورة {idx + 1}")"></button>
+                                    aria-label="@(string.Format(L[LedgerStrings.ListingdetailsImageAriaFormat], idx + 1))"></button>
                         }
                     </div>
                 }
@@ -49,8 +50,8 @@
 
         @if (BeforeReceipt is not null) { <div class="ac-slot-before-receipt">@BeforeReceipt</div> }
         <OamReceipt OperationType="@($"listing.details · {_listing.Id[..Math.Min(8, _listing.Id.Length)]}")"
-                    From="@($"المالك:{_listing.OwnerId[..Math.Min(8, _listing.OwnerId.Length)]}")"
-                    To="@($"العقار:{_listing.Id[..Math.Min(8, _listing.Id.Length)]}")"
+                    From="@(string.Format(L[LedgerStrings.ListingdetailsOwnerPrefixFormat], _listing.OwnerId[..Math.Min(8, _listing.OwnerId.Length)]))"
+                    To="@(string.Format(L[LedgerStrings.ListingdetailsPropertyPrefixFormat], _listing.Id[..Math.Min(8, _listing.Id.Length)]))"
                     Time="@_listing.CreatedAt"
                     State="@(_listing.IsVerified ? OamState.Executed : OamState.Pending)"
                     Tags="@_tags">
@@ -78,7 +79,7 @@
             <FooterExtra>
                 @if (!HideContact)
                 {
-                    <button class="oam-btn" @onclick="OnContact">تَواصُل مع المالك</button>
+                    <button class="oam-btn" @onclick="OnContact">@(L[LedgerStrings.ListingdetailsContact])</button>
                 }
                 @if (ExtraActions is not null) { @ExtraActions(_listing) }
             </FooterExtra>
@@ -110,17 +111,17 @@
         {
             _tags = new List<OamTag>
             {
-                new("النَوع",  PropertyTypeLabel(_listing.PropertyType)),
-                new("المدينة",  _listing.City),
+                new(L[LedgerStrings.ListingdetailsTagType],  PropertyTypeLabel(_listing.PropertyType)),
+                new(L[LedgerStrings.ListingdetailsTagCity],  _listing.City),
             };
             if (!string.IsNullOrEmpty(_listing.District))
-                _tags.Add(new("الحيّ", _listing.District));
+                _tags.Add(new(L[LedgerStrings.ListingdetailsTagDistrict], _listing.District));
             if (_listing.BedroomCount > 0)
-                _tags.Add(new("غُرف", _listing.BedroomCount.ToString()));
+                _tags.Add(new(L[LedgerStrings.ListingdetailsTagBedrooms], _listing.BedroomCount.ToString()));
             if (_listing.BathroomCount > 0)
-                _tags.Add(new("حمّامات", _listing.BathroomCount.ToString()));
+                _tags.Add(new(L[LedgerStrings.ListingdetailsTagBathrooms], _listing.BathroomCount.ToString()));
             if (_listing.AreaSqm > 0)
-                _tags.Add(new("المساحة", $"{_listing.AreaSqm} m²"));
+                _tags.Add(new(L[LedgerStrings.ListingdetailsTagArea], $"{_listing.AreaSqm} m²"));
         }
     }
 
@@ -132,20 +133,21 @@
         Nav.NavigateTo($"/conversations/start?listingId={Uri.EscapeDataString(_listing.Id)}");
     }
 
-    private static string PriceUnit(string timeUnit) => timeUnit switch
+    // ‹L› مَحقون → غَير static
+    private string PriceUnit(string timeUnit) => timeUnit switch
     {
-        "monthly" => "/شهر",
-        "yearly"  => "/سنة",
-        "daily"   => "/يوم",
+        "monthly" => L[LedgerStrings.PriceunitMonthly],
+        "yearly"  => L[LedgerStrings.PriceunitYearly],
+        "daily"   => L[LedgerStrings.PriceunitDaily],
         _ => $"/{timeUnit}",
     };
 
-    private static string PropertyTypeLabel(string t) => t switch
+    private string PropertyTypeLabel(string t) => t switch
     {
-        "apartment" => "شقّة",
-        "villa"     => "فيلا",
-        "studio"    => "استوديو",
-        "office"    => "مكتب",
+        "apartment" => L[LedgerStrings.PropertytypeApartment],
+        "villa"     => L[LedgerStrings.PropertytypeVilla],
+        "studio"    => L[LedgerStrings.PropertytypeStudio],
+        "office"    => L[LedgerStrings.PropertytypeOffice],
         _           => t,
     };
 }

@@ -13,10 +13,25 @@
       عَبر مُعَدِّل options دون لَمس القالَب.
     </Description>
     <RazorLangVersion>latest</RazorLangVersion>
+    <!-- L10n SG (G7-A): يُوَلِّد LedgerStrings مِن Resources/Strings.resx -->
+    <L10nClassName>LedgerStrings</L10nClassName>
+    <L10nNamespace>ACommerce.Templates.Customer.Ledger.Resources</L10nNamespace>
   </PropertyGroup>
 
   <ItemGroup>
     <SupportedPlatform Include="browser" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <CompilerVisibleProperty Include="L10nClassName" />
+    <CompilerVisibleProperty Include="L10nNamespace" />
+    <CompilerVisibleProperty Include="RootNamespace" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <AdditionalFiles Include="Resources\Strings.resx" />
+    <EmbeddedResource Update="Resources\Strings.resx" />
+    <EmbeddedResource Update="Resources\Strings.ar.resx" />
   </ItemGroup>
 
   <ItemGroup>
@@ -40,5 +55,13 @@
          بَعد تَحويل kits إلى plain SDK + إِزالة dependency على Widgets، صارَت
          direct reference هنا (الـ razor المَنقول يَستَخدِمها). -->
     <ProjectReference Include="..\..\..\kits\Widgets\ACommerce.Widgets\ACommerce.Widgets.csproj" />
+
+    <!-- G7-A: L10n SG لِتَوليد LedgerStrings من Resources/Strings.resx -->
+    <ProjectReference Include="..\..\..\kits\L10n\ACommerce.L10n.SourceGenerator\ACommerce.L10n.SourceGenerator.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false" />
+
+    <!-- L10n.Resx composition — AddTranslationLayer + L runtime -->
+    <ProjectReference Include="..\..\..\compositions\Customer.L10n.Resx\ACommerce.Compositions.Customer.L10n.Resx\ACommerce.Compositions.Customer.L10n.Resx.csproj" />
   </ItemGroup>
 </Project>

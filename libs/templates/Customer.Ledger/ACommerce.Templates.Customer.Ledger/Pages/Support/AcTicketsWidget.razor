@@ -1,5 +1,6 @@
 @inject ISupportStore Store
 @inject NavigationManager Nav
+@inject L L
 @implements IDisposable
 
 @*
@@ -12,20 +13,20 @@
 
 <section class="ac-tickets">
     <header class="ejar-section-head">
-        <h2 class="ejar-section-title">الدَعم الفنّيّ</h2>
-        <a href="/support/new" class="oam-btn ejar-add-btn">+ تَذكرة جديدة</a>
+        <h2 class="ejar-section-title">@(L[LedgerStrings.TicketsTitle])</h2>
+        <a href="/support/new" class="oam-btn ejar-add-btn">@(L[LedgerStrings.TicketsNewButton])</a>
     </header>
 
     @if (Store.IsLoading)
     {
-        <p class="ejar-loading">جاري التحميل…</p>
+        <p class="ejar-loading">@(L[LedgerStrings.CommonLoading])</p>
     }
     else if (Store.Tickets.Count == 0)
     {
         <div class="ejar-empty">
             <span class="ejar-empty-glyph" aria-hidden="true">?</span>
-            <h3>لا توجد تَذاكر</h3>
-            <p>افتح تَذكرة لو تَحتاج مساعدة من فريق الدَعم.</p>
+            <h3>@(L[LedgerStrings.TicketsEmptyTitle])</h3>
+            <p>@(L[LedgerStrings.TicketsEmptyBody])</p>
         </div>
     }
     else
@@ -49,7 +50,7 @@
                     @if (t.UnreadReplies > 0)
                     {
                         <span class="ejar-ticket-unread"
-                              aria-label="@($"{t.UnreadReplies} ردّ غير مَقروء")">
+                              aria-label="@(string.Format(L[LedgerStrings.TicketsUnreadRepliesFormat], t.UnreadReplies))">
                             @t.UnreadReplies
                         </span>
                     }
@@ -75,13 +76,14 @@
         _                        => OamState.Pending,
     };
 
-    private static string FormatTime(DateTime utc)
+    // ‹L› مَحقون → غَير static
+    private string FormatTime(DateTime utc)
     {
         var local = utc.ToLocalTime();
         var diff  = DateTime.Now - local;
-        if (diff.TotalMinutes < 60) return $"منذ {(int)diff.TotalMinutes}د";
-        if (diff.TotalHours   < 24) return $"منذ {(int)diff.TotalHours}س";
-        if (diff.TotalDays    < 7)  return $"منذ {(int)diff.TotalDays}ي";
+        if (diff.TotalMinutes < 60) return string.Format(L[LedgerStrings.TimeMinutesAgoFormat], (int)diff.TotalMinutes);
+        if (diff.TotalHours   < 24) return string.Format(L[LedgerStrings.TimeHoursAgoFormat], (int)diff.TotalHours);
+        if (diff.TotalDays    < 7)  return string.Format(L[LedgerStrings.TimeDaysAgoFormat], (int)diff.TotalDays);
         return local.ToString("yyyy-MM-dd");
     }
 

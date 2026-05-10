@@ -1,5 +1,6 @@
 @inject IChatStore Store
 @inject IRichTextSanitizer Sanitizer
+@inject L L
 @implements IDisposable
 
 @*
@@ -11,20 +12,20 @@
 
 <section class="ejar-chatroom">
     <header class="ejar-chatroom-head">
-        <a href="/chat" class="ejar-chatroom-back" aria-label="رجوع">←</a>
-        <span class="ejar-chatroom-title">المحادثة</span>
+        <a href="/chat" class="ejar-chatroom-back" aria-label="@(L[LedgerStrings.CommonBackAria])">←</a>
+        <span class="ejar-chatroom-title">@(L[LedgerStrings.ChatRoomTitle])</span>
     </header>
 
     @if (Store.IsLoading)
     {
-        <p class="ejar-loading">جاري تَحميل الرسائل…</p>
+        <p class="ejar-loading">@(L[LedgerStrings.ChatLoadingMessages])</p>
     }
     else if (Store.CurrentMessages.Count == 0)
     {
         <div class="ejar-empty">
             <span class="ejar-empty-glyph" aria-hidden="true">⌖</span>
-            <h3>لا رسائل بَعد</h3>
-            <p>اكتب أوّل رسالة وابدأ المحادثة.</p>
+            <h3>@(L[LedgerStrings.ChatNoMessagesTitle])</h3>
+            <p>@(L[LedgerStrings.ChatNoMessagesBody])</p>
         </div>
     }
     else
@@ -41,7 +42,7 @@
         </ul>
     }
 
-    <AcChatComposerWidget OnSend="@HandleSend" Placeholder="اكتب رسالة…" SendLabel="إرسال" />
+    <AcChatComposerWidget OnSend="@HandleSend" Placeholder="@(L[LedgerStrings.ChatComposerPlaceholder])" SendLabel="@(L[LedgerStrings.ChatSend])" />
 </section>
 
 @code {

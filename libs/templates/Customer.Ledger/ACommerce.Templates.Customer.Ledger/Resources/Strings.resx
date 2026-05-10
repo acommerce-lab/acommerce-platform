@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+
+  <!-- Customer.Ledger template strings — neutral (English) culture.
+       Class: LedgerStrings (configured via L10nClassName in csproj). -->
+
+  <!-- Common -->
+  <data name="common.loading" xml:space="preserve"><value>Loading…</value></data>
+  <data name="common.back_aria" xml:space="preserve"><value>Back</value></data>
+  <data name="common.remove" xml:space="preserve"><value>Remove</value></data>
+  <data name="common.select_dash" xml:space="preserve"><value>— Select —</value></data>
+
+  <!-- Time labels (relative) -->
+  <data name="time.now" xml:space="preserve"><value>Now</value></data>
+  <data name="time.today" xml:space="preserve"><value>Today</value></data>
+  <data name="time.yesterday" xml:space="preserve"><value>Yesterday</value></data>
+  <data name="time.this_week" xml:space="preserve"><value>This week</value></data>
+  <data name="time.older" xml:space="preserve"><value>Older</value></data>
+  <data name="time.minutes_short_format" xml:space="preserve"><value>{0}m</value></data>
+  <data name="time.hours_short_format" xml:space="preserve"><value>{0}h</value></data>
+  <data name="time.days_short_format" xml:space="preserve"><value>{0}d</value></data>
+  <data name="time.minutes_ago_format" xml:space="preserve"><value>{0}m ago</value></data>
+  <data name="time.hours_ago_format" xml:space="preserve"><value>{0}h ago</value></data>
+  <data name="time.days_ago_format" xml:space="preserve"><value>{0}d ago</value></data>
+  <data name="time.monthly" xml:space="preserve"><value>Monthly</value></data>
+  <data name="time.yearly" xml:space="preserve"><value>Yearly</value></data>
+  <data name="time.daily" xml:space="preserve"><value>Daily</value></data>
+
+  <!-- Property types -->
+  <data name="propertytype.apartment" xml:space="preserve"><value>Apartment</value></data>
+  <data name="propertytype.villa" xml:space="preserve"><value>Villa</value></data>
+  <data name="propertytype.studio" xml:space="preserve"><value>Studio</value></data>
+  <data name="propertytype.office" xml:space="preserve"><value>Office</value></data>
+
+  <!-- Price units -->
+  <data name="priceunit.monthly" xml:space="preserve"><value>/month</value></data>
+  <data name="priceunit.yearly" xml:space="preserve"><value>/year</value></data>
+  <data name="priceunit.daily" xml:space="preserve"><value>/day</value></data>
+
+  <!-- Login -->
+  <data name="login.title" xml:space="preserve"><value>Sign in</value></data>
+  <data name="login.code_title" xml:space="preserve"><value>Enter the code</value></data>
+  <data name="login.phone_subtitle" xml:space="preserve"><value>Enter your mobile number to receive the activation code.</value></data>
+  <data name="login.code_subtitle" xml:space="preserve"><value>Enter the code you received.</value></data>
+  <data name="login.phone_label" xml:space="preserve"><value>Mobile number</value></data>
+  <data name="login.sending" xml:space="preserve"><value>Sending…</value></data>
+  <data name="login.send_code" xml:space="preserve"><value>Send code</value></data>
+  <data name="login.code_label" xml:space="preserve"><value>Code</value></data>
+  <data name="login.verifying" xml:space="preserve"><value>Verifying…</value></data>
+  <data name="login.verify" xml:space="preserve"><value>Confirm code</value></data>
+  <data name="login.change_phone" xml:space="preserve"><value>← Change number</value></data>
+
+  <!-- Chat -->
+  <data name="chat.inbox_title" xml:space="preserve"><value>Chats</value></data>
+  <data name="chat.empty_title" xml:space="preserve"><value>No conversations yet</value></data>
+  <data name="chat.empty_body" xml:space="preserve"><value>Open a listing and tap "Contact" to start a conversation.</value></data>
+  <data name="chat.unread_aria_format" xml:space="preserve"><value>{0} unread messages</value></data>
+  <data name="chat.room_title" xml:space="preserve"><value>Conversation</value></data>
+  <data name="chat.loading_messages" xml:space="preserve"><value>Loading messages…</value></data>
+  <data name="chat.no_messages_title" xml:space="preserve"><value>No messages yet</value></data>
+  <data name="chat.no_messages_body" xml:space="preserve"><value>Type the first message and start the conversation.</value></data>
+  <data name="chat.composer_placeholder" xml:space="preserve"><value>Type a message…</value></data>
+  <data name="chat.send" xml:space="preserve"><value>Send</value></data>
+
+  <!-- Favorites -->
+  <data name="favorites.title" xml:space="preserve"><value>Favorites</value></data>
+  <data name="favorites.empty_title" xml:space="preserve"><value>No favorites</value></data>
+  <data name="favorites.empty_body" xml:space="preserve"><value>Tap ♡ on any listing to add it here.</value></data>
+
+  <!-- Create listing -->
+  <data name="createlisting.title" xml:space="preserve"><value>New listing</value></data>
+  <data name="createlisting.field_title" xml:space="preserve"><value>Title</value></data>
+  <data name="createlisting.field_description" xml:space="preserve"><value>Description</value></data>
+  <data name="createlisting.field_price" xml:space="preserve"><value>Price</value></data>
+  <data name="createlisting.field_period" xml:space="preserve"><value>Period</value></data>
+  <data name="createlisting.field_type" xml:space="preserve"><value>Type</value></data>
+  <data name="createlisting.field_city" xml:space="preserve"><value>City</value></data>
+  <data name="createlisting.publishing" xml:space="preserve"><value>Publishing…</value></data>
+  <data name="createlisting.publish" xml:space="preserve"><value>Publish listing</value></data>
+  <data name="createlisting.analyzer_title_required" xml:space="preserve"><value>Title not empty</value></data>
+  <data name="createlisting.analyzer_title_min" xml:space="preserve"><value>≥ 5 chars</value></data>
+  <data name="createlisting.analyzer_price_valid" xml:space="preserve"><value>Valid price</value></data>
+  <data name="createlisting.analyzer_price_positive" xml:space="preserve"><value>Greater than zero</value></data>
+  <data name="createlisting.analyzer_type_selected" xml:space="preserve"><value>Property type selected</value></data>
+  <data name="createlisting.analyzer_city_specified" xml:space="preserve"><value>City specified</value></data>
+
+  <!-- Listing details -->
+  <data name="listingdetails.unavailable_title" xml:space="preserve"><value>Listing unavailable</value></data>
+  <data name="listingdetails.unavailable_body" xml:space="preserve"><value>It may have been deleted, or the link is incorrect.</value></data>
+  <data name="listingdetails.image_aria_format" xml:space="preserve"><value>Image {0}</value></data>
+  <data name="listingdetails.owner_prefix_format" xml:space="preserve"><value>Owner:{0}</value></data>
+  <data name="listingdetails.property_prefix_format" xml:space="preserve"><value>Property:{0}</value></data>
+  <data name="listingdetails.contact" xml:space="preserve"><value>Contact owner</value></data>
+  <data name="listingdetails.tag_type" xml:space="preserve"><value>Type</value></data>
+  <data name="listingdetails.tag_city" xml:space="preserve"><value>City</value></data>
+  <data name="listingdetails.tag_district" xml:space="preserve"><value>District</value></data>
+  <data name="listingdetails.tag_bedrooms" xml:space="preserve"><value>Bedrooms</value></data>
+  <data name="listingdetails.tag_bathrooms" xml:space="preserve"><value>Bathrooms</value></data>
+  <data name="listingdetails.tag_area" xml:space="preserve"><value>Area</value></data>
+
+  <!-- Explore listings -->
+  <data name="listings.explore_title" xml:space="preserve"><value>Available properties</value></data>
+  <data name="listings.search_placeholder" xml:space="preserve"><value>Search (city, district, property type…)</value></data>
+  <data name="listings.all_types" xml:space="preserve"><value>All types</value></data>
+  <data name="listings.apply_filter" xml:space="preserve"><value>Apply</value></data>
+  <data name="listings.no_results_title" xml:space="preserve"><value>No listings match your search</value></data>
+  <data name="listings.no_results_body" xml:space="preserve"><value>Try widening the filter or retrying later.</value></data>
+
+  <!-- My listings -->
+  <data name="mylistings.title" xml:space="preserve"><value>My listings</value></data>
+  <data name="mylistings.new_button" xml:space="preserve"><value>+ New listing</value></data>
+  <data name="mylistings.empty_title" xml:space="preserve"><value>You haven't published any listings yet</value></data>
+  <data name="mylistings.empty_body" xml:space="preserve"><value>Tap "New listing" to add your first property.</value></data>
+  <data name="mylistings.activity_summary" xml:space="preserve"><value>My activity summary</value></data>
+  <data name="mylistings.published" xml:space="preserve"><value>Published</value></data>
+  <data name="mylistings.activity" xml:space="preserve"><value>Activity</value></data>
+  <data name="mylistings.list_title" xml:space="preserve"><value>Listings</value></data>
+  <data name="mylistings.views_label_format" xml:space="preserve"><value>{0} views</value></data>
+  <data name="mylistings.summary_listings" xml:space="preserve"><value>Listings</value></data>
+  <data name="mylistings.summary_active" xml:space="preserve"><value>Active</value></data>
+  <data name="mylistings.summary_verified" xml:space="preserve"><value>Verified</value></data>
+  <data name="mylistings.summary_total_views" xml:space="preserve"><value>Total views</value></data>
+  <data name="mylistings.summary_avg_per_listing" xml:space="preserve"><value>Average per listing</value></data>
+
+  <!-- Notifications -->
+  <data name="notifications.title" xml:space="preserve"><value>Notifications</value></data>
+  <data name="notifications.unread_count_format" xml:space="preserve"><value>{0} unread</value></data>
+  <data name="notifications.mark_all_read" xml:space="preserve"><value>Mark all as read</value></data>
+  <data name="notifications.empty_title" xml:space="preserve"><value>No notifications</value></data>
+  <data name="notifications.empty_body" xml:space="preserve"><value>Message, listing, and system alerts appear here.</value></data>
+  <data name="notifications.unread_aria" xml:space="preserve"><value>Unread</value></data>
+
+  <!-- Profile -->
+  <data name="profile.title" xml:space="preserve"><value>My account</value></data>
+  <data name="profile.load_failed_title" xml:space="preserve"><value>Couldn't load profile</value></data>
+  <data name="profile.load_failed_body" xml:space="preserve"><value>Make sure you're signed in and try again.</value></data>
+  <data name="profile.member_since_format" xml:space="preserve"><value>Member since {0}</value></data>
+  <data name="profile.identity_title" xml:space="preserve"><value>Identity</value></data>
+  <data name="profile.phone_label" xml:space="preserve"><value>Phone</value></data>
+  <data name="profile.email_label" xml:space="preserve"><value>Email</value></data>
+  <data name="profile.city_label" xml:space="preserve"><value>City</value></data>
+  <data name="profile.edit" xml:space="preserve"><value>Edit</value></data>
+  <data name="profile.settings" xml:space="preserve"><value>Settings</value></data>
+
+  <!-- Plans -->
+  <data name="plans.title" xml:space="preserve"><value>Subscription</value></data>
+  <data name="plans.empty_title" xml:space="preserve"><value>No plans available</value></data>
+  <data name="plans.empty_body" xml:space="preserve"><value>Plans will be published soon.</value></data>
+  <data name="plans.current_label" xml:space="preserve"><value>My current plan</value></data>
+  <data name="plans.unlimited" xml:space="preserve"><value>Unlimited</value></data>
+  <data name="plans.active_button" xml:space="preserve"><value>Active</value></data>
+  <data name="plans.subscribe" xml:space="preserve"><value>Subscribe</value></data>
+  <data name="plans.quota_listings" xml:space="preserve"><value>Listings</value></data>
+  <data name="plans.quota_messages" xml:space="preserve"><value>Messages</value></data>
+  <data name="plans.quota_notifications" xml:space="preserve"><value>Notifications</value></data>
+
+  <!-- Support tickets -->
+  <data name="tickets.title" xml:space="preserve"><value>Support</value></data>
+  <data name="tickets.new_button" xml:space="preserve"><value>+ New ticket</value></data>
+  <data name="tickets.empty_title" xml:space="preserve"><value>No tickets</value></data>
+  <data name="tickets.empty_body" xml:space="preserve"><value>Open a ticket if you need help from the support team.</value></data>
+  <data name="tickets.unread_replies_format" xml:space="preserve"><value>{0} unread replies</value></data>
+</root>

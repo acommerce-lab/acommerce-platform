@@ -1,5 +1,6 @@
 @inject IListingsStore Store
 @inject NavigationManager Nav
+@inject L L
 
 @*
     AcCreateListingWidget — نَموذج إعلان جديد بـ AnalyzerStrip:
@@ -15,52 +16,52 @@
 
 <section class="ac-create-listing">
     <header class="ejar-section-head">
-        <h2 class="ejar-section-title">إعلان جديد</h2>
+        <h2 class="ejar-section-title">@(L[LedgerStrings.CreatelistingTitle])</h2>
         <span class="ejar-section-meta oam-mono">/ listing.create</span>
     </header>
 
     <div class="ejar-create-form">
         <label class="ejar-field">
-            <span>العنوان</span>
+            <span>@(L[LedgerStrings.CreatelistingFieldTitle])</span>
             <input class="ac-input" type="text" maxlength="120"
                    value="@_title" @oninput="@(e => Update(_title = e.Value?.ToString() ?? ""))" />
         </label>
 
         <label class="ejar-field">
-            <span>الوصف</span>
+            <span>@(L[LedgerStrings.CreatelistingFieldDescription])</span>
             <textarea class="ac-input" rows="3" maxlength="2000"
                       @oninput="@(e => Update(_description = e.Value?.ToString() ?? ""))">@_description</textarea>
         </label>
 
         <div class="ejar-field-row">
             <label class="ejar-field">
-                <span>السعر</span>
+                <span>@(L[LedgerStrings.CreatelistingFieldPrice])</span>
                 <input class="ac-input oam-mono" type="number" min="0" step="100"
                        value="@_price" @oninput="@(e => { decimal.TryParse(e.Value?.ToString(), out var p); Update(_price = p); })" />
             </label>
             <label class="ejar-field">
-                <span>الفترة</span>
+                <span>@(L[LedgerStrings.CreatelistingFieldPeriod])</span>
                 <select class="ac-input" @bind="_timeUnit" @bind:after="OnFormChanged">
-                    <option value="monthly">شهريّ</option>
-                    <option value="yearly">سنويّ</option>
-                    <option value="daily">يَوميّ</option>
+                    <option value="monthly">@(L[LedgerStrings.TimeMonthly])</option>
+                    <option value="yearly">@(L[LedgerStrings.TimeYearly])</option>
+                    <option value="daily">@(L[LedgerStrings.TimeDaily])</option>
                 </select>
             </label>
         </div>
 
         <div class="ejar-field-row">
             <label class="ejar-field">
-                <span>النَوع</span>
+                <span>@(L[LedgerStrings.CreatelistingFieldType])</span>
                 <select class="ac-input" @bind="_propertyType" @bind:after="OnFormChanged">
-                    <option value="">— اختَر —</option>
-                    <option value="apartment">شقّة</option>
-                    <option value="villa">فيلا</option>
-                    <option value="studio">استوديو</option>
-                    <option value="office">مكتب</option>
+                    <option value="">@(L[LedgerStrings.CommonSelectDash])</option>
+                    <option value="apartment">@(L[LedgerStrings.PropertytypeApartment])</option>
+                    <option value="villa">@(L[LedgerStrings.PropertytypeVilla])</option>
+                    <option value="studio">@(L[LedgerStrings.PropertytypeStudio])</option>
+                    <option value="office">@(L[LedgerStrings.PropertytypeOffice])</option>
                 </select>
             </label>
             <label class="ejar-field">
-                <span>المدينة</span>
+                <span>@(L[LedgerStrings.CreatelistingFieldCity])</span>
                 <input class="ac-input" type="text" maxlength="60"
                        value="@_city" @oninput="@(e => Update(_city = e.Value?.ToString() ?? ""))" />
             </label>
@@ -72,7 +73,7 @@
         <Action>
             <button class="oam-btn" disabled="@(!context || _submitting)"
                     @onclick="OnSubmit">
-                @(_submitting ? "جاري النَشر…" : "نَشر الإعلان")
+                @(_submitting ? L[LedgerStrings.CreatelistingPublishing] : L[LedgerStrings.CreatelistingPublish])
             </button>
         </Action>
     </OamAnalyzerStrip>
@@ -104,15 +105,15 @@
     {
         _analyzers = new[]
         {
-            new OamAnalyzer("عنوان غير فارغ",
+            new OamAnalyzer(L[LedgerStrings.CreatelistingAnalyzerTitleRequired],
                 !string.IsNullOrWhiteSpace(_title) ? OamAnalyzerState.Pass : OamAnalyzerState.Fail,
-                _title.Length > 5 ? null : "≥ 5 حرف"),
-            new OamAnalyzer("سعر صحيح",
+                _title.Length > 5 ? null : L[LedgerStrings.CreatelistingAnalyzerTitleMin]),
+            new OamAnalyzer(L[LedgerStrings.CreatelistingAnalyzerPriceValid],
                 _price > 0 ? OamAnalyzerState.Pass : OamAnalyzerState.Fail,
-                _price <= 0 ? "أكبر من صِفر" : null),
-            new OamAnalyzer("نَوع العقار مُختار",
+                _price <= 0 ? L[LedgerStrings.CreatelistingAnalyzerPricePositive] : null),
+            new OamAnalyzer(L[LedgerStrings.CreatelistingAnalyzerTypeSelected],
                 !string.IsNullOrEmpty(_propertyType) ? OamAnalyzerState.Pass : OamAnalyzerState.Fail),
-            new OamAnalyzer("مدينة مُحدَّدة",
+            new OamAnalyzer(L[LedgerStrings.CreatelistingAnalyzerCitySpecified],
                 !string.IsNullOrWhiteSpace(_city) ? OamAnalyzerState.Pass : OamAnalyzerState.Fail),
         };
         StateHasChanged();

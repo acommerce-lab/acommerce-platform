@@ -1,6 +1,7 @@
 @inject INotificationsStore Store
 @inject IRichTextSanitizer Sanitizer
 @inject NavigationManager Nav
+@inject L L
 @implements IDisposable
 
 @*
@@ -13,28 +14,28 @@
 
 <section class="ac-notifications-inbox">
     <header class="ejar-section-head">
-        <h2 class="ejar-section-title">الإشعارات</h2>
+        <h2 class="ejar-section-title">@(L[LedgerStrings.NotificationsTitle])</h2>
         <span class="ejar-section-meta oam-mono">/ inbox · @Store.Items.Count</span>
     </header>
 
     @if (Store.UnreadCount > 0)
     {
         <div class="ejar-notifs-bar">
-            <span class="ejar-notifs-bar-text">@Store.UnreadCount غير مَقروء</span>
-            <button class="oam-btn oam-btn-ghost" @onclick="MarkAll">تحديد الكلّ كَمَقروء</button>
+            <span class="ejar-notifs-bar-text">@(string.Format(L[LedgerStrings.NotificationsUnreadCountFormat], Store.UnreadCount))</span>
+            <button class="oam-btn oam-btn-ghost" @onclick="MarkAll">@(L[LedgerStrings.NotificationsMarkAllRead])</button>
         </div>
     }
 
     @if (Store.IsLoading)
     {
-        <p class="ejar-loading">جاري التحميل…</p>
+        <p class="ejar-loading">@(L[LedgerStrings.CommonLoading])</p>
     }
     else if (Store.Items.Count == 0)
     {
         <div class="ejar-empty">
             <span class="ejar-empty-glyph" aria-hidden="true">◔</span>
-            <h3>لا توجد إشعارات</h3>
-            <p>تظهر هنا تَنبيهات الرسائل والإعلانات والنَظام.</p>
+            <h3>@(L[LedgerStrings.NotificationsEmptyTitle])</h3>
+            <p>@(L[LedgerStrings.NotificationsEmptyBody])</p>
         </div>
     }
     else
@@ -60,7 +61,7 @@
                         </div>
                         @if (!n.IsRead)
                         {
-                            <span class="ejar-notif-dot" aria-label="غير مَقروء"></span>
+                            <span class="ejar-notif-dot" aria-label="@(L[LedgerStrings.NotificationsUnreadAria])"></span>
                         }
                     </li>
                 }
@@ -84,23 +85,24 @@
         if (!string.IsNullOrEmpty(n.DeepLinkUrl)) Nav.NavigateTo(n.DeepLinkUrl);
     }
 
-    private static string GroupLabel(NotificationItem n)
+    // ‹L› مَحقون → غَير static
+    private string GroupLabel(NotificationItem n)
     {
         var local = n.CreatedAt.ToLocalTime();
         var diff  = DateTime.Now - local;
-        if (diff.TotalDays < 1) return "اليوم";
-        if (diff.TotalDays < 2) return "أمس";
-        if (diff.TotalDays < 7) return "هذا الأسبوع";
-        return "أقدم";
+        if (diff.TotalDays < 1) return L[LedgerStrings.TimeToday];
+        if (diff.TotalDays < 2) return L[LedgerStrings.TimeYesterday];
+        if (diff.TotalDays < 7) return L[LedgerStrings.TimeThisWeek];
+        return L[LedgerStrings.TimeOlder];
     }
 
-    private static string FormatTime(DateTime utc)
+    private string FormatTime(DateTime utc)
     {
         var local = utc.ToLocalTime();
         var diff  = DateTime.Now - local;
-        if (diff.TotalMinutes < 1)  return "الآن";
-        if (diff.TotalMinutes < 60) return $"{(int)diff.TotalMinutes}د";
-        if (diff.TotalHours   < 24) return $"{(int)diff.TotalHours}س";
+        if (diff.TotalMinutes < 1)  return L[LedgerStrings.TimeNow];
+        if (diff.TotalMinutes < 60) return string.Format(L[LedgerStrings.TimeMinutesShortFormat], (int)diff.TotalMinutes);
+        if (diff.TotalHours   < 24) return string.Format(L[LedgerStrings.TimeHoursShortFormat], (int)diff.TotalHours);
         return local.ToString("MM-dd HH:mm");
     }
 
