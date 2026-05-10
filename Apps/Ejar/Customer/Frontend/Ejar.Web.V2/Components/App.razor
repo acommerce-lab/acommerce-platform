@@ -19,11 +19,17 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" />
+    @* favicon فارِغ — يَكتُم طَلَب /favicon.ico التِلقائيّ مِن المُتَصَفِّح
+       حَتّى لا يَظهَر 404 في الـ console. التَّطبيق يَستَطيع وَضع
+       favicon.ico حَقيقيّ في wwwroot وحينَها يَفوز عَلى هذا. *@
+    <link rel="icon" href="data:," />
     <link rel="stylesheet" href="_content/ACommerce.Widgets/widgets.css" />
-    <link rel="stylesheet" href="_content/ACommerce.Templates.Shared/templates-shared.css" />
-    <link rel="stylesheet" href="_content/ACommerce.Templates.Marketplace/templates-marketplace.css" />
     <link rel="stylesheet" href="_content/ACommerce.Templates.OAM/oam-fingerprint.css" />
     <link rel="stylesheet" href="_content/ACommerce.Templates.Customer.Ledger/template.css" />
+    @* templates-shared.css + templates-marketplace.css كانَتا مِن قَوالِب V1
+       (Templates.Shared / Templates.Marketplace) لا يَستَهلِكها V2 — أُزيلَتا
+       بَعد ٤٠٤ في الـ console، الـ assemblies غَير مَرجوعَة فَلا
+       _content/... لَهما. *@
     <!-- branding.css آخر CSS يُحمَّل ⇒ override كَلاسات Customer.Ledger
          (LedgerClasses.*) بألوان إيجار. هذا هو نُقطة التَّخصيص الوَحيدة
          التي يَحتاجها التَّطبيق لِتَلوين القالَب. -->
