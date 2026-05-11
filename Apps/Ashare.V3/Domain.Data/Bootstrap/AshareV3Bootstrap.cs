@@ -1,4 +1,7 @@
+using ACommerce.SharedKernel.Domain.DynamicAttributes;
 using Ashare.V3.Data;
+using Ashare.V3.Data.Templates;
+using Ashare.V3.Domain;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -111,6 +114,9 @@ public static class AshareV3Bootstrap
                     "Ashare V3: ProductListing فارِغ. شَغِّل أَداة الاستِنساخ: " +
                     "ASHAREDB_PROD_CONN='…' dotnet run --project Apps/Ashare.V3/Tools/CloneAshareDb");
             }
+
+            // ③ Seed قَوالِب سِمات الفِئات (hybrid: الكود canonical، DB مَعروض).
+            await SeedCategoryTemplatesAsync(db, logger, ct);
         }
         else
         {
@@ -129,6 +135,58 @@ public static class AshareV3Bootstrap
             }
             logger?.LogInformation("Ashare V3: SQL Server additive schema check complete");
         }
+    }
+
+    /// <summary>
+    /// يَنسَخ قَوالِب <see cref="V3CategoryTemplates"/> إلى جَدول DB. سِياسَة:
+    /// <list type="bullet">
+    ///   <item>row ناقِص ⇒ insert.</item>
+    ///   <item>row مَوجود + <c>!IsLockedByAdmin</c> + <c>code.Version > db.CodeVersion</c> ⇒ update.</item>
+    ///   <item>row مَقفول مِن لوحَة التَحَكُّم ⇒ تَخَطّى.</item>
+    /// </list>
+    /// idempotent: تَشغيل مُتَكَرِّر بِلا تَغيير = no-op.
+    /// </summary>
+    private static async Task SeedCategoryTemplatesAsync(
+        AshareV3DbContext db, ILogger? logger, CancellationToken ct)
+    {
+        var inserted = 0;
+        var updated  = 0;
+        var skipped  = 0;
+        foreach (var (slug, version, template) in V3CategoryTemplates.All)
+        {
+            var existing = await db.CategoryAttributeTemplates
+                .FirstOrDefaultAsync(t => t.CategorySlug == slug, ct);
+            var json = DynamicAttributeHelper.SerializeTemplate(template);
+
+            if (existing is null)
+            {
+                db.CategoryAttributeTemplates.Add(new CategoryAttributeTemplateEntity
+                {
+                    Id           = Guid.NewGuid(),
+                    CreatedAt    = DateTime.UtcNow,
+                    CategorySlug = slug,
+                    TemplateJson = json,
+                    CodeVersion  = version,
+                });
+                inserted++;
+            }
+            else if (!existing.IsLockedByAdmin && version > existing.CodeVersion)
+            {
+                existing.TemplateJson = json;
+                existing.CodeVersion  = version;
+                existing.UpdatedAt    = DateTime.UtcNow;
+                updated++;
+            }
+            else
+            {
+                skipped++;
+            }
+        }
+        if (inserted + updated > 0)
+            await db.SaveChangesAsync(ct);
+        logger?.LogInformation(
+            "Ashare V3: category templates seed — inserted={I} updated={U} skipped={S}",
+            inserted, updated, skipped);
     }
 
     // SQL Server: IF OBJECT_ID('dbo.Foo', 'U') IS NULL CREATE TABLE …

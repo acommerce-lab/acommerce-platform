@@ -55,6 +55,10 @@ public sealed class AshareV3DbContext : DbContext
     public DbSet<CityEntity>          Cities             => Set<CityEntity>();
     public DbSet<NeighborhoodEntity>  Neighborhoods      => Set<NeighborhoodEntity>();
 
+    // ── Category attribute templates (V3-additive, hybrid code+DB)
+    public DbSet<CategoryAttributeTemplateEntity> CategoryAttributeTemplates =>
+        Set<CategoryAttributeTemplateEntity>();
+
     protected override void OnModelCreating(ModelBuilder b)
     {
         // ─── أَسماء جَداوِل asharedb (singular pattern V2) ────────────
@@ -90,6 +94,11 @@ public sealed class AshareV3DbContext : DbContext
         b.Entity<RegionEntity>().ToTable("Regions").HasQueryFilter(e => !e.IsDeleted);
         b.Entity<CityEntity>().ToTable("Cities").HasQueryFilter(e => !e.IsDeleted);
         b.Entity<NeighborhoodEntity>().ToTable("Neighborhoods").HasQueryFilter(e => !e.IsDeleted);
+
+        // CategoryAttributeTemplates — V3-only، plural، يُنشَأ بِـ EnsureCreated.
+        b.Entity<CategoryAttributeTemplateEntity>().ToTable("CategoryAttributeTemplates")
+            .HasQueryFilter(e => !e.IsDeleted);
+        b.Entity<CategoryAttributeTemplateEntity>().HasIndex(e => e.CategorySlug).IsUnique();
 
         // ─── soft-delete global query filter (مُتَّسِق مَع V2 pattern) ─
         b.Entity<ProfileEntity>().HasQueryFilter(e => !e.IsDeleted);

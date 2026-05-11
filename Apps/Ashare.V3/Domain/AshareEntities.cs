@@ -545,3 +545,37 @@ public class NeighborhoodEntity : IBaseEntity
     public int SortOrder { get; set; }
     public Guid CityId { get; set; }
 }
+
+
+// ─── Category Attribute Templates (hybrid: code-canonical + DB-served) ──
+/// <summary>
+/// لِكُلّ فِئَة (<c>ProductCategory.Slug</c>) قالَب سِمات ديناميكِيَّة (JSON
+/// لِـ <see cref="ACommerce.SharedKernel.Domain.DynamicAttributes.AttributeTemplate"/>).
+///
+/// <para><b>سياسَة المَزامَنَة</b>:</para>
+/// <list type="bullet">
+///   <item>الكود (<c>V3CategoryTemplates</c>) = المَرجِع الكانوني.</item>
+///   <item>Bootstrap يَنسَخ مِن الكود إلى DB لَو الـ row ناقِص أَو لَو
+///         <c>CodeVersion</c> الكود أَحدَث وَ <c>IsLockedByAdmin = false</c>.</item>
+///   <item>لوحَة التَحَكُّم تُعَدِّل DB row وتَضَع <c>IsLockedByAdmin = true</c>
+///         ⇒ Bootstrap لا يُلامِس هذا الـ row بَعد ذلك.</item>
+///   <item>الواجِهَة تَقرَأ مِن endpoint <c>/categories/{slug}/attribute-template</c>
+///         الَّذي يَقرَأ DB أَوَّلاً ثُمّ fallback لِلكود.</item>
+/// </list>
+/// </summary>
+public class CategoryAttributeTemplateEntity : IBaseEntity
+{
+    public Guid Id { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public DateTime? UpdatedAt { get; set; }
+    public bool IsDeleted { get; set; }
+
+    /// <summary>مِفتاح الفِئَة — <c>ProductCategory.Slug</c>.</summary>
+    public string CategorySlug { get; set; } = "";
+    /// <summary>JSON مُتَسَلسَل لِـ <c>AttributeTemplate</c>.</summary>
+    public string TemplateJson { get; set; } = "";
+    /// <summary>إصدار الكود الَّذي وَلَّد هذا الـ row. Bootstrap يُقارِنه قَبل overwrite.</summary>
+    public int CodeVersion { get; set; }
+    /// <summary>إذا <c>true</c>، Bootstrap لا يُلامِس هذا الـ row حَتّى لَو الكود تَحَدَّث.</summary>
+    public bool IsLockedByAdmin { get; set; }
+}
