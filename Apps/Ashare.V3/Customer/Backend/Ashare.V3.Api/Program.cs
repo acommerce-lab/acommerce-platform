@@ -1,32 +1,60 @@
+using ACommerce.Kits.Auth.Operations;
+using ACommerce.ServiceHost;
 using Ashare.V3.Bootstrap;
 using Ashare.V3.Data;
+using Ashare.V3.Data.Stores;
 using Microsoft.EntityFrameworkCore;
+using Serilog;
 
 // ═══════════════════════════════════════════════════════════════════════
-// Ashare V3 API — minimal bootstrap.
-//
-// هذا الـ Program مُتَعَمَّد المِنيمالِزم: يَتَّصِل بِـ asharedb، يَضمَن
-// وُجود جَداوِل V3 الجَديدَة (Favorites/Reports/Notifications)، يَكشِف
-// نُقطَتَي smoke test لِقِراءَة بَيانات حَيَّة.
-//
-// الكيتس (Auth, Listings, Chat, Subscriptions, Support, Notifications…)
-// تُسَجَّل لاحِقاً كيت بِكيت بَعد كِتابَة Stores تُنَفِّذ واجِهاتها فَوق
-// كَيانات Ashare V3. هذا الـ iteration الأَوَّل يَخدُم هَدَفاً واحِداً:
-// ضَمان أَنّ المِعماريَّة مُتَوافِقَة مَع asharedb و أَنّ لا شَيء يَكسِر
-// البَيانات الحَيَّة.
+// Ashare V3 API — يَستَهلِك asharedb (بَيانات حَيَّة V2 production).
+// نَفس نَمَط Ejar.Api: AddACommerceServiceHost.AddKits(...) يَكشِف كُلّ
+// الـ endpoints القياسيَّة (/version/check، /cities، /listings، /chats،
+// /favorites، /notifications، /complaints، /me، /auth/*) تِلقائيّاً.
+// الفَرق فَقَط Stores — تَقرَأ مِن جَداوِل Ashare بَدَل Ejar.
 // ═══════════════════════════════════════════════════════════════════════
 
 var builder = WebApplication.CreateBuilder(args);
 
+const string JwtSecret = "ashare_v3_secret_key_12345678901234567890";
+
 builder.Services.AddAshareV3Database(builder.Configuration, builder.Environment);
-builder.Services.AddControllers();
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddCors(o => o.AddDefaultPolicy(p =>
-    p.SetIsOriginAllowed(_ => true).AllowAnyHeader().AllowAnyMethod()));
+
+builder.AddACommerceServiceHost(host => host
+    .UseSerilog("ashare-v3")
+    .UseDatabase<AshareV3DbContext>()
+    .UseOperationEngine(typeof(Program).Assembly)
+    .UseJwtAuthentication(jwt =>
+    {
+        jwt.Secret = JwtSecret;
+        jwt.Issuer = "ashare.v3.api";
+        jwt.Audience = "ashare.v3.mobile";
+    })
+    .UseControllers()
+    .RegisterEntities(
+        typeof(AshareV3DbContext).Assembly,
+        typeof(ACommerce.Kits.Discovery.Domain.DiscoveryRegion).Assembly)
+
+    // ── الكيتس: كُلّ كيت + Store-ها فَوق جَداوِل asharedb ───────────
+    // (Support/Reports/Notifications/Subscriptions يَدخُلون بَعد إِضافَة
+    //  view-records صَحيحَة لِكُلّ مِنها — تَنفيذ تالٍ.)
+    .AddKits(kits => kits
+        .AddAuth<AshareV3AuthUserStore>(
+            new AuthKitJwtConfig(JwtSecret, "ashare.v3.api", "ashare.v3.mobile",
+                                 Role: "user", PartyKind: "User",
+                                 AccessTokenLifetimeDays: 30))
+        .AddChat<AshareV3ChatStore>()
+        .AddChatPresenceProbe<AshareV3ChatPresenceProbe>()
+        .AddDiscovery()
+        .AddFavorites<AshareV3FavoritesStore>()
+        .AddVersions<AshareV3VersionStore>()
+        .AddListings<AshareV3ListingStore>()
+        .AddProfiles<AshareV3ProfileStore>())
+);
 
 var app = builder.Build();
 
-// ─── Schema check (additive only — لا تَعديل عَلى جَداوِل قائِمَة) ──
+// ─── Schema check (additive — يُنشِئ الجَداوِل الجَديدَة لَو ناقِصَة) ──
 using (var scope = app.Services.CreateScope())
 {
     try
@@ -35,16 +63,16 @@ using (var scope = app.Services.CreateScope())
     }
     catch (Exception ex)
     {
-        var logger = scope.ServiceProvider.GetService<ILoggerFactory>()
-                          ?.CreateLogger("Ashare.V3.Api");
-        logger?.LogError(ex, "Bootstrap failed — API may not function correctly. Continuing anyway.");
+        Log.Error(ex, "Ashare V3 bootstrap failed");
     }
 }
 
-app.UseCors();
-app.MapControllers();
+app.UseCors(opt => opt
+    .SetIsOriginAllowed(_ => true).AllowAnyHeader().AllowAnyMethod().AllowCredentials());
 
-// ─── Diagnostic endpoint — أَوَّل smoke test ──────────────────────
+app.UseACommerceServiceHost();
+
+// ─── Smoke endpoint ───────────────────────────────────────────────────
 app.MapGet("/health", async (AshareV3DbContext db) => new
 {
     status     = "ok",
@@ -55,38 +83,5 @@ app.MapGet("/health", async (AshareV3DbContext db) => new
     messages   = await db.Messages.CountAsync()
 });
 
-// ─── Sample read endpoints — يَقرَأ بَيانات حَيَّة مِن asharedb ─────
-app.MapGet("/api/listings", async (AshareV3DbContext db) =>
-    await db.ProductListings
-        .Where(l => l.IsActive)
-        .OrderByDescending(l => l.CreatedAt)
-        .Take(50)
-        .Select(l => new
-        {
-            l.Id, l.Title, l.Price, l.City, l.FeaturedImage,
-            l.IsFeatured, l.ViewCount, l.CreatedAt
-        })
-        .ToListAsync());
-
-app.MapGet("/api/profiles", async (AshareV3DbContext db) =>
-    await db.Profiles
-        .OrderByDescending(p => p.CreatedAt)
-        .Take(50)
-        .Select(p => new
-        {
-            p.Id, p.FullName, p.PhoneNumber, p.City, p.IsVerified, p.CreatedAt
-        })
-        .ToListAsync());
-
-// ─── Fallback لِكُلّ endpoint غَير مُسَجَّل بَعد ─────────────────────
-// V3.Web يَستَهلِك Ejar V1 template الذي يَستَدعي /version/check و /cities و
-// /home/view وغَيرها. هذه الكيتس لَم تُوصَل بَعد في V3.Api (iteration 1).
-// نُرجِع JSON 501 (لا 404 فارِغ) لِيَتَمَكَّن الـ HttpDispatcher مِن الـ
-// frontend مِن قِراءَة الجَواب دون JsonException.
-app.MapFallback(() => Results.Json(
-    new { error = "endpoint_not_implemented",
-          message = "Ashare V3 iteration 1: kit endpoints not wired yet. " +
-                    "Implement Stores + register kits in Program.cs in iteration 2+." },
-    statusCode: 501));
-
+Log.Information("Ashare V3 API ready [{Env}]", app.Environment.EnvironmentName);
 app.Run();

@@ -116,7 +116,40 @@ public static class AshareV3Bootstrap
           CREATE INDEX [IX_Notifications_UserId_IsRead] ON [dbo].[Notifications] ([UserId], [IsRead]);",
 
         @"IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Reports_EntityType_EntityId')
-          CREATE INDEX [IX_Reports_EntityType_EntityId] ON [dbo].[Reports] ([EntityType], [EntityId]);"
+          CREATE INDEX [IX_Reports_EntityType_EntityId] ON [dbo].[Reports] ([EntityType], [EntityId]);",
+
+        @"IF OBJECT_ID('dbo.DiscoveryCategories', 'U') IS NULL
+          CREATE TABLE [dbo].[DiscoveryCategories] (
+            [Id]        uniqueidentifier NOT NULL PRIMARY KEY,
+            [CreatedAt] datetime2        NOT NULL,
+            [UpdatedAt] datetime2        NULL,
+            [IsDeleted] bit              NOT NULL,
+            [Slug]      nvarchar(100)    NOT NULL,
+            [Label]     nvarchar(100)    NOT NULL,
+            [Icon]      nvarchar(50)     NOT NULL,
+            [Kind]      nvarchar(50)     NOT NULL
+          );",
+
+        @"IF OBJECT_ID('dbo.DiscoveryRegions', 'U') IS NULL
+          CREATE TABLE [dbo].[DiscoveryRegions] (
+            [Id]        uniqueidentifier NOT NULL PRIMARY KEY,
+            [CreatedAt] datetime2        NOT NULL,
+            [UpdatedAt] datetime2        NULL,
+            [IsDeleted] bit              NOT NULL,
+            [Name]      nvarchar(100)    NOT NULL,
+            [ParentId]  uniqueidentifier NULL,
+            [Level]     int              NOT NULL
+          );",
+
+        @"IF OBJECT_ID('dbo.DiscoveryAmenities', 'U') IS NULL
+          CREATE TABLE [dbo].[DiscoveryAmenities] (
+            [Id]        uniqueidentifier NOT NULL PRIMARY KEY,
+            [CreatedAt] datetime2        NOT NULL,
+            [UpdatedAt] datetime2        NULL,
+            [IsDeleted] bit              NOT NULL,
+            [Slug]      nvarchar(50)     NOT NULL,
+            [Label]     nvarchar(100)    NOT NULL
+          );"
     };
 
     // Sqlite: CREATE TABLE IF NOT EXISTS

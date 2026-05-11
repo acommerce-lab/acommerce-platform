@@ -18,16 +18,28 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Iteration 1: minimal API — DbContext + Bootstrap + smoke endpoints.
-         الكيتس (Auth/Listings/Chat/…) تُضاف لاحِقاً كيت بِكيت بَعد كِتابَة
-         Stores تُنَفِّذ واجِهاتها فَوق Ashare V3 entities. -->
     <ProjectReference Include="..\..\..\Domain\Ashare.V3.Domain.csproj" />
     <ProjectReference Include="..\..\..\Domain.Data\Ashare.V3.Domain.Data.csproj" />
+
+    <!-- ServiceHost (fluent backend wiring) -->
+    <ProjectReference Include="..\..\..\..\..\libs\host\ACommerce.ServiceHost\ACommerce.ServiceHost.csproj" />
+
+    <!-- OAM engine + AspNetCore -->
+    <ProjectReference Include="..\..\..\..\..\libs\core\OperationEngine\ACommerce.OperationEngine\ACommerce.OperationEngine.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\core\OperationEngine\ACommerce.OperationEngine.AspNetCore\ACommerce.OperationEngine.AspNetCore.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\core\OperationEngine\ACommerce.OperationEngine.Interceptors\ACommerce.OperationEngine.Interceptors.csproj" />
+
+    <!-- Auth Kit + TwoFactor (SMS mock) -->
+    <ProjectReference Include="..\..\..\..\..\libs\providers\Auth.TwoFactor\Sms\ACommerce.Kits.Auth.TwoFactor.Sms\ACommerce.Kits.Auth.TwoFactor.Sms.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Auth.TwoFactor\ACommerce.Kits.Auth.TwoFactor.AsAuth\ACommerce.Kits.Auth.TwoFactor.AsAuth.csproj" />
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.7" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.7" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.7" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.7" />
+    <PackageReference Include="Serilog.AspNetCore" Version="10.0.0" />
+    <PackageReference Include="Serilog.Sinks.Console" Version="6.1.1" />
   </ItemGroup>
 </Project>

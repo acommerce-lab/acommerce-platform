@@ -1,3 +1,4 @@
+using ACommerce.Kits.Discovery.Domain;
 using Ashare.V3.Domain;
 using Microsoft.EntityFrameworkCore;
 
@@ -40,10 +41,13 @@ public sealed class AshareV3DbContext : DbContext
     public DbSet<AppVersionEntity>             AppVersions       => Set<AppVersionEntity>();
     public DbSet<LegalPageEntity>              LegalPages        => Set<LegalPageEntity>();
 
-    // ── new tables (created by InitialNewTables migration) ───────────────
-    public DbSet<FavoriteEntity>     Favorites     => Set<FavoriteEntity>();
-    public DbSet<ReportEntity>       Reports       => Set<ReportEntity>();
-    public DbSet<NotificationEntity> Notifications => Set<NotificationEntity>();
+    // ── new tables (created by additive Bootstrap CREATE TABLE) ─────────
+    public DbSet<FavoriteEntity>      Favorites          => Set<FavoriteEntity>();
+    public DbSet<ReportEntity>        Reports            => Set<ReportEntity>();
+    public DbSet<NotificationEntity>  Notifications      => Set<NotificationEntity>();
+    public DbSet<DiscoveryCategory>   DiscoveryCategories => Set<DiscoveryCategory>();
+    public DbSet<DiscoveryRegion>     DiscoveryRegions    => Set<DiscoveryRegion>();
+    public DbSet<DiscoveryAmenity>    DiscoveryAmenities  => Set<DiscoveryAmenity>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -68,6 +72,12 @@ public sealed class AshareV3DbContext : DbContext
         b.Entity<FavoriteEntity>().ToTable("Favorites");
         b.Entity<ReportEntity>().ToTable("Reports");
         b.Entity<NotificationEntity>().ToTable("Notifications");
+        b.Entity<DiscoveryCategory>().ToTable("DiscoveryCategories");
+        b.Entity<DiscoveryRegion>().ToTable("DiscoveryRegions");
+        b.Entity<DiscoveryAmenity>().ToTable("DiscoveryAmenities");
+        b.Entity<DiscoveryCategory>().HasQueryFilter(e => !e.IsDeleted);
+        b.Entity<DiscoveryRegion>().HasQueryFilter(e => !e.IsDeleted);
+        b.Entity<DiscoveryAmenity>().HasQueryFilter(e => !e.IsDeleted);
 
         // ─── soft-delete global query filter (مُتَّسِق مَع V2 pattern) ─
         b.Entity<ProfileEntity>().HasQueryFilter(e => !e.IsDeleted);

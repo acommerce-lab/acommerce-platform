@@ -12,13 +12,22 @@
 
     <!-- core EF + repositories -->
     <ProjectReference Include="..\..\..\libs\core\SharedKernel\ACommerce.SharedKernel.Domain\ACommerce.SharedKernel.Domain.csproj" />
+    <ProjectReference Include="..\..\..\libs\core\SharedKernel\ACommerce.SharedKernel.Repositories\ACommerce.SharedKernel.Repositories.csproj" />
+    <ProjectReference Include="..\..\..\libs\core\SharedKernel\ACommerce.SharedKernel.Infrastructure.EFCores\ACommerce.SharedKernel.Infrastructure.EFCores.csproj" />
 
-    <!--
-      Iteration 1: لا kit-backend references هُنا. كانَت تَجلِب
-      VersionsController + DiscoveryController + … تِلقائيّاً عِند
-      `AddControllers()` فَتَطلُب `OpEngine` غَير المُسَجَّل ⇒ ٥٠٠.
-      تُضاف كيت بِكيت بَعد كِتابَة Store لِكُلّ واحِد.
-    -->
+    <!-- kit-backends لِنُنَفِّذ Store-ها فَوق Ashare V3 entities -->
+    <ProjectReference Include="..\..\..\libs\kits\Auth\ACommerce.Kits.Auth.Backend\ACommerce.Kits.Auth.Backend.csproj" />
+    <ProjectReference Include="..\..\..\libs\kits\Chat\ACommerce.Kits.Chat.Backend\ACommerce.Kits.Chat.Backend.csproj" />
+    <ProjectReference Include="..\..\..\libs\kits\Discovery\ACommerce.Kits.Discovery.Backend\ACommerce.Kits.Discovery.Backend.csproj" />
+    <ProjectReference Include="..\..\..\libs\kits\Favorites\ACommerce.Favorites.Backend\ACommerce.Favorites.Backend.csproj" />
+    <ProjectReference Include="..\..\..\libs\kits\Listings\ACommerce.Kits.Listings.Backend\ACommerce.Kits.Listings.Backend.csproj" />
+    <ProjectReference Include="..\..\..\libs\kits\Notifications\ACommerce.Kits.Notifications.Backend\ACommerce.Kits.Notifications.Backend.csproj" />
+    <ProjectReference Include="..\..\..\libs\kits\Notifications\ACommerce.Notification.Operations\ACommerce.Notification.Operations.csproj" />
+    <ProjectReference Include="..\..\..\libs\kits\Profiles\ACommerce.Kits.Profiles.Backend\ACommerce.Kits.Profiles.Backend.csproj" />
+    <ProjectReference Include="..\..\..\libs\kits\Reports\ACommerce.Kits.Reports.Backend\ACommerce.Kits.Reports.Backend.csproj" />
+    <ProjectReference Include="..\..\..\libs\kits\Subscriptions\ACommerce.Kits.Subscriptions.Backend\ACommerce.Kits.Subscriptions.Backend.csproj" />
+    <ProjectReference Include="..\..\..\libs\kits\Support\ACommerce.Kits.Support.Backend\ACommerce.Kits.Support.Backend.csproj" />
+    <ProjectReference Include="..\..\..\libs\kits\Versions\ACommerce.Kits.Versions.Backend\ACommerce.Kits.Versions.Backend.csproj" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.7" />
