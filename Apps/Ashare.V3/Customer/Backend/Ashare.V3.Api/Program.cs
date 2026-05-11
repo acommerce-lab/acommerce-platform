@@ -51,6 +51,11 @@ builder.AddACommerceServiceHost(host => host
         .AddVersions<AshareV3VersionStore>()
         .AddListings<AshareV3ListingStore>()
         .AddProfiles<AshareV3ProfileStore>())
+
+    // التَّراكيب: غِراء عامّ بَين الكيتس (لا app-specific شَيء).
+    // Chat.WithNotifications يُؤَجَّل حَتّى يُسَجَّل Notifications kit.
+    .AddCompositions(c => c
+        .Add<ACommerce.Compositions.Marketplace.MarketplaceComposition>())
 );
 
 builder.Services.AddSingleton<IUserIdProvider, AshareV3UserIdProvider>();

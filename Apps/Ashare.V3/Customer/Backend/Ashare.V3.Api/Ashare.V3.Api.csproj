@@ -40,6 +40,10 @@
 
     <!-- Chat.Operations: IChatService consumed by AshareV3RealtimeHub -->
     <ProjectReference Include="..\..\..\..\..\libs\kits\Chat\ACommerce.Chat.Operations\ACommerce.Chat.Operations.csproj" />
+
+    <!-- Compositions: Marketplace bundle (لا Chat.WithNotifications حَتّى يُسَجَّل Notifications kit) -->
+    <ProjectReference Include="..\..\..\..\..\libs\compositions\ACommerce.Compositions.Core\ACommerce.Compositions.Core.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\compositions\Marketplace\ACommerce.Compositions.Marketplace\ACommerce.Compositions.Marketplace.csproj" />
   </ItemGroup>
 
   <ItemGroup>
