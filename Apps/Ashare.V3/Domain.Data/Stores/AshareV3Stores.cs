@@ -328,6 +328,30 @@ public sealed class AshareV3ChatStore : IChatStore
             .AnyAsync(p => p.ChatId == cid && p.UserId == userId, ct);
     }
 
+    /// <summary>
+    /// F6 hook الَّذي يَستَدعيه <c>ChatController.Send</c>. لا
+    /// <c>SaveChangesAsync</c> هُنا — الـ controller يَحفَظ ذرّيّاً بِـ
+    /// <c>SaveAtEnd</c>. كان غِيابه يَجعَل الرَسائِل تَختَفي بِلا خَطَأ.
+    /// </summary>
+    public async Task AppendNoSaveAsync(IChatMessage message, CancellationToken ct)
+    {
+        if (!Guid.TryParse(message.ConversationId, out var cid)) return;
+        // SenderPartyId يَأتي كَـ "User:GUID" — نَستَخرِج جُزء الـ id.
+        var senderId = message.SenderPartyId.Contains(':')
+            ? message.SenderPartyId[(message.SenderPartyId.IndexOf(':') + 1)..]
+            : message.SenderPartyId;
+        _db.Messages.Add(new MessageEntity
+        {
+            Id        = Guid.TryParse(message.Id, out var mid) ? mid : Guid.NewGuid(),
+            CreatedAt = message.SentAt == default ? DateTime.UtcNow : message.SentAt,
+            ChatId    = cid,
+            SenderId  = senderId,
+            Content   = message.Body,
+            Type      = 0,
+        });
+        await Task.CompletedTask;
+    }
+
     public async Task<IChatMessage> AppendMessageAsync(string conversationId, string senderId, string body, CancellationToken ct)
     {
         var cid = Guid.Parse(conversationId);
