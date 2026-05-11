@@ -33,6 +33,7 @@ using ACommerce.OperationEngine.Interceptors.Extensions;
 using ACommerce.Subscriptions.Templates.Extensions;
 using Ejar.Customer.UI.Services;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace Ejar.Customer.UI;
 
@@ -123,6 +124,13 @@ public static class EjarCustomerUiExtensions
         // ─── KitApi pipeline ────────────────────────────────────────────
         services.AddKitApiPipeline(sp =>
             sp.GetRequiredService<AuthenticatedHttpClient>().Client);
+
+        // ─── Login UI: افتِراضي = PhoneOtp. التَطبيق يَستَطيع تَجاوُزه
+        //     بِـ services.AddSingleton<IAuthLoginUi>(new StaticAuthLoginUi(...))
+        //     بَعد هذا التَسجيل لِيَختار Nafath أَو غَيره.
+        services.TryAddSingleton<Ejar.Customer.UI.Components.Pages.Auth.IAuthLoginUi>(
+            new Ejar.Customer.UI.Components.Pages.Auth.StaticAuthLoginUi(
+                typeof(Ejar.Customer.UI.Components.Pages.Auth.PhoneOtpLoginContent)));
 
         // ─── kit ApiClients ────────────────────────────────────────────
         services.AddScoped<IAuthApiClient,          HttpAuthApiClient>();

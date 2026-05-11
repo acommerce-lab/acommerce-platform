@@ -427,4 +427,13 @@
   <data name="subscribe.activate_action" xml:space="preserve"><value>Activate subscription</value></data>
   <data name="subscribe.error_code_format" xml:space="preserve"><value>Couldn't activate ({0}).</value></data>
   <data name="subscribe.error_unexpected_format" xml:space="preserve"><value>Unexpected error: {0}</value></data>
+  <data name="nafath.subtitle" xml:space="preserve"><value>Sign in via the Nafath identity service</value></data>
+  <data name="nafath.national_id" xml:space="preserve"><value>National ID</value></data>
+  <data name="nafath.start" xml:space="preserve"><value>Continue with Nafath</value></data>
+  <data name="nafath.tap_instruction" xml:space="preserve"><value>Open the Nafath app and tap the number that matches:</value></data>
+  <data name="nafath.code_aria" xml:space="preserve"><value>Nafath verification code</value></data>
+  <data name="nafath.verified" xml:space="preserve"><value>Verified — signing you in…</value></data>
+  <data name="nafath.auto_verify_format" xml:space="preserve"><value>Auto-verifying in {0}s…</value></data>
+  <data name="nafath.verifying" xml:space="preserve"><value>Verifying…</value></data>
+  <data name="nafath.cancel" xml:space="preserve"><value>Cancel</value></data>
 </root>

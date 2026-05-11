@@ -29,7 +29,14 @@ public interface IAuthFlow
 /// <param name="Ok">هل بدأ التحقّق بنجاح.</param>
 /// <param name="ExpiresInSeconds">المدّة المتبقّية لإكمال التحقّق (للـ OTP عادةً 60-300 ث).</param>
 /// <param name="Reason">رمز سبب الفشل (لتقدّم رسالة UI واضحة).</param>
-public sealed record AuthInitiateResult(bool Ok, int ExpiresInSeconds = 0, string? Reason = null);
+/// <param name="ChallengeId">مُعَرِّف التَّحَدّي (يُستَخدَم بَعض الـ flows مِثل Nafath لِربط بَين Initiate/Complete، أَو لِـ polling).</param>
+/// <param name="ProviderData">بَيانات إضافيَّة مِن الـ provider: <c>displayCode</c> لِنَفاذ، <c>autoVerifyInSeconds</c> لِلتَّحَقُّق التِلقائي، إلخ. الـ Auth Kit يُمَرِّرها كَما هي لِلواجِهَة بِلا تَفسير.</param>
+public sealed record AuthInitiateResult(
+    bool Ok,
+    int ExpiresInSeconds = 0,
+    string? Reason = null,
+    string? ChallengeId = null,
+    IReadOnlyDictionary<string, string>? ProviderData = null);
 
 /// <param name="Verified">هل قُبل الـ secret.</param>
 /// <param name="Subject">المستخدم الخارجيّ المُتَحقَّق منه (للـ AuthController يحوّله إلى userId عبر <see cref="IAuthUserStore"/>).</param>

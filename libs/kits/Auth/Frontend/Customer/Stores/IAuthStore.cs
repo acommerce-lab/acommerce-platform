@@ -14,6 +14,20 @@ public interface IAuthStore
     string? LastError { get; }
     event Action? Changed;
 
+    /// <summary>
+    /// مُعَرِّف التَّحَدّي الَّذي أَرجَعَه backend بَعد آخِر RequestOtp ناجِح.
+    /// تَستَخدِمه واجِهات الـ flows الَّتي تَحتاج مُتابَعَة التَّحَدّي
+    /// (مَثَلاً Nafath polling). null لَو لَم يَبدَأ تَحَدٍّ أَو فَشَل.
+    /// </summary>
+    string? LastChallengeId { get; }
+
+    /// <summary>
+    /// بَيانات الـ provider لِآخِر تَحَدٍّ (مَثَلاً <c>displayCode</c> لِنَفاذ،
+    /// <c>autoVerifyInSeconds</c>، <c>masked</c> لِـ SMS). الـ store لا يَتَفَهَّمها —
+    /// يُمَرِّرها كَما هي لِواجِهَة الـ flow المُختارَة.
+    /// </summary>
+    IReadOnlyDictionary<string, string>? LastProviderData { get; }
+
     /// <summary>يَطلب OTP للهاتف. يَنجح ⇒ <see cref="LastError"/> = null.</summary>
     Task RequestOtpAsync(string phone, CancellationToken ct = default);
 

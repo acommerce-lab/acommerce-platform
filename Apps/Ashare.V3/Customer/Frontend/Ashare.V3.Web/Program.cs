@@ -30,6 +30,12 @@ builder.Services.AddHttpClient("ejar", c =>
 // (تَفوز عَلى translations Ejar V1 لِـ app.name + home.*).
 builder.Services.AddAshareV3Customer();
 
+// قَرار صَريح: V3 يَستَخدِم Nafath login UI بَدَل Phone-OTP الافتِراضي
+// في Marketplace template. AddSingleton (لا TryAdd) يَتَجاوَز الافتِراضي.
+builder.Services.AddSingleton<Ejar.Customer.UI.Components.Pages.Auth.IAuthLoginUi>(
+    new Ejar.Customer.UI.Components.Pages.Auth.StaticAuthLoginUi(
+        typeof(Ejar.Customer.UI.Components.Pages.Auth.NafathLoginContent)));
+
 var app = builder.Build();
 if (!app.Environment.IsDevelopment()) app.UseExceptionHandler("/Error");
 app.UseStaticFiles();

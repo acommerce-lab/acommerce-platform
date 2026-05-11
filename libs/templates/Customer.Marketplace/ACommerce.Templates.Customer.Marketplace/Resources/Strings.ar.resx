@@ -427,4 +427,13 @@
   <data name="subscribe.activate_action" xml:space="preserve"><value>تفعيل الاشتراك</value></data>
   <data name="subscribe.error_code_format" xml:space="preserve"><value>تعذّر التفعيل ({0}).</value></data>
   <data name="subscribe.error_unexpected_format" xml:space="preserve"><value>خطأ غير متوقّع: {0}</value></data>
+  <data name="nafath.subtitle" xml:space="preserve"><value>تسجيل الدخول عبر نَفاذ</value></data>
+  <data name="nafath.national_id" xml:space="preserve"><value>رقم الهوية</value></data>
+  <data name="nafath.start" xml:space="preserve"><value>المتابعة عبر نَفاذ</value></data>
+  <data name="nafath.tap_instruction" xml:space="preserve"><value>افتح تطبيق نَفاذ واضغط الرقم المطابق:</value></data>
+  <data name="nafath.code_aria" xml:space="preserve"><value>رقم تحقّق نَفاذ</value></data>
+  <data name="nafath.verified" xml:space="preserve"><value>تم التحقّق — جاري تسجيل الدخول…</value></data>
+  <data name="nafath.auto_verify_format" xml:space="preserve"><value>تحقّق تلقائي خلال {0} ثانية…</value></data>
+  <data name="nafath.verifying" xml:space="preserve"><value>جاري التحقّق…</value></data>
+  <data name="nafath.cancel" xml:space="preserve"><value>إلغاء</value></data>
 </root>
