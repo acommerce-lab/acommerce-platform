@@ -7,13 +7,16 @@
     <Version>1.0.0</Version>
     <Authors>ACommerce</Authors>
     <Description>
-      قناة نفاذ تجريبية — تعرض رمزاً عشوائياً وتتحقق تلقائياً بعد 10 ثواني.
-      تُستبدَل بـ ACommerce.Authentication.TwoFactor.Providers.Nafath في الإنتاج.
-      Mock Nafath 2FA channel: shows random displayCode, auto-verifies after 10 seconds.
+      قَناة نَفاذ تَجريبيَّة — تَعرِض رَقماً ثابِتاً (افتِراضي "00") قابِلاً
+      لِلتَّكوين، وتَتَحَقَّق تِلقائيّاً بَعد N ثوانٍ (افتِراضي 10) قابِل
+      لِلتَّكوين. الخِيارات عَبر MockNafathOptions (delegate أَو config section).
+      تُستَبدَل بِـ ACommerce.Authentication.TwoFactor.Providers.Nafath في الإنتاج.
     </Description>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.7" />
+    <PackageReference Include="Microsoft.Extensions.Options" Version="10.0.7" />
+    <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="10.0.7" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\..\..\kits\Auth.TwoFactor\ACommerce.Authentication.TwoFactor.Operations\ACommerce.Authentication.TwoFactor.Operations.csproj" />
