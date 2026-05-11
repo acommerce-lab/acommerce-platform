@@ -66,6 +66,13 @@
                 <span><AcIcon Name="star" Filled="true" Size="14" /> @Rating.Value.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture)</span>
             }
         </div>
+        @* خَصائِص ديناميكِيَّة (Template+Snapshot) — تَظهَر فَقَط لِحُقول
+           بِـ ShowInCard=true. تَطبيق لا يُمَرِّر Attributes ⇒ لا تَظهَر أَيّ
+           chip. snapshots مُجَمَّدَة (Label/Icon/Unit) ⇒ لا XSS. *@
+        @if (Attributes is not null && Attributes.Count > 0)
+        {
+            <AcAttrChipRow Attributes="@Attributes" IsArabic="@IsArabic" Max="@MaxAttributeChips" />
+        }
         @if (!string.IsNullOrEmpty(PriceLabel))
         {
             <div class="ac-space-price">@PriceLabel</div>
@@ -88,6 +95,16 @@
     [Parameter] public string? Class { get; set; }
     [Parameter] public string AddFavoriteAriaLabel    { get; set; } = "Add to favorites";
     [Parameter] public string RemoveFavoriteAriaLabel { get; set; } = "Remove from favorites";
+
+    /// <summary>
+    /// snapshots سِمات ديناميكِيَّة لِعَرضها كَ chips داخِل البِطاقَة.
+    /// تَطبيق Ashare/Ejar يُمَرِّرها بَعد ما enricher يَبنيها. null أَو
+    /// قائِمَة فارِغَة ⇒ لا تَظهَر chips. كُلّ snapshot يُحَدِّد بِنَفسه
+    /// <c>ShowInCard=true</c> لِيُعتَبَر مُرَشَّحاً.
+    /// </summary>
+    [Parameter] public List<DynamicAttribute>? Attributes { get; set; }
+    [Parameter] public bool IsArabic { get; set; } = true;
+    [Parameter] public int MaxAttributeChips { get; set; } = 4;
 
     private Task OnOpenInternal() => OnOpen.InvokeAsync();
 

@@ -3,6 +3,7 @@
 @inject IClientAuthState Auth
 @inject IFavoritesStore Favorites
 @inject IChatStore Chat
+@inject IUiPreferences Prefs
 @inject NavigationManager Nav
 @inject L L
 @implements IDisposable
@@ -74,24 +75,17 @@
             </AcCard>
         }
 
-        @* خَصائِص ديناميكِيَّة — أَيّ مَفتاح/قِيمَة لَم يَلتَقِطها الحُقول
-           المُعَيَّنَة أَعلاه. تُملَأ مِن enricher التَطبيق (Ashare V2/V3
-           يُمَرِّر AttributesJson مَفكوك). إذا التَطبيق لا يُعَيِّن enricher
-           أَو لا توجَد خَصائِص، الكَتل لا يَظهَر. *@
+        @* الخَصائِص الديناميكِيَّة — snapshots كامِلَة مِن enricher التَطبيق
+           (Template+Snapshot). الـ widgets مِن SharedKernel/widgets تَتَوَلّى
+           الرَسم: AcAttrGrid لِلتَفاصيل (تَسمِيَة + قِيمَة + أَيقونَة + وَحدَة)،
+           AcAttrChipRow لِلبِطاقات. لا labels مَحفورَة هُنا — كُلٌّ مُجَمَّد
+           في الـ snapshot وَقت الإنشاء. *@
         @if (_listing.Attributes is not null && _listing.Attributes.Count > 0)
         {
             <AcCard>
                 <ChildContent>
                     <h3 style="margin-top:0;">@(L[TemplateStrings.ListingAttributes])</h3>
-                    <div class="acm-details-attrs">
-                        @foreach (var kv in _listing.Attributes)
-                        {
-                            <div class="acm-details-attr-row">
-                                <span class="acm-details-attr-key">@kv.Label</span>
-                                <span class="acm-details-attr-val">@kv.Value</span>
-                            </div>
-                        }
-                    </div>
+                    <AcAttrGrid Attributes="@_listing.Attributes" IsArabic="@(Prefs.Language == "ar")" />
                 </ChildContent>
             </AcCard>
         }
@@ -334,8 +328,6 @@
 
     private sealed record AmenityDto(string Key, string Label);
     private sealed record OwnerDto(string Name, string? MemberSince);
-    /// <summary>زَوج خاصِّيَّة ديناميكِيَّة. Label عَرَبي/إنجليزي، Value مَعروض كَنَصّ.</summary>
-    private sealed record DynamicAttribute(string Key, string Label, string Value);
     private sealed record ListingDetailDto(
         string Id, string Title, string Description, decimal Price,
         string TimeUnit, string TimeUnitLabel, string PropertyType, string PropertyTypeLabel,
@@ -344,5 +336,7 @@
         int BedroomCount, int BathroomCount,
         double AreaSqm, bool IsVerified, int ViewsCount, int Status, bool IsFavorite,
         List<string>? Images,
-        List<DynamicAttribute>? Attributes);
+        // Template+Snapshot: نَوع SharedKernel (Label/LabelAr/Icon/Unit/DisplayValue
+        // مُجَمَّدَة). AcAttrGrid يَرسُمها مُباشَرَةً.
+        List<ACommerce.SharedKernel.Domain.DynamicAttributes.DynamicAttribute>? Attributes);
 }

@@ -1,3 +1,5 @@
+using ACommerce.SharedKernel.Domain.DynamicAttributes;
+
 namespace ACommerce.Templates.Marketplace.Models;
 
 // ── DTOs لمنصة السوق العقاري ──────────────────────────────────────────────
@@ -30,6 +32,13 @@ public sealed record ListingRowDto
     public decimal? Rating { get; init; }
 
     public Dictionary<string, object?>? Extra { get; init; }
+
+    /// <summary>
+    /// snapshots سِمات ديناميكِيَّة لِعَرضها كَ chips في البِطاقَة. تَطبيق
+    /// يَملَؤها (enricher يُمَرِّر) ⇒ AcSpaceCard يَرسُم AcAttrChipRow.
+    /// null ⇒ لا chips. Template+Snapshot ⇒ لا XSS.
+    /// </summary>
+    public List<DynamicAttribute>? Attributes { get; init; }
 }
 
 /// <summary>
