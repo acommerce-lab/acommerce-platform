@@ -32,6 +32,14 @@
     <!-- Auth Kit + TwoFactor (SMS mock) -->
     <ProjectReference Include="..\..\..\..\..\libs\providers\Auth.TwoFactor\Sms\ACommerce.Kits.Auth.TwoFactor.Sms\ACommerce.Kits.Auth.TwoFactor.Sms.csproj" />
     <ProjectReference Include="..\..\..\..\..\libs\kits\Auth.TwoFactor\ACommerce.Kits.Auth.TwoFactor.AsAuth\ACommerce.Kits.Auth.TwoFactor.AsAuth.csproj" />
+
+    <!-- Realtime + SignalR provider (AShareHub base + InMemoryConnectionTracker) -->
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Realtime\ACommerce.Realtime.Operations\ACommerce.Realtime.Operations.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\providers\Realtime\SignalR\ACommerce.Realtime.Providers.SignalR\ACommerce.Realtime.Providers.SignalR.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\providers\Realtime\InMemory\ACommerce.Realtime.Providers.InMemory\ACommerce.Realtime.Providers.InMemory.csproj" />
+
+    <!-- Chat.Operations: IChatService consumed by AshareV3RealtimeHub -->
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Chat\ACommerce.Chat.Operations\ACommerce.Chat.Operations.csproj" />
   </ItemGroup>
 
   <ItemGroup>

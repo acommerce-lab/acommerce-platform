@@ -1,17 +1,19 @@
 using ACommerce.Kits.Auth.Operations;
 using ACommerce.ServiceHost;
+using Ashare.V3.Api.Realtime;
 using Ashare.V3.Bootstrap;
 using Ashare.V3.Data;
 using Ashare.V3.Data.Stores;
-using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Http.Connections;
+using Microsoft.AspNetCore.SignalR;
 using Serilog;
 
 // ═══════════════════════════════════════════════════════════════════════
 // Ashare V3 API — يَستَهلِك asharedb (بَيانات حَيَّة V2 production).
 // نَفس نَمَط Ejar.Api: AddACommerceServiceHost.AddKits(...) يَكشِف كُلّ
 // الـ endpoints القياسيَّة (/version/check، /cities، /listings، /chats،
-// /favorites، /notifications، /complaints، /me، /auth/*) تِلقائيّاً.
-// الفَرق فَقَط Stores — تَقرَأ مِن جَداوِل Ashare بَدَل Ejar.
+// /favorites، /auth/*) تِلقائيّاً. الفَرق فَقَط Stores — تَقرَأ مِن
+// جَداوِل Ashare بَدَل Ejar (Law 6: Store = bridge).
 // ═══════════════════════════════════════════════════════════════════════
 
 var builder = WebApplication.CreateBuilder(args);
@@ -30,14 +32,13 @@ builder.AddACommerceServiceHost(host => host
         jwt.Issuer = "ashare.v3.api";
         jwt.Audience = "ashare.v3.mobile";
     })
+    .UseRealtime<AshareV3SignalRTransport, AshareV3RealtimeHub>()
     .UseControllers()
     .RegisterEntities(
         typeof(AshareV3DbContext).Assembly,
         typeof(ACommerce.Kits.Discovery.Domain.DiscoveryRegion).Assembly)
 
-    // ── الكيتس: كُلّ كيت + Store-ها فَوق جَداوِل asharedb ───────────
-    // (Support/Reports/Notifications/Subscriptions يَدخُلون بَعد إِضافَة
-    //  view-records صَحيحَة لِكُلّ مِنها — تَنفيذ تالٍ.)
+    // الكيتس: Store-ها فَوق جَداوِل asharedb (Law 6).
     .AddKits(kits => kits
         .AddAuth<AshareV3AuthUserStore>(
             new AuthKitJwtConfig(JwtSecret, "ashare.v3.api", "ashare.v3.mobile",
@@ -52,19 +53,15 @@ builder.AddACommerceServiceHost(host => host
         .AddProfiles<AshareV3ProfileStore>())
 );
 
+builder.Services.AddSingleton<IUserIdProvider, AshareV3UserIdProvider>();
+
 var app = builder.Build();
 
-// ─── Schema check (additive — يُنشِئ الجَداوِل الجَديدَة لَو ناقِصَة) ──
+// Schema check (additive — يُنشِئ الجَداوِل الجَديدَة لَو ناقِصَة).
 using (var scope = app.Services.CreateScope())
 {
-    try
-    {
-        await AshareV3Bootstrap.EnsureSchemaAsync(scope.ServiceProvider, builder.Configuration);
-    }
-    catch (Exception ex)
-    {
-        Log.Error(ex, "Ashare V3 bootstrap failed");
-    }
+    try { await AshareV3Bootstrap.EnsureSchemaAsync(scope.ServiceProvider, builder.Configuration); }
+    catch (Exception ex) { Log.Error(ex, "Ashare V3 bootstrap failed"); }
 }
 
 app.UseCors(opt => opt
@@ -72,16 +69,8 @@ app.UseCors(opt => opt
 
 app.UseACommerceServiceHost();
 
-// ─── Smoke endpoint ───────────────────────────────────────────────────
-app.MapGet("/health", async (AshareV3DbContext db) => new
-{
-    status     = "ok",
-    canConnect = await db.Database.CanConnectAsync(),
-    profiles   = await db.Profiles.CountAsync(),
-    listings   = await db.ProductListings.CountAsync(),
-    chats      = await db.Chats.CountAsync(),
-    messages   = await db.Messages.CountAsync()
-});
+app.MapHub<AshareV3RealtimeHub>("/realtime", options =>
+    options.Transports = HttpTransportType.ServerSentEvents | HttpTransportType.LongPolling);
 
 Log.Information("Ashare V3 API ready [{Env}]", app.Environment.EnvironmentName);
 app.Run();
