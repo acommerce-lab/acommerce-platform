@@ -24,6 +24,16 @@ namespace Ashare.V3.Bootstrap;
 /// </summary>
 public static class AshareV3Bootstrap
 {
+    /// <summary>
+    /// قائِمَة الـ IPs/hosts المَحظورَة في dev/staging. الـ Bootstrap يَرفُض الإقلاع
+    /// إن وُجِدَ أَيّ مِنها في ConnectionString — حِماية ضِدّ كِتابَة عَن طَريق
+    /// الخَطَأ في إنتاج. حَدِّث القائِمَة لَو تَغَيَّر IP الإنتاج.
+    /// </summary>
+    private static readonly string[] ProductionHostMarkers =
+    [
+        "34.166.82.42",   // asharedb prod (GCP)
+    ];
+
     public static async Task EnsureSchemaAsync(
         IServiceProvider sp,
         IConfiguration config,
@@ -34,12 +44,42 @@ public static class AshareV3Bootstrap
         var logger = scope.ServiceProvider.GetService<ILoggerFactory>()
                           ?.CreateLogger("Ashare.V3.Bootstrap");
 
+        // ⓪ Guard: لا تَتَّصِل بِإنتاج مِن dev API. الـ override الوَحيد
+        // المَسموح: env var ASHAREV3_ALLOW_PROD_CONN=true (لا تَستَخدِمه).
+        var cs = config["Database:ConnectionString"] ?? "";
+        var allowProd = string.Equals(
+            Environment.GetEnvironmentVariable("ASHAREV3_ALLOW_PROD_CONN"),
+            "true", StringComparison.OrdinalIgnoreCase);
+        foreach (var marker in ProductionHostMarkers)
+        {
+            if (cs.Contains(marker, StringComparison.OrdinalIgnoreCase) && !allowProd)
+            {
+                var msg = $"Ashare V3 يَرفُض الإقلاع: ConnectionString يَحوي host إنتاج ({marker}). " +
+                          $"اِستَنسَخ القاعِدَة مَحَلِّيّاً (راجع Apps/Ashare.V3/Tools/CloneAshareDb) " +
+                          $"وحَوِّل appsettings.Development.json إلى SQLite. " +
+                          $"لِتَجاوُز هذا الفَحص في حالات اضطِرارِيَّة فَقَط، ضَع " +
+                          $"ASHAREV3_ALLOW_PROD_CONN=true.";
+                logger?.LogCritical(msg);
+                throw new InvalidOperationException(msg);
+            }
+        }
+
         // ① اتِّصال
+        var isSqlite = db.Database.ProviderName?.Contains("Sqlite", StringComparison.OrdinalIgnoreCase) == true;
+
+        // SQLite: تَأَكَّد مِن وُجود مُجَلَّد Data/ قَبل أَيّ شَيء.
+        if (isSqlite)
+        {
+            var dataDir = Path.Combine(Directory.GetCurrentDirectory(), "Data");
+            if (!Directory.Exists(dataDir)) Directory.CreateDirectory(dataDir);
+        }
+
         try
         {
             var ok = await db.Database.CanConnectAsync(ct);
-            if (!ok) throw new InvalidOperationException("CanConnectAsync returned false");
-            logger?.LogInformation("Ashare V3: connected to DB");
+            if (!ok && !isSqlite)
+                throw new InvalidOperationException("CanConnectAsync returned false");
+            logger?.LogInformation("Ashare V3: connected to DB (provider={Provider})", db.Database.ProviderName);
         }
         catch (Exception ex)
         {
@@ -47,22 +87,32 @@ public static class AshareV3Bootstrap
             throw;
         }
 
-        // ② التَأَكُّد مِن جَداوِل V3 الجَديدَة فَقَط (additive، آمِن)
-        var isSqlite = db.Database.ProviderName?.Contains("Sqlite", StringComparison.OrdinalIgnoreCase) == true;
-        var sql = isSqlite ? SqliteNewTables : SqlServerNewTables;
-        foreach (var stmt in sql)
+        // ② Schema
+        if (isSqlite)
         {
-            try
-            {
-                await db.Database.ExecuteSqlRawAsync(stmt, ct);
-            }
-            catch (Exception ex)
-            {
-                logger?.LogWarning(ex, "Ashare V3: optional table creation skipped: {Stmt}",
-                                   stmt.Length > 80 ? stmt[..80] + "…" : stmt);
-            }
+            // SQLite (dev): EnsureCreated يَبني كُلّ الجَداوِل مِن EF model.
+            // آمِن لِأَنّ القاعِدَة مَحَلِّيَّة، لَو فارِغَة تُملَأ بِـ clone tool،
+            // ولَو مُمتَلِئَة بَعد clone EnsureCreated لا يَلمَس شَيئاً (idempotent).
+            await db.Database.EnsureCreatedAsync(ct);
+            logger?.LogInformation("Ashare V3: SQLite schema ensured (full EF model)");
         }
-        logger?.LogInformation("Ashare V3: schema check complete (new tables ensured)");
+        else
+        {
+            // SQL Server: additive فَقَط. لا EnsureCreated مَهما حَدَث.
+            foreach (var stmt in SqlServerNewTables)
+            {
+                try
+                {
+                    await db.Database.ExecuteSqlRawAsync(stmt, ct);
+                }
+                catch (Exception ex)
+                {
+                    logger?.LogWarning(ex, "Ashare V3: optional table creation skipped: {Stmt}",
+                                       stmt.Length > 80 ? stmt[..80] + "…" : stmt);
+                }
+            }
+            logger?.LogInformation("Ashare V3: SQL Server additive schema check complete");
+        }
     }
 
     // SQL Server: IF OBJECT_ID('dbo.Foo', 'U') IS NULL CREATE TABLE …
@@ -152,48 +202,4 @@ public static class AshareV3Bootstrap
           );"
     };
 
-    // Sqlite: CREATE TABLE IF NOT EXISTS
-    private static readonly string[] SqliteNewTables = new[]
-    {
-        @"CREATE TABLE IF NOT EXISTS Favorites (
-            Id        TEXT NOT NULL PRIMARY KEY,
-            CreatedAt TEXT NOT NULL,
-            UpdatedAt TEXT NULL,
-            IsDeleted INTEGER NOT NULL,
-            UserId    TEXT NOT NULL,
-            ListingId TEXT NOT NULL,
-            UNIQUE (UserId, ListingId)
-          );",
-        @"CREATE TABLE IF NOT EXISTS Reports (
-            Id              TEXT NOT NULL PRIMARY KEY,
-            CreatedAt       TEXT NOT NULL,
-            UpdatedAt       TEXT NULL,
-            IsDeleted       INTEGER NOT NULL,
-            ReporterId      TEXT NOT NULL,
-            EntityType      TEXT NOT NULL,
-            EntityId        TEXT NOT NULL,
-            Reason          TEXT NOT NULL,
-            Description     TEXT NULL,
-            Status          TEXT NOT NULL,
-            ResolvedAt      TEXT NULL,
-            ResolvedById    TEXT NULL,
-            ResolutionNotes TEXT NULL
-          );",
-        @"CREATE TABLE IF NOT EXISTS Notifications (
-            Id           TEXT NOT NULL PRIMARY KEY,
-            CreatedAt    TEXT NOT NULL,
-            UpdatedAt    TEXT NULL,
-            IsDeleted    INTEGER NOT NULL,
-            UserId       TEXT NOT NULL,
-            Title        TEXT NOT NULL,
-            Body         TEXT NOT NULL,
-            Kind         TEXT NOT NULL,
-            IsRead       INTEGER NOT NULL,
-            ReadAt       TEXT NULL,
-            DeepLinkUrl  TEXT NULL,
-            MetadataJson TEXT NULL
-          );",
-        @"CREATE INDEX IF NOT EXISTS IX_Notifications_UserId_IsRead ON Notifications (UserId, IsRead);",
-        @"CREATE INDEX IF NOT EXISTS IX_Reports_EntityType_EntityId ON Reports (EntityType, EntityId);"
-    };
 }
