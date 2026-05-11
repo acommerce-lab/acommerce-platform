@@ -43,7 +43,7 @@
                 <AcButton Variant="primary" Size="lg" Class="ac-btn-block mt-2"
                           Text="@(L[TemplateStrings.NafathStart])"
                           OnClick="@StartChallenge"
-                          Disabled="@(_nationalId.Length < 8 || Auth.IsBusy)" />
+                          Disabled="@(_nationalId.Length != 10 || Auth.IsBusy)" />
             </div>
         }
         else
@@ -51,11 +51,15 @@
             <div class="acs-nafath-verify">
                 <p class="acs-nafath-instruction">@(L[TemplateStrings.NafathTapInstruction])</p>
 
-                <div class="acs-nafath-code" aria-label="@(L[TemplateStrings.NafathCodeAria])">
-                    @_displayCode
+                @* الرَّقَم في دائِرَة مَركَزِيَّة (تَصميم Google-style لِمصادَقَة
+                   بِالنَّقر عَلى رَقَم في جِهاز آخَر). *@
+                <div class="acs-nafath-code-wrap">
+                    <div class="acs-nafath-code-circle" aria-label="@(L[TemplateStrings.NafathCodeAria])">
+                        <span class="acs-nafath-code-num">@_displayCode</span>
+                    </div>
                 </div>
 
-                <div class="acs-nafath-state @(_verified ? "acs-nafath-state--ok" : "acs-nafath-state--waiting") mt-2">
+                <div class="acs-nafath-state @(_verified ? "acs-nafath-state--ok" : "acs-nafath-state--waiting")">
                     @if (_verified)
                     {
                         <AcIcon Name="check-circle" Size="16" />
@@ -68,7 +72,7 @@
                     }
                     else
                     {
-                        <AcIcon Name="loader" Size="16" />
+                        <AcIcon Name="clock" Size="16" />
                         <span>@(L[TemplateStrings.NafathVerifying])</span>
                     }
                 </div>
@@ -181,7 +185,7 @@
 
     private async Task OnIdKey(KeyboardEventArgs e)
     {
-        if (e.Key == "Enter" && !Auth.IsBusy && _nationalId.Length >= 8)
+        if (e.Key == "Enter" && !Auth.IsBusy && _nationalId.Length == 10)
             await StartChallenge();
     }
 

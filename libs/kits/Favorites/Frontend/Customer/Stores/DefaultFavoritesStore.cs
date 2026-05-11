@@ -1,11 +1,26 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using ACommerce.Client.Operations;
+using ACommerce.OperationEngine.Wire;
 
 namespace ACommerce.Kits.Favorites.Frontend.Customer.Stores;
 
 /// <summary>
 /// OAM-shaped (F61). favorite.toggle مَوسوم بـ realtime_broadcast فتَحقن
 /// composition Realtime مُعتَرضاً يُعلِم الأَجهزة الأُخرى لِنَفس المُستَخدِم.
+///
+/// <para><b>Toggle Strategy</b> — Optimistic Flip:</para>
+/// <list type="number">
+///   <item>اقلِب <c>_ids</c> فَوراً (UI أَحمَر/فاضي يَتَجاوَب لَحظِيّاً).</item>
+///   <item>أَطلِق Changed لِيُعيد كُلّ Card رَسم الحالَة.</item>
+///   <item>اِرسِل الـ op لِلخادِم.</item>
+///   <item>إن خالَف الـ server صَراحَةً، صَحِّح. إن صَمَت أَو وافَق، اِبقَ.</item>
+/// </list>
+/// <para>هذا يَحمي ضِدّ مُشكِلَتَين شائِعَتَين: (أ) deserialization يَفشَل
+/// في حَقل bool فَيُرجِع false دائِماً ⇒ كان كُلّ click يُحَوِّل إلى "غَير مُفَضَّل"
+/// مَهما كانَت الحالَة الفِعليَّة؛ (ب) رِحلَة الشَبَكَة الطَويلَة كانَت تَجعَل
+/// المُستَخدِم يَنقُر مَرَّتَين ⇒ ذهاب-إياب فِعلي. مَكان عامّ: كُلّ apps
+/// تَستَخدِم <c>IFavoritesStore</c> تَستَفيد بِلا تَغيير.</para>
 /// </summary>
 public sealed class DefaultFavoritesStore : IFavoritesStore
 {
@@ -24,11 +39,7 @@ public sealed class DefaultFavoritesStore : IFavoritesStore
         try
         {
             // الباك يَردّ rows غَنيّة (Id + Title + Price + …) لا List<string>
-            // عاريَة. نَقبَل الشَكلَين عَبر JsonElement: سَلسِلَة (List<string>)
-            // أو كائنات لَها حَقل "Id" / "id". الاكتِفاء بِـ List<string> كان
-            // يَكسِر LoadAsync مَع InvalidCast→StartObject، فَتَبقى Ids فارِغَة
-            // وَلا يَتَلَوَّن قَلب أَيّ بِطاقَة بِالأَحمَر إلّا في صَفحَة
-            // /favorites التي تُنفِّذ deserialization مُستَقِلّاً.
+            // عاريَة. نَقبَل الشَكلَين عَبر JsonElement.
             var env = await _engine.ExecuteAsync<List<JsonElement>>(FavoritesOps.List(), ct: ct);
             if (env.Operation.Status == "Success" && env.Data is not null)
                 _ids = env.Data.Select(ExtractId).Where(x => x is not null).Cast<string>().ToHashSet();
@@ -48,13 +59,45 @@ public sealed class DefaultFavoritesStore : IFavoritesStore
 
     public async Task ToggleAsync(string targetId, CancellationToken ct = default)
     {
-        var env = await _engine.ExecuteAsync<ToggleResultDto>(FavoritesOps.Toggle(targetId), ct: ct);
-        if (env.Operation.Status != "Success" || env.Data is null) return;
-        // backend يُرجِع IsFavorite (مُفرَد) — لا IsFavorited. عَدَم
-        // التَطابُق كان يَجعَل القَلب لا يَتَلَوَّن أَبَداً.
-        if (env.Data.IsFavorite) _ids.Add(targetId);
-        else                      _ids.Remove(targetId);
+        // ① Optimistic flip — اقلِب فَوراً قَبل HTTP. الـ UI يَتَجاوَب لَحظِيّاً.
+        var wasFav = _ids.Contains(targetId);
+        var optimisticState = !wasFav;
+        if (optimisticState) _ids.Add(targetId);
+        else                  _ids.Remove(targetId);
         Changed?.Invoke();
+
+        // ② اِرسِل لِلخادِم.
+        OperationEnvelope<ToggleResultDto>? env = null;
+        try
+        {
+            env = await _engine.ExecuteAsync<ToggleResultDto>(FavoritesOps.Toggle(targetId), ct: ct);
+        }
+        catch
+        {
+            // فَشَل HTTP ⇒ revert الـ optimistic flip.
+            if (wasFav) _ids.Add(targetId);
+            else         _ids.Remove(targetId);
+            Changed?.Invoke();
+            throw;
+        }
+
+        // ③ Reconcile مَع الخادِم — فَقَط لَو خالَف صَراحَةً.
+        if (env.Operation.Status != "Success")
+        {
+            // فَشَل OAM ⇒ revert.
+            if (wasFav) _ids.Add(targetId);
+            else         _ids.Remove(targetId);
+            Changed?.Invoke();
+            return;
+        }
+
+        if (env.Data is { } d && d.IsFavorite != optimisticState)
+        {
+            // خادِم يَقول العَكس ⇒ صَحِّح إلى حالَة الخادِم.
+            if (d.IsFavorite) _ids.Add(targetId);
+            else               _ids.Remove(targetId);
+            Changed?.Invoke();
+        }
     }
 
     public bool IsFavorited(string targetId) => _ids.Contains(targetId);
@@ -69,8 +112,10 @@ public sealed class DefaultFavoritesStore : IFavoritesStore
 
     /// <summary>
     /// مُطابِق لِـ <c>FavoriteToggleResult(string Id, bool IsFavorite)</c> في
-    /// backend Favorites kit. لا تُغَيِّر الأَسماء — JSON مَطابِقَة دَقيقَة
-    /// بِغَضّ النَّظَر عَن case-insensitive في الـ deserializer.
+    /// backend. JsonPropertyName صَريح لِيَحمي ضِدّ أَيّ تَغيير لاحِق في
+    /// JsonSerializerOptions الافتِراضِيَّة (camelCase / case-sensitivity).
     /// </summary>
-    private sealed record ToggleResultDto(string? Id, bool IsFavorite);
+    private sealed record ToggleResultDto(
+        [property: JsonPropertyName("id")]         string? Id,
+        [property: JsonPropertyName("isFavorite")] bool    IsFavorite);
 }
