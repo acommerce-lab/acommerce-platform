@@ -50,8 +50,10 @@ public sealed class DefaultFavoritesStore : IFavoritesStore
     {
         var env = await _engine.ExecuteAsync<ToggleResultDto>(FavoritesOps.Toggle(targetId), ct: ct);
         if (env.Operation.Status != "Success" || env.Data is null) return;
-        if (env.Data.IsFavorited) _ids.Add(targetId);
-        else                       _ids.Remove(targetId);
+        // backend يُرجِع IsFavorite (مُفرَد) — لا IsFavorited. عَدَم
+        // التَطابُق كان يَجعَل القَلب لا يَتَلَوَّن أَبَداً.
+        if (env.Data.IsFavorite) _ids.Add(targetId);
+        else                      _ids.Remove(targetId);
         Changed?.Invoke();
     }
 
@@ -65,5 +67,10 @@ public sealed class DefaultFavoritesStore : IFavoritesStore
         Changed?.Invoke();
     }
 
-    private sealed record ToggleResultDto(bool IsFavorited, int Count);
+    /// <summary>
+    /// مُطابِق لِـ <c>FavoriteToggleResult(string Id, bool IsFavorite)</c> في
+    /// backend Favorites kit. لا تُغَيِّر الأَسماء — JSON مَطابِقَة دَقيقَة
+    /// بِغَضّ النَّظَر عَن case-insensitive في الـ deserializer.
+    /// </summary>
+    private sealed record ToggleResultDto(string? Id, bool IsFavorite);
 }

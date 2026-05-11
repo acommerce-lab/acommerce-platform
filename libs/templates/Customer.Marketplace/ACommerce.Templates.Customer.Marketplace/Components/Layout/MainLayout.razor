@@ -14,6 +14,7 @@
 @inject VersionPoll VersionPoll
 @inject NavigationManager Nav
 @inject IConfiguration Config
+@inject IHttpClientFactory HttpFactory
 @inject IJSRuntime JS
 @inject L L
 @implements IAsyncDisposable
@@ -187,7 +188,14 @@
 
     private async Task ConnectRealtimeAsync()
     {
-        var apiBase = Config["EjarApi:BaseUrl"]?.TrimEnd('/') ?? "http://localhost:5300";
+        // مَكان عامّ: نَستَخدِم BaseAddress لِنَفس الـ HttpClient الَّذي
+        // تَستَخدِمه كُلّ ApiClients (مُسَجَّل بِاسم "ejar" بِغَضّ النَّظَر
+        // عَن التَطبيق). كُلّ تَطبيق يَضبِطه مَرَّة واحِدَة في Program.cs مِن
+        // appsettings (EjarApi/AshareApi/…) ⇒ realtime يَتبَع تِلقائيّاً
+        // بِلا الحاجَة لِتَوحيد اسم مِفتاح الـ config.
+        var apiBase = HttpFactory.CreateClient("ejar").BaseAddress?.ToString().TrimEnd('/')
+                      ?? Config["EjarApi:BaseUrl"]?.TrimEnd('/')
+                      ?? "http://localhost:5300";
         // الـ hub في الباك مُركَّب عَلى /realtime (راجِع Program.cs MapHub).
         await Realtime.ConnectAsync($"{apiBase}/realtime");
 
