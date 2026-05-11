@@ -49,6 +49,12 @@ public sealed class AshareV3DbContext : DbContext
     public DbSet<DiscoveryRegion>     DiscoveryRegions    => Set<DiscoveryRegion>();
     public DbSet<DiscoveryAmenity>    DiscoveryAmenities  => Set<DiscoveryAmenity>();
 
+    // ── Locations (asharedb existing — Countries/Regions/Cities/Neighborhoods)
+    public DbSet<CountryEntity>       Countries          => Set<CountryEntity>();
+    public DbSet<RegionEntity>        Regions            => Set<RegionEntity>();
+    public DbSet<CityEntity>          Cities             => Set<CityEntity>();
+    public DbSet<NeighborhoodEntity>  Neighborhoods      => Set<NeighborhoodEntity>();
+
     protected override void OnModelCreating(ModelBuilder b)
     {
         // ─── أَسماء جَداوِل asharedb (singular pattern V2) ────────────
@@ -78,6 +84,12 @@ public sealed class AshareV3DbContext : DbContext
         b.Entity<DiscoveryCategory>().HasQueryFilter(e => !e.IsDeleted);
         b.Entity<DiscoveryRegion>().HasQueryFilter(e => !e.IsDeleted);
         b.Entity<DiscoveryAmenity>().HasQueryFilter(e => !e.IsDeleted);
+
+        // ─── Locations جَداوِل asharedb القائِمَة (plural names) ─────
+        b.Entity<CountryEntity>().ToTable("Countries").HasQueryFilter(e => !e.IsDeleted);
+        b.Entity<RegionEntity>().ToTable("Regions").HasQueryFilter(e => !e.IsDeleted);
+        b.Entity<CityEntity>().ToTable("Cities").HasQueryFilter(e => !e.IsDeleted);
+        b.Entity<NeighborhoodEntity>().ToTable("Neighborhoods").HasQueryFilter(e => !e.IsDeleted);
 
         // ─── soft-delete global query filter (مُتَّسِق مَع V2 pattern) ─
         b.Entity<ProfileEntity>().HasQueryFilter(e => !e.IsDeleted);

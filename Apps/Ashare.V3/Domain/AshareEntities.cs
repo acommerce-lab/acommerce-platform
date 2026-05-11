@@ -457,3 +457,91 @@ public class NotificationEntity : IBaseEntity
     public string? DeepLinkUrl { get; set; }
     public string? MetadataJson { get; set; }
 }
+
+
+// ─── Locations (Cities + hierarchy) ─────────────────────────────────────
+// مَطبوعَة عَلى Locations.Abstractions في asharedb (راجِع
+// docs/projects/locations/01-Locations.Abstractions.md). جَداوِل Countries,
+// Regions, Cities, Neighborhoods مَوجودَة في الإنتاج لكِنّ V3 لَم يَكُن
+// يَستَنسِخها. الآن نَقرَأ مِنها لِـ /cities + /amenities + filters.
+
+public class CountryEntity : IBaseEntity
+{
+    public Guid Id { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public DateTime? UpdatedAt { get; set; }
+    public bool IsDeleted { get; set; }
+
+    public string Name { get; set; } = "";
+    public string? NameEn { get; set; }
+    public string Code { get; set; } = "";           // ISO 3166-1 alpha-2
+    public string? Code3 { get; set; }
+    public int? NumericCode { get; set; }
+    public string? PhoneCode { get; set; }
+    public string? CurrencyCode { get; set; }
+    public string? CurrencyName { get; set; }
+    public string? CurrencySymbol { get; set; }
+    public string? Flag { get; set; }
+    public double? Latitude { get; set; }
+    public double? Longitude { get; set; }
+    public string? Timezone { get; set; }
+    public bool IsActive { get; set; } = true;
+    public int SortOrder { get; set; }
+}
+
+public class RegionEntity : IBaseEntity
+{
+    public Guid Id { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public DateTime? UpdatedAt { get; set; }
+    public bool IsDeleted { get; set; }
+
+    public string Name { get; set; } = "";
+    public string? NameEn { get; set; }
+    public string? Code { get; set; }
+    /// <summary>1=Region, 2=Emirate, 3=Governorate, 4=State, 5=Province.</summary>
+    public int Type { get; set; } = 1;
+    public double? Latitude { get; set; }
+    public double? Longitude { get; set; }
+    public bool IsActive { get; set; } = true;
+    public int SortOrder { get; set; }
+    public Guid CountryId { get; set; }
+}
+
+public class CityEntity : IBaseEntity
+{
+    public Guid Id { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public DateTime? UpdatedAt { get; set; }
+    public bool IsDeleted { get; set; }
+
+    public string Name { get; set; } = "";
+    public string? NameEn { get; set; }
+    public string? Code { get; set; }
+    public int? Population { get; set; }
+    public bool IsCapital { get; set; }
+    public double? Latitude { get; set; }
+    public double? Longitude { get; set; }
+    public bool IsActive { get; set; } = true;
+    public int SortOrder { get; set; }
+    public Guid RegionId { get; set; }
+}
+
+public class NeighborhoodEntity : IBaseEntity
+{
+    public Guid Id { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public DateTime? UpdatedAt { get; set; }
+    public bool IsDeleted { get; set; }
+
+    public string Name { get; set; } = "";
+    public string? NameEn { get; set; }
+    public string? Code { get; set; }
+    public string? PostalCode { get; set; }
+    public double? Latitude { get; set; }
+    public double? Longitude { get; set; }
+    public string? Boundaries { get; set; }
+    public bool IsActive { get; set; } = true;
+    public int SortOrder { get; set; }
+    public Guid CityId { get; set; }
+}
