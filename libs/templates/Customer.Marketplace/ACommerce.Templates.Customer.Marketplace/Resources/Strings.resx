@@ -55,6 +55,7 @@
   <data name="auth.login.success" xml:space="preserve"><value>Signed in successfully</value></data>
 
   <data name="listing.amenities" xml:space="preserve"><value>Amenities</value></data>
+  <data name="listing.attributes" xml:space="preserve"><value>Specifications</value></data>
   <data name="listing.description" xml:space="preserve"><value>Description</value></data>
   <data name="listing.owner" xml:space="preserve"><value>Landlord</value></data>
   <data name="listing.no_results" xml:space="preserve"><value>No listings found</value></data>

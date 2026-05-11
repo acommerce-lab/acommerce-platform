@@ -55,6 +55,7 @@
   <data name="auth.login.success" xml:space="preserve"><value>تمّ تسجيل الدخول بنجاح</value></data>
 
   <data name="listing.amenities" xml:space="preserve"><value>المرافق والخصائص</value></data>
+  <data name="listing.attributes" xml:space="preserve"><value>المواصفات</value></data>
   <data name="listing.description" xml:space="preserve"><value>الوصف</value></data>
   <data name="listing.owner" xml:space="preserve"><value>المُعلن</value></data>
   <data name="listing.no_results" xml:space="preserve"><value>لا توجد إعلانات</value></data>

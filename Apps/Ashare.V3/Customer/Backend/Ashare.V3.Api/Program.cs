@@ -60,6 +60,11 @@ builder.AddACommerceServiceHost(host => host
 
 builder.Services.AddSingleton<IUserIdProvider, AshareV3UserIdProvider>();
 
+// Enricher لِـ /listings/{id} — يُمَرِّر Images + Attributes (مَفكوكَة مِن
+// AttributesJson) لِواجِهَة التَفاصيل. الكيت يَكتَشِفه عَبر DI.
+builder.Services.AddScoped<ACommerce.Kits.Listings.Backend.IListingDetailEnricher,
+                           Ashare.V3.Api.Enrichers.AshareV3ListingDetailEnricher>();
+
 var app = builder.Build();
 
 // Schema check (additive — يُنشِئ الجَداوِل الجَديدَة لَو ناقِصَة).
