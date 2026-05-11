@@ -78,6 +78,11 @@ builder.AddACommerceServiceHost(host => host
 
 builder.Services.AddSingleton<IUserIdProvider, AshareV3UserIdProvider>();
 
+// مَصدَر القَوالِب الكانوني عِندَ تَوَفُّر بَيانات إنتاج. الـ controllers
+// تَستَعمِله أَوَّلاً ⇒ fallback لِـ CategoryAttributeTemplates ⇒ fallback
+// لِكود V3CategoryTemplates.
+builder.Services.AddScoped<Ashare.V3.Data.Templates.ProductionAttributeTemplateSource>();
+
 // Enricher لِـ /listings/{id} — يُمَرِّر Images + Attributes (مَفكوكَة مِن
 // AttributesJson) لِواجِهَة التَفاصيل. الكيت يَكتَشِفه عَبر DI.
 builder.Services.AddScoped<ACommerce.Kits.Listings.Backend.IListingDetailEnricher,

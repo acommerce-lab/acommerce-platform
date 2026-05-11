@@ -586,3 +586,75 @@ public class CategoryAttributeTemplateEntity : IBaseEntity
     /// <summary>إذا <c>true</c>، Bootstrap لا يُلامِس هذا الـ row حَتّى لَو الكود تَحَدَّث.</summary>
     public bool IsLockedByAdmin { get; set; }
 }
+
+
+// ─── Production Attribute system (asharedb existing tables) ──────────────
+// نِظام السِمات المُنَظَّم في asharedb. AttributeDefinitions يُحَدِّد ما
+// هي السِمات، AttributeValues يُحَدِّد الخِيارات لِأَنواع select/multi،
+// CategoryAttributeMappings يَربِط أَيّ سِمات تَخُصّ أَيّ فِئَة.
+// المَصدَر: /tmp/ACommerce.Libraries/Other/ACommerce.Catalog.Attributes/Entities/.
+
+public class AttributeDefinitionEntity : IBaseEntity
+{
+    public Guid Id { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public DateTime? UpdatedAt { get; set; }
+    public bool IsDeleted { get; set; }
+
+    public string Name { get; set; } = "";       // عَرَبي عادَةً (اللون، المساحة، …)
+    public string Code { get; set; } = "";       // مِفتاح ثابِت (color, area_sqm, …)
+    /// <summary>1=SingleSelect, 2=MultiSelect, 3=Number, 4=Text, 5=LongText,
+    /// 6=Boolean, 7=Date, 8=DateTime, 9=File, 10=Color.</summary>
+    public int Type { get; set; }
+    public string? Description { get; set; }
+    public bool IsRequired { get; set; }
+    public bool IsFilterable { get; set; }
+    public bool IsVisibleInList { get; set; } = true;
+    public bool IsVisibleInDetail { get; set; } = true;
+    public int SortOrder { get; set; }
+    public string? ValidationRules { get; set; }
+    public string? DefaultValue { get; set; }
+}
+
+public class AttributeValueEntity : IBaseEntity
+{
+    public Guid Id { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public DateTime? UpdatedAt { get; set; }
+    public bool IsDeleted { get; set; }
+
+    public Guid AttributeDefinitionId { get; set; }
+    public string Value { get; set; } = "";           // المِفتاح: "red"
+    public string? DisplayName { get; set; }          // العَرض: "أحمر"
+    public string? Code { get; set; }                 // مُختَصَر اختياري
+    public string? Description { get; set; }
+    public string? ColorHex { get; set; }
+    public string? ImageUrl { get; set; }
+    public int SortOrder { get; set; }
+    public bool IsActive { get; set; } = true;
+}
+
+public class CategoryAttributeMappingEntity : IBaseEntity
+{
+    public Guid Id { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public DateTime? UpdatedAt { get; set; }
+    public bool IsDeleted { get; set; }
+
+    public Guid CategoryId { get; set; }
+    public Guid AttributeDefinitionId { get; set; }
+    public int SortOrder { get; set; }
+    public bool? IsRequiredOverride { get; set; }
+    public bool IsActive { get; set; } = true;
+}
+
+public class AttributeValueRelationshipEntity : IBaseEntity
+{
+    public Guid Id { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public DateTime? UpdatedAt { get; set; }
+    public bool IsDeleted { get; set; }
+
+    public Guid ParentValueId { get; set; }
+    public Guid ChildValueId { get; set; }
+}

@@ -59,6 +59,13 @@ public sealed class AshareV3DbContext : DbContext
     public DbSet<CategoryAttributeTemplateEntity> CategoryAttributeTemplates =>
         Set<CategoryAttributeTemplateEntity>();
 
+    // ── Production attribute system (asharedb existing — مَصدَر القَوالِب
+    //    الكانوني الفِعلي عِندَما يَكون مُملوءاً).
+    public DbSet<AttributeDefinitionEntity>       AttributeDefinitions       => Set<AttributeDefinitionEntity>();
+    public DbSet<AttributeValueEntity>            AttributeValues            => Set<AttributeValueEntity>();
+    public DbSet<CategoryAttributeMappingEntity>  CategoryAttributeMappings  => Set<CategoryAttributeMappingEntity>();
+    public DbSet<AttributeValueRelationshipEntity> AttributeValueRelationships => Set<AttributeValueRelationshipEntity>();
+
     protected override void OnModelCreating(ModelBuilder b)
     {
         // ─── أَسماء جَداوِل asharedb (singular pattern V2) ────────────
@@ -99,6 +106,18 @@ public sealed class AshareV3DbContext : DbContext
         b.Entity<CategoryAttributeTemplateEntity>().ToTable("CategoryAttributeTemplates")
             .HasQueryFilter(e => !e.IsDeleted);
         b.Entity<CategoryAttributeTemplateEntity>().HasIndex(e => e.CategorySlug).IsUnique();
+
+        // Production attribute system — أَسماء plural كَما في asharedb.
+        b.Entity<AttributeDefinitionEntity>().ToTable("AttributeDefinitions")
+            .HasQueryFilter(e => !e.IsDeleted);
+        b.Entity<AttributeValueEntity>().ToTable("AttributeValues")
+            .HasQueryFilter(e => !e.IsDeleted);
+        b.Entity<CategoryAttributeMappingEntity>().ToTable("CategoryAttributeMappings")
+            .HasQueryFilter(e => !e.IsDeleted);
+        b.Entity<AttributeValueRelationshipEntity>().ToTable("AttributeValueRelationships")
+            .HasQueryFilter(e => !e.IsDeleted);
+        b.Entity<AttributeValueEntity>().HasIndex(e => e.AttributeDefinitionId);
+        b.Entity<CategoryAttributeMappingEntity>().HasIndex(e => new { e.CategoryId, e.AttributeDefinitionId });
 
         // ─── soft-delete global query filter (مُتَّسِق مَع V2 pattern) ─
         b.Entity<ProfileEntity>().HasQueryFilter(e => !e.IsDeleted);

@@ -6,6 +6,7 @@ using Ashare.V3.Domain;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
+// ProductionAttributeTemplateSource مِن Ashare.V3.Data.Templates.
 
 namespace Ashare.V3.Api.Controllers;
 
@@ -19,7 +20,12 @@ namespace Ashare.V3.Api.Controllers;
 public sealed class HomeController : ControllerBase
 {
     private readonly AshareV3DbContext _db;
-    public HomeController(AshareV3DbContext db) => _db = db;
+    private readonly ProductionAttributeTemplateSource _prodSource;
+    public HomeController(AshareV3DbContext db, ProductionAttributeTemplateSource prodSource)
+    {
+        _db = db;
+        _prodSource = prodSource;
+    }
 
     [HttpGet("/home/view")]
     public async Task<IActionResult> HomeView([FromQuery] string? city, CancellationToken ct)
@@ -115,24 +121,42 @@ public sealed class HomeController : ControllerBase
                                   .Select(l => l.CategoryId!.Value).Distinct().ToList();
         if (categoryIds.Count == 0) return bundle;
 
+        // ① مَصدَر الإنتاج. لِكُلّ id نَطلُب template — مَقبول لِأَنّ عَدَد
+        //    الفِئات في صَفحَة home/explore صَغير (تَقريباً عَدَد الفِئات
+        //    المُختَلِفَة بَين 60 إعلان كَأَقصى حَدّ).
         bundle.IdToSlug = await _db.ProductCategories.AsNoTracking()
             .Where(c => categoryIds.Contains(c.Id))
             .Select(c => new { c.Id, c.Slug })
             .ToDictionaryAsync(c => c.Id, c => c.Slug, ct);
 
+        foreach (var id in categoryIds)
+        {
+            var fromProd = await _prodSource.BuildForCategoryAsync(id, ct);
+            if (fromProd is { Fields.Count: > 0 })
+                bundle.IdToTemplate[id] = fromProd;
+        }
+
         if (bundle.IdToSlug.Count == 0) return bundle;
 
-        var dbRows = await _db.CategoryAttributeTemplates.AsNoTracking()
-            .Where(t => bundle.IdToSlug.Values.Contains(t.CategorySlug))
-            .ToDictionaryAsync(t => t.CategorySlug, t => t.TemplateJson, ct);
+        // ② DB-served seed لِما لَم يُغَطِّه الإنتاج.
+        var slugsNeedingFallback = bundle.IdToSlug
+            .Where(kv => !bundle.IdToTemplate.ContainsKey(kv.Key))
+            .Select(kv => kv.Value).Distinct().ToList();
+        var dbRows = slugsNeedingFallback.Count == 0
+            ? new Dictionary<string, string>()
+            : await _db.CategoryAttributeTemplates.AsNoTracking()
+                .Where(t => slugsNeedingFallback.Contains(t.CategorySlug))
+                .ToDictionaryAsync(t => t.CategorySlug, t => t.TemplateJson, ct);
 
-        foreach (var slug in bundle.IdToSlug.Values.Distinct())
+        foreach (var kv in bundle.IdToSlug)
         {
+            if (bundle.IdToTemplate.ContainsKey(kv.Key)) continue;
             AttributeTemplate? template = null;
-            if (dbRows.TryGetValue(slug, out var json))
+            if (dbRows.TryGetValue(kv.Value, out var json))
                 template = DynamicAttributeHelper.ParseTemplate(json);
-            template ??= V3CategoryTemplates.All.FirstOrDefault(t => t.Slug == slug).Template;
-            if (template is not null) bundle.SlugToTemplate[slug] = template;
+            // ③ كود fallback.
+            template ??= V3CategoryTemplates.All.FirstOrDefault(t => t.Slug == kv.Value).Template;
+            if (template is not null) bundle.IdToTemplate[kv.Key] = template;
         }
         return bundle;
     }
@@ -140,7 +164,8 @@ public sealed class HomeController : ControllerBase
     private sealed class TemplateBundle
     {
         public Dictionary<Guid, string> IdToSlug { get; set; } = new();
-        public Dictionary<string, AttributeTemplate> SlugToTemplate { get; } = new();
+        /// <summary>قالَب مُجَهَّز لِكُلّ Category.Id (أَيّ مَصدَر).</summary>
+        public Dictionary<Guid, AttributeTemplate> IdToTemplate { get; } = new();
     }
 
     private static object MapSummary(
@@ -179,12 +204,8 @@ public sealed class HomeController : ControllerBase
         if (raw.Count == 0) return new();
 
         AttributeTemplate? template = null;
-        if (l.CategoryId.HasValue
-            && templates.IdToSlug.TryGetValue(l.CategoryId.Value, out var slug)
-            && templates.SlugToTemplate.TryGetValue(slug, out var t))
-        {
+        if (l.CategoryId is { } cid && templates.IdToTemplate.TryGetValue(cid, out var t))
             template = t;
-        }
 
         if (template is null || template.Fields.Count == 0)
             return RawSnapshot(raw);

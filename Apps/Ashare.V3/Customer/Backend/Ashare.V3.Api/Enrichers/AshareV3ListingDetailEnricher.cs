@@ -7,6 +7,8 @@ using Ashare.V3.Domain;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
 
+// Templates ProductionAttributeTemplateSource lives in Ashare.V3.Data.Templates already.
+
 namespace Ashare.V3.Api.Enrichers;
 
 /// <summary>
@@ -31,7 +33,13 @@ namespace Ashare.V3.Api.Enrichers;
 public sealed class AshareV3ListingDetailEnricher : IListingDetailEnricher
 {
     private readonly AshareV3DbContext _db;
-    public AshareV3ListingDetailEnricher(AshareV3DbContext db) => _db = db;
+    private readonly ProductionAttributeTemplateSource _prodSource;
+    public AshareV3ListingDetailEnricher(AshareV3DbContext db,
+                                         ProductionAttributeTemplateSource prodSource)
+    {
+        _db = db;
+        _prodSource = prodSource;
+    }
 
     public async Task<object> EnrichAsync(IListing listing, CancellationToken ct)
     {
@@ -73,30 +81,34 @@ public sealed class AshareV3ListingDetailEnricher : IListingDetailEnricher
         var rawValues = ParseLegacyAttributes(entity.AttributesJson);
         if (rawValues.Count == 0) return new();
 
-        // اِعثُر عَلى slug فِئَة الإعلان لِتَحميل قالَبها.
-        string? categorySlug = null;
-        if (entity.CategoryId is { } catId)
-        {
-            categorySlug = await _db.ProductCategories.AsNoTracking()
-                .Where(c => c.Id == catId).Select(c => c.Slug)
-                .FirstOrDefaultAsync(ct);
-        }
-
-        // ① قالَب مِن DB (المَعروض، قابِل لِلتَعديل).
         AttributeTemplate? template = null;
-        if (!string.IsNullOrEmpty(categorySlug))
+
+        // ① مَصدَر الإنتاج (CategoryAttributeMappings + AttributeDefinitions
+        //    + AttributeValues) — كانوني.
+        if (entity.CategoryId is { } catId)
+            template = await _prodSource.BuildForCategoryAsync(catId, ct);
+
+        // ② Fallback إلى CategoryAttributeTemplates (seeded) ثُمّ كود.
+        if (template is null || template.Fields.Count == 0)
         {
-            var row = await _db.CategoryAttributeTemplates.AsNoTracking()
-                .Where(t => t.CategorySlug == categorySlug)
-                .Select(t => t.TemplateJson).FirstOrDefaultAsync(ct);
-            if (!string.IsNullOrEmpty(row))
-                template = DynamicAttributeHelper.ParseTemplate(row);
-        }
-        // ② Fallback إلى الكود.
-        if (template is null && !string.IsNullOrEmpty(categorySlug))
-        {
-            var hit = V3CategoryTemplates.All.FirstOrDefault(t => t.Slug == categorySlug);
-            template = hit.Template;
+            string? categorySlug = null;
+            if (entity.CategoryId is { } cid2)
+            {
+                categorySlug = await _db.ProductCategories.AsNoTracking()
+                    .Where(c => c.Id == cid2).Select(c => c.Slug)
+                    .FirstOrDefaultAsync(ct);
+            }
+
+            if (!string.IsNullOrEmpty(categorySlug))
+            {
+                var row = await _db.CategoryAttributeTemplates.AsNoTracking()
+                    .Where(t => t.CategorySlug == categorySlug)
+                    .Select(t => t.TemplateJson).FirstOrDefaultAsync(ct);
+                if (!string.IsNullOrEmpty(row))
+                    template = DynamicAttributeHelper.ParseTemplate(row);
+                template ??= V3CategoryTemplates.All
+                    .FirstOrDefault(t => t.Slug == categorySlug).Template;
+            }
         }
 
         // ③ لا قالَب مَعروف ⇒ snapshot خام مِن المَفاتيح كَما هي.
