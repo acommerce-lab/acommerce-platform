@@ -27,16 +27,25 @@ var prodCs = args.Length > 0 && !string.IsNullOrWhiteSpace(args[0])
       ?? throw new InvalidOperationException(
           "ConnectionString لِلإنتاج غَير مُحَدَّد. مَرِّره كَوَسيط أَوَّل أَو في env var ASHAREDB_PROD_CONN.");
 
-var defaultTarget = Path.Combine(
-    "Apps", "Ashare.V3", "Customer", "Backend", "Ashare.V3.Api", "Data", "asharev3.dev.db");
+// نَكتُب إلى نَفس المَوقِع المُطلَق الَّذي يَفتَحه V3 API. كِلاهُما يَحُلّ
+// "Data/asharev3.dev.db" ضِدّ ContentRoot لِـ V3.Api project. نَستَخرِج هذا
+// المَوقِع مَن مَوقِع .csproj لِأَداة الاستِنساخ (Apps/Ashare.V3/Tools/CloneAshareDb)
+// ⇒ V3.Api ContentRoot = ../../Customer/Backend/Ashare.V3.Api.
+var toolDir   = AppContext.BaseDirectory;                            // …/Tools/CloneAshareDb/bin/Debug/net10.0
+var repoRoot  = FindRepoRoot(toolDir) ?? Directory.GetCurrentDirectory();
+var apiRoot   = Path.Combine(repoRoot, "Apps", "Ashare.V3", "Customer", "Backend", "Ashare.V3.Api");
+var defaultTarget = Path.Combine(apiRoot, "Data", "asharev3.dev.db");
 
 var targetCs = args.Length > 1 && !string.IsNullOrWhiteSpace(args[1])
     ? args[1]
     : $"Data Source={defaultTarget};Cache=Shared";
 
 var sqliteBuilder = new SqliteConnectionStringBuilder(targetCs);
-var dbPath = sqliteBuilder.DataSource;
-var dbDir = Path.GetDirectoryName(Path.GetFullPath(dbPath));
+var dbPath = Path.GetFullPath(sqliteBuilder.DataSource);
+sqliteBuilder.DataSource = dbPath;
+targetCs = sqliteBuilder.ToString();
+
+var dbDir = Path.GetDirectoryName(dbPath);
 if (!string.IsNullOrEmpty(dbDir) && !Directory.Exists(dbDir))
     Directory.CreateDirectory(dbDir);
 
@@ -130,3 +139,14 @@ static async Task<long> CopyOptionalAsync<T>(IQueryable<T> src, DbSet<T> tgt, As
 }
 
 static string Truncate(string s, int max) => s.Length <= max ? s : s[..max];
+
+static string? FindRepoRoot(string start)
+{
+    var dir = new DirectoryInfo(start);
+    while (dir != null)
+    {
+        if (File.Exists(Path.Combine(dir.FullName, "ACommerce.Platform.sln"))) return dir.FullName;
+        dir = dir.Parent;
+    }
+    return null;
+}

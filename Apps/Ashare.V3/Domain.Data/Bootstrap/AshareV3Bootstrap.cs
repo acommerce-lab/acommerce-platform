@@ -94,7 +94,23 @@ public static class AshareV3Bootstrap
             // آمِن لِأَنّ القاعِدَة مَحَلِّيَّة، لَو فارِغَة تُملَأ بِـ clone tool،
             // ولَو مُمتَلِئَة بَعد clone EnsureCreated لا يَلمَس شَيئاً (idempotent).
             await db.Database.EnsureCreatedAsync(ct);
-            logger?.LogInformation("Ashare V3: SQLite schema ensured (full EF model)");
+
+            // طَبَعَ المَسار المُطلَق + عَدَد صُفوف ProductListing لِيَكتَشِف
+            // المُطَوِّر فَوراً ما إذا كانَت القاعِدَة فارِغَة (يَحتاج clone)
+            // أَو عَلى مَسار مُختَلِف عَن الَّذي كَتَبَ إلَيه استِنساخ سابِق.
+            var sqliteConn = db.Database.GetDbConnection();
+            var dbPath = new Microsoft.Data.Sqlite.SqliteConnectionStringBuilder(sqliteConn.ConnectionString).DataSource;
+            var listingCount = await db.ProductListings.IgnoreQueryFilters().CountAsync(ct);
+            var profileCount = await db.Profiles.IgnoreQueryFilters().CountAsync(ct);
+            logger?.LogInformation(
+                "Ashare V3: SQLite schema ensured. Path={Path} | ProductListing={L} Profile={P}",
+                dbPath, listingCount, profileCount);
+            if (listingCount == 0)
+            {
+                logger?.LogWarning(
+                    "Ashare V3: ProductListing فارِغ. شَغِّل أَداة الاستِنساخ: " +
+                    "ASHAREDB_PROD_CONN='…' dotnet run --project Apps/Ashare.V3/Tools/CloneAshareDb");
+            }
         }
         else
         {
