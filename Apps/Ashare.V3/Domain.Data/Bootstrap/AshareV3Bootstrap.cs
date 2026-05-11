@@ -152,7 +152,11 @@ public static class AshareV3Bootstrap
         var inserted = 0;
         var updated  = 0;
         var skipped  = 0;
-        foreach (var (slug, version, template) in V3CategoryTemplates.All)
+        // قَوالِب الفِئات + قالَب البروفايل المُنفَصِل — كِلاهُما في نَفس
+        // الجَدول، نُمَيِّز بِالـ slug.
+        var all = V3CategoryTemplates.All
+            .Append((V3ProfileTemplate.Slug, V3ProfileTemplate.Version, V3ProfileTemplate.Build()));
+        foreach (var (slug, version, template) in all)
         {
             var existing = await db.CategoryAttributeTemplates
                 .FirstOrDefaultAsync(t => t.CategorySlug == slug, ct);

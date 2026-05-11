@@ -1,8 +1,12 @@
 @page "/profile/edit"
 @attribute [Authorize]
 @using ACommerce.Kits.Profiles.Operations
+@using ACommerce.SharedKernel.Domain.DynamicAttributes
+@using System.Net.Http.Json
 @inject IProfileStore Profiles
 @inject IDiscoveryStore Discovery
+@inject IUiPreferences Prefs
+@inject IHttpClientFactory HttpFactory
 @inject NavigationManager Nav
 @inject L L
 @inject INumeralNormalizer Numerals
@@ -93,6 +97,24 @@
             </ChildContent>
         </AcCard>
 
+        @* السِمات الديناميكِيَّة لِلبروفايل (Template+Snapshot). كُلّ تَطبيق
+           يَكشِف قالَبه عَبر <c>/profile/attribute-template</c>؛ هذه الصَفحَة
+           تَطلُبه مَرَّة وتَرسُمه بِـ AcAttrEditor. القِيَم تُحفَظ في
+           <c>/profile/me/attributes</c> ⇒ snapshots تُعاد بِناؤها ⇒ تَظهَر
+           فَوراً في صَفحَة /me. لَو قالَب فارِغ ⇒ القِسم لا يَظهَر. *@
+        @if (_attrTemplate is { Fields.Count: > 0 })
+        {
+            <AcCard>
+                <ChildContent>
+                    <h3 style="margin-top:0;">@(L[TemplateStrings.ListingAttributes])</h3>
+                    <AcAttrEditor Template="@_attrTemplate"
+                                  Values="@_attrValues"
+                                  ValuesChanged="@(v => _attrValues = v)"
+                                  IsArabic="@(Prefs.Language == "ar")" />
+                </ChildContent>
+            </AcCard>
+        }
+
         @if (!string.IsNullOrEmpty(_alert))
         {
             <AcAlert Variant="@_alertVariant" Message="@_alert" />
@@ -113,6 +135,9 @@
     private string _alertVariant = "success";
     private string? _avatarDataUrl;
 
+    private AttributeTemplate? _attrTemplate;
+    private Dictionary<string, object?> _attrValues = new();
+
     protected override async Task OnAfterRenderAsync(bool first)
     {
         if (!first) return;
@@ -120,8 +145,6 @@
             Profiles.LoadAsync(),
             Discovery.LoadCitiesAsync());
 
-        // IUserProfile interface is read-only — نُحَوِّل لِـ POCO mutable
-        // (InMemoryUserProfile الـ kit) لِنَتَمَكَّن مِن with-clones.
         var p = Profiles.Current;
         _data = p is not null
             ? new InMemoryUserProfile(p.Id, p.FullName, p.Phone, p.PhoneVerified,
@@ -129,6 +152,26 @@
             : new InMemoryUserProfile("U-1", "", "", false, "", false, L[TemplateStrings.CommonDefaultCity], null, DateTime.UtcNow);
         _avatarDataUrl = _data.AvatarUrl;
         _loading = false;
+
+        // اِجلِب قالَب + snapshots الحالِيَّة. الـ values تُملأ مِن الـ
+        // snapshots لِيَظهَر آخِر اختِيار في الـ AcAttrEditor.
+        try
+        {
+            var http = HttpFactory.CreateClient("ejar");
+            var tEnv = await http.GetFromJsonAsync<
+                ACommerce.OperationEngine.Wire.OperationEnvelope<AttributeTemplate>>(
+                    "/profile/attribute-template");
+            _attrTemplate = tEnv?.Data;
+
+            var sEnv = await http.GetFromJsonAsync<
+                ACommerce.OperationEngine.Wire.OperationEnvelope<List<DynamicAttribute>>>(
+                    "/profile/me/attributes");
+            if (sEnv?.Data is { } snapshot)
+                _attrValues = snapshot.Where(a => a.Value is not null)
+                                      .ToDictionary(a => a.Key, a => a.Value);
+        }
+        catch { /* غَير قاتل — العَرض يَستَمِرّ بِدون القِسم. */ }
+
         await InvokeAsync(StateHasChanged);
     }
 
@@ -173,9 +216,21 @@
             // عَبر <c>with</c> clone حَفاظاً عَلى wire shape مَطلوب الباك.
             var next = _data with { AvatarUrl = _avatarDataUrl ?? _data.AvatarUrl };
             await Profiles.UpdateAsync(next);
-            // IClientAuthState يَتَزامَن تلقائيّاً عَبر post-interceptors لاحِقاً
-            // (Phase F). مُؤَقَّتاً نَتَوَقَّع أنّ DefaultProfileStore.Current
-            // قَد تَحَدَّث بَعد UpdateAsync ⇒ لا حاجة لِتَزامُن يَدويّ.
+
+            // اِحفَظ السِمات الديناميكِيَّة إن كان قالَب مُسَجَّل. الـ
+            // controller V3 يَستَخدِم BuildSnapshot ⇒ مَفاتيح غَير مَعروفَة
+            // تُهمَل ⇒ لا surface لِحَقن قِيَم.
+            if (_attrTemplate is { Fields.Count: > 0 })
+            {
+                try
+                {
+                    var http = HttpFactory.CreateClient("ejar");
+                    await http.PostAsJsonAsync("/profile/me/attributes",
+                        new { values = _attrValues });
+                }
+                catch { /* غَير قاتل لِلسَيناريو الرَئيسي. */ }
+            }
+
             _alert = L[TemplateStrings.ProfileEditSaved]; _alertVariant = "success";
             await Task.Delay(500);
             Nav.NavigateTo("/me");

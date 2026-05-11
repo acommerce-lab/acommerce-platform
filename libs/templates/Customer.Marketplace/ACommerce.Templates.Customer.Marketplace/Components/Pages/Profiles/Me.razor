@@ -1,12 +1,16 @@
 @page "/me"
 @attribute [Authorize]
 @using ACommerce.Kits.Versions.Templates
+@using ACommerce.SharedKernel.Domain.DynamicAttributes
+@using System.Net.Http.Json
 @inject IClientAuthState AuthState
 @inject IAuthStore Auth
 @inject IProfileStore Profiles
 @inject IListingsStore Listings
 @inject ISupportStore Support
 @inject IFavoritesStore Favorites
+@inject IUiPreferences Prefs
+@inject IHttpClientFactory HttpFactory
 @inject NavigationManager Nav
 @inject AppVersionInfo AppVersion
 @inject L L
@@ -53,6 +57,20 @@
         </div>
     }
 
+    @* سِمات البروفايل الديناميكِيَّة (Template+Snapshot). كُلّ تَطبيق
+       يُعَرِّف قالَبه الخاصّ في الـ backend (V3 ⇒ V3ProfileTemplate)
+       ويَكشِفه عَبر <c>/profile/attribute-template</c>. هُنا فَقَط
+       AcAttrGrid يَرسُم. null ⇒ لا قِسم يَظهَر. *@
+    @if (_profileAttrs is { Count: > 0 })
+    {
+        <AcCard>
+            <ChildContent>
+                <h3 style="margin-top:0;">@(L[TemplateStrings.ListingAttributes])</h3>
+                <AcAttrGrid Attributes="@_profileAttrs" IsArabic="@(Prefs.Language == "ar")" />
+            </ChildContent>
+        </AcCard>
+    }
+
     <div class="acm-home-actions" style="margin-top:12px;">
         @* "الخطط" بطاقة بارزة في الأعلى — كانت زرّاً صغيراً مدفوناً تحت
            كلّ شيء، الآن في صفّ البطاقات الأمامي حتّى لا تضيع. *@
@@ -77,19 +95,33 @@
 
 @code {
     private bool _statsLoaded;
+    private List<DynamicAttribute>? _profileAttrs;
 
     protected override async Task OnAfterRenderAsync(bool first)
     {
         if (!first) return;
-        // كلّ نِداء كَيت Store عَبر OAM. الإحصاءات الثَلاث تَأتي مِن
-        // Stores مُختَلِفَة (Listings.Mine.Count، Favorites.Ids.Count،
-        // Support.Tickets.Count) ⇒ لا حاجة لِنَداء /complaints المَيِّت.
         await System.Threading.Tasks.Task.WhenAll(
             Profiles.LoadAsync(),
             Listings.LoadMineAsync(),
             Support.LoadAsync(),
             Favorites.LoadAsync());
         _statsLoaded = true;
+
+        // اِجلِب سِمات البروفايل (snapshots). الـ endpoint
+        // <c>/profile/me/attributes</c> يَستَعمِل قالَب التَطبيق ⇒ snapshots
+        // مُكتَمِلَة جاهِزَة لِـ AcAttrGrid. فَشَل = نَترُك _profileAttrs null
+        // ⇒ القِسم لا يَظهَر. لا تَطبيق يَخسَر شَيئاً لَو endpoint غَير
+        // مُسَجَّل.
+        try
+        {
+            var http = HttpFactory.CreateClient("ejar");
+            var env  = await http.GetFromJsonAsync<
+                ACommerce.OperationEngine.Wire.OperationEnvelope<List<DynamicAttribute>>>(
+                    "/profile/me/attributes");
+            _profileAttrs = env?.Data;
+        }
+        catch { /* غَير قاتل — صَفحَة /me تَعمَل بِدونه. */ }
+
         await InvokeAsync(StateHasChanged);
     }
 

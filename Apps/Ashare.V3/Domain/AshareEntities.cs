@@ -44,6 +44,13 @@ public class ProfileEntity : IBaseEntity
     public bool IsActive { get; set; }
     public bool IsVerified { get; set; }
     public DateTime? VerifiedAt { get; set; }
+    /// <summary>
+    /// سِمات ديناميكِيَّة لِلبروفايل (JSON: كائِن مُسَطَّح
+    /// <c>{ key: value }</c>). تُستَخدَم مَع <c>V3ProfileTemplate</c>
+    /// لِبِناء snapshots عَلى الواجِهَة. أُضيفَ في V3 — لا يَنتَمي لِـ
+    /// asharedb الإنتاجِي القَديم (يَنشَأ بِـ EnsureCreated في SQLite).
+    /// </summary>
+    public string? AttributesJson { get; set; }
 }
 
 
