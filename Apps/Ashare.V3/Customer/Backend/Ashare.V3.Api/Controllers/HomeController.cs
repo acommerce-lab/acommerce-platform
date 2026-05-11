@@ -1,5 +1,7 @@
 using ACommerce.OperationEngine.Wire.Http;
+using ACommerce.SharedKernel.Domain.DynamicAttributes;
 using Ashare.V3.Data;
+using Ashare.V3.Data.Templates;
 using Ashare.V3.Domain;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -8,18 +10,10 @@ using System.Text.Json;
 namespace Ashare.V3.Api.Controllers;
 
 /// <summary>
-/// نُقَط النِّهايَة العامَّة لِـ /home/* (V1-compat shape). نَظير
-/// <c>Ejar.Api.Controllers.HomeController</c> — التَّطبيق يَحتاجها لِأَنّ
-/// الـ frontend (Customer.Marketplace.Home) يَستَدعي <c>/home/view</c>،
-/// <c>/home/explore</c>، <c>/home/search/suggestions</c>، <c>/legal</c>
-/// بِشَكل JSON V1 المُسَطَّح (firstImage, propertyTypeLabel, isFavorite، …)
-/// لا يَتَطابَق مَع <c>/listings</c> الَّذي يَرُدّه kit (IListing pure).
-///
-/// <para><b>الفَرق عَن إيجار</b>: نَقرَأ <see cref="ProductListingEntity"/>
-/// (asharedb schema): <c>VendorId</c>، <c>IsFeatured</c>، <c>FeaturedImage</c>،
-/// <c>ImagesJson</c> (JSON array)، <c>Condition</c> بَدَل <c>PropertyType</c>،
-/// <c>Address</c> بَدَل <c>District</c>، <c>Latitude/Longitude</c> بَدَل
-/// <c>Lat/Lng</c>، <c>IsActive</c> bool بَدَل <c>Status</c> int.</para>
+/// نُقَط النِّهايَة <c>/home/*</c> لِـ V1-compat shape. مَع تَفعيل Template+
+/// Snapshot: كُلّ بِطاقَة (Featured/New/Explore) تَحمِل <c>attributes</c>
+/// (DynamicAttribute) بِناءً عَلى قالَب فِئَة الإعلان ⇒ AcSpaceCard يَرسُم
+/// chips تِلقائيّاً.
 /// </summary>
 [ApiController]
 public sealed class HomeController : ControllerBase
@@ -27,7 +21,6 @@ public sealed class HomeController : ControllerBase
     private readonly AshareV3DbContext _db;
     public HomeController(AshareV3DbContext db) => _db = db;
 
-    // ── /home/view ─────────────────────────────────────────────────────────
     [HttpGet("/home/view")]
     public async Task<IActionResult> HomeView([FromQuery] string? city, CancellationToken ct)
     {
@@ -35,21 +28,23 @@ public sealed class HomeController : ControllerBase
             .Where(l => l.IsActive && (string.IsNullOrEmpty(city) || l.City == city))
             .ToListAsync(ct);
         var categories = await _db.DiscoveryCategories.AsNoTracking().ToListAsync(ct);
+        var templates  = await LoadTemplatesAsync(listings, ct);
 
         return this.OkEnvelope("home.view", new
         {
             categories = categories.Select(c => new { id = c.Slug, label = c.Label, icon = c.Icon }),
-            featured   = listings.Where(l => l.IsFeatured).Select(l => MapSummary(l, categories)).ToList(),
-            @new       = listings.Where(l => !l.IsFeatured).Take(6).Select(l => MapSummary(l, categories)).ToList(),
+            featured   = listings.Where(l => l.IsFeatured)
+                                 .Select(l => MapSummary(l, categories, templates)).ToList(),
+            @new       = listings.Where(l => !l.IsFeatured).Take(6)
+                                 .Select(l => MapSummary(l, categories, templates)).ToList(),
             city
         });
     }
 
-    // ── /home/explore (V1 legacy shape) ─────────────────────────────────────
     [HttpGet("/home/explore")]
     public async Task<IActionResult> Explore(
         [FromQuery] string? city,
-        [FromQuery] string? category,        // alias لِـ condition
+        [FromQuery] string? category,
         [FromQuery] string? propertyType,
         [FromQuery] string? q,
         [FromQuery(Name = "minPrice")] decimal? minPrice = null,
@@ -82,33 +77,12 @@ public sealed class HomeController : ControllerBase
 
         var rows = await query.Take(60).ToListAsync(ct);
         var categories = await _db.DiscoveryCategories.AsNoTracking().ToListAsync(ct);
+        var templates  = await LoadTemplatesAsync(rows, ct);
 
-        var items = rows.Select(l => new
-        {
-            id                = l.Id,
-            title             = l.Title,
-            price             = l.Price,
-            timeUnit          = "fixed",
-            timeUnitLabel     = "",
-            propertyType      = l.Condition ?? "",
-            propertyTypeLabel = categories.FirstOrDefault(c => c.Slug == l.Condition)?.Label ?? l.Condition ?? "",
-            city              = l.City ?? "",
-            district          = l.Address ?? "",
-            lat               = l.Latitude  ?? 0,
-            lng               = l.Longitude ?? 0,
-            bedroomCount      = 0,
-            areaSqm           = 0,
-            isVerified        = l.IsFeatured,
-            viewsCount        = l.ViewCount,
-            isFavorite        = false,
-            amenities         = Array.Empty<string>(),
-            firstImage        = l.FeaturedImage ?? FirstFromJson(l.ImagesJson),
-        }).ToList();
-
+        var items = rows.Select(l => MapSummary(l, categories, templates)).ToList();
         return this.OkEnvelope("home.explore", items);
     }
 
-    // ── /home/search/suggestions ───────────────────────────────────────────
     [HttpGet("/home/search/suggestions")]
     public IActionResult Suggestions() =>
         this.OkEnvelope("home.search.suggestions", new
@@ -117,7 +91,6 @@ public sealed class HomeController : ControllerBase
             popular = new[] { "إب", "صنعاء", "عدن", "جديد", "مستعمل" }
         });
 
-    // ── /legal ─────────────────────────────────────────────────────────────
     [HttpGet("/legal")]
     public IActionResult Legal() =>
         this.OkEnvelope("legal.list", new[]
@@ -127,23 +100,135 @@ public sealed class HomeController : ControllerBase
             new { key = "refund",  label = "سياسة الاسترداد" },
         });
 
-    // ── helpers ────────────────────────────────────────────────────────────
-    private static object MapSummary(ProductListingEntity l, IReadOnlyList<ACommerce.Kits.Discovery.Domain.DiscoveryCategory> categories) => new
+    // ── helpers ──────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// يُحَمِّل قَوالِب كُلّ الفِئات المُستَخدَمَة في القائِمَة دَفعَة واحِدَة
+    /// (لِتَجَنُّب N+1). DB أَوَّلاً، fallback لِلكود لِكُلّ slug لا row لَه.
+    /// يُعيد bundle بِـ CategoryId→Slug map + Slug→Template map.
+    /// </summary>
+    private async Task<TemplateBundle> LoadTemplatesAsync(
+        IReadOnlyList<ProductListingEntity> listings, CancellationToken ct)
     {
-        id           = l.Id,
-        title        = l.Title,
-        price        = l.Price,
-        timeUnit     = "fixed",
-        propertyType = l.Condition ?? "",
-        propertyTypeLabel = categories.FirstOrDefault(c => c.Slug == l.Condition)?.Label ?? l.Condition ?? "",
-        city         = l.City    ?? "",
-        district     = l.Address ?? "",
-        bedroomCount = 0,
-        areaSqm      = 0,
-        isVerified   = l.IsFeatured,
-        viewsCount   = l.ViewCount,
-        firstImage   = l.FeaturedImage ?? FirstFromJson(l.ImagesJson),
+        var bundle = new TemplateBundle();
+        var categoryIds = listings.Where(l => l.CategoryId.HasValue)
+                                  .Select(l => l.CategoryId!.Value).Distinct().ToList();
+        if (categoryIds.Count == 0) return bundle;
+
+        bundle.IdToSlug = await _db.ProductCategories.AsNoTracking()
+            .Where(c => categoryIds.Contains(c.Id))
+            .Select(c => new { c.Id, c.Slug })
+            .ToDictionaryAsync(c => c.Id, c => c.Slug, ct);
+
+        if (bundle.IdToSlug.Count == 0) return bundle;
+
+        var dbRows = await _db.CategoryAttributeTemplates.AsNoTracking()
+            .Where(t => bundle.IdToSlug.Values.Contains(t.CategorySlug))
+            .ToDictionaryAsync(t => t.CategorySlug, t => t.TemplateJson, ct);
+
+        foreach (var slug in bundle.IdToSlug.Values.Distinct())
+        {
+            AttributeTemplate? template = null;
+            if (dbRows.TryGetValue(slug, out var json))
+                template = DynamicAttributeHelper.ParseTemplate(json);
+            template ??= V3CategoryTemplates.All.FirstOrDefault(t => t.Slug == slug).Template;
+            if (template is not null) bundle.SlugToTemplate[slug] = template;
+        }
+        return bundle;
+    }
+
+    private sealed class TemplateBundle
+    {
+        public Dictionary<Guid, string> IdToSlug { get; set; } = new();
+        public Dictionary<string, AttributeTemplate> SlugToTemplate { get; } = new();
+    }
+
+    private static object MapSummary(
+        ProductListingEntity l,
+        IReadOnlyList<ACommerce.Kits.Discovery.Domain.DiscoveryCategory> categories,
+        TemplateBundle templates)
+    {
+        var attributes = BuildAttributes(l, templates);
+        return new
+        {
+            id           = l.Id,
+            title        = l.Title,
+            price        = l.Price,
+            timeUnit     = "fixed",
+            timeUnitLabel= "",
+            propertyType = l.Condition ?? "",
+            propertyTypeLabel = categories.FirstOrDefault(c => c.Slug == l.Condition)?.Label ?? l.Condition ?? "",
+            city         = l.City    ?? "",
+            district     = l.Address ?? "",
+            lat          = l.Latitude ?? 0,
+            lng          = l.Longitude ?? 0,
+            bedroomCount = 0,
+            areaSqm      = 0,
+            isVerified   = l.IsFeatured,
+            viewsCount   = l.ViewCount,
+            isFavorite   = false,
+            amenities    = Array.Empty<string>(),
+            firstImage   = l.FeaturedImage ?? FirstFromJson(l.ImagesJson),
+            attributes   = attributes,
+        };
+    }
+
+    private static List<DynamicAttribute> BuildAttributes(ProductListingEntity l, TemplateBundle templates)
+    {
+        var raw = ParseLegacy(l.AttributesJson);
+        if (raw.Count == 0) return new();
+
+        AttributeTemplate? template = null;
+        if (l.CategoryId.HasValue
+            && templates.IdToSlug.TryGetValue(l.CategoryId.Value, out var slug)
+            && templates.SlugToTemplate.TryGetValue(slug, out var t))
+        {
+            template = t;
+        }
+
+        if (template is null || template.Fields.Count == 0)
+            return RawSnapshot(raw);
+
+        return DynamicAttributeHelper.BuildSnapshot(template, raw);
+    }
+
+    private static Dictionary<string, object?> ParseLegacy(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json)) return new();
+        try
+        {
+            using var doc = JsonDocument.Parse(json);
+            if (doc.RootElement.ValueKind != JsonValueKind.Object) return new();
+            var d = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
+            foreach (var p in doc.RootElement.EnumerateObject())
+                d[p.Name] = Extract(p.Value);
+            return d;
+        }
+        catch { return new(); }
+    }
+
+    private static object? Extract(JsonElement el) => el.ValueKind switch
+    {
+        JsonValueKind.String => el.GetString(),
+        JsonValueKind.Number => el.TryGetInt64(out var i) ? i : (object)el.GetDouble(),
+        JsonValueKind.True   => true,
+        JsonValueKind.False  => false,
+        JsonValueKind.Null   => null,
+        JsonValueKind.Array  => el.EnumerateArray().Select(Extract).ToList(),
+        JsonValueKind.Object => el.TryGetProperty("value", out var v) ? Extract(v) : el.GetRawText(),
+        _ => null,
     };
+
+    private static List<DynamicAttribute> RawSnapshot(Dictionary<string, object?> raw)
+    {
+        var i = 0;
+        return raw.Where(kv => kv.Value is not null).Select(kv => new DynamicAttribute
+        {
+            Key = kv.Key, Label = kv.Key, LabelAr = kv.Key,
+            Type = kv.Value is bool ? "bool" : (kv.Value is long or double ? "number" : "text"),
+            Value = kv.Value, SortOrder = ++i,
+        }).ToList();
+    }
 
     private static string? FirstFromJson(string? json)
     {

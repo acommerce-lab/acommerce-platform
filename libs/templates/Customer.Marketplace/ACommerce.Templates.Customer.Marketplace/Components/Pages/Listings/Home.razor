@@ -146,7 +146,8 @@
         Price = l.Price, Currency = "YER", TimeUnit = l.TimeUnitLabel ?? l.TimeUnit ?? "",
         City = l.City ?? "", District = l.District ?? "", Status = 1, IsFeatured = l.IsVerified,
         ThumbnailUrl = l.FirstImage,
-        Capacity = l.BedroomCount == 0 ? null : l.BedroomCount
+        Capacity = l.BedroomCount == 0 ? null : l.BedroomCount,
+        Attributes = l.Attributes?.ToList()
     };
 
     private void OnChange() => InvokeAsync(StateHasChanged);
