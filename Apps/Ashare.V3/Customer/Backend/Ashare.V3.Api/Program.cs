@@ -43,7 +43,15 @@ builder.AddACommerceServiceHost(host => host
         .AddAuth<AshareV3AuthUserStore>(
             new AuthKitJwtConfig(JwtSecret, "ashare.v3.api", "ashare.v3.mobile",
                                  Role: "user", PartyKind: "User",
-                                 AccessTokenLifetimeDays: 30))
+                                 AccessTokenLifetimeDays: 30),
+            auth => auth.AddTwoFactor(tf => tf.UseMockNafathProvider(opts =>
+            {
+                // قابِلَة لِلتَكوين مِن appsettings:MockNafath لاحِقاً؛ هُنا
+                // افتِراضِيّات تَطوير: "00" يُعرَض لِلمُستَخدِم، تَحَقُّق تِلقائي
+                // بَعد 5 ثَوانٍ.
+                opts.DisplayCode       = "00";
+                opts.AutoVerifySeconds = 5;
+            })))
         .AddChat<AshareV3ChatStore>()
         .AddChatPresenceProbe<AshareV3ChatPresenceProbe>()
         .AddDiscovery()
