@@ -159,8 +159,8 @@ public sealed class AshareV3PlanStore : IPlanStore
 /// </summary>
 public sealed class AshareV3SubscriptionStore : ISubscriptionStore
 {
-    private readonly AshareV3PlanStore _plans;
-    public AshareV3SubscriptionStore(AshareV3PlanStore plans) => _plans = plans;
+    private readonly IPlanStore _plans;
+    public AshareV3SubscriptionStore(IPlanStore plans) => _plans = plans;
 
     public Task<SubscriptionView?> GetActiveAsync(string userId, CancellationToken ct) =>
         Task.FromResult<SubscriptionView?>(null); // OpenAccess يَتَكَفَّل بِالاصطِناعي
