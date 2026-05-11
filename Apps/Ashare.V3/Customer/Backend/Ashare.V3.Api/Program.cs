@@ -58,7 +58,17 @@ builder.AddACommerceServiceHost(host => host
         .AddFavorites<AshareV3FavoritesStore>()
         .AddVersions<AshareV3VersionStore>()
         .AddListings<AshareV3ListingStore>()
-        .AddProfiles<AshareV3ProfileStore>())
+        .AddProfiles<AshareV3ProfileStore>()
+        .AddReports<AshareV3ReportStore>()
+        // OpenAccess=true ⇒ كُلّ مُستَخدِم يَحصُل عَلى اشتِراك "تَجرِبَة
+        // مَفتوحَة" اصطِناعي لِسَنوات ⇒ صَفحَة العَرض الجَديد لا تُحجَب،
+        // وصَفحَة الباقات تَعرِض القائِمَة الكامِلَة مِن PlanStore.
+        .AddSubscriptions<AshareV3SubscriptionStore, AshareV3PlanStore, AshareV3InvoiceStore>(opts =>
+        {
+            opts.OpenAccess         = true;
+            opts.TrialPlanName      = "تجربة مفتوحة";
+            opts.TrialDurationYears = 10;
+        }))
 
     // التَّراكيب: غِراء عامّ بَين الكيتس (لا app-specific شَيء).
     // Chat.WithNotifications يُؤَجَّل حَتّى يُسَجَّل Notifications kit.
