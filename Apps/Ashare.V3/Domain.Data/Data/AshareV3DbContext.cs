@@ -90,6 +90,23 @@ public sealed class AshareV3DbContext : DbContext
         b.Entity<NotificationEntity>().HasIndex(n => new { n.UserId, n.IsRead });
         b.Entity<ReportEntity>().HasIndex(r => new { r.EntityType, r.EntityId });
 
+        // ─── decimal precision (asharedb default decimal(18,2)) ──────
+        // بِدون هذا EF يُحَذِّر مِن truncation. نَستَخدِم نَفس precision/scale
+        // المَوجودَين في asharedb (تَفقَّدنا الأَعمِدَة في sys.columns).
+        b.Entity<BookingEntity>().Property(e => e.TotalPrice).HasPrecision(18, 2);
+        b.Entity<BookingEntity>().Property(e => e.DepositPercentage).HasPrecision(5, 2);
+        b.Entity<BookingEntity>().Property(e => e.DepositAmount).HasPrecision(18, 2);
+        b.Entity<BookingEntity>().Property(e => e.EscrowReleasedAmount).HasPrecision(18, 2);
+        b.Entity<ProductEntity>().Property(e => e.Weight).HasPrecision(10, 3);
+        b.Entity<ProductEntity>().Property(e => e.Length).HasPrecision(10, 3);
+        b.Entity<ProductEntity>().Property(e => e.Width).HasPrecision(10, 3);
+        b.Entity<ProductEntity>().Property(e => e.Height).HasPrecision(10, 3);
+        b.Entity<ProductListingEntity>().Property(e => e.Price).HasPrecision(18, 2);
+        b.Entity<ProductListingEntity>().Property(e => e.CompareAtPrice).HasPrecision(18, 2);
+        b.Entity<ProductListingEntity>().Property(e => e.Cost).HasPrecision(18, 2);
+        b.Entity<ProductListingEntity>().Property(e => e.Rating).HasPrecision(3, 2);
+        b.Entity<ProductListingEntity>().Property(e => e.CommissionPercentage).HasPrecision(5, 2);
+
         // ─── Chat ⇄ ChatParticipant navigation ───────────────────────
         b.Entity<ChatEntity>()
             .HasMany(c => c.Participants)

@@ -78,4 +78,15 @@ app.MapGet("/api/profiles", async (AshareV3DbContext db) =>
         })
         .ToListAsync());
 
+// ─── Fallback لِكُلّ endpoint غَير مُسَجَّل بَعد ─────────────────────
+// V3.Web يَستَهلِك Ejar V1 template الذي يَستَدعي /version/check و /cities و
+// /home/view وغَيرها. هذه الكيتس لَم تُوصَل بَعد في V3.Api (iteration 1).
+// نُرجِع JSON 501 (لا 404 فارِغ) لِيَتَمَكَّن الـ HttpDispatcher مِن الـ
+// frontend مِن قِراءَة الجَواب دون JsonException.
+app.MapFallback(() => Results.Json(
+    new { error = "endpoint_not_implemented",
+          message = "Ashare V3 iteration 1: kit endpoints not wired yet. " +
+                    "Implement Stores + register kits in Program.cs in iteration 2+." },
+    statusCode: 501));
+
 app.Run();
