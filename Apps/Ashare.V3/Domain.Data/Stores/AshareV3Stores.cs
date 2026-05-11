@@ -27,26 +27,64 @@ public sealed class AshareV3AuthUserStore : IAuthUserStore
     private readonly AshareV3DbContext _db;
     public AshareV3AuthUserStore(AshareV3DbContext db) => _db = db;
 
-    public async Task<string> GetOrCreateUserIdAsync(string phone, CancellationToken ct)
+    /// <summary>
+    /// يُرجِع <c>Profile.UserId</c> (نَفس AspNetUsers.Id المُستَخدَم في
+    /// asharedb V1/V2 — مِفتاح Favorites.UserId، ChatParticipants.UserId،
+    /// Messages.SenderId، إلخ.). يَبحَث بِالـ <paramref name="subject"/>:
+    /// <list type="bullet">
+    ///   <item>أَوَّلاً عَلى <c>NationalId</c> (تَدَفُّق Nafath).</item>
+    ///   <item>ثُمّ عَلى <c>PhoneNumber</c> (تَدَفُّق SMS).</item>
+    /// </list>
+    /// لَو وُجِد Profile قائِم بِلا UserId، نُعَيِّن واحِداً ثابِتاً.
+    /// لَو لا profile، نُنشِئ واحِداً مَع subject في الحَقل المُناسِب.
+    ///
+    /// <para><b>لِماذا UserId لا Id</b>: في asharedb البَيانات الحَيَّة، كُلّ
+    /// الجَداوِل المُتَفَرِّعَة (Favorite, ChatParticipant, Message…) تَحفَظ
+    /// AspNetUsers.Id كَـ string. لَو رَدَدنا Profile.Id (Guid مَحَلِّي) لَن
+    /// يَلتَقي مَع أَيّ بَيانات سابِقَة لِلمُستَخدِم نَفسه. هذا هو السَبَب
+    /// المُباشِر لِسؤال المُستَخدِم: "لماذا لا يَتَعَرَّف عَلَيّ بِنَفس الهُوِيَّة؟"</para>
+    /// </summary>
+    public async Task<string> GetOrCreateUserIdAsync(string subject, CancellationToken ct)
     {
-        var existing = await _db.Profiles.FirstOrDefaultAsync(p => p.PhoneNumber == phone, ct);
-        if (existing is not null) return existing.Id.ToString();
+        subject = subject.Trim();
+        var existing = await _db.Profiles
+            .FirstOrDefaultAsync(p => p.NationalId == subject || p.PhoneNumber == subject, ct);
 
+        if (existing is not null)
+        {
+            // لَو Profile قائِم لكِن UserId null/empty (مُمكِن في بَيانات قَديمَة)،
+            // عَيِّن واحِداً ثابِتاً — يُحفَظ بَعد ذلك مَع SaveChanges في AuthController.
+            if (string.IsNullOrEmpty(existing.UserId))
+                existing.UserId = Guid.NewGuid().ToString();
+            return existing.UserId!;
+        }
+
+        // مُستَخدِم جَديد. سَجِّل subject في الحَقل المُناسِب بِناءً عَلى الشَكل:
+        // 10 أَرقام تَبدَأ بِـ 1/2 = National ID (السُّعودِيَّة)، غَير ذلك = هاتِف.
+        var isNationalId = subject.Length == 10
+                           && subject.All(char.IsDigit)
+                           && (subject[0] == '1' || subject[0] == '2');
+        var newUserId = Guid.NewGuid().ToString();
         var p = new ProfileEntity
         {
             Id = Guid.NewGuid(), CreatedAt = DateTime.UtcNow,
-            PhoneNumber = phone, FullName = "عُضو جديد",
-            City = "صنعاء", IsActive = true, Type = 0
+            UserId = newUserId,
+            NationalId = isNationalId ? subject : null,
+            PhoneNumber = isNationalId ? null : subject,
+            FullName = "عُضو جديد",
+            City = "صنعاء",
+            IsActive = true, Type = 0,
         };
         _db.Profiles.Add(p);
-        return p.Id.ToString();
+        return newUserId;
     }
 
     public async Task<string?> GetDisplayNameAsync(string userId, CancellationToken ct)
     {
-        if (!Guid.TryParse(userId, out var id)) return null;
         return await _db.Profiles.AsNoTracking()
-            .Where(p => p.Id == id).Select(p => p.FullName).FirstOrDefaultAsync(ct);
+            .Where(p => p.UserId == userId)
+            .Select(p => p.BusinessName ?? p.FullName)
+            .FirstOrDefaultAsync(ct);
     }
 }
 
@@ -146,15 +184,15 @@ public sealed class AshareV3ProfileStore : IProfileStore
 
     public async Task<IUserProfile?> GetAsync(string userId, CancellationToken ct)
     {
-        if (!Guid.TryParse(userId, out var id)) return null;
-        var p = await _db.Profiles.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id, ct);
+        // userId = AspNetUsers.Id (Profile.UserId). الـ Profile.Id الداخِلي
+        // مَخفي عَن طَبَقَة الـ Auth — كُلّ الجَداوِل المُتَفَرِّعَة تَحفَظ UserId.
+        var p = await _db.Profiles.AsNoTracking().FirstOrDefaultAsync(x => x.UserId == userId, ct);
         return p is null ? null : ToView(p);
     }
 
     public async Task<bool> UpdateNoSaveAsync(string userId, ProfileUpdate u, CancellationToken ct)
     {
-        if (!Guid.TryParse(userId, out var id)) return false;
-        var p = await _db.Profiles.FirstOrDefaultAsync(x => x.Id == id, ct);
+        var p = await _db.Profiles.FirstOrDefaultAsync(x => x.UserId == userId, ct);
         if (p is null) return false;
         if (!string.IsNullOrWhiteSpace(u.FullName)) p.FullName = u.FullName!;
         if (u.Phone     is not null) p.PhoneNumber = u.Phone;
@@ -166,7 +204,7 @@ public sealed class AshareV3ProfileStore : IProfileStore
     }
 
     private static IUserProfile ToView(ProfileEntity p) => new InMemoryUserProfile(
-        Id: p.Id.ToString(),
+        Id: p.UserId ?? p.Id.ToString(),   // UserId هو الـ identity العامّ — Profile.Id داخِلي فَقَط
         FullName: p.FullName ?? "",
         Phone: p.PhoneNumber ?? "",
         PhoneVerified: p.IsVerified,
@@ -212,9 +250,17 @@ public sealed class AshareV3ListingStore : IListingStore
 
     public async Task<IReadOnlyList<IListing>> ListByOwnerAsync(string ownerId, CancellationToken ct)
     {
-        if (!Guid.TryParse(ownerId, out var oid)) return Array.Empty<IListing>();
+        // ownerId = AspNetUsers.Id (Profile.UserId). ProductListing.VendorId
+        // مَع ذلك يُشير إلى Profile.Id (Guid داخِلي). نَحُلّ القَوس:
+        // UserId → Profile.Id ثُمّ نُصَفّي القَوائِم.
+        var vendorProfileId = await _db.Profiles.AsNoTracking()
+            .Where(p => p.UserId == ownerId)
+            .Select(p => (Guid?)p.Id)
+            .FirstOrDefaultAsync(ct);
+        if (vendorProfileId is null) return Array.Empty<IListing>();
         var rows = await _db.ProductListings.AsNoTracking()
-            .Where(l => l.VendorId == oid).OrderByDescending(l => l.CreatedAt).ToListAsync(ct);
+            .Where(l => l.VendorId == vendorProfileId.Value)
+            .OrderByDescending(l => l.CreatedAt).ToListAsync(ct);
         return rows.Cast<IListing>().ToList();
     }
 
