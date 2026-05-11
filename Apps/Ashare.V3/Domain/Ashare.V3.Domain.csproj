@@ -8,8 +8,12 @@
     <Description>AshareV3 domain types and seed state — single source of truth referenced by every backend (Customer/Provider/Admin) and any future frontend that needs typed access. No EF Core, no SignalR, no provider-specific code: pure POCOs + interface implementations from the Chat kit.</Description>
   </PropertyGroup>
   <ItemGroup>
-    <!-- Domain entities implement the cross-cutting Chat interfaces (Law 6 amended).
-         When more interfaces emerge (IBooking, IListing for Catalog kit) they get added here. -->
+    <!-- Cross-cutting kit interfaces that Ashare entities implement (Law 6):
+         - IChatMessage / IChatConversation   (Chat kit)
+         - IListing                            (Listings kit)
+         - IBaseEntity + repo conventions      (SharedKernel) -->
     <ProjectReference Include="..\..\..\libs\kits\Chat\ACommerce.Chat.Operations\ACommerce.Chat.Operations.csproj" />
+    <ProjectReference Include="..\..\..\libs\kits\Listings\ACommerce.Kits.Listings.Operations\ACommerce.Kits.Listings.Operations.csproj" />
+    <ProjectReference Include="..\..\..\libs\core\SharedKernel\ACommerce.SharedKernel.Domain\ACommerce.SharedKernel.Domain.csproj" />
   </ItemGroup>
 </Project>

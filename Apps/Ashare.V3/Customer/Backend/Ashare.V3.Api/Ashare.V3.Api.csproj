@@ -7,9 +7,6 @@
     <RootNamespace>Ashare.V3.Api</RootNamespace>
     <AssemblyName>Ashare.V3.Api</AssemblyName>
     <UserSecretsId>ashare-v3-api</UserSecretsId>
-    <!-- نُبقي web.config كما كتبناه (تفعيل WebSocket + responseBufferLimit=0).
-         بدون هذا الإعداد الـ SDK يُولّد web.config افتراضيّ بدون تلك الإعدادات
-         فيعطّل realtime على IIS/runasp.net. -->
     <IsTransformWebConfigDisabled>true</IsTransformWebConfigDisabled>
   </PropertyGroup>
 
@@ -18,109 +15,19 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
     </None>
-    <!-- ملف اعتماد Firebase Admin SDK — موجود محلّياً فقط (gitignored لأنّه
-         يحوي مفتاحاً خاصّاً). Update يُحدّث metadata لـ item موجود؛ إن لم
-         يكن الملف موجوداً في الـ working tree فلا يُنشأ item ولا يفشل البناء.
-         راجع Secrets/README.md للنشر. -->
-    <None Update="Secrets\firebase-service-account.json" Condition="Exists('Secrets\firebase-service-account.json')">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
-    </None>
-    <None Update="Secrets\firebase-service-account.example.json">
-      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
-      <CopyToPublishDirectory>Never</CopyToPublishDirectory>
-    </None>
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Domain (entities + seed state) — single source of truth shared by Customer/Provider/Admin -->
-    <ProjectReference Include="..\..\..\..\..\libs\kits\Auth\ACommerce.Kits.Auth.Backend\ACommerce.Kits.Auth.Backend.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\kits\Versions\ACommerce.Kits.Versions.Backend\ACommerce.Kits.Versions.Backend.csproj" />
+    <!-- Iteration 1: minimal API — DbContext + Bootstrap + smoke endpoints.
+         الكيتس (Auth/Listings/Chat/…) تُضاف لاحِقاً كيت بِكيت بَعد كِتابَة
+         Stores تُنَفِّذ واجِهاتها فَوق Ashare V3 entities. -->
     <ProjectReference Include="..\..\..\Domain\Ashare.V3.Domain.csproj" />
     <ProjectReference Include="..\..\..\Domain.Data\Ashare.V3.Domain.Data.csproj" />
-
-    <!-- SharedKernel EF infra (PlatformDataRoot + SqliteSchemaGuard helpers) -->
-    <ProjectReference Include="..\..\..\..\..\libs\core\SharedKernel\ACommerce.SharedKernel.Infrastructure.EFCores\ACommerce.SharedKernel.Infrastructure.EFCores.csproj" />
   </ItemGroup>
 
   <ItemGroup>
-    <!-- ─── Core OAM engine ──────────────────────────────────────────── -->
-    <ProjectReference Include="..\..\..\..\..\libs\core\OperationEngine\ACommerce.OperationEngine\ACommerce.OperationEngine.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\core\OperationEngine\ACommerce.OperationEngine.Wire\ACommerce.OperationEngine.Wire.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\core\OperationEngine\ACommerce.OperationEngine.AspNetCore\ACommerce.OperationEngine.AspNetCore.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\core\OperationEngine\ACommerce.OperationEngine.Interceptors\ACommerce.OperationEngine.Interceptors.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <!-- ─── Auth Kit (drop-in /auth/otp/{request,verify} + /auth/logout) ─── -->
-    <!-- meta = ACommerce.Kits.Auth (= Operations + Backend + Templates).
-         Add a TwoFactor channel + AsAuth bridge below to make OTP login work. -->
-
-    <!-- ─── Auth.TwoFactor: SMS Mock (رمز ثابت 123456 — أبدله بمزوّد SMS حقيقي في الإنتاج) ── -->
-    <ProjectReference Include="..\..\..\..\..\libs\providers\Auth.TwoFactor\Sms\ACommerce.Kits.Auth.TwoFactor.Sms\ACommerce.Kits.Auth.TwoFactor.Sms.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\kits\Auth.TwoFactor\ACommerce.Kits.Auth.TwoFactor.AsAuth\ACommerce.Kits.Auth.TwoFactor.AsAuth.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <!-- ─── Realtime + Chat Kit + Notifications (InApp + Firebase) ──────── -->
-    <ProjectReference Include="..\..\..\..\..\libs\kits\Realtime\ACommerce.Realtime.Operations\ACommerce.Realtime.Operations.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\providers\Realtime\SignalR\ACommerce.Realtime.Providers.SignalR\ACommerce.Realtime.Providers.SignalR.csproj" />
-    <!-- InMemory provider only for InMemoryConnectionTracker — used by the SignalR
-         hub to map userId → connectionId; not used as a transport. -->
-    <ProjectReference Include="..\..\..\..\..\libs\providers\Realtime\InMemory\ACommerce.Realtime.Providers.InMemory\ACommerce.Realtime.Providers.InMemory.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\kits\Chat\ACommerce.Chat.Operations\ACommerce.Chat.Operations.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\kits\Chat\ACommerce.Kits.Chat.Backend\ACommerce.Kits.Chat.Backend.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\kits\Notifications\ACommerce.Notification.Operations\ACommerce.Notification.Operations.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\kits\Notifications\ACommerce.Kits.Notifications.Backend\ACommerce.Kits.Notifications.Backend.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\providers\Notifications\InApp\ACommerce.Notification.Providers.InApp\ACommerce.Notification.Providers.InApp.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\providers\Notifications\Firebase\ACommerce.Notification.Providers.Firebase\ACommerce.Notification.Providers.Firebase.csproj" />
-
-    <!-- Production-grade cache + SignalR Redis backplane (opt-in via config) -->
-    <ProjectReference Include="..\..\..\..\..\libs\kits\Cache\ACommerce.Cache.Operations\ACommerce.Cache.Operations.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\providers\Cache\InMemory\ACommerce.Cache.Providers.InMemory\ACommerce.Cache.Providers.InMemory.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\providers\Cache\Redis\ACommerce.Cache.Providers.Redis\ACommerce.Cache.Providers.Redis.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\providers\Realtime\SignalR.Redis\ACommerce.Realtime.Providers.SignalR.Redis\ACommerce.Realtime.Providers.SignalR.Redis.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\core\OperationEngine\ACommerce.OperationEngine.DataInterceptors\ACommerce.OperationEngine.DataInterceptors.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\core\SharedKernel\ACommerce.SharedKernel.Domain\ACommerce.SharedKernel.Domain.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\core\SharedKernel\ACommerce.SharedKernel.Repositories\ACommerce.SharedKernel.Repositories.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\core\SharedKernel\ACommerce.SharedKernel.Mediators\ACommerce.SharedKernel.Mediators.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\kits\Support\ACommerce.Kits.Support.Operations\ACommerce.Kits.Support.Operations.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\kits\Support\ACommerce.Kits.Support.Backend\ACommerce.Kits.Support.Backend.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\kits\Reports\ACommerce.Kits.Reports.Operations\ACommerce.Kits.Reports.Operations.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\kits\Reports\ACommerce.Kits.Reports.Backend\ACommerce.Kits.Reports.Backend.csproj" />
-    <!-- ─── Compositions: تراكيب خارجيّة توصِّل kits دون أن يعرف بعضها ─── -->
-    <ProjectReference Include="..\..\..\..\..\libs\compositions\ACommerce.Compositions.Core\ACommerce.Compositions.Core.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\compositions\Chat.Realtime\ACommerce.Compositions.Chat.Realtime\ACommerce.Compositions.Chat.Realtime.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\compositions\Auth.WithSmsOtp\ACommerce.Compositions.Auth.WithSmsOtp\ACommerce.Compositions.Auth.WithSmsOtp.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\compositions\Support\ACommerce.Compositions.Support\ACommerce.Compositions.Support.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\compositions\Chat.WithNotifications\ACommerce.Compositions.Chat.WithNotifications\ACommerce.Compositions.Chat.WithNotifications.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\kits\Discovery\ACommerce.Kits.Discovery.Operations\ACommerce.Kits.Discovery.Operations.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\kits\Discovery\ACommerce.Kits.Discovery.Backend\ACommerce.Kits.Discovery.Backend.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\kits\Favorites\ACommerce.Favorites.Operations\ACommerce.Favorites.Operations.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\kits\Favorites\ACommerce.Favorites.Backend\ACommerce.Favorites.Backend.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\kits\Subscriptions\ACommerce.Subscriptions.Operations\ACommerce.Subscriptions.Operations.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\kits\Subscriptions\ACommerce.Kits.Subscriptions.Backend\ACommerce.Kits.Subscriptions.Backend.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\kits\Listings\ACommerce.Kits.Listings.Operations\ACommerce.Kits.Listings.Operations.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\kits\Listings\ACommerce.Kits.Listings.Backend\ACommerce.Kits.Listings.Backend.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\kits\Profiles\ACommerce.Kits.Profiles.Operations\ACommerce.Kits.Profiles.Operations.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\kits\Profiles\ACommerce.Kits.Profiles.Backend\ACommerce.Kits.Profiles.Backend.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\host\ACommerce.ServiceHost\ACommerce.ServiceHost.csproj" />
-    <ProjectReference Include="..\..\..\..\..\libs\compositions\Marketplace\ACommerce.Compositions.Marketplace\ACommerce.Compositions.Marketplace.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Include="MediatR" Version="14.1.0" />
-    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.7" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.7" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.7">
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-      <PrivateAssets>all</PrivateAssets>
-    </PackageReference>
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.7" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.7" />
-    <PackageReference Include="Serilog.AspNetCore" Version="10.0.0" />
-    <PackageReference Include="Serilog.Sinks.Console" Version="6.1.1" />
-    <PackageReference Include="Serilog.Sinks.File" Version="7.0.0" />
-    <PackageReference Include="Swashbuckle.AspNetCore" Version="10.1.7" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.7" />
   </ItemGroup>
 </Project>
