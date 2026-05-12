@@ -6,7 +6,6 @@ using Ashare.V3.Domain;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
-// ProductionAttributeTemplateSource مِن Ashare.V3.Data.Templates.
 
 namespace Ashare.V3.Api.Controllers;
 
@@ -154,8 +153,7 @@ public sealed class HomeController : ControllerBase
             AttributeTemplate? template = null;
             if (dbRows.TryGetValue(kv.Value, out var json))
                 template = DynamicAttributeHelper.ParseTemplate(json);
-            // ③ كود fallback.
-            template ??= V3CategoryTemplates.All.FirstOrDefault(t => t.Slug == kv.Value).Template;
+            // لا fallback لِكود — كُلّ تَسميات السِمات تَأتي مِن DB فَقَط.
             if (template is not null) bundle.IdToTemplate[kv.Key] = template;
         }
         return bundle;

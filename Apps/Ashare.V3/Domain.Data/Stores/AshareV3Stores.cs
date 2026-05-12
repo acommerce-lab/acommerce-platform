@@ -53,9 +53,15 @@ public sealed class AshareV3AuthUserStore : IAuthUserStore
         if (existing is not null)
         {
             // لَو Profile قائِم لكِن UserId null/empty (مُمكِن في بَيانات قَديمَة)،
-            // عَيِّن واحِداً ثابِتاً — يُحفَظ بَعد ذلك مَع SaveChanges في AuthController.
+            // عَيِّن واحِداً ثابِتاً واحفَظ فَوريّاً — لا نَنتَظِر SaveAtEnd
+            // لِأَنّ exception في analyzer لاحِق يَفقِد التَعيين، فَعَلى المُحاوَلَة
+            // التالِيَة يَتَوَلَّد UserId جَديد ⇒ مُستَخدِم "غامِض".
             if (string.IsNullOrEmpty(existing.UserId))
+            {
                 existing.UserId = Guid.NewGuid().ToString();
+                existing.UpdatedAt = DateTime.UtcNow;
+                await _db.SaveChangesAsync(ct);
+            }
             return existing.UserId!;
         }
 
@@ -76,6 +82,7 @@ public sealed class AshareV3AuthUserStore : IAuthUserStore
             IsActive = true, Type = 0,
         };
         _db.Profiles.Add(p);
+        await _db.SaveChangesAsync(ct);   // اِحفَظ فَوريّاً مِثل حالَة التَحديث
         return newUserId;
     }
 

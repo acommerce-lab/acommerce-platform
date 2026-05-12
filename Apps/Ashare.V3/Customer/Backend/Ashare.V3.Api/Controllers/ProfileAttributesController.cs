@@ -1,7 +1,6 @@
 using ACommerce.OperationEngine.Wire.Http;
 using ACommerce.SharedKernel.Domain.DynamicAttributes;
 using Ashare.V3.Data;
-using Ashare.V3.Data.Templates;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -17,7 +16,8 @@ namespace Ashare.V3.Api.Controllers;
 /// <para>الـ endpoints الثَلاث:</para>
 /// <list type="bullet">
 ///   <item><c>GET /profile/attribute-template</c> — يُرجِع <c>AttributeTemplate</c>
-///         (DB row بِـ slug="profile"، fallback إلى <see cref="V3ProfileTemplate"/>).
+///         (DB row بِـ slug="profile"). لا fallback إلى كود — لَو لا row،
+///         template فارِغ ⇒ صَفحَة البروفايل لا تَعرِض حُقولاً ديناميكِيَّة.
 ///         تَستَخدِمه واجِهَة تَحرير البروفايل لِتَرسُم <c>AcAttrEditor</c>.</item>
 ///   <item><c>GET /profile/me/attributes</c> — snapshots مُكتَمِلَة (تَطبيق
 ///         القالَب الحالي عَلى قِيَم البروفايل المَحفوظَة). تَستَخدِمه
@@ -97,14 +97,16 @@ public sealed class ProfileAttributesController : ControllerBase
     private async Task<AttributeTemplate> ResolveTemplateAsync(CancellationToken ct)
     {
         var row = await _db.CategoryAttributeTemplates.AsNoTracking()
-            .Where(t => t.CategorySlug == V3ProfileTemplate.Slug)
+            .Where(t => t.CategorySlug == "profile")
             .Select(t => t.TemplateJson).FirstOrDefaultAsync(ct);
 
         AttributeTemplate? template = null;
         if (!string.IsNullOrEmpty(row))
             template = DynamicAttributeHelper.ParseTemplate(row);
-        template ??= V3ProfileTemplate.Build();
-        return template;
+        // لا fallback لِكود — لَو DB row غَير مَوجود ⇒ template فارِغ.
+        // الإدارَة تَملَأ <c>CategoryAttributeTemplates</c> بِـ Slug="profile"
+        // إذا أَرادَت ظُهور حُقول ديناميكِيَّة.
+        return template ?? new AttributeTemplate();
     }
 
     private static List<DynamicAttribute> BuildSnapshot(string? json, AttributeTemplate template)

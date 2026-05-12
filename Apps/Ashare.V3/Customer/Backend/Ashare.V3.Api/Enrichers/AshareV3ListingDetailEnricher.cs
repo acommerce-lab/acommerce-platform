@@ -7,8 +7,6 @@ using Ashare.V3.Domain;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
 
-// Templates ProductionAttributeTemplateSource lives in Ashare.V3.Data.Templates already.
-
 namespace Ashare.V3.Api.Enrichers;
 
 /// <summary>
@@ -88,7 +86,7 @@ public sealed class AshareV3ListingDetailEnricher : IListingDetailEnricher
         if (entity.CategoryId is { } catId)
             template = await _prodSource.BuildForCategoryAsync(catId, ct);
 
-        // ② Fallback إلى CategoryAttributeTemplates (seeded) ثُمّ كود.
+        // ② Fallback إلى DB row (admin-edited).
         if (template is null || template.Fields.Count == 0)
         {
             string? categorySlug = null;
@@ -106,12 +104,10 @@ public sealed class AshareV3ListingDetailEnricher : IListingDetailEnricher
                     .Select(t => t.TemplateJson).FirstOrDefaultAsync(ct);
                 if (!string.IsNullOrEmpty(row))
                     template = DynamicAttributeHelper.ParseTemplate(row);
-                template ??= V3CategoryTemplates.All
-                    .FirstOrDefault(t => t.Slug == categorySlug).Template;
             }
         }
 
-        // ③ لا قالَب مَعروف ⇒ snapshot خام مِن المَفاتيح كَما هي.
+        // ③ لا قالَب ⇒ snapshot خام بِالـ keys (لا labels مُختَرَعَة).
         if (template is null || template.Fields.Count == 0)
             return RawSnapshot(rawValues);
 
