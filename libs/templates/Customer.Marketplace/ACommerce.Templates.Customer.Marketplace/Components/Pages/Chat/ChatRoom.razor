@@ -29,10 +29,13 @@
     }
     else
     {
-        <div class="acs-chat-header" style="display:flex; justify-content:space-between; align-items:center;">
-            <div>
-                <h1 class="acm-wizard-title" style="margin-bottom:4px;">@OtherName</h1>
-                <small style="color:var(--ac-text-muted);">@(_conv.Subject ?? "")</small>
+        <div class="acs-chat-header" style="display:flex; justify-content:space-between; align-items:center; gap:12px;">
+            <div style="display:flex; align-items:center; gap:12px; flex:1; min-width:0;">
+                <AcAvatar Name="@OtherName" ImageUrl="@OtherAvatar" Size="40" />
+                <div style="min-width:0;">
+                    <h1 class="acm-wizard-title" style="margin-bottom:4px;">@OtherName</h1>
+                    <small style="color:var(--ac-text-muted);">@(_conv.Subject ?? "")</small>
+                </div>
             </div>
             <AcButton Variant="ghost" Text="@(L[TemplateStrings.CommonBack])" OnClick="@GoBack" />
         </div>
@@ -153,6 +156,19 @@
         }
     }
 
+    /// <summary>صورة الطَرَف الآخَر — null تَترُك AcAvatar يَعرِض initials.</summary>
+    private string? OtherAvatar
+    {
+        get
+        {
+            if (_conv is null) return null;
+            var myId = Auth.UserId?.ToString();
+            return string.Equals(_conv.OwnerId, myId, StringComparison.OrdinalIgnoreCase)
+                ? _conv.PartnerAvatar
+                : _conv.OwnerAvatar;
+        }
+    }
+
     private void OnRealtimeMessage(IChatMessage msg)
     {
         if (_messages.Any(m => m.Id == msg.Id)) return;
@@ -224,8 +240,8 @@
     private sealed record Payload(ConvDto? Conversation, List<MessageDto>? Messages);
     private sealed record ConvDto(
         string Id,
-        string? OwnerId, string? OwnerName,
-        string? PartnerId, string? PartnerName,
+        string? OwnerId, string? OwnerName, string? OwnerAvatar,
+        string? PartnerId, string? PartnerName, string? PartnerAvatar,
         string? Subject, string? ListingId,
         DateTime LastAt, int UnreadCount,
         string? LastMessage);
