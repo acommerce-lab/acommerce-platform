@@ -47,5 +47,8 @@
 
     <!-- L10n.Resx composition — AddTranslationLayer extension -->
     <ProjectReference Include="..\..\..\..\..\libs\compositions\Customer.L10n.Resx\ACommerce.Compositions.Customer.L10n.Resx\ACommerce.Compositions.Customer.L10n.Resx.csproj" />
+
+    <!-- DynamicAttributes kit Frontend — IAttributesStore + widgets للسِمات الديناميكِيَّة -->
+    <ProjectReference Include="..\..\..\..\..\libs\kits\DynamicAttributes\Frontend\Customer\ACommerce.Kits.DynamicAttributes.Frontend.Customer\ACommerce.Kits.DynamicAttributes.Frontend.Customer.csproj" />
   </ItemGroup>
 </Project>

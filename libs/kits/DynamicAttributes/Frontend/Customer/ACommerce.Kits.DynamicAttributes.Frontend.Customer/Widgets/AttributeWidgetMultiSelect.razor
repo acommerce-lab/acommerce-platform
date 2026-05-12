@@ -1,0 +1,54 @@
+@* اختِيار مُتَعَدِّد. checked عَلى كُلّ option في القائِمَة الحالِيَّة. *@
+
+<div class="mb-3">
+    <label class="form-label">
+        @(Definition.LabelAr ?? Definition.Label)
+        @if (Definition.Required) { <span class="text-danger">*</span> }
+    </label>
+    <div class="d-flex flex-wrap gap-2">
+        @foreach (var opt in Definition.Options)
+        {
+            var isChecked = _selected.Contains(opt.Value);
+            <div class="form-check">
+                <input type="checkbox"
+                       class="form-check-input"
+                       id="@($"{_idPrefix}-{opt.Value}")"
+                       checked="@isChecked"
+                       @onchange="@(e => Toggle(opt.Value, (bool)(e.Value ?? false)))" />
+                <label class="form-check-label" for="@($"{_idPrefix}-{opt.Value}")">
+                    @(opt.LabelAr ?? opt.Label)
+                </label>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public AttributeFieldDefinition Definition { get; set; } = default!;
+    [Parameter] public object? Value { get; set; }
+    [Parameter] public EventCallback<object?> ValueChanged { get; set; }
+
+    private readonly string _idPrefix = "ms-" + Guid.NewGuid().ToString("N")[..6];
+    private HashSet<string> _selected = new(StringComparer.OrdinalIgnoreCase);
+
+    protected override void OnParametersSet()
+    {
+        _selected = Value switch
+        {
+            null => new(StringComparer.OrdinalIgnoreCase),
+            IEnumerable<object?> arr => new(arr.Where(x => x is not null).Select(x => x!.ToString()!),
+                                            StringComparer.OrdinalIgnoreCase),
+            string s when s.StartsWith('[') => System.Text.Json.JsonSerializer.Deserialize<string[]>(s)?.ToHashSet(StringComparer.OrdinalIgnoreCase)
+                                               ?? new(StringComparer.OrdinalIgnoreCase),
+            string s => new(s.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries),
+                            StringComparer.OrdinalIgnoreCase),
+            _ => new(StringComparer.OrdinalIgnoreCase),
+        };
+    }
+
+    private Task Toggle(string value, bool isChecked)
+    {
+        if (isChecked) _selected.Add(value); else _selected.Remove(value);
+        return ValueChanged.InvokeAsync(_selected.Count == 0 ? null : _selected.ToArray());
+    }
+}

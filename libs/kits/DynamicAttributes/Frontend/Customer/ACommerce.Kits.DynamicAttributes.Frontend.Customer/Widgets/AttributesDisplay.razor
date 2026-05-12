@@ -1,0 +1,51 @@
+@* عَرض القِيَم Read-only. يَأخُذ snapshot جاهِز (DynamicAttribute[])
+   لا قالَب — هذه هي المُخرَج النَهائي مَن
+   <c>AttributeSnapshotBuilder.Build</c>. *@
+
+@if (Items is null || Items.Count == 0)
+{
+    @if (ShowEmptyMessage)
+    {
+        <div class="text-muted small">— لا سِمات —</div>
+    }
+}
+else
+{
+    <dl class="row">
+        @foreach (var a in Items.OrderBy(x => x.SortOrder))
+        {
+            <dt class="col-sm-4">
+                @if (!string.IsNullOrEmpty(a.Icon))
+                {
+                    <i class="bi bi-@a.Icon me-1"></i>
+                }
+                @(a.LabelAr ?? a.Label)
+            </dt>
+            <dd class="col-sm-8">
+                @(FormatValue(a))
+                @if (!string.IsNullOrEmpty(a.Unit))
+                {
+                    <span class="text-muted ms-1">@a.Unit</span>
+                }
+            </dd>
+        }
+    </dl>
+}
+
+@code {
+    [Parameter] public IReadOnlyList<DynamicAttribute>? Items { get; set; }
+    [Parameter] public bool ShowEmptyMessage { get; set; }
+
+    private static string FormatValue(DynamicAttribute a)
+    {
+        if (!string.IsNullOrEmpty(a.DisplayValueAr)) return a.DisplayValueAr;
+        if (!string.IsNullOrEmpty(a.DisplayValue))   return a.DisplayValue;
+        return a.Value switch
+        {
+            null => "—",
+            bool b => b ? "نَعَم" : "لا",
+            IEnumerable<object?> arr => string.Join("، ", arr.Where(x => x is not null)),
+            _ => a.Value.ToString() ?? "—",
+        };
+    }
+}

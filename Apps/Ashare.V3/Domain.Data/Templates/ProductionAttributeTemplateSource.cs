@@ -1,3 +1,4 @@
+using ACommerce.Kits.DynamicAttributes.Backend;
 using ACommerce.SharedKernel.Domain.DynamicAttributes;
 using Ashare.V3.Domain;
 using Microsoft.EntityFrameworkCore;
@@ -20,10 +21,16 @@ namespace Ashare.V3.Data.Templates;
 ///   <item>Date / DateTime → <c>date</c></item>
 /// </list>
 /// </summary>
-public sealed class ProductionAttributeTemplateSource
+public sealed class ProductionAttributeTemplateSource : IAttributeTemplateSource
 {
     private readonly AshareV3DbContext _db;
     public ProductionAttributeTemplateSource(AshareV3DbContext db) => _db = db;
+
+    /// <summary>تَنفيذ <see cref="IAttributeTemplateSource.BuildForScopeAsync"/>.
+    /// في أَسهَر، الـ scopeId = إِمّا <c>ProductCategory.Id</c> لِلإعلانات،
+    /// أَو sentinel ثابِت لِكِيانات أُخرى (Profile).</summary>
+    public Task<AttributeTemplate?> BuildForScopeAsync(Guid scopeId, CancellationToken ct)
+        => BuildForCategoryAsync(scopeId, ct);
 
     public async Task<AttributeTemplate?> BuildForCategoryAsync(Guid categoryId, CancellationToken ct)
     {

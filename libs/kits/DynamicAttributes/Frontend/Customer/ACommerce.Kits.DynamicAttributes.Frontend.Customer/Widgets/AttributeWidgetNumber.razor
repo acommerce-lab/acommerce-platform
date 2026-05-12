@@ -1,0 +1,51 @@
+@* رَقَم/كَسر. Min/Max مَن التَعريف. *@
+
+<div class="mb-3">
+    <label class="form-label">
+        @(Definition.LabelAr ?? Definition.Label)
+        @if (Definition.Required) { <span class="text-danger">*</span> }
+    </label>
+    <input type="number"
+           class="form-control"
+           value="@AsNumber(Value)"
+           min="@Definition.Min"
+           max="@Definition.Max"
+           step="@Step"
+           placeholder="@(Definition.PlaceholderAr ?? Definition.Placeholder)"
+           @oninput="@(e => OnInput(e.Value?.ToString()))" />
+    @if (!string.IsNullOrEmpty(Definition.Unit))
+    {
+        <small class="text-muted">@Definition.Unit</small>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public AttributeFieldDefinition Definition { get; set; } = default!;
+    [Parameter] public object? Value { get; set; }
+    [Parameter] public EventCallback<object?> ValueChanged { get; set; }
+
+    private string Step => Definition.Type == "decimal" ? "0.01" : "1";
+
+    private static string AsNumber(object? v) => v switch
+    {
+        null => "",
+        long l => l.ToString(System.Globalization.CultureInfo.InvariantCulture),
+        double d => d.ToString(System.Globalization.CultureInfo.InvariantCulture),
+        decimal m => m.ToString(System.Globalization.CultureInfo.InvariantCulture),
+        int i => i.ToString(System.Globalization.CultureInfo.InvariantCulture),
+        string s => s,
+        _ => v.ToString() ?? "",
+    };
+
+    private Task OnInput(string? raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw)) return ValueChanged.InvokeAsync(null);
+        if (Definition.Type == "decimal" &&
+            double.TryParse(raw, System.Globalization.NumberStyles.Any,
+                            System.Globalization.CultureInfo.InvariantCulture, out var d))
+            return ValueChanged.InvokeAsync(d);
+        if (long.TryParse(raw, out var l))
+            return ValueChanged.InvokeAsync(l);
+        return ValueChanged.InvokeAsync(raw);  // اِبقِها كَنَصّ لِيَتَدارَك الـ analyzer
+    }
+}

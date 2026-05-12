@@ -1,0 +1,41 @@
+@* قائِمَة مُنسَدِلَة. selected عَلى الـ option المُطابِق ⇒ تَعبِئَة مَجّانِيَّة. *@
+
+<div class="mb-3">
+    <label class="form-label">
+        @(Definition.LabelAr ?? Definition.Label)
+        @if (Definition.Required) { <span class="text-danger">*</span> }
+    </label>
+    <select class="form-select"
+            value="@AsString(Value)"
+            @onchange="@(e => OnChange(e.Value?.ToString()))">
+        <option value="">— اختَر —</option>
+        @foreach (var opt in Definition.Options)
+        {
+            <option value="@opt.Value">@(opt.LabelAr ?? opt.Label)</option>
+        }
+        @if (!string.IsNullOrEmpty(_legacyValue))
+        {
+            <option value="@_legacyValue">@_legacyValue (قَديم)</option>
+        }
+    </select>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public AttributeFieldDefinition Definition { get; set; } = default!;
+    [Parameter] public object? Value { get; set; }
+    [Parameter] public EventCallback<object?> ValueChanged { get; set; }
+
+    private string? _legacyValue;
+
+    protected override void OnParametersSet()
+    {
+        var current = AsString(Value);
+        _legacyValue = !string.IsNullOrEmpty(current)
+                       && !Definition.Options.Any(o => string.Equals(o.Value, current, StringComparison.OrdinalIgnoreCase))
+            ? current : null;
+    }
+
+    private static string AsString(object? v) => v?.ToString() ?? "";
+
+    private Task OnChange(string? v) => ValueChanged.InvokeAsync(string.IsNullOrEmpty(v) ? null : v);
+}

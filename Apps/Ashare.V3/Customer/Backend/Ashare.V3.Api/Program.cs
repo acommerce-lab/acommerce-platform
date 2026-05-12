@@ -79,6 +79,14 @@ builder.Services.AddSingleton<IUserIdProvider, AshareV3UserIdProvider>();
 // تَستَعمِله أَوَّلاً ⇒ fallback لِـ CategoryAttributeTemplates ⇒ fallback
 // لِكود V3CategoryTemplates.
 builder.Services.AddScoped<Ashare.V3.Data.Templates.ProductionAttributeTemplateSource>();
+// كيت DynamicAttributes: نُسَجِّل نَفس المَصدَر تَحت واجِهَة الكيت
+// لِيَتَّخِذه DynamicAttributesController + أَيّ مُستَهلِك آخَر.
+builder.Services.AddScoped<ACommerce.Kits.DynamicAttributes.Backend.IAttributeTemplateSource>(sp =>
+    sp.GetRequiredService<Ashare.V3.Data.Templates.ProductionAttributeTemplateSource>());
+// MVC scan الافتِراضي = entry assembly فَقَط ⇒ نُلحِق Application Part
+// لِالتِقاط DynamicAttributesController مَن كيت الخَلفِيَّة.
+builder.Services.AddControllers()
+    .AddApplicationPart(typeof(ACommerce.Kits.DynamicAttributes.Backend.DynamicAttributesController).Assembly);
 
 // Mock payment gateway (dev/test). الإنتاج يَستَبدِله بِـ Moyasar/Noon.
 // AutoCaptureSeconds=3 لِتَجرِبَة أَسرَع.

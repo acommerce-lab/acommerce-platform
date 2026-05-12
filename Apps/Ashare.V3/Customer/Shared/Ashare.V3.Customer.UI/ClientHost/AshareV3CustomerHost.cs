@@ -1,3 +1,4 @@
+using ACommerce.Kits.DynamicAttributes.Frontend.Customer.Stores;
 using Ejar.Customer.UI.ClientHost;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -18,6 +19,10 @@ public static class AshareV3CustomerHostExtensions
     {
         services.AddEjarCustomer();          // قالَب Customer.Marketplace + V1 wiring + Ejar translations
         services.AddAshareV3Translations();  // طَبَقَة Ashare فَوقَها (تَفوز)
+
+        // DynamicAttributes frontend kit — HttpAttributesStore يَستَهلِك
+        // الـ HttpClient المُسَجَّل (BaseUrl لِـ V3 API).
+        services.AddScoped<IAttributesStore, HttpAttributesStore>();
         return services;
     }
 }

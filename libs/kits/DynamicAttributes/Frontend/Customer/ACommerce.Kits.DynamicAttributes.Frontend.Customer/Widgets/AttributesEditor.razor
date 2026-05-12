@@ -1,0 +1,70 @@
+@* مَحَرِّر سِمات الكِيان. يَأخُذ قالَب + قاموس قِيَم (مَربوط ثُنائيّاً)
+   ويُوَزِّع عَلى الأَدوات الذَرِّيَّة بِناءً عَلى <c>def.Type</c>.
+
+   <para>الاستِخدام في تَعديل: حَمِّل <c>AttributesJson</c> ⇒ Parse إلى
+   <c>Dictionary&lt;string, object?&gt;</c> ⇒ مَرِّر كَ <c>Values</c>.
+   التَعبِئَة تَتِمّ تِلقائيّاً مَن خِلال Blazor data binding داخِل كُلّ
+   widget.</para>
+
+   <para>الاستِخدام في إنشاء: مَرِّر قاموس فارِغ — التَطبيق يَستَلِمه
+   مَلآناً بَعد التَفاعُل + يَستَخدِم <c>AttributeValues.Serialize</c>
+   لِبِناء JSON.</para> *@
+
+@if (Template is null)
+{
+    <div class="text-muted">— لا قالَب مُحَدَّد —</div>
+}
+else
+{
+    @foreach (var def in OrderedFields)
+    {
+        var key = def.Key;
+        @switch (def.Type)
+        {
+            case "number":
+            case "decimal":
+                <AttributeWidgetNumber Definition="def"
+                                       Value="@Get(key)"
+                                       ValueChanged="@(v => Set(key, v))" />
+                break;
+            case "bool":
+                <AttributeWidgetBool Definition="def"
+                                     Value="@Get(key)"
+                                     ValueChanged="@(v => Set(key, v))" />
+                break;
+            case "select":
+                <AttributeWidgetSingleSelect Definition="def"
+                                             Value="@Get(key)"
+                                             ValueChanged="@(v => Set(key, v))" />
+                break;
+            case "multi":
+                <AttributeWidgetMultiSelect Definition="def"
+                                            Value="@Get(key)"
+                                            ValueChanged="@(v => Set(key, v))" />
+                break;
+            default:
+                <AttributeWidgetText Definition="def"
+                                     Value="@Get(key)"
+                                     ValueChanged="@(v => Set(key, v))" />
+                break;
+        }
+    }
+}
+
+@code {
+    [Parameter] public AttributeTemplate? Template { get; set; }
+    [Parameter] public Dictionary<string, object?> Values { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+    [Parameter] public EventCallback<Dictionary<string, object?>> ValuesChanged { get; set; }
+
+    private IEnumerable<AttributeFieldDefinition> OrderedFields =>
+        Template?.Fields.OrderBy(f => f.SortOrder).ThenBy(f => f.Key)
+        ?? Enumerable.Empty<AttributeFieldDefinition>();
+
+    private object? Get(string key) => Values.TryGetValue(key, out var v) ? v : null;
+
+    private Task Set(string key, object? v)
+    {
+        if (v is null) Values.Remove(key); else Values[key] = v;
+        return ValuesChanged.InvokeAsync(Values);
+    }
+}

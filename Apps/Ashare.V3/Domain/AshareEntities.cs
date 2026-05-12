@@ -1,4 +1,5 @@
 using ACommerce.Chat.Operations;
+using ACommerce.Kits.DynamicAttributes.Operations;
 using ACommerce.Kits.Listings.Domain;
 using ACommerce.Kits.Profiles.Operations;
 using ACommerce.SharedKernel.Domain.Entities;
@@ -37,7 +38,7 @@ namespace Ashare.V3.Domain;
 //         في <c>AttributeDefinitions</c> تَحت sentinel
 //         <c>V3ProfileAttributes.CategoryId</c>.</item>
 // </list>
-public class ProfileEntity : IBaseEntity, IUserProfile
+public class ProfileEntity : IBaseEntity, IUserProfile, IHasDynamicAttributes
 {
     public Guid Id { get; set; }
     public DateTime CreatedAt { get; set; }
@@ -66,6 +67,10 @@ public class ProfileEntity : IBaseEntity, IUserProfile
     /// <summary>JSON <c>{key:value}</c> لِسِمات سَطحِيَّة لا تَنتَمي
     /// لِلواجِهَة (Address, Country, PostalCode, Coordinates، …).</summary>
     public string? AttributesJson { get; set; }
+
+    // ─── IHasDynamicAttributes — النِطاق ثابِت sentinel لِبروفايل ──
+    Guid? IHasDynamicAttributes.DynamicAttributeScopeId =>
+        new Guid("00000000-0000-0000-0000-000000000F01");  // = V3ProfileAttributes.CategoryId
 
     // ─── IUserProfile explicit impl — Id يُرَدّ كَـ UserId ──
     string  IUserProfile.Id            => UserId ?? Id.ToString();
@@ -130,7 +135,7 @@ public class ProductCategoryEntity : IBaseEntity
 /// <summary>
 /// Ashare's listing — implements <see cref="IListing"/> from Listings kit.
 /// </summary>
-public class ProductListingEntity : IBaseEntity, IListing
+public class ProductListingEntity : IBaseEntity, IListing, IHasDynamicAttributes
 {
     public Guid Id { get; set; }
     public DateTime CreatedAt { get; set; }
@@ -181,6 +186,9 @@ public class ProductListingEntity : IBaseEntity, IListing
     public int AreaSqm { get; set; }
     /// <summary>JSON array مَن slugs (مَن Discovery.Amenities). مَنقول مَن AttributesJson عِندَ الترحيل.</summary>
     public string? AmenitiesJson { get; set; }
+
+    // ─── IHasDynamicAttributes — النِطاق = CategoryId الفِئَة ──
+    Guid? IHasDynamicAttributes.DynamicAttributeScopeId => CategoryId;
 
     // ─── IListing explicit implementation — Ashare names ↔ kit names ──
     string IListing.Id              => Id.ToString();
