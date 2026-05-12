@@ -6,6 +6,7 @@
 @inject IListingsStore Listings
 @inject IDiscoveryStore Discovery
 @inject IListingPublishGate PublishGate
+@inject IListingCreatePrecheck Precheck
 @inject NavigationManager Nav
 @inject IJSRuntime JS
 @inject L L
@@ -16,24 +17,33 @@
 <div class="acs-page acs-create-listing">
     <h1 class="acm-wizard-title">@(L[TemplateStrings.ListingCreateTitle])</h1>
 
-    @if (_subLoading)
+    @if (_precheckLoading)
     {
         <AcLoadingState />
     }
-    else if (_subscription is null)
+    else if (_precheck is { Allowed: false })
     {
-        @* لا يوجد اشتراك نشط — أَوقِف عِند البَوّابَة بَدَل السَماح بِإكمال
-           المُعالِج ثُمّ رَفض الخادم. *@
+        @* الحَجب يَأتي مِن IListingCreatePrecheck. Default يُمَرِّر — تَطبيقات
+           الاشتِراك تَعرِض شاشَة "لا اشتِراك" + رابِط /plans، تَطبيقات الدَفع
+           لِلإعلان الواحِد لا تَحجِب هُنا (تَفحَص عِند publish عَبر Gate). *@
         <AcCard>
             <ChildContent>
                 <div style="text-align:center; padding:16px 0;">
                     <AcIcon Name="package" Size="48" />
-                    <h3 style="margin:12px 0 4px;">@(L[TemplateStrings.CreateListingNoSubTitle])</h3>
-                    <p style="color:var(--ac-text-muted); margin:0 0 16px;">
-                        @(L[TemplateStrings.CreatelistingNoSubscriptionCallToAction])
-                    </p>
-                    <AcButton Variant="primary" Class="ac-btn-block" Text="@(L[TemplateStrings.PlansBrowseAction])"
-                              OnClick="@(() => Nav.NavigateTo("/plans"))" />
+                    @if (!string.IsNullOrEmpty(_precheck.Title))
+                    {
+                        <h3 style="margin:12px 0 4px;">@_precheck.Title</h3>
+                    }
+                    @if (!string.IsNullOrEmpty(_precheck.Message))
+                    {
+                        <p style="color:var(--ac-text-muted); margin:0 0 16px;">@_precheck.Message</p>
+                    }
+                    @if (!string.IsNullOrEmpty(_precheck.ActionUrl))
+                    {
+                        <AcButton Variant="primary" Class="ac-btn-block"
+                                  Text="@(_precheck.ActionLabel ?? L[TemplateStrings.PlansBrowseAction])"
+                                  OnClick="@(() => Nav.NavigateTo(_precheck.ActionUrl!))" />
+                    }
                     <AcButton Variant="ghost" Class="ac-btn-block" Text="@(L[TemplateStrings.CommonBack])"
                               OnClick="@(() => Nav.NavigateTo("/me"))" />
                 </div>
@@ -229,7 +239,7 @@
             </ChildContent>
         </AcCard>
     }
-    } @* end: _subscription is not null *@
+    } @* end: _precheck.Allowed *@
 </div>
 
 @code {
@@ -237,8 +247,8 @@
     private int _maxImages = 10;
     private bool _publishing;
     private bool _compressing;
-    private bool _subLoading = true;
-    private SubDto? _subscription;
+    private bool _precheckLoading = true;
+    private CreatePrecheckResult? _precheck;
     private string? _publishError;
     private string? _imgError;
     private List<PickedImage> _images = new();
@@ -253,20 +263,16 @@
         if (!first) return;
         if (string.IsNullOrEmpty(Draft.City)) Draft.City = Prefs.City;
 
-        // افحَص الاشتِراك أَوَّلاً — نَدفَع subscription.get_active op كَ
-        // OAM-pure (kit-defined). الـ DTO المَحَلّيّ يَلتَقِط الـ wire shape
-        // الكامِل (PlanId/Status/ImagesPerListing) لأنّ ISubscriptionsStore.Active
-        // يَكشِف ISubscription فَقَط (Guid Id فَقَط).
-        var sub = await Engine.ExecuteAsync<SubDto>(SubscriptionsOps.GetActive());
-        _subscription = sub.Data;
-        _subLoading = false;
-        if (_subscription is null)
+        // البَوّابَة الأَوَّلِيَّة — Default يُمَرِّر، تَطبيق الاشتِراك يُعيد
+        // <c>Allowed=false</c> + رابِط /plans. V3 (دَفع لِكُلّ إعلان) يُمَرِّر
+        // ⇒ الفورم يَفتَح، الدَفع يَجري عِند Publish عَبر IListingPublishGate.
+        _precheck = await Precheck.CanCreateAsync();
+        _precheckLoading = false;
+        if (_precheck is not { Allowed: true })
         {
             await InvokeAsync(StateHasChanged);
             return;
         }
-        _maxImages = _subscription.ImagesPerListing > 0 ? _subscription.ImagesPerListing : 10;
-
         // Discovery store يَجلب categories + amenities + cities بِالتَوازي.
         await Discovery.LoadAsync();
         await InvokeAsync(StateHasChanged);
@@ -376,9 +382,9 @@
         finally { _publishing = false; }
     }
 
-    private sealed record SubDto(string Id, string PlanId, string PlanName, string Status,
-        DateTime StartDate, DateTime EndDate, int DaysRemaining,
-        int ListingsUsed, int ListingsLimit, int FeaturedUsed, int FeaturedLimit, int ImagesPerListing);
+    // SubDto / SubscriptionsOps استُبدِلَت بِـ IListingCreatePrecheck.
+    // تَطبيق اشتِراك يُسَجِّل impl يَستَدعي subscription.get_active ويَفحَص
+    // <c>ImagesPerListing</c> + يُعيد ActionUrl = "/plans" إذا لا اشتِراك.
 
     private sealed record PickedImage(string DataUrl, string ThumbUrl, string Name);
     private sealed record CompressResult(string Full, string? Thumb);

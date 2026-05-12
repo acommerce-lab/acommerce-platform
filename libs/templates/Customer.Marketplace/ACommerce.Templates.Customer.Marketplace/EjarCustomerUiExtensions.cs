@@ -89,6 +89,8 @@ public static class EjarCustomerUiExtensions
         services.TryAddSingleton<MarketplaceUiOptions>(_ => new MarketplaceUiOptions());
         // Default open gate — تَطبيقات تَفرِض دَفع/اشتِراك تَتَجاوَزه بِـ AddScoped.
         services.TryAddScoped<IListingPublishGate, OpenPublishGate>();
+        // Default precheck — تَطبيقات الاشتِراك تَتَجاوَزها بِفَحص اشتِراك نَشِط.
+        services.TryAddScoped<IListingCreatePrecheck, OpenCreatePrecheck>();
 
         // ─── HTTP handlers مِن الكيتس ─────────────────────────────────
         services.AddTransient<CultureHeadersHandler>();
