@@ -83,6 +83,10 @@ public static class EjarCustomerUiExtensions
         // ─── Culture utilities (timezone composition / numerals) ───────
         services.AddJsTimezoneProvider();
         services.AddSingleton<INumeralNormalizer, DefaultNumeralNormalizer>();
+        // افتِراضي MarketplaceUiOptions: كُلّ القَوائِم مَعروضَة. التَطبيق
+        // يَتَجاوَز بِـ AddSingleton(new MarketplaceUiOptions { ... }) قَبل
+        // AddAshareV3Customer أَو ما يُماثِله ⇒ TryAdd يَستَسلِم.
+        services.TryAddSingleton<MarketplaceUiOptions>(_ => new MarketplaceUiOptions());
 
         // ─── HTTP handlers مِن الكيتس ─────────────────────────────────
         services.AddTransient<CultureHeadersHandler>();

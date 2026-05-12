@@ -36,6 +36,14 @@ builder.Services.AddSingleton<Ejar.Customer.UI.Components.Pages.Auth.IAuthLoginU
     new Ejar.Customer.UI.Components.Pages.Auth.StaticAuthLoginUi(
         typeof(Ejar.Customer.UI.Components.Pages.Auth.NafathLoginContent)));
 
+// V3 لا يَستَخدِم باقات اشتِراك — الدَفع بِالإعلان الواحِد ⇒ إخفاء
+// زُرَّي "الباقات" + "اشتِراكي" مَن صَفحَة /me. عِند إعادَة Subscriptions
+// kit لاحِقاً، احذِف هذا السَطر فَقَط.
+builder.Services.AddSingleton(new Ejar.Customer.UI.Services.MarketplaceUiOptions
+{
+    ShowSubscriptionsMenu = false,
+});
+
 var app = builder.Build();
 if (!app.Environment.IsDevelopment()) app.UseExceptionHandler("/Error");
 app.UseStaticFiles();

@@ -11,6 +11,7 @@
 @inject IFavoritesStore Favorites
 @inject IUiPreferences Prefs
 @inject IHttpClientFactory HttpFactory
+@inject MarketplaceUiOptions UiOptions
 @inject NavigationManager Nav
 @inject AppVersionInfo AppVersion
 @inject L L
@@ -72,12 +73,19 @@
     }
 
     <div class="acm-home-actions" style="margin-top:12px;">
-        @* "الخطط" بطاقة بارزة في الأعلى — كانت زرّاً صغيراً مدفوناً تحت
-           كلّ شيء، الآن في صفّ البطاقات الأمامي حتّى لا تضيع. *@
-        <AcActionCard Label="@(L[TemplateStrings.PlansHeading])"        IconName="package"     Variant="primary" OnClick="@GoPlans" />
+        @* "الخطط" + "اشتراكي" يَظهَران فَقَط لِتَطبيقات تُسَجِّل
+           Subscriptions kit. UiOptions يُتيح إخفاءهما لِـ V3 الَّذي يَستَخدِم
+           الدَفع بِالإعلان الواحِد. *@
+        @if (UiOptions.ShowSubscriptionsMenu)
+        {
+            <AcActionCard Label="@(L[TemplateStrings.PlansHeading])"        IconName="package"     Variant="primary" OnClick="@GoPlans" />
+        }
         <AcActionCard Label="@(L[TemplateStrings.MyListingsHeading])"             IconName="building"    Variant="surface" OnClick="@GoMyListings" />
         <AcActionCard Label="@(L[TemplateStrings.NavFavorites])" IconName="heart"      Variant="surface" OnClick="@GoFavorites" />
-        <AcActionCard Label="@(L[TemplateStrings.MeStatsSubscription])"              IconName="check-circle" Variant="surface" OnClick="@GoMySub" />
+        @if (UiOptions.ShowSubscriptionsMenu)
+        {
+            <AcActionCard Label="@(L[TemplateStrings.MeStatsSubscription])"              IconName="check-circle" Variant="surface" OnClick="@GoMySub" />
+        }
         <AcActionCard Label="@(L[TemplateStrings.ComplaintTitle])" IconName="alert-circle" Variant="surface" OnClick="@GoComplaints" />
         <AcActionCard Label="@(L[TemplateStrings.NavMessages])"              IconName="message"     Variant="surface" OnClick="@GoChats" />
         <AcActionCard Label="@(L[TemplateStrings.SettingsTitle])" IconName="settings" Variant="surface" OnClick="@GoSettings" />
