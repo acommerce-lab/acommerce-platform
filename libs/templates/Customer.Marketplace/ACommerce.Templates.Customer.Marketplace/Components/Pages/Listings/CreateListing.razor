@@ -5,6 +5,7 @@
 @inject IListingDraft Draft
 @inject IListingsStore Listings
 @inject IDiscoveryStore Discovery
+@inject IListingPublishGate PublishGate
 @inject NavigationManager Nav
 @inject IJSRuntime JS
 @inject L L
@@ -332,9 +333,16 @@
         _publishing = true; _publishError = null;
         try
         {
-            // OAM-pure: نَبني ListingDraftPayload (DTO الكِيت) ونَدفَع
-            // listings.create op عَبر IListingsStore. الـ store يَتَوَلّى
-            // بِناء payload + dispatch + تَحديث Mine list.
+            // ① البَوّابَة قَبل أَيّ بِناء payload. الـ default يُمَرِّر؛
+            // تَطبيقات تَفرِض دَفع/اشتِراك تُسَجِّل impl يَرُدّ Scope يَحقُن
+            // headers عَلى الـ HttpClient طَوال CreateAsync.
+            var auth = await PublishGate.AuthorizeAsync();
+            if (!auth.Allowed)
+            {
+                _publishError = auth.Error ?? L[TemplateStrings.CreateListingPublishFailed];
+                return;
+            }
+
             var payload = new ListingDraftPayload(
                 Title:         Draft.Title ?? "",
                 Description:   Draft.Description,
@@ -352,6 +360,7 @@
                 Images:        _images.Select(i => i.DataUrl).ToList(),
                 Thumbnail:     _images.Count > 0 ? _images[0].ThumbUrl : null);
 
+            using var _scope = auth.Scope;   // null-safe: لا scope ⇒ لا تَنظيف
             var created = await Listings.CreateAsync(payload);
             if (created is not null)
             {

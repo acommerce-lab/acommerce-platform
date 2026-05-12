@@ -21,7 +21,7 @@ public sealed class CategoriesController : ControllerBase
     private readonly AshareV3DbContext _db;
     public CategoriesController(AshareV3DbContext db) => _db = db;
 
-    [HttpGet("/categories")]
+    [HttpGet("/categories", Order = -10)]   // يَفوز عَلى kit's Discovery.Categories
     public async Task<IActionResult> List(CancellationToken ct)
     {
         var rows = await _db.ProductCategories.AsNoTracking()

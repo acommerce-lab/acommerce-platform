@@ -87,12 +87,16 @@ builder.Services.AddMockPayment(opts =>
     opts.AutoCaptureSeconds = 3;
 });
 
-// بَوّابَة الدَفع عَلى listing.create. عَودَة Subscriptions تُضيف
-// interceptor مُوازي يَفحَص اشتِراك المُستَخدِم بِلا تَعديل في
-// الواجِهَة أَو الكيت.
+// بَوّابَة الدَفع عَلى listing.create — interceptorان:
+//   Pre  → يَتَحَقَّق فَقَط (يُرفِض إذا الدَفع ناقِص)
+//   Post → يَستَهلِك (يَضَع Consumed=true) إذا نَجَحَت العَمَلِيَّة
+// فَصلهُما يَضمَن أَنّ دَفعاً لا يُستَهلَك إلّا عِند حِفظ إعلان فِعليّاً.
+// عَودَة Subscriptions تُضيف interceptor مُوازي يَفحَص الاشتِراك.
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddSingleton<ACommerce.OperationEngine.Interceptors.IOperationInterceptor,
                               Ashare.V3.Api.Interceptors.ListingPaymentGateInterceptor>();
+builder.Services.AddSingleton<ACommerce.OperationEngine.Interceptors.IOperationInterceptor,
+                              Ashare.V3.Api.Interceptors.ListingPaymentConsumeInterceptor>();
 
 // Enricher لِـ /listings/{id} — يُمَرِّر Images + Attributes (مَفكوكَة مِن
 // AttributesJson) لِواجِهَة التَفاصيل. الكيت يَكتَشِفه عَبر DI.

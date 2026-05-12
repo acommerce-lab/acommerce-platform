@@ -87,6 +87,8 @@ public static class EjarCustomerUiExtensions
         // يَتَجاوَز بِـ AddSingleton(new MarketplaceUiOptions { ... }) قَبل
         // AddAshareV3Customer أَو ما يُماثِله ⇒ TryAdd يَستَسلِم.
         services.TryAddSingleton<MarketplaceUiOptions>(_ => new MarketplaceUiOptions());
+        // Default open gate — تَطبيقات تَفرِض دَفع/اشتِراك تَتَجاوَزه بِـ AddScoped.
+        services.TryAddScoped<IListingPublishGate, OpenPublishGate>();
 
         // ─── HTTP handlers مِن الكيتس ─────────────────────────────────
         services.AddTransient<CultureHeadersHandler>();

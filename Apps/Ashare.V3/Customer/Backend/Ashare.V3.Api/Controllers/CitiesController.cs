@@ -21,7 +21,7 @@ public sealed class CitiesController : ControllerBase
     private readonly AshareV3DbContext _db;
     public CitiesController(AshareV3DbContext db) => _db = db;
 
-    [HttpGet("/cities")]
+    [HttpGet("/cities", Order = -10)]   // يَفوز عَلى kit's Discovery.Cities
     public async Task<IActionResult> List(CancellationToken ct)
     {
         var names = await _db.Cities.AsNoTracking()
