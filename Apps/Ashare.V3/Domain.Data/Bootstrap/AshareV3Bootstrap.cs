@@ -1,4 +1,5 @@
 using Ashare.V3.Data;
+using Ashare.V3.Data.Templates;
 using Ashare.V3.Domain;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -112,11 +113,19 @@ public static class AshareV3Bootstrap
                     "Ashare V3: ProductListing فارِغ. شَغِّل أَداة الاستِنساخ: " +
                     "ASHAREDB_PROD_CONN='…' dotnet run --project Apps/Ashare.V3/Tools/CloneAshareDb");
             }
-            // لا seed قَوالِب مَن الكود — كُلّ تَسميات السِمات وخِياراتها
-            // تَأتي مِن جَداوِل asharedb (AttributeDefinitions/Values/
-            // CategoryAttributeMappings). إِن كانَت فارِغَة، الواجِهَة لا
-            // تَعرِض السِمات. الإدارَة تَملَأها عَبر admin/SQL أَو لوحَة
-            // تَحَكُّم لاحِقَة.
+            // لا seed قَوالِب فِئات المُنتَجات مَن الكود — تَسميات سِمات
+            // الإعلانات وخِياراتها تَأتي مِن جَداوِل asharedb
+            // (AttributeDefinitions/Values/CategoryAttributeMappings).
+            // الإدارَة تَملَأها عَبر admin/SQL أَو لوحَة تَحَكُّم لاحِقَة.
+            //
+            // الاستِثناء الوَحيد: سِمات البروفايل. الـ V3 Profile entity
+            // يَحوي أَعمِدَة (NationalId/BusinessName/Address/Country/
+            // PostalCode/Coordinates) لَيسَت في IUserProfile واجِهَة
+            // الكيت. نُسَجِّلها كَـ AttributeDefinitions تَحت
+            // <see cref="V3ProfileAttributes.CategoryId"/> sentinel
+            // لِيُعيد ProductionAttributeTemplateSource بِناءَها كَـ
+            // template ⇒ نَفس مَحَرِّك القَوالِب يَعمَل عَلى البروفايل.
+            await SeedProfileAttributesAsync(db, logger, ct);
         }
         else
         {
@@ -224,4 +233,81 @@ public static class AshareV3Bootstrap
           );"
     };
 
+    /// <summary>
+    /// يَضمَن وُجود <c>AttributeDefinitions</c> + <c>CategoryAttributeMappings</c>
+    /// لِأَعمِدَة بروفايل V3 الإضافِيَّة تَحت
+    /// <see cref="V3ProfileAttributes.CategoryId"/> sentinel. idempotent:
+    /// يَفحَص الـ Code قَبل الإضافَة، ولا يَلمَس صُفوف الإنتاج (الـ
+    /// CategoryId مُختَلِق ⇒ لا يَتَعارَض مَع mappings فِئات حَقيقِيَّة).
+    /// </summary>
+    private static async Task SeedProfileAttributesAsync(
+        AshareV3DbContext db, ILogger? logger, CancellationToken ct)
+    {
+        try
+        {
+            var sentinelCat = V3ProfileAttributes.CategoryId;
+            var existing = await db.AttributeDefinitions.AsNoTracking()
+                .Where(d => V3ProfileAttributes.Defaults.Select(x => x.Code).Contains(d.Code))
+                .ToDictionaryAsync(d => d.Code, d => d.Id, ct);
+
+            var now = DateTime.UtcNow;
+            var newDefs = new List<AttributeDefinitionEntity>();
+            var newMaps = new List<CategoryAttributeMappingEntity>();
+
+            var existingMappedDefIds = await db.CategoryAttributeMappings.AsNoTracking()
+                .Where(m => m.CategoryId == sentinelCat)
+                .Select(m => m.AttributeDefinitionId)
+                .ToListAsync(ct);
+            var mappedSet = existingMappedDefIds.ToHashSet();
+
+            var sort = 0;
+            foreach (var seed in V3ProfileAttributes.Defaults)
+            {
+                sort++;
+                Guid defId;
+                if (!existing.TryGetValue(seed.Code, out defId))
+                {
+                    defId = Guid.NewGuid();
+                    newDefs.Add(new AttributeDefinitionEntity
+                    {
+                        Id        = defId,
+                        CreatedAt = now,
+                        Code      = seed.Code,
+                        Name      = seed.Name,
+                        Type      = seed.Type,
+                        IsRequired       = false,
+                        IsVisibleInList  = false,
+                        IsVisibleInDetail = true,
+                        SortOrder = sort,
+                    });
+                }
+                if (!mappedSet.Contains(defId))
+                {
+                    newMaps.Add(new CategoryAttributeMappingEntity
+                    {
+                        Id        = Guid.NewGuid(),
+                        CreatedAt = now,
+                        CategoryId            = sentinelCat,
+                        AttributeDefinitionId = defId,
+                        SortOrder             = sort,
+                        IsActive              = true,
+                    });
+                }
+            }
+
+            if (newDefs.Count > 0) db.AttributeDefinitions.AddRange(newDefs);
+            if (newMaps.Count > 0) db.CategoryAttributeMappings.AddRange(newMaps);
+            if (newDefs.Count + newMaps.Count > 0)
+            {
+                await db.SaveChangesAsync(ct);
+                logger?.LogInformation(
+                    "Ashare V3: profile attribute seed → +{Defs} defs, +{Maps} mappings",
+                    newDefs.Count, newMaps.Count);
+            }
+        }
+        catch (Exception ex)
+        {
+            logger?.LogWarning(ex, "Ashare V3: profile attribute seed skipped");
+        }
+    }
 }

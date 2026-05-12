@@ -1,6 +1,9 @@
 @page "/me"
 @attribute [Authorize]
+@using System.Net.Http.Json
 @using ACommerce.Kits.Versions.Templates
+@using ACommerce.OperationEngine.Wire
+@using ACommerce.SharedKernel.Domain.DynamicAttributes
 @inject IClientAuthState AuthState
 @inject IAuthStore Auth
 @inject IProfileStore Profiles
@@ -10,6 +13,7 @@
 @inject MarketplaceUiOptions UiOptions
 @inject NavigationManager Nav
 @inject AppVersionInfo AppVersion
+@inject IHttpClientFactory HttpFactory
 @inject L L
 
 <PageTitle>@(L[TemplateStrings.NavProfile]) - @(L[TemplateStrings.AppName])</PageTitle>
@@ -54,11 +58,18 @@
         </div>
     }
 
-    @* سِمات البروفايل الإضافِيَّة (مَثَلاً NationalId, BusinessName, Address)
-       لَيسَت ضِمن IUserProfile الكَيت. تَطبيقات تُريد عَرضها تُسَجِّل
-       implementation لِـ <c>IProfileExtraFieldsProvider</c> (TBD) — حالِيّاً
-       غَير مُفَعَّلَة في V3 بِانتِظار تَصميم القِراءَة مِن أَعمِدَة
-       Profile الخاصَّة. *@
+    @* سِمات البروفايل الإضافِيَّة. مَفاتيحها وتَسمياتها تَأتي مِن backend
+       (مَصدَر القَوالِب الكانوني — AttributeDefinitions تَحت sentinel
+       CategoryId لِلبروفايل). تَطبيقات لا تُقَدِّم endpoint /profile/me/attributes
+       يُهمَل القِسم بِأَكمَله بِلا أَخطاء. *@
+    @if (_profileAttrs is { Count: > 0 } && _profileAttrs.Any(a => a.Value != null && !string.IsNullOrWhiteSpace(a.Value.ToString())))
+    {
+        <AcCard>
+            <ChildContent>
+                <AcAttrGrid Attributes="_profileAttrs" IsArabic="true" />
+            </ChildContent>
+        </AcCard>
+    }
 
     <div class="acm-home-actions" style="margin-top:12px;">
         @* "الخطط" + "اشتراكي" يَظهَران فَقَط لِتَطبيقات تُسَجِّل
@@ -91,6 +102,7 @@
 
 @code {
     private bool _statsLoaded;
+    private List<DynamicAttribute>? _profileAttrs;
 
     protected override async Task OnAfterRenderAsync(bool first)
     {
@@ -99,9 +111,30 @@
             Profiles.LoadAsync(),
             Listings.LoadMineAsync(),
             Support.LoadAsync(),
-            Favorites.LoadAsync());
+            Favorites.LoadAsync(),
+            LoadProfileAttrsAsync());
         _statsLoaded = true;
         await InvokeAsync(StateHasChanged);
+    }
+
+    /// <summary>
+    /// يَجلِب snapshot سِمات البروفايل الديناميكِيَّة. الفَشَل (404, 500,
+    /// شَبَكَة) لا يُؤَثِّر — القِسم يَختَفي فَقَط في التَّطبيقات الَّتي لا
+    /// تُسَجِّل endpoint.
+    /// </summary>
+    private async Task LoadProfileAttrsAsync()
+    {
+        try
+        {
+            var http = HttpFactory.CreateClient("ejar");
+            var env = await http.GetFromJsonAsync<OperationEnvelope<List<DynamicAttribute>>>(
+                "profile/me/attributes");
+            _profileAttrs = env?.Data;
+        }
+        catch
+        {
+            _profileAttrs = null;
+        }
     }
 
     private void GoEdit()       => Nav.NavigateTo("/profile/edit");
