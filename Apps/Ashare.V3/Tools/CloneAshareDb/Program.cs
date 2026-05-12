@@ -1,7 +1,10 @@
 using Ashare.V3.Data;
+using Ashare.V3.Domain;
 using Microsoft.Data.Sqlite;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using System.Text.Json;
 
 // ════════════════════════════════════════════════════════════════════════
 // CloneAshareDb — يَستَنسِخ asharedb الإنتاجِيَّة (SQL Server) إلى SQLite
@@ -100,10 +103,19 @@ await target.Database.ExecuteSqlRawAsync("PRAGMA synchronous=NORMAL;");
 var totalRows = 0L;
 var t0 = DateTime.UtcNow;
 
-totalRows += await CopySafe(source.Profiles,           target.Profiles,           target, "Profile");
+// Profile: نَقل مُخَصَّص. الـ schema الإنتاجِي "عَريض" (٢٠+ عَمود)؛
+// V3 ProfileEntity "ضَيِّق" (مَطابِق لِواجِهَة IUserProfile + أَعمِدَة
+// سَطحِيَّة لِخِدمَة التَطبيق). الزِيادات تَنتَقِل لِـ AttributesJson.
+totalRows += await CopyProfilesAsync(prodCs, target, commandTimeout, batchSize);
+
 totalRows += await CopySafe(source.ProductCategories,  target.ProductCategories,  target, "ProductCategory");
 totalRows += await CopySafe(source.Products,           target.Products,           target, "Products");
-totalRows += await CopySafe(source.ProductListings,    target.ProductListings,    target, "ProductListing");
+// ProductListing: نَقل مُخَصَّص — الجَدول الإنتاجِي يَحوي AttributesJson
+// عَريض، V3 يَفصِل الحُقول المَطلوبَة لِواجِهَة IListing (TimeUnit,
+// BedroomCount, BathroomCount, AreaSqm, Amenities) كَأَعمِدَة + يُبقي
+// الباقي في AttributesJson.
+totalRows += await CopyProductListingsAsync(prodCs, target, commandTimeout, batchSize);
+
 totalRows += await CopySafe(source.Chats,              target.Chats,              target, "Chat");
 totalRows += await CopySafe(source.ChatParticipants,   target.ChatParticipants,   target, "ChatParticipant");
 totalRows += await CopySafe(source.Messages,           target.Messages,           target, "Message");
@@ -211,6 +223,362 @@ async Task FlushBatch<T>(List<T> batch, DbSet<T> tgt, AshareV3DbContext tgtCtx) 
     await tgtCtx.SaveChangesAsync();
     tgtCtx.ChangeTracker.Clear();
 }
+
+// نَقل مُخَصَّص لِـ Profile: قِراءَة ADO.NET مِن SQL Server (schema عَريض)
+// + بِناء V3 ProfileEntity ضَيِّق (مَطابِق لِـ IUserProfile + أَعمِدَة
+// سَطحِيَّة) + ضَخّ المُتَبَقّي في <c>AttributesJson</c>.
+//
+// الأَعمِدَة المَنقولَة لِـ AttributesJson: Address, Country, PostalCode,
+// Coordinates (تَطابِق <c>V3ProfileAttributes.Defaults</c>). أَيّ زِيادَة
+// مُستَقبَلِيَّة في prod تُضاف بِسُهولَة هُنا + في seed Bootstrap.
+async Task<long> CopyProfilesAsync(string prodConn, AshareV3DbContext tgtCtx,
+                                   int cmdTimeout, int batchSz)
+{
+    Console.Write($"  {"Profile",-22} ");
+    long copied = 0;
+    try
+    {
+        await using var conn = new SqlConnection(prodConn);
+        await conn.OpenAsync();
+
+        await using (var countCmd = conn.CreateCommand())
+        {
+            countCmd.CommandText = "SELECT COUNT(*) FROM [dbo].[Profile]";
+            countCmd.CommandTimeout = cmdTimeout;
+            var totalObj = await countCmd.ExecuteScalarAsync();
+            var total = totalObj is null ? 0 : Convert.ToInt64(totalObj);
+            Console.Write($"counting… {total:N0} rows… ");
+            if (total == 0) { Console.WriteLine("0"); return 0; }
+        }
+
+        await using var cmd = conn.CreateCommand();
+        cmd.CommandTimeout = cmdTimeout;
+        cmd.CommandText = @"
+            SELECT  Id, UserId, NationalId, [Type], FullName, BusinessName,
+                    PhoneNumber, Email, Avatar, Address, City, Country,
+                    PostalCode, Coordinates, IsActive, IsVerified, VerifiedAt,
+                    CreatedAt, UpdatedAt, IsDeleted
+            FROM    [dbo].[Profile]";
+
+        await using var rdr = await cmd.ExecuteReaderAsync();
+        var batch = new List<ProfileEntity>(batchSz);
+        var lastPrint = DateTime.UtcNow;
+
+        while (await rdr.ReadAsync())
+        {
+            var address     = rdr["Address"]     as string;
+            var country     = rdr["Country"]     as string;
+            var postalCode  = rdr["PostalCode"]  as string;
+            var coordinates = rdr["Coordinates"] as string;
+
+            // attrs JSON يُكتَب فَقَط إن وُجِدَت قِيمَة (لا نَملَأ بِـ null).
+            string? attrsJson = null;
+            var attrs = new Dictionary<string, object?>(StringComparer.Ordinal);
+            if (!string.IsNullOrWhiteSpace(address))     attrs["Address"]     = address;
+            if (!string.IsNullOrWhiteSpace(country))     attrs["Country"]     = country;
+            if (!string.IsNullOrWhiteSpace(postalCode))  attrs["PostalCode"]  = postalCode;
+            if (!string.IsNullOrWhiteSpace(coordinates)) attrs["Coordinates"] = coordinates;
+            if (attrs.Count > 0)
+                attrsJson = JsonSerializer.Serialize(attrs);
+
+            batch.Add(new ProfileEntity
+            {
+                Id            = rdr.GetGuid(rdr.GetOrdinal("Id")),
+                CreatedAt     = rdr["CreatedAt"] is DateTime ca ? ca : DateTime.UtcNow,
+                UpdatedAt     = rdr["UpdatedAt"] as DateTime?,
+                IsDeleted     = rdr["IsDeleted"] is bool isd && isd,
+                UserId        = rdr["UserId"]   as string,
+                NationalId    = rdr["NationalId"] as string,
+                Type          = rdr["Type"] is int t ? t : 0,
+                IsActive      = rdr["IsActive"] is bool ia && ia,
+                IsVerified    = rdr["IsVerified"] is bool iv && iv,
+                VerifiedAt    = rdr["VerifiedAt"] as DateTime?,
+                BusinessName  = rdr["BusinessName"] as string,
+                FullName      = rdr["FullName"] as string,
+                Phone         = rdr["PhoneNumber"] as string,
+                Email         = rdr["Email"]   as string,
+                City          = rdr["City"]    as string,
+                AvatarUrl     = rdr["Avatar"]  as string,
+                // PhoneVerified/EmailVerified — لا أَعمِدَة مُقابِلَة في prod؛
+                // نَستَخدِم IsVerified كَتَقريب لِـ PhoneVerified (Nafath flow).
+                PhoneVerified = rdr["IsVerified"] is bool iv2 && iv2,
+                EmailVerified = false,
+                AttributesJson = attrsJson,
+            });
+
+            if (batch.Count >= batchSz)
+            {
+                await tgtCtx.Profiles.AddRangeAsync(batch);
+                await tgtCtx.SaveChangesAsync();
+                tgtCtx.ChangeTracker.Clear();
+                copied += batch.Count;
+                batch.Clear();
+                if ((DateTime.UtcNow - lastPrint).TotalSeconds > 2)
+                {
+                    Console.Write($"{copied:N0} ");
+                    lastPrint = DateTime.UtcNow;
+                }
+            }
+        }
+        if (batch.Count > 0)
+        {
+            await tgtCtx.Profiles.AddRangeAsync(batch);
+            await tgtCtx.SaveChangesAsync();
+            tgtCtx.ChangeTracker.Clear();
+            copied += batch.Count;
+        }
+        Console.WriteLine($"done ({copied:N0})");
+        return copied;
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"FAILED — {ex.GetType().Name}: {Truncate(ex.Message, 80)}");
+        tgtCtx.ChangeTracker.Clear();
+        return 0;
+    }
+}
+
+// نَقل مُخَصَّص لِـ ProductListing: قِراءَة ADO.NET + رَفع المَفاتيح
+// المُطابِقَة لِأَعمِدَة IListing مَن AttributesJson إلى أَعمِدَة + حَذفها
+// مَن JSON. هذا يُحَقِّق قاعِدَة "العَمود ⇔ الواجِهَة" بِلا فُقدان بَيانات.
+//
+// مَفاتيح مَعروفَة + هَدَفها:
+//   bedrooms     / bedroom_count / BedroomCount   → BedroomCount
+//   bathrooms    / bathroom_count / BathroomCount → BathroomCount
+//   area / area_sqm / AreaSqm / size              → AreaSqm
+//   time_unit / timeUnit / TimeUnit / unit        → TimeUnit
+//   amenities / Amenities (array)                 → AmenitiesJson
+async Task<long> CopyProductListingsAsync(string prodConn, AshareV3DbContext tgtCtx,
+                                          int cmdTimeout, int batchSz)
+{
+    Console.Write($"  {"ProductListing",-22} ");
+    long copied = 0;
+    try
+    {
+        await using var conn = new SqlConnection(prodConn);
+        await conn.OpenAsync();
+
+        await using (var countCmd = conn.CreateCommand())
+        {
+            countCmd.CommandText = "SELECT COUNT(*) FROM [dbo].[ProductListing]";
+            countCmd.CommandTimeout = cmdTimeout;
+            var totalObj = await countCmd.ExecuteScalarAsync();
+            var total = totalObj is null ? 0 : Convert.ToInt64(totalObj);
+            Console.Write($"counting… {total:N0} rows… ");
+            if (total == 0) { Console.WriteLine("0"); return 0; }
+        }
+
+        await using var cmd = conn.CreateCommand();
+        cmd.CommandTimeout = cmdTimeout;
+        cmd.CommandText = "SELECT * FROM [dbo].[ProductListing]";
+
+        await using var rdr = await cmd.ExecuteReaderAsync();
+        var batch = new List<ProductListingEntity>(batchSz);
+        var lastPrint = DateTime.UtcNow;
+
+        // عَدَد الأَعمِدَة مُتَغَيِّر بَين بيئات؛ نَستَخدِم HasColumn.
+        bool HasColumn(string name)
+        {
+            for (var i = 0; i < rdr.FieldCount; i++)
+                if (string.Equals(rdr.GetName(i), name, StringComparison.OrdinalIgnoreCase)) return true;
+            return false;
+        }
+        T? Get<T>(string name) where T : class
+        {
+            if (!HasColumn(name)) return null;
+            var v = rdr[name];
+            return v is DBNull ? null : (T)v;
+        }
+        bool? GetBool(string name)
+        {
+            if (!HasColumn(name)) return null;
+            var v = rdr[name];
+            return v is DBNull ? null : Convert.ToBoolean(v);
+        }
+        int? GetInt(string name)
+        {
+            if (!HasColumn(name)) return null;
+            var v = rdr[name];
+            return v is DBNull ? null : Convert.ToInt32(v);
+        }
+        decimal? GetDec(string name)
+        {
+            if (!HasColumn(name)) return null;
+            var v = rdr[name];
+            return v is DBNull ? null : Convert.ToDecimal(v);
+        }
+        double? GetDouble(string name)
+        {
+            if (!HasColumn(name)) return null;
+            var v = rdr[name];
+            return v is DBNull ? null : Convert.ToDouble(v);
+        }
+        DateTime? GetDate(string name)
+        {
+            if (!HasColumn(name)) return null;
+            var v = rdr[name];
+            return v is DBNull ? null : Convert.ToDateTime(v);
+        }
+        Guid? GetGuid(string name)
+        {
+            if (!HasColumn(name)) return null;
+            var v = rdr[name];
+            return v is DBNull ? null : (Guid)v;
+        }
+
+        while (await rdr.ReadAsync())
+        {
+            var attrsJsonRaw = Get<string>("AttributesJson");
+            var (promoted, leftover) = PromoteListingAttrs(attrsJsonRaw);
+            var (timeUnit, bedroomCount, bathroomCount, areaSqm, amenitiesJson) = promoted;
+
+            batch.Add(new ProductListingEntity
+            {
+                Id              = GetGuid("Id") ?? Guid.NewGuid(),
+                CreatedAt       = GetDate("CreatedAt") ?? DateTime.UtcNow,
+                UpdatedAt       = GetDate("UpdatedAt"),
+                IsDeleted       = GetBool("IsDeleted") ?? false,
+                VendorId        = GetGuid("VendorId") ?? Guid.Empty,
+                ProductId       = GetGuid("ProductId") ?? Guid.Empty,
+                CategoryId      = GetGuid("CategoryId"),
+                Title           = Get<string>("Title") ?? "",
+                Description     = Get<string>("Description"),
+                VendorSku       = Get<string>("VendorSku"),
+                Status          = GetInt("Status") ?? 0,
+                Price           = GetDec("Price") ?? 0m,
+                CompareAtPrice  = GetDec("CompareAtPrice"),
+                Cost            = GetDec("Cost"),
+                CurrencyId      = GetGuid("CurrencyId"),
+                QuantityAvailable = GetInt("QuantityAvailable") ?? 0,
+                QuantityReserved  = GetInt("QuantityReserved")  ?? 0,
+                LowStockThreshold = GetInt("LowStockThreshold"),
+                ProcessingTime    = GetInt("ProcessingTime"),
+                VendorNotes       = Get<string>("VendorNotes"),
+                StartsAt          = GetDate("StartsAt"),
+                EndsAt            = GetDate("EndsAt"),
+                IsActive          = GetBool("IsActive") ?? true,
+                IsFeatured        = GetBool("IsFeatured") ?? false,
+                IsNew             = GetBool("IsNew") ?? false,
+                TotalSales        = GetInt("TotalSales") ?? 0,
+                ViewCount         = GetInt("ViewCount") ?? 0,
+                Rating            = GetDec("Rating"),
+                ReviewCount       = GetInt("ReviewCount") ?? 0,
+                ImagesJson        = Get<string>("ImagesJson"),
+                FeaturedImage     = Get<string>("FeaturedImage"),
+                Latitude          = GetDouble("Latitude"),
+                Longitude         = GetDouble("Longitude"),
+                Address           = Get<string>("Address"),
+                City              = Get<string>("City"),
+                Condition         = Get<string>("Condition"),
+                Currency          = Get<string>("Currency"),
+                CommissionPercentage = GetDec("CommissionPercentage") ?? 0m,
+                // الحُقول المَرفوعَة:
+                TimeUnit        = timeUnit,
+                BedroomCount    = bedroomCount,
+                BathroomCount   = bathroomCount,
+                AreaSqm         = areaSqm,
+                AmenitiesJson   = amenitiesJson,
+                // ما تَبَقّى مَن JSON بَعد إزالَة المَفاتيح المَرفوعَة:
+                AttributesJson  = leftover,
+            });
+
+            if (batch.Count >= batchSz)
+            {
+                await tgtCtx.ProductListings.AddRangeAsync(batch);
+                await tgtCtx.SaveChangesAsync();
+                tgtCtx.ChangeTracker.Clear();
+                copied += batch.Count;
+                batch.Clear();
+                if ((DateTime.UtcNow - lastPrint).TotalSeconds > 2)
+                {
+                    Console.Write($"{copied:N0} ");
+                    lastPrint = DateTime.UtcNow;
+                }
+            }
+        }
+        if (batch.Count > 0)
+        {
+            await tgtCtx.ProductListings.AddRangeAsync(batch);
+            await tgtCtx.SaveChangesAsync();
+            tgtCtx.ChangeTracker.Clear();
+            copied += batch.Count;
+        }
+        Console.WriteLine($"done ({copied:N0})");
+        return copied;
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"FAILED — {ex.GetType().Name}: {Truncate(ex.Message, 80)}");
+        tgtCtx.ChangeTracker.Clear();
+        return 0;
+    }
+}
+
+((string? TimeUnit, int BedroomCount, int BathroomCount, int AreaSqm, string? AmenitiesJson) Promoted,
+ string? Leftover) PromoteListingAttrs(string? raw)
+{
+    var emptyPromoted = ((string?)null, 0, 0, 0, (string?)null);
+    if (string.IsNullOrWhiteSpace(raw)) return (emptyPromoted, null);
+
+    try
+    {
+        using var doc = JsonDocument.Parse(raw);
+        if (doc.RootElement.ValueKind != JsonValueKind.Object)
+            return (emptyPromoted, raw);
+
+        string? timeUnit = null;
+        int bedrooms = 0, bathrooms = 0, areaSqm = 0;
+        string? amenitiesJson = null;
+        var leftover = new Dictionary<string, JsonElement>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var prop in doc.RootElement.EnumerateObject())
+        {
+            var k = prop.Name;
+            if (MatchKey(k, "time_unit", "timeUnit", "TimeUnit", "unit"))
+            {
+                timeUnit = prop.Value.ValueKind == JsonValueKind.String ? prop.Value.GetString() : prop.Value.ToString();
+            }
+            else if (MatchKey(k, "bedrooms", "bedroom_count", "bedroomCount", "BedroomCount"))
+            {
+                bedrooms = TryIntJson(prop.Value);
+            }
+            else if (MatchKey(k, "bathrooms", "bathroom_count", "bathroomCount", "BathroomCount"))
+            {
+                bathrooms = TryIntJson(prop.Value);
+            }
+            else if (MatchKey(k, "area", "area_sqm", "areaSqm", "AreaSqm", "size"))
+            {
+                areaSqm = TryIntJson(prop.Value);
+            }
+            else if (MatchKey(k, "amenities", "Amenities"))
+            {
+                if (prop.Value.ValueKind == JsonValueKind.Array)
+                    amenitiesJson = prop.Value.GetRawText();
+            }
+            else
+            {
+                leftover[k] = prop.Value.Clone();
+            }
+        }
+
+        string? leftoverJson = leftover.Count > 0 ? JsonSerializer.Serialize(leftover) : null;
+        return ((timeUnit, bedrooms, bathrooms, areaSqm, amenitiesJson), leftoverJson);
+    }
+    catch
+    {
+        return (emptyPromoted, raw);
+    }
+}
+
+static bool MatchKey(string key, params string[] candidates) =>
+    candidates.Any(c => string.Equals(key, c, StringComparison.OrdinalIgnoreCase));
+
+static int TryIntJson(JsonElement el) => el.ValueKind switch
+{
+    JsonValueKind.Number => el.TryGetInt32(out var i) ? i : (int)el.GetDouble(),
+    JsonValueKind.String => int.TryParse(el.GetString(), out var i) ? i : 0,
+    _ => 0,
+};
 
 static string Truncate(string s, int max) => s.Length <= max ? s : s[..max];
 

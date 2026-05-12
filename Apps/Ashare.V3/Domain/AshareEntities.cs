@@ -1,5 +1,6 @@
 using ACommerce.Chat.Operations;
 using ACommerce.Kits.Listings.Domain;
+using ACommerce.Kits.Profiles.Operations;
 using ACommerce.SharedKernel.Domain.Entities;
 
 namespace Ashare.V3.Domain;
@@ -20,30 +21,62 @@ namespace Ashare.V3.Domain;
 // ═════════════════════════════════════════════════════════════════════════
 
 
-// ─── Profile (٢٠ عَمود) ────────────────────────────────────────────────
-public class ProfileEntity : IBaseEntity
+// ─── Profile ───────────────────────────────────────────────────────────
+// الجَدول مَطابِق لِواجِهَة <see cref="IUserProfile"/> الكيت — حُقول
+// الواجِهَة كَأَعمِدَة، الباقي يَخرُج عَن قَلَق الكيتس/القَوالِب.
+// <list type="bullet">
+//   <item><b>حُقول الواجِهَة</b> (IUserProfile): FullName, Phone,
+//         PhoneVerified, Email, EmailVerified, City, AvatarUrl,
+//         MemberSince (←CreatedAt).</item>
+//   <item><b>أَعمِدَة سَطحِيَّة لِخِدمَة التَطبيق</b> (الكيتس لا تَلمَسها):
+//         UserId, NationalId (Nafath lookup), Type (customer/vendor),
+//         IsActive, IsVerified, VerifiedAt, BusinessName (chat/listing
+//         display).</item>
+//   <item><b>سِمات ديناميكِيَّة</b> في <c>AttributesJson</c>: Address,
+//         Country, PostalCode, Coordinates، وأَيّ زِيادَة admin. تَعريفاتها
+//         في <c>AttributeDefinitions</c> تَحت sentinel
+//         <c>V3ProfileAttributes.CategoryId</c>.</item>
+// </list>
+public class ProfileEntity : IBaseEntity, IUserProfile
 {
     public Guid Id { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }
     public bool IsDeleted { get; set; }
 
+    // ─ App-service columns (لا واجِهَة كيت تَعتَمِد عَلَيها) ─
     public string? UserId { get; set; }          // ربط بِـ AspNetUsers.Id
-    public string? NationalId { get; set; }
-    public int Type { get; set; }                 // 0=customer, 1=vendor, …
-    public string? FullName { get; set; }
-    public string? BusinessName { get; set; }
-    public string? PhoneNumber { get; set; }
-    public string? Email { get; set; }
-    public string? Avatar { get; set; }
-    public string? Address { get; set; }
-    public string? City { get; set; }
-    public string? Country { get; set; }
-    public string? PostalCode { get; set; }
-    public string? Coordinates { get; set; }
-    public bool IsActive { get; set; }
+    public string? NationalId { get; set; }      // lookup لِـ Nafath/SMS
+    public int Type { get; set; }                 // 0=customer, 1=vendor
+    public bool IsActive { get; set; } = true;
     public bool IsVerified { get; set; }
     public DateTime? VerifiedAt { get; set; }
+    public string? BusinessName { get; set; }    // يُستَخدَم لِعَرض اسم في chat/listings
+
+    // ─ Interface columns (IUserProfile) ─
+    public string? FullName { get; set; }
+    public string? Phone { get; set; }
+    public bool PhoneVerified { get; set; }
+    public string? Email { get; set; }
+    public bool EmailVerified { get; set; }
+    public string? City { get; set; }
+    public string? AvatarUrl { get; set; }
+
+    // ─ Dynamic attrs snapshot ─
+    /// <summary>JSON <c>{key:value}</c> لِسِمات سَطحِيَّة لا تَنتَمي
+    /// لِلواجِهَة (Address, Country, PostalCode, Coordinates، …).</summary>
+    public string? AttributesJson { get; set; }
+
+    // ─── IUserProfile explicit impl — Id يُرَدّ كَـ UserId ──
+    string  IUserProfile.Id            => UserId ?? Id.ToString();
+    string  IUserProfile.FullName      => FullName ?? "";
+    string  IUserProfile.Phone         => Phone ?? "";
+    bool    IUserProfile.PhoneVerified => PhoneVerified;
+    string? IUserProfile.Email         => Email;
+    bool    IUserProfile.EmailVerified => EmailVerified;
+    string  IUserProfile.City          => City ?? "";
+    string? IUserProfile.AvatarUrl     => AvatarUrl;
+    DateTime IUserProfile.MemberSince  => CreatedAt;
 }
 
 
@@ -140,21 +173,30 @@ public class ProductListingEntity : IBaseEntity, IListing
     public string? AttributesJson { get; set; }    // dynamic attrs (V2 pattern)
     public decimal CommissionPercentage { get; set; }
 
+    // ─── Interface-aligned columns (مَضافَة لِتُغَطّي IListing) ─────
+    /// <summary>"daily" | "monthly" | "yearly" | … — مَنقول مَن AttributesJson عِندَ الترحيل.</summary>
+    public string? TimeUnit { get; set; }
+    public int BedroomCount { get; set; }
+    public int BathroomCount { get; set; }
+    public int AreaSqm { get; set; }
+    /// <summary>JSON array مَن slugs (مَن Discovery.Amenities). مَنقول مَن AttributesJson عِندَ الترحيل.</summary>
+    public string? AmenitiesJson { get; set; }
+
     // ─── IListing explicit implementation — Ashare names ↔ kit names ──
     string IListing.Id              => Id.ToString();
     string IListing.OwnerId         => VendorId.ToString();
     string IListing.Title           => Title;
     string IListing.Description     => Description ?? "";
     decimal IListing.Price          => Price;
-    string IListing.TimeUnit        => "monthly";   // Ashare default; TODO: derive from AttributesJson
+    string IListing.TimeUnit        => TimeUnit ?? "monthly";
     string IListing.PropertyType    => Condition ?? "";
     string IListing.City            => City ?? "";
     string IListing.District        => Address ?? "";
     double IListing.Lat             => Latitude  ?? 0;
     double IListing.Lng             => Longitude ?? 0;
-    int IListing.BedroomCount       => 0;            // TODO: read from AttributesJson
-    int IListing.BathroomCount      => 0;
-    int IListing.AreaSqm            => 0;
+    int IListing.BedroomCount       => BedroomCount;
+    int IListing.BathroomCount      => BathroomCount;
+    int IListing.AreaSqm            => AreaSqm;
     int IListing.Status             => IsActive ? 1 : 2;
     int IListing.ViewsCount         => ViewCount;
     bool IListing.IsVerified        => IsFeatured;
@@ -163,7 +205,10 @@ public class ProductListingEntity : IBaseEntity, IListing
         string.IsNullOrEmpty(ImagesJson)
             ? Array.Empty<string>()
             : (System.Text.Json.JsonSerializer.Deserialize<string[]>(ImagesJson) ?? Array.Empty<string>());
-    IReadOnlyList<string> IListing.Amenities => Array.Empty<string>();  // TODO: AttributesJson
+    IReadOnlyList<string> IListing.Amenities =>
+        string.IsNullOrEmpty(AmenitiesJson)
+            ? Array.Empty<string>()
+            : (System.Text.Json.JsonSerializer.Deserialize<string[]>(AmenitiesJson) ?? Array.Empty<string>());
     DateTime IListing.CreatedAt     => CreatedAt;
     DateTime? IListing.UpdatedAt    => UpdatedAt;
 }

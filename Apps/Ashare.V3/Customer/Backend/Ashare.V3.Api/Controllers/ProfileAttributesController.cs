@@ -2,30 +2,22 @@ using ACommerce.OperationEngine.Wire.Http;
 using ACommerce.SharedKernel.Domain.DynamicAttributes;
 using Ashare.V3.Data;
 using Ashare.V3.Data.Templates;
-using Ashare.V3.Domain;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using System.Reflection;
 using System.Security.Claims;
 
 namespace Ashare.V3.Api.Controllers;
 
 /// <summary>
-/// سِمات البروفايل الديناميكِيَّة — <b>عَرض فَقَط</b>. تُعامِل أَعمِدَة
-/// <see cref="ProfileEntity"/> الَّتي لَيسَت في <c>IUserProfile</c> الواجِهَة
-/// (NationalId/BusinessName/Address/Country/PostalCode/Coordinates) كَخَصائِص
-/// قابِلَة لِلعَرض مَن نَفس مُحَرِّك القَوالِب الَّذي يُغَذّي الإعلانات.
+/// سِمات البروفايل الديناميكِيَّة — <b>عَرض فَقَط</b>. الجَدول مُحَدَّد
+/// بِواجِهَة <c>IUserProfile</c>؛ كُلّ الزِيادات تُخَزَّن في
+/// <c>Profile.AttributesJson</c>. التَسميات والتَرتيب تَأتي مِن جَدول
+/// <c>AttributeDefinitions</c> + <c>CategoryAttributeMappings</c> مَع
+/// sentinel <see cref="V3ProfileAttributes.CategoryId"/>.
 ///
-/// <para>المَصدَر الكانوني لِلتَسمِيات والتَرتيب: جَداوِل
-/// <c>AttributeDefinitions</c> + <c>CategoryAttributeMappings</c> مَع sentinel
-/// <see cref="V3ProfileAttributes.CategoryId"/>. الـ Bootstrap يَزرَع
-/// definitions/mappings عِندَ الإقلاع إن غابَت. القِيَم تُقرَأ مِن أَعمِدَة
-/// Profile مُباشَرَةً بِـ reflection عَلى <c>AttributeDefinition.Code</c>
-/// (يُطابِق اسم property بِالضَّبط).</para>
-///
-/// <para><b>لا POST</b>: الجَدول المَركَزي هو مَصدَر مَيتاداتا فَقَط؛
-/// تَعديل القِيَم يَجري خارِج الواجِهَة الزَبونِيَّة (Nafath/admin).</para>
+/// <para><b>لا POST</b>: الجَدول المَركَزي مَيتاداتا فَقَط — تَعديل
+/// القِيَم يَجري خارِج الواجِهَة الزَبونِيَّة.</para>
 /// </summary>
 [ApiController]
 public sealed class ProfileAttributesController : ControllerBase
@@ -43,29 +35,49 @@ public sealed class ProfileAttributesController : ControllerBase
         User.FindFirst("user_id")?.Value
         ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
-    /// <summary>قِيَم سِمات البروفايل الحالي (snapshot يَدمِج القالَب مَع الأَعمِدَة).</summary>
+    /// <summary>قِيَم سِمات البروفايل الحالي (snapshot يَدمِج القالَب مَع AttributesJson).</summary>
     [Authorize]
     [HttpGet("/profile/me/attributes")]
     public async Task<IActionResult> GetMine(CancellationToken ct)
     {
         if (CallerUserId is null) return this.UnauthorizedEnvelope();
-        var profile = await _db.Profiles.AsNoTracking()
-            .FirstOrDefaultAsync(p => p.UserId == CallerUserId, ct);
-        if (profile is null) return this.NotFoundEnvelope("profile_not_found");
+        var attrsJson = await _db.Profiles.AsNoTracking()
+            .Where(p => p.UserId == CallerUserId)
+            .Select(p => p.AttributesJson)
+            .FirstOrDefaultAsync(ct);
+        if (attrsJson is null && !await _db.Profiles.AsNoTracking().AnyAsync(p => p.UserId == CallerUserId, ct))
+            return this.NotFoundEnvelope("profile_not_found");
 
         var tpl = await _prodSource.BuildForCategoryAsync(V3ProfileAttributes.CategoryId, ct)
                    ?? new AttributeTemplate();
 
-        var values = new Dictionary<string, object?>(StringComparer.Ordinal);
-        foreach (var f in tpl.Fields)
-        {
-            var prop = typeof(ProfileEntity).GetProperty(
-                f.Key, BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase);
-            if (prop is null) continue;
-            values[f.Key] = prop.GetValue(profile);
-        }
-
+        var values = ParseFlat(attrsJson);
         var snapshot = DynamicAttributeHelper.BuildSnapshot(tpl, values);
         return this.OkEnvelope("profile.attributes.get", snapshot);
+    }
+
+    private static Dictionary<string, object?> ParseFlat(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json)) return new();
+        try
+        {
+            using var doc = System.Text.Json.JsonDocument.Parse(json);
+            if (doc.RootElement.ValueKind != System.Text.Json.JsonValueKind.Object) return new();
+            var result = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
+            foreach (var prop in doc.RootElement.EnumerateObject())
+            {
+                result[prop.Name] = prop.Value.ValueKind switch
+                {
+                    System.Text.Json.JsonValueKind.String => prop.Value.GetString(),
+                    System.Text.Json.JsonValueKind.Number => prop.Value.TryGetInt64(out var i) ? i : (object)prop.Value.GetDouble(),
+                    System.Text.Json.JsonValueKind.True   => true,
+                    System.Text.Json.JsonValueKind.False  => false,
+                    System.Text.Json.JsonValueKind.Null   => null,
+                    _ => prop.Value.GetRawText(),
+                };
+            }
+            return result;
+        }
+        catch { return new(); }
     }
 }

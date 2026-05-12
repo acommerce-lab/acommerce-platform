@@ -51,7 +51,7 @@ public sealed class AshareV3AuthUserStore : IAuthUserStore
         // الإنتاج، نَتَجاوَز الفِلتَر ونُحييها بَدَل إنشاء مُكَرَّر. كُلّ
         // الجَداوِل المُتَفَرِّعَة في asharedb تُشير إلى الـ UserId الأَصلي.
         var existing = await _db.Profiles.IgnoreQueryFilters()
-            .FirstOrDefaultAsync(p => p.NationalId == subject || p.PhoneNumber == subject, ct);
+            .FirstOrDefaultAsync(p => p.NationalId == subject || p.Phone == subject, ct);
 
         if (existing is not null)
         {
@@ -83,7 +83,7 @@ public sealed class AshareV3AuthUserStore : IAuthUserStore
             Id = Guid.NewGuid(), CreatedAt = DateTime.UtcNow,
             UserId = newUserId,
             NationalId = isNationalId ? subject : null,
-            PhoneNumber = isNationalId ? null : subject,
+            Phone = isNationalId ? null : subject,
             FullName = "عُضو جديد",
             City = "صنعاء",
             IsActive = true, Type = 0,
@@ -209,10 +209,10 @@ public sealed class AshareV3ProfileStore : IProfileStore
         var p = await _db.Profiles.FirstOrDefaultAsync(x => x.UserId == userId, ct);
         if (p is null) return false;
         if (!string.IsNullOrWhiteSpace(u.FullName)) p.FullName = u.FullName!;
-        if (u.Phone     is not null) p.PhoneNumber = u.Phone;
-        if (u.Email     is not null) p.Email       = u.Email;
-        if (u.City      is not null) p.City        = u.City;
-        if (u.AvatarUrl is not null) p.Avatar      = u.AvatarUrl;
+        if (u.Phone     is not null) p.Phone     = u.Phone;
+        if (u.Email     is not null) p.Email     = u.Email;
+        if (u.City      is not null) p.City      = u.City;
+        if (u.AvatarUrl is not null) p.AvatarUrl = u.AvatarUrl;
         p.UpdatedAt = DateTime.UtcNow;
         return true;
     }
@@ -220,12 +220,12 @@ public sealed class AshareV3ProfileStore : IProfileStore
     private static IUserProfile ToView(ProfileEntity p) => new InMemoryUserProfile(
         Id: p.UserId ?? p.Id.ToString(),   // UserId هو الـ identity العامّ — Profile.Id داخِلي فَقَط
         FullName: p.FullName ?? "",
-        Phone: p.PhoneNumber ?? "",
-        PhoneVerified: p.IsVerified,
+        Phone: p.Phone ?? "",
+        PhoneVerified: p.PhoneVerified,
         Email: p.Email ?? "",
-        EmailVerified: false,
+        EmailVerified: p.EmailVerified,
         City: p.City ?? "",
-        AvatarUrl: p.Avatar,
+        AvatarUrl: p.AvatarUrl,
         MemberSince: p.CreatedAt);
 }
 
@@ -297,10 +297,13 @@ public sealed class AshareV3ListingStore : IListingStore
         // فَقَط لَو الـ caller (kit) ضَخّ القِيمَة. تَجاهُل آمِن لَو null.
         var attrsJson = (listing as InMemoryListing)?.AttributesJson;
 
-        // ImagesJson = JSON array مِن data URLs/links. الكيت يُمَرِّر
-        // <c>Images</c> كَ <c>IReadOnlyList&lt;string&gt;</c> ⇒ نَطوي.
+        // ImagesJson / AmenitiesJson = JSON arrays. الكيت يُمَرِّر القائِمَتَين
+        // كَ IReadOnlyList<string> ⇒ نَطوي.
         var imagesJson = listing.Images is { Count: > 0 }
             ? System.Text.Json.JsonSerializer.Serialize(listing.Images)
+            : null;
+        var amenitiesJson = listing.Amenities is { Count: > 0 }
+            ? System.Text.Json.JsonSerializer.Serialize(listing.Amenities)
             : null;
 
         _db.ProductListings.Add(new ProductListingEntity
@@ -311,17 +314,22 @@ public sealed class AshareV3ListingStore : IListingStore
             Title           = listing.Title,
             Description     = listing.Description,
             Price           = listing.Price,
+            TimeUnit        = listing.TimeUnit,
             Condition       = listing.PropertyType,
             City            = listing.City,
             Address         = listing.District,
             Latitude        = listing.Lat,
             Longitude       = listing.Lng,
+            BedroomCount    = listing.BedroomCount,
+            BathroomCount   = listing.BathroomCount,
+            AreaSqm         = listing.AreaSqm,
             Status          = listing.Status,
             ViewCount       = listing.ViewsCount,
             IsActive        = true,
             IsFeatured      = listing.IsVerified,
             FeaturedImage   = listing.ThumbnailUrl,
             ImagesJson      = imagesJson,
+            AmenitiesJson   = amenitiesJson,
             AttributesJson  = attrsJson,
         });
     }
@@ -459,7 +467,7 @@ public sealed class AshareV3ChatStore : IChatStore
 
         var profiles = await _db.Profiles.AsNoTracking()
             .Where(p => allUserIds.Contains(p.UserId!))
-            .Select(p => new { p.UserId, p.FullName, p.BusinessName, p.Avatar })
+            .Select(p => new { p.UserId, p.FullName, p.BusinessName, p.AvatarUrl })
             .ToListAsync(ct);
         var profByUser = profiles
             .Where(p => !string.IsNullOrEmpty(p.UserId))
@@ -486,9 +494,9 @@ public sealed class AshareV3ChatStore : IChatStore
             var otherProf = other    is null ? null : profByUser.GetValueOrDefault(other.UserId);
 
             var ownerName    = meProf?.BusinessName ?? meProf?.FullName;
-            var ownerAvatar  = meProf?.Avatar;
+            var ownerAvatar  = meProf?.AvatarUrl;
             var partnerName  = otherProf?.BusinessName ?? otherProf?.FullName;
-            var partnerAvatar = otherProf?.Avatar;
+            var partnerAvatar = otherProf?.AvatarUrl;
 
             var last = lastByChat.GetValueOrDefault(c.Id);
 

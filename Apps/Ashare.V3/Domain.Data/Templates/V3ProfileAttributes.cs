@@ -7,11 +7,10 @@ namespace Ashare.V3.Data.Templates;
 /// مُخَصَّصَة لِلبروفايل ⇒ نَستَفيد مِن نَفس مَحَرِّك القَوالِب بِلا
 /// جَدول ديناميكي مُنفَصِل.
 ///
-/// <para>الـ <see cref="AttributeDefinition.Code"/> لِكُلّ سِمَة بروفايل
-/// يُطابِق <b>اسم خاصِّيَّة <see cref="Ashare.V3.Domain.ProfileEntity"/> بِالضَّبط</b>
-/// (NationalId, BusinessName, Address, Country, PostalCode, Coordinates).
-/// الـ <c>ProfileAttributesController</c> يَستَخدِم reflection لِنَقل
-/// القِيَم مِن/إلى الأَعمِدَة.</para>
+/// <para>الـ <c>AttributeDefinition.Code</c> لِكُلّ سِمَة بروفايل
+/// يُطابِق مِفتاحَها في <c>Profile.AttributesJson</c>. القِيَم تُحفَظ
+/// كَ JSON snapshot، لا كَأَعمِدَة عَلى Profile (الأَعمِدَة محدودة
+/// بِواجِهَة <c>IUserProfile</c>).</para>
 /// </summary>
 public static class V3ProfileAttributes
 {
@@ -22,18 +21,22 @@ public static class V3ProfileAttributes
     /// </summary>
     public static readonly Guid CategoryId = new("00000000-0000-0000-0000-000000000P01".Replace("P", "F"));
 
-    /// <summary>سِمات يَنشَأها <c>SeedAsync</c> إن لَم تَكُن مَوجودَة في DB.</summary>
+    /// <summary>
+    /// السِمات الديناميكِيَّة <b>فَقَط</b> — حُقول لا تَنتَمي لِواجِهَة
+    /// <c>IUserProfile</c> ولا يَستَخدِمها كود التَطبيق سَطحِيّاً.
+    /// (NationalId, BusinessName, Type, IsActive, IsVerified كُلّها
+    /// أَعمِدَة سَطحِيَّة عَلى Profile مَن أَجل lookup/display — لا
+    /// تُسَجَّل هُنا.)
+    /// </summary>
     public static readonly IReadOnlyList<ProfileAttributeSeed> Defaults = new ProfileAttributeSeed[]
     {
-        new("NationalId",    "رقم الهوية",        "Text"),
-        new("BusinessName",  "اسم النشاط التجاري", "Text"),
         new("Address",       "العنوان",           "Text"),
         new("Country",       "الدولة",            "Text"),
         new("PostalCode",    "الرمز البريدي",     "Text"),
         new("Coordinates",   "الإحداثيات",        "Text"),
     };
 
-    /// <param name="Code">يُطابِق اسم property في ProfileEntity (reflection).</param>
+    /// <param name="Code">مِفتاح في <c>Profile.AttributesJson</c>.</param>
     /// <param name="Name">العَرَبي المَعروض في الواجِهَة.</param>
     /// <param name="Type">enum name (Text/Number/Boolean/SingleSelect/…).</param>
     public sealed record ProfileAttributeSeed(string Code, string Name, string Type);
