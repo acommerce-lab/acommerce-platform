@@ -24,7 +24,17 @@
     <AcCard>
         <ChildContent>
             <div class="acm-details-owner">
-                <span class="acm-details-owner-avatar"><AcIcon Name="user" Size="24" /></span>
+                <span class="acm-details-owner-avatar" style="width:56px; height:56px;">
+                    @if (!string.IsNullOrEmpty(Profiles.Current?.AvatarUrl))
+                    {
+                        <img src="@Profiles.Current.AvatarUrl" alt="avatar"
+                             style="width:100%; height:100%; border-radius:50%; object-fit:cover;" />
+                    }
+                    else
+                    {
+                        <AcIcon Name="user" Size="24" />
+                    }
+                </span>
                 <div class="acm-details-owner-info" style="flex:1;">
                     <h3 style="margin:0;">@(Profiles.Current?.FullName ?? AuthState.FullName ?? L[TemplateStrings.CommonGuest])</h3>
                     <span>@(Profiles.Current?.Phone ?? AuthState.Phone ?? "")</span>

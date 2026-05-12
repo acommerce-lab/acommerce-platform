@@ -71,7 +71,11 @@ public sealed record ListingDraftPayload(
     int     AreaSqm,
     IReadOnlyList<string> Amenities,
     IReadOnlyList<string> Images,
-    string? Thumbnail);
+    string? Thumbnail,
+    /// <summary>سِمات ديناميكِيَّة (مَفاتيح القالَب → قِيَم). يُرسَل
+    /// كَ <c>attributes</c> في الـ body. <c>null</c> إن لَم تَجمَع
+    /// الواجِهَة قَيماً (تَطبيقات بِلا قَوالِب فِئات).</summary>
+    IReadOnlyDictionary<string, object?>? Attributes = null);
 
 /// <summary>فلتر بحث/استكشاف للإعلانات. POCO قابل للـ serialize.</summary>
 public sealed record ListingFilter(

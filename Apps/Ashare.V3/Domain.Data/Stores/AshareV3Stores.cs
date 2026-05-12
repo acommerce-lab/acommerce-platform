@@ -278,7 +278,53 @@ public sealed class AshareV3ListingStore : IListingStore
         return rows.Cast<IListing>().ToList();
     }
 
-    public Task AddNoSaveAsync(IListing listing, CancellationToken ct) => Task.CompletedTask;
+    public async Task AddNoSaveAsync(IListing listing, CancellationToken ct)
+    {
+        // الكيت يُسَلِّم InMemoryListing — نُحَوِّله إلى ProductListingEntity.
+        // OwnerId = AspNetUsers.Id (Profile.UserId). ProductListing.VendorId
+        // يُريد Profile.Id (Guid داخِلي) ⇒ نَحُلّ القَوس.
+        var ownerUserId = listing.OwnerId;
+        var vendorProfileId = await _db.Profiles.AsNoTracking()
+            .Where(p => p.UserId == ownerUserId)
+            .Select(p => (Guid?)p.Id)
+            .FirstOrDefaultAsync(ct);
+        if (vendorProfileId is null)
+            throw new InvalidOperationException(
+                $"Cannot create listing: no Profile found for UserId={ownerUserId}");
+
+        var newId = Guid.TryParse(listing.Id, out var lid) ? lid : Guid.NewGuid();
+        // الـ AttributesJson خام كَ string عَلى InMemoryListing — مُتَوَفِّر
+        // فَقَط لَو الـ caller (kit) ضَخّ القِيمَة. تَجاهُل آمِن لَو null.
+        var attrsJson = (listing as InMemoryListing)?.AttributesJson;
+
+        // ImagesJson = JSON array مِن data URLs/links. الكيت يُمَرِّر
+        // <c>Images</c> كَ <c>IReadOnlyList&lt;string&gt;</c> ⇒ نَطوي.
+        var imagesJson = listing.Images is { Count: > 0 }
+            ? System.Text.Json.JsonSerializer.Serialize(listing.Images)
+            : null;
+
+        _db.ProductListings.Add(new ProductListingEntity
+        {
+            Id              = newId,
+            CreatedAt       = DateTime.UtcNow,
+            VendorId        = vendorProfileId.Value,
+            Title           = listing.Title,
+            Description     = listing.Description,
+            Price           = listing.Price,
+            Condition       = listing.PropertyType,
+            City            = listing.City,
+            Address         = listing.District,
+            Latitude        = listing.Lat,
+            Longitude       = listing.Lng,
+            Status          = listing.Status,
+            ViewCount       = listing.ViewsCount,
+            IsActive        = true,
+            IsFeatured      = listing.IsVerified,
+            FeaturedImage   = listing.ThumbnailUrl,
+            ImagesJson      = imagesJson,
+            AttributesJson  = attrsJson,
+        });
+    }
 
     public async Task<bool> UpdateNoSaveAsync(string id, ListingUpdate p, CancellationToken ct)
     {
@@ -395,12 +441,96 @@ public sealed class AshareV3ChatStore : IChatStore
 
     public async Task<IReadOnlyList<IChatConversation>> ListForUserAsync(string userId, CancellationToken ct)
     {
+        // الواجِهَة (Chats.razor → ConvDto) تَتَوَقَّع شَكلاً غَنيّاً —
+        // OwnerName/PartnerName/Avatars/LastMessage/LastAt/UnreadCount. الـ
+        // kit يُسَلسِل runtime type عَبر .Cast<object>() ⇒ نُرجِع
+        // ConversationView بِالحُقول كامِلَة.
         var chatIds = await _db.ChatParticipants.AsNoTracking()
             .Where(p => p.UserId == userId).Select(p => p.ChatId).ToListAsync(ct);
-        var chats = await _db.Chats.Include(c => c.Participants)
+        if (chatIds.Count == 0) return Array.Empty<IChatConversation>();
+
+        var chats = await _db.Chats.AsNoTracking()
             .Where(c => chatIds.Contains(c.Id))
             .OrderByDescending(c => c.UpdatedAt ?? c.CreatedAt).ToListAsync(ct);
-        return chats.Cast<IChatConversation>().ToList();
+
+        var parts = await _db.ChatParticipants.AsNoTracking()
+            .Where(p => chatIds.Contains(p.ChatId)).ToListAsync(ct);
+        var allUserIds = parts.Select(p => p.UserId).Distinct().ToList();
+
+        var profiles = await _db.Profiles.AsNoTracking()
+            .Where(p => allUserIds.Contains(p.UserId!))
+            .Select(p => new { p.UserId, p.FullName, p.BusinessName, p.Avatar })
+            .ToListAsync(ct);
+        var profByUser = profiles
+            .Where(p => !string.IsNullOrEmpty(p.UserId))
+            .GroupBy(p => p.UserId!).ToDictionary(g => g.Key, g => g.First());
+
+        // آخِر رِسالَة لِكُلّ chat. SQLite ⇒ نَجلب مَجموعَة الـ ChatIds دَفعَة
+        // واحِدَة ثُمّ نَحسب يَدَوِيّاً (تَجَنُّب window functions غَير المَدعومَة).
+        var msgs = await _db.Messages.AsNoTracking()
+            .Where(m => chatIds.Contains(m.ChatId))
+            .Select(m => new { m.ChatId, m.Content, m.CreatedAt })
+            .ToListAsync(ct);
+        var lastByChat = msgs.GroupBy(m => m.ChatId)
+            .ToDictionary(g => g.Key, g => g.OrderByDescending(x => x.CreatedAt).First());
+
+        var partsByChat = parts.GroupBy(p => p.ChatId).ToDictionary(g => g.Key, g => g.ToList());
+
+        var views = new List<IChatConversation>(chats.Count);
+        foreach (var c in chats)
+        {
+            var cps = partsByChat.GetValueOrDefault(c.Id) ?? new();
+            var meSide = cps.FirstOrDefault(p => p.UserId == userId);
+            var other  = cps.FirstOrDefault(p => p.UserId != userId);
+            var meProf    = meSide   is null ? null : profByUser.GetValueOrDefault(meSide.UserId);
+            var otherProf = other    is null ? null : profByUser.GetValueOrDefault(other.UserId);
+
+            var ownerName    = meProf?.BusinessName ?? meProf?.FullName;
+            var ownerAvatar  = meProf?.Avatar;
+            var partnerName  = otherProf?.BusinessName ?? otherProf?.FullName;
+            var partnerAvatar = otherProf?.Avatar;
+
+            var last = lastByChat.GetValueOrDefault(c.Id);
+
+            views.Add(new ConversationView(
+                Id:            c.Id.ToString(),
+                ParticipantIds: cps.Select(p => p.UserId).Where(s => !string.IsNullOrEmpty(s)).ToList()!,
+                OwnerId:        meSide?.UserId,
+                OwnerName:      ownerName,
+                OwnerAvatar:    ownerAvatar,
+                PartnerId:      other?.UserId,
+                PartnerName:    partnerName,
+                PartnerAvatar:  partnerAvatar,
+                Subject:        c.Title,
+                ListingId:      null,
+                LastAt:         last?.CreatedAt ?? c.UpdatedAt ?? c.CreatedAt,
+                UnreadCount:    0,
+                LastMessage:    last?.Content));
+        }
+        return views;
+    }
+
+    /// <summary>
+    /// شَكل عَرض المُحادَثَة الَّذي تَستَهلِكه Chats.razor (Marketplace).
+    /// يَنفُذ <see cref="IChatConversation"/> بِالحَدّ الأَدنى ولكِنّ كُلّ
+    /// الحُقول الإضافِيَّة public ⇒ تُسَلسَل في JSON عَبر runtime type.
+    /// </summary>
+    public sealed record ConversationView(
+        string Id,
+        IReadOnlyList<string> ParticipantIds,
+        string? OwnerId,
+        string? OwnerName,
+        string? OwnerAvatar,
+        string? PartnerId,
+        string? PartnerName,
+        string? PartnerAvatar,
+        string? Subject,
+        string? ListingId,
+        DateTime LastAt,
+        int UnreadCount,
+        string? LastMessage) : IChatConversation
+    {
+        IReadOnlyList<string> IChatConversation.ParticipantPartyIds => ParticipantIds;
     }
 }
 

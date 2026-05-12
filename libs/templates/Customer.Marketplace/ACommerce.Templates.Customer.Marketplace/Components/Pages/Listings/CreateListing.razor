@@ -1,5 +1,8 @@
 @page "/create-listing"
 @attribute [Authorize]
+@using System.Net.Http.Json
+@using ACommerce.OperationEngine.Wire
+@using ACommerce.SharedKernel.Domain.DynamicAttributes
 @inject ITemplateEngine Engine
 @inject IUiPreferences Prefs
 @inject IListingDraft Draft
@@ -8,6 +11,7 @@
 @inject IListingPublishGate PublishGate
 @inject IListingCreatePrecheck Precheck
 @inject NavigationManager Nav
+@inject IHttpClientFactory HttpFactory
 @inject IJSRuntime JS
 @inject L L
 @inject INumeralNormalizer Numerals
@@ -76,7 +80,7 @@
                     }
                 </div>
                 <AcButton Variant="primary" Class="ac-btn-block" Text="@(L[TemplateStrings.CommonNext])"
-                          OnClick="@(() => _step = 2)"
+                          OnClick="@GoToStep2"
                           Disabled="@(string.IsNullOrEmpty(Draft.CategoryId))" />
             </ChildContent>
         </AcCard>
@@ -116,6 +120,17 @@
                     <AcInput Type="number" Value="@Draft.BedroomCount.ToString()"
                              ValueChanged="@(v => { Draft.BedroomCount = int.TryParse(Numerals.ToLatin(v), out var n) ? n : 0; Draft.NotifyChanged(); })" />
                 </AcField>
+
+                @* السِمات الديناميكِيَّة لِهذه الفِئَة. تُجلَب مَرَّة واحِدَة
+                   بَعد اختيار الفِئَة (مَفتاحها هو slug). فِئَة بِلا
+                   AttributeDefinitions/Mappings ⇒ القِسم لا يَظهَر. *@
+                @if (_attrTemplate is { Fields.Count: > 0 })
+                {
+                    <AcAttrEditor Template="_attrTemplate"
+                                  Values="_attrValues"
+                                  ValuesChanged="@(v => _attrValues = v)"
+                                  IsArabic="true" />
+                }
 
                 <AcField Label="@(L[TemplateStrings.ListingAmenities])">
                     <div class="acs-amenity-chips">
@@ -254,6 +269,11 @@
     private List<PickedImage> _images = new();
     private double _lat = 24.7136;
     private double _lng = 46.6753;
+    // قالَب سِمات ديناميكِيَّة + قِيَمها لِلفِئَة المُختارَة. يُعاد تَحميله
+    // عِندَ تَغيير الفِئَة. الـ Key = اسم property/code في backend.
+    private AttributeTemplate? _attrTemplate;
+    private Dictionary<string, object?> _attrValues = new();
+    private string? _attrLoadedForCategory;
 
     private IReadOnlyList<AcMapSim.MapPin> MapPins =>
         new[] { new AcMapSim.MapPin("loc", L[TemplateStrings.CreatelistingLocationPinLabel], _lat, _lng) };
@@ -276,6 +296,38 @@
         // Discovery store يَجلب categories + amenities + cities بِالتَوازي.
         await Discovery.LoadAsync();
         await InvokeAsync(StateHasChanged);
+    }
+
+    /// <summary>
+    /// يَجلب قالَب السِمات لِلفِئَة المُختارَة. يُستَدعى مِن SetterOf
+    /// step ⇒ step 2 (Next مِن خِطوَة الفِئَة) لِيَكون مَوجوداً قَبل عَرض
+    /// القِسم. <c>_attrLoadedForCategory</c> يَمنَع إعادَة الجَلب لِنَفس
+    /// الفِئَة. الفَشَل ⇒ القِسم يَختَفي بِلا أَخطاء.
+    /// </summary>
+    private async Task EnsureAttrTemplateAsync()
+    {
+        var slug = Draft.CategoryId;
+        if (string.IsNullOrEmpty(slug) || slug == _attrLoadedForCategory) return;
+        _attrLoadedForCategory = slug;
+        _attrTemplate = null;
+        _attrValues = new();
+        try
+        {
+            var http = HttpFactory.CreateClient("ejar");
+            var env = await http.GetFromJsonAsync<OperationEnvelope<AttributeTemplate>>(
+                $"categories/{Uri.EscapeDataString(slug)}/attribute-template");
+            _attrTemplate = env?.Data is { Fields.Count: > 0 } t ? t : null;
+        }
+        catch
+        {
+            _attrTemplate = null;
+        }
+    }
+
+    private async Task GoToStep2()
+    {
+        await EnsureAttrTemplateAsync();
+        _step = 2;
     }
 
     private void ToggleAmenity(string key)
@@ -364,7 +416,8 @@
                 AreaSqm:       0,
                 Amenities:     Draft.Amenities.ToList(),
                 Images:        _images.Select(i => i.DataUrl).ToList(),
-                Thumbnail:     _images.Count > 0 ? _images[0].ThumbUrl : null);
+                Thumbnail:     _images.Count > 0 ? _images[0].ThumbUrl : null,
+                Attributes:    _attrValues.Count > 0 ? _attrValues : null);
 
             using var _scope = auth.Scope;   // null-safe: لا scope ⇒ لا تَنظيف
             var created = await Listings.CreateAsync(payload);

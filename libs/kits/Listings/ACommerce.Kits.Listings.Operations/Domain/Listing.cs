@@ -70,4 +70,13 @@ public sealed record InMemoryListing(
     IReadOnlyList<string> Amenities,
     DateTime CreatedAt,
     DateTime? UpdatedAt = null
-) : IListing;
+) : IListing
+{
+    /// <summary>
+    /// JSON خام لِسِمات ديناميكِيَّة بِشَكل <c>{key: value}</c>. تَطبيقات
+    /// تَدعَم القَوالِب الديناميكِيَّة تَختَزِنه عَلى عَمود
+    /// <c>AttributesJson</c>. الـ kit يَكتَفي بِالتَمرير ⇒ لا inspection
+    /// مِنه عَلى المُحتَوى.
+    /// </summary>
+    public string? AttributesJson { get; init; }
+}

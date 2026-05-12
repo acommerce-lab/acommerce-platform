@@ -42,13 +42,13 @@ public sealed class AshareV3ListingDetailEnricher : IListingDetailEnricher
     public async Task<object> EnrichAsync(IListing listing, CancellationToken ct)
     {
         if (!Guid.TryParse(listing.Id, out var listingId))
-            return BuildFlat(listing, images: null, attributes: null, ownerName: null, memberSince: null);
+            return BuildFlat(listing, images: null, attributes: null, ownerName: null, memberSince: null, ownerAvatar: null);
 
         var entity = await _db.ProductListings
             .AsNoTracking().IgnoreQueryFilters()
             .FirstOrDefaultAsync(x => x.Id == listingId, ct);
         if (entity is null)
-            return BuildFlat(listing, images: null, attributes: null, ownerName: null, memberSince: null);
+            return BuildFlat(listing, images: null, attributes: null, ownerName: null, memberSince: null, ownerAvatar: null);
 
         var images     = ParseImages(entity.ImagesJson);
         var attributes = await BuildAttributesAsync(entity, ct);
@@ -56,21 +56,23 @@ public sealed class AshareV3ListingDetailEnricher : IListingDetailEnricher
         // Owner profile — اختياري.
         string? ownerName = null;
         string? memberSince = null;
+        string? ownerAvatar = null;
         try
         {
             var owner = await _db.Profiles.AsNoTracking()
                 .Where(p => p.Id == entity.VendorId)
-                .Select(p => new { p.FullName, p.BusinessName, p.CreatedAt })
+                .Select(p => new { p.FullName, p.BusinessName, p.CreatedAt, p.Avatar })
                 .FirstOrDefaultAsync(ct);
             if (owner is not null)
             {
                 ownerName   = owner.BusinessName ?? owner.FullName;
                 memberSince = owner.CreatedAt.ToString("yyyy");
+                ownerAvatar = owner.Avatar;
             }
         }
         catch { /* فَقد Profile لا يَكسِر التَفاصيل. */ }
 
-        return BuildFlat(listing, images, attributes, ownerName, memberSince);
+        return BuildFlat(listing, images, attributes, ownerName, memberSince, ownerAvatar);
     }
 
     private async Task<List<DynamicAttribute>> BuildAttributesAsync(
@@ -179,7 +181,8 @@ public sealed class AshareV3ListingDetailEnricher : IListingDetailEnricher
         List<string>? images,
         List<DynamicAttribute>? attributes,
         string? ownerName,
-        string? memberSince) => new
+        string? memberSince,
+        string? ownerAvatar) => new
     {
         id           = l.Id,
         title        = l.Title,
@@ -195,7 +198,7 @@ public sealed class AshareV3ListingDetailEnricher : IListingDetailEnricher
         lng          = l.Lng,
         amenities    = Array.Empty<object>(),
         ownerId      = l.OwnerId,
-        owner        = ownerName is null ? null : new { name = ownerName, memberSince },
+        owner        = ownerName is null ? null : new { name = ownerName, memberSince, avatarUrl = ownerAvatar },
         bedroomCount = l.BedroomCount,
         bathroomCount= l.BathroomCount,
         areaSqm      = l.AreaSqm,

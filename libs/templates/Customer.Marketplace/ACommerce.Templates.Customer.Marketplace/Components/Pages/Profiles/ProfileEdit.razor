@@ -1,14 +1,9 @@
 @page "/profile/edit"
 @attribute [Authorize]
-@using System.Net.Http.Json
-@using System.Text.Json
 @using ACommerce.Kits.Profiles.Operations
-@using ACommerce.OperationEngine.Wire
-@using ACommerce.SharedKernel.Domain.DynamicAttributes
 @inject IProfileStore Profiles
 @inject IDiscoveryStore Discovery
 @inject NavigationManager Nav
-@inject IHttpClientFactory HttpFactory
 @inject L L
 @inject INumeralNormalizer Numerals
 
@@ -98,21 +93,10 @@
             </ChildContent>
         </AcCard>
 
-        @* سِمات البروفايل الإضافِيَّة. التَّطبيق يُسَجِّل
-           /profile/attribute-template (قالَب) + /profile/me/attributes
-           (قِيَم). تَطبيقات لَيس لَدَيها endpoint يَختَفي القِسم. كُلّ
-           التَّسميات تَأتي مِن backend (لا hardcoded). *@
-        @if (_attrTemplate is { Fields.Count: > 0 })
-        {
-            <AcCard>
-                <ChildContent>
-                    <AcAttrEditor Template="_attrTemplate"
-                                  Values="_attrValues"
-                                  ValuesChanged="@(v => _attrValues = v)"
-                                  IsArabic="true" />
-                </ChildContent>
-            </AcCard>
-        }
+        @* سِمات البروفايل الإضافِيَّة (NationalId/BusinessName/Address/…)
+           تَأتي مِن جَدول السِمات المَركَزي ⇒ <b>لِلعَرض فَقَط</b> في
+           /me، لا تُحَرَّر هُنا. التَّعديل يَتِم خارِج الواجِهَة الزَبونِيَّة
+           (admin/Nafath) لِيَبقى الجَدول المَركَزي مَصدَر المَيتاداتا. *@
 
         @if (!string.IsNullOrEmpty(_alert))
         {
@@ -133,16 +117,13 @@
     private string? _alert;
     private string _alertVariant = "success";
     private string? _avatarDataUrl;
-    private AttributeTemplate? _attrTemplate;
-    private Dictionary<string, object?> _attrValues = new();
 
     protected override async Task OnAfterRenderAsync(bool first)
     {
         if (!first) return;
         await System.Threading.Tasks.Task.WhenAll(
             Profiles.LoadAsync(),
-            Discovery.LoadCitiesAsync(),
-            LoadAttrTemplateAndValuesAsync());
+            Discovery.LoadCitiesAsync());
 
         var p = Profiles.Current;
         _data = p is not null
@@ -152,33 +133,6 @@
         _avatarDataUrl = _data.AvatarUrl;
         _loading = false;
         await InvokeAsync(StateHasChanged);
-    }
-
-    /// <summary>
-    /// يَجلِب قالَب + قِيَم سِمات البروفايل. الفَشَل يَترُك القِسم
-    /// مَخفِيّاً (لِتَطبيقات لا تَدعَم endpoints).
-    /// </summary>
-    private async Task LoadAttrTemplateAndValuesAsync()
-    {
-        try
-        {
-            var http = HttpFactory.CreateClient("ejar");
-            var tplEnv = await http.GetFromJsonAsync<OperationEnvelope<AttributeTemplate>>(
-                "profile/attribute-template");
-            _attrTemplate = tplEnv?.Data;
-            if (_attrTemplate is null || _attrTemplate.Fields.Count == 0) return;
-
-            var valEnv = await http.GetFromJsonAsync<OperationEnvelope<List<DynamicAttribute>>>(
-                "profile/me/attributes");
-            var snapshot = valEnv?.Data ?? new();
-            _attrValues = snapshot
-                .Where(a => a.Value != null)
-                .ToDictionary(a => a.Key, a => a.Value);
-        }
-        catch
-        {
-            _attrTemplate = null;
-        }
     }
 
     private async Task OnAvatarPicked(InputFileChangeEventArgs e)
@@ -222,19 +176,6 @@
             // عَبر <c>with</c> clone حَفاظاً عَلى wire shape مَطلوب الباك.
             var next = _data with { AvatarUrl = _avatarDataUrl ?? _data.AvatarUrl };
             await Profiles.UpdateAsync(next);
-
-            // اِحفَظ السِمات الديناميكِيَّة إن كان قالَب مُسَجَّل. الفَشَل
-            // هُنا لا يُلغي حِفظ الحُقول الأَساسِيَّة الَّتي تَمَّت قَبلَه.
-            if (_attrTemplate is { Fields.Count: > 0 })
-            {
-                try
-                {
-                    var http = HttpFactory.CreateClient("ejar");
-                    await http.PostAsJsonAsync("profile/me/attributes",
-                        new { values = _attrValues });
-                }
-                catch { /* تَجاهُل — رِسالَة النَجاح أَدناه لا تَزال تَنطَبِق عَلى الجَوهَري. */ }
-            }
 
             _alert = L[TemplateStrings.ProfileEditSaved]; _alertVariant = "success";
             await Task.Delay(500);

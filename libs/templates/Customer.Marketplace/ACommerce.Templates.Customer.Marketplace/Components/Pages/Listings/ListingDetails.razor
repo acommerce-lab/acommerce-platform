@@ -103,7 +103,17 @@
                 <ChildContent>
                     <h3 style="margin-top:0;">@(L[TemplateStrings.ListingOwner])</h3>
                     <div class="acm-details-owner">
-                        <span class="acm-details-owner-avatar"><AcIcon Name="user" Size="20" /></span>
+                        <span class="acm-details-owner-avatar" style="width:40px; height:40px;">
+                            @if (!string.IsNullOrEmpty(_listing.Owner.AvatarUrl))
+                            {
+                                <img src="@_listing.Owner.AvatarUrl" alt="avatar"
+                                     style="width:100%; height:100%; border-radius:50%; object-fit:cover;" />
+                            }
+                            else
+                            {
+                                <AcIcon Name="user" Size="20" />
+                            }
+                        </span>
                         <div class="acm-details-owner-info">
                             <strong>@_listing.Owner.Name</strong>
                             @if (!string.IsNullOrEmpty(_listing.Owner.MemberSince))
@@ -327,7 +337,7 @@
     public void Dispose() => Favorites.Changed -= OnChange;
 
     private sealed record AmenityDto(string Key, string Label);
-    private sealed record OwnerDto(string Name, string? MemberSince);
+    private sealed record OwnerDto(string Name, string? MemberSince, string? AvatarUrl = null);
     private sealed record ListingDetailDto(
         string Id, string Title, string Description, decimal Price,
         string TimeUnit, string TimeUnitLabel, string PropertyType, string PropertyTypeLabel,

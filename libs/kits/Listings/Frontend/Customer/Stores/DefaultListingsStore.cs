@@ -67,7 +67,8 @@ public sealed class DefaultListingsStore : IListingsStore
             areaSqm       = payload.AreaSqm,
             amenities     = payload.Amenities,
             images        = payload.Images,
-            thumbnail     = payload.Thumbnail
+            thumbnail     = payload.Thumbnail,
+            attributes    = payload.Attributes,
         };
 
         var env = await _engine.ExecuteAsync<InMemoryListing>(
