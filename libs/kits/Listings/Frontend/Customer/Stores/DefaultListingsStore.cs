@@ -81,6 +81,39 @@ public sealed class DefaultListingsStore : IListingsStore
         return env.Data;
     }
 
+    public async Task<IListing?> UpdateAsync(string id, ListingDraftPayload payload, CancellationToken ct = default)
+    {
+        var body = new
+        {
+            title         = payload.Title,
+            description   = payload.Description,
+            price         = payload.Price,
+            timeUnit      = payload.TimeUnit,
+            propertyType  = payload.PropertyType,
+            city          = payload.City,
+            district      = payload.District,
+            lat           = payload.Lat,
+            lng           = payload.Lng,
+            bedroomCount  = payload.BedroomCount,
+            bathroomCount = payload.BathroomCount,
+            areaSqm       = payload.AreaSqm,
+            amenities     = payload.Amenities,
+            images        = payload.Images,
+            thumbnail     = payload.Thumbnail,
+            attributes    = payload.Attributes,
+        };
+
+        var env = await _engine.ExecuteAsync<InMemoryListing>(
+            ListingsOps.Edit(id, payload), payload: body, ct: ct);
+        if (env.Operation.Status != "Success" || env.Data is null) return null;
+
+        var idx = _mine.FindIndex(l => l.Id == id);
+        if (idx >= 0)
+            _mine = _mine.Take(idx).Append((IListing)env.Data).Concat(_mine.Skip(idx + 1)).ToList();
+        Changed?.Invoke();
+        return env.Data;
+    }
+
     public async Task ToggleStatusAsync(string id, CancellationToken ct = default)
     {
         var env = await _engine.ExecuteAsync<ToggleResultDto>(ListingsOps.ToggleStatus(id), ct: ct);

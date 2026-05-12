@@ -339,10 +339,31 @@ public sealed class AshareV3ListingStore : IListingStore
         if (!Guid.TryParse(id, out var gid)) return false;
         var l = await _db.ProductListings.FirstOrDefaultAsync(x => x.Id == gid, ct);
         if (l is null) return false;
-        if (p.Title       is not null) l.Title       = p.Title;
-        if (p.Description is not null) l.Description = p.Description;
-        if (p.Price.HasValue)          l.Price       = p.Price.Value;
-        if (p.City        is not null) l.City        = p.City;
+
+        // كُلّ حَقل null = "لا تَلمَسه" (PATCH semantics).
+        if (p.Title         is not null) l.Title         = p.Title;
+        if (p.Description   is not null) l.Description   = p.Description;
+        if (p.Price.HasValue)            l.Price         = p.Price.Value;
+        if (p.TimeUnit      is not null) l.TimeUnit      = p.TimeUnit;
+        if (p.PropertyType  is not null) l.Condition     = p.PropertyType;
+        if (p.City          is not null) l.City          = p.City;
+        if (p.District      is not null) l.Address       = p.District;
+        if (p.Lat.HasValue)              l.Latitude      = p.Lat.Value;
+        if (p.Lng.HasValue)              l.Longitude     = p.Lng.Value;
+        if (p.BedroomCount.HasValue)     l.BedroomCount  = p.BedroomCount.Value;
+        if (p.BathroomCount.HasValue)    l.BathroomCount = p.BathroomCount.Value;
+        if (p.AreaSqm.HasValue)          l.AreaSqm       = p.AreaSqm.Value;
+        if (p.Amenities is not null)
+            l.AmenitiesJson = p.Amenities.Count > 0
+                ? System.Text.Json.JsonSerializer.Serialize(p.Amenities)
+                : null;
+        if (p.Images is not null)
+            l.ImagesJson = p.Images.Count > 0
+                ? System.Text.Json.JsonSerializer.Serialize(p.Images)
+                : null;
+        if (p.Thumbnail     is not null) l.FeaturedImage  = p.Thumbnail;
+        if (p.AttributesJson is not null) l.AttributesJson = p.AttributesJson;
+
         l.UpdatedAt = DateTime.UtcNow;
         return true;
     }

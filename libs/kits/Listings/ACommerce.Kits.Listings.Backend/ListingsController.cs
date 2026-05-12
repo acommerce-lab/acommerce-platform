@@ -209,7 +209,9 @@ public sealed class ListingsController : ControllerBase
         int? BedroomCount, int? BathroomCount, int? AreaSqm,
         IReadOnlyList<string>? Amenities,
         IReadOnlyList<string>? Images,
-        string? Thumbnail);
+        string? Thumbnail,
+        /// <summary>سِمات ديناميكِيَّة (نَفس صياغَة CreateBody).</summary>
+        Dictionary<string, System.Text.Json.JsonElement>? Attributes);
 
     [HttpPatch("/my-listings/{id}")]
     [Authorize(Policy = ListingsKitPolicies.AuthenticatedWriter)]
@@ -219,11 +221,15 @@ public sealed class ListingsController : ControllerBase
         if (!await _store.IsOwnerAsync(id, CallerId, ct))
             return this.ForbiddenEnvelope("not_owner");
 
+        var attrsJson = req.Attributes is { Count: > 0 }
+            ? System.Text.Json.JsonSerializer.Serialize(req.Attributes)
+            : null;
+
         var patch = new ListingUpdate(
             req.Title, req.Description, req.Price, req.TimeUnit, req.PropertyType,
             req.City, req.District, req.Lat, req.Lng,
             req.BedroomCount, req.BathroomCount, req.AreaSqm,
-            req.Amenities, req.Images, req.Thumbnail);
+            req.Amenities, req.Images, req.Thumbnail, attrsJson);
 
         var ok = false;
         var op = Entry.Create(ListingOps.Edit)

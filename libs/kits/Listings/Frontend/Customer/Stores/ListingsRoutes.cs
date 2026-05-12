@@ -32,6 +32,7 @@ internal sealed class ListingsRoutesRegistrar : IRoutesRegistrar
         routes.Map("listings.get",       HttpMethod.Get,    "/listings/{id}");
         routes.Map("listings.list_mine", HttpMethod.Get,    "/my-listings");
         routes.Map("listings.create",    HttpMethod.Post,   "/my-listings");
+        routes.Map("listings.edit",      HttpMethod.Patch,  "/my-listings/{id}");
         routes.Map("listings.toggle",    HttpMethod.Post,   "/my-listings/{id}/toggle");
         routes.Map("listings.delete",    HttpMethod.Delete, "/my-listings/{id}");
     }

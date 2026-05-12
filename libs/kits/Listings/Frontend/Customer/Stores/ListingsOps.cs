@@ -46,6 +46,17 @@ public static class ListingsOps
         .Tag("propertyType", p.PropertyType ?? "")
         .Build();
 
+    /// <summary>قَيد تَعديل إعلان قائِم. السيرفر يَلتَقِطه عَبر PATCH /my-listings/{id}.</summary>
+    public static Operation Edit(string id, ListingDraftPayload p) => Entry
+        .Create("listings.edit")
+        .From("User:current",  1, ("role", "owner"))
+        .To($"Listing:{id}",   1, ("role", "edited"))
+        .Tag("id",           id)
+        .Tag("title",        p.Title)
+        .Tag("city",         p.City)
+        .Tag("propertyType", p.PropertyType ?? "")
+        .Build();
+
     /// <summary>قَيد تَبديل حالة إعلان (نَشِط ↔ مُتَوَقِّف).</summary>
     public static Operation ToggleStatus(string id) => Entry
         .Create("listings.toggle")

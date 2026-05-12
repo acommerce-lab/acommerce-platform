@@ -47,6 +47,7 @@
                             </div>
                             <div style="display:flex; gap:8px; margin-top:12px; flex-wrap:wrap;">
                                 <AcButton Variant="outline-primary" Text="@(L[TemplateStrings.NotificationsKindPromo])" OnClick="@(() => Open(lid))" />
+                                <AcButton Variant="ghost" Text="@(L[TemplateStrings.CommonEdit])" OnClick="@(() => Edit(lid))" />
                                 <AcButton Variant="ghost" Text="@(active ? L[TemplateStrings.CommonPause] : L[TemplateStrings.CommonPublish])" OnClick="@(() => Toggle(lid))" />
                             </div>
                         </ChildContent>
@@ -71,6 +72,7 @@
     private void SetFilter(int s) { _filter = s; StateHasChanged(); }
     private void GoCreate() => Nav.NavigateTo("/create-listing");
     private void Open(string id) => Nav.NavigateTo($"/listings/{id}");
+    private void Edit(string id) => Nav.NavigateTo($"/listings/{id}/edit");
 
     private async Task Toggle(string id) => await Listings.ToggleStatusAsync(id);
 
