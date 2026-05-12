@@ -7,20 +7,17 @@ namespace Ashare.V3.Data.Templates;
 /// <summary>
 /// يَبني <see cref="AttributeTemplate"/> لِفِئَة مُعَيَّنَة بِالقِراءَة مِن
 /// جَداوِل asharedb المُنَظَّمَة (<c>CategoryAttributeMappings +
-/// AttributeDefinitions + AttributeValues</c>). هذا هو المَصدَر الكانوني
-/// عِندَ تَوَفُّر بَيانات إنتاج. لَو الجَداوِل فارِغَة (dev بِلا clone)،
-/// يُعيد <c>null</c> ⇒ المُستَهلِك يَتَدَرَّج لِـ <c>CategoryAttributeTemplates</c>
-/// (DB-served code seed) ثُمّ <see cref="V3CategoryTemplates"/>.
+/// AttributeDefinitions + AttributeValues</c>).
 ///
-/// <para>تَحويل الأَنواع (<c>AttributeDefinition.Type</c> → string في
-/// <see cref="AttributeFieldDefinition.Type"/>):</para>
+/// <para>تَحويل أَنواع <c>AttributeDefinition.Type</c> (string في
+/// asharedb بِـ <c>HasConversion&lt;string&gt;</c> عَلى enum AttributeType):</para>
 /// <list type="bullet">
-///   <item>1 SingleSelect → <c>select</c></item>
-///   <item>2 MultiSelect → <c>multi</c></item>
-///   <item>3 Number → <c>number</c></item>
-///   <item>4 Text / 5 LongText / 9 File / 10 Color → <c>text</c></item>
-///   <item>6 Boolean → <c>bool</c></item>
-///   <item>7 Date / 8 DateTime → <c>date</c></item>
+///   <item>SingleSelect → <c>select</c></item>
+///   <item>MultiSelect → <c>multi</c></item>
+///   <item>Number → <c>number</c></item>
+///   <item>Text / LongText / File / Color → <c>text</c></item>
+///   <item>Boolean → <c>bool</c></item>
+///   <item>Date / DateTime → <c>date</c></item>
 /// </list>
 /// </summary>
 public sealed class ProductionAttributeTemplateSource
@@ -28,10 +25,6 @@ public sealed class ProductionAttributeTemplateSource
     private readonly AshareV3DbContext _db;
     public ProductionAttributeTemplateSource(AshareV3DbContext db) => _db = db;
 
-    /// <summary>
-    /// يَبني template لِفِئَة بِواسِطَة Guid. <c>null</c> ⇒ لا mappings
-    /// (مَعنى الـ caller أَن يَتَدَرَّج لِمَصدَر آخَر).
-    /// </summary>
     public async Task<AttributeTemplate?> BuildForCategoryAsync(Guid categoryId, CancellationToken ct)
     {
         var mappings = await _db.CategoryAttributeMappings.AsNoTracking()
@@ -45,9 +38,8 @@ public sealed class ProductionAttributeTemplateSource
             .Where(d => defIds.Contains(d.Id))
             .ToDictionaryAsync(d => d.Id, ct);
 
-        // اِجلِب كُلّ الـ values لِلـ defs الَّتي تَحتاجها (select/multi).
         var selectDefIds = defs.Values
-            .Where(d => d.Type == 1 || d.Type == 2)
+            .Where(d => IsSelectLike(d.Type))
             .Select(d => d.Id).ToList();
         var allValues = selectDefIds.Count == 0
             ? new List<AttributeValueEntity>()
@@ -66,32 +58,36 @@ public sealed class ProductionAttributeTemplateSource
             fields.Add(new AttributeFieldDefinition
             {
                 Key      = string.IsNullOrEmpty(d.Code) ? d.Id.ToString("N") : d.Code,
-                Label    = d.Name,                 // الإنتاج يَحفَظ name واحِد فَقَط (عَرَبي)
-                LabelAr  = d.Name,                 // نُسَجِّله في كِلا الحَقلَين لِتَتَوافَق
+                Label    = d.Name,
+                LabelAr  = d.Name,
                 Type     = MapType(d.Type),
                 Required = m.IsRequiredOverride ?? d.IsRequired,
                 ShowInCard = d.IsVisibleInList,
                 SortOrder  = m.SortOrder != 0 ? m.SortOrder : ++orderBase,
-                Default    = d.Default(),
+                Default    = string.IsNullOrEmpty(d.DefaultValue) ? null : d.DefaultValue,
                 Options    = MapOptions(d.Type, valuesByDef.GetValueOrDefault(d.Id)),
             });
         }
         return new AttributeTemplate { Fields = fields };
     }
 
-    private static string MapType(int t) => t switch
+    private static bool IsSelectLike(string t) =>
+        string.Equals(t, "SingleSelect", StringComparison.OrdinalIgnoreCase)
+        || string.Equals(t, "MultiSelect", StringComparison.OrdinalIgnoreCase);
+
+    private static string MapType(string t) => t switch
     {
-        1 => "select",
-        2 => "multi",
-        3 => "number",
-        6 => "bool",
-        7 or 8 => "date",
-        _ => "text",
+        "SingleSelect"             => "select",
+        "MultiSelect"              => "multi",
+        "Number"                   => "number",
+        "Boolean"                  => "bool",
+        "Date" or "DateTime"       => "date",
+        _                          => "text",
     };
 
-    private static List<AttributeOption> MapOptions(int type, List<AttributeValueEntity>? values)
+    private static List<AttributeOption> MapOptions(string type, List<AttributeValueEntity>? values)
     {
-        if (values is null || (type != 1 && type != 2)) return new();
+        if (values is null || !IsSelectLike(type)) return new();
         return values.Select(v => new AttributeOption
         {
             Value   = v.Value,
@@ -99,10 +95,4 @@ public sealed class ProductionAttributeTemplateSource
             LabelAr = v.DisplayName ?? v.Value,
         }).ToList();
     }
-}
-
-internal static class AttributeDefinitionExtensions
-{
-    public static object? Default(this AttributeDefinitionEntity d) =>
-        string.IsNullOrEmpty(d.DefaultValue) ? null : d.DefaultValue;
 }

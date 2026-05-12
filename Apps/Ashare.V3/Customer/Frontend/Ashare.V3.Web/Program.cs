@@ -12,6 +12,15 @@ builder.WebHost.UseStaticWebAssets();
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
+// المُصادَقَة المُفَصَّلَة لِـ Blazor Server. <c>[Authorize]</c> عَلى الـ
+// @page يَستَدعي AuthorizationMiddleware ⇒ يَحتاج IAuthenticationService.
+// نُسَجِّل scheme فارِغ (لا cookies في الواقِع — الـ JWT يَدير عَبر
+// ClientAuthStateProvider). الأَوامِر تَكشِف لِـ middleware "Default" handler.
+builder.Services.AddAuthentication("AshareV3Web")
+    .AddCookie("AshareV3Web", o => o.LoginPath = "/login");
+builder.Services.AddAuthorization();
+builder.Services.AddCascadingAuthenticationState();
+
 // نَفس HttpClient name "ejar" لأَنّ كُلّ القالَب + ApiClients يَستَدعونَه
 // بِهذا الاسم. الاختِلاف فَقَط في BaseAddress — نَقرَأها مِن AshareApi:BaseUrl
 // (افتِراضيّ: localhost:5400 — Ashare V3 backend).
@@ -59,6 +68,8 @@ builder.Services.AddScoped<Ejar.Customer.UI.Services.IListingPublishGate,
 var app = builder.Build();
 if (!app.Environment.IsDevelopment()) app.UseExceptionHandler("/Error");
 app.UseStaticFiles();
+app.UseAuthentication();
+app.UseAuthorization();
 app.UseAntiforgery();
 app.MapStaticAssets();
 app.MapRazorComponents<App>()

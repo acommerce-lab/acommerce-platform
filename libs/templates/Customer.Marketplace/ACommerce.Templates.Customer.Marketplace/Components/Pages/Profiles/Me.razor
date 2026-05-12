@@ -1,16 +1,12 @@
 @page "/me"
 @attribute [Authorize]
 @using ACommerce.Kits.Versions.Templates
-@using ACommerce.SharedKernel.Domain.DynamicAttributes
-@using System.Net.Http.Json
 @inject IClientAuthState AuthState
 @inject IAuthStore Auth
 @inject IProfileStore Profiles
 @inject IListingsStore Listings
 @inject ISupportStore Support
 @inject IFavoritesStore Favorites
-@inject IUiPreferences Prefs
-@inject IHttpClientFactory HttpFactory
 @inject MarketplaceUiOptions UiOptions
 @inject NavigationManager Nav
 @inject AppVersionInfo AppVersion
@@ -58,19 +54,11 @@
         </div>
     }
 
-    @* سِمات البروفايل الديناميكِيَّة (Template+Snapshot). كُلّ تَطبيق
-       يُعَرِّف قالَبه الخاصّ في الـ backend (V3 ⇒ V3ProfileTemplate)
-       ويَكشِفه عَبر <c>/profile/attribute-template</c>. هُنا فَقَط
-       AcAttrGrid يَرسُم. null ⇒ لا قِسم يَظهَر. *@
-    @if (_profileAttrs is { Count: > 0 })
-    {
-        <AcCard>
-            <ChildContent>
-                <h3 style="margin-top:0;">@(L[TemplateStrings.ListingAttributes])</h3>
-                <AcAttrGrid Attributes="@_profileAttrs" IsArabic="@(Prefs.Language == "ar")" />
-            </ChildContent>
-        </AcCard>
-    }
+    @* سِمات البروفايل الإضافِيَّة (مَثَلاً NationalId, BusinessName, Address)
+       لَيسَت ضِمن IUserProfile الكَيت. تَطبيقات تُريد عَرضها تُسَجِّل
+       implementation لِـ <c>IProfileExtraFieldsProvider</c> (TBD) — حالِيّاً
+       غَير مُفَعَّلَة في V3 بِانتِظار تَصميم القِراءَة مِن أَعمِدَة
+       Profile الخاصَّة. *@
 
     <div class="acm-home-actions" style="margin-top:12px;">
         @* "الخطط" + "اشتراكي" يَظهَران فَقَط لِتَطبيقات تُسَجِّل
@@ -103,7 +91,6 @@
 
 @code {
     private bool _statsLoaded;
-    private List<DynamicAttribute>? _profileAttrs;
 
     protected override async Task OnAfterRenderAsync(bool first)
     {
@@ -114,22 +101,6 @@
             Support.LoadAsync(),
             Favorites.LoadAsync());
         _statsLoaded = true;
-
-        // اِجلِب سِمات البروفايل (snapshots). الـ endpoint
-        // <c>/profile/me/attributes</c> يَستَعمِل قالَب التَطبيق ⇒ snapshots
-        // مُكتَمِلَة جاهِزَة لِـ AcAttrGrid. فَشَل = نَترُك _profileAttrs null
-        // ⇒ القِسم لا يَظهَر. لا تَطبيق يَخسَر شَيئاً لَو endpoint غَير
-        // مُسَجَّل.
-        try
-        {
-            var http = HttpFactory.CreateClient("ejar");
-            var env  = await http.GetFromJsonAsync<
-                ACommerce.OperationEngine.Wire.OperationEnvelope<List<DynamicAttribute>>>(
-                    "/profile/me/attributes");
-            _profileAttrs = env?.Data;
-        }
-        catch { /* غَير قاتل — صَفحَة /me تَعمَل بِدونه. */ }
-
         await InvokeAsync(StateHasChanged);
     }
 

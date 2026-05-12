@@ -44,13 +44,6 @@ public class ProfileEntity : IBaseEntity
     public bool IsActive { get; set; }
     public bool IsVerified { get; set; }
     public DateTime? VerifiedAt { get; set; }
-    /// <summary>
-    /// سِمات ديناميكِيَّة لِلبروفايل (JSON: كائِن مُسَطَّح
-    /// <c>{ key: value }</c>). تُستَخدَم مَع <c>V3ProfileTemplate</c>
-    /// لِبِناء snapshots عَلى الواجِهَة. أُضيفَ في V3 — لا يَنتَمي لِـ
-    /// asharedb الإنتاجِي القَديم (يَنشَأ بِـ EnsureCreated في SQLite).
-    /// </summary>
-    public string? AttributesJson { get; set; }
 }
 
 
@@ -603,9 +596,10 @@ public class AttributeDefinitionEntity : IBaseEntity
 
     public string Name { get; set; } = "";       // عَرَبي عادَةً (اللون، المساحة، …)
     public string Code { get; set; } = "";       // مِفتاح ثابِت (color, area_sqm, …)
-    /// <summary>1=SingleSelect, 2=MultiSelect, 3=Number, 4=Text, 5=LongText,
-    /// 6=Boolean, 7=Date, 8=DateTime, 9=File, 10=Color.</summary>
-    public int Type { get; set; }
+    /// <summary>اسم enum مَحفوظ كَنَصّ في asharedb (HasConversion&lt;string&gt;):
+    /// SingleSelect, MultiSelect, Number, Text, LongText, Boolean, Date, DateTime,
+    /// File, Color.</summary>
+    public string Type { get; set; } = "Text";
     public string? Description { get; set; }
     public bool IsRequired { get; set; }
     public bool IsFilterable { get; set; }
