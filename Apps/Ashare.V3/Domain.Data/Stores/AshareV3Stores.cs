@@ -47,21 +47,28 @@ public sealed class AshareV3AuthUserStore : IAuthUserStore
     public async Task<string> GetOrCreateUserIdAsync(string subject, CancellationToken ct)
     {
         subject = subject.Trim();
-        var existing = await _db.Profiles
+        // IgnoreQueryFilters: لو الـ Profile مُحَفَّمَة (IsDeleted=true) في
+        // الإنتاج، نَتَجاوَز الفِلتَر ونُحييها بَدَل إنشاء مُكَرَّر. كُلّ
+        // الجَداوِل المُتَفَرِّعَة في asharedb تُشير إلى الـ UserId الأَصلي.
+        var existing = await _db.Profiles.IgnoreQueryFilters()
             .FirstOrDefaultAsync(p => p.NationalId == subject || p.PhoneNumber == subject, ct);
 
         if (existing is not null)
         {
-            // لَو Profile قائِم لكِن UserId null/empty (مُمكِن في بَيانات قَديمَة)،
-            // عَيِّن واحِداً ثابِتاً واحفَظ فَوريّاً — لا نَنتَظِر SaveAtEnd
-            // لِأَنّ exception في analyzer لاحِق يَفقِد التَعيين، فَعَلى المُحاوَلَة
-            // التالِيَة يَتَوَلَّد UserId جَديد ⇒ مُستَخدِم "غامِض".
+            var dirty = false;
+            if (existing.IsDeleted)
+            {
+                existing.IsDeleted = false;
+                existing.UpdatedAt = DateTime.UtcNow;
+                dirty = true;
+            }
             if (string.IsNullOrEmpty(existing.UserId))
             {
                 existing.UserId = Guid.NewGuid().ToString();
                 existing.UpdatedAt = DateTime.UtcNow;
-                await _db.SaveChangesAsync(ct);
+                dirty = true;
             }
+            if (dirty) await _db.SaveChangesAsync(ct);
             return existing.UserId!;
         }
 
