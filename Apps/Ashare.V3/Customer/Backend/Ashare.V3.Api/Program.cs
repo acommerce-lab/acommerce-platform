@@ -1,4 +1,5 @@
 using ACommerce.Kits.Auth.Operations;
+using ACommerce.Payments.Providers.Mock.Extensions;
 using ACommerce.ServiceHost;
 using Ashare.V3.Api.Realtime;
 using Ashare.V3.Bootstrap;
@@ -78,6 +79,20 @@ builder.Services.AddSingleton<IUserIdProvider, AshareV3UserIdProvider>();
 // تَستَعمِله أَوَّلاً ⇒ fallback لِـ CategoryAttributeTemplates ⇒ fallback
 // لِكود V3CategoryTemplates.
 builder.Services.AddScoped<Ashare.V3.Data.Templates.ProductionAttributeTemplateSource>();
+
+// Mock payment gateway (dev/test). الإنتاج يَستَبدِله بِـ Moyasar/Noon.
+// AutoCaptureSeconds=3 لِتَجرِبَة أَسرَع.
+builder.Services.AddMockPayment(opts =>
+{
+    opts.AutoCaptureSeconds = 3;
+});
+
+// بَوّابَة الدَفع عَلى listing.create. عَودَة Subscriptions تُضيف
+// interceptor مُوازي يَفحَص اشتِراك المُستَخدِم بِلا تَعديل في
+// الواجِهَة أَو الكيت.
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddSingleton<ACommerce.OperationEngine.Interceptors.IOperationInterceptor,
+                              Ashare.V3.Api.Interceptors.ListingPaymentGateInterceptor>();
 
 // Enricher لِـ /listings/{id} — يُمَرِّر Images + Attributes (مَفكوكَة مِن
 // AttributesJson) لِواجِهَة التَفاصيل. الكيت يَكتَشِفه عَبر DI.

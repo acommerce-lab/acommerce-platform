@@ -658,3 +658,34 @@ public class AttributeValueRelationshipEntity : IBaseEntity
     public Guid ParentValueId { get; set; }
     public Guid ChildValueId { get; set; }
 }
+
+
+// ─── Listing Payments (V3-additive) ──────────────────────────────────────
+/// <summary>
+/// سِجلّ دَفع لِكُلّ إعلان (V3 لا يَستَخدِم باقات اشتِراك). كُلّ مُحاوَلَة
+/// نَشر إعلان تَستَلزِم سِجل <c>ListingPayment</c> بِـ <c>Status="captured"</c>
+/// مَوسوم لِنَفس المُستَخدِم.
+///
+/// <para>الـ <c>PaymentGateInterceptor</c> يَفحَص هذا الجَدول قَبل
+/// السَّماح بِـ <c>listing.create</c>. الـ <c>Reference</c> هو
+/// <c>PaymentReference</c> الَّذي رَدَّه <see cref="IPaymentGateway"/>.</para>
+/// </summary>
+public class ListingPaymentEntity : IBaseEntity
+{
+    public Guid Id { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public DateTime? UpdatedAt { get; set; }
+    public bool IsDeleted { get; set; }
+
+    public string UserId { get; set; } = "";          // AspNetUsers.Id
+    public Guid? ListingId { get; set; }              // قَد يُملأ بَعد النَّشر
+    public string Provider { get; set; } = "mock";    // gateway name
+    public string Reference { get; set; } = "";       // returned by gateway
+    public decimal Amount { get; set; }
+    public string Currency { get; set; } = "YER";
+    /// <summary>pending / authorized / captured / failed / refunded / consumed.</summary>
+    public string Status { get; set; } = "pending";
+    /// <summary>عَلَم: استُهلِك هذا الدَفع لِنَشر إعلان (مَنع إعادَة الاستِخدام).</summary>
+    public bool Consumed { get; set; }
+    public DateTime? CapturedAt { get; set; }
+}

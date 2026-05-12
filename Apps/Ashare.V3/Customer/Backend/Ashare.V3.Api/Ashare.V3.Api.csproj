@@ -44,6 +44,10 @@
     <!-- Compositions: Marketplace bundle (لا Chat.WithNotifications حَتّى يُسَجَّل Notifications kit) -->
     <ProjectReference Include="..\..\..\..\..\libs\compositions\ACommerce.Compositions.Core\ACommerce.Compositions.Core.csproj" />
     <ProjectReference Include="..\..\..\..\..\libs\compositions\Marketplace\ACommerce.Compositions.Marketplace\ACommerce.Compositions.Marketplace.csproj" />
+
+    <!-- Payments — Mock في dev، يُستَبدَل بِـ Moyasar/Noon في الإنتاج -->
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Payments\ACommerce.Payments.Operations\ACommerce.Payments.Operations.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\providers\Payments\Mock\ACommerce.Payments.Providers.Mock\ACommerce.Payments.Providers.Mock.csproj" />
   </ItemGroup>
 
   <ItemGroup>

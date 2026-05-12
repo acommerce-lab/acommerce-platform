@@ -66,6 +66,9 @@ public sealed class AshareV3DbContext : DbContext
     public DbSet<CategoryAttributeMappingEntity>  CategoryAttributeMappings  => Set<CategoryAttributeMappingEntity>();
     public DbSet<AttributeValueRelationshipEntity> AttributeValueRelationships => Set<AttributeValueRelationshipEntity>();
 
+    // ── Listing payments (V3-additive — لا باقات، دَفع لِلإعلان الواحِد)
+    public DbSet<ListingPaymentEntity> ListingPayments => Set<ListingPaymentEntity>();
+
     protected override void OnModelCreating(ModelBuilder b)
     {
         // ─── أَسماء جَداوِل asharedb (singular pattern V2) ────────────
@@ -118,6 +121,12 @@ public sealed class AshareV3DbContext : DbContext
             .HasQueryFilter(e => !e.IsDeleted);
         b.Entity<AttributeValueEntity>().HasIndex(e => e.AttributeDefinitionId);
         b.Entity<CategoryAttributeMappingEntity>().HasIndex(e => new { e.CategoryId, e.AttributeDefinitionId });
+
+        b.Entity<ListingPaymentEntity>().ToTable("ListingPayments")
+            .HasQueryFilter(e => !e.IsDeleted);
+        b.Entity<ListingPaymentEntity>().HasIndex(e => new { e.UserId, e.Status });
+        b.Entity<ListingPaymentEntity>().HasIndex(e => e.Reference).IsUnique();
+        b.Entity<ListingPaymentEntity>().Property(e => e.Amount).HasPrecision(18, 2);
 
         // ─── soft-delete global query filter (مُتَّسِق مَع V2 pattern) ─
         b.Entity<ProfileEntity>().HasQueryFilter(e => !e.IsDeleted);
