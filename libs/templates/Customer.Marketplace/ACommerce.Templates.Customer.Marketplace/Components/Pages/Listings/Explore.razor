@@ -5,6 +5,7 @@
 @inject IClientAuthState Auth
 @inject IMarketplaceHomeStore Home
 @inject IDiscoveryStore Discovery
+@inject ITaxonomyStore Taxonomy
 @inject IFavoritesStore Favs
 @inject NavigationManager Nav
 @inject L L
@@ -17,6 +18,21 @@
     <div class="acs-clear-filters-bar" style="display:flex; justify-content:flex-end; padding:8px 12px;">
         <AcButton Variant="ghost" Text="@(L[TemplateStrings.FilterClearAll])" OnClick="@ClearAllFilters" />
     </div>
+}
+
+@* شَجَرَة الأَنواع — تَدَرُّجِيَّة لِلتَّصفية. اختيار leaf يَفلتُر بِالـ slug
+   (نَفس <c>_categoryId</c> الَّذي تَستَخدِمه chips الأَفقِيَّة في
+   <c>AcListingExplorePage</c>). كِلا الواجِهَتَين تَتَزامَنان. *@
+@if (_taxonomyHasNodes)
+{
+    <AcCard Class="acs-explore-taxonomy-card">
+        <ChildContent>
+            <AcTaxonomyTreeSelect RootCode="listing_categories"
+                                  Selected="@_categoryId"
+                                  SelectedChanged="@(s => OnCategorySelected(s ?? string.Empty))"
+                                  IsArabic="true" />
+        </ChildContent>
+    </AcCard>
 }
 
 <AcListingExplorePage Title="@(L[TemplateStrings.NavExploreVerb])"
@@ -43,6 +59,7 @@
     private IReadOnlyList<AcListingMapPage.MapListingDto> _mapListings = Array.Empty<AcListingMapPage.MapListingDto>();
     private IReadOnlyList<CategoryTileDto> _categories = Array.Empty<CategoryTileDto>();
     private string? _categoryId;
+    private bool _taxonomyHasNodes;
     private string? _query;
     private string _sort = "newest";
     private string _view = "list";
@@ -108,6 +125,11 @@
             Discovery.LoadCitiesAsync());
         _categories = Discovery.Categories.Select(c =>
             new CategoryTileDto { Id = c.Id, Label = c.Label, Icon = c.Icon ?? "" }).ToList();
+
+        // شَجَرَة Taxonomy لِلعَرض الهَرَمي. الفَلتَر يَستَخدِم نَفس
+        // <c>_categoryId</c> الَّذي تَستَخدِمه chips ⇒ تَزامُن مَجّاني.
+        var tree = await Taxonomy.GetTreeAsync("listing_categories");
+        _taxonomyHasNodes = tree.Count > 0;
     }
 
     private async Task LoadListingsAsync()

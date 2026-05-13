@@ -4,6 +4,7 @@
 @inject IUiPreferences Prefs
 @inject IMarketplaceHomeStore HomeStore
 @inject IDiscoveryStore Discovery
+@inject ITaxonomyStore Taxonomy
 @inject IClientCultureController Culture
 @inject IFavoritesStore Favs
 @inject NavigationManager Nav
@@ -11,6 +12,21 @@
 @implements IDisposable
 
 <PageTitle>@(L[TemplateStrings.AppName])</PageTitle>
+
+@* شَجَرَة الأَنواع عَلى رَأس الـ Home — drill-down هَرَمي قَبل عَرض الإعلانات.
+   اختيار leaf يَأخُذ المُستَخدِم إلى /explore فَلتَراً بِالـ slug. الـ widget
+   يُخفي نَفسه لَو الـ root غَير مَزروع. *@
+@if (_taxonomyHasNodes)
+{
+    <AcCard Class="acs-home-taxonomy-card">
+        <ChildContent>
+            <h3 style="margin-top:0;">@(L[TemplateStrings.HomeCategoriesTitle])</h3>
+            <AcTaxonomyTreeSelect RootCode="listing_categories"
+                                  SelectedChanged="@OnTaxonomyPicked"
+                                  IsArabic="true" />
+        </ChildContent>
+    </AcCard>
+}
 
 <AcMarketplaceHomePage Data="_data"
                        Engine="Engine"
@@ -49,6 +65,7 @@
 
 @code {
     private MarketplaceHomeDto? _data;
+    private bool _taxonomyHasNodes;
 
     // ‹L› مَحقون كَـ instance، فالحَقل لا يُمكِن أن يَكون static. استَبدَلناه
     // بِـ property بِـ getter لِيُعيد الحساب لُغَويّاً عَلى كُلّ render — رَخيص.
@@ -81,7 +98,22 @@
     {
         await HomeStore.LoadHomeAsync(string.IsNullOrEmpty(Prefs.City) ? null : Prefs.City);
         _data = MapHomeView(HomeStore.Home);
+
+        // شَجَرَة Taxonomy — تَأتي مَن endpoint مُختَلِف، نُحَمِّلها بِالتَوازي
+        // مَع Home view. فارِغَة ⇒ الـ section يَختَفي تِلقائيّاً.
+        var tree = await Taxonomy.GetTreeAsync("listing_categories");
+        _taxonomyHasNodes = tree.Count > 0;
+
         await InvokeAsync(StateHasChanged);
+    }
+
+    /// <summary>اختيار leaf مَن شَجَرَة الأَنواع عَلى Home ⇒ /explore فَلتَراً
+    /// بِالـ slug. الـ tree widget يَنطَوي فَوق kinds بِشَكل افتِراضي + يَنبَسِط
+    /// لِيُظهِر الـ leaves عِندَ النَّقر.</summary>
+    private void OnTaxonomyPicked(string? slug)
+    {
+        if (string.IsNullOrEmpty(slug)) return;
+        Nav.NavigateTo($"/explore?category={Uri.EscapeDataString(slug)}");
     }
 
     private static MarketplaceHomeDto MapHomeView(HomeView? v)
