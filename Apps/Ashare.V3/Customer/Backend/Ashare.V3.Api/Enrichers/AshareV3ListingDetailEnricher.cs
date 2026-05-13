@@ -61,11 +61,12 @@ public sealed class AshareV3ListingDetailEnricher : IListingDetailEnricher
         {
             var owner = await _db.Profiles.AsNoTracking()
                 .Where(p => p.Id == entity.VendorId)
-                .Select(p => new { p.FullName, p.BusinessName, p.CreatedAt, p.AvatarUrl })
+                // BusinessName ديناميكي ⇒ اسم العَرض = FullName.
+                .Select(p => new { p.FullName, p.CreatedAt, p.AvatarUrl })
                 .FirstOrDefaultAsync(ct);
             if (owner is not null)
             {
-                ownerName   = owner.BusinessName ?? owner.FullName;
+                ownerName   = owner.FullName;
                 memberSince = owner.CreatedAt.ToString("yyyy");
                 ownerAvatar = owner.AvatarUrl;
             }

@@ -47,7 +47,8 @@ public sealed class ConversationDetailsController : ControllerBase
         var userIds = parts.Select(p => p.UserId).Distinct().ToList();
         var profiles = await _db.Profiles.AsNoTracking()
             .Where(p => userIds.Contains(p.UserId!))
-            .Select(p => new { p.UserId, p.FullName, p.BusinessName, p.AvatarUrl })
+            // BusinessName ديناميكي ⇒ اسم العَرض = FullName.
+            .Select(p => new { p.UserId, p.FullName, p.AvatarUrl })
             .ToListAsync(ct);
         var prof = profiles.Where(p => !string.IsNullOrEmpty(p.UserId))
                            .ToDictionary(p => p.UserId!, p => p);
@@ -75,10 +76,10 @@ public sealed class ConversationDetailsController : ControllerBase
         {
             id            = chat.Id.ToString(),
             ownerId       = mePart?.UserId,
-            ownerName     = meProf?.BusinessName ?? meProf?.FullName,
+            ownerName     = meProf?.FullName,
             ownerAvatar   = meProf?.AvatarUrl,
             partnerId     = otherPart?.UserId,
-            partnerName   = otherProf?.BusinessName ?? otherProf?.FullName,
+            partnerName   = otherProf?.FullName,
             partnerAvatar = otherProf?.AvatarUrl,
             subject       = chat.Title,
             listingId     = (string?)null,

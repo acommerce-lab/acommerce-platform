@@ -23,21 +23,17 @@ namespace Ashare.V3.Domain;
 
 
 // ─── Profile ───────────────────────────────────────────────────────────
-// الجَدول مَطابِق لِواجِهَة <see cref="IUserProfile"/> الكيت — حُقول
-// الواجِهَة كَأَعمِدَة، الباقي يَخرُج عَن قَلَق الكيتس/القَوالِب.
-// <list type="bullet">
-//   <item><b>حُقول الواجِهَة</b> (IUserProfile): FullName, Phone,
-//         PhoneVerified, Email, EmailVerified, City, AvatarUrl,
-//         MemberSince (←CreatedAt).</item>
-//   <item><b>أَعمِدَة سَطحِيَّة لِخِدمَة التَطبيق</b> (الكيتس لا تَلمَسها):
-//         UserId, NationalId (Nafath lookup), Type (customer/vendor),
-//         IsActive, IsVerified, VerifiedAt, BusinessName (chat/listing
-//         display).</item>
-//   <item><b>سِمات ديناميكِيَّة</b> في <c>AttributesJson</c>: Address,
-//         Country, PostalCode, Coordinates، وأَيّ زِيادَة admin. تَعريفاتها
-//         في <c>AttributeDefinitions</c> تَحت sentinel
-//         <c>V3ProfileAttributes.CategoryId</c>.</item>
-// </list>
+// الجَدول مَطابِق <b>تَماماً</b> لِواجِهَة <see cref="IUserProfile"/> + هَويَّتَين
+// سَطحِيَّتَين فَقَط لِخِدمَة التَطبيق (UserId, NationalId).
+//
+// أَيّ شَيء آخَر (BusinessName/Type/IsActive/IsVerified/VerifiedAt/Address/
+// Country/PostalCode/Coordinates) ⇒ <c>AttributesJson</c>. الـ Clone يَنقُل
+// قِيَم الإنتاج إلى الـ JSON أَثناء النَّسخ.
+//
+// <para><b>NationalId</b> يَبقى عَموداً لِأَنّه مِفتاح lookup لِـ
+// Nafath flow (يُستَفسَر عَنه قَبل وُجود JWT) ⇒ JSON_VALUE عَلى كُلّ
+// login مُكلِف بِلا index. UserId يَبقى لِأَنّه primary identity (يَربط
+// AspNetUsers.Id بِكُلّ الجَداوِل المُتَفَرِّعَة).</para>
 public class ProfileEntity : IBaseEntity, IUserProfile, IHasDynamicAttributes
 {
     public Guid Id { get; set; }
@@ -45,14 +41,9 @@ public class ProfileEntity : IBaseEntity, IUserProfile, IHasDynamicAttributes
     public DateTime? UpdatedAt { get; set; }
     public bool IsDeleted { get; set; }
 
-    // ─ App-service columns (لا واجِهَة كيت تَعتَمِد عَلَيها) ─
+    // ─ Identity columns (لا تَنتَمي لِواجِهَة الكيت، تَبقى لِلأداء) ─
     public string? UserId { get; set; }          // ربط بِـ AspNetUsers.Id
-    public string? NationalId { get; set; }      // lookup لِـ Nafath/SMS
-    public int Type { get; set; }                 // 0=customer, 1=vendor
-    public bool IsActive { get; set; } = true;
-    public bool IsVerified { get; set; }
-    public DateTime? VerifiedAt { get; set; }
-    public string? BusinessName { get; set; }    // يُستَخدَم لِعَرض اسم في chat/listings
+    public string? NationalId { get; set; }      // lookup لِـ Nafath قَبل الـ JWT
 
     // ─ Interface columns (IUserProfile) ─
     public string? FullName { get; set; }
@@ -64,8 +55,11 @@ public class ProfileEntity : IBaseEntity, IUserProfile, IHasDynamicAttributes
     public string? AvatarUrl { get; set; }
 
     // ─ Dynamic attrs snapshot ─
-    /// <summary>JSON <c>{key:value}</c> لِسِمات سَطحِيَّة لا تَنتَمي
-    /// لِلواجِهَة (Address, Country, PostalCode, Coordinates، …).</summary>
+    /// <summary>JSON <c>{key:value}</c> لِكُلّ ما لا يَنتَمي لِلواجِهَة:
+    /// BusinessName, Type, IsActive, IsVerified, VerifiedAt, Address,
+    /// Country, PostalCode, Coordinates، وأَيّ زِيادَة admin. التَعريفات
+    /// في <c>AttributeDefinitions</c> تَحت sentinel
+    /// <c>V3ProfileAttributes.CategoryId</c>.</summary>
     public string? AttributesJson { get; set; }
 
     // ─── IHasDynamicAttributes — النِطاق ثابِت sentinel لِبروفايل ──

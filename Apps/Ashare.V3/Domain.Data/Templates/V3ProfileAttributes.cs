@@ -22,14 +22,18 @@ public static class V3ProfileAttributes
     public static readonly Guid CategoryId = new("00000000-0000-0000-0000-000000000P01".Replace("P", "F"));
 
     /// <summary>
-    /// السِمات الديناميكِيَّة <b>فَقَط</b> — حُقول لا تَنتَمي لِواجِهَة
-    /// <c>IUserProfile</c> ولا يَستَخدِمها كود التَطبيق سَطحِيّاً.
-    /// (NationalId, BusinessName, Type, IsActive, IsVerified كُلّها
-    /// أَعمِدَة سَطحِيَّة عَلى Profile مَن أَجل lookup/display — لا
-    /// تُسَجَّل هُنا.)
+    /// السِمات الديناميكِيَّة لِلبروفايل — كُلّ ما لا يَنتَمي لِواجِهَة
+    /// <c>IUserProfile</c>. <c>UserId</c> و <c>NationalId</c> الوَحيدان
+    /// الباقِيان كَأَعمِدَة (هَويَّة + Nafath lookup ⇒ أَداء)؛ كُلّ ما
+    /// عَداهُما يُخَزَّن في <c>Profile.AttributesJson</c>.
     /// </summary>
     public static readonly IReadOnlyList<ProfileAttributeSeed> Defaults = new ProfileAttributeSeed[]
     {
+        new("BusinessName",  "اسم النشاط التجاري", "Text"),
+        new("Type",          "نوع الحساب",         "Number"),
+        new("IsActive",      "نَشِط",              "Boolean"),
+        new("IsVerified",    "مُوَثَّق (نَفاذ)",   "Boolean"),
+        new("VerifiedAt",    "تاريخ التَوثيق",     "Date"),
         new("Address",       "العنوان",           "Text"),
         new("Country",       "الدولة",            "Text"),
         new("PostalCode",    "الرمز البريدي",     "Text"),

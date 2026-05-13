@@ -266,18 +266,33 @@ async Task<long> CopyProfilesAsync(string prodConn, AshareV3DbContext tgtCtx,
 
         while (await rdr.ReadAsync())
         {
-            var address     = rdr["Address"]     as string;
-            var country     = rdr["Country"]     as string;
-            var postalCode  = rdr["PostalCode"]  as string;
-            var coordinates = rdr["Coordinates"] as string;
+            // كُلّ ما لا يَنتَمي لِواجِهَة <c>IUserProfile</c> + الأَعمِدَة
+            // السَطحِيَّة (UserId, NationalId) يَنتَقِل لِـ AttributesJson.
+            // هذا يُحَقِّق قاعِدَة "العَمود ⇔ الواجِهَة": الـ entity المَحَلِّي
+            // يَحوي حُقول الواجِهَة + هَويَّتَين فَقَط؛ الباقي يُقرَأ مَن JSON.
+            var address       = rdr["Address"]      as string;
+            var country       = rdr["Country"]      as string;
+            var postalCode    = rdr["PostalCode"]   as string;
+            var coordinates   = rdr["Coordinates"]  as string;
+            var businessName  = rdr["BusinessName"] as string;
+            var profileType   = rdr["Type"] is int t ? t : 0;
+            var isActive      = rdr["IsActive"] is bool ia && ia;
+            var isVerified    = rdr["IsVerified"] is bool iv && iv;
+            var verifiedAt    = rdr["VerifiedAt"] as DateTime?;
 
-            // attrs JSON يُكتَب فَقَط إن وُجِدَت قِيمَة (لا نَملَأ بِـ null).
             string? attrsJson = null;
             var attrs = new Dictionary<string, object?>(StringComparer.Ordinal);
-            if (!string.IsNullOrWhiteSpace(address))     attrs["Address"]     = address;
-            if (!string.IsNullOrWhiteSpace(country))     attrs["Country"]     = country;
-            if (!string.IsNullOrWhiteSpace(postalCode))  attrs["PostalCode"]  = postalCode;
-            if (!string.IsNullOrWhiteSpace(coordinates)) attrs["Coordinates"] = coordinates;
+            if (!string.IsNullOrWhiteSpace(businessName)) attrs["BusinessName"] = businessName;
+            if (profileType != 0)                          attrs["Type"]         = profileType;
+            // IsActive افتِراضي true في الكيان — نُسَجِّل فَقَط الحالة
+            // المُختَلِفَة (false = مُعَطَّل).
+            if (!isActive)                                 attrs["IsActive"]     = false;
+            if (isVerified)                                attrs["IsVerified"]   = true;
+            if (verifiedAt.HasValue)                       attrs["VerifiedAt"]   = verifiedAt.Value;
+            if (!string.IsNullOrWhiteSpace(address))       attrs["Address"]      = address;
+            if (!string.IsNullOrWhiteSpace(country))       attrs["Country"]      = country;
+            if (!string.IsNullOrWhiteSpace(postalCode))    attrs["PostalCode"]   = postalCode;
+            if (!string.IsNullOrWhiteSpace(coordinates))   attrs["Coordinates"]  = coordinates;
             if (attrs.Count > 0)
                 attrsJson = JsonSerializer.Serialize(attrs);
 
@@ -289,19 +304,14 @@ async Task<long> CopyProfilesAsync(string prodConn, AshareV3DbContext tgtCtx,
                 IsDeleted     = rdr["IsDeleted"] is bool isd && isd,
                 UserId        = rdr["UserId"]   as string,
                 NationalId    = rdr["NationalId"] as string,
-                Type          = rdr["Type"] is int t ? t : 0,
-                IsActive      = rdr["IsActive"] is bool ia && ia,
-                IsVerified    = rdr["IsVerified"] is bool iv && iv,
-                VerifiedAt    = rdr["VerifiedAt"] as DateTime?,
-                BusinessName  = rdr["BusinessName"] as string,
                 FullName      = rdr["FullName"] as string,
                 Phone         = rdr["PhoneNumber"] as string,
                 Email         = rdr["Email"]   as string,
                 City          = rdr["City"]    as string,
                 AvatarUrl     = rdr["Avatar"]  as string,
                 // PhoneVerified/EmailVerified — لا أَعمِدَة مُقابِلَة في prod؛
-                // نَستَخدِم IsVerified كَتَقريب لِـ PhoneVerified (Nafath flow).
-                PhoneVerified = rdr["IsVerified"] is bool iv2 && iv2,
+                // نَستَخدِم isVerified كَتَقريب لِـ PhoneVerified (Nafath flow).
+                PhoneVerified = isVerified,
                 EmailVerified = false,
                 AttributesJson = attrsJson,
             });

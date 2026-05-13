@@ -27,37 +27,58 @@ public sealed class ProductionAttributeTemplateSource : IAttributeTemplateSource
     public ProductionAttributeTemplateSource(AshareV3DbContext db) => _db = db;
 
     /// <summary>
-    /// مَفاتيح مَحجوزَة لِنِطاق <c>ProductListing</c> — تَتَطابِق مَع حُقول
-    /// <c>IListing</c>/أَعمِدَة <c>ProductListingEntity</c>. أَيّ
-    /// <c>AttributeDefinition.Code</c> هُنا يُسقَط مَن القالَب لِأَنّه
-    /// مُغَطّى بِحَقل ثابِت في الـ wizard (لا داعي لِعَرضه مَرَّتَين).
-    /// المُطابَقَة case-insensitive لِأَنّ codes الإنتاج مُختَلَفَة الحالَة.
+    /// مَفاتيح مَحجوزَة لِنِطاق <c>ProductListing</c> — كُلّ ما يُغَطّيه
+    /// حَقل ثابِت في <c>IListing</c>/<c>ProductListingEntity</c>. القيَم
+    /// مُخَزَّنَة بِشَكل <b>مُطَبَّع</b> (lowercase + بِلا underscores/hyphens)
+    /// لِنَلتَقِط <c>time_unit</c>/<c>TimeUnit</c>/<c>timeUnit</c> دَفعَة واحِدَة
+    /// بِدون تَعداد كُلّ الـ aliases. التَطبيع تَمّ في <see cref="Normalize"/>.
+    ///
+    /// <para>القائِمَة تَستَنِد إلى نَتائِج فَحص جَدول
+    /// <c>AttributeDefinitions</c> الإنتاجي + <c>AttributesJson</c> الفِعلِيَّة
+    /// عَلى الإعلانات: aliases مَوجودَة فِعليّاً ⇒ <c>rooms</c> (= BedroomCount)،
+    /// <c>location</c> (= District)، <c>features</c> (= Amenities).</para>
     /// </summary>
-    private static readonly HashSet<string> ListingReservedKeys = new(StringComparer.OrdinalIgnoreCase)
+    private static readonly HashSet<string> ListingReservedKeys = new(StringComparer.Ordinal)
     {
-        "Title", "Description", "Price", "TimeUnit",
-        "City", "District", "Address", "Lat", "Lng", "Latitude", "Longitude",
-        "BedroomCount", "Bedrooms", "Bedroom",
-        "BathroomCount", "Bathrooms", "Bathroom",
-        "AreaSqm", "Area", "Size",
-        "Amenities", "Amenity",
-        "Images", "Image", "ImagesJson", "Thumbnail", "FeaturedImage",
-        "Status", "ViewsCount", "ViewCount", "IsVerified", "IsFeatured", "IsActive",
-        "PropertyType", "Condition",
-        "CategoryId", "VendorId", "OwnerId",
-        "CreatedAt", "UpdatedAt",
+        // IListing core
+        "title", "description", "price", "timeunit",
+        "city", "district", "address", "location",
+        "lat", "lng", "latitude", "longitude",
+        "bedroomcount", "bedrooms", "bedroom", "rooms",
+        "bathroomcount", "bathrooms", "bathroom",
+        "areasqm", "area", "size",
+        "amenities", "amenity", "features",
+        "images", "image", "imagesjson", "thumbnail", "featuredimage",
+        "status", "viewscount", "viewcount",
+        "isverified", "isfeatured", "isactive",
+        "propertytype", "condition",
+        "categoryid", "vendorid", "ownerid",
+        "createdat", "updatedat",
     };
 
-    /// <summary>مَفاتيح مَحجوزَة لِـ Profile — تَتَطابِق مَع حُقول
-    /// <c>IUserProfile</c> + الأَعمِدَة السَطحِيَّة الَّتي يَتَدَخَّل فيها
-    /// كود التَطبيق (NationalId/Type/IsActive/IsVerified/BusinessName).</summary>
-    private static readonly HashSet<string> ProfileReservedKeys = new(StringComparer.OrdinalIgnoreCase)
+    /// <summary>مَفاتيح مَحجوزَة لِـ Profile (مُطَبَّعَة) — حُقول
+    /// <c>IUserProfile</c> + الأَعمِدَة السَطحِيَّة الَّتي لا تُحَوَّل
+    /// لِديناميكي (UserId/NationalId — هَويَّة + Nafath lookup).</summary>
+    private static readonly HashSet<string> ProfileReservedKeys = new(StringComparer.Ordinal)
     {
-        "Id", "UserId", "FullName", "Phone", "PhoneNumber", "PhoneVerified",
-        "Email", "EmailVerified", "City", "AvatarUrl", "Avatar",
-        "NationalId", "Type", "IsActive", "IsVerified", "VerifiedAt",
-        "BusinessName", "CreatedAt", "UpdatedAt", "MemberSince",
+        "id", "userid", "fullname",
+        "phone", "phonenumber", "phoneverified",
+        "email", "emailverified", "city", "avatarurl", "avatar",
+        "nationalid",
+        "createdat", "updatedat", "membersince",
     };
+
+    /// <summary>تَطبيع code المُقارَنَة: lowercase + إزالة كُلّ غَير
+    /// alphanumeric. <c>"time_unit"</c>, <c>"TimeUnit"</c>, <c>"timeUnit"</c>,
+    /// <c>"time-unit"</c> كُلُّها ⇒ <c>"timeunit"</c>.</summary>
+    private static string Normalize(string code)
+    {
+        Span<char> buf = stackalloc char[code.Length];
+        int n = 0;
+        foreach (var c in code)
+            if (char.IsLetterOrDigit(c)) buf[n++] = char.ToLowerInvariant(c);
+        return new string(buf[..n]);
+    }
 
     private static readonly Guid ProfileScopeId = new("00000000-0000-0000-0000-000000000F01");
 
@@ -104,11 +125,13 @@ public sealed class ProductionAttributeTemplateSource : IAttributeTemplateSource
         foreach (var m in mappings)
         {
             if (!defs.TryGetValue(m.AttributeDefinitionId, out var d)) continue;
-            // اِسقاط مُبَكِّر: لَو Code يُطابِق حَقل ثابِت عَلى الكِيان،
-            // لا نُدرِجه في القالَب. الـ wizard/edit page يَعرِض الحَقل
-            // الثابِت بِواجِهَته المُخَصَّصَة، فَلا داعي لِتَكرارَه ديناميكيّاً.
+            // اِسقاط مُبَكِّر: لَو Code (بَعد التَطبيع) يُطابِق حَقل ثابِت
+            // عَلى الكِيان، لا نُدرِجه في القالَب. الـ wizard/edit page
+            // يَعرِض الحَقل الثابِت بِواجِهَته المُخَصَّصَة، فَلا داعي
+            // لِتَكرارَه ديناميكيّاً. التَطبيع يَلتَقِط <c>time_unit</c>،
+            // <c>TimeUnit</c>، <c>timeUnit</c> ⇒ كُلُّها <c>timeunit</c>.
             var code = string.IsNullOrEmpty(d.Code) ? d.Id.ToString("N") : d.Code;
-            if (reservedKeys.Contains(code)) continue;
+            if (reservedKeys.Contains(Normalize(code))) continue;
 
             fields.Add(new AttributeFieldDefinition
             {

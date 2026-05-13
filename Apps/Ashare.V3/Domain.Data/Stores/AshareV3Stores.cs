@@ -86,7 +86,8 @@ public sealed class AshareV3AuthUserStore : IAuthUserStore
             Phone = isNationalId ? null : subject,
             FullName = "عُضو جديد",
             City = "صنعاء",
-            IsActive = true, Type = 0,
+            // Type/IsActive سَمات ديناميكِيَّة الآن (في AttributesJson عَبر
+            // AcAttrEditor)؛ المُستَخدِم الجَديد بِلا قِيَم ⇒ افتِراضي.
         };
         _db.Profiles.Add(p);
         await _db.SaveChangesAsync(ct);   // اِحفَظ فَوريّاً مِثل حالَة التَحديث
@@ -97,7 +98,11 @@ public sealed class AshareV3AuthUserStore : IAuthUserStore
     {
         return await _db.Profiles.AsNoTracking()
             .Where(p => p.UserId == userId)
-            .Select(p => p.BusinessName ?? p.FullName)
+            // BusinessName أَصبَحَ في AttributesJson (سَمَة ديناميكِيَّة)؛
+            // عَرض الاسم يَعود لِـ FullName فَقَط. التَطبيقات الَّتي تَحتاج
+            // اسم النَّشاط في chat headers تَستَخرِجه مِن AttributesJson
+            // عَبر JSON_VALUE/json_extract (مُكلِف ⇒ نَتَجاوَز هُنا).
+            .Select(p => p.FullName)
             .FirstOrDefaultAsync(ct);
     }
 }
@@ -489,7 +494,8 @@ public sealed class AshareV3ChatStore : IChatStore
 
         var profiles = await _db.Profiles.AsNoTracking()
             .Where(p => allUserIds.Contains(p.UserId!))
-            .Select(p => new { p.UserId, p.FullName, p.BusinessName, p.AvatarUrl })
+            // BusinessName ديناميكي الآن — نَستَخدِم FullName فَقَط لِلعَرض.
+            .Select(p => new { p.UserId, p.FullName, p.AvatarUrl })
             .ToListAsync(ct);
         var profByUser = profiles
             .Where(p => !string.IsNullOrEmpty(p.UserId))
@@ -515,9 +521,9 @@ public sealed class AshareV3ChatStore : IChatStore
             var meProf    = meSide   is null ? null : profByUser.GetValueOrDefault(meSide.UserId);
             var otherProf = other    is null ? null : profByUser.GetValueOrDefault(other.UserId);
 
-            var ownerName    = meProf?.BusinessName ?? meProf?.FullName;
+            var ownerName    = meProf?.FullName;
             var ownerAvatar  = meProf?.AvatarUrl;
-            var partnerName  = otherProf?.BusinessName ?? otherProf?.FullName;
+            var partnerName  = otherProf?.FullName;
             var partnerAvatar = otherProf?.AvatarUrl;
 
             var last = lastByChat.GetValueOrDefault(c.Id);

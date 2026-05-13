@@ -118,13 +118,14 @@ public static class AshareV3Bootstrap
             // (AttributeDefinitions/Values/CategoryAttributeMappings).
             // الإدارَة تَملَأها عَبر admin/SQL أَو لوحَة تَحَكُّم لاحِقَة.
             //
-            // الاستِثناء الوَحيد: سِمات البروفايل. الـ V3 Profile entity
-            // يَحوي أَعمِدَة (NationalId/BusinessName/Address/Country/
-            // PostalCode/Coordinates) لَيسَت في IUserProfile واجِهَة
-            // الكيت. نُسَجِّلها كَـ AttributeDefinitions تَحت
-            // <see cref="V3ProfileAttributes.CategoryId"/> sentinel
-            // لِيُعيد ProductionAttributeTemplateSource بِناءَها كَـ
-            // template ⇒ نَفس مَحَرِّك القَوالِب يَعمَل عَلى البروفايل.
+            // الاستِثناء الوَحيد: سِمات البروفايل. كُلّ ما لَيس في واجِهَة
+            // <see cref="IUserProfile"/> ينقُله Clone إلى <c>AttributesJson</c>
+            // (BusinessName, Type, IsActive, IsVerified, VerifiedAt, Address,
+            // Country, PostalCode, Coordinates). نُسَجِّل تَعريفات هذه
+            // المَفاتيح كَـ <c>AttributeDefinitions</c> تَحت sentinel
+            // <see cref="V3ProfileAttributes.CategoryId"/> لِيُعيد
+            // <c>ProductionAttributeTemplateSource</c> بِناءَها كَـ template
+            // ⇒ نَفس مَحَرِّك القَوالِب يَعمَل عَلى البروفايل.
             await SeedProfileAttributesAsync(db, logger, ct);
         }
         else
