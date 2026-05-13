@@ -162,46 +162,59 @@ public static class DbInitializer
     /// <summary>
     /// بذرة شَجَرَة Taxonomy لِفِئات الإعلانات (root="listing_categories").
     /// يَبني هَيكَل مُسَتَوَيَين: kinds (residential/commercial/leisure/events/
-    /// vehicles/outdoor) عَلى المُستَوى الأَوَّل، ثُمّ كُلّ category مَن
+    /// vehicles/camps) عَلى المُستَوى الأَوَّل، ثُمّ كُلّ category مَن
     /// <see cref="EjarSeed.Categories"/> تَحت kindها.
     ///
-    /// <para><b>Idempotent بِالكامِل</b>: يَفحَص كُلّ عُقدَة بِـ
-    /// <c>(RootCode, Code)</c> ⇒ يُضيف فَقَط ما هو غَير مَوجود. هَذا يَسمَح
-    /// بِتَوسيع الشَجَرَة في إصدارات لاحِقَة (إضافَة kinds/categories
-    /// جَديدَة) بِلا إعادَة seed كامِلَة أَو wipe.</para>
+    /// <para><b>Idempotent + reconciling</b>: يَفحَص كُلّ عُقدَة بِـ
+    /// <c>(RootCode, Code)</c> ⇒ يُضيف ما هو غَير مَوجود؛ ويَنقُل الـ leaves
+    /// لِأَب جَديد لَو تَغَيَّر <c>Kind</c> في الـ seed (مَثَل: نَقل
+    /// <c>camp</c> مِن <c>outdoor</c> إلى <c>camps</c>)؛ ويُعَطِّل أَيّ kind
+    /// لَم يَعُد مَوجوداً في الـ seed (مَثَل <c>outdoor</c> القَديم بَعد
+    /// نَقل ابنه الوَحيد إلى <c>camps</c>).</para>
     /// </summary>
     public static void SeedTaxonomyIfMissing(EjarDbContext db)
     {
         const string root = "listing_categories";
 
         // كُلّ المَوجود حاليّاً ضِمن هذا الـ root — مَفهرَس بِالـ Code لِفَحص
-        // سَريع per-node.
-        var existing = db.TaxonomyNodes.IgnoreQueryFilters()
+        // سَريع per-node. نَجلِب الـ entity كامِلاً (لا anonymous) لِأَنّنا
+        // نَحتاج تَعديل ParentId/IsActive في خُطوَة الـ reconcile.
+        var existingNodes = db.TaxonomyNodes.IgnoreQueryFilters()
             .Where(t => t.RootCode == root)
-            .Select(t => new { t.Id, t.Code })
-            .ToDictionary(t => t.Code, t => t.Id, StringComparer.OrdinalIgnoreCase);
+            .ToList();
+        var existingByCode = existingNodes.ToDictionary(
+            n => n.Code, n => n, StringComparer.OrdinalIgnoreCase);
 
         var now = DateTime.UtcNow;
 
-        // ① عُقَد المُستَوى الأَوَّل (kinds). الـ tuple يَحوي SortOrder صَريح
-        // لِيَبقى التَّرتيب ثابِتاً بَين الـ seeders.
+        // ① عُقَد المُستَوى الأَوَّل (kinds). الـ tuple يَحوي SortOrder صَريح.
+        // <c>outdoor</c> أُسقِطَ: المُخَيَّمات لَها kind مُستَقِلّ <c>camps</c>.
         var kinds = new (string Code, string NameAr, string Icon, int Sort)[]
         {
-            ("residential", "سكني",     "home",       1),
-            ("commercial",  "تجاري",    "briefcase",  2),
-            ("leisure",     "ترفيهي",   "sun",        3),
-            ("events",      "مناسبات",  "gift",       4),
-            ("vehicles",    "مركبات",   "truck",      5),
-            ("outdoor",     "رحلات",    "umbrella",   6),
+            ("residential", "سكني",      "home",       1),
+            ("commercial",  "تجاري",     "briefcase",  2),
+            ("leisure",     "ترفيهي",    "sun",        3),
+            ("events",      "مناسبات",   "gift",       4),
+            ("vehicles",    "مركبات",    "truck",      5),
+            ("camps",       "مخيمات",    "tent",       6),
         };
         var kindIds = new Dictionary<string, Guid>(StringComparer.OrdinalIgnoreCase);
         var newNodes = new List<TaxonomyNodeEntity>();
+        var dirty = false;
 
         foreach (var k in kinds)
         {
-            if (existing.TryGetValue(k.Code, out var existingId))
+            if (existingByCode.TryGetValue(k.Code, out var existingNode))
             {
-                kindIds[k.Code] = existingId;   // مَوجود سَلَفاً
+                // مَوجود سَلَفاً — لكِن لَو كانَ مُعَطَّلاً (deactivated reconcile سابِق)
+                // نُعيد تَفعيله.
+                if (!existingNode.IsActive)
+                {
+                    existingNode.IsActive = true;
+                    existingNode.UpdatedAt = now;
+                    dirty = true;
+                }
+                kindIds[k.Code] = existingNode.Id;
                 continue;
             }
             var id = Guid.NewGuid();
@@ -217,26 +230,56 @@ public static class DbInitializer
 
         // ② عُقَد المُستَوى الثاني (الفِئات الفِعلِيَّة). slug = Code لِيُطابِق
         // <c>IListing.PropertyType</c> الحالي ⇒ لا migration بَيانات.
+        // <b>Reconcile</b>: لَو الـ leaf مَوجود لكِن ParentId مُختَلِف عَن
+        // الـ Kind الحالي في الـ seed، نَنقُله. هذا يُحَلّ حالَة camp →
+        // outdoor (قَديم) إلى camp → camps (جَديد) بِلا تَدَخُّل يَدَوي.
         var sort = 0;
         foreach (var c in Ejar.Domain.EjarSeed.Categories)
         {
             sort++;
-            if (existing.ContainsKey(c.Id)) continue;   // مَوجود سَلَفاً
             kindIds.TryGetValue(c.Kind, out var pid);
+            var targetParent = pid == Guid.Empty ? (Guid?)null : pid;
+
+            if (existingByCode.TryGetValue(c.Id, out var leaf))
+            {
+                if (leaf.ParentId != targetParent || !leaf.IsActive)
+                {
+                    leaf.ParentId  = targetParent;
+                    leaf.IsActive  = true;
+                    leaf.UpdatedAt = now;
+                    dirty = true;
+                }
+                continue;
+            }
             newNodes.Add(new TaxonomyNodeEntity
             {
                 Id = Guid.NewGuid(), CreatedAt = now,
                 RootCode = root,
-                ParentId = pid == Guid.Empty ? null : pid,
+                ParentId = targetParent,
                 Code = c.Id, Name = c.Id, NameAr = c.Label,
-                Icon = c.Emoji,           // إيموجي مُباشَر — الواجِهَة تَستَخدِمه
+                Icon = c.Emoji,
                 SortOrder = sort, IsActive = true,
             });
         }
 
-        if (newNodes.Count == 0) return;
-        db.TaxonomyNodes.AddRange(newNodes);
-        db.SaveChanges();
+        // ③ Cleanup: kinds مَوجودَة في DB لكِن لَيست في الـ seed الحالي ⇒
+        // نُعَطِّلها (لا حَذف لِنَحفَظ سَجِل التَدقيق). كُلّ كَيان لَه ابن
+        // مَنقول لِأَب جَديد سَيَترُك الـ kind القَديم بِلا أَولاد —
+        // إخفاؤه يُنَظِّف الشَجَرَة في الواجِهَة.
+        var seedKindCodes = kinds.Select(x => x.Code).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        foreach (var existing in existingNodes.Where(n => n.ParentId == null))
+        {
+            if (!seedKindCodes.Contains(existing.Code) && existing.IsActive)
+            {
+                existing.IsActive  = false;
+                existing.UpdatedAt = now;
+                dirty = true;
+            }
+        }
+
+        if (newNodes.Count > 0) db.TaxonomyNodes.AddRange(newNodes);
+        if (newNodes.Count + (dirty ? 1 : 0) > 0)
+            db.SaveChanges();
     }
 
     /// <summary>

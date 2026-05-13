@@ -61,8 +61,11 @@ public static class EjarSeed
         new CategorySeed("motorcycle",  "درّاجَة ناريّة", "🏍️", "vehicles", new[] { "daily", "monthly" }),
         new CategorySeed("pickup",      "دَينا",        "🛻", "vehicles", new[] { "daily" }),
 
-        // الرَّحَلات (outdoor)
-        new CategorySeed("camp",        "مُخَيَّم",      "⛺", "outdoor",  new[] { "daily" }),
+        // المُخَيَّمات (camps) — في اليَمَن تُستَخدَم لِلأَفراح والمُناسَبات
+        // (لا "رَحَلات" عامَّة). قِسم مُستَقِلّ بِنَفسه.
+        new CategorySeed("camp",         "مُخَيَّم",          "⛺", "camps", new[] { "daily" }),
+        new CategorySeed("wedding_camp", "مُخَيَّم أَفراح",   "🎪", "camps", new[] { "daily" }),
+        new CategorySeed("family_camp",  "مُخَيَّم عائِلي",   "👨‍👩‍👧", "camps", new[] { "daily" }),
     };
 
     // ── المزايا (Amenities) ──────────────────────────────────────────────
