@@ -1,0 +1,74 @@
+@* مُحَدِّد شَجَري قابِل لِلطَيّ. اضغَط عُقدَة لَها أَولاد ⇒ تَنطَوي/تَنبَسِط؛
+   اضغَط leaf (أَو branch مَع <c>AllowBranchSelect</c>) ⇒ تَحَدَّد + SelectedChanged
+   يُطلَق بِالـ slug.
+
+   الاستِخدام:
+   <code>&lt;AcTaxonomyTreeSelect RootCode="listing_categories"
+                                  Selected="@Draft.PropertyType"
+                                  SelectedChanged="@(s =&gt; Draft.PropertyType = s)" /&gt;</code>
+
+   الـ store يَحمِّل الشَجَرَة مَرَّة واحِدَة عَبر GetTreeAsync، ثُمّ كُلّ
+   الـ children/path in-memory. *@
+
+@inject ITaxonomyStore Tax
+
+<div class="acm-taxo-tree @(Class ?? "")">
+    @if (_loading)
+    {
+        <div class="acm-taxo-loading">…</div>
+    }
+    else
+    {
+        @foreach (var root in Tax.GetChildren(RootCode, null))
+        {
+            <AcTaxonomyNodeRow Node="@root" Level="0" Tree="@this" />
+        }
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public string RootCode { get; set; } = "";
+    [Parameter] public string? Selected { get; set; }
+    [Parameter] public EventCallback<string?> SelectedChanged { get; set; }
+    [Parameter] public bool IsArabic { get; set; } = true;
+    [Parameter] public string? Class { get; set; }
+    /// <summary>يَسمَح بِاختيار العُقَد الداخِلِيَّة (بِلا leaf-only).</summary>
+    [Parameter] public bool AllowBranchSelect { get; set; } = false;
+
+    internal ITaxonomyStore Store => Tax;
+
+    private bool _loading = true;
+    private readonly HashSet<Guid> _expanded = new();
+
+    protected override async Task OnAfterRenderAsync(bool first)
+    {
+        if (!first) return;
+        await Tax.GetTreeAsync(RootCode);
+        if (!string.IsNullOrEmpty(Selected))
+            foreach (var n in Tax.GetPath(RootCode, Selected)) _expanded.Add(n.Id);
+        _loading = false;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    internal bool IsExpanded(ITaxonomyNode n) => _expanded.Contains(n.Id);
+    internal bool IsSelected(ITaxonomyNode n) =>
+        string.Equals(Selected, n.Code, StringComparison.OrdinalIgnoreCase);
+    internal string Label(ITaxonomyNode n) =>
+        IsArabic ? (n.NameAr ?? n.Name) : n.Name;
+
+    internal async Task OnNodeClicked(ITaxonomyNode n)
+    {
+        var children = Tax.GetChildren(RootCode, n.Id);
+        if (children.Count > 0)
+        {
+            if (!_expanded.Add(n.Id)) _expanded.Remove(n.Id);
+            if (AllowBranchSelect)
+                await SelectedChanged.InvokeAsync(n.Code);
+        }
+        else
+        {
+            await SelectedChanged.InvokeAsync(n.Code);
+        }
+        StateHasChanged();
+    }
+}

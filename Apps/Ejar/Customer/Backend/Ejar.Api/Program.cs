@@ -85,10 +85,18 @@ builder.Services.AddScoped<ACommerce.Kits.Listings.Backend.IListingDetailEnriche
 // كود ثابِت (EjarAttributes.cs)؛ لا جَدول DB يَحتاج migration.
 builder.Services.AddSingleton<ACommerce.Kits.DynamicAttributes.Backend.IAttributeTemplateSource,
                               Ejar.Api.Data.Templates.EjarAttributeTemplateSource>();
-// MVC scan الافتِراضي = entry assembly فَقَط ⇒ نُلحِق Application Part
-// لِالتِقاط DynamicAttributesController مَن كيت الخَلفِيَّة.
+
+// Taxonomy kit — شَجَرَة تَصنيف هَرَمِيَّة مُتَعَدِّدَة الجُذور (categories,
+// locations, …). يَفصِل بَين Listings/Profile وبَين شَكل الفِئات ⇒
+// IListing.PropertyType يَحفَظ slug العُقدَة فَقَط (no coupling).
+builder.Services.AddScoped<ACommerce.Kits.Taxonomy.Backend.ITaxonomyStore,
+                           Ejar.Api.Stores.EjarTaxonomyStore>();
+
+// MVC scan الافتِراضي = entry assembly فَقَط ⇒ نُلحِق Application Parts
+// لِالتِقاط controllers مَن كيتات الخَلفِيَّة.
 builder.Services.AddControllers()
-    .AddApplicationPart(typeof(ACommerce.Kits.DynamicAttributes.Backend.DynamicAttributesController).Assembly);
+    .AddApplicationPart(typeof(ACommerce.Kits.DynamicAttributes.Backend.DynamicAttributesController).Assembly)
+    .AddApplicationPart(typeof(ACommerce.Kits.Taxonomy.Backend.TaxonomyController).Assembly);
 
 var app = builder.Build();
 

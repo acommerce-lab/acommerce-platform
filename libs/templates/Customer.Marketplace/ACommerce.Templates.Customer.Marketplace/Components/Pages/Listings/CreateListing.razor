@@ -3,11 +3,13 @@
 @using System.Net.Http.Json
 @using ACommerce.OperationEngine.Wire
 @using ACommerce.SharedKernel.Domain.DynamicAttributes
+@using ACommerce.Kits.Taxonomy.Frontend.Customer.Stores
 @inject ITemplateEngine Engine
 @inject IUiPreferences Prefs
 @inject IListingDraft Draft
 @inject IListingsStore Listings
 @inject IDiscoveryStore Discovery
+@inject ITaxonomyStore Taxonomy
 @inject IListingPublishGate PublishGate
 @inject IListingCreatePrecheck Precheck
 @inject NavigationManager Nav
@@ -68,17 +70,31 @@
         <AcCard>
             <ChildContent>
                 <h3 style="margin-top:0;">@(L[TemplateStrings.CreateListingCategoryHeading])</h3>
-                <div class="acm-home-grid">
-                    @foreach (var c in Discovery.Categories)
-                    {
-                        var cat = c;
-                        <button type="button" class="acs-cat-pick @(Draft.CategoryId == cat.Id ? "active" : "")"
-                                @onclick="@(() => { Draft.CategoryId = cat.Id; Draft.NotifyChanged(); })">
-                            <AcIcon Name="@cat.Icon" Size="24" />
-                            <span>@cat.Label</span>
-                        </button>
-                    }
-                </div>
+                @* AcTaxonomyTreeSelect — شَجَرَة هَرَمِيَّة لِفِئات الإعلانات
+                   (root="listing_categories"). الاختيار يَضَع slug في
+                   Draft.CategoryId. لَو الـ taxonomy غَير مَزروع (تَطبيقات لَم
+                   تَدعَم الكيت بَعد)، نَسقُط لِلشَبَكَة المُسَطَّحَة القَديمَة. *@
+                @if (_taxonomyLoaded && _taxonomyHasNodes)
+                {
+                    <AcTaxonomyTreeSelect RootCode="listing_categories"
+                                          Selected="@Draft.CategoryId"
+                                          SelectedChanged="@OnCategorySelected"
+                                          IsArabic="true" />
+                }
+                else
+                {
+                    <div class="acm-home-grid">
+                        @foreach (var c in Discovery.Categories)
+                        {
+                            var cat = c;
+                            <button type="button" class="acs-cat-pick @(Draft.CategoryId == cat.Id ? "active" : "")"
+                                    @onclick="@(() => { Draft.CategoryId = cat.Id; Draft.NotifyChanged(); })">
+                                <AcIcon Name="@cat.Icon" Size="24" />
+                                <span>@cat.Label</span>
+                            </button>
+                        }
+                    </div>
+                }
                 <div style="margin-top:24px;">
                     <AcButton Variant="primary" Class="ac-btn-block" Text="@(L[TemplateStrings.CommonNext])"
                               OnClick="@GoToStep2"
@@ -272,6 +288,11 @@
     private Dictionary<string, object?> _attrValues = new();
     private string? _attrLoadedForCategory;
 
+    // Taxonomy state: شَجَرَة "listing_categories" تَحُلّ مَحَلّ Discovery.Categories
+    // المُسَطَّحَة. لَو الـ root لَيس مَزروعاً في DB، نَسقُط لِلشَبَكَة الافتِراضِيَّة.
+    private bool _taxonomyLoaded;
+    private bool _taxonomyHasNodes;
+
     private IReadOnlyList<AcMapSim.MapPin> MapPins =>
         new[] { new AcMapSim.MapPin("loc", L[TemplateStrings.CreatelistingLocationPinLabel], _lat, _lng) };
 
@@ -292,7 +313,22 @@
         }
         // Discovery store يَجلب categories + amenities + cities بِالتَوازي.
         await Discovery.LoadAsync();
+
+        // حَمِّل شَجَرَة Taxonomy إن كانَت مَزروعَة لِهذا التَطبيق.
+        var tree = await Taxonomy.GetTreeAsync("listing_categories");
+        _taxonomyHasNodes = tree.Count > 0;
+        _taxonomyLoaded   = true;
+
         await InvokeAsync(StateHasChanged);
+    }
+
+    /// <summary>callback مَن AcTaxonomyTreeSelect عِندَ اختيار عُقدَة. الـ
+    /// slug يُحفَظ في Draft.CategoryId — نَفس الحَقل الَّذي كانَت تَستَخدِمه
+    /// الشَبَكَة القَديمَة ⇒ صِفر تَغيير في باقي الـ wizard / publish payload.</summary>
+    private void OnCategorySelected(string? slug)
+    {
+        Draft.CategoryId = slug;
+        Draft.NotifyChanged();
     }
 
     /// <summary>

@@ -79,6 +79,7 @@
     <ProjectReference Include="..\..\..\kits\Subscriptions\Frontend\Customer\ACommerce.Kits.Subscriptions.Frontend.Customer.csproj" />
     <ProjectReference Include="..\..\..\kits\Support\Frontend\Customer\ACommerce.Kits.Support.Frontend.Customer.csproj" />
     <ProjectReference Include="..\..\..\kits\Favorites\Frontend\Customer\ACommerce.Kits.Favorites.Frontend.Customer.csproj" />
+    <ProjectReference Include="..\..\..\kits\Taxonomy\Frontend\Customer\ACommerce.Kits.Taxonomy.Frontend.Customer\ACommerce.Kits.Taxonomy.Frontend.Customer.csproj" />
     <ProjectReference Include="..\..\..\kits\Discovery\Frontend\Customer\ACommerce.Kits.Discovery.Frontend.Customer.csproj" />
     <ProjectReference Include="..\..\..\kits\Reports\Frontend\Customer\ACommerce.Kits.Reports.Frontend.Customer.csproj" />
 

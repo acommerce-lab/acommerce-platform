@@ -1,4 +1,5 @@
 using ACommerce.Kits.DynamicAttributes.Frontend.Customer.Stores;
+using ACommerce.Kits.Taxonomy.Frontend.Customer.Stores;
 using Ejar.Customer.UI.ClientHost;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -23,6 +24,11 @@ public static class AshareV3CustomerHostExtensions
         // DynamicAttributes frontend kit — HttpAttributesStore يَستَهلِك
         // الـ HttpClient المُسَجَّل (BaseUrl لِـ V3 API).
         services.AddScoped<IAttributesStore, HttpAttributesStore>();
+
+        // Taxonomy frontend kit — لازِم لِـ AcTaxonomyTreeSelect في
+        // CreateListing. لَو الـ V3 backend لَم يَزرَع شَجَرَة بَعد، الـ
+        // GetTreeAsync يَرُدّ فارِغاً ⇒ الـ wizard يَسقُط لِلشَبَكَة الافتِراضِيَّة.
+        services.AddScoped<ITaxonomyStore, HttpTaxonomyStore>();
         return services;
     }
 }

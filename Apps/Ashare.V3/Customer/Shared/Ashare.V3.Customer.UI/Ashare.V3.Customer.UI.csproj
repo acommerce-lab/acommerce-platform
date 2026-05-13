@@ -50,5 +50,8 @@
 
     <!-- DynamicAttributes kit Frontend — IAttributesStore + widgets للسِمات الديناميكِيَّة -->
     <ProjectReference Include="..\..\..\..\..\libs\kits\DynamicAttributes\Frontend\Customer\ACommerce.Kits.DynamicAttributes.Frontend.Customer\ACommerce.Kits.DynamicAttributes.Frontend.Customer.csproj" />
+
+    <!-- Taxonomy kit Frontend — ITaxonomyStore + AcTaxonomyTreeSelect (لِـ CreateListing) -->
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Taxonomy\Frontend\Customer\ACommerce.Kits.Taxonomy.Frontend.Customer\ACommerce.Kits.Taxonomy.Frontend.Customer.csproj" />
   </ItemGroup>
 </Project>

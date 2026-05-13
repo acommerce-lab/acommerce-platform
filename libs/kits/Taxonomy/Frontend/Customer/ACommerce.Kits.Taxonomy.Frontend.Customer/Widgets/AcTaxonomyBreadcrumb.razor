@@ -1,0 +1,44 @@
+@* breadcrumb بِسيط: "Root › Branch › Leaf". الـ slug ⇒ يُحَلَّل لِمَسار
+   داخِليّاً عَبر <c>ITaxonomyStore.GetPath</c>. *@
+
+@inject ITaxonomyStore Tax
+
+@if (_path is { Count: > 0 })
+{
+    <nav class="acm-taxo-breadcrumb @(Class ?? "")" aria-label="breadcrumb">
+        @for (var i = 0; i < _path.Count; i++)
+        {
+            var n = _path[i];
+            <span class="acm-taxo-crumb">
+                @if (!string.IsNullOrEmpty(n.Icon))
+                {
+                    <i class="bi bi-@n.Icon"></i>
+                }
+                @(IsArabic ? (n.NameAr ?? n.Name) : n.Name)
+            </span>
+            @if (i < _path.Count - 1)
+            {
+                <span class="acm-taxo-sep">@(IsArabic ? "‹" : "›")</span>
+            }
+        }
+    </nav>
+}
+
+@code {
+    [Parameter, EditorRequired] public string RootCode { get; set; } = "";
+    [Parameter] public string? Code { get; set; }
+    [Parameter] public bool IsArabic { get; set; } = true;
+    [Parameter] public string? Class { get; set; }
+
+    private IReadOnlyList<ITaxonomyNode>? _path;
+
+    protected override async Task OnAfterRenderAsync(bool first)
+    {
+        if (string.IsNullOrEmpty(Code)) return;
+        if (!first && _path is not null) return;
+
+        await Tax.GetTreeAsync(RootCode);
+        _path = Tax.GetPath(RootCode, Code);
+        await InvokeAsync(StateHasChanged);
+    }
+}

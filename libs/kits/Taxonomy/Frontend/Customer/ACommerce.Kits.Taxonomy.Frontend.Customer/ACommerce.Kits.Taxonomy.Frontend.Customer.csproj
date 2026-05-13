@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <PackageId>ACommerce.Kits.Taxonomy.Frontend.Customer</PackageId>
+    <Version>1.0.0</Version>
+    <Description>Taxonomy frontend kit: ITaxonomyStore (reactive tree cache) + widgets: AcTaxonomyTreeSelect, AcTaxonomyBreadcrumb, AcTaxonomyChipFilter.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <SupportedPlatform Include="browser" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\ACommerce.Kits.Taxonomy.Operations\ACommerce.Kits.Taxonomy.Operations.csproj" />
+    <ProjectReference Include="..\..\..\..\..\host-client\ACommerce.ClientHost\ACommerce.ClientHost.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+</Project>

@@ -36,6 +36,9 @@
 
     <!-- DynamicAttributes kit Frontend — IAttributesStore + widgets للسِمات الديناميكِيَّة -->
     <ProjectReference Include="..\..\..\..\..\libs\kits\DynamicAttributes\Frontend\Customer\ACommerce.Kits.DynamicAttributes.Frontend.Customer\ACommerce.Kits.DynamicAttributes.Frontend.Customer.csproj" />
+
+    <!-- Taxonomy kit Frontend — ITaxonomyStore + AcTaxonomyTreeSelect/Breadcrumb -->
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Taxonomy\Frontend\Customer\ACommerce.Kits.Taxonomy.Frontend.Customer\ACommerce.Kits.Taxonomy.Frontend.Customer.csproj" />
   </ItemGroup>
   <ItemGroup>
     <!-- AdditionalFiles لِيَقرأها SG. NEUTRAL فَقَط (.ar.resx مُتَجاهَل ⇒ يُقرَأ runtime) -->

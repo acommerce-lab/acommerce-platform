@@ -1,0 +1,39 @@
+@* صَفّ عُقدَة واحِدَة في AcTaxonomyTreeSelect. يَستَدعي نَفسه لِكُلّ
+   ابن (recursion عَبر مُكَوِّن مُنفَصِل لِيَجوز في Blazor). *@
+
+@{
+    var children = Tree.Store.GetChildren(Tree.RootCode, Node.Id);
+    var expanded = Tree.IsExpanded(Node);
+    var selected = Tree.IsSelected(Node);
+}
+
+<div class="acm-taxo-row">
+    <button type="button"
+            class="acm-taxo-btn @(selected ? "is-selected" : "") @(children.Count > 0 ? "is-branch" : "is-leaf")"
+            style="@($"padding-{(Tree.IsArabic ? "right" : "left")}:{Level * 16}px;")"
+            @onclick="@(() => Tree.OnNodeClicked(Node))">
+        @if (children.Count > 0)
+        {
+            <span class="acm-taxo-caret">@(expanded ? "▾" : "▸")</span>
+        }
+        @if (!string.IsNullOrEmpty(Node.Icon))
+        {
+            <i class="bi bi-@Node.Icon acm-taxo-icon"></i>
+        }
+        <span class="acm-taxo-label">@Tree.Label(Node)</span>
+    </button>
+
+    @if (expanded && children.Count > 0)
+    {
+        @foreach (var ch in children)
+        {
+            <AcTaxonomyNodeRow Node="@ch" Level="@(Level + 1)" Tree="@Tree" />
+        }
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public ITaxonomyNode Node { get; set; } = default!;
+    [Parameter] public int Level { get; set; }
+    [Parameter, EditorRequired] public AcTaxonomyTreeSelect Tree { get; set; } = default!;
+}

@@ -2,6 +2,7 @@ using System.ComponentModel.DataAnnotations;
 using ACommerce.Kits.DynamicAttributes.Operations;
 using ACommerce.Kits.Listings.Domain;
 using ACommerce.Kits.Profiles.Operations;
+using ACommerce.Kits.Taxonomy.Operations;
 using ACommerce.SharedKernel.Domain.Entities;
 
 namespace Ejar.Api.Data;
@@ -138,6 +139,32 @@ public static class EjarListingScopes
         var hash = md5.ComputeHash(System.Text.Encoding.UTF8.GetBytes("ejar-listing:" + slug.ToLowerInvariant()));
         return new Guid(hash);
     }
+}
+
+
+// ─── Taxonomy ───────────────────────────────────────────────────────────
+// شَجَرَة تَصنيف هَرَمِيَّة مُتَعَدِّدَة الجُذور — جَدول واحِد يَحوي شَجَرَة
+// "فِئات الإعلانات" + شَجَرَة "المُدُن" + أَيّ شَجَرَة أُخرى مُسَتَقبَلاً،
+// مُمَيَّزَة بِـ <see cref="RootCode"/>.
+//
+// <para>الـ <c>Code</c> هو slug فَريد ضِمن الشَجَرَة. <c>IListing.PropertyType</c>
+// يَحفَظ هذا الـ slug كَ مَرجِع — لا coupling بَين كيت Listings و Taxonomy.</para>
+public sealed class TaxonomyNodeEntity : IBaseEntity, ITaxonomyNode
+{
+    [Key] public Guid Id { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public DateTime? UpdatedAt { get; set; }
+    public bool IsDeleted { get; set; }
+
+    public Guid? ParentId { get; set; }
+
+    [MaxLength(60)]  public string RootCode { get; set; } = "";
+    [MaxLength(80)]  public string Code     { get; set; } = "";
+    [MaxLength(120)] public string Name     { get; set; } = "";
+    [MaxLength(120)] public string? NameAr  { get; set; }
+    [MaxLength(40)]  public string? Icon    { get; set; }
+    public int  SortOrder { get; set; }
+    public bool IsActive  { get; set; } = true;
 }
 
 public sealed class ConversationEntity : IBaseEntity

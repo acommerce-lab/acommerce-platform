@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <PackageId>ACommerce.Kits.Taxonomy.Operations</PackageId>
+    <Version>1.0.0</Version>
+    <Description>Taxonomy — hierarchical classification primitives. ITaxonomyNode (entity interface), IHasTaxonomyNode (opt-in for entities that point at a node), TaxonomyOps + tag keys. Multi-root: every node carries RootCode so one DB table holds many independent trees (categories, locations, interests, …). No EF, no HTTP, no DI.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\core\OperationEngine\ACommerce.OperationEngine\ACommerce.OperationEngine.csproj" />
+  </ItemGroup>
+</Project>

@@ -1,4 +1,5 @@
 using ACommerce.Kits.DynamicAttributes.Frontend.Customer.Stores;
+using ACommerce.Kits.Taxonomy.Frontend.Customer.Stores;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Ejar.Customer.UI.ClientHost;
@@ -30,6 +31,11 @@ public static class EjarCustomerHostExtensions
         // DynamicAttributes frontend kit — HttpAttributesStore يَستَهلِك
         // HttpClient "ejar" لِجَلب القَوالِب مَن /dynamic-attributes/templates/{scope}.
         services.AddScoped<IAttributesStore, HttpAttributesStore>();
+
+        // Taxonomy frontend kit — HttpTaxonomyStore يَجلِب شَجَرَة الفِئات
+        // مَن /taxonomy/{rootCode} ويُخَزِّنها في الذاكِرَة. AcTaxonomyTreeSelect
+        // في wizard CreateListing يَستَهلِكه.
+        services.AddScoped<ITaxonomyStore, HttpTaxonomyStore>();
         return services;
     }
 }

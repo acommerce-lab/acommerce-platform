@@ -82,6 +82,7 @@ public static class EjarBootstrap
         // جداول Discovery أُضيفت لاحقاً، الـ Seed الرئيسيّ تَجاوزها (تَفحص
         // Users.Any فقط). هذه تَملؤها حتميّاً.
         DbInitializer.SeedDiscoveryIfMissing(db);
+        DbInitializer.SeedTaxonomyIfMissing(db);   // شَجَرَة "listing_categories"
         DbInitializer.SeedAppVersionsIfMissing(db);
 
         // ترحيل صفوف Favorites القديمة من EntityType="ListingEntity" (الكود

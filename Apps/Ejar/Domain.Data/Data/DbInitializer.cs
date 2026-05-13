@@ -156,6 +156,67 @@ public static class DbInitializer
     }
 
     /// <summary>
+    /// بذرة شَجَرَة Taxonomy لِفِئات الإعلانات. يَبني الشَجَرَة الافتِراضِيَّة
+    /// مَن <see cref="EjarSeed.Categories"/>: عُقدَة جَذر لِكُلّ <c>Kind</c>
+    /// (residential/commercial/leisure) ⇒ ابن لِكُلّ category تَحت kindها.
+    /// idempotent: لا يُضيف لَو الجَدول لَيس فارِغاً.
+    /// </summary>
+    public static void SeedTaxonomyIfMissing(EjarDbContext db)
+    {
+        const string root = "listing_categories";
+        if (db.TaxonomyNodes.IgnoreQueryFilters().Any(t => t.RootCode == root)) return;
+
+        var now = DateTime.UtcNow;
+        var kindIds = new Dictionary<string, Guid>(StringComparer.OrdinalIgnoreCase);
+
+        // ① عُقَد المُستَوى الأَوَّل (kinds)
+        var kindLabels = new (string Code, string NameAr, string Icon)[]
+        {
+            ("residential", "سكني",   "home"),
+            ("commercial",  "تجاري",  "briefcase"),
+            ("leisure",     "ترفيهي", "sun"),
+        };
+        var sort = 0;
+        foreach (var k in kindLabels)
+        {
+            var id = Guid.NewGuid();
+            kindIds[k.Code] = id;
+            db.TaxonomyNodes.Add(new TaxonomyNodeEntity
+            {
+                Id = id, CreatedAt = now,
+                RootCode = root,
+                ParentId = null,
+                Code = k.Code,
+                Name = k.Code, NameAr = k.NameAr,
+                Icon = k.Icon,
+                SortOrder = ++sort,
+                IsActive = true,
+            });
+        }
+
+        // ② عُقَد المُستَوى الثاني (فِئات فِعلِيَّة) — مُلصَقَة بِـ kind المُناسِب.
+        // الـ <c>Code</c> = slug القائِم (apartment/villa/…) لِيَتَطابَق مَع
+        // <c>IListing.PropertyType</c> الحالي بِلا migration بَيانات.
+        sort = 0;
+        foreach (var c in Ejar.Domain.EjarSeed.Categories)
+        {
+            kindIds.TryGetValue(c.Kind, out var pid);
+            db.TaxonomyNodes.Add(new TaxonomyNodeEntity
+            {
+                Id = Guid.NewGuid(), CreatedAt = now,
+                RootCode = root,
+                ParentId = pid == Guid.Empty ? null : pid,
+                Code = c.Id,
+                Name = c.Id, NameAr = c.Label,
+                Icon = c.Emoji,                // إيموجي صَريح — الواجِهَة تَستَخدِمه كَأَيقونَة
+                SortOrder = ++sort,
+                IsActive = true,
+            });
+        }
+        db.SaveChanges();
+    }
+
+    /// <summary>
     /// بذرة إضافيّة idempotent لإصدارات التطبيق. تعمل عند كلّ بدء تشغيل لتغطّي
     /// قواعد البيانات القديمة. تضيف فقط <c>(platform, "1.0.0")</c> غير الموجودة.
     /// تستدعي <see cref="EnsureAppVersionsTable"/> أوّلاً لضمان وجود الجدول
