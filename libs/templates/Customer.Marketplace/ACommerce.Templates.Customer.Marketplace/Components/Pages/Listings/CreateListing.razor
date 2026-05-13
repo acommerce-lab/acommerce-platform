@@ -79,9 +79,11 @@
                         </button>
                     }
                 </div>
-                <AcButton Variant="primary" Class="ac-btn-block" Text="@(L[TemplateStrings.CommonNext])"
-                          OnClick="@GoToStep2"
-                          Disabled="@(string.IsNullOrEmpty(Draft.CategoryId))" />
+                <div style="margin-top:24px;">
+                    <AcButton Variant="primary" Class="ac-btn-block" Text="@(L[TemplateStrings.CommonNext])"
+                              OnClick="@GoToStep2"
+                              Disabled="@(string.IsNullOrEmpty(Draft.CategoryId))" />
+                </div>
             </ChildContent>
         </AcCard>
     }
@@ -134,8 +136,11 @@
 
                 @* قِسم "المَرافِق والخَصائِص" الثابِت أُزيل: المَرافِق
                    الآن سَمَة ديناميكِيَّة تَأتي مَن قالَب الفِئَة (إن
-                   عُرِّفَت). لا داعي لِقِسم مُكَرَّر فارِغ هُنا. *@
-                <div style="display:flex; gap:8px;">
+                   عُرِّفَت). لا داعي لِقِسم مُكَرَّر فارِغ هُنا.
+
+                   <c>margin-top:24px</c> لِفَصل أَزرار التَنَقُّل عَن
+                   آخِر حَقل في النَموذَج (كانَت مُلتَصِقَة). *@
+                <div style="display:flex; gap:8px; margin-top:24px;">
                     <AcButton Variant="ghost" Text="@(L[TemplateStrings.CommonBack])" OnClick="@(() => _step = 1)" />
                     <AcButton Variant="primary" Class="ac-btn-block" Text="@(L[TemplateStrings.CommonNext])"
                               OnClick="@(() => _step = 3)"
@@ -193,7 +198,7 @@
                     <AcAlert Variant="danger" Message="@_imgError" />
                 }
 
-                <div style="display:flex; gap:8px; margin-top:12px;">
+                <div style="display:flex; gap:8px; margin-top:24px;">
                     <AcButton Variant="ghost" Text="@(L[TemplateStrings.CommonBack])" OnClick="@(() => _step = 2)" />
                     @* الصور أصبحت اختياريّة — زرّ L[TemplateStrings.CommonNext] مفتوح حتّى بصفر صور.
                        نُظهر "تخطّي الصور" عند صفر للوضوح. *@
@@ -236,7 +241,7 @@
                 {
                     <AcAlert Variant="danger" Message="@_publishError" />
                 }
-                <div style="display:flex; gap:8px; margin-top:12px;">
+                <div style="display:flex; gap:8px; margin-top:24px;">
                     <AcButton Variant="ghost" Text="@(L[TemplateStrings.CommonBack])" OnClick="@(() => _step = 3)" Disabled="@_publishing" />
                     <AcButton Variant="primary" Class="ac-btn-block"
                               Text="@(_publishing ? L[TemplateStrings.CreatelistingPublishing] : L[TemplateStrings.CreatelistingPublish])"

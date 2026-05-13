@@ -247,8 +247,13 @@ public static class AshareV3Bootstrap
         try
         {
             var sentinelCat = V3ProfileAttributes.CategoryId;
+            // EF query: نُجَسِّد الـ codes إلى array قَبل الـ Where —
+            // <c>Defaults.Select(...).Contains</c> داخِل الـ tree قَد لا
+            // يُتَرجَم بِشَكل مَوثوق (يَفشَل بِصَمت في بَعض الـ EF runtimes)
+            // ⇒ الـ defs الجَديدَة لا تُلتَقَط ⇒ Seed لا يُنشِئ شَيئاً.
+            var defaultCodes = V3ProfileAttributes.Defaults.Select(x => x.Code).ToArray();
             var existing = await db.AttributeDefinitions.AsNoTracking()
-                .Where(d => V3ProfileAttributes.Defaults.Select(x => x.Code).Contains(d.Code))
+                .Where(d => defaultCodes.Contains(d.Code))
                 .ToDictionaryAsync(d => d.Code, d => d.Id, ct);
 
             var now = DateTime.UtcNow;
@@ -299,12 +304,17 @@ public static class AshareV3Bootstrap
             if (newDefs.Count > 0) db.AttributeDefinitions.AddRange(newDefs);
             if (newMaps.Count > 0) db.CategoryAttributeMappings.AddRange(newMaps);
             if (newDefs.Count + newMaps.Count > 0)
-            {
                 await db.SaveChangesAsync(ct);
-                logger?.LogInformation(
-                    "Ashare V3: profile attribute seed → +{Defs} defs, +{Maps} mappings",
-                    newDefs.Count, newMaps.Count);
-            }
+
+            // مُلَخَّص حالَة الـ seed لِلتَشخيص — العَدَد النِهائي لِـ mappings
+            // عَلى sentinel scope هو ما يَستَخدِمه <c>BuildForScopeAsync</c>
+            // لِبِناء قالَب الـ Profile. صِفر هُنا = صَفحَة /profile/edit
+            // تَقول "لا سِمات".
+            var finalMappingCount = await db.CategoryAttributeMappings
+                .CountAsync(m => m.CategoryId == sentinelCat && m.IsActive, ct);
+            logger?.LogInformation(
+                "Ashare V3: profile attribute seed → +{Defs} defs, +{Maps} mappings; total active mappings on profile scope = {Total}",
+                newDefs.Count, newMaps.Count, finalMappingCount);
         }
         catch (Exception ex)
         {

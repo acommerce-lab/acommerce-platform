@@ -98,30 +98,21 @@
         </AcCard>
 
         @* سِمات البروفايل الديناميكِيَّة (BusinessName/Type/Address/…)
-           تَأتي مَن قالَب نِطاق Profile + قِيَمها مَن AttributesJson. *@
-        <AcCard>
-            <ChildContent>
-                <h4 style="margin-top:0;">@(L[TemplateStrings.ListingAttributes])</h4>
-                @if (_attrTemplate is { Fields.Count: > 0 })
-                {
+           تَأتي مَن قالَب نِطاق Profile + قِيَمها مَن AttributesJson.
+           لَو الـ backend فارِغ، <see cref="BuildFallbackTemplate"/>
+           يَضمَن ظُهور المُحَرِّر. *@
+        @if (_attrTemplate is { Fields.Count: > 0 })
+        {
+            <AcCard>
+                <ChildContent>
+                    <h4 style="margin-top:0;">@(L[TemplateStrings.ListingAttributes])</h4>
                     <AcAttrEditor Template="_attrTemplate"
                                   Values="_attrValues"
                                   ValuesChanged="@(v => _attrValues = v)"
                                   IsArabic="true" />
-                }
-                else
-                {
-                    <div class="text-muted small">
-                        @* رِسالَة تَشخيصِيَّة: لَو فارِغ، الـ Bootstrap
-                           لَم يَزرَع AttributeDefinitions/CategoryAttributeMappings
-                           تَحت sentinel scope <c>00000000-0000-0000-0000-000000000F01</c>.
-                           تَحَقُّق: أَعِد تَشغيل V3 API لِتَنفيذ
-                           <c>SeedProfileAttributesAsync</c>. *@
-                        — لا سِمات إضافِيَّة لِبروفايلك بَعد —
-                    </div>
-                }
-            </ChildContent>
-        </AcCard>
+                </ChildContent>
+            </AcCard>
+        }
 
 
         @if (!string.IsNullOrEmpty(_alert))
@@ -172,8 +163,11 @@
     }
 
     /// <summary>
-    /// يَجلِب قالَب Profile الديناميكي + قِيَمه الحالِيَّة. الفَشَل
-    /// (لا endpoint، أَو لا قالَب) يُخفي القِسم بِلا ضَوضاء.
+    /// يَجلِب قالَب Profile الديناميكي + قِيَمه الحالِيَّة. لَو الـ backend
+    /// لَم يَزرَع التَعريفات بَعد (سَطر "لا سِمات إِضافِيَّة" الَّذي كانَ
+    /// يَظهَر)، نَستَخدِم <see cref="BuildFallbackTemplate"/> ثابِت لَيس
+    /// يَعتَمِد عَلى DB ⇒ المُحَرِّر يَظهَر دائِماً + الحَفظ يَكتُب
+    /// AttributesJson مُباشَرَةً.
     /// </summary>
     private async Task LoadAttrsAsync()
     {
@@ -182,7 +176,7 @@
             var http = HttpFactory.CreateClient("ejar");
             var tplEnv = await http.GetFromJsonAsync<OperationEnvelope<AttributeTemplate>>(
                 $"dynamic-attributes/templates/{ProfileScopeId}");
-            _attrTemplate = tplEnv?.Data is { Fields.Count: > 0 } t ? t : null;
+            _attrTemplate = tplEnv?.Data is { Fields.Count: > 0 } t ? t : BuildFallbackTemplate();
 
             var snapEnv = await http.GetFromJsonAsync<OperationEnvelope<List<DynamicAttribute>>>(
                 "profile/me/attributes");
@@ -194,9 +188,31 @@
         }
         catch
         {
-            _attrTemplate = null;
+            _attrTemplate = BuildFallbackTemplate();
         }
     }
+
+    /// <summary>
+    /// قالَب احتِياطي مَحَلّي — يُستَخدَم لَو الـ backend لَم يَزرَع
+    /// AttributeDefinitions بَعد. مُطابِق لِـ V3ProfileAttributes.Defaults
+    /// (نُكَرِّر هُنا بِدَل اعتِماد frontend عَلى backend struct) لِيَبقى
+    /// المُحَرِّر مَرئيّاً دائِماً.
+    /// </summary>
+    private static AttributeTemplate BuildFallbackTemplate() => new()
+    {
+        Fields = new()
+        {
+            new() { Key = "BusinessName", Label = "اسم النشاط التجاري", LabelAr = "اسم النشاط التجاري", Type = "text",   SortOrder = 1 },
+            new() { Key = "Type",         Label = "نوع الحساب",         LabelAr = "نوع الحساب",         Type = "number", SortOrder = 2 },
+            new() { Key = "IsActive",     Label = "نَشِط",              LabelAr = "نَشِط",              Type = "bool",   SortOrder = 3 },
+            new() { Key = "IsVerified",   Label = "مُوَثَّق (نَفاذ)",   LabelAr = "مُوَثَّق (نَفاذ)",   Type = "bool",   SortOrder = 4 },
+            new() { Key = "VerifiedAt",   Label = "تاريخ التَوثيق",     LabelAr = "تاريخ التَوثيق",     Type = "date",   SortOrder = 5 },
+            new() { Key = "Address",      Label = "العنوان",            LabelAr = "العنوان",            Type = "text",   SortOrder = 6 },
+            new() { Key = "Country",      Label = "الدولة",             LabelAr = "الدولة",             Type = "text",   SortOrder = 7 },
+            new() { Key = "PostalCode",   Label = "الرمز البريدي",      LabelAr = "الرمز البريدي",      Type = "text",   SortOrder = 8 },
+            new() { Key = "Coordinates",  Label = "الإحداثيات",         LabelAr = "الإحداثيات",         Type = "text",   SortOrder = 9 },
+        }
+    };
 
     private async Task OnAvatarPicked(InputFileChangeEventArgs e)
     {
