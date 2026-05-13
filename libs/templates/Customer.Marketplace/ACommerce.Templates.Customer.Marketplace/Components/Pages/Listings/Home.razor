@@ -104,6 +104,12 @@
         var tree = await Taxonomy.GetTreeAsync("listing_categories");
         _taxonomyHasNodes = tree.Count > 0;
 
+        // إخفاء قِسم الفِئات الافتِراضي في <c>AcMarketplaceHomePage</c> لَو
+        // الشَجَرَة مَوجودَة: قِسمان بِنَفس العُنوان "فِئات" تَكرار مُزعِج.
+        // نُفَرِّغ Categories ⇒ المُكَوِّن يُخفي القِسم تِلقائيّاً.
+        if (_taxonomyHasNodes && _data is not null)
+            _data = _data with { Categories = Array.Empty<CategoryTileDto>() };
+
         await InvokeAsync(StateHasChanged);
     }
 
