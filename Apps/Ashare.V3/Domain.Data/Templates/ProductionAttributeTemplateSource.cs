@@ -171,10 +171,10 @@ public sealed class ProductionAttributeTemplateSource : IAttributeTemplateSource
         {
             Value   = v.Value,
             Label   = v.DisplayName ?? v.Value,
-            // LabelAr: قاموس <c>V3AttributeValueTranslations</c> أَوَّلاً
-            // (يُحَوِّل <c>"first"</c> ⇒ <c>"الأَوَّل"</c>, <c>"yes"</c> ⇒
-            // <c>"نَعَم"</c>...)، fallback إلى DisplayName الإنتاجي.
-            LabelAr = V3AttributeValueTranslations.TryTranslate(defCode, v.Value)
+            // LabelAr: قاموس <c>V3AttributeValueTranslations</c> يُجَرِّب
+            // Value أَوَّلاً ثُمّ DisplayName ⇒ يَلتَقِط حالَة Value="3rd" مَع
+            // DisplayName="third"؛ fallback إلى DisplayName الإنتاجي.
+            LabelAr = V3AttributeValueTranslations.TryTranslate(defCode, v.Value, v.DisplayName)
                       ?? v.DisplayName ?? v.Value,
         }).ToList();
     }

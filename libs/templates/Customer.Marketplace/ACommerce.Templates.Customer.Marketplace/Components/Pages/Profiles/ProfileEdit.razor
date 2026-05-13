@@ -97,22 +97,32 @@
             </ChildContent>
         </AcCard>
 
-        @* سِمات البروفايل الديناميكِيَّة (Address/Country/PostalCode/…)
-           تَأتي مَن قالَب نِطاق Profile في الكيت + قِيَمها مَن
-           <c>Profile.AttributesJson</c>. التَّحرير يَجري هُنا، الحَفظ
-           يَمُرّ عَبر <c>IProfileStore.UpdateAsync(next, attributes)</c>. *@
-        @if (_attrTemplate is { Fields.Count: > 0 })
-        {
-            <AcCard>
-                <ChildContent>
-                    <h4 style="margin-top:0;">@(L[TemplateStrings.ListingAttributes])</h4>
+        @* سِمات البروفايل الديناميكِيَّة (BusinessName/Type/Address/…)
+           تَأتي مَن قالَب نِطاق Profile + قِيَمها مَن AttributesJson. *@
+        <AcCard>
+            <ChildContent>
+                <h4 style="margin-top:0;">@(L[TemplateStrings.ListingAttributes])</h4>
+                @if (_attrTemplate is { Fields.Count: > 0 })
+                {
                     <AcAttrEditor Template="_attrTemplate"
                                   Values="_attrValues"
                                   ValuesChanged="@(v => _attrValues = v)"
                                   IsArabic="true" />
-                </ChildContent>
-            </AcCard>
-        }
+                }
+                else
+                {
+                    <div class="text-muted small">
+                        @* رِسالَة تَشخيصِيَّة: لَو فارِغ، الـ Bootstrap
+                           لَم يَزرَع AttributeDefinitions/CategoryAttributeMappings
+                           تَحت sentinel scope <c>00000000-0000-0000-0000-000000000F01</c>.
+                           تَحَقُّق: أَعِد تَشغيل V3 API لِتَنفيذ
+                           <c>SeedProfileAttributesAsync</c>. *@
+                        — لا سِمات إضافِيَّة لِبروفايلك بَعد —
+                    </div>
+                }
+            </ChildContent>
+        </AcCard>
+
 
         @if (!string.IsNullOrEmpty(_alert))
         {

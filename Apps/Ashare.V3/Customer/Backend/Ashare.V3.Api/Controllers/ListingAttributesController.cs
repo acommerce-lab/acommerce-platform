@@ -1,6 +1,7 @@
 using ACommerce.Kits.DynamicAttributes.Backend;
 using ACommerce.OperationEngine.Wire.Http;
 using Ashare.V3.Data;
+using Ashare.V3.Data.Templates;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -30,6 +31,7 @@ public sealed class ListingAttributesController : ControllerBase
         if (listing is null) return this.NotFoundEnvelope("listing_not_found");
 
         var snapshot = await AttributeSnapshotBuilder.BuildForAsync(_source, listing, ct);
-        return this.OkEnvelope("dynamic_attrs.snapshot.get", snapshot);
+        var withArabic = V3SnapshotPostProcessor.ApplyArabicLabels(snapshot.ToList());
+        return this.OkEnvelope("dynamic_attrs.snapshot.get", withArabic);
     }
 }

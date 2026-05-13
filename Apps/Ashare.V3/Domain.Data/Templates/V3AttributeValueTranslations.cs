@@ -18,16 +18,31 @@ namespace Ashare.V3.Data.Templates;
 /// الـ <see cref="ProductionAttributeTemplateSource.Normalize"/>
 /// (<c>"property_type"</c> ⇒ <c>"propertytype"</c>).</para>
 /// </summary>
-internal static class V3AttributeValueTranslations
+public static class V3AttributeValueTranslations
 {
-    public static string? TryTranslate(string defCode, string value)
+    /// <summary>يُجَرِّب التَرجَمَة لِأَيّ مَن القِيَم المُمَرَّرَة بِالتَّرتيب
+    /// (Value أَوَّلاً ثُمّ DisplayName). يَعود null إن لَم يَتَطابَق شَيء.</summary>
+    public static string? TryTranslate(string defCode, params string?[] values)
     {
         var nDef = Normalize(defCode);
-        var nVal = Normalize(value);
-        if (_byDef.TryGetValue(nDef, out var defMap) && defMap.TryGetValue(nVal, out var ar))
-            return ar;
-        // fallback: قِيَم عامَّة (yes/no) لا تَنتَمي لِـ def مُعَيَّن.
-        return _common.TryGetValue(nVal, out var commonAr) ? commonAr : null;
+        if (!_byDef.TryGetValue(nDef, out var defMap))
+        {
+            // لا قاموس مُخَصَّص لِهذا الـ def — جَرِّب القاموس العامّ.
+            foreach (var v in values)
+            {
+                if (string.IsNullOrWhiteSpace(v)) continue;
+                if (_common.TryGetValue(Normalize(v), out var commonAr)) return commonAr;
+            }
+            return null;
+        }
+        foreach (var v in values)
+        {
+            if (string.IsNullOrWhiteSpace(v)) continue;
+            var nVal = Normalize(v);
+            if (defMap.TryGetValue(nVal, out var ar)) return ar;
+            if (_common.TryGetValue(nVal, out var commonAr)) return commonAr;
+        }
+        return null;
     }
 
     private static string Normalize(string s)

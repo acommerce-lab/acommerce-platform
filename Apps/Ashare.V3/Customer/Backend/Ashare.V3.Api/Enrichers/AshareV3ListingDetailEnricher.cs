@@ -114,8 +114,10 @@ public sealed class AshareV3ListingDetailEnricher : IListingDetailEnricher
         if (template is null || template.Fields.Count == 0)
             return RawSnapshot(rawValues);
 
-        // ④ Template + values ⇒ snapshot كامِل عَبر الـ helper.
-        return DynamicAttributeHelper.BuildSnapshot(template, rawValues);
+        // ④ Template + values ⇒ snapshot + خُطوَة تَرجَمَة احتِياطِيَّة لِسَمات
+        // الـ select/multi/bool الَّتي لَم يَتَطابَق Value-ها مَع Options.
+        var snapshot = DynamicAttributeHelper.BuildSnapshot(template, rawValues);
+        return V3SnapshotPostProcessor.ApplyArabicLabels(snapshot);
     }
 
     /// <summary>

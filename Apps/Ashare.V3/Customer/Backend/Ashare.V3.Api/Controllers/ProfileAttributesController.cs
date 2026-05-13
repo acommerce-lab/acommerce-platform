@@ -1,6 +1,7 @@
 using ACommerce.Kits.DynamicAttributes.Backend;
 using ACommerce.OperationEngine.Wire.Http;
 using Ashare.V3.Data;
+using Ashare.V3.Data.Templates;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -43,6 +44,7 @@ public sealed class ProfileAttributesController : ControllerBase
         if (profile is null) return this.NotFoundEnvelope("profile_not_found");
 
         var snapshot = await AttributeSnapshotBuilder.BuildForAsync(_source, profile, ct);
-        return this.OkEnvelope("dynamic_attrs.snapshot.get", snapshot);
+        var withArabic = V3SnapshotPostProcessor.ApplyArabicLabels(snapshot.ToList());
+        return this.OkEnvelope("dynamic_attrs.snapshot.get", withArabic);
     }
 }
