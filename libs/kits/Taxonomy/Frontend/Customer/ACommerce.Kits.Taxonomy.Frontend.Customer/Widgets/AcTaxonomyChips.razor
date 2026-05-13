@@ -1,0 +1,121 @@
+@* عَرض أَفقي لِشَجَرَة الأَنواع — أَخَفّ في الارتِفاع مَن
+   <c>AcTaxonomyTreeSelect</c>. صَفّان:
+
+   <list type="number">
+     <item>صَفّ kinds (الجُذور): chips أَفقيّة قابِلَة لِلتَّمرير.</item>
+     <item>صَفّ children: يَظهَر تَحت الـ kind المُختار + يَحوي
+           leaves الـ kind.</item>
+   </list>
+
+   اختيار leaf يُطلِق <see cref="SelectedChanged"/> بِالـ slug.
+   اختيار kind فَقَط يَفتَح الصَّفّ الثاني (لا يُطلِق Changed إلا لَو
+   <see cref="AllowKindSelect"/>=true).
+
+   <para>الاستِخدام:</para>
+   <code>&lt;AcTaxonomyChips RootCode="listing_categories"
+                              Selected="@_categoryId"
+                              SelectedChanged="@OnPick"
+                              IsArabic="true" /&gt;</code> *@
+
+@namespace ACommerce.Kits.Taxonomy.Frontend.Customer.Widgets
+@inject ITaxonomyStore Tax
+
+@if (_loading)
+{
+    <div class="acm-taxo-chips-loading">…</div>
+}
+else
+{
+    var kinds = Tax.GetChildren(RootCode, null);
+    var activeKind = _activeKindId.HasValue
+        ? kinds.FirstOrDefault(k => k.Id == _activeKindId.Value)
+        : null;
+    var leaves = activeKind is null
+        ? Array.Empty<ITaxonomyNode>()
+        : Tax.GetChildren(RootCode, activeKind.Id);
+
+    <div class="acm-taxo-chips @(Class ?? "")">
+        @* الصَفّ الأَوَّل: kinds *@
+        <div class="acm-taxo-chips-row">
+            @foreach (var k in kinds)
+            {
+                var kind = k;
+                var isActive = _activeKindId == kind.Id ||
+                               (AllowKindSelect && string.Equals(Selected, kind.Code, StringComparison.OrdinalIgnoreCase));
+                <button type="button"
+                        class="acm-taxo-chip @(isActive ? "is-active" : "")"
+                        @onclick="@(() => OnKindClicked(kind))">
+                    @if (!string.IsNullOrEmpty(kind.Icon))
+                    {
+                        <span class="acm-taxo-chip-icon">@kind.Icon</span>
+                    }
+                    <span>@(IsArabic ? (kind.NameAr ?? kind.Name) : kind.Name)</span>
+                </button>
+            }
+        </div>
+
+        @* الصَفّ الثاني: children الـ kind المُختار *@
+        @if (leaves.Count > 0)
+        {
+            <div class="acm-taxo-chips-row acm-taxo-chips-sub">
+                @foreach (var l in leaves)
+                {
+                    var leaf = l;
+                    var isLeaf = string.Equals(Selected, leaf.Code, StringComparison.OrdinalIgnoreCase);
+                    <button type="button"
+                            class="acm-taxo-chip @(isLeaf ? "is-active" : "")"
+                            @onclick="@(() => OnLeafClicked(leaf))">
+                        @if (!string.IsNullOrEmpty(leaf.Icon))
+                        {
+                            <span class="acm-taxo-chip-icon">@leaf.Icon</span>
+                        }
+                        <span>@(IsArabic ? (leaf.NameAr ?? leaf.Name) : leaf.Name)</span>
+                    </button>
+                }
+            </div>
+        }
+    </div>
+}
+
+@code {
+    [Parameter, EditorRequired] public string RootCode { get; set; } = "";
+    [Parameter] public string? Selected { get; set; }
+    [Parameter] public EventCallback<string?> SelectedChanged { get; set; }
+    [Parameter] public bool IsArabic { get; set; } = true;
+    [Parameter] public string? Class { get; set; }
+    /// <summary>لَو true، النَّقر عَلى kind يُطلِق SelectedChanged بِسلق الـ kind
+    /// (مَع فَتح الـ children). افتِراضي false: kind click يَفتَح فَقَط، leaf
+    /// click وَحده يَختار.</summary>
+    [Parameter] public bool AllowKindSelect { get; set; } = false;
+
+    private bool _loading = true;
+    private Guid? _activeKindId;
+
+    protected override async Task OnAfterRenderAsync(bool first)
+    {
+        if (!first) return;
+        await Tax.GetTreeAsync(RootCode);
+
+        // لَو Selected مُمَرَّر، نَفتَح الـ kind الَّذي يَحويه تِلقائيّاً.
+        if (!string.IsNullOrEmpty(Selected))
+        {
+            var path = Tax.GetPath(RootCode, Selected);
+            if (path.Count > 0) _activeKindId = path[0].Id;
+        }
+        _loading = false;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task OnKindClicked(ITaxonomyNode kind)
+    {
+        // toggle: نَفس الـ kind ⇒ يُغلَق؛ kind مُختَلِف ⇒ يُفتَح.
+        _activeKindId = (_activeKindId == kind.Id) ? null : kind.Id;
+        if (AllowKindSelect)
+            await SelectedChanged.InvokeAsync(kind.Code);
+    }
+
+    private async Task OnLeafClicked(ITaxonomyNode leaf)
+    {
+        await SelectedChanged.InvokeAsync(leaf.Code);
+    }
+}

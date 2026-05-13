@@ -13,17 +13,17 @@
 
 <PageTitle>@(L[TemplateStrings.AppName])</PageTitle>
 
-@* شَجَرَة الأَنواع عَلى رَأس الـ Home — drill-down هَرَمي قَبل عَرض الإعلانات.
-   اختيار leaf يَأخُذ المُستَخدِم إلى /explore فَلتَراً بِالـ slug. الـ widget
-   يُخفي نَفسه لَو الـ root غَير مَزروع. *@
+@* شَجَرَة الأَنواع — عَرض أَفقي مُكَثَّف (kinds في صَفّ، children الـ kind
+   المُختار تَحته). يُوَفِّر ارتِفاع كَبير مَقارَنَة بِالـ TreeSelect العَمودي.
+   اختيار leaf ⇒ /explore فَلتَراً بِالـ slug. مَخفي لَو الـ root غَير مَزروع. *@
 @if (_taxonomyHasNodes)
 {
     <AcCard Class="acs-home-taxonomy-card">
         <ChildContent>
-            <h3 style="margin-top:0;">@(L[TemplateStrings.HomeCategoriesTitle])</h3>
-            <AcTaxonomyTreeSelect RootCode="listing_categories"
-                                  SelectedChanged="@OnTaxonomyPicked"
-                                  IsArabic="true" />
+            <h3 style="margin:0 0 8px;">@(L[TemplateStrings.HomeCategoriesTitle])</h3>
+            <AcTaxonomyChips RootCode="listing_categories"
+                             SelectedChanged="@OnTaxonomyPicked"
+                             IsArabic="true" />
         </ChildContent>
     </AcCard>
 }
