@@ -132,17 +132,9 @@
                                   IsArabic="true" />
                 }
 
-                <AcField Label="@(L[TemplateStrings.ListingAmenities])">
-                    <div class="acs-amenity-chips">
-                        @foreach (var a in Discovery.Amenities)
-                        {
-                            var am = a;
-                            <AcFilterChip Label="@am.Label"
-                                          Active="@Draft.Amenities.Contains(am.Key)"
-                                          OnClick="@(() => ToggleAmenity(am.Key))" />
-                        }
-                    </div>
-                </AcField>
+                @* قِسم "المَرافِق والخَصائِص" الثابِت أُزيل: المَرافِق
+                   الآن سَمَة ديناميكِيَّة تَأتي مَن قالَب الفِئَة (إن
+                   عُرِّفَت). لا داعي لِقِسم مُكَرَّر فارِغ هُنا. *@
                 <div style="display:flex; gap:8px;">
                     <AcButton Variant="ghost" Text="@(L[TemplateStrings.CommonBack])" OnClick="@(() => _step = 1)" />
                     <AcButton Variant="primary" Class="ac-btn-block" Text="@(L[TemplateStrings.CommonNext])"
@@ -330,12 +322,6 @@
         _step = 2;
     }
 
-    private void ToggleAmenity(string key)
-    {
-        if (Draft.Amenities.Contains(key)) Draft.Amenities.Remove(key);
-        else                                Draft.Amenities.Add(key);
-        Draft.NotifyChanged();
-    }
 
     private async Task OnImagesPicked(InputFileChangeEventArgs e)
     {

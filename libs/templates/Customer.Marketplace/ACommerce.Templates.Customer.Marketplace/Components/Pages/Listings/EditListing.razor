@@ -86,17 +86,7 @@
                                   IsArabic="true" />
                 }
 
-                <AcField Label="@(L[TemplateStrings.ListingAmenities])">
-                    <div class="acs-amenity-chips">
-                        @foreach (var a in Discovery.Amenities)
-                        {
-                            var am = a;
-                            <AcFilterChip Label="@am.Label"
-                                          Active="@_amenities.Contains(am.Key)"
-                                          OnClick="@(() => ToggleAmenity(am.Key))" />
-                        }
-                    </div>
-                </AcField>
+                @* المَرافِق ⇒ سَمَة ديناميكِيَّة في القالَب أَعلاه. *@
 
                 <AcField Label="@(L[TemplateStrings.ListingCreateFieldCity])">
                     <AcInput Value="@_city" ValueChanged="@(v => _city = v)" />
@@ -209,11 +199,6 @@
         {
             // لا قالَب أَو لا endpoint قِيَم ⇒ نَتَجاهَل بِصَمت.
         }
-    }
-
-    private void ToggleAmenity(string key)
-    {
-        if (!_amenities.Add(key)) _amenities.Remove(key);
     }
 
     private async Task Save()

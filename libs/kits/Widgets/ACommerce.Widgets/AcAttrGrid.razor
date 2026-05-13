@@ -27,8 +27,8 @@
     [Parameter] public List<DynamicAttribute>? Attributes { get; set; }
     [Parameter] public bool IsArabic { get; set; } = true;
     [Parameter] public string? Class { get; set; }
-    [Parameter] public string YesLabel { get; set; } = "Yes";
-    [Parameter] public string NoLabel  { get; set; } = "No";
+    [Parameter] public string YesLabel { get; set; } = "نَعَم";
+    [Parameter] public string NoLabel  { get; set; } = "لا";
 
     private List<DynamicAttribute> Visible =>
         (Attributes ?? new())
@@ -41,7 +41,18 @@
         if (a.Type is "select" or "multi")
             return IsArabic ? (a.DisplayValueAr ?? a.DisplayValue ?? a.Value?.ToString() ?? "") : (a.DisplayValue ?? a.Value?.ToString() ?? "");
         if (a.Type == "bool")
-            return (a.Value is bool b && b) ? YesLabel : NoLabel;
+        {
+            // AttributesJson قَد يَحوي bool أَو string "true"/"false" أَو 1/0
+            var truthy = a.Value switch
+            {
+                bool b      => b,
+                string s    => string.Equals(s, "true", StringComparison.OrdinalIgnoreCase) || s == "1",
+                long l      => l != 0,
+                int i       => i != 0,
+                _           => false,
+            };
+            return truthy ? YesLabel : NoLabel;
+        }
         return a.Value?.ToString() ?? "";
     }
 }
