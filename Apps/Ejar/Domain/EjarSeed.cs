@@ -38,6 +38,7 @@ public static class EjarSeed
     // ── التصنيفات ────────────────────────────────────────────────────────
     public static readonly IReadOnlyList<CategorySeed> Categories = new[]
     {
+        // العَقارات (residential / commercial / leisure)
         new CategorySeed("apartment", "شقة",     "🏢", "residential", new[] { "monthly", "yearly" }),
         new CategorySeed("villa",     "فيلا",     "🏡", "residential", new[] { "monthly", "yearly" }),
         new CategorySeed("office",    "مكتب",    "💼", "commercial",  new[] { "monthly", "yearly" }),
@@ -47,6 +48,21 @@ public static class EjarSeed
         new CategorySeed("studio",    "استوديو",   "🛌", "residential", new[] { "monthly" }),
         new CategorySeed("room",      "غرفة",     "🚪", "residential", new[] { "monthly" }),
         new CategorySeed("hotel_room", "فندقية",   "🏨", "leisure",     new[] { "daily" }),
+
+        // المُناسَبات (events)
+        new CategorySeed("hall",            "صالة أَفراح",     "🎉", "events", new[] { "daily" }),
+        new CategorySeed("wedding_clothes", "ملابس عرسان",     "👰", "events", new[] { "daily" }),
+        new CategorySeed("newborn_items",   "تَجهيزات مَواليد", "👶", "events", new[] { "daily" }),
+        new CategorySeed("kosha",           "كوشة",           "💐", "events", new[] { "daily" }),
+
+        // المَركَبات (vehicles)
+        new CategorySeed("car",         "سَيّارَة",      "🚗", "vehicles", new[] { "daily", "monthly" }),
+        new CategorySeed("bus",         "باص",         "🚌", "vehicles", new[] { "daily", "monthly" }),
+        new CategorySeed("motorcycle",  "درّاجَة ناريّة", "🏍️", "vehicles", new[] { "daily", "monthly" }),
+        new CategorySeed("pickup",      "دَينا",        "🛻", "vehicles", new[] { "daily" }),
+
+        // الرَّحَلات (outdoor)
+        new CategorySeed("camp",        "مُخَيَّم",      "⛺", "outdoor",  new[] { "daily" }),
     };
 
     // ── المزايا (Amenities) ──────────────────────────────────────────────

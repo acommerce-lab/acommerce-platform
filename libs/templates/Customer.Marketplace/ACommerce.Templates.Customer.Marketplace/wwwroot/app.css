@@ -706,6 +706,30 @@ main {
     background: rgba(0,0,0,0.32);
 }
 
+/* فاصِل تاريخ بَين الرَسائِل اليَومِيَّة. خَطّان أُفُقِيّان يَكتَنِفان
+   نَصّ التاريخ في الوَسَط. */
+.acs-chat-day-sep {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 12px 4px;
+    color: var(--ac-text-muted, #888);
+    font-size: 12px;
+}
+.acs-chat-day-sep::before,
+.acs-chat-day-sep::after {
+    content: "";
+    flex: 1 1 auto;
+    height: 1px;
+    background: rgba(0,0,0,.08);
+}
+.acs-chat-day-sep span {
+    padding: 2px 10px;
+    background: rgba(0,0,0,.03);
+    border-radius: 10px;
+    white-space: nowrap;
+}
+
 @media (min-width: 768px) {
     /* على الديسكتوب: bottom-nav مخفيّ، ولا يوجد top-nav الموبايل (ثابت 56px).
        نعتمد height: 100dvh ونطرح ارتفاع التوب-نف فقط. */

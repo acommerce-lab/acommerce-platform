@@ -41,15 +41,24 @@
         </div>
 
         <div class="acs-chat-messages" id="acs-chat-msgs">
+            @{ DateTime? _lastDay = null; }
             @foreach (var m in _messages)
             {
-                var mine = IsMine(m);
+                var mine    = IsMine(m);
+                var localAt = m.SentAt.ToLocalTime();
+                var day     = localAt.Date;
+                if (_lastDay is null || _lastDay.Value != day)
+                {
+                    @* فاصِل تاريخ بَين الرَسائِل الَّتي تَنتَمي لِأَيّام مُختَلِفَة. *@
+                    <div class="acs-chat-day-sep"><span>@FormatDayHeader(day)</span></div>
+                    _lastDay = day;
+                }
                 <div class="acs-bubble @(mine ? "acs-bubble-mine" : "acs-bubble-other")">
                     @if (!string.IsNullOrEmpty(m.Body))
                     {
                         <div>@m.Body</div>
                     }
-                    <small style="display:block; opacity:.6;">@m.SentAt.ToLocalTime().ToString("HH:mm")</small>
+                    <small style="display:block; opacity:.6;">@localAt.ToString("HH:mm")</small>
                 </div>
             }
         </div>
@@ -249,4 +258,28 @@
     private sealed record MessageDto(
         string Id, string ConversationId, string SenderPartyId,
         string Body, DateTime SentAt, DateTime? ReadAt) : IChatMessage;
+
+    /// <summary>
+    /// عُنوان فاصِل اليَوم بَين الرَسائِل. اليَوم/أَمس بِالعَرَبي + تاريخ كامِل
+    /// لِما تَجاوَزَ اليَومَين. <see cref="DateTime.Today"/> يَستَخدِم الـ
+    /// local time لِيَتَطابَق مَع <c>ToLocalTime()</c> أَعلاه.
+    /// </summary>
+    private string FormatDayHeader(DateTime day)
+    {
+        var today = DateTime.Now.Date;
+        if (day == today)                 return L[TemplateStrings.CommonToday];
+        if (day == today.AddDays(-1))     return L[TemplateStrings.CommonYesterday];
+        // التَّنسيق المُفَضَّل بِالعَرَبي: "الأَحَد ١٢ مايو ٢٠٢٦" — نَستَخدِم
+        // ar-SA culture لِيَتَكَفَّل بِالـ day-name + month-name. لَو لَم تَكُن
+        // مَدعومَة في runtime، نَعود لِـ yyyy-MM-dd.
+        try
+        {
+            var ar = new System.Globalization.CultureInfo("ar-SA");
+            return day.ToString("dddd، d MMMM yyyy", ar);
+        }
+        catch
+        {
+            return day.ToString("yyyy-MM-dd");
+        }
+    }
 }

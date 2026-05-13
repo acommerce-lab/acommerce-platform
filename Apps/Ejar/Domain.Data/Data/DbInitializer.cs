@@ -124,13 +124,17 @@ public static class DbInitializer
     {
         var addedAny = false;
 
-        if (!db.DiscoveryCategories.Any())
+        // per-slug check يَسمَح بِإضافَة فِئات جَديدَة (events/vehicles/outdoor)
+        // عَلى قاعِدَة بَيانات قائِمَة بِلا wipe.
+        var existingSlugs = db.DiscoveryCategories.IgnoreQueryFilters()
+            .Select(c => c.Slug).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        foreach (var c in EjarSeed.Categories)
         {
-            foreach (var c in EjarSeed.Categories)
-                db.DiscoveryCategories.Add(new ACommerce.Kits.Discovery.Domain.DiscoveryCategory {
-                    Slug = c.Id, Label = c.Label, Icon = c.Emoji, Kind = c.Kind,
-                    CreatedAt = DateTime.UtcNow,
-                });
+            if (existingSlugs.Contains(c.Id)) continue;
+            db.DiscoveryCategories.Add(new ACommerce.Kits.Discovery.Domain.DiscoveryCategory {
+                Slug = c.Id, Label = c.Label, Icon = c.Emoji, Kind = c.Kind,
+                CreatedAt = DateTime.UtcNow,
+            });
             addedAny = true;
         }
 
@@ -156,63 +160,82 @@ public static class DbInitializer
     }
 
     /// <summary>
-    /// بذرة شَجَرَة Taxonomy لِفِئات الإعلانات. يَبني الشَجَرَة الافتِراضِيَّة
-    /// مَن <see cref="EjarSeed.Categories"/>: عُقدَة جَذر لِكُلّ <c>Kind</c>
-    /// (residential/commercial/leisure) ⇒ ابن لِكُلّ category تَحت kindها.
-    /// idempotent: لا يُضيف لَو الجَدول لَيس فارِغاً.
+    /// بذرة شَجَرَة Taxonomy لِفِئات الإعلانات (root="listing_categories").
+    /// يَبني هَيكَل مُسَتَوَيَين: kinds (residential/commercial/leisure/events/
+    /// vehicles/outdoor) عَلى المُستَوى الأَوَّل، ثُمّ كُلّ category مَن
+    /// <see cref="EjarSeed.Categories"/> تَحت kindها.
+    ///
+    /// <para><b>Idempotent بِالكامِل</b>: يَفحَص كُلّ عُقدَة بِـ
+    /// <c>(RootCode, Code)</c> ⇒ يُضيف فَقَط ما هو غَير مَوجود. هَذا يَسمَح
+    /// بِتَوسيع الشَجَرَة في إصدارات لاحِقَة (إضافَة kinds/categories
+    /// جَديدَة) بِلا إعادَة seed كامِلَة أَو wipe.</para>
     /// </summary>
     public static void SeedTaxonomyIfMissing(EjarDbContext db)
     {
         const string root = "listing_categories";
-        if (db.TaxonomyNodes.IgnoreQueryFilters().Any(t => t.RootCode == root)) return;
+
+        // كُلّ المَوجود حاليّاً ضِمن هذا الـ root — مَفهرَس بِالـ Code لِفَحص
+        // سَريع per-node.
+        var existing = db.TaxonomyNodes.IgnoreQueryFilters()
+            .Where(t => t.RootCode == root)
+            .Select(t => new { t.Id, t.Code })
+            .ToDictionary(t => t.Code, t => t.Id, StringComparer.OrdinalIgnoreCase);
 
         var now = DateTime.UtcNow;
-        var kindIds = new Dictionary<string, Guid>(StringComparer.OrdinalIgnoreCase);
 
-        // ① عُقَد المُستَوى الأَوَّل (kinds)
-        var kindLabels = new (string Code, string NameAr, string Icon)[]
+        // ① عُقَد المُستَوى الأَوَّل (kinds). الـ tuple يَحوي SortOrder صَريح
+        // لِيَبقى التَّرتيب ثابِتاً بَين الـ seeders.
+        var kinds = new (string Code, string NameAr, string Icon, int Sort)[]
         {
-            ("residential", "سكني",   "home"),
-            ("commercial",  "تجاري",  "briefcase"),
-            ("leisure",     "ترفيهي", "sun"),
+            ("residential", "سكني",     "home",       1),
+            ("commercial",  "تجاري",    "briefcase",  2),
+            ("leisure",     "ترفيهي",   "sun",        3),
+            ("events",      "مناسبات",  "gift",       4),
+            ("vehicles",    "مركبات",   "truck",      5),
+            ("outdoor",     "رحلات",    "umbrella",   6),
         };
-        var sort = 0;
-        foreach (var k in kindLabels)
+        var kindIds = new Dictionary<string, Guid>(StringComparer.OrdinalIgnoreCase);
+        var newNodes = new List<TaxonomyNodeEntity>();
+
+        foreach (var k in kinds)
         {
+            if (existing.TryGetValue(k.Code, out var existingId))
+            {
+                kindIds[k.Code] = existingId;   // مَوجود سَلَفاً
+                continue;
+            }
             var id = Guid.NewGuid();
             kindIds[k.Code] = id;
-            db.TaxonomyNodes.Add(new TaxonomyNodeEntity
+            newNodes.Add(new TaxonomyNodeEntity
             {
                 Id = id, CreatedAt = now,
-                RootCode = root,
-                ParentId = null,
-                Code = k.Code,
-                Name = k.Code, NameAr = k.NameAr,
-                Icon = k.Icon,
-                SortOrder = ++sort,
-                IsActive = true,
+                RootCode = root, ParentId = null,
+                Code = k.Code, Name = k.Code, NameAr = k.NameAr,
+                Icon = k.Icon, SortOrder = k.Sort, IsActive = true,
             });
         }
 
-        // ② عُقَد المُستَوى الثاني (فِئات فِعلِيَّة) — مُلصَقَة بِـ kind المُناسِب.
-        // الـ <c>Code</c> = slug القائِم (apartment/villa/…) لِيَتَطابَق مَع
-        // <c>IListing.PropertyType</c> الحالي بِلا migration بَيانات.
-        sort = 0;
+        // ② عُقَد المُستَوى الثاني (الفِئات الفِعلِيَّة). slug = Code لِيُطابِق
+        // <c>IListing.PropertyType</c> الحالي ⇒ لا migration بَيانات.
+        var sort = 0;
         foreach (var c in Ejar.Domain.EjarSeed.Categories)
         {
+            sort++;
+            if (existing.ContainsKey(c.Id)) continue;   // مَوجود سَلَفاً
             kindIds.TryGetValue(c.Kind, out var pid);
-            db.TaxonomyNodes.Add(new TaxonomyNodeEntity
+            newNodes.Add(new TaxonomyNodeEntity
             {
                 Id = Guid.NewGuid(), CreatedAt = now,
                 RootCode = root,
                 ParentId = pid == Guid.Empty ? null : pid,
-                Code = c.Id,
-                Name = c.Id, NameAr = c.Label,
-                Icon = c.Emoji,                // إيموجي صَريح — الواجِهَة تَستَخدِمه كَأَيقونَة
-                SortOrder = ++sort,
-                IsActive = true,
+                Code = c.Id, Name = c.Id, NameAr = c.Label,
+                Icon = c.Emoji,           // إيموجي مُباشَر — الواجِهَة تَستَخدِمه
+                SortOrder = sort, IsActive = true,
             });
         }
+
+        if (newNodes.Count == 0) return;
+        db.TaxonomyNodes.AddRange(newNodes);
         db.SaveChanges();
     }
 

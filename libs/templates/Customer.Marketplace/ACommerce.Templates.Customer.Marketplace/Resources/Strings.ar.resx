@@ -10,6 +10,8 @@
   <data name="common.search" xml:space="preserve"><value>بحث</value></data>
   <data name="common.cancel" xml:space="preserve"><value>إلغاء</value></data>
   <data name="common.save" xml:space="preserve"><value>حفظ</value></data>
+  <data name="common.today" xml:space="preserve"><value>اليوم</value></data>
+  <data name="common.yesterday" xml:space="preserve"><value>أمس</value></data>
   <data name="common.submit" xml:space="preserve"><value>تأكيد</value></data>
   <data name="common.retry" xml:space="preserve"><value>إعادة المحاولة</value></data>
   <data name="common.close" xml:space="preserve"><value>إغلاق</value></data>

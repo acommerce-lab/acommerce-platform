@@ -10,6 +10,8 @@
   <data name="common.search" xml:space="preserve"><value>Search</value></data>
   <data name="common.cancel" xml:space="preserve"><value>Cancel</value></data>
   <data name="common.save" xml:space="preserve"><value>Save</value></data>
+  <data name="common.today" xml:space="preserve"><value>Today</value></data>
+  <data name="common.yesterday" xml:space="preserve"><value>Yesterday</value></data>
   <data name="common.submit" xml:space="preserve"><value>Submit</value></data>
   <data name="common.retry" xml:space="preserve"><value>Retry</value></data>
   <data name="common.close" xml:space="preserve"><value>Close</value></data>
