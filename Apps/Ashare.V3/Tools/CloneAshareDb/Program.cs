@@ -7,17 +7,22 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 using System.Text.Json;
 
 // ════════════════════════════════════════════════════════════════════════
-// CloneAshareDb — يَستَنسِخ asharedb الإنتاجِيَّة (SQL Server) إلى SQLite
-// مَحَلّيّ. streaming + COUNT-first + per-table try/catch.
+// CloneAshareDb — يَستَنسِخ asharedb الإنتاجِيَّة (SQL Server) إلى هَدَف
+// آخَر (SQLite مَحَلِّيّ افتِراضيّاً، أَو SQL Server سَحابي عَبر
+// connection string). streaming + COUNT-first + per-table try/catch.
 //
 //   ASHAREDB_PROD_CONN='Server=…;…' dotnet run --project Apps/Ashare.V3/Tools/CloneAshareDb
 //
-// أَو:
-//   dotnet run --project Apps/Ashare.V3/Tools/CloneAshareDb -- "Server=…;…"
+//   # هَدَف SQL Server بَدَلاً مَن SQLite:
+//   dotnet run --project Apps/Ashare.V3/Tools/CloneAshareDb -- \
+//     "<prodConn>" "<targetSqlServerConn>"
 //
 // مُتَغَيِّرات بيئَة اختِيارِيَّة:
 //   CLONE_COMMAND_TIMEOUT (ثَوانٍ، افتِراضي 600) — لِجَداوِل ضَخمَة
 //   CLONE_BATCH_SIZE      (افتِراضي 500)
+//   CLONE_TARGET_KIND     ("sqlite" | "sqlserver") — يَتَجاوَز الاكتِشاف
+//   CLONE_TARGET_RESET    ("true") — لِـ SQL Server: drop + EnsureCreated
+//                                    (افتِراضي false ⇒ يُلحِق إلى schema قائِم)
 // ════════════════════════════════════════════════════════════════════════
 
 var prodCs = args.Length > 0 && !string.IsNullOrWhiteSpace(args[0])
@@ -30,6 +35,8 @@ var commandTimeout = int.TryParse(Environment.GetEnvironmentVariable("CLONE_COMM
     ? ct1 : 600;
 var batchSize = int.TryParse(Environment.GetEnvironmentVariable("CLONE_BATCH_SIZE"), out var bs)
     ? bs : 500;
+var resetTarget = string.Equals(Environment.GetEnvironmentVariable("CLONE_TARGET_RESET"), "true",
+                                StringComparison.OrdinalIgnoreCase);
 
 var toolDir       = AppContext.BaseDirectory;
 var repoRoot      = FindRepoRoot(toolDir) ?? Directory.GetCurrentDirectory();
@@ -40,23 +47,31 @@ var targetCs = args.Length > 1 && !string.IsNullOrWhiteSpace(args[1])
     ? args[1]
     : $"Data Source={defaultTarget};Cache=Shared";
 
-var sqliteBuilder = new SqliteConnectionStringBuilder(targetCs);
-var dbPath = Path.GetFullPath(sqliteBuilder.DataSource);
-sqliteBuilder.DataSource = dbPath;
-targetCs = sqliteBuilder.ToString();
+// ─── اكتِشاف نَوع الهَدَف ──────────────────────────────────────────────
+// كُلّ مَنطِق إعداد الـ target بَعد ذلك يَتَفَرَّع عَلى هذه القيمَة.
+var targetKind = DetectTargetKind(targetCs);
+string? dbPath = null;   // SQLite-only — مَلَفّ القاعِدَة
 
-var dbDir = Path.GetDirectoryName(dbPath);
-if (!string.IsNullOrEmpty(dbDir) && !Directory.Exists(dbDir)) Directory.CreateDirectory(dbDir);
-
-if (File.Exists(dbPath))
+if (targetKind == TargetKind.Sqlite)
 {
-    Console.WriteLine($"حَذف القاعِدَة المَحَلِّيَّة القائِمَة: {dbPath}");
-    File.Delete(dbPath);
+    var sqliteBuilder = new SqliteConnectionStringBuilder(targetCs);
+    dbPath = Path.GetFullPath(sqliteBuilder.DataSource);
+    sqliteBuilder.DataSource = dbPath;
+    targetCs = sqliteBuilder.ToString();
+
+    var dbDir = Path.GetDirectoryName(dbPath);
+    if (!string.IsNullOrEmpty(dbDir) && !Directory.Exists(dbDir)) Directory.CreateDirectory(dbDir);
+
+    if (File.Exists(dbPath))
+    {
+        Console.WriteLine($"حَذف القاعِدَة المَحَلِّيَّة القائِمَة: {dbPath}");
+        File.Delete(dbPath);
+    }
 }
 
-Console.WriteLine($"Source: {Truncate(prodCs, 60)}…");
-Console.WriteLine($"Target: {targetCs}");
-Console.WriteLine($"CommandTimeout: {commandTimeout}s | BatchSize: {batchSize}");
+Console.WriteLine($"Source: {Truncate(prodCs, 60)}… (SqlServer)");
+Console.WriteLine($"Target: {Truncate(targetCs, 60)}… ({targetKind})");
+Console.WriteLine($"CommandTimeout: {commandTimeout}s | BatchSize: {batchSize} | ResetTarget: {resetTarget}");
 
 var sourceOpts = new DbContextOptionsBuilder<AshareV3DbContext>()
     .UseSqlServer(prodCs, sql =>
@@ -69,9 +84,23 @@ var sourceOpts = new DbContextOptionsBuilder<AshareV3DbContext>()
     })
     .Options;
 
-var targetOpts = new DbContextOptionsBuilder<AshareV3DbContext>()
-    .UseSqlite(targetCs, sql => sql.CommandTimeout(commandTimeout))
-    .Options;
+var targetOptsBuilder = new DbContextOptionsBuilder<AshareV3DbContext>();
+switch (targetKind)
+{
+    case TargetKind.Sqlite:
+        targetOptsBuilder.UseSqlite(targetCs, sql => sql.CommandTimeout(commandTimeout));
+        break;
+    case TargetKind.SqlServer:
+        targetOptsBuilder.UseSqlServer(targetCs, sql =>
+        {
+            sql.CommandTimeout(commandTimeout);
+            sql.EnableRetryOnFailure(maxRetryCount: 3,
+                                     maxRetryDelay: TimeSpan.FromSeconds(10),
+                                     errorNumbersToAdd: null);
+        });
+        break;
+}
+var targetOpts = targetOptsBuilder.Options;
 
 await using var source = new AshareV3DbContext(sourceOpts);
 await using var target = new AshareV3DbContext(targetOpts);
@@ -91,14 +120,45 @@ catch (Exception ex)
     return 2;
 }
 
-Console.WriteLine("بِناء schema الـ SQLite (EnsureCreated)…");
+Console.Write("اختِبار الاتِّصال بِالهَدَف … ");
+try
+{
+    var canConnectTarget = await target.Database.CanConnectAsync();
+    Console.WriteLine(canConnectTarget ? "OK" : "(لا يَتَّصِل — سَيُحاوِل EnsureCreated)");
+}
+catch (Exception ex)
+{
+    if (targetKind == TargetKind.SqlServer)
+    {
+        Console.WriteLine($"FAILED — {ex.GetType().Name}: {Truncate(ex.Message, 100)}");
+        Console.WriteLine("  تَأَكَّد مَن أَنّ قاعِدَة البَيانات مَوجودَة عَلى الخادِم + الـ user لَه CREATE TABLE.");
+        return 2;
+    }
+    Console.WriteLine("(جَديد — سَيُنشَأ)");
+}
+
+// ─── إعداد الـ schema عَلى الهَدَف ──────────────────────────────────────
+if (targetKind == TargetKind.SqlServer && resetTarget)
+{
+    Console.WriteLine("CLONE_TARGET_RESET=true ⇒ حَذف الـ schema القائِم…");
+    await target.Database.EnsureDeletedAsync();
+}
+
+Console.WriteLine($"بِناء schema الهَدَف ({targetKind}) عَبر EnsureCreated…");
 await target.Database.EnsureCreatedAsync();
 
 target.ChangeTracker.AutoDetectChangesEnabled = false;
 target.ChangeTracker.QueryTrackingBehavior = QueryTrackingBehavior.NoTracking;
-await target.Database.ExecuteSqlRawAsync("PRAGMA foreign_keys=OFF;");
-await target.Database.ExecuteSqlRawAsync("PRAGMA journal_mode=WAL;");
-await target.Database.ExecuteSqlRawAsync("PRAGMA synchronous=NORMAL;");
+
+// PRAGMA's تَخُصّ SQLite فَقَط — تُسَرِّع الإدراج المُتَوازي + تُلغي FK خِلال
+// النَّقل لِيَتَجَنَّب فَشل الترتيب. SQL Server لَه إعدادات مُختَلِفَة (BULK
+// INSERT options) لَكِنّ الـ batch insert الافتِراضي عَبر EF كافٍ هُنا.
+if (targetKind == TargetKind.Sqlite)
+{
+    await target.Database.ExecuteSqlRawAsync("PRAGMA foreign_keys=OFF;");
+    await target.Database.ExecuteSqlRawAsync("PRAGMA journal_mode=WAL;");
+    await target.Database.ExecuteSqlRawAsync("PRAGMA synchronous=NORMAL;");
+}
 
 var totalRows = 0L;
 var t0 = DateTime.UtcNow;
@@ -142,13 +202,21 @@ totalRows += await CopySafe(source.DiscoveryCategories,target.DiscoveryCategorie
 totalRows += await CopySafe(source.DiscoveryRegions,   target.DiscoveryRegions,   target, "DiscoveryRegions");
 totalRows += await CopySafe(source.DiscoveryAmenities, target.DiscoveryAmenities, target, "DiscoveryAmenities");
 
-await target.Database.ExecuteSqlRawAsync("PRAGMA foreign_keys=ON;");
+if (targetKind == TargetKind.Sqlite)
+    await target.Database.ExecuteSqlRawAsync("PRAGMA foreign_keys=ON;");
 
 var dt = DateTime.UtcNow - t0;
 Console.WriteLine();
-Console.WriteLine($"✓ نُسِخَ {totalRows:N0} صَفّاً في {dt.TotalSeconds:F1}s إلى {dbPath}");
-Console.WriteLine($"  حَجم المَلَفّ: {new FileInfo(dbPath).Length / 1024.0 / 1024.0:F2} MB");
-Console.WriteLine($"  الآن: شَغِّل V3 API — يَتَّصِل بِـ SQLite تِلقائِيّاً.");
+Console.WriteLine($"✓ نُسِخَ {totalRows:N0} صَفّاً في {dt.TotalSeconds:F1}s إلى الهَدَف ({targetKind}).");
+if (targetKind == TargetKind.Sqlite && dbPath is not null)
+{
+    Console.WriteLine($"  حَجم المَلَفّ: {new FileInfo(dbPath).Length / 1024.0 / 1024.0:F2} MB");
+    Console.WriteLine($"  الآن: شَغِّل V3 API — يَتَّصِل بِـ SQLite تِلقائِيّاً.");
+}
+else
+{
+    Console.WriteLine($"  الآن: عَدِّل appsettings الـ V3 API لِيَستَخدِم الـ connection string لِلسحاب.");
+}
 
 return 0;
 
@@ -592,6 +660,44 @@ static int TryIntJson(JsonElement el) => el.ValueKind switch
 
 static string Truncate(string s, int max) => s.Length <= max ? s : s[..max];
 
+/// <summary>
+/// يَكتَشِف نَوع الهَدَف مَن الـ connection string. الخوارَزمِيَّة:
+/// <list type="number">
+///   <item>إن كانَ env var <c>CLONE_TARGET_KIND</c> مُحَدَّداً ⇒ يُعتَمَد عَلَيه.</item>
+///   <item>وُجود مُفتاح <c>Server=</c>, <c>Initial Catalog=</c>, <c>Database=</c>,
+///         <c>User Id=</c>, أَو <c>Integrated Security=</c> ⇒ SqlServer.</item>
+///   <item>وُجود <c>Data Source=</c> بِامتِداد <c>.db</c>/<c>.sqlite</c>/<c>.sqlite3</c>
+///         ⇒ Sqlite. وُجوده بِاسم خادِم (بِلا امتِداد مَلَفّ) ⇒ SqlServer.</item>
+///   <item>افتِراضي: Sqlite (يُحافِظ عَلى السُّلوك القَديم).</item>
+/// </list>
+/// </summary>
+static TargetKind DetectTargetKind(string cs)
+{
+    var forced = Environment.GetEnvironmentVariable("CLONE_TARGET_KIND");
+    if (!string.IsNullOrWhiteSpace(forced))
+    {
+        if (forced.Equals("sqlserver", StringComparison.OrdinalIgnoreCase) ||
+            forced.Equals("mssql", StringComparison.OrdinalIgnoreCase)) return TargetKind.SqlServer;
+        if (forced.Equals("sqlite", StringComparison.OrdinalIgnoreCase)) return TargetKind.Sqlite;
+    }
+
+    // مَفاتيح حَصرِيَّة لِـ SqlServer
+    string[] sqlServerKeys = { "Server=", "Initial Catalog=", "Database=", "User Id=", "Integrated Security=", "TrustServerCertificate=", "Encrypt=" };
+    foreach (var k in sqlServerKeys)
+        if (cs.Contains(k, StringComparison.OrdinalIgnoreCase))
+            return TargetKind.SqlServer;
+
+    // SQLite ⇒ Data Source=<filepath>
+    if (cs.Contains("Data Source=", StringComparison.OrdinalIgnoreCase))
+    {
+        // لَو الـ Data Source يَبدو مَسار مَلَفّ (يَحوي / أَو \\ أَو امتِداد)
+        var ext = Path.GetExtension(cs).ToLowerInvariant();
+        if (ext is ".db" or ".sqlite" or ".sqlite3") return TargetKind.Sqlite;
+    }
+
+    return TargetKind.Sqlite;
+}
+
 static string? FindRepoRoot(string start)
 {
     var dir = new DirectoryInfo(start);
@@ -602,3 +708,5 @@ static string? FindRepoRoot(string start)
     }
     return null;
 }
+
+internal enum TargetKind { Sqlite, SqlServer }
