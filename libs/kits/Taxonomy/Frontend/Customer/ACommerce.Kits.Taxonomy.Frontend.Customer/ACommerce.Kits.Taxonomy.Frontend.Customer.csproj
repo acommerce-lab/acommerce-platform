@@ -13,6 +13,9 @@
   <ItemGroup>
     <ProjectReference Include="..\..\..\ACommerce.Kits.Taxonomy.Operations\ACommerce.Kits.Taxonomy.Operations.csproj" />
     <ProjectReference Include="..\..\..\..\..\host-client\ACommerce.ClientHost\ACommerce.ClientHost.csproj" />
+    <!-- Widgets لِـ AcIcon — يُرسَم SVG Lucide-style مَن أَسماء ASCII
+         (home/briefcase/sun/...) بَدَل bootstrap-icons (لا font مُحَمَّل). -->
+    <ProjectReference Include="..\..\..\..\Widgets\ACommerce.Widgets\ACommerce.Widgets.csproj" />
     <!-- لا FrameworkReference لِـ Microsoft.AspNetCore.App: WASM مَنَع
          runtime pack الـ server-side. ClientHost يَجلِب
          Microsoft.AspNetCore.Components.Web كَـ PackageReference

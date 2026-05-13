@@ -45,10 +45,7 @@ else
                 <button type="button"
                         class="acm-taxo-chip @(isActive ? "is-active" : "")"
                         @onclick="@(() => OnKindClicked(kind))">
-                    @if (!string.IsNullOrEmpty(kind.Icon))
-                    {
-                        <span class="acm-taxo-chip-icon">@kind.Icon</span>
-                    }
+                    @RenderIcon(kind.Icon)
                     <span>@(IsArabic ? (kind.NameAr ?? kind.Name) : kind.Name)</span>
                 </button>
             }
@@ -65,10 +62,7 @@ else
                     <button type="button"
                             class="acm-taxo-chip @(isLeaf ? "is-active" : "")"
                             @onclick="@(() => OnLeafClicked(leaf))">
-                        @if (!string.IsNullOrEmpty(leaf.Icon))
-                        {
-                            <span class="acm-taxo-chip-icon">@leaf.Icon</span>
-                        }
+                        @RenderIcon(leaf.Icon)
                         <span>@(IsArabic ? (leaf.NameAr ?? leaf.Name) : leaf.Name)</span>
                     </button>
                 }
@@ -118,4 +112,33 @@ else
     {
         await SelectedChanged.InvokeAsync(leaf.Code);
     }
+
+    /// <summary>يُمَيِّز نَوع الـ Icon:
+    /// <list type="bullet">
+    ///   <item>إيموجي (مَثَل 🏢) — يَبدَأ بِحَرف خارِج ASCII ⇒ يُرسَم كَنَصّ.</item>
+    ///   <item>اسم أَيقونَة Lucide (مَثَل "home", "briefcase") — حُروف ASCII
+    ///         ⇒ يُرسَم عَبر <see cref="ACommerce.Widgets.AcIcon"/> (SVG، لا
+    ///         حاجَة لِخَطّ خارِجي).</item>
+    ///   <item>فارِغ/null — لا شَيء.</item>
+    /// </list></summary>
+    private RenderFragment RenderIcon(string? icon) => builder =>
+    {
+        if (string.IsNullOrEmpty(icon)) return;
+        bool isEmoji = icon.Any(c => c > 127);
+        if (isEmoji)
+        {
+            builder.OpenElement(0, "span");
+            builder.AddAttribute(1, "class", "acm-taxo-chip-icon");
+            builder.AddContent(2, icon);
+            builder.CloseElement();
+        }
+        else
+        {
+            builder.OpenComponent<ACommerce.Widgets.AcIcon>(0);
+            builder.AddAttribute(1, "Name", icon);
+            builder.AddAttribute(2, "Size", 16);
+            builder.AddAttribute(3, "ExtraClass", "acm-taxo-chip-icon");
+            builder.CloseComponent();
+        }
+    };
 }

@@ -18,7 +18,16 @@
         }
         @if (!string.IsNullOrEmpty(Node.Icon))
         {
-            <i class="bi bi-@Node.Icon acm-taxo-icon"></i>
+            @if (Node.Icon.Any(c => c > 127))
+            {
+                @* إيموجي (غَير-ASCII) — يُرسَم كَنَصّ مُباشَرَةً. *@
+                <span class="acm-taxo-icon">@Node.Icon</span>
+            }
+            else
+            {
+                @* اسم Lucide (ASCII) ⇒ AcIcon SVG. *@
+                <ACommerce.Widgets.AcIcon Name="@Node.Icon" Size="16" ExtraClass="acm-taxo-icon" />
+            }
         }
         <span class="acm-taxo-label">@Tree.Label(Node)</span>
     </button>
