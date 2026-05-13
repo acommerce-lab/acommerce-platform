@@ -39,10 +39,23 @@ public sealed class DefaultProfileStore : IProfileStore, IDisposable
         finally { IsLoading = false; Changed?.Invoke(); }
     }
 
-    public async Task UpdateAsync(IUserProfile next, CancellationToken ct = default)
+    public async Task UpdateAsync(IUserProfile next,
+                                  IReadOnlyDictionary<string, object?>? attributes = null,
+                                  CancellationToken ct = default)
     {
+        // wire shape مَطلوب الـ ProfilesController.UpdateBody:
+        // FullName/Phone/Email/City/AvatarUrl + attributes اختياري.
+        var body = new
+        {
+            fullName  = next.FullName,
+            phone     = next.Phone,
+            email     = next.Email,
+            city      = next.City,
+            avatarUrl = next.AvatarUrl,
+            attributes = attributes,
+        };
         var env = await _engine.ExecuteAsync<InMemoryUserProfile>(
-            ProfilesOps.Update(), payload: next, ct: ct);
+            ProfilesOps.Update(), payload: body, ct: ct);
         if (env.Operation.Status == "Success" && env.Data is not null)
             Current = env.Data;
         Changed?.Invoke();

@@ -213,6 +213,7 @@ public sealed class AshareV3ProfileStore : IProfileStore
         if (u.Email     is not null) p.Email     = u.Email;
         if (u.City      is not null) p.City      = u.City;
         if (u.AvatarUrl is not null) p.AvatarUrl = u.AvatarUrl;
+        if (u.AttributesJson is not null) p.AttributesJson = u.AttributesJson;
         p.UpdatedAt = DateTime.UtcNow;
         return true;
     }

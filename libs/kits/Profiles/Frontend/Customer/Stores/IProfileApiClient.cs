@@ -9,5 +9,7 @@ namespace ACommerce.Kits.Profiles.Frontend.Customer.Stores;
 public interface IProfileApiClient
 {
     Task<IUserProfile?> GetMineAsync(CancellationToken ct = default);
-    Task<IUserProfile?> UpdateAsync(IUserProfile next, CancellationToken ct = default);
+    Task<IUserProfile?> UpdateAsync(IUserProfile next,
+                                    IReadOnlyDictionary<string, object?>? attributes = null,
+                                    CancellationToken ct = default);
 }

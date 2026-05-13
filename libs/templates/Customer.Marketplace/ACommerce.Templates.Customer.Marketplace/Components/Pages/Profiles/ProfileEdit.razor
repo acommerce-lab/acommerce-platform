@@ -1,9 +1,13 @@
 @page "/profile/edit"
 @attribute [Authorize]
+@using System.Net.Http.Json
 @using ACommerce.Kits.Profiles.Operations
+@using ACommerce.OperationEngine.Wire
+@using ACommerce.SharedKernel.Domain.DynamicAttributes
 @inject IProfileStore Profiles
 @inject IDiscoveryStore Discovery
 @inject NavigationManager Nav
+@inject IHttpClientFactory HttpFactory
 @inject L L
 @inject INumeralNormalizer Numerals
 
@@ -93,10 +97,22 @@
             </ChildContent>
         </AcCard>
 
-        @* سِمات البروفايل الإضافِيَّة (NationalId/BusinessName/Address/…)
-           تَأتي مِن جَدول السِمات المَركَزي ⇒ <b>لِلعَرض فَقَط</b> في
-           /me، لا تُحَرَّر هُنا. التَّعديل يَتِم خارِج الواجِهَة الزَبونِيَّة
-           (admin/Nafath) لِيَبقى الجَدول المَركَزي مَصدَر المَيتاداتا. *@
+        @* سِمات البروفايل الديناميكِيَّة (Address/Country/PostalCode/…)
+           تَأتي مَن قالَب نِطاق Profile في الكيت + قِيَمها مَن
+           <c>Profile.AttributesJson</c>. التَّحرير يَجري هُنا، الحَفظ
+           يَمُرّ عَبر <c>IProfileStore.UpdateAsync(next, attributes)</c>. *@
+        @if (_attrTemplate is { Fields.Count: > 0 })
+        {
+            <AcCard>
+                <ChildContent>
+                    <h4 style="margin-top:0;">@(L[TemplateStrings.ListingAttributes])</h4>
+                    <AcAttrEditor Template="_attrTemplate"
+                                  Values="_attrValues"
+                                  ValuesChanged="@(v => _attrValues = v)"
+                                  IsArabic="true" />
+                </ChildContent>
+            </AcCard>
+        }
 
         @if (!string.IsNullOrEmpty(_alert))
         {
@@ -111,12 +127,20 @@
 </div>
 
 @code {
+    // sentinel scope id لِسِمات Profile (مُطابِق
+    // V3ProfileAttributes.CategoryId في الـ backend).
+    private static readonly Guid ProfileScopeId =
+        new("00000000-0000-0000-0000-000000000F01");
+
     private InMemoryUserProfile? _data;
     private bool _loading = true;
     private bool _saving;
     private string? _alert;
     private string _alertVariant = "success";
     private string? _avatarDataUrl;
+
+    private AttributeTemplate? _attrTemplate;
+    private Dictionary<string, object?> _attrValues = new(StringComparer.OrdinalIgnoreCase);
 
     protected override async Task OnAfterRenderAsync(bool first)
     {
@@ -131,8 +155,37 @@
                 p.Email, p.EmailVerified, p.City, p.AvatarUrl, p.MemberSince)
             : new InMemoryUserProfile("U-1", "", "", false, "", false, L[TemplateStrings.CommonDefaultCity], null, DateTime.UtcNow);
         _avatarDataUrl = _data.AvatarUrl;
+
+        await LoadAttrsAsync();
         _loading = false;
         await InvokeAsync(StateHasChanged);
+    }
+
+    /// <summary>
+    /// يَجلِب قالَب Profile الديناميكي + قِيَمه الحالِيَّة. الفَشَل
+    /// (لا endpoint، أَو لا قالَب) يُخفي القِسم بِلا ضَوضاء.
+    /// </summary>
+    private async Task LoadAttrsAsync()
+    {
+        try
+        {
+            var http = HttpFactory.CreateClient("ejar");
+            var tplEnv = await http.GetFromJsonAsync<OperationEnvelope<AttributeTemplate>>(
+                $"dynamic-attributes/templates/{ProfileScopeId}");
+            _attrTemplate = tplEnv?.Data is { Fields.Count: > 0 } t ? t : null;
+
+            var snapEnv = await http.GetFromJsonAsync<OperationEnvelope<List<DynamicAttribute>>>(
+                "profile/me/attributes");
+            if (snapEnv?.Data is not null)
+            {
+                foreach (var a in snapEnv.Data)
+                    if (a.Value is not null) _attrValues[a.Key] = a.Value;
+            }
+        }
+        catch
+        {
+            _attrTemplate = null;
+        }
     }
 
     private async Task OnAvatarPicked(InputFileChangeEventArgs e)
@@ -175,7 +228,8 @@
             // الـ Profile interface لا يَحوي حَقل avatar بِالاسم — نُمَرِّره
             // عَبر <c>with</c> clone حَفاظاً عَلى wire shape مَطلوب الباك.
             var next = _data with { AvatarUrl = _avatarDataUrl ?? _data.AvatarUrl };
-            await Profiles.UpdateAsync(next);
+            var attrs = _attrValues.Count > 0 ? _attrValues : null;
+            await Profiles.UpdateAsync(next, attrs);
 
             _alert = L[TemplateStrings.ProfileEditSaved]; _alertVariant = "success";
             await Task.Delay(500);

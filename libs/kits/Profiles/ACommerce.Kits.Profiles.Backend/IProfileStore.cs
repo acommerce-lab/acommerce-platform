@@ -15,4 +15,8 @@ public sealed record ProfileUpdate(
     string? Phone,
     string? Email,
     string? City,
-    string? AvatarUrl);
+    string? AvatarUrl,
+    /// <summary>JSON خام لِسِمات ديناميكِيَّة لِلبروفايل (مَفاتيح القالَب
+    /// → قِيَم). <c>null</c> = "لا تَلمَسها". المَتَحَكِّم يَفُكّ Dictionary
+    /// وَ يُسَلسِله قَبل بِناء PATCH (نَفس صياغَة Listings).</summary>
+    string? AttributesJson = null);

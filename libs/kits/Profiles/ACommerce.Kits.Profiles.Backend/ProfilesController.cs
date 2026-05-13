@@ -40,14 +40,20 @@ public sealed class ProfilesController : ControllerBase
         return this.OkEnvelope("profile.get", p);
     }
 
-    public sealed record UpdateBody(string? FullName, string? Phone, string? Email, string? City, string? AvatarUrl);
+    public sealed record UpdateBody(
+        string? FullName, string? Phone, string? Email, string? City, string? AvatarUrl,
+        /// <summary>سِمات ديناميكِيَّة (نَفس صياغَة Listings.EditBody).</summary>
+        Dictionary<string, System.Text.Json.JsonElement>? Attributes);
 
     [HttpPut("/me/profile")]
     public async Task<IActionResult> Update([FromBody] UpdateBody req, CancellationToken ct)
     {
         if (CallerId is null) return this.UnauthorizedEnvelope();
 
-        var patch = new ProfileUpdate(req.FullName, req.Phone, req.Email, req.City, req.AvatarUrl);
+        var attrsJson = req.Attributes is { Count: > 0 }
+            ? System.Text.Json.JsonSerializer.Serialize(req.Attributes)
+            : null;
+        var patch = new ProfileUpdate(req.FullName, req.Phone, req.Email, req.City, req.AvatarUrl, attrsJson);
         var ok = false;
         var op = Entry.Create(ProfileOps.Update)
             .Describe($"User {CallerId} updates profile")

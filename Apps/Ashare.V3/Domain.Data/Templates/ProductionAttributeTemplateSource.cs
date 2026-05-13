@@ -26,6 +26,41 @@ public sealed class ProductionAttributeTemplateSource : IAttributeTemplateSource
     private readonly AshareV3DbContext _db;
     public ProductionAttributeTemplateSource(AshareV3DbContext db) => _db = db;
 
+    /// <summary>
+    /// مَفاتيح مَحجوزَة لِنِطاق <c>ProductListing</c> — تَتَطابِق مَع حُقول
+    /// <c>IListing</c>/أَعمِدَة <c>ProductListingEntity</c>. أَيّ
+    /// <c>AttributeDefinition.Code</c> هُنا يُسقَط مَن القالَب لِأَنّه
+    /// مُغَطّى بِحَقل ثابِت في الـ wizard (لا داعي لِعَرضه مَرَّتَين).
+    /// المُطابَقَة case-insensitive لِأَنّ codes الإنتاج مُختَلَفَة الحالَة.
+    /// </summary>
+    private static readonly HashSet<string> ListingReservedKeys = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "Title", "Description", "Price", "TimeUnit",
+        "City", "District", "Address", "Lat", "Lng", "Latitude", "Longitude",
+        "BedroomCount", "Bedrooms", "Bedroom",
+        "BathroomCount", "Bathrooms", "Bathroom",
+        "AreaSqm", "Area", "Size",
+        "Amenities", "Amenity",
+        "Images", "Image", "ImagesJson", "Thumbnail", "FeaturedImage",
+        "Status", "ViewsCount", "ViewCount", "IsVerified", "IsFeatured", "IsActive",
+        "PropertyType", "Condition",
+        "CategoryId", "VendorId", "OwnerId",
+        "CreatedAt", "UpdatedAt",
+    };
+
+    /// <summary>مَفاتيح مَحجوزَة لِـ Profile — تَتَطابِق مَع حُقول
+    /// <c>IUserProfile</c> + الأَعمِدَة السَطحِيَّة الَّتي يَتَدَخَّل فيها
+    /// كود التَطبيق (NationalId/Type/IsActive/IsVerified/BusinessName).</summary>
+    private static readonly HashSet<string> ProfileReservedKeys = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "Id", "UserId", "FullName", "Phone", "PhoneNumber", "PhoneVerified",
+        "Email", "EmailVerified", "City", "AvatarUrl", "Avatar",
+        "NationalId", "Type", "IsActive", "IsVerified", "VerifiedAt",
+        "BusinessName", "CreatedAt", "UpdatedAt", "MemberSince",
+    };
+
+    private static readonly Guid ProfileScopeId = new("00000000-0000-0000-0000-000000000F01");
+
     /// <summary>تَنفيذ <see cref="IAttributeTemplateSource.BuildForScopeAsync"/>.
     /// في أَسهَر، الـ scopeId = إِمّا <c>ProductCategory.Id</c> لِلإعلانات،
     /// أَو sentinel ثابِت لِكِيانات أُخرى (Profile).</summary>
@@ -57,14 +92,27 @@ public sealed class ProductionAttributeTemplateSource : IAttributeTemplateSource
         var valuesByDef = allValues.GroupBy(v => v.AttributeDefinitionId)
                                    .ToDictionary(g => g.Key, g => g.ToList());
 
+        // اِختَر القائِمَة المَحجوزَة حَسب النِطاق: sentinel Profile لَه قائِمَة
+        // واجِهَة IUserProfile؛ أَيّ نِطاق آخَر (CategoryId حَقيقي) لَه قائِمَة
+        // واجِهَة IListing.
+        var reservedKeys = categoryId == ProfileScopeId
+            ? ProfileReservedKeys
+            : ListingReservedKeys;
+
         var fields = new List<AttributeFieldDefinition>();
         var orderBase = 0;
         foreach (var m in mappings)
         {
             if (!defs.TryGetValue(m.AttributeDefinitionId, out var d)) continue;
+            // اِسقاط مُبَكِّر: لَو Code يُطابِق حَقل ثابِت عَلى الكِيان،
+            // لا نُدرِجه في القالَب. الـ wizard/edit page يَعرِض الحَقل
+            // الثابِت بِواجِهَته المُخَصَّصَة، فَلا داعي لِتَكرارَه ديناميكيّاً.
+            var code = string.IsNullOrEmpty(d.Code) ? d.Id.ToString("N") : d.Code;
+            if (reservedKeys.Contains(code)) continue;
+
             fields.Add(new AttributeFieldDefinition
             {
-                Key      = string.IsNullOrEmpty(d.Code) ? d.Id.ToString("N") : d.Code,
+                Key      = code,
                 Label    = d.Name,
                 LabelAr  = d.Name,
                 Type     = MapType(d.Type),
