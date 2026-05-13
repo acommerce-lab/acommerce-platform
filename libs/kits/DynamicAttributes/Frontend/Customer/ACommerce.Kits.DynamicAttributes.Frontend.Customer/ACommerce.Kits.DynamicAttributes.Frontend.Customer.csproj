@@ -14,8 +14,9 @@
     <ProjectReference Include="..\..\..\ACommerce.Kits.DynamicAttributes.Operations\ACommerce.Kits.DynamicAttributes.Operations.csproj" />
     <ProjectReference Include="..\..\..\..\..\core\SharedKernel\ACommerce.SharedKernel.Domain\ACommerce.SharedKernel.Domain.csproj" />
     <ProjectReference Include="..\..\..\..\..\host-client\ACommerce.ClientHost\ACommerce.ClientHost.csproj" />
-  </ItemGroup>
-  <ItemGroup>
-    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <!-- لا FrameworkReference لِـ Microsoft.AspNetCore.App: WASM مَنَع
+         runtime pack الـ server-side. ClientHost يَجلِب
+         Microsoft.AspNetCore.Components.Web كَـ PackageReference
+         (يَعمَل عَلى Server + WASM). -->
   </ItemGroup>
 </Project>

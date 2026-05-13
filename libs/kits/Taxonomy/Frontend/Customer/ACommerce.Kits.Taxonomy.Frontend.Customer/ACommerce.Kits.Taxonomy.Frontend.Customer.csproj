@@ -13,8 +13,9 @@
   <ItemGroup>
     <ProjectReference Include="..\..\..\ACommerce.Kits.Taxonomy.Operations\ACommerce.Kits.Taxonomy.Operations.csproj" />
     <ProjectReference Include="..\..\..\..\..\host-client\ACommerce.ClientHost\ACommerce.ClientHost.csproj" />
-  </ItemGroup>
-  <ItemGroup>
-    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <!-- لا FrameworkReference لِـ Microsoft.AspNetCore.App: WASM مَنَع
+         runtime pack الـ server-side. ClientHost يَجلِب
+         Microsoft.AspNetCore.Components.Web كَـ PackageReference
+         (يَعمَل عَلى Server + WASM). -->
   </ItemGroup>
 </Project>
