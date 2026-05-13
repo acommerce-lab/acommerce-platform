@@ -1,3 +1,4 @@
+using ACommerce.Kits.DynamicAttributes.Frontend.Customer.Stores;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Ejar.Customer.UI.ClientHost;
@@ -25,6 +26,10 @@ public static class EjarCustomerHostExtensions
     {
         services.AddEjarCustomerUI();
         services.AddEjarV1Translations();
+
+        // DynamicAttributes frontend kit — HttpAttributesStore يَستَهلِك
+        // HttpClient "ejar" لِجَلب القَوالِب مَن /dynamic-attributes/templates/{scope}.
+        services.AddScoped<IAttributesStore, HttpAttributesStore>();
         return services;
     }
 }

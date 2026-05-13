@@ -19,6 +19,7 @@
     <ProjectReference Include="..\..\..\libs\kits\Auth\ACommerce.Kits.Auth.Backend\ACommerce.Kits.Auth.Backend.csproj" />
     <ProjectReference Include="..\..\..\libs\kits\Chat\ACommerce.Kits.Chat.Backend\ACommerce.Kits.Chat.Backend.csproj" />
     <ProjectReference Include="..\..\..\libs\kits\Discovery\ACommerce.Kits.Discovery.Backend\ACommerce.Kits.Discovery.Backend.csproj" />
+    <ProjectReference Include="..\..\..\libs\kits\DynamicAttributes\ACommerce.Kits.DynamicAttributes.Backend\ACommerce.Kits.DynamicAttributes.Backend.csproj" />
     <ProjectReference Include="..\..\..\libs\kits\Favorites\ACommerce.Favorites.Backend\ACommerce.Favorites.Backend.csproj" />
     <ProjectReference Include="..\..\..\libs\kits\Listings\ACommerce.Kits.Listings.Backend\ACommerce.Kits.Listings.Backend.csproj" />
     <ProjectReference Include="..\..\..\libs\kits\Notifications\ACommerce.Kits.Notifications.Backend\ACommerce.Kits.Notifications.Backend.csproj" />

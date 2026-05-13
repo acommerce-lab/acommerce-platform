@@ -1,12 +1,19 @@
 using System.ComponentModel.DataAnnotations;
+using ACommerce.Kits.DynamicAttributes.Operations;
+using ACommerce.Kits.Listings.Domain;
+using ACommerce.Kits.Profiles.Operations;
 using ACommerce.SharedKernel.Domain.Entities;
 
 namespace Ejar.Api.Data;
 
 // EF entities — كيانات قاعدة البيانات ترث من IBaseEntity (Guid Id, CreatedAt, UpdatedAt, IsDeleted).
 // متوافقة مع BaseAsyncRepository<T> من SharedKernel.
+//
+// UserEntity + ListingEntity يُنَفِّذان interfaces الكيتس (IUserProfile/IListing)
+// + IHasDynamicAttributes لِيَدعَما كيت <see cref="ACommerce.Kits.DynamicAttributes"/>.
+// نَفس النَّمَط المُطَبَّق في Ashare V3.
 
-public sealed class UserEntity : IBaseEntity
+public sealed class UserEntity : IBaseEntity, IUserProfile, IHasDynamicAttributes
 {
     [Key] public Guid Id { get; set; }
     public DateTime CreatedAt { get; set; }
@@ -21,9 +28,27 @@ public sealed class UserEntity : IBaseEntity
     [MaxLength(60)]  public string City { get; set; } = "";
     public DateTime MemberSince { get; set; }
     [MaxLength(2000)] public string? AvatarUrl { get; set; }
+
+    /// <summary>JSON snapshot لِسِمات ديناميكِيَّة لِلبروفايل (Bio, Occupation, …).</summary>
+    public string? AttributesJson { get; set; }
+
+    // ─── IUserProfile explicit (Id يَنحَوَّل لِنَصّ) ──
+    string  IUserProfile.Id            => Id.ToString();
+    string  IUserProfile.FullName      => FullName;
+    string  IUserProfile.Phone         => Phone;
+    bool    IUserProfile.PhoneVerified => PhoneVerified;
+    string? IUserProfile.Email         => Email;
+    bool    IUserProfile.EmailVerified => EmailVerified;
+    string  IUserProfile.City          => City;
+    string? IUserProfile.AvatarUrl     => AvatarUrl;
+    DateTime IUserProfile.MemberSince  => MemberSince;
+
+    // ─── IHasDynamicAttributes — sentinel ثابِت لِنِطاق البروفايل ──
+    Guid? IHasDynamicAttributes.DynamicAttributeScopeId =>
+        new Guid("00000000-0000-0000-0000-00000E1A0F01");  // = EjarProfileAttributes.ScopeId
 }
 
-public sealed class ListingEntity : IBaseEntity
+public sealed class ListingEntity : IBaseEntity, IListing, IHasDynamicAttributes
 {
     [Key] public Guid Id { get; set; }
     public DateTime CreatedAt { get; set; }
@@ -57,6 +82,62 @@ public sealed class ListingEntity : IBaseEntity
     // و /favorites و /my-listings كحقل firstImage بدل حشو الصورة الكاملة في
     // قائمة بـ 60 إعلاناً (وفّر ~50MB لكلّ تحميل قائمة على هاتف).
     public string? ThumbnailUrl { get; set; }
+
+    /// <summary>JSON snapshot لِسِمات ديناميكِيَّة لِلإعلان (مَفاتيح القالَب
+    /// المُلتَقَطَة بِـ scope = PropertyType slug → قِيَم).</summary>
+    public string? AttributesJson { get; set; }
+
+    // ─── IListing explicit (Ejar names ↔ kit names) ──
+    string IListing.Id              => Id.ToString();
+    string IListing.OwnerId         => OwnerId.ToString();
+    string IListing.Title           => Title;
+    string IListing.Description     => Description;
+    decimal IListing.Price          => Price;
+    string IListing.TimeUnit        => string.IsNullOrEmpty(TimeUnit) ? "monthly" : TimeUnit;
+    string IListing.PropertyType    => PropertyType;
+    string IListing.City            => City;
+    string IListing.District        => District;
+    double IListing.Lat             => Lat;
+    double IListing.Lng             => Lng;
+    int IListing.BedroomCount       => BedroomCount;
+    int IListing.BathroomCount      => BathroomCount;
+    int IListing.AreaSqm            => AreaSqm;
+    int IListing.Status             => Status;
+    int IListing.ViewsCount         => ViewsCount;
+    bool IListing.IsVerified        => IsVerified;
+    string? IListing.ThumbnailUrl   => ThumbnailUrl;
+    IReadOnlyList<string> IListing.Images =>
+        string.IsNullOrEmpty(ImagesCsv)
+            ? Array.Empty<string>()
+            : ImagesCsv.Split('|', StringSplitOptions.RemoveEmptyEntries);
+    IReadOnlyList<string> IListing.Amenities =>
+        string.IsNullOrEmpty(AmenitiesCsv)
+            ? Array.Empty<string>()
+            : AmenitiesCsv.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+    DateTime IListing.CreatedAt     => CreatedAt;
+    DateTime? IListing.UpdatedAt    => UpdatedAt;
+
+    // ─── IHasDynamicAttributes — نِطاق القالَب = PropertyType slug ──
+    // لا CategoryId مُستَقِلّ في Ejar؛ نَستَخدِم النَّوع كَ scope identifier
+    // بِتَحويله إلى Guid مُشتَقّ (Deterministic) لِيَكون مَفتاحاً ثابِتاً
+    // عَبر إعادات التَّشغيل.
+    Guid? IHasDynamicAttributes.DynamicAttributeScopeId =>
+        string.IsNullOrEmpty(PropertyType)
+            ? null
+            : EjarListingScopes.DeriveScopeId(PropertyType);
+}
+
+/// <summary>أَدوات اشتِقاق Scope GUIDs ثابِتَة لِفِئات Ejar (لا CategoryId
+/// مُستَقِلّ كَما في Ashare).</summary>
+public static class EjarListingScopes
+{
+    /// <summary>يُحَوِّل slug إلى Guid ثابِت (Deterministic) عَبر MD5.</summary>
+    public static Guid DeriveScopeId(string slug)
+    {
+        using var md5 = System.Security.Cryptography.MD5.Create();
+        var hash = md5.ComputeHash(System.Text.Encoding.UTF8.GetBytes("ejar-listing:" + slug.ToLowerInvariant()));
+        return new Guid(hash);
+    }
 }
 
 public sealed class ConversationEntity : IBaseEntity

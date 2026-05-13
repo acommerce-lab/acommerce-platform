@@ -80,6 +80,16 @@ builder.Services.AddSingleton<IUserIdProvider, EjarUserIdProvider>();
 builder.Services.AddSingleton<IOperationInterceptor, OperationLogInterceptor>();
 builder.Services.AddScoped<ACommerce.Kits.Listings.Backend.IListingDetailEnricher, EjarListingDetailEnricher>();
 
+// DynamicAttributes kit — مَصدَر القَوالِب الَّتي تَخدِم /profile/edit
+// ولِسِمات الإعلانات. EjarAttributeTemplateSource يَبني القَوالِب مَن
+// كود ثابِت (EjarAttributes.cs)؛ لا جَدول DB يَحتاج migration.
+builder.Services.AddSingleton<ACommerce.Kits.DynamicAttributes.Backend.IAttributeTemplateSource,
+                              Ejar.Api.Data.Templates.EjarAttributeTemplateSource>();
+// MVC scan الافتِراضي = entry assembly فَقَط ⇒ نُلحِق Application Part
+// لِالتِقاط DynamicAttributesController مَن كيت الخَلفِيَّة.
+builder.Services.AddControllers()
+    .AddApplicationPart(typeof(ACommerce.Kits.DynamicAttributes.Backend.DynamicAttributesController).Assembly);
+
 var app = builder.Build();
 
 // ─── DB Migrate + Seed + Versions promotion ─────────────────────────────
