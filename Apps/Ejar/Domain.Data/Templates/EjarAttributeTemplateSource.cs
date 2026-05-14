@@ -1,31 +1,56 @@
 using ACommerce.Kits.DynamicAttributes.Backend;
 using ACommerce.SharedKernel.Domain.DynamicAttributes;
+using Ejar.Api.Data;
+using Ejar.Domain;
 
 namespace Ejar.Api.Data.Templates;
 
 /// <summary>
-/// مَصدَر قَوالِب Ejar — يَبني <see cref="AttributeTemplate"/> في الذاكِرَة
-/// مَن <see cref="EjarProfileAttributes.Defaults"/> أَو
-/// <see cref="EjarListingAttributes.Defaults"/> بِناءً عَلى الـ scopeId.
+/// مَصدَر قَوالِب Ejar — يَبني <see cref="AttributeTemplate"/> في الذاكِرَة.
+/// يُمَيِّز ثَلاث حالات:
 ///
-/// <para>Ejar لا يَملِك جَداوِل <c>AttributeDefinitions</c> (كَما في
-/// asharedb لِـ Ashare V3)؛ القَوالِب مُعَرَّفَة كود ثابِت — لِتَوسيعها
-/// عَدِّل المَلَفّ <c>EjarAttributes.cs</c> ثُمّ أَعِد التَّشغيل.</para>
+/// <list type="number">
+///   <item><b>Profile scope</b>: قالَب Bio/Occupation/Nationality/Languages.</item>
+///   <item><b>Listing scope</b>: scopeId مُشتَقّ مَن PropertyType slug.
+///         نَعكِس الـ slug ⇒ نَستَخرِج kind مَن EjarSeed.Categories ⇒
+///         نَعيد القالَب المُناسِب (Realty/Vehicle/Event/Camps).</item>
+///   <item><b>Unknown</b>: قالَب universal فارِغ.</item>
+/// </list>
 ///
-/// <para><b>Reserved keys</b>: لا داعي لِفِلتَر هُنا — Defaults مَكتوبَة
-/// يَدَوِيّاً، فَلا تَكرار مَع حُقول الواجِهَة.</para>
+/// <para><b>لِماذا per-kind</b>: حَلّ مَشكَلَة "إعلان باص يَطلُب
+/// عَدَد غُرَف". القالَب يَختَلِف حَسب الـ kind، لا يَوجَد قالَب واحِد.</para>
+///
+/// <para>الـ scopeId reverse-lookup: نَبني <see cref="_scopeToKind"/>
+/// مَرَّة واحِدَة عِندَ static ctor — يَحوي Guid لِكُلّ slug مَعروف.</para>
 /// </summary>
 public sealed class EjarAttributeTemplateSource : IAttributeTemplateSource
 {
+    /// <summary>خَريطَة <c>scopeId (مُشتَقّ مَن slug) → kind</c>. تُبنى
+    /// مَرَّة عِندَ تَحميل الصَنف.</summary>
+    private static readonly Dictionary<Guid, string> _scopeToKind = BuildScopeMap();
+
+    private static Dictionary<Guid, string> BuildScopeMap()
+    {
+        var map = new Dictionary<Guid, string>();
+        foreach (var c in EjarSeed.Categories)
+            map[EjarListingScopes.DeriveScopeId(c.Id)] = c.Kind;
+        return map;
+    }
+
     public Task<AttributeTemplate?> BuildForScopeAsync(Guid scopeId, CancellationToken ct)
     {
         if (scopeId == EjarProfileAttributes.ScopeId)
             return Task.FromResult<AttributeTemplate?>(BuildFromSeeds(EjarProfileAttributes.Defaults));
 
-        // أَيّ scopeId آخَر = نَوع عَقار مُشتَقّ مَن PropertyType slug.
-        // كُلّ الفِئات تَستَلِم نَفس الـ Listing defaults الآن — يُمكِن
-        // تَخصيص لاحِقاً (per-property-type defaults).
-        return Task.FromResult<AttributeTemplate?>(BuildFromSeeds(EjarListingAttributes.Defaults));
+        // Listing scope: نَكتَشِف الـ kind مَن scopeId ⇒ نَعيد القالَب المُلائِم.
+        if (_scopeToKind.TryGetValue(scopeId, out var kind))
+        {
+            var seeds = EjarListingAttributes.ForKind(kind);
+            return Task.FromResult<AttributeTemplate?>(BuildFromSeeds(seeds));
+        }
+
+        // غَير مَعروف ⇒ universal (فارِغَة الآن — لا تَكرار مَع IListing).
+        return Task.FromResult<AttributeTemplate?>(BuildFromSeeds(EjarListingAttributes.UniversalDefaults));
     }
 
     private static AttributeTemplate BuildFromSeeds(IReadOnlyList<AttributeSeed> seeds)

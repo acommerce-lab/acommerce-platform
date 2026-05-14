@@ -51,6 +51,8 @@
          ثم يعيد التحميل ضارباً عرض الحائط بأي cache على CDN/proxy. -->
     <script src="version-check.js?v=20260502c"></script>
     <script src="api-diagnostics.js?v=20260502c"></script>
+    <!-- يَكشِف نَسخَة SW جَديدَة + يَعرِض شَريط تَحديث لِلمُستَخدِم -->
+    <script src="pwa-update.js?v=20260513a"></script>
     <!-- signalr.min.js قبل blazor.webassembly.js: على الهاتف الشبكة أبطأ
          فيبدأ Blazor تنفيذ EjarRealtimeService.start قبل ما ينتهي تحميل
          signalr من cloudflare CDN، فيخرج "signalR is not defined".
@@ -87,34 +89,16 @@
     <script src="install-prompt.js?v=20260501a"></script>
 
     <script>
-      // SW registration + auto-update عند نشر إصدار جديد:
-      // إذا تغيّر VERSION داخل service-worker.js → نُجبر تحديث + reload.
-      // updateViaCache: 'none' يمنع متصفّحات Chrome/Edge من خدمة الـ SW القديم
-      // من HTTP cache — يُجبر استعلام الشبكة كلّ مرّة، فلا يبقى SW مكسور
-      // عالقاً عبر النشرات.
+      // SW registration فَقَط. كَشف النَّسخَة الجَديدَة + إعادَة التَّحميل
+      // تَتِم في <c>pwa-update.js</c> الَّذي يُبَلِّغ banner Blazor — لا
+      // skipWaiting صامِت كَما كانَ سابِقاً (المُستَخدِم لاحَظ أَنّ الـ SW
+      // كانَ يَتَحَدَّث بِلا تَنبيه).
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('service-worker.js', { updateViaCache: 'none' })
           .then(reg => {
-            // افحص التحديثات كل 60 ثانية + عند العودة للتبويب
             setInterval(() => reg.update(), 60_000);
             document.addEventListener('visibilitychange', () => {
               if (!document.hidden) reg.update();
-            });
-            reg.addEventListener('updatefound', () => {
-              const sw = reg.installing;
-              if (!sw) return;
-              sw.addEventListener('statechange', () => {
-                if (sw.state === 'installed' && navigator.serviceWorker.controller) {
-                  // SW جديد جاهز ⟶ خذ السيطرة وأعد التحميل
-                  sw.postMessage('skipWaiting');
-                }
-              });
-            });
-            let reloaded = false;
-            navigator.serviceWorker.addEventListener('controllerchange', () => {
-              if (reloaded) return;
-              reloaded = true;
-              window.location.reload();
             });
           });
       }

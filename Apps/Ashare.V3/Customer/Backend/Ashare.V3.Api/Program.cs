@@ -83,10 +83,17 @@ builder.Services.AddScoped<Ashare.V3.Data.Templates.ProductionAttributeTemplateS
 // لِيَتَّخِذه DynamicAttributesController + أَيّ مُستَهلِك آخَر.
 builder.Services.AddScoped<ACommerce.Kits.DynamicAttributes.Backend.IAttributeTemplateSource>(sp =>
     sp.GetRequiredService<Ashare.V3.Data.Templates.ProductionAttributeTemplateSource>());
-// MVC scan الافتِراضي = entry assembly فَقَط ⇒ نُلحِق Application Part
-// لِالتِقاط DynamicAttributesController مَن كيت الخَلفِيَّة.
+// Taxonomy — شَجَرَة قَصيرَة (kind roommate + leaves "عَنده/يَدور سَكَن")
+// مَبنِيَّة في الذاكِرَة. لا migration. الشَجَرَة hardcoded في
+// AshareV3TaxonomyStore.
+builder.Services.AddScoped<ACommerce.Kits.Taxonomy.Backend.ITaxonomyStore,
+                           Ashare.V3.Data.Templates.AshareV3TaxonomyStore>();
+
+// MVC scan الافتِراضي = entry assembly فَقَط ⇒ نُلحِق Application Parts
+// لِالتِقاط controllers مَن كيتات الخَلفِيَّة.
 builder.Services.AddControllers()
-    .AddApplicationPart(typeof(ACommerce.Kits.DynamicAttributes.Backend.DynamicAttributesController).Assembly);
+    .AddApplicationPart(typeof(ACommerce.Kits.DynamicAttributes.Backend.DynamicAttributesController).Assembly)
+    .AddApplicationPart(typeof(ACommerce.Kits.Taxonomy.Backend.TaxonomyController).Assembly);
 
 // Mock payment gateway (dev/test). الإنتاج يَستَبدِله بِـ Moyasar/Noon.
 // AutoCaptureSeconds=3 لِتَجرِبَة أَسرَع.

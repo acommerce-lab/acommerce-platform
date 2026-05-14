@@ -22,7 +22,7 @@ namespace ACommerce.Payments.Providers.Mock;
 /// تَطبيقات الإنتاج تَستَبدِله بِـ <c>NoonPaymentGateway</c> أَو
 /// <c>MoyasarPaymentGateway</c>.
 /// </summary>
-public sealed class MockPaymentGateway : IPaymentGateway
+public sealed class MockPaymentGateway : IPaymentGateway, IAppleWalletGateway
 {
     private readonly MockPaymentOptions _options;
     private readonly ConcurrentDictionary<string, MockEntry> _store = new();
@@ -163,5 +163,42 @@ public sealed class MockPaymentGateway : IPaymentGateway
         {
             return Task.FromResult(new WebhookResult(IsValid: false, Error: ex.Message));
         }
+    }
+
+    // ─── IAppleWalletGateway ────────────────────────────────────────────────
+    // Mock implementation: يُحاكي merchant validation + token charge بِلا API
+    // حَقيقي. الواجِهَة الأَمامِيَّة (Ejar/Ashare) تَكشِف User-Agent iOS
+    // وتَعرِض زَرّ Apple Pay لَو هذا المُزَوِّد يُنَفِّذ <see cref="IAppleWalletGateway"/>.
+    // في الإنتاج، يُستَبدَل بِـ Moyasar/Stripe الَّذي يُنَفِّذ الواجِهَتَين فِعليّاً.
+
+    public Task<AppleMerchantSession> StartAppleSessionAsync(
+        AppleSessionRequest request, CancellationToken ct = default)
+    {
+        // mock validation payload — في الإنتاج هذا يُجلَب مَن Apple servers
+        // عَبر merchant identity certificate.
+        var opaque = $"mock_apple_session:{request.OrderReference}:{Guid.NewGuid():N}";
+        return Task.FromResult(new AppleMerchantSession(
+            Succeeded: true,
+            OpaqueData: opaque));
+    }
+
+    public Task<InitiateResult> CompleteApplePaymentAsync(
+        AppleCompleteRequest request, CancellationToken ct = default)
+    {
+        // نَعتَبِر التَوكِن صالِحاً ⇒ نُسَجِّل دَفع pending + نَرُدّ
+        // نَجاحاً فَورياً (Apple Pay لا يَحتاج redirect).
+        var reference = "mock_apl_" + Guid.NewGuid().ToString("N")[..16];
+        _store.TryAdd(reference, new MockEntry(
+            reference, request.Amount, request.Currency,
+            request.OrderReference, DateTimeOffset.UtcNow, PaymentStatus.Captured));
+        return Task.FromResult(new InitiateResult(
+            Succeeded: true,
+            PaymentReference: reference,
+            PaymentUrl: null,            // لا URL — الـ token جاهِز
+            ProviderData: new Dictionary<string, string>
+            {
+                ["channel"] = "apple_pay",
+                ["mock"]    = "true",
+            }));
     }
 }
