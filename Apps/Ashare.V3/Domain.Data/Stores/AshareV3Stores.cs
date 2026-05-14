@@ -85,7 +85,7 @@ public sealed class AshareV3AuthUserStore : IAuthUserStore
             NationalId = isNationalId ? subject : null,
             Phone = isNationalId ? null : subject,
             FullName = "عُضو جديد",
-            City = "صنعاء",
+            City = "الرياض",
             // Type/IsActive سَمات ديناميكِيَّة الآن (في AttributesJson عَبر
             // AcAttrEditor)؛ المُستَخدِم الجَديد بِلا قِيَم ⇒ افتِراضي.
         };

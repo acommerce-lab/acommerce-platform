@@ -26,10 +26,10 @@
 {
     <AcCard Class="acs-explore-taxonomy-card">
         <ChildContent>
-            <AcTaxonomyChips RootCode="listing_categories"
-                             Selected="@_categoryId"
-                             SelectedChanged="@(s => OnCategorySelected(s ?? string.Empty))"
-                             IsArabic="true" />
+            <AcTaxonomyTreeSelect RootCode="listing_categories"
+                                  Selected="@_categoryId"
+                                  SelectedChanged="@(s => OnCategorySelected(s ?? string.Empty))"
+                                  IsArabic="true" />
         </ChildContent>
     </AcCard>
 }

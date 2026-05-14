@@ -129,6 +129,7 @@ public static class AshareV3Bootstrap
             await SeedProfileAttributesAsync(db, logger, ct);
             await SeedRoommateCategoriesAsync(db, logger, ct);
             await SeedTaxonomyNodesAsync(db, logger, ct);
+            await SeedSaudiCitiesAsync(db, logger, ct);
         }
         else
         {
@@ -150,6 +151,7 @@ public static class AshareV3Bootstrap
             await SeedProfileAttributesAsync(db, logger, ct);
             await SeedRoommateCategoriesAsync(db, logger, ct);
             await SeedTaxonomyNodesAsync(db, logger, ct);
+            await SeedSaudiCitiesAsync(db, logger, ct);
             logger?.LogInformation("Ashare V3: SQL Server additive schema check complete");
         }
     }
@@ -641,6 +643,51 @@ public static class AshareV3Bootstrap
         catch (Exception ex)
         {
             logger?.LogWarning(ex, "Ashare V3: taxonomy seed skipped");
+        }
+    }
+
+    /// <summary>
+    /// يَزرَع <see cref="ACommerce.Kits.Discovery.Domain.DiscoveryRegion"/>
+    /// بِمُدُن سُعودِيَّة. V3 سوق سُعودي بِخِلاف إيجار (يَمَني). idempotent
+    /// per-name. لا يَحذِف صُفوفاً قائِمَة حَتّى لَو أَدخَلَها الأَدمِن يَدَوياً.
+    /// </summary>
+    private static async Task SeedSaudiCitiesAsync(
+        AshareV3DbContext db, ILogger? logger, CancellationToken ct)
+    {
+        try
+        {
+            // قائِمَة المُدُن الرَئيسِيَّة في المَملَكَة + مُتَطابِقَة مَع
+            // <c>AshareV3RoommateAttributes.PreferredCities</c>.
+            var saudi = new[]
+            {
+                "الرياض", "جدة", "مكة المكرمة", "المدينة المنورة",
+                "الدمام", "الخبر", "الظهران", "الطائف",
+                "بريدة", "تبوك", "حائل", "أبها", "خميس مشيط",
+                "نجران", "جازان", "ينبع",
+            };
+
+            var existing = await db.DiscoveryRegions.IgnoreQueryFilters()
+                .Select(r => r.Name).ToListAsync(ct);
+            var existingSet = existing.ToHashSet(StringComparer.Ordinal);
+
+            var now = DateTime.UtcNow;
+            var added = 0;
+            foreach (var name in saudi)
+            {
+                if (existingSet.Contains(name)) continue;
+                db.DiscoveryRegions.Add(new ACommerce.Kits.Discovery.Domain.DiscoveryRegion
+                {
+                    Name = name, Level = 1, CreatedAt = now,
+                });
+                added++;
+            }
+            if (added > 0) await db.SaveChangesAsync(ct);
+            logger?.LogInformation("Ashare V3: Saudi cities seed → +{Added} (total {Total})",
+                added, existing.Count + added);
+        }
+        catch (Exception ex)
+        {
+            logger?.LogWarning(ex, "Ashare V3: Saudi cities seed skipped");
         }
     }
 

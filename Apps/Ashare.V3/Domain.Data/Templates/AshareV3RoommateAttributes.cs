@@ -31,8 +31,8 @@ public static class AshareV3RoommateAttributes
     public const string RoommateHasSlug   = "roommate_has";
     public const string RoommateWantsSlug = "roommate_wants";
 
-    public const string RoommateHasName   = "عَنده سَكَن";
-    public const string RoommateWantsName = "يَدور سَكَن";
+    public const string RoommateHasName   = "عشير عنده سكن";
+    public const string RoommateWantsName = "عشير يدور سكن";
 
     /// <summary>وَصف حَقل سِمَة: <c>Code</c>, <c>Name</c> (عَرَبي عادَةً),
     /// <c>Type</c> (يُطابِق enum <c>AttributeType</c> في asharedb:
@@ -182,12 +182,22 @@ public static class AshareV3RoommateAttributes
         new("PreferredArea",      "المَنطِقَة المُفَضَّلَة",          "Text"),
         new("PreferredCities",    "المُدُن المُفَضَّلَة",             "MultiSelect", new[]
         {
-            new OptSeed("sanaa",     "صَنعاء"),
-            new OptSeed("aden",      "عَدَن"),
-            new OptSeed("taiz",      "تَعِزّ"),
-            new OptSeed("hudaydah",  "الحُدَيدَة"),
-            new OptSeed("ibb",       "إب"),
-            new OptSeed("hadramout", "حَضرَموت"),
+            new OptSeed("riyadh",       "الرياض"),
+            new OptSeed("jeddah",       "جدة"),
+            new OptSeed("makkah",       "مكة المكرمة"),
+            new OptSeed("madinah",      "المدينة المنورة"),
+            new OptSeed("dammam",       "الدمام"),
+            new OptSeed("khobar",       "الخبر"),
+            new OptSeed("dhahran",      "الظهران"),
+            new OptSeed("taif",         "الطائف"),
+            new OptSeed("buraidah",     "بريدة"),
+            new OptSeed("tabuk",        "تبوك"),
+            new OptSeed("hail",         "حائل"),
+            new OptSeed("abha",         "أبها"),
+            new OptSeed("khamis",       "خميس مشيط"),
+            new OptSeed("najran",       "نجران"),
+            new OptSeed("jazan",        "جازان"),
+            new OptSeed("yanbu",        "ينبع"),
         }),
         new("PreferredPropertyType","نَوع السَكَن المُفَضَّل",        "SingleSelect", new[]
         {
