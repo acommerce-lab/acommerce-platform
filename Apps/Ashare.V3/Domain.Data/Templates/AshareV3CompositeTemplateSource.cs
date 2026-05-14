@@ -36,53 +36,201 @@ public sealed class AshareV3CompositeTemplateSource : IAttributeTemplateSource
         return _prod.BuildForScopeAsync(scopeId, ct);
     }
 
+    // ─── أَدوات بِناء حُقول مُختَصَرَة ───────────────────────────────
+    // الـ DSL في الأَسفَل يَجعَل القَوالِب المُطَوَّلَة قابِلَة لِلقِراءَة:
+    // F("Key", "تَسمِيَة", "number")    ⇒ حَقل رَقَم
+    // S("Key", "تَسمِيَة", (val,ar)…)   ⇒ حَقل خِيار مَع تَرجَمات عَرَبِيَّة
+    private static AttributeFieldDefinition F(string key, string ar, string type) =>
+        new() { Key = key, Label = ar, LabelAr = ar, Type = type };
+
+    private static AttributeFieldDefinition S(string key, string ar, params (string Value, string LabelAr)[] opts) =>
+        new()
+        {
+            Key = key, Label = ar, LabelAr = ar, Type = "select",
+            Options = opts.Select(o => new AttributeOption
+            {
+                Value = o.Value, Label = o.Value, LabelAr = o.LabelAr
+            }).ToList(),
+        };
+
+    private static AttributeFieldDefinition M(string key, string ar, params (string Value, string LabelAr)[] opts) =>
+        new()
+        {
+            Key = key, Label = ar, LabelAr = ar, Type = "multi",
+            Options = opts.Select(o => new AttributeOption
+            {
+                Value = o.Value, Label = o.Value, LabelAr = o.LabelAr
+            }).ToList(),
+        };
+
+    private static AttributeTemplate Template(params AttributeFieldDefinition[] fields)
+    {
+        for (int i = 0; i < fields.Length; i++) fields[i].SortOrder = i + 1;
+        return new AttributeTemplate { Fields = fields.ToList() };
+    }
+
     // ─── قَوالِب الروممَت ─────────────────────────────────────────────
     // "عَنده سَكَن" — يَنشُر غُرفَة/مَكاناً في شَقَّة، فَيَحتاج وَصف
-    // الإيجار + المُتَطَلَّبات في الشَريك.
-    private static readonly AttributeTemplate RoommateHasTemplate = new()
-    {
-        Fields = new()
-        {
-            new() { Key = "RoomPrice",      Label = "سِعر الغُرفَة",       LabelAr = "سِعر الغُرفَة",      Type = "number", SortOrder = 1 },
-            new() { Key = "BedroomShare",   Label = "تَشارُك الغُرفَة",    LabelAr = "تَشارُك الغُرفَة",   Type = "select", SortOrder = 2,
-                    Options = new() {
-                        new() { Value = "private",  Label = "Private",  LabelAr = "خاصَّة" },
-                        new() { Value = "shared",   Label = "Shared",   LabelAr = "مُشتَرَكَة" }
-                    }},
-            new() { Key = "GenderPref",     Label = "تَفضيل الجِنس",       LabelAr = "تَفضيل الجِنس",     Type = "select", SortOrder = 3,
-                    Options = new() {
-                        new() { Value = "male",   Label = "Male",   LabelAr = "ذَكَر" },
-                        new() { Value = "female", Label = "Female", LabelAr = "أُنثى" },
-                        new() { Value = "any",    Label = "Any",    LabelAr = "أَيّ" }
-                    }},
-            new() { Key = "Smoking",        Label = "التَدخين",            LabelAr = "التَدخين",          Type = "select", SortOrder = 4,
-                    Options = new() {
-                        new() { Value = "allowed",     Label = "Allowed",     LabelAr = "مَسموح" },
-                        new() { Value = "not_allowed", Label = "Not allowed", LabelAr = "غَير مَسموح" }
-                    }},
-            new() { Key = "Furnished",      Label = "التَّأثيث",            LabelAr = "التَّأثيث",         Type = "bool",   SortOrder = 5 },
-            new() { Key = "Parking",        Label = "مَوقِف سَيّارَة",     LabelAr = "مَوقِف سَيّارَة",   Type = "bool",   SortOrder = 6 },
-            new() { Key = "Wifi",           Label = "إنتَرنِت",             LabelAr = "إنتَرنِت",          Type = "bool",   SortOrder = 7 },
-            new() { Key = "AvailableFrom",  Label = "مُتاحَة مِن",          LabelAr = "مُتاحَة مِن",       Type = "date",   SortOrder = 8 },
-        }
-    };
+    // الإيجار + المُتَطَلَّبات في الشَريك. كُلّ الحُقول اختِيارِيَّة
+    // مَن مَنظور الـ wizard — صاحِب الإعلان يَملَأ ما يَستَطيع.
+    private static readonly AttributeTemplate RoommateHasTemplate = Template(
+        // ─ تَفاصيل المَكان ─
+        F("RoomPrice",          "سِعر الغُرفَة الشَّهري (ريال)",  "number"),
+        S("BedroomShare",       "نَوع الغُرفَة",
+            ("private",   "خاصَّة"),
+            ("shared",    "مُشتَرَكَة")),
+        F("RoomCount",          "عَدَد الغُرَف في الشَقَّة",       "number"),
+        F("BathroomCount",      "عَدَد الحَمّامات",                "number"),
+        F("PrivateBathroom",    "حَمّام خاصّ بِالغُرفَة",          "bool"),
+        F("RoommatesPresent",   "عَدَد الرُّفَقاء الحالِيّين",     "number"),
+        S("PropertyType",       "نَوع السَكَن",
+            ("apartment", "شَقَّة"),
+            ("villa",     "فيلا"),
+            ("studio",    "اِستوديو"),
+            ("room",      "غُرفَة مُستَقِلَّة")),
+        F("Floor",              "الطابِق",                        "text"),
+        F("AreaSqm",            "مِساحَة الشَقَّة (م²)",          "number"),
+        F("AvailableFrom",      "مُتاحَة اعتِباراً مَن",           "date"),
+        S("MinimumStay",        "أَقَلّ مُدَّة سُكنى",
+            ("monthly",   "شَهر"),
+            ("3months",   "ثَلاثَة أَشهُر"),
+            ("6months",   "سِتَّة أَشهُر"),
+            ("yearly",    "سَنَة")),
+        F("DepositAmount",      "التَّأمين",                      "number"),
+        S("UtilitiesIncluded",  "الفَواتير مَشمولَة",
+            ("all",         "الكُلّ مَشمول"),
+            ("partial",     "بَعضها مَشمول"),
+            ("none",        "غَير مَشمولَة")),
+        F("Furnished",          "مُؤَثَّثَة",                      "bool"),
+        F("Wifi",               "إنتَرنِت",                       "bool"),
+        F("AirConditioning",    "تَكييف",                          "bool"),
+        F("HotWater",           "ماء ساخِن",                      "bool"),
+        F("Kitchen",            "مَطبَخ مُشتَرَك",                "bool"),
+        F("Laundry",            "غَسّالَة مَلابِس",                "bool"),
+        F("Parking",            "مَوقِف سَيّارَة",                "bool"),
+        F("Elevator",           "مَصعَد",                          "bool"),
+        F("PowerBackup",        "كَهرَباء احتِياطِيَّة",           "bool"),
+        F("WaterTank",          "خَزّان ماء",                      "bool"),
+        // ─ مَواصَفات الشَّريك المَطلوب ─
+        S("GenderPref",         "تَفضيل الجِنس",
+            ("male",   "ذَكَر"),
+            ("female", "أُنثى"),
+            ("any",    "أَيّ")),
+        F("MinAgePref",         "أَدنى عُمر مَطلوب",               "number"),
+        F("MaxAgePref",         "أَقصى عُمر مَطلوب",               "number"),
+        M("OccupationPref",     "مِهنَة الشَّريك المُفَضَّلَة",
+            ("student",    "طالِب"),
+            ("employee",   "مُوَظَّف"),
+            ("freelancer", "عَمَل حُرّ"),
+            ("any",        "أَيّ")),
+        S("Smoking",            "التَدخين",
+            ("allowed",     "مَسموح"),
+            ("outdoor_only","في الخارِج فَقَط"),
+            ("not_allowed", "غَير مَسموح")),
+        S("Pets",               "حَيَوانات أَليفَة",
+            ("allowed",     "مَسموح"),
+            ("not_allowed", "غَير مَسموح"),
+            ("case_by_case","حَسب الحالَة")),
+        S("Cleanliness",        "مُستَوى النَّظافَة المَطلوب",
+            ("very_clean","عالِيَة جِدّاً"),
+            ("clean",     "جَيِّدَة"),
+            ("relaxed",   "عادِيَّة")),
+        S("Lifestyle",          "نَمَط الحَياة",
+            ("quiet",       "هادِئ"),
+            ("social",      "اجتِماعي"),
+            ("party",       "حَيَوي")),
+        S("VisitorsPolicy",     "سِياسَة الزُّوّار",
+            ("allowed",     "مَسموح"),
+            ("limited",     "مَحدود"),
+            ("not_allowed", "غَير مَسموح")),
+        S("Religion",           "الدِّيانَة",
+            ("any",      "غَير مُهِمّ"),
+            ("muslim",   "مُسلِم"),
+            ("other",    "أُخرى")),
+        F("RoommateBio",        "وَصف الجَوّ العام (نَبذَة)",       "text")
+    );
 
     // "يَدور سَكَن" — مَعلومات الباحِث وَ مُتَطَلَّباته.
-    private static readonly AttributeTemplate RoommateWantsTemplate = new()
-    {
-        Fields = new()
-        {
-            new() { Key = "Budget",         Label = "المِيزانِيَّة",        LabelAr = "المِيزانِيَّة",     Type = "number", SortOrder = 1 },
-            new() { Key = "PreferredArea",  Label = "المَنطِقَة المُفَضَّلَة", LabelAr = "المَنطِقَة المُفَضَّلَة", Type = "text", SortOrder = 2 },
-            new() { Key = "Gender",         Label = "الجِنس",              LabelAr = "الجِنس",            Type = "select", SortOrder = 3,
-                    Options = new() {
-                        new() { Value = "male",   Label = "Male",   LabelAr = "ذَكَر" },
-                        new() { Value = "female", Label = "Female", LabelAr = "أُنثى" }
-                    }},
-            new() { Key = "Age",            Label = "العُمر",               LabelAr = "العُمر",            Type = "number", SortOrder = 4 },
-            new() { Key = "Occupation",     Label = "المِهنَة",             LabelAr = "المِهنَة",          Type = "text",   SortOrder = 5 },
-            new() { Key = "Smoker",         Label = "مُدَخِّن",             LabelAr = "مُدَخِّن",          Type = "bool",   SortOrder = 6 },
-            new() { Key = "MoveInBy",       Label = "تاريخ الانتِقال",      LabelAr = "تاريخ الانتِقال",   Type = "date",   SortOrder = 7 },
-        }
-    };
+    private static readonly AttributeTemplate RoommateWantsTemplate = Template(
+        // ─ مَن أَنا ─
+        F("Age",                "العُمر",                          "number"),
+        S("Gender",             "الجِنس",
+            ("male",   "ذَكَر"),
+            ("female", "أُنثى")),
+        F("Occupation",         "المِهنَة",                        "text"),
+        S("MaritalStatus",      "الحالَة الاجتِماعِيَّة",
+            ("single",   "أَعزَب"),
+            ("married",  "مُتَزَوِّج"),
+            ("divorced", "مُطَلَّق"),
+            ("other",    "أُخرى")),
+        F("Nationality",        "الجِنسِيَّة",                     "text"),
+        F("Languages",          "اللُغات",                          "text"),
+        F("AboutMe",            "نَبذَة عَنّي",                    "text"),
+        S("Religion",           "الدِّيانَة",
+            ("any",      "غَير مُهِمّ"),
+            ("muslim",   "مُسلِم"),
+            ("other",    "أُخرى")),
+        // ─ ما أَبحَث عَنه ─
+        F("Budget",             "المِيزانِيَّة الشَّهرِيَّة (ريال)","number"),
+        F("PreferredArea",      "المَنطِقَة المُفَضَّلَة",           "text"),
+        M("PreferredCities",    "المُدُن المُفَضَّلَة",
+            ("sanaa",      "صَنعاء"),
+            ("aden",       "عَدَن"),
+            ("taiz",       "تَعِزّ"),
+            ("hudaydah",   "الحُدَيدَة"),
+            ("ibb",        "إب"),
+            ("hadramout",  "حَضرَموت")),
+        S("PreferredPropertyType","نَوع السَكَن المُفَضَّل",
+            ("apartment", "شَقَّة"),
+            ("villa",     "فيلا"),
+            ("studio",    "اِستوديو"),
+            ("room",      "غُرفَة مُستَقِلَّة")),
+        S("BedroomShare",       "نَوع الغُرفَة المَطلوبَة",
+            ("private",   "خاصَّة"),
+            ("shared",    "مُشتَرَكَة"),
+            ("any",       "أَيّ")),
+        S("PrivateBathroom",    "حَمّام خاصّ مَطلوب",
+            ("required",  "ضَروري"),
+            ("preferred", "مُفَضَّل"),
+            ("any",       "غَير ضَروري")),
+        S("FurnishedPref",      "التَّأثيث المُفَضَّل",
+            ("furnished",   "مُؤَثَّث"),
+            ("unfurnished", "غَير مُؤَثَّث"),
+            ("any",         "أَيّ")),
+        F("MoveInBy",           "تاريخ الانتِقال المَطلوب",         "date"),
+        S("StayDuration",       "مُدَّة الإقامَة المُتَوَقَّعَة",
+            ("short",   "أَقَلّ مَن ٣ أَشهُر"),
+            ("medium",  "٣ — ٦ أَشهُر"),
+            ("long",    "سَنَة أَو أَكثَر")),
+        // ─ نَمَط حَياتي ─
+        S("Smoker",             "هَل أُدَخِّن",
+            ("yes_outside",  "نَعَم خارِج المَنزِل"),
+            ("yes",          "نَعَم"),
+            ("no",           "لا")),
+        F("HasPet",             "أَملِك حَيَوان أَليف",             "bool"),
+        S("Lifestyle",          "نَمَط حَياتي",
+            ("quiet",   "هادِئ"),
+            ("social",  "اجتِماعي"),
+            ("flexible","مَرِن")),
+        S("Cleanliness",        "مُستَوى النَّظافَة",
+            ("very_clean","عالِيَة جِدّاً"),
+            ("clean",     "جَيِّدَة"),
+            ("relaxed",   "عادِيَّة")),
+        S("VisitorsPolicy",     "زُوّاري المُتَوَقَّعون",
+            ("rarely",   "نادِراً"),
+            ("sometimes","أَحياناً"),
+            ("often",    "كَثيراً")),
+        // ─ تَفضيلات الشَّريك ─
+        S("RoommateGenderPref", "جِنس الشَّريك المُفَضَّل",
+            ("male", "ذَكَر"),
+            ("female","أُنثى"),
+            ("any",  "أَيّ")),
+        F("RoommateMinAge",     "أَدنى عُمر لِلشَّريك",             "number"),
+        F("RoommateMaxAge",     "أَقصى عُمر لِلشَّريك",             "number"),
+        S("RoommateCountPref",  "عَدَد الرُّفَقاء المُفَضَّل",
+            ("solo",       "بِمُفرَدي مَع مالِك"),
+            ("one",        "شَريك واحِد"),
+            ("two_plus",   "اِثنان فَأَكثَر"),
+            ("any",        "أَيّ"))
+    );
 }

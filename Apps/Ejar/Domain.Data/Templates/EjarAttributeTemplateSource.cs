@@ -75,22 +75,125 @@ public sealed class EjarAttributeTemplateSource : IAttributeTemplateSource
         return new AttributeTemplate { Fields = fields };
     }
 
-    /// <summary>قاموس تَرجَمات لِخِيارات Ejar الافتِراضِيَّة.</summary>
-    private static string TranslateOption(string defCode, string value) => (defCode, value) switch
+    /// <summary>قاموس تَرجَمات لِخِيارات Ejar الافتِراضِيَّة.
+    /// يَختار التَّرجَمَة المُحَدَّدَة لِلحَقل ثُمّ يَرجِع إلى قاموس
+    /// <see cref="_genericOptions"/> العام (لِقِيَم تَتَكَرَّر عَبر حُقول
+    /// كَ "yes/no", "indoor/outdoor", "monthly/yearly").</summary>
+    private static string TranslateOption(string defCode, string value)
     {
-        ("Floor", "ground")        => "أَرضي",
-        ("Floor", "first")         => "الأَوَّل",
-        ("Floor", "second")        => "الثاني",
-        ("Floor", "third")         => "الثالِث",
-        ("Floor", "fourth")        => "الرابِع",
-        ("Floor", "fifth")         => "الخامِس",
-        ("Furnished", "furnished")     => "مُؤَثَّث",
-        ("Furnished", "unfurnished")   => "غَير مُؤَثَّث",
-        ("Furnished", "semi")          => "نِصف مُؤَثَّث",
-        ("Parking", "yes")         => "مُتَوَفِّر",
-        ("Parking", "no")          => "غَير مُتَوَفِّر",
-        ("Parking", "covered")     => "مُغَطّى",
-        _                          => value,
+        var specific = (defCode, value) switch
+        {
+            ("Floor", "ground")        => "أَرضي",
+            ("Floor", "first")         => "الأَوَّل",
+            ("Floor", "second")        => "الثاني",
+            ("Floor", "third")         => "الثالِث",
+            ("Floor", "fourth")        => "الرابِع",
+            ("Floor", "fifth")         => "الخامِس",
+            ("Floor", "sixth")         => "السادِس",
+            ("Floor", "seventh")       => "السابِع",
+            ("Floor", "eighth")        => "الثامِن",
+            ("Floor", "ninth")         => "التاسِع",
+            ("Floor", "tenth")         => "العاشِر",
+            ("Furnished", "furnished")    => "مُؤَثَّث",
+            ("Furnished", "unfurnished")  => "غَير مُؤَثَّث",
+            ("Furnished", "semi")         => "نِصف مُؤَثَّث",
+            ("Parking", "yes")            => "مُتَوَفِّر",
+            ("Parking", "no")             => "غَير مُتَوَفِّر",
+            ("Parking", "covered")        => "مُغَطّى",
+            ("Parking", "street")         => "في الشارِع",
+            _                             => null,
+        };
+        if (specific is not null) return specific;
+        return _genericOptions.TryGetValue(value, out var v) ? v : value;
+    }
+
+    private static readonly Dictionary<string, string> _genericOptions = new()
+    {
+        // Yes/No
+        ["yes"] = "نَعَم", ["no"] = "لا",
+
+        // Lease term / payment schedules
+        ["daily"] = "يَومي", ["weekly"] = "أُسبوعي", ["monthly"] = "شَهري",
+        ["quarterly"] = "رُبع سَنَوي", ["semi_annual"] = "نِصف سَنَوي",
+        ["annual"] = "سَنَوي", ["yearly"] = "سَنَوي", ["upfront"] = "دَفعَة واحِدَة",
+
+        // Indoor/Outdoor
+        ["indoor"] = "داخِلي", ["outdoor"] = "خارِجي", ["both"] = "كِلاهُما",
+
+        // Utilities included
+        ["all"] = "الكُلّ", ["electricity"] = "كَهرَباء",
+        ["water"] = "ماء", ["internet"] = "إنتَرنِت", ["none"] = "لا شَيء",
+
+        // Water source
+        ["public"] = "شَبَكَة عامَّة", ["well"] = "بِئر", ["tanker"] = "وايِت",
+
+        // Power backup
+        ["generator"] = "مُولِّد", ["solar"] = "طاقَة شَمسِيَّة",
+        ["battery"] = "بَطّارِيَّات", ["ups"] = "UPS",
+
+        // View
+        ["sea"] = "إطلالَة بَحرِيَّة", ["mountain"] = "إطلالَة جَبَلِيَّة",
+        ["city"] = "إطلالَة عَلى المَدينَة", ["garden"] = "إطلالَة عَلى الحَديقَة",
+        ["street"] = "إطلالَة عَلى الشارِع",
+
+        // Orientation
+        ["north"] = "شَمال", ["south"] = "جَنوب", ["east"] = "شَرق", ["west"] = "غَرب",
+        ["northeast"] = "شَمال شَرقي", ["northwest"] = "شَمال غَربي",
+        ["southeast"] = "جَنوب شَرقي", ["southwest"] = "جَنوب غَربي",
+
+        // Condition
+        ["new"] = "جَديد", ["excellent"] = "مُمتاز",
+        ["good"] = "جَيِّد", ["fair"] = "مَقبول",
+        ["needs_renovation"] = "يَحتاج صِيانَة",
+
+        // Building type
+        ["tower"] = "بُرج", ["house"] = "بَيت مُستَقِلّ", ["compound"] = "مُجَمَّع",
+        ["commercial_building"] = "مَبنى تِجاري", ["mall"] = "مول",
+
+        // Policies
+        ["allowed"] = "مَسموح", ["not_allowed"] = "غَير مَسموح",
+        ["case_by_case"] = "حَسب الحالَة", ["outdoor_only"] = "في الخارِج فَقَط",
+
+        // Vehicle bodies
+        ["sedan"] = "سيدان", ["suv"] = "SUV", ["hatchback"] = "هاتشباك",
+        ["coupe"] = "كوبيه", ["pickup"] = "بِك أَب", ["van"] = "فان",
+        ["bus"] = "باص", ["minibus"] = "باص صَغير",
+        ["motorcycle"] = "درّاجَة ناريَّة", ["scooter"] = "سكوتَر",
+
+        // Fuel
+        ["petrol"] = "بَنزين", ["diesel"] = "ديزِل",
+        ["electric"] = "كَهرَبائي", ["hybrid"] = "هايبرِد", ["gas"] = "غاز",
+
+        // Transmission
+        ["automatic"] = "أوتوماتيك", ["manual"] = "عادي",
+        ["cvt"] = "CVT", ["dual_clutch"] = "دَبَل كلاتش",
+
+        // Drive
+        ["fwd"] = "دَفع أَمامي", ["rwd"] = "دَفع خَلفي",
+        ["awd"] = "دَفع رُباعي دائِم", ["4wd"] = "دَفع رُباعي",
+
+        // License
+        ["light"] = "خَفيفَة", ["heavy"] = "ثَقيلَة",
+        ["public_transport"] = "نَقل عامّ",
+
+        // Event types
+        ["wedding"] = "زَواج", ["engagement"] = "خِطبَة",
+        ["graduation"] = "تَخَرُّج", ["birthday"] = "عيد ميلاد",
+        ["corporate"] = "شَرِكات", ["conference"] = "مُؤتَمَر",
+        ["funeral"] = "عَزاء", ["other"] = "أُخرى",
+
+        // Slots
+        ["morning"] = "صَباحي", ["evening"] = "مَسائي",
+
+        // Cancel policy
+        ["flexible"] = "مَرِنَة", ["moderate"] = "مُتَوَسِّطَة",
+        ["strict"] = "صارِمَة", ["non_refundable"] = "غَير قابِلَة لِلاستِرداد",
+
+        // Camp style / type
+        ["modern"] = "حَديث", ["traditional"] = "تُراثي",
+        ["desert"] = "صَحراوي", ["beach"] = "ساحِلي",
+        ["weddings"] = "أَفراح", ["family"] = "عائِلي",
+        ["tourism"] = "سِياحَة", ["mixed"] = "مُتَعَدِّد",
     };
 
     private static string MapType(string t) => t switch
