@@ -99,16 +99,16 @@
         await HomeStore.LoadHomeAsync(string.IsNullOrEmpty(Prefs.City) ? null : Prefs.City);
         _data = MapHomeView(HomeStore.Home);
 
-        // شَجَرَة Taxonomy — تَأتي مَن endpoint مُختَلِف، نُحَمِّلها بِالتَوازي
-        // مَع Home view. فارِغَة ⇒ الـ section يَختَفي تِلقائيّاً.
+        // قِسم الفِئات القَديم (دَوائِر مُكَدَّسَة في AcMarketplaceHomePage) لَم
+        // يَعُد له مَكان: شَجَرَة Taxonomy هي المَصدَر الكانوني الوَحيد. نُفَرِّغ
+        // Categories دائِماً ⇒ المُكَوِّن يُخفي القِسم. لَو Taxonomy فارِغَة
+        // (مَثَلاً قَبل seed)، الـ wrapper يُخفي card الشَجَرَة أَيضاً ⇒ لا
+        // ازدِواجِيَّة ولا فَوضى.
+        if (_data is not null)
+            _data = _data with { Categories = Array.Empty<CategoryTileDto>() };
+
         var tree = await Taxonomy.GetTreeAsync("listing_categories");
         _taxonomyHasNodes = tree.Count > 0;
-
-        // إخفاء قِسم الفِئات الافتِراضي في <c>AcMarketplaceHomePage</c> لَو
-        // الشَجَرَة مَوجودَة: قِسمان بِنَفس العُنوان "فِئات" تَكرار مُزعِج.
-        // نُفَرِّغ Categories ⇒ المُكَوِّن يُخفي القِسم تِلقائيّاً.
-        if (_taxonomyHasNodes && _data is not null)
-            _data = _data with { Categories = Array.Empty<CategoryTileDto>() };
 
         await InvokeAsync(StateHasChanged);
     }

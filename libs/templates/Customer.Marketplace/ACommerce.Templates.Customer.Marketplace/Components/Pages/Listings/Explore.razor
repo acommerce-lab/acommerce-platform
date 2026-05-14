@@ -119,22 +119,15 @@
 
     private async Task LoadCategoriesAsync()
     {
-        await System.Threading.Tasks.Task.WhenAll(
-            Discovery.LoadCategoriesAsync(),
-            Discovery.LoadCitiesAsync());
+        // ما زِلنا نُحَمِّل Cities لِـ Discovery (مُستَخدَمَة في الفلتر) لكِنّ
+        // Categories لَم يَعُد لَها مَكان في الـ chips — شَجَرَة Taxonomy
+        // هي المَصدَر الكانوني. نُبقي <c>_categories</c> فارِغَة دائِماً
+        // ⇒ المُكَوِّن يَعرِض فَقَط chip "الكُلّ" + زَرّ الفلتر، والشَجَرَة فَوقَه.
+        await Discovery.LoadCitiesAsync();
 
-        // شَجَرَة Taxonomy لِلعَرض الهَرَمي. الفَلتَر يَستَخدِم نَفس
-        // <c>_categoryId</c> الَّذي تَستَخدِمه chips ⇒ تَزامُن مَجّاني.
         var tree = await Taxonomy.GetTreeAsync("listing_categories");
         _taxonomyHasNodes = tree.Count > 0;
-
-        // لَو الشَجَرَة مَزروعَة، نُفَرِّغ chips الافتِراضِيَّة في
-        // <c>AcListingExplorePage</c> لِنَتَجَنَّب قِسمَي فِئات مُتَطابِقَين.
-        // المُكَوِّن يُبقي chip "الكُلّ" + زَرّ الفلتر الجانبي بِغَضّ النَّظَر.
-        _categories = _taxonomyHasNodes
-            ? Array.Empty<CategoryTileDto>()
-            : Discovery.Categories.Select(c =>
-                new CategoryTileDto { Id = c.Id, Label = c.Label, Icon = c.Icon ?? "" }).ToList();
+        _categories = Array.Empty<CategoryTileDto>();
     }
 
     private async Task LoadListingsAsync()
