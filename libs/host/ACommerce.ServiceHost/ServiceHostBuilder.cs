@@ -1,3 +1,4 @@
+using System.Reflection;
 using Microsoft.AspNetCore.Builder;
 
 namespace ACommerce.ServiceHost;
@@ -24,6 +25,13 @@ public sealed class ServiceHostBuilder
 
     /// <summary>قائمة hooks تنفَّذ عند الإقلاع داخل scope (هجرة DB، seeding، promotion).</summary>
     public List<Func<IServiceProvider, Task>> StartupHooks { get; } = new();
+
+    /// <summary>الـ assemblies الَّتي يَلتَقِط مِنها <c>UseControllers</c>
+    /// مَزيداً مِن controllers (Application Parts). كُلّ
+    /// <c>UseDynamicAttributes</c>/<c>UseTaxonomy</c>/<c>UseMarketplaceHomeBackend</c>
+    /// يُضيف assembly الخاصّ بِه هنا تِلقائيّاً ⇒ التَطبيق لا يَكتُب
+    /// <c>AddControllers().AddApplicationPart(...)</c> يَدَوياً.</summary>
+    public HashSet<Assembly> ExtraControllerAssemblies { get; } = new();
 
     public ServiceHostBuilder(WebApplicationBuilder builder)
     {

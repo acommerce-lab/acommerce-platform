@@ -35,6 +35,17 @@ builder.AddACommerceServiceHost(host => host
         jwt.Audience = "ashare.v3.mobile";
     })
     .UseRealtime<AshareV3SignalRTransport, AshareV3RealtimeHub>()
+
+    // ── حِزَم Phase 3 (ServiceHost modules) ──────────────────────────────
+    .UseIdempotency<AshareV3OperationIdempotencyStore>()
+    // الـ template source = AshareV3CompositeTemplateSource (يَدعَم prod + roommate fallback).
+    .UseDynamicAttributes<Ashare.V3.Data.Templates.AshareV3CompositeTemplateSource>()
+    .UseTaxonomy<AshareV3DbTaxonomyStore>()
+    .UseMarketplaceHomeBackend<
+        Ashare.V3.Api.Home.AshareV3HomeListingsSource,
+        Ashare.V3.Api.Home.AshareV3HomeListingProjection,
+        Ashare.V3.Api.Home.AshareV3DiscoveryCategoryProvider>()
+
     .UseControllers()
     .RegisterEntities(
         typeof(AshareV3DbContext).Assembly,
@@ -76,36 +87,15 @@ builder.AddACommerceServiceHost(host => host
 
 builder.Services.AddSingleton<IUserIdProvider, AshareV3UserIdProvider>();
 
-// مَصدَر القَوالِب الكانوني عِندَ تَوَفُّر بَيانات إنتاج. الـ controllers
-// تَستَعمِله أَوَّلاً ⇒ fallback لِـ CategoryAttributeTemplates ⇒ fallback
-// لِكود V3CategoryTemplates.
+// مَصدَر القَوالِب الكانوني عِندَ تَوَفُّر بَيانات إنتاج — يَحقُنه
+// AshareV3CompositeTemplateSource داخِليّاً. مَوجود كَ scoped لِأَنّه
+// يَحتاج DbContext (ولا يُسَجَّل كَ IAttributeTemplateSource مُباشَرَةً —
+// composite هو الواجِهَة العامَّة).
 builder.Services.AddScoped<Ashare.V3.Data.Templates.ProductionAttributeTemplateSource>();
-// Composite source: روممَت (hardcoded) → fallback لِـ Production.
-// التَسجيل الـ kit-public يَأتي مَن composite، فَيُغَطّي الحالَتَين.
-builder.Services.AddScoped<ACommerce.Kits.DynamicAttributes.Backend.IAttributeTemplateSource,
-                           Ashare.V3.Data.Templates.AshareV3CompositeTemplateSource>();
-// Taxonomy — مَوحَّدَة مَع إيجار: DB-backed عَلى جَدول <c>TaxonomyNodes</c>.
-// الـ AshareV3Bootstrap يَزرَع roommate + has/wants عَلى الإقلاع. لوحَة الإدارَة
-// تَستَطيع إضافَة/تَعديل فِئَة عَبر CRUD endpoints الَّتي يَكشِفها الكيت دون
-// نَشر كود. القَديم <c>AshareV3TaxonomyStore</c> الـ in-memory أُلغي.
-builder.Services.AddScoped<ACommerce.Kits.Taxonomy.Backend.ITaxonomyStore,
-                           Ashare.V3.Data.Stores.AshareV3DbTaxonomyStore>();
 
-// MVC scan الافتِراضي = entry assembly فَقَط ⇒ نُلحِق Application Parts
-// لِالتِقاط controllers مَن كيتات الخَلفِيَّة.
-builder.Services.AddControllers()
-    .AddApplicationPart(typeof(ACommerce.Kits.DynamicAttributes.Backend.DynamicAttributesController).Assembly)
-    .AddApplicationPart(typeof(ACommerce.Kits.Taxonomy.Backend.TaxonomyController).Assembly)
-    .AddApplicationPart(typeof(ACommerce.Compositions.Customer.Marketplace.Home.Backend.MarketplaceHomeController).Assembly);
-
-// Customer Marketplace Home composition — V3 projection يَبني snapshot
-// لِكُلّ بِطاقَة (template + AttributesJson) فَتَظهَر chips ديناميكِيَّة
-// عَلى AcSpaceCard. الـ Popular suggestions سُعودِيَّة.
-builder.Services.AddMarketplaceHomeBackend<
-    Ashare.V3.Api.Home.AshareV3HomeListingsSource,
-    Ashare.V3.Api.Home.AshareV3HomeListingProjection,
-    Ashare.V3.Api.Home.AshareV3DiscoveryCategoryProvider>();
-builder.Services.AddSingleton<ACommerce.Compositions.Customer.Marketplace.Home.Backend.IHomeSearchSuggestions,
+// Marketplace Home — اقتِراحات بَحث سُعودِيَّة لِـ V3. الـ Source/
+// Projection/CategoryProvider مُسَجَّلَة عَبر UseMarketplaceHomeBackend.
+builder.Services.AddSingleton<IHomeSearchSuggestions,
                               Ashare.V3.Api.Home.AshareV3HomeSearchSuggestions>();
 
 // Mock payment gateway (dev/test). الإنتاج يَستَبدِله بِـ Moyasar/Noon.
@@ -131,12 +121,8 @@ builder.Services.AddSingleton<ACommerce.OperationEngine.Interceptors.IOperationI
 builder.Services.AddScoped<ACommerce.Kits.Listings.Backend.IListingDetailEnricher,
                            Ashare.V3.Api.Enrichers.AshareV3ListingDetailEnricher>();
 
-// Idempotency — يَمنَع تَكرار النَّشر عِندَ retry. الـ interceptor singleton،
-// الـ store scoped (DbContext per-request).
-builder.Services.AddSingleton<ACommerce.OperationEngine.Interceptors.IOperationInterceptor,
-                              ACommerce.OperationEngine.Interceptors.IdempotencyInterceptor>();
-builder.Services.AddScoped<ACommerce.OperationEngine.Interceptors.IOperationIdempotencyStore,
-                           Ashare.V3.Data.Stores.AshareV3OperationIdempotencyStore>();
+// Idempotency مُسَجَّل عَبر <c>.UseIdempotency&lt;AshareV3OperationIdempotencyStore&gt;()</c>
+// أَعلاه — لا حاجَة لِسَطرَين يَدَوِيَّين.
 
 var app = builder.Build();
 

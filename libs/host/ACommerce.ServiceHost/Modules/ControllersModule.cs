@@ -14,7 +14,13 @@ public static class ControllersModule
     public static ServiceHostBuilder UseControllers(this ServiceHostBuilder host)
     {
         var s = host.Builder.Services;
-        s.AddControllers();
+        var mvc = s.AddControllers();
+        // تَلتَقِط controllers مَن كُلّ assembly سَجَّلَتها modules أُخرى
+        // (UseDynamicAttributes/UseTaxonomy/UseMarketplaceHomeBackend) — لا
+        // حاجَة لِـ <c>AddApplicationPart(...)</c> يَدَوي في Program.cs.
+        foreach (var asm in host.ExtraControllerAssemblies)
+            mvc.AddApplicationPart(asm);
+
         s.AddEndpointsApiExplorer();
         s.AddSwaggerGen();
 
