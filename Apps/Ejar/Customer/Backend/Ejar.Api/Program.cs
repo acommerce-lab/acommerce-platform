@@ -41,16 +41,6 @@ builder.AddACommerceServiceHost(host => host
         Ejar.Api.Home.EjarDiscoveryCategoryProvider>()
 
     .UseControllers()
-    // EntityDiscoveryRegistry يَحتاج كلّ entity يَستهلكها CrudActionInterceptor
-    // (مَسار /cities و /amenities و /categories مَثَلاً). assembly الـ
-    // EjarDbContext يَحوي Listing/User/etc.، لكن DiscoveryRegion +
-    // DiscoveryAmenity + DiscoveryCategory + SupportTicket في assemblies
-    // أخرى. نُسَجّلها هنا.
-    .RegisterEntities(
-        typeof(EjarDbContext).Assembly,
-        typeof(ACommerce.Kits.Discovery.Domain.DiscoveryRegion).Assembly,
-        typeof(ACommerce.Kits.Support.Domain.SupportTicket).Assembly,
-        typeof(ACommerce.Favorites.Operations.Entities.Favorite).Assembly)
 
     // ── الكيتس ──────────────────────────────────────────────────────────
     .AddKits(kits => kits
@@ -84,6 +74,12 @@ builder.AddACommerceServiceHost(host => host
         .Add<ACommerce.Compositions.Chat.WithNotifications.ChatNotificationsComposition>()
         .Add<ACommerce.Compositions.Auth.WithSmsOtp.AuthSmsOtpComposition>()
         .Add<ACommerce.Compositions.Marketplace.MarketplaceComposition>())
+
+    // ── EntityDiscoveryRegistry ─────────────────────────────────────────
+    // assembly الـ EjarDbContext يَحوي Listing/User/etc. — كَيانات الكيتس
+    // (Favorite/SupportTicket/DiscoveryRegion) تُضاف تِلقائيّاً عَبر AddKits.
+    // يَجِب أَن يَكون <c>RegisterEntities</c> بَعد <c>AddKits</c>.
+    .RegisterEntities(typeof(EjarDbContext).Assembly)
 );
 
 // ── Ejar-specific extras ─────────────────────────────────────────────────

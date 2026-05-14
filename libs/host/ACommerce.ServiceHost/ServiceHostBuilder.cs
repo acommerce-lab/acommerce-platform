@@ -33,6 +33,14 @@ public sealed class ServiceHostBuilder
     /// <c>AddControllers().AddApplicationPart(...)</c> يَدَوياً.</summary>
     public HashSet<Assembly> ExtraControllerAssemblies { get; } = new();
 
+    /// <summary>الـ assemblies الَّتي يَفحَصها <c>RegisterEntities</c> بَحثاً
+    /// عَن <c>IBaseEntity</c>. كُلّ <c>AddKit/AddComposition</c> يُساهِم
+    /// بِـ assembly كَيانات الكيت/التَّركيب تِلقائيّاً (مَثَل: Favorites
+    /// يُضيف <c>Favorite</c> entity assembly، Support يُضيف <c>SupportTicket</c>).
+    /// التَطبيق يَكتَفي بِـ <c>RegisterEntities(typeof(MyDbContext).Assembly)</c>
+    /// لِلكَيانات الخاصَّة بِه.</summary>
+    public HashSet<Assembly> ExtraEntityAssemblies { get; } = new();
+
     public ServiceHostBuilder(WebApplicationBuilder builder)
     {
         Builder = builder;

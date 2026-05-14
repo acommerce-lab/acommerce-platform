@@ -47,9 +47,6 @@ builder.AddACommerceServiceHost(host => host
         Ashare.V3.Api.Home.AshareV3DiscoveryCategoryProvider>()
 
     .UseControllers()
-    .RegisterEntities(
-        typeof(AshareV3DbContext).Assembly,
-        typeof(ACommerce.Kits.Discovery.Domain.DiscoveryRegion).Assembly)
 
     // الكيتس: Store-ها فَوق جَداوِل asharedb (Law 6).
     .AddKits(kits => kits
@@ -83,6 +80,10 @@ builder.AddACommerceServiceHost(host => host
     // Chat.WithNotifications يُؤَجَّل حَتّى يُسَجَّل Notifications kit.
     .AddCompositions(c => c
         .Add<ACommerce.Compositions.Marketplace.MarketplaceComposition>())
+
+    // EntityDiscoveryRegistry — الـ DbContext + كَيانات الكيتس
+    // (DiscoveryRegion يُضاف تِلقائيّاً عَبر AddDiscovery).
+    .RegisterEntities(typeof(AshareV3DbContext).Assembly)
 );
 
 builder.Services.AddSingleton<IUserIdProvider, AshareV3UserIdProvider>();
