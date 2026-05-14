@@ -2,31 +2,38 @@ using ACommerce.Kits.DynamicAttributes.Backend;
 using ACommerce.SharedKernel.Domain.DynamicAttributes;
 using Ejar.Api.Data;
 using Ejar.Domain;
+using Microsoft.EntityFrameworkCore;
 
 namespace Ejar.Api.Data.Templates;
 
 /// <summary>
-/// مَصدَر قَوالِب Ejar — يَبني <see cref="AttributeTemplate"/> في الذاكِرَة.
-/// يُمَيِّز ثَلاث حالات:
+/// مَصدَر قَوالِب سِمات إيجار. النَّمَط نَفسه الَّذي يَستَخدِمه V3:
 ///
 /// <list type="number">
-///   <item><b>Profile scope</b>: قالَب Bio/Occupation/Nationality/Languages.</item>
-///   <item><b>Listing scope</b>: scopeId مُشتَقّ مَن PropertyType slug.
-///         نَعكِس الـ slug ⇒ نَستَخرِج kind مَن EjarSeed.Categories ⇒
-///         نَعيد القالَب المُناسِب (Realty/Vehicle/Event/Camps).</item>
-///   <item><b>Unknown</b>: قالَب universal فارِغ.</item>
+///   <item><b>DB أَوَّلاً</b>: نَقرَأ <c>CategoryAttributeMappings</c> +
+///         <c>AttributeDefinitions</c> + <c>AttributeValues</c> لِبِناء
+///         <see cref="AttributeTemplate"/>. هذا هو الـ source الكانوني
+///         بَعد ركض الـ migration + الـ seed
+///         (<see cref="DbInitializer.SeedListingAttributesIfMissing"/>).</item>
+///   <item><b>Fallback in-memory</b>: لَو DB فارِغَة (أَوَّل تَشغيل قَبل
+///         الـ migration، أَو فَشِل الـ seed) نَبني الـ template مَن
+///         <see cref="EjarListingAttributes"/> / <see cref="EjarProfileAttributes"/>
+///         مُباشَرَةً — لِيَعمَل الـ wizard فَوراً بِلا تَدَخُّل.</item>
 /// </list>
 ///
-/// <para><b>لِماذا per-kind</b>: حَلّ مَشكَلَة "إعلان باص يَطلُب
-/// عَدَد غُرَف". القالَب يَختَلِف حَسب الـ kind، لا يَوجَد قالَب واحِد.</para>
-///
-/// <para>الـ scopeId reverse-lookup: نَبني <see cref="_scopeToKind"/>
-/// مَرَّة واحِدَة عِندَ static ctor — يَحوي Guid لِكُلّ slug مَعروف.</para>
+/// <para><b>وَعد التَحَكُّم</b>: بِما أَنّ DB هو الـ source الكانوني، لوحَة
+/// الإدارَة المُستَقبَلِيَّة تَستَطيع إضافَة/تَعديل/حَذف سِمَة لِفِئَة دون
+/// نَشر كود — تُعَدِّل صُفوف <c>AttributeDefinitions</c> /
+/// <c>CategoryAttributeMappings</c> مُباشَرَةً. الـ in-memory يَبقى كَ
+/// <i>seed</i> لِبِدايَة سَريعَة.</para>
 /// </summary>
 public sealed class EjarAttributeTemplateSource : IAttributeTemplateSource
 {
+    private readonly EjarDbContext _db;
+    public EjarAttributeTemplateSource(EjarDbContext db) => _db = db;
+
     /// <summary>خَريطَة <c>scopeId (مُشتَقّ مَن slug) → kind</c>. تُبنى
-    /// مَرَّة عِندَ تَحميل الصَنف.</summary>
+    /// مَرَّة عِندَ تَحميل الصَنف. تَخدِم fallback in-memory فَقَط.</summary>
     private static readonly Dictionary<Guid, string> _scopeToKind = BuildScopeMap();
 
     private static Dictionary<Guid, string> BuildScopeMap()
@@ -37,20 +44,90 @@ public sealed class EjarAttributeTemplateSource : IAttributeTemplateSource
         return map;
     }
 
-    public Task<AttributeTemplate?> BuildForScopeAsync(Guid scopeId, CancellationToken ct)
+    public async Task<AttributeTemplate?> BuildForScopeAsync(Guid scopeId, CancellationToken ct)
     {
-        if (scopeId == EjarProfileAttributes.ScopeId)
-            return Task.FromResult<AttributeTemplate?>(BuildFromSeeds(EjarProfileAttributes.Defaults));
-
-        // Listing scope: نَكتَشِف الـ kind مَن scopeId ⇒ نَعيد القالَب المُلائِم.
-        if (_scopeToKind.TryGetValue(scopeId, out var kind))
+        // ① مُحاوَلَة DB. لَو فيها mappings ⇒ هي الـ truth.
+        try
         {
-            var seeds = EjarListingAttributes.ForKind(kind);
-            return Task.FromResult<AttributeTemplate?>(BuildFromSeeds(seeds));
+            var fromDb = await BuildFromDbAsync(scopeId, ct);
+            if (fromDb is { Fields.Count: > 0 }) return fromDb;
+        }
+        catch
+        {
+            // DB قَد لا تَكون جاهِزَة (الـ migration لَم يَركَض، أَو الجَدول
+            // مَفقود). نُكَمِّل بِالـ in-memory fallback.
         }
 
-        // غَير مَعروف ⇒ universal (فارِغَة الآن — لا تَكرار مَع IListing).
-        return Task.FromResult<AttributeTemplate?>(BuildFromSeeds(EjarListingAttributes.UniversalDefaults));
+        // ② Fallback in-memory.
+        if (scopeId == EjarProfileAttributes.ScopeId)
+            return BuildFromSeeds(EjarProfileAttributes.Defaults);
+
+        if (_scopeToKind.TryGetValue(scopeId, out var kind))
+            return BuildFromSeeds(EjarListingAttributes.ForKind(kind));
+
+        return BuildFromSeeds(EjarListingAttributes.UniversalDefaults);
+    }
+
+    private async Task<AttributeTemplate?> BuildFromDbAsync(Guid scopeId, CancellationToken ct)
+    {
+        var mappings = await _db.CategoryAttributeMappings.AsNoTracking()
+            .Where(m => m.CategoryId == scopeId && m.IsActive)
+            .OrderBy(m => m.SortOrder)
+            .ToListAsync(ct);
+        if (mappings.Count == 0) return null;
+
+        var defIds = mappings.Select(m => m.AttributeDefinitionId).ToList();
+        var defs = await _db.AttributeDefinitions.AsNoTracking()
+            .Where(d => defIds.Contains(d.Id))
+            .ToDictionaryAsync(d => d.Id, ct);
+
+        var selectDefIds = defs.Values
+            .Where(d => IsSelectLike(d.Type))
+            .Select(d => d.Id).ToList();
+        var allValues = selectDefIds.Count == 0
+            ? new List<AttributeValueEntity>()
+            : await _db.AttributeValues.AsNoTracking()
+                .Where(v => selectDefIds.Contains(v.AttributeDefinitionId) && v.IsActive)
+                .OrderBy(v => v.SortOrder)
+                .ToListAsync(ct);
+        var valuesByDef = allValues.GroupBy(v => v.AttributeDefinitionId)
+                                   .ToDictionary(g => g.Key, g => g.ToList());
+
+        var fields = new List<AttributeFieldDefinition>(mappings.Count);
+        var orderBase = 0;
+        foreach (var m in mappings)
+        {
+            if (!defs.TryGetValue(m.AttributeDefinitionId, out var d)) continue;
+            fields.Add(new AttributeFieldDefinition
+            {
+                Key      = d.Code,
+                Label    = d.Name,
+                LabelAr  = d.Name,
+                Type     = MapType(d.Type),
+                Required = m.IsRequiredOverride ?? d.IsRequired,
+                ShowInCard = d.IsVisibleInList,
+                SortOrder = m.SortOrder != 0 ? m.SortOrder : ++orderBase,
+                Default   = string.IsNullOrEmpty(d.DefaultValue) ? null : d.DefaultValue,
+                Options   = MapOptionsFromDb(d.Code, d.Type, valuesByDef.GetValueOrDefault(d.Id)),
+            });
+        }
+        return new AttributeTemplate { Fields = fields };
+    }
+
+    private static bool IsSelectLike(string t) =>
+        string.Equals(t, "SingleSelect", StringComparison.OrdinalIgnoreCase)
+        || string.Equals(t, "MultiSelect", StringComparison.OrdinalIgnoreCase);
+
+    private static List<AttributeOption> MapOptionsFromDb(
+        string defCode, string type, List<AttributeValueEntity>? values)
+    {
+        if (values is null || !IsSelectLike(type)) return new();
+        return values.Select(v => new AttributeOption
+        {
+            Value   = v.Value,
+            Label   = v.DisplayName ?? v.Value,
+            LabelAr = TranslateOption(defCode, v.Value),
+        }).ToList();
     }
 
     private static AttributeTemplate BuildFromSeeds(IReadOnlyList<AttributeSeed> seeds)

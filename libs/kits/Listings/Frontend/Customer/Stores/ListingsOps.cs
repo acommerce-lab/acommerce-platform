@@ -36,26 +36,37 @@ public static class ListingsOps
         .To("Server:listings", 1, ("role", "source"))
         .Build();
 
-    /// <summary>قَيد إنشاء إعلان جَديد. السيرفر يَلتَقِطه عَبر POST /my-listings.</summary>
-    public static Operation Create(ListingDraftPayload p) => Entry
-        .Create("listings.create")
-        .From("User:current",  1, ("role", "owner"))
-        .To("Server:listings", 1, ("role", "created"))
-        .Tag("title",        p.Title)
-        .Tag("city",         p.City)
-        .Tag("propertyType", p.PropertyType ?? "")
-        .Build();
+    /// <summary>قَيد إنشاء إعلان جَديد. السيرفر يَلتَقِطه عَبر POST /my-listings.
+    /// لَو <c>IdempotencyKey</c> مُعَيَّن، يُضاف كَـ tag بِالاسم
+    /// <c>idempotency_key</c> الَّذي يَفحَصه <c>IdempotencyInterceptor</c>
+    /// عَلى السيرفر لِمَنع التَّكرار.</summary>
+    public static Operation Create(ListingDraftPayload p)
+    {
+        var b = Entry.Create("listings.create")
+            .From("User:current",  1, ("role", "owner"))
+            .To("Server:listings", 1, ("role", "created"))
+            .Tag("title",        p.Title)
+            .Tag("city",         p.City)
+            .Tag("propertyType", p.PropertyType ?? "");
+        if (p.IdempotencyKey is { } ik)
+            b.Tag("idempotency_key", ik.ToString("N"));
+        return b.Build();
+    }
 
     /// <summary>قَيد تَعديل إعلان قائِم. السيرفر يَلتَقِطه عَبر PATCH /my-listings/{id}.</summary>
-    public static Operation Edit(string id, ListingDraftPayload p) => Entry
-        .Create("listings.edit")
-        .From("User:current",  1, ("role", "owner"))
-        .To($"Listing:{id}",   1, ("role", "edited"))
-        .Tag("id",           id)
-        .Tag("title",        p.Title)
-        .Tag("city",         p.City)
-        .Tag("propertyType", p.PropertyType ?? "")
-        .Build();
+    public static Operation Edit(string id, ListingDraftPayload p)
+    {
+        var b = Entry.Create("listings.edit")
+            .From("User:current",  1, ("role", "owner"))
+            .To($"Listing:{id}",   1, ("role", "edited"))
+            .Tag("id",           id)
+            .Tag("title",        p.Title)
+            .Tag("city",         p.City)
+            .Tag("propertyType", p.PropertyType ?? "");
+        if (p.IdempotencyKey is { } ik)
+            b.Tag("idempotency_key", ik.ToString("N"));
+        return b.Build();
+    }
 
     /// <summary>قَيد تَبديل حالة إعلان (نَشِط ↔ مُتَوَقِّف).</summary>
     public static Operation ToggleStatus(string id) => Entry

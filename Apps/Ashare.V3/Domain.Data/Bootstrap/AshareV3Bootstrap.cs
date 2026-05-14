@@ -127,6 +127,7 @@ public static class AshareV3Bootstrap
             // <c>ProductionAttributeTemplateSource</c> بِناءَها كَـ template
             // ⇒ نَفس مَحَرِّك القَوالِب يَعمَل عَلى البروفايل.
             await SeedProfileAttributesAsync(db, logger, ct);
+            await SeedRoommateCategoriesAsync(db, logger, ct);
         }
         else
         {
@@ -319,6 +320,225 @@ public static class AshareV3Bootstrap
         catch (Exception ex)
         {
             logger?.LogWarning(ex, "Ashare V3: profile attribute seed skipped");
+        }
+    }
+
+    /// <summary>
+    /// يَزرَع فِئَتَي الـ roommate ("عَنده سَكَن" / "يَدور سَكَن") + كُلّ
+    /// سِماتهما الديناميكِيَّة في DB. idempotent تَماماً: يُحَدِّث مَوجود +
+    /// يُضيف ناقِص بِلا لَمس بَيانات أُخرى.
+    ///
+    /// <para>المَنطِق:
+    /// <list type="number">
+    ///   <item><b>UPSERT</b> صَفَّي <see cref="ProductCategoryEntity"/> عَلى Id
+    ///         (Guid ثابِت في <see cref="AshareV3RoommateAttributes"/>).</item>
+    ///   <item><b>UPSERT</b> <see cref="AttributeDefinitionEntity"/> لِكُلّ
+    ///         <c>Code</c> فَريد — تَشارُك <c>BedroomShare</c>/<c>Smoking</c> بَين
+    ///         الفِئَتَين يَستَخدِم نَفس الـ definition.</item>
+    ///   <item><b>UPSERT</b> <see cref="AttributeValueEntity"/> لِكُلّ خِيار
+    ///         في select-like definitions (المُفتاح: DefinitionId + Value).</item>
+    ///   <item><b>UPSERT</b> <see cref="CategoryAttributeMappingEntity"/>
+    ///         لِكُلّ رِبط (Category, Definition) — هو ما يَفحَصه
+    ///         <see cref="ProductionAttributeTemplateSource"/>.</item>
+    /// </list></para>
+    ///
+    /// <para>بَعد هذا الـ seed، الـ controller <c>/categories/{slug}/attribute-template</c>
+    /// يَرُدّ القالَب مَن DB طَبيعِيّاً ⇒ لا حاجَة لِفَرع الـ in-memory.
+    /// لوحَة الإدارَة (مُستَقبَلِيَّة) تَستَطيع تَعديل الحُقول مُباشَرَة
+    /// لِأَنّها الآن صُفوف DB.</para>
+    /// </summary>
+    private static async Task SeedRoommateCategoriesAsync(
+        AshareV3DbContext db, ILogger? logger, CancellationToken ct)
+    {
+        try
+        {
+            var now = DateTime.UtcNow;
+
+            // ─── ① الفِئَتان ─────────────────────────────────────────────
+            await UpsertCategoryAsync(db,
+                id:   AshareV3RoommateAttributes.RoommateHasCategoryId,
+                slug: AshareV3RoommateAttributes.RoommateHasSlug,
+                name: AshareV3RoommateAttributes.RoommateHasName,
+                icon: "🏠", sortOrder: 1, now: now, ct: ct);
+
+            await UpsertCategoryAsync(db,
+                id:   AshareV3RoommateAttributes.RoommateWantsCategoryId,
+                slug: AshareV3RoommateAttributes.RoommateWantsSlug,
+                name: AshareV3RoommateAttributes.RoommateWantsName,
+                icon: "🔍", sortOrder: 2, now: now, ct: ct);
+
+            await db.SaveChangesAsync(ct);
+
+            // ─── ② تَجميع كُلّ الـ codes الفَريدَة عَبر الفِئَتَين ───────
+            var allSeeds = AshareV3RoommateAttributes.RoommateHasFields
+                .Concat(AshareV3RoommateAttributes.RoommateWantsFields)
+                .GroupBy(s => s.Code, StringComparer.Ordinal)
+                .ToDictionary(g => g.Key, g => g.First()); // أَوَّل تَعريف يَفوز عِندَ التَشارُك
+
+            // ─── ③ AttributeDefinitions: UPSERT بِالـ Code ───────────────
+            var existingDefs = await db.AttributeDefinitions.AsNoTracking()
+                .Where(d => allSeeds.Keys.Contains(d.Code))
+                .ToDictionaryAsync(d => d.Code, d => d, ct);
+
+            var defIdByCode = new Dictionary<string, Guid>(StringComparer.Ordinal);
+            var newDefs = new List<AttributeDefinitionEntity>();
+            var sortGlobal = 0;
+            foreach (var (code, seed) in allSeeds)
+            {
+                sortGlobal++;
+                if (existingDefs.TryGetValue(code, out var existing))
+                {
+                    defIdByCode[code] = existing.Id;
+                    // لا نَلمَس صُفوفاً قائِمَة — قَد تَكون لوحَة الإدارَة
+                    // عَدَّلتها (Name/Description/IsRequired). الـ seed
+                    // يَمنَح وُجوداً، الإدارَة تَملِك التَّعديل.
+                    continue;
+                }
+                var id = Guid.NewGuid();
+                defIdByCode[code] = id;
+                newDefs.Add(new AttributeDefinitionEntity
+                {
+                    Id        = id,
+                    CreatedAt = now,
+                    Code      = seed.Code,
+                    Name      = seed.Name,
+                    Type      = seed.Type,
+                    IsRequired       = false,
+                    IsFilterable     = false,
+                    IsVisibleInList  = false,
+                    IsVisibleInDetail = true,
+                    SortOrder = sortGlobal,
+                });
+            }
+            if (newDefs.Count > 0) db.AttributeDefinitions.AddRange(newDefs);
+            await db.SaveChangesAsync(ct);
+
+            // ─── ④ AttributeValues لِلـ select-like ────────────────────
+            var defIdsWithOptions = allSeeds.Values
+                .Where(s => s.Options is { Length: > 0 })
+                .Select(s => defIdByCode[s.Code])
+                .ToList();
+            var existingValues = await db.AttributeValues.AsNoTracking()
+                .Where(v => defIdsWithOptions.Contains(v.AttributeDefinitionId))
+                .ToListAsync(ct);
+            var existingValueKeys = existingValues
+                .Select(v => (v.AttributeDefinitionId, v.Value))
+                .ToHashSet();
+
+            var newValues = new List<AttributeValueEntity>();
+            foreach (var seed in allSeeds.Values)
+            {
+                if (seed.Options is not { Length: > 0 }) continue;
+                var defId = defIdByCode[seed.Code];
+                var optSort = 0;
+                foreach (var opt in seed.Options)
+                {
+                    optSort++;
+                    if (existingValueKeys.Contains((defId, opt.Value))) continue;
+                    newValues.Add(new AttributeValueEntity
+                    {
+                        Id        = Guid.NewGuid(),
+                        CreatedAt = now,
+                        AttributeDefinitionId = defId,
+                        Value       = opt.Value,
+                        DisplayName = opt.LabelAr,
+                        SortOrder   = optSort,
+                        IsActive    = true,
+                    });
+                }
+            }
+            if (newValues.Count > 0) db.AttributeValues.AddRange(newValues);
+            await db.SaveChangesAsync(ct);
+
+            // ─── ⑤ CategoryAttributeMappings ───────────────────────────
+            await UpsertMappingsAsync(db,
+                categoryId: AshareV3RoommateAttributes.RoommateHasCategoryId,
+                fields:     AshareV3RoommateAttributes.RoommateHasFields,
+                defIdByCode: defIdByCode, now: now, ct: ct);
+
+            await UpsertMappingsAsync(db,
+                categoryId: AshareV3RoommateAttributes.RoommateWantsCategoryId,
+                fields:     AshareV3RoommateAttributes.RoommateWantsFields,
+                defIdByCode: defIdByCode, now: now, ct: ct);
+
+            await db.SaveChangesAsync(ct);
+
+            var hasMaps = await db.CategoryAttributeMappings
+                .CountAsync(m => m.CategoryId == AshareV3RoommateAttributes.RoommateHasCategoryId
+                                 && m.IsActive, ct);
+            var wantsMaps = await db.CategoryAttributeMappings
+                .CountAsync(m => m.CategoryId == AshareV3RoommateAttributes.RoommateWantsCategoryId
+                                 && m.IsActive, ct);
+            logger?.LogInformation(
+                "Ashare V3: roommate seed → +{Defs} defs, +{Vals} values; mappings on roommate_has={H}, roommate_wants={W}",
+                newDefs.Count, newValues.Count, hasMaps, wantsMaps);
+        }
+        catch (Exception ex)
+        {
+            logger?.LogWarning(ex, "Ashare V3: roommate category seed skipped");
+        }
+    }
+
+    private static async Task UpsertCategoryAsync(AshareV3DbContext db,
+        Guid id, string slug, string name, string icon, int sortOrder,
+        DateTime now, CancellationToken ct)
+    {
+        var existing = await db.ProductCategories.IgnoreQueryFilters()
+            .FirstOrDefaultAsync(c => c.Id == id, ct);
+        if (existing is null)
+        {
+            db.ProductCategories.Add(new ProductCategoryEntity
+            {
+                Id        = id,
+                CreatedAt = now,
+                Slug      = slug,
+                Name      = name,
+                Icon      = icon,
+                SortOrder = sortOrder,
+                IsActive  = true,
+                IsDeleted = false,
+            });
+        }
+        else
+        {
+            // اِجبار عَلى صَلاحِيَّة الـ slug + الاسم لَو تَغَيَّر الـ seed.
+            // لا نَلمَس Description/Image — لوحَة الإدارَة قَد تَكون أَدخَلَتها.
+            var changed = false;
+            if (existing.Slug != slug) { existing.Slug = slug; changed = true; }
+            if (existing.Name != name) { existing.Name = name; changed = true; }
+            if (string.IsNullOrEmpty(existing.Icon)) { existing.Icon = icon; changed = true; }
+            if (!existing.IsActive)    { existing.IsActive = true; changed = true; }
+            if (existing.IsDeleted)    { existing.IsDeleted = false; changed = true; }
+            if (changed) existing.UpdatedAt = now;
+        }
+    }
+
+    private static async Task UpsertMappingsAsync(AshareV3DbContext db,
+        Guid categoryId,
+        IReadOnlyList<AshareV3RoommateAttributes.AttrSeed> fields,
+        Dictionary<string, Guid> defIdByCode,
+        DateTime now, CancellationToken ct)
+    {
+        var existing = await db.CategoryAttributeMappings.AsNoTracking()
+            .Where(m => m.CategoryId == categoryId)
+            .ToListAsync(ct);
+        var existingByDefId = existing.ToDictionary(m => m.AttributeDefinitionId);
+
+        var sort = 0;
+        foreach (var seed in fields)
+        {
+            sort++;
+            if (!defIdByCode.TryGetValue(seed.Code, out var defId)) continue;
+            if (existingByDefId.ContainsKey(defId)) continue;
+            db.CategoryAttributeMappings.Add(new CategoryAttributeMappingEntity
+            {
+                Id        = Guid.NewGuid(),
+                CreatedAt = now,
+                CategoryId            = categoryId,
+                AttributeDefinitionId = defId,
+                SortOrder             = sort,
+                IsActive              = true,
+            });
         }
     }
 }

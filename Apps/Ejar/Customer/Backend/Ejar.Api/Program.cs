@@ -87,10 +87,12 @@ builder.Services.AddScoped<ACommerce.OperationEngine.Interceptors.IOperationIdem
                            Ejar.Api.Stores.EjarOperationIdempotencyStore>();
 
 // DynamicAttributes kit — مَصدَر القَوالِب الَّتي تَخدِم /profile/edit
-// ولِسِمات الإعلانات. EjarAttributeTemplateSource يَبني القَوالِب مَن
-// كود ثابِت (EjarAttributes.cs)؛ لا جَدول DB يَحتاج migration.
-builder.Services.AddSingleton<ACommerce.Kits.DynamicAttributes.Backend.IAttributeTemplateSource,
-                              Ejar.Api.Data.Templates.EjarAttributeTemplateSource>();
+// ولِسِمات الإعلانات. EjarAttributeTemplateSource يَقرَأ مَن جَداوِل
+// AttributeDefinitions/Values/CategoryAttributeMappings (المُسَجَّلَة عَبر
+// migration "AddDynamicAttributeTables" + DbInitializer.SeedListingAttributesIfMissing).
+// Scoped لِأَنّه يَحقَن EjarDbContext.
+builder.Services.AddScoped<ACommerce.Kits.DynamicAttributes.Backend.IAttributeTemplateSource,
+                           Ejar.Api.Data.Templates.EjarAttributeTemplateSource>();
 
 // Taxonomy kit — شَجَرَة تَصنيف هَرَمِيَّة مُتَعَدِّدَة الجُذور (categories,
 // locations, …). يَفصِل بَين Listings/Profile وبَين شَكل الفِئات ⇒

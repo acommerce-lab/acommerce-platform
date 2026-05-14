@@ -136,7 +136,12 @@ public sealed class ListingsController : ControllerBase
         /// <summary>سِمات ديناميكِيَّة. مَفاتيح القالَب (مَن
         /// <c>/categories/{slug}/attribute-template</c>) → قِيَم خام JSON.
         /// التَطبيق يَفُكّ + يَحفَظ كَ snapshot عَلى Listing.</summary>
-        Dictionary<string, System.Text.Json.JsonElement>? Attributes);
+        Dictionary<string, System.Text.Json.JsonElement>? Attributes,
+        /// <summary>مِفتاح حِمايَة مَن التَّكرار يُمَرَّر مَن الكلاينت. لَو
+        /// مَوجود، يُضاف كَ tag عَلى الـ op ⇒ <c>IdempotencyInterceptor</c>
+        /// يَفحَص الـ store قَبل التَّنفيذ ويَرفُض التَكرار. غائِب ⇒ السيرفر
+        /// يُوَلِّد مِفتاحاً جَديداً (لا dedup فِعليّ — لِلتَدقيق فَقَط).</summary>
+        string? IdempotencyKey);
 
     [HttpPost("/my-listings")]
     [Authorize(Policy = ListingsKitPolicies.AuthenticatedWriter)]
@@ -172,7 +177,7 @@ public sealed class ListingsController : ControllerBase
                 : null,
         };
 
-        var op = Entry.Create(ListingOps.Create)
+        var opBuilder = Entry.Create(ListingOps.Create)
             .Describe($"User {CallerId} creates listing {listing.Id}")
             .From(CallerPartyId(CallerId), 1, ("role", "owner"))
             .To($"Listing:{listing.Id}", 1, ("role", "created"))
@@ -180,7 +185,10 @@ public sealed class ListingsController : ControllerBase
             .Tag(ListingTagKeys.OwnerId,      CallerId)
             .Tag(ListingTagKeys.PropertyType, listing.PropertyType)
             .Tag(ListingTagKeys.City,         listing.City)
-            .Tag(ListingTagKeys.District,     listing.District)
+            .Tag(ListingTagKeys.District,     listing.District);
+        if (!string.IsNullOrWhiteSpace(req.IdempotencyKey))
+            opBuilder.Tag("idempotency_key", req.IdempotencyKey);
+        var op = opBuilder
             .Analyze(new RequiredFieldAnalyzer("title", () => req.Title))
             .Analyze(new MaxLengthAnalyzer  ("title", () => req.Title, _options.MaxTitleLength))
             .Analyze(new MaxLengthAnalyzer  ("description", () => req.Description, _options.MaxDescriptionLength))
@@ -211,7 +219,9 @@ public sealed class ListingsController : ControllerBase
         IReadOnlyList<string>? Images,
         string? Thumbnail,
         /// <summary>سِمات ديناميكِيَّة (نَفس صياغَة CreateBody).</summary>
-        Dictionary<string, System.Text.Json.JsonElement>? Attributes);
+        Dictionary<string, System.Text.Json.JsonElement>? Attributes,
+        /// <summary>مِفتاح الـ idempotency — راجع <see cref="CreateBody.IdempotencyKey"/>.</summary>
+        string? IdempotencyKey);
 
     [HttpPatch("/my-listings/{id}")]
     [Authorize(Policy = ListingsKitPolicies.AuthenticatedWriter)]
@@ -232,12 +242,15 @@ public sealed class ListingsController : ControllerBase
             req.Amenities, req.Images, req.Thumbnail, attrsJson);
 
         var ok = false;
-        var op = Entry.Create(ListingOps.Edit)
+        var editBuilder = Entry.Create(ListingOps.Edit)
             .Describe($"User {CallerId} edits listing {id}")
             .From(CallerPartyId(CallerId), 1, ("role", "owner"))
             .To($"Listing:{id}", 1, ("role", "edited"))
             .Mark(ListingMarkers.IsListing)
-            .Tag(ListingTagKeys.OwnerId, CallerId)
+            .Tag(ListingTagKeys.OwnerId, CallerId);
+        if (!string.IsNullOrWhiteSpace(req.IdempotencyKey))
+            editBuilder.Tag("idempotency_key", req.IdempotencyKey);
+        var op = editBuilder
             .Execute(async ctx =>
             {
                 ok = await _store.UpdateNoSaveAsync(id, patch, ctx.CancellationToken);

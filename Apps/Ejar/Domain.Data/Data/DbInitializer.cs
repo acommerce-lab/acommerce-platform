@@ -384,4 +384,163 @@ BEGIN
     CREATE UNIQUE INDEX [IX_AppVersions_Platform_Version]
         ON [AppVersions] ([Platform], [Version]);
 END";
+
+    /// <summary>
+    /// يَنسَخ <see cref="Ejar.Api.Data.Templates.EjarListingAttributes"/> +
+    /// <see cref="Ejar.Api.Data.Templates.EjarProfileAttributes"/> إلى
+    /// جَداوِل <c>AttributeDefinitions</c> + <c>AttributeValues</c> +
+    /// <c>CategoryAttributeMappings</c>. idempotent: لا يَلمَس مَوجوداً
+    /// (لِيَحفَظ تَعديلات لوحَة الإدارَة المُستَقبَلِيَّة).
+    ///
+    /// <para>المَنطِق:</para>
+    /// <list type="number">
+    ///   <item>لِكُلّ kind في الـ taxonomy (residential, vehicles, events,
+    ///         camps) ⇒ نَستَخرِج كُلّ الـ slugs، ولِكُلّ slug نُسَجِّل
+    ///         mapping (CategoryId = MD5(slug), AttributeDefinitionId) لِكُلّ
+    ///         سِمَة مَن EjarListingAttributes.ForKind.</item>
+    ///   <item>AttributeDefinitions فَريدَة عَلى Code — تَكرار "BedroomCount"
+    ///         عَبر <c>apartment</c>/<c>villa</c>/<c>room</c> يَستَخدِم نَفس
+    ///         الـ definition. الـ Code فَريد كَ unique index.</item>
+    ///   <item>AttributeValues مَفهرَسَة بِـ (DefId, Value) — كُلّ خِيار في
+    ///         SingleSelect/MultiSelect يَدخُل مَرَّة واحِدَة.</item>
+    /// </list>
+    /// </summary>
+    public static void SeedListingAttributesIfMissing(EjarDbContext db)
+    {
+        try
+        {
+            var now = DateTime.UtcNow;
+
+            // ── ① جَمع كُلّ الـ seeds مِن EjarListingAttributes + EjarProfileAttributes ──
+            // الـ seed مُوَحَّد: لِكُلّ slug في EjarSeed.Categories نَستَخرِج
+            // قَوالِب الـ kind. الـ Profile لَه scope مُختَلِف لكِنّ نَفس
+            // جَدول الـ Definitions (Codes مَختَلِفَة فَلا تَعارُض).
+            var allSeeds = new Dictionary<string, Templates.AttributeSeed>(StringComparer.Ordinal);
+            var perScope = new Dictionary<Guid, List<Templates.AttributeSeed>>();
+
+            // Profile scope
+            perScope[Templates.EjarProfileAttributes.ScopeId] = Templates.EjarProfileAttributes.Defaults.ToList();
+            foreach (var s in Templates.EjarProfileAttributes.Defaults)
+                allSeeds[s.Code] = s;
+
+            // Listing scopes per slug
+            foreach (var cat in Ejar.Domain.EjarSeed.Categories)
+            {
+                var scopeId = EjarListingScopes.DeriveScopeId(cat.Id);
+                var list = Templates.EjarListingAttributes.ForKind(cat.Kind);
+                perScope[scopeId] = list.ToList();
+                foreach (var s in list)
+                    allSeeds.TryAdd(s.Code, s);
+            }
+
+            // ── ② UPSERT AttributeDefinitions (مَفتاح: Code) ─────────────
+            var codes = allSeeds.Keys.ToArray();
+            var existingDefs = db.AttributeDefinitions.IgnoreQueryFilters()
+                .Where(d => codes.Contains(d.Code))
+                .ToDictionary(d => d.Code, d => d, StringComparer.Ordinal);
+
+            var defIdByCode = new Dictionary<string, Guid>(StringComparer.Ordinal);
+            var newDefs = new List<AttributeDefinitionEntity>();
+            var sortGlobal = 0;
+            foreach (var (code, seed) in allSeeds)
+            {
+                sortGlobal++;
+                if (existingDefs.TryGetValue(code, out var exists))
+                {
+                    defIdByCode[code] = exists.Id;
+                    continue;   // لا نَلمَس — قَد تَكون لوحَة الإدارَة عَدَّلَت Name/IsRequired
+                }
+                var id = Guid.NewGuid();
+                defIdByCode[code] = id;
+                newDefs.Add(new AttributeDefinitionEntity
+                {
+                    Id        = id,
+                    CreatedAt = now,
+                    Code      = seed.Code,
+                    Name      = seed.Name,
+                    Type      = seed.Type,
+                    IsVisibleInDetail = true,
+                    SortOrder = sortGlobal,
+                });
+            }
+            if (newDefs.Count > 0) db.AttributeDefinitions.AddRange(newDefs);
+            db.SaveChanges();
+
+            // ── ③ UPSERT AttributeValues (مَفتاح: DefId + Value) ─────────
+            var defIdsWithOptions = allSeeds.Values
+                .Where(s => s.Options is { Length: > 0 })
+                .Select(s => defIdByCode[s.Code])
+                .Distinct()
+                .ToList();
+            var existingValues = db.AttributeValues.IgnoreQueryFilters()
+                .Where(v => defIdsWithOptions.Contains(v.AttributeDefinitionId))
+                .ToList();
+            var existingValueKeys = existingValues
+                .Select(v => (v.AttributeDefinitionId, v.Value))
+                .ToHashSet();
+
+            var newValues = new List<AttributeValueEntity>();
+            foreach (var seed in allSeeds.Values)
+            {
+                if (seed.Options is not { Length: > 0 }) continue;
+                var defId = defIdByCode[seed.Code];
+                var optSort = 0;
+                foreach (var optValue in seed.Options)
+                {
+                    optSort++;
+                    if (existingValueKeys.Contains((defId, optValue))) continue;
+                    newValues.Add(new AttributeValueEntity
+                    {
+                        Id        = Guid.NewGuid(),
+                        CreatedAt = now,
+                        AttributeDefinitionId = defId,
+                        Value       = optValue,
+                        DisplayName = optValue,   // الـ EjarAttributeTemplateSource.TranslateOption يُرَّجِم لاحِقاً
+                        SortOrder   = optSort,
+                        IsActive    = true,
+                    });
+                }
+            }
+            if (newValues.Count > 0) db.AttributeValues.AddRange(newValues);
+            db.SaveChanges();
+
+            // ── ④ UPSERT CategoryAttributeMappings ───────────────────────
+            // لِكُلّ scope (Profile + كُلّ slug إعلان) → mapping لِكُلّ سِمَة.
+            var allScopeIds = perScope.Keys.ToList();
+            var existingMappings = db.CategoryAttributeMappings.IgnoreQueryFilters()
+                .Where(m => allScopeIds.Contains(m.CategoryId))
+                .Select(m => new { m.CategoryId, m.AttributeDefinitionId })
+                .ToHashSet();
+
+            var newMappings = new List<CategoryAttributeMappingEntity>();
+            foreach (var (scopeId, seeds) in perScope)
+            {
+                var sort = 0;
+                foreach (var seed in seeds)
+                {
+                    sort++;
+                    if (!defIdByCode.TryGetValue(seed.Code, out var defId)) continue;
+                    if (existingMappings.Contains(new { CategoryId = scopeId, AttributeDefinitionId = defId }))
+                        continue;
+                    newMappings.Add(new CategoryAttributeMappingEntity
+                    {
+                        Id        = Guid.NewGuid(),
+                        CreatedAt = now,
+                        CategoryId            = scopeId,
+                        AttributeDefinitionId = defId,
+                        SortOrder             = sort,
+                        IsActive              = true,
+                    });
+                }
+            }
+            if (newMappings.Count > 0) db.CategoryAttributeMappings.AddRange(newMappings);
+            db.SaveChanges();
+        }
+        catch
+        {
+            // فَشَل DDL/UPDATE — DB قَد لا يَدعَم الـ schema بَعد (مَثَلاً
+            // الـ migration الجَديد لَم يَركَض). لا نُعَطِّل الإقلاع — الـ
+            // EjarAttributeTemplateSource يَعود إلى in-memory.
+        }
+    }
 }

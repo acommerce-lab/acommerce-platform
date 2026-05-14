@@ -142,6 +142,74 @@ public static class EjarListingScopes
 }
 
 
+// ─── Dynamic Attributes (catalog-style schema) ──────────────────────────
+// نَفس النَّمَط الَّذي يَستَخدِمه asharedb لِسِمات المُنتَجات:
+//   AttributeDefinitions  ⇒ ما هي السِمَة (Code, Name, Type).
+//   AttributeValues       ⇒ خِيارات SingleSelect/MultiSelect (لِكُلّ Def).
+//   CategoryAttributeMappings ⇒ أَيّ سِمَة تَنطَبِق عَلى أَيّ slug.
+//
+// <para><b>لِماذا في DB</b>: لوحَة الإدارَة تَستَطيع إضافَة/إزالَة/تَعديل
+// سِمَة لِفِئَة دون نَشر كود. الـ <see cref="EjarListingAttributes"/>
+// يَبقى كَ <i>seed</i> فَقَط — <see cref="DbInitializer"/> يَنسَخه إلى
+// هذه الجَداوِل عِندَ أَوَّل تَشغيل.</para>
+//
+// <para>الـ <see cref="CategoryAttributeMappingEntity.CategoryId"/> يَستَخدِم
+// نَفس الـ scopeId المُشتَقّ مَن <see cref="EjarListingScopes.DeriveScopeId"/>
+// — أَيّ Guid الـ slug. لا CategoryId مُستَقِلّ في إيجار.</para>
+
+public sealed class AttributeDefinitionEntity : IBaseEntity
+{
+    [Key] public Guid Id { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public DateTime? UpdatedAt { get; set; }
+    public bool IsDeleted { get; set; }
+
+    /// <summary>مِفتاح ثابِت (BedroomCount, AreaSqm, …) — فَريد عَبر الجَدول.</summary>
+    [MaxLength(100)] public string Code { get; set; } = "";
+    /// <summary>تَسمِيَة العَرض (عَرَبي عادَةً).</summary>
+    [MaxLength(200)] public string Name { get; set; } = "";
+    /// <summary>اسم enum مَحفوظ كَنَصّ: SingleSelect, MultiSelect, Number,
+    /// Text, LongText, Boolean, Date, DateTime.</summary>
+    [MaxLength(40)]  public string Type { get; set; } = "Text";
+    public string? Description { get; set; }
+    public bool IsRequired { get; set; }
+    public bool IsFilterable { get; set; }
+    public bool IsVisibleInList { get; set; }
+    public bool IsVisibleInDetail { get; set; } = true;
+    public int  SortOrder { get; set; }
+    public string? DefaultValue { get; set; }
+}
+
+public sealed class AttributeValueEntity : IBaseEntity
+{
+    [Key] public Guid Id { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public DateTime? UpdatedAt { get; set; }
+    public bool IsDeleted { get; set; }
+
+    public Guid AttributeDefinitionId { get; set; }
+    [MaxLength(200)] public string  Value       { get; set; } = "";  // "yes", "monthly", …
+    [MaxLength(200)] public string? DisplayName { get; set; }        // العَرَبي "نَعَم"
+    public int  SortOrder { get; set; }
+    public bool IsActive  { get; set; } = true;
+}
+
+public sealed class CategoryAttributeMappingEntity : IBaseEntity
+{
+    [Key] public Guid Id { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public DateTime? UpdatedAt { get; set; }
+    public bool IsDeleted { get; set; }
+
+    /// <summary>= scopeId المُشتَقّ مَن slug عَبر MD5 deterministic.</summary>
+    public Guid CategoryId            { get; set; }
+    public Guid AttributeDefinitionId { get; set; }
+    public int  SortOrder { get; set; }
+    public bool IsActive  { get; set; } = true;
+    public bool? IsRequiredOverride { get; set; }
+}
+
+
 // ─── Taxonomy ───────────────────────────────────────────────────────────
 // شَجَرَة تَصنيف هَرَمِيَّة مُتَعَدِّدَة الجُذور — جَدول واحِد يَحوي شَجَرَة
 // "فِئات الإعلانات" + شَجَرَة "المُدُن" + أَيّ شَجَرَة أُخرى مُسَتَقبَلاً،

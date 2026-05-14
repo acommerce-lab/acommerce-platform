@@ -84,6 +84,9 @@ public static class EjarBootstrap
         DbInitializer.SeedDiscoveryIfMissing(db);
         DbInitializer.SeedTaxonomyIfMissing(db);   // شَجَرَة "listing_categories"
         DbInitializer.SeedAppVersionsIfMissing(db);
+        // سِمات إعلانات per-kind — يَملَأ AttributeDefinitions/Values +
+        // CategoryAttributeMappings مِن EjarListingAttributes (idempotent).
+        DbInitializer.SeedListingAttributesIfMissing(db);
 
         // ترحيل صفوف Favorites القديمة من EntityType="ListingEntity" (الكود
         // قبل Q1) إلى "Listing" (الكود الحاليّ). idempotent.

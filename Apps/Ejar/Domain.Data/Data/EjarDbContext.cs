@@ -38,6 +38,13 @@ public sealed class EjarDbContext : DbContext
     // Taxonomy kit — جَدول واحِد لِكُلّ شَجَرَات التَطبيق (مُمَيَّزَة بِـ RootCode)
     public DbSet<TaxonomyNodeEntity>  TaxonomyNodes       => Set<TaxonomyNodeEntity>();
 
+    // DynamicAttributes — مَخطَط كاتالوج: تَعريف + قِيَم + رِبط بِفِئَة
+    // (slug-derived scopeId). الـ EjarAttributeTemplateSource يَقرَأ مِن هُنا
+    // بَدَل constants لِيَمنَح لوحَة الإدارَة سَيطَرَة كامِلَة.
+    public DbSet<AttributeDefinitionEntity>      AttributeDefinitions      => Set<AttributeDefinitionEntity>();
+    public DbSet<AttributeValueEntity>           AttributeValues           => Set<AttributeValueEntity>();
+    public DbSet<CategoryAttributeMappingEntity> CategoryAttributeMappings => Set<CategoryAttributeMappingEntity>();
+
     // Idempotency — سِجِلّ التَكرارات الَّتي يَفحَصها IdempotencyInterceptor
     public DbSet<OperationIdempotencyEntity> OperationIdempotency => Set<OperationIdempotencyEntity>();
 
@@ -82,6 +89,18 @@ public sealed class EjarDbContext : DbContext
         // OperationIdempotency: Key فَريد لِيَكون lookup عَلى string فَريد.
         b.Entity<OperationIdempotencyEntity>().HasIndex(o => o.Key).IsUnique();
         b.Entity<OperationIdempotencyEntity>().HasQueryFilter(e => !e.IsDeleted);
+
+        // DynamicAttributes — مَخطَط كاتالوج. الـ Code فَريد عَلى مُستَوى الجَدول
+        // لِيَكون lookup سَريع، الـ (CategoryId, AttributeDefinitionId) فَريد
+        // لِمَنع تَكرار الـ mapping. الـ AttributeValues مَفهرَس بِالـ DefId
+        // لِجَلب خِيارات select-like.
+        b.Entity<AttributeDefinitionEntity>().HasIndex(d => d.Code).IsUnique();
+        b.Entity<AttributeDefinitionEntity>().HasQueryFilter(e => !e.IsDeleted);
+        b.Entity<AttributeValueEntity>().HasIndex(v => new { v.AttributeDefinitionId, v.Value }).IsUnique();
+        b.Entity<AttributeValueEntity>().HasQueryFilter(e => !e.IsDeleted);
+        b.Entity<CategoryAttributeMappingEntity>().HasIndex(m => new { m.CategoryId, m.AttributeDefinitionId }).IsUnique();
+        b.Entity<CategoryAttributeMappingEntity>().HasIndex(m => m.CategoryId);
+        b.Entity<CategoryAttributeMappingEntity>().HasQueryFilter(e => !e.IsDeleted);
 
         // Push tokens — index على UserId للبحث السريع، unique على Token وحده
         // (نفس رمز قد يصدُر لمستخدم بعد re-login على نفس الجهاز فنُحدّث UserId).

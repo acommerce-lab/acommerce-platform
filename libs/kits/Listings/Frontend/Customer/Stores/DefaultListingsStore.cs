@@ -69,6 +69,10 @@ public sealed class DefaultListingsStore : IListingsStore
             images        = payload.Images,
             thumbnail     = payload.Thumbnail,
             attributes    = payload.Attributes,
+            // مِفتاح الـ idempotency يَصِل لِـ Controller عَبر الـ body،
+            // فَيَدفَعه كَ tag عَلى الـ server-side Operation. هذا هو الـ
+            // wire الَّذي يَتَّصِل عَبره الكلاينت بِالـ IdempotencyInterceptor.
+            idempotencyKey = payload.IdempotencyKey?.ToString("N"),
         };
 
         var env = await _engine.ExecuteAsync<InMemoryListing>(
@@ -101,6 +105,7 @@ public sealed class DefaultListingsStore : IListingsStore
             images        = payload.Images,
             thumbnail     = payload.Thumbnail,
             attributes    = payload.Attributes,
+            idempotencyKey = payload.IdempotencyKey?.ToString("N"),
         };
 
         var env = await _engine.ExecuteAsync<InMemoryListing>(

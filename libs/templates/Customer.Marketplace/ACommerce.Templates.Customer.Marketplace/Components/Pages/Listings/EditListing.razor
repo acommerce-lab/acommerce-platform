@@ -185,10 +185,15 @@
         }
     }
 
+    // مِفتاح الـ idempotency لِنَفس مِنطِق <c>CreateListing</c> — يُعاد
+    // استِخدامه عَلى retry نَفس التَّعديل.
+    private Guid? _idempotencyKey;
+
     private async Task Save()
     {
         if (_listing is null) return;
         _saving = true; _error = null;
+        _idempotencyKey ??= Guid.NewGuid();
         try
         {
             var payload = new ListingDraftPayload(
@@ -207,7 +212,8 @@
                 Amenities:     _amenities.ToList(),
                 Images:        _listing.Images.ToList(),
                 Thumbnail:     _listing.ThumbnailUrl,
-                Attributes:    _attrValues.Count > 0 ? _attrValues : null);
+                Attributes:    _attrValues.Count > 0 ? _attrValues : null,
+                IdempotencyKey: _idempotencyKey);
 
             var updated = await Listings.UpdateAsync(Id, payload);
             if (updated is null)
@@ -215,6 +221,7 @@
                 _error = L[TemplateStrings.CreateListingPublishFailed];
                 return;
             }
+            _idempotencyKey = null;
             Nav.NavigateTo($"/listings/{Id}");
         }
         catch (Exception ex)

@@ -409,9 +409,16 @@
 
     private void Remove(int idx) => _images.RemoveAt(idx);
 
+    // مِفتاح حِمايَة مَن التَّكرار — يُوَلَّد مَرَّة عِندَ أَوَّل ضَغطَة
+    // Publish ويُعاد استِخدامه عَلى كُلّ retry لِنَفس الـ wizard. الـ
+    // server-side <c>IdempotencyInterceptor</c> يَرفُض الإعلان الثاني
+    // بِنَفس المِفتاح ⇒ لا تَكرار حَتّى لَو رَدّ الشَبَكَة ضاعَ.
+    private Guid? _idempotencyKey;
+
     private async Task Publish()
     {
         _publishing = true; _publishError = null;
+        _idempotencyKey ??= Guid.NewGuid();
         try
         {
             // ① البَوّابَة قَبل أَيّ بِناء payload. الـ default يُمَرِّر؛
@@ -440,7 +447,8 @@
                 Amenities:     Draft.Amenities.ToList(),
                 Images:        _images.Select(i => i.DataUrl).ToList(),
                 Thumbnail:     _images.Count > 0 ? _images[0].ThumbUrl : null,
-                Attributes:    _attrValues.Count > 0 ? _attrValues : null);
+                Attributes:    _attrValues.Count > 0 ? _attrValues : null,
+                IdempotencyKey: _idempotencyKey);
 
             using var _scope = auth.Scope;   // null-safe: لا scope ⇒ لا تَنظيف
             var created = await Listings.CreateAsync(payload);
@@ -448,6 +456,7 @@
             {
                 Draft.Clear();
                 _images.Clear();
+                _idempotencyKey = null;   // النَّجاح ⇒ لا حاجَة لِلمِفتاح
                 Nav.NavigateTo("/my-listings");
                 return;
             }
