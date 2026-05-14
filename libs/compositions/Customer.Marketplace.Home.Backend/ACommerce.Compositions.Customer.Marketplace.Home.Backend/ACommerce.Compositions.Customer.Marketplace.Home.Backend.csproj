@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <PackageId>ACommerce.Compositions.Customer.Marketplace.Home.Backend</PackageId>
+    <Version>1.0.0</Version>
+    <Description>
+      Backend composition that exposes the standard customer marketplace home routes
+      (/home/view, /home/explore, /home/search/suggestions, /legal) on top of two
+      app-supplied ports: IHomeListingsSource (queries the app's DbContext for active
+      listings + explore filter) and IHomeListingProjection (maps each IListing to the
+      wire shape expected by AcMarketplaceHomePage). Optional IHomeSearchSuggestions /
+      ILegalPageProvider override the defaults. Replaces the per-app HomeController
+      that every marketplace app had to copy.
+    </Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\kits\Listings\ACommerce.Kits.Listings.Operations\ACommerce.Kits.Listings.Operations.csproj" />
+    <ProjectReference Include="..\..\..\kits\Discovery\ACommerce.Kits.Discovery.Backend\ACommerce.Kits.Discovery.Backend.csproj" />
+    <ProjectReference Include="..\..\..\core\OperationEngine\ACommerce.OperationEngine.AspNetCore\ACommerce.OperationEngine.AspNetCore.csproj" />
+  </ItemGroup>
+</Project>

@@ -1,4 +1,5 @@
 using ACommerce.Chat.Operations;
+using ACommerce.Compositions.Customer.Marketplace.Home.Backend;
 using ACommerce.Kits.Auth.Operations;
 using ACommerce.OperationEngine.Interceptors;
 using ACommerce.ServiceHost;
@@ -101,10 +102,20 @@ builder.Services.AddScoped<ACommerce.Kits.Taxonomy.Backend.ITaxonomyStore,
                            Ejar.Api.Stores.EjarTaxonomyStore>();
 
 // MVC scan الافتِراضي = entry assembly فَقَط ⇒ نُلحِق Application Parts
-// لِالتِقاط controllers مَن كيتات الخَلفِيَّة.
+// لِالتِقاط controllers مَن كيتات الخَلفِيَّة + composition.
 builder.Services.AddControllers()
     .AddApplicationPart(typeof(ACommerce.Kits.DynamicAttributes.Backend.DynamicAttributesController).Assembly)
-    .AddApplicationPart(typeof(ACommerce.Kits.Taxonomy.Backend.TaxonomyController).Assembly);
+    .AddApplicationPart(typeof(ACommerce.Kits.Taxonomy.Backend.TaxonomyController).Assembly)
+    .AddApplicationPart(typeof(ACommerce.Compositions.Customer.Marketplace.Home.Backend.MarketplaceHomeController).Assembly);
+
+// Customer Marketplace Home composition — يُسَجِّل Source + Projection +
+// Categories. اقتِراحات البَحث (Popular) يَمَنِيَّة فَيُسَجَّل صَريحاً.
+builder.Services.AddMarketplaceHomeBackend<
+    Ejar.Api.Home.EjarHomeListingsSource,
+    Ejar.Api.Home.EjarHomeListingProjection,
+    Ejar.Api.Home.EjarDiscoveryCategoryProvider>();
+builder.Services.AddSingleton<ACommerce.Compositions.Customer.Marketplace.Home.Backend.IHomeSearchSuggestions,
+                              Ejar.Api.Home.EjarHomeSearchSuggestions>();
 
 var app = builder.Build();
 

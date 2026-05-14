@@ -1,3 +1,4 @@
+using ACommerce.Compositions.Customer.Marketplace.Home.Backend;
 using ACommerce.Kits.Auth.Operations;
 using ACommerce.Payments.Providers.Mock.Extensions;
 using ACommerce.ServiceHost;
@@ -94,7 +95,18 @@ builder.Services.AddScoped<ACommerce.Kits.Taxonomy.Backend.ITaxonomyStore,
 // لِالتِقاط controllers مَن كيتات الخَلفِيَّة.
 builder.Services.AddControllers()
     .AddApplicationPart(typeof(ACommerce.Kits.DynamicAttributes.Backend.DynamicAttributesController).Assembly)
-    .AddApplicationPart(typeof(ACommerce.Kits.Taxonomy.Backend.TaxonomyController).Assembly);
+    .AddApplicationPart(typeof(ACommerce.Kits.Taxonomy.Backend.TaxonomyController).Assembly)
+    .AddApplicationPart(typeof(ACommerce.Compositions.Customer.Marketplace.Home.Backend.MarketplaceHomeController).Assembly);
+
+// Customer Marketplace Home composition — V3 projection يَبني snapshot
+// لِكُلّ بِطاقَة (template + AttributesJson) فَتَظهَر chips ديناميكِيَّة
+// عَلى AcSpaceCard. الـ Popular suggestions سُعودِيَّة.
+builder.Services.AddMarketplaceHomeBackend<
+    Ashare.V3.Api.Home.AshareV3HomeListingsSource,
+    Ashare.V3.Api.Home.AshareV3HomeListingProjection,
+    Ashare.V3.Api.Home.AshareV3DiscoveryCategoryProvider>();
+builder.Services.AddSingleton<ACommerce.Compositions.Customer.Marketplace.Home.Backend.IHomeSearchSuggestions,
+                              Ashare.V3.Api.Home.AshareV3HomeSearchSuggestions>();
 
 // Mock payment gateway (dev/test). الإنتاج يَستَبدِله بِـ Moyasar/Noon.
 // AutoCaptureSeconds=3 لِتَجرِبَة أَسرَع.
