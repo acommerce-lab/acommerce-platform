@@ -25,15 +25,15 @@
         <span class="ejar-section-meta oam-mono">/ listings · @Store.Visible.Count</span>
     </header>
 
-    @* شَجَرَة فِئات الإعلانات — هَرَمِيَّة بِأَيقونات. مَخفِيَّة لَو الـ root
-       غَير مَزروع. اختيار leaf يَفلِتِر القائِمَة بِالـ slug. *@
+    @* شَجَرَة فِئات الإعلانات — أُفُقِيَّة بِأَيقونات، أَوَّل kind مَفتوح.
+       اختيار leaf يَفلِتِر القائِمَة بِالـ slug. *@
     @if (_taxonomyHasNodes)
     {
         <div class="ac-explore-taxonomy">
-            <AcTaxonomyTreeSelect RootCode="listing_categories"
-                                  Selected="@_propertyType"
-                                  SelectedChanged="@OnTaxonomyPicked"
-                                  IsArabic="true" />
+            <AcTaxonomyChips RootCode="listing_categories"
+                             Selected="@_propertyType"
+                             SelectedChanged="@OnTaxonomyPicked"
+                             IsArabic="true" />
         </div>
     }
 

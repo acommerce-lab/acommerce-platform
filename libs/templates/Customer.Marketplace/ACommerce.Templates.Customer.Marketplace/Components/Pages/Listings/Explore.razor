@@ -20,16 +20,16 @@
     </div>
 }
 
-@* شَجَرَة الأَنواع — chips أَفقِيَّة مُكَثَّفَة. اختيار leaf يُحَدِّث
-   <c>_categoryId</c> مَع chips الأَفقِيَّة في <c>AcListingExplorePage</c>. *@
+@* شَجَرَة الأَنواع — chips أُفُقِيَّة مَع فَتح أَوَّل kind تِلقائيّاً.
+   اختيار leaf يُحَدِّث <c>_categoryId</c> وَيُطَبِّق الفلتر فَوراً. *@
 @if (_taxonomyHasNodes)
 {
     <AcCard Class="acs-explore-taxonomy-card">
         <ChildContent>
-            <AcTaxonomyTreeSelect RootCode="listing_categories"
-                                  Selected="@_categoryId"
-                                  SelectedChanged="@(s => OnCategorySelected(s ?? string.Empty))"
-                                  IsArabic="true" />
+            <AcTaxonomyChips RootCode="listing_categories"
+                             Selected="@_categoryId"
+                             SelectedChanged="@(s => OnCategorySelected(s ?? string.Empty))"
+                             IsArabic="true" />
         </ChildContent>
     </AcCard>
 }
