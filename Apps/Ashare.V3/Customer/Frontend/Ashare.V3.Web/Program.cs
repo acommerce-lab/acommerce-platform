@@ -1,0 +1,78 @@
+using ACommerce.Culture.Defaults;
+using ACommerce.Kits.Versions.Templates;
+using Ashare.V3.Customer.UI.ClientHost;
+using Ashare.V3.Web.Payment;
+using Ejar.Customer.UI;
+using App = Ashare.V3.Web.Components.App;
+
+var builder = WebApplication.CreateBuilder(args);
+
+builder.WebHost.UseStaticWebAssets();
+
+builder.Services.AddRazorComponents()
+    .AddInteractiveServerComponents();
+
+// المُصادَقَة المُفَصَّلَة لِـ Blazor Server. <c>[Authorize]</c> عَلى الـ
+// @page يَستَدعي AuthorizationMiddleware ⇒ يَحتاج IAuthenticationService.
+// نُسَجِّل scheme فارِغ (لا cookies في الواقِع — الـ JWT يَدير عَبر
+// ClientAuthStateProvider). الأَوامِر تَكشِف لِـ middleware "Default" handler.
+builder.Services.AddAuthentication("AshareV3Web")
+    .AddCookie("AshareV3Web", o => o.LoginPath = "/login");
+builder.Services.AddAuthorization();
+builder.Services.AddCascadingAuthenticationState();
+
+// نَفس HttpClient name "ejar" لأَنّ كُلّ القالَب + ApiClients يَستَدعونَه
+// بِهذا الاسم. الاختِلاف فَقَط في BaseAddress — نَقرَأها مِن AshareApi:BaseUrl
+// (افتِراضيّ: localhost:5400 — Ashare V3 backend).
+var apiBase = builder.Configuration["AshareApi:BaseUrl"] ?? "http://localhost:5400";
+var appVersion = builder.Configuration["App:Version"] ?? "1.0.0";
+builder.Services.AddSingleton(new AppVersionInfo(Platform: "web", Version: appVersion));
+
+// سياق دَفع + handler عَلى الـ "ejar" client. Scoped لِأَنّ AsyncLocal
+// داخِله يَكفي لِعَزل async chains. DelegatingHandler يَجِب أَن يُسَجَّل
+// قَبل AddHttpClient.
+builder.Services.AddScoped<PaymentRequestContext>();
+builder.Services.AddTransient<PaymentReferenceHandler>();
+
+builder.Services.AddHttpClient("ejar", c =>
+{
+    c.BaseAddress = new Uri(apiBase);
+    c.Timeout = TimeSpan.FromSeconds(30);
+})
+.AddHttpMessageHandler<CultureHeadersHandler>()
+.AddHttpMessageHandler<AppVersionHeadersHandler>()
+.AddHttpMessageHandler<PaymentReferenceHandler>();
+
+// نُقطة دَخول واحِدَة لِكامِل قالَب Customer.Marketplace + طَبَقَة Ashare V3
+// (تَفوز عَلى translations Ejar V1 لِـ app.name + home.*).
+builder.Services.AddAshareV3Customer();
+
+// قَرار صَريح: V3 يَستَخدِم Nafath login UI بَدَل Phone-OTP الافتِراضي
+// في Marketplace template. AddSingleton (لا TryAdd) يَتَجاوَز الافتِراضي.
+builder.Services.AddSingleton<Ejar.Customer.UI.Components.Pages.Auth.IAuthLoginUi>(
+    new Ejar.Customer.UI.Components.Pages.Auth.StaticAuthLoginUi(
+        typeof(Ejar.Customer.UI.Components.Pages.Auth.NafathLoginContent)));
+
+// V3 لا يَستَخدِم باقات اشتِراك — الدَفع بِالإعلان الواحِد ⇒ إخفاء
+// زُرَّي "الباقات" + "اشتِراكي" مَن صَفحَة /me. عِند إعادَة Subscriptions
+// kit لاحِقاً، احذِف هذا السَطر فَقَط.
+builder.Services.AddSingleton(new Ejar.Customer.UI.Services.MarketplaceUiOptions
+{
+    ShowSubscriptionsMenu = false,
+});
+
+// بَوّابَة نَشر إعلان — V3 يَفرِض دَفعاً (لا open gate الافتِراضي).
+builder.Services.AddScoped<Ejar.Customer.UI.Services.IListingPublishGate,
+                          V3ListingPublishGate>();
+
+var app = builder.Build();
+if (!app.Environment.IsDevelopment()) app.UseExceptionHandler("/Error");
+app.UseStaticFiles();
+app.UseAuthentication();
+app.UseAuthorization();
+app.UseAntiforgery();
+app.MapStaticAssets();
+app.MapRazorComponents<App>()
+    .AddInteractiveServerRenderMode()
+    .AddAdditionalAssemblies(typeof(Ejar.Customer.UI.Components.Routes).Assembly);
+app.Run();

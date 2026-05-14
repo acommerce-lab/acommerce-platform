@@ -68,6 +68,20 @@ public sealed class DefaultChatStore : IChatStore
         Changed?.Invoke();
     }
 
+    public async Task<string?> StartConversationAsync(string subjectId, string text, CancellationToken ct = default)
+    {
+        // Wire shape مَطابِقَة لِـ POST /conversations/start في Ejar.Api: يَستَقبِل
+        // {ListingId, Text} (الباك يَتَكَلَّف بِالإيجاد المَوجود مُسبَقاً
+        // أَو الخَلق الجَديد). تَطبيقات أُخرى ذات أَسماء حُقول مُختَلِفَة
+        // تُسَجِّل تَنفيذاً مُخَصَّصاً لـ IChatStore.
+        var env = await _engine.ExecuteAsync<StartConversationDto>(
+            ChatOps.StartConversation(subjectId, text),
+            payload: new { ListingId = subjectId, Text = text },
+            ct: ct);
+        if (env.Operation.Status != "Success" || env.Data is null) return null;
+        return env.Data.Id;
+    }
+
     /// <summary>
     /// مَدخَل لِـ compositions (مَثلاً Realtime) لِتَدفَع رَسالة وارِدَة
     /// مِن SignalR إلى الحالة المَحَلّيّة بدون أن تَدور عَلى السيرفر.
@@ -102,4 +116,11 @@ public sealed class DefaultChatStore : IChatStore
     private sealed record ChatMessageDto(
         string Id, string ConversationId, string SenderPartyId,
         string Body, DateTime SentAt, DateTime? ReadAt) : IChatMessage;
+
+    /// <summary>Wire shape لِـ <c>POST /conversations/start</c>: <c>{ id, created }</c>.</summary>
+    private sealed class StartConversationDto
+    {
+        public string Id { get; set; } = "";
+        public bool Created { get; set; }
+    }
 }

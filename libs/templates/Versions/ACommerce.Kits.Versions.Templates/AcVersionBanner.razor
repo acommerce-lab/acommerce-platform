@@ -3,6 +3,10 @@
     - NearSunset → warning, "support ends soon"
     - Deprecated → strong warning, "no longer supported"
     - Active w/ HasNewer → info, "new version available"
+
+  Strings exposed as parameters with English defaults so apps can pass
+  localized format strings ({0} = current version, {1} = latest version,
+  {2} = sunset date when applicable).
 *@
 
 @using ACommerce.Kits.Versions.Operations
@@ -13,7 +17,7 @@
     @if (!string.IsNullOrEmpty(Result.DownloadUrl))
     {
         <a class="ac-version-banner-cta" href="@Result.DownloadUrl" target="_blank" rel="noopener">
-            @(CtaLabel ?? "تحديث")
+            @(CtaLabel ?? "Update")
         </a>
     }
 </div>
@@ -21,6 +25,15 @@
 @code {
     [Parameter, EditorRequired] public VersionCheckResult Result { get; set; } = default!;
     [Parameter] public string? CtaLabel { get; set; }
+
+    /// <summary>Format: {0}=current version, {1}=latest version.</summary>
+    [Parameter] public string? DeprecatedFormat { get; set; }
+    /// <summary>Format: {0}=current version, {1}=latest version, {2}=sunset date (or empty).</summary>
+    [Parameter] public string? NearSunsetFormat { get; set; }
+    /// <summary>Format: {0}=latest version.</summary>
+    [Parameter] public string? UpdateAvailableFormat { get; set; }
+    /// <summary>Substituted as {1} when Latest is null.</summary>
+    [Parameter] public string LatestFallback { get; set; } = "—";
 
     private string Severity => Result.Status switch
     {
@@ -36,15 +49,25 @@
         _                        => "✨"
     };
 
-    private string Text => Result.Status switch
+    private string Text
     {
-        VersionStatus.Deprecated =>
-            $"إصدارك ({Result.Version}) ملغى الدعم — الرجاء التحديث إلى {Result.Latest ?? "الأحدث"}.",
-        VersionStatus.NearSunset =>
-            $"دعم إصدارك ({Result.Version}) سينتهي قريباً" +
-              (Result.SunsetAt is { } s ? $" ({s:yyyy-MM-dd})" : "") +
-              $". الأحدث: {Result.Latest ?? "—"}.",
-        _ =>
-            $"يتوفّر إصدار أحدث ({Result.Latest})."
-    };
+        get
+        {
+            var latest = Result.Latest ?? LatestFallback;
+            return Result.Status switch
+            {
+                VersionStatus.Deprecated => string.Format(
+                    DeprecatedFormat ?? "Your version ({0}) is no longer supported — please update to {1}.",
+                    Result.Version, latest),
+                VersionStatus.NearSunset => string.Format(
+                    NearSunsetFormat ?? "Support for your version ({0}) is ending soon{2}. Latest: {1}.",
+                    Result.Version,
+                    latest,
+                    Result.SunsetAt is { } s ? $" ({s:yyyy-MM-dd})" : ""),
+                _ => string.Format(
+                    UpdateAvailableFormat ?? "A newer version ({0}) is available.",
+                    Result.Latest ?? LatestFallback),
+            };
+        }
+    }
 }

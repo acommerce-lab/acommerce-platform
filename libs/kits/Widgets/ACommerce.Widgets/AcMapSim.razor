@@ -15,7 +15,7 @@
                  ac-map-sim-pin-selected
 *@
 
-<div class="ac-map-sim @(Class ?? "")" role="img" aria-label="خريطة تقريبيّة">
+<div class="ac-map-sim @(Class ?? "")" role="img" aria-label="@MapAriaLabel">
     <div class="ac-map-sim-grid" aria-hidden="true"></div>
     @foreach (var p in Pins)
     {
@@ -41,6 +41,7 @@
     [Parameter] public EventCallback<string> OnPinClick { get; set; }
     [Parameter] public (double MinLat, double MaxLat, double MinLng, double MaxLng)? Bounds { get; set; }
     [Parameter] public string? Class { get; set; }
+    [Parameter] public string MapAriaLabel { get; set; } = "Approximate map";
 
     private Task PinClicked(string id) => OnPinClick.InvokeAsync(id);
 

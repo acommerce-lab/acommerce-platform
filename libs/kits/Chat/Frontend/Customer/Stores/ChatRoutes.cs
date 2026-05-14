@@ -26,5 +26,6 @@ internal sealed class ChatRoutesRegistrar : IRoutesRegistrar
         routes.Map("chat.conversation.open",  HttpMethod.Get,  "/conversations/{id}");
         routes.Map("chat.enter",              HttpMethod.Post, "/chat/{id}/enter");
         routes.Map("chat.message.send",       HttpMethod.Post, "/conversations/{id}/messages");
+        routes.Map("chat.conversation.start", HttpMethod.Post, "/conversations/start");
     }
 }

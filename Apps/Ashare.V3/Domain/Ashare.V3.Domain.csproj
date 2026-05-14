@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>Ashare.V3.Domain</RootNamespace>
+    <AssemblyName>Ashare.V3.Domain</AssemblyName>
+    <Description>AshareV3 domain types and seed state — single source of truth referenced by every backend (Customer/Provider/Admin) and any future frontend that needs typed access. No EF Core, no SignalR, no provider-specific code: pure POCOs + interface implementations from the Chat kit.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- Cross-cutting kit interfaces that Ashare entities implement (Law 6):
+         - IChatMessage / IChatConversation   (Chat kit)
+         - IListing                            (Listings kit)
+         - IBaseEntity + repo conventions      (SharedKernel) -->
+    <ProjectReference Include="..\..\..\libs\kits\Chat\ACommerce.Chat.Operations\ACommerce.Chat.Operations.csproj" />
+    <ProjectReference Include="..\..\..\libs\kits\DynamicAttributes\ACommerce.Kits.DynamicAttributes.Operations\ACommerce.Kits.DynamicAttributes.Operations.csproj" />
+    <ProjectReference Include="..\..\..\libs\kits\Listings\ACommerce.Kits.Listings.Operations\ACommerce.Kits.Listings.Operations.csproj" />
+    <ProjectReference Include="..\..\..\libs\kits\Profiles\ACommerce.Kits.Profiles.Operations\ACommerce.Kits.Profiles.Operations.csproj" />
+    <ProjectReference Include="..\..\..\libs\core\SharedKernel\ACommerce.SharedKernel.Domain\ACommerce.SharedKernel.Domain.csproj" />
+  </ItemGroup>
+</Project>

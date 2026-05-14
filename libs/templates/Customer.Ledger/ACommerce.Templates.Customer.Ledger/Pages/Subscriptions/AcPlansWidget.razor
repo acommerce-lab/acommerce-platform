@@ -1,4 +1,5 @@
 @inject ISubscriptionsStore Store
+@inject L L
 @implements IDisposable
 
 @*
@@ -12,20 +13,20 @@
 
 <section class="ac-plans">
     <header class="ejar-section-head">
-        <h2 class="ejar-section-title">الاشتراك</h2>
+        <h2 class="ejar-section-title">@(L[LedgerStrings.PlansTitle])</h2>
         <span class="ejar-section-meta oam-mono">/ plans · @Store.Plans.Count</span>
     </header>
 
     @if (Store.IsLoading)
     {
-        <p class="ejar-loading">جاري التحميل…</p>
+        <p class="ejar-loading">@(L[LedgerStrings.CommonLoading])</p>
     }
     else if (Store.Plans.Count == 0)
     {
         <div class="ejar-empty">
             <span class="ejar-empty-glyph" aria-hidden="true">▣</span>
-            <h3>لا توجد باقات مُتاحة</h3>
-            <p>سيَتمّ نَشر الباقات قريباً.</p>
+            <h3>@(L[LedgerStrings.PlansEmptyTitle])</h3>
+            <p>@(L[LedgerStrings.PlansEmptyBody])</p>
         </div>
     }
     else
@@ -35,7 +36,7 @@
             <div class="ejar-current-plan">
                 <div class="ejar-current-plan-row">
                     <OamStamp State="OamState.Executed" Compact="true" />
-                    <span class="ejar-current-plan-label">باقتي الحاليّة</span>
+                    <span class="ejar-current-plan-label">@(L[LedgerStrings.PlansCurrentLabel])</span>
                 </div>
                 <p class="ejar-current-plan-name">
                     @(Store.Plans.FirstOrDefault(p => p.Id == act.PlanId)?.Name ?? "—")
@@ -69,7 +70,7 @@
                                 <li>
                                     <span class="ejar-plan-quota-key">@QuotaLabel(q.Key)</span>
                                     <span class="ejar-plan-quota-val oam-mono">
-                                        @(q.Value < 0 ? "غير محدود" : q.Value.ToString())
+                                        @(q.Value < 0 ? L[LedgerStrings.PlansUnlimited] : q.Value.ToString())
                                     </span>
                                 </li>
                             }
@@ -78,13 +79,13 @@
 
                     @if (isActive)
                     {
-                        <button class="oam-btn-ghost ejar-plan-btn" disabled>مَفعَّلة</button>
+                        <button class="oam-btn-ghost ejar-plan-btn" disabled>@(L[LedgerStrings.PlansActiveButton])</button>
                     }
                     else
                     {
                         <button class="oam-btn ejar-plan-btn"
                                 @onclick="() => Store.SubscribeAsync(pid.ToString())">
-                            اشترك
+                            @(L[LedgerStrings.PlansSubscribe])
                         </button>
                     }
                 </li>
@@ -101,11 +102,12 @@
         await Store.LoadActiveAsync();
     }
 
-    private static string QuotaLabel(string key) => key switch
+    // ‹L› مَحقون → غَير static
+    private string QuotaLabel(string key) => key switch
     {
-        "listings.create"     => "إعلانات",
-        "messages.send"       => "رسائل",
-        "notifications.send"  => "تَنبيهات",
+        "listings.create"     => L[LedgerStrings.PlansQuotaListings],
+        "messages.send"       => L[LedgerStrings.PlansQuotaMessages],
+        "notifications.send"  => L[LedgerStrings.PlansQuotaNotifications],
         _                     => key,
     };
 

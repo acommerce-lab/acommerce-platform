@@ -2,57 +2,63 @@
 @attribute [Authorize]
 @using ACommerce.Chat.Client.Blazor
 @using ACommerce.Chat.Operations
-@using Ejar.Customer.UI.Services
-@using Ejar.Customer.UI.Store
-@inject AppStore Store
-@inject ApiReader Api
-@inject NavigationManager Nav
+@inject ITemplateEngine Engine
+@inject IClientAuthState Auth
 @inject IChatClient Chat
+@inject UnreadComposition Unread
+@inject NavigationManager Nav
 @inject IJSRuntime JS
-@inject UnreadService Unread
 @inject L L
 @implements IAsyncDisposable
 
-<PageTitle>@(L["chat.title"]) — @(L["app.name"])</PageTitle>
+<PageTitle>@(L[TemplateStrings.ChatTitle]) — @(L[TemplateStrings.AppName])</PageTitle>
 
 <div class="acs-page acs-chat-page">
     @if (_loading) { <AcLoadingState /> }
     else if (_loadError is not null)
     {
-        @* لا تُبقي المؤشّر يدور للأبد لو فشل /conversations/{id} (500/404). كان
-           الكود السابق يضع AcLoadingState متى كان _conv == null، فعند فشل
-           الجلب يبقى المستخدم محدّقاً في عجلة لا تتوقّف. الآن نعرض الخطأ
-           وزرّ رجوع. *@
         <AcEmptyState IconName="alert-circle" Message="@_loadError" />
-        <AcButton Variant="ghost" Class="ac-btn-block" Text="رجوع للمحادثات"
+        <AcButton Variant="ghost" Class="ac-btn-block" Text="@(L[TemplateStrings.ChatsBackToList])"
                   OnClick="@(() => Nav.NavigateTo("/chats"))" />
     }
     else if (_conv is null)
     {
-        <AcEmptyState IconName="info" Message="المحادثة غير متوفّرة." />
-        <AcButton Variant="ghost" Class="ac-btn-block" Text="رجوع للمحادثات"
+        <AcEmptyState IconName="info" Message="@(L[TemplateStrings.ChatUnavailable])" />
+        <AcButton Variant="ghost" Class="ac-btn-block" Text="@(L[TemplateStrings.ChatsBackToList])"
                   OnClick="@(() => Nav.NavigateTo("/chats"))" />
     }
     else
     {
-        <div class="acs-chat-header" style="display:flex; justify-content:space-between; align-items:center;">
-            <div>
-                <h1 class="acm-wizard-title" style="margin-bottom:4px;">@OtherName</h1>
-                <small style="color:var(--ac-text-muted);">@(_conv.Subject ?? "")</small>
+        <div class="acs-chat-header" style="display:flex; justify-content:space-between; align-items:center; gap:12px;">
+            <div style="display:flex; align-items:center; gap:12px; flex:1; min-width:0;">
+                <AcAvatar Name="@OtherName" ImageUrl="@OtherAvatar" Size="40" />
+                <div style="min-width:0;">
+                    <h1 class="acm-wizard-title" style="margin-bottom:4px;">@OtherName</h1>
+                    <small style="color:var(--ac-text-muted);">@(_conv.Subject ?? "")</small>
+                </div>
             </div>
-            <AcButton Variant="ghost" Text="رجوع" OnClick="@GoBack" />
+            <AcButton Variant="ghost" Text="@(L[TemplateStrings.CommonBack])" OnClick="@GoBack" />
         </div>
 
         <div class="acs-chat-messages" id="acs-chat-msgs">
+            @{ DateTime? _lastDay = null; }
             @foreach (var m in _messages)
             {
-                var mine = IsMine(m);
+                var mine    = IsMine(m);
+                var localAt = m.SentAt.ToLocalTime();
+                var day     = localAt.Date;
+                if (_lastDay is null || _lastDay.Value != day)
+                {
+                    @* فاصِل تاريخ بَين الرَسائِل الَّتي تَنتَمي لِأَيّام مُختَلِفَة. *@
+                    <div class="acs-chat-day-sep"><span>@FormatDayHeader(day)</span></div>
+                    _lastDay = day;
+                }
                 <div class="acs-bubble @(mine ? "acs-bubble-mine" : "acs-bubble-other")">
                     @if (!string.IsNullOrEmpty(m.Body))
                     {
                         <div>@m.Body</div>
                     }
-                    <small style="display:block; opacity:.6;">@m.SentAt.ToLocalTime().ToString("HH:mm")</small>
+                    <small style="display:block; opacity:.6;">@localAt.ToString("HH:mm")</small>
                 </div>
             }
         </div>
@@ -64,8 +70,8 @@
         <div class="acs-chat-composer" @onkeydown="OnComposerKey">
             <AcInput Value="@_draft" id="chat-composer"
                      ValueChanged="@(v => _draft = v ?? string.Empty)"
-                     Placeholder="@(L["chat.new_message"])" />
-            <AcButton Variant="primary" Text="@(L["chat.send"])" OnClick="@Send"
+                     Placeholder="@(L[TemplateStrings.ChatNewMessage])" />
+            <AcButton Variant="primary" Text="@(L[TemplateStrings.ChatSend])" OnClick="@Send"
                       Disabled="@(_sending || string.IsNullOrWhiteSpace(_draft))" />
         </div>
     }
@@ -84,9 +90,8 @@
 
     protected override async Task OnAfterRenderAsync(bool first)
     {
-        // أنزل التمرير إلى الأسفل عند أوّل render بعد تحميل الرسائل، وعند
-        // كلّ زيادة في عدد الرسائل (إرسال أو استلام). لا نُمرّر في كلّ render
-        // لأنّ ذلك يقفز التمرير على كلّ keystroke في خانة النصّ.
+        // أَنزِل التَمرير إلى الأَسفَل عِند أَوّل render بَعد تَحميل الرَسائل،
+        // وعِند كلّ زِيادَة في عَدَد الرَسائل (إرسال أَو استِلام).
         if (_conv is not null && _messages.Count != _lastSeenCount)
         {
             _lastSeenCount = _messages.Count;
@@ -96,13 +101,11 @@
 
         if (!first) return;
 
-        // GET /conversations/{id} يردّه ChatController في Chat Kit الآن
-        // (بعد إزالة التضارب من CatalogController). الشكل:
-        //   { conversation: { id, ownerId, ownerName, partnerId, partnerName,
-        //                     subject, listingId, lastAt, unreadCount, ... },
-        //     messages: [ { id, conversationId, senderPartyId (User:GUID),
-        //                   body, sentAt, readAt } ] }
-        var env = await Api.GetAsync<Payload>($"/conversations/{Id}", localize: true);
+        // OAM-pure: chat.conversation.open op (kit-defined). الـ wire shape
+        // غَنيّ (OwnerName/PartnerName/Subject/ListingId/...) فنَستَخدِم DTO
+        // مَحَلّيّ يَلتَقِطه — IChatStore.CurrentMessages كافٍ لِلرَسائل لكنّ
+        // headers الـ conversation تَتَجاوز ConversationSummary.
+        var env = await Engine.ExecuteAsync<Payload>(ChatOps.OpenConversation(Id));
         _conv = env.Data?.Conversation;
         if (env.Data?.Messages is { } msgs)
         {
@@ -114,30 +117,30 @@
             var msg  = env.Error?.Message ?? env.Operation?.ErrorMessage;
             _loadError = (code, msg) switch
             {
-                ("conversation_not_found", _) => "المحادثة غير موجودة أو ليست لك.",
-                ("not_a_participant",      _) => "لست مشاركاً في هذه المحادثة.",
-                ("network_error", var m) when m is not null => $"تعذّر الاتصال: {m}",
+                ("conversation_not_found", _) => L[TemplateStrings.ChatNotFound],
+                ("not_a_participant",      _) => L[TemplateStrings.ChatNotParticipant],
+                ("network_error", var m) when m is not null => string.Format(L[TemplateStrings.ChatConnectionFailedFormat], m),
                 (_, var m) when !string.IsNullOrWhiteSpace(m) => m!,
-                (var c, _) when !string.IsNullOrWhiteSpace(c) => $"تعذّر تحميل المحادثة ({c}).",
-                _ => "تعذّر تحميل المحادثة. حاول لاحقاً."
+                (var c, _) when !string.IsNullOrWhiteSpace(c) => string.Format(L[TemplateStrings.ChatLoadFailedCodeFormat], c),
+                _ => L[TemplateStrings.ChatLoadFailedGeneric]
             };
         }
         else
         {
-            // افتح قناة الدردشة. التسليم الحيّ عبر SignalR للـ foreground،
-            // والإشعارات في الخلفيّة عبر Firebase Cloud Messaging (راجع
-            // FirebasePushService) فلا حاجة لـ polling.
+            // افتح قَناة الدَردَشَة. التَسليم الحَيّ عَبر SignalR لِلـ foreground،
+            // والإشعارات في الخلفيّة عَبر FCM (راجِع FirebasePushService).
             Chat.MessageReceived += OnRealtimeMessage;
             try { await Chat.EnterAsync(Id); }
             catch { /* ignore */ }
 
-            // EnterAsync الخادميّ يَستدعي MarkReadAsync فيُصَفِّر العَدّاد في
-            // DB. ActiveConversationId يَجعل UnreadService يَتجاهل الرسائل
-            // الواردة لهذه المحادثة (لا تُحسَب unread لأنّ المُستخدِم يَراها).
+            // EnterAsync الخادميّ يَستَدعي MarkReadAsync فيُصَفِّر العَدّاد في
+            // DB. ActiveConversationId يَجعَل realtime ingestor يَتَجاهَل
+            // الرَسائل الواردَة لِهذه المُحادَثة (لا تُحسَب unread لأنّ
+            // المُستَخدِم يَراها).
             Unread.ActiveConversationId = Id;
             await Unread.RefreshAsync();
 
-            // ركّز على خانة الرسالة بعد ما يُرسَم الـ DOM.
+            // ركّز عَلى خانة الرَسالَة بَعد ما يُرسَم الـ DOM.
             try { await JS.InvokeVoidAsync("ejarChatUi.focus", "#chat-composer"); } catch { }
         }
 
@@ -145,34 +148,40 @@
         await InvokeAsync(StateHasChanged);
     }
 
-    private string MyPartyId => Store.Auth.UserId is { } g ? $"User:{g}" : "User:?";
+    private string MyPartyId => Auth.UserId is { } g ? $"User:{g}" : "User:?";
     private bool IsMine(IChatMessage m) =>
         string.Equals(m.SenderPartyId, MyPartyId, StringComparison.OrdinalIgnoreCase);
 
-    /// <summary>
-    /// اسم "الطرف الآخر" حسب من يعرض المحادثة. لو أنا الـ Owner أعرض اسم
-    /// Partner، والعكس. الـ backend يرسل الاسمَين معاً، الواجهة تختار.
-    /// </summary>
+    /// <summary>اسم "الطَرَف الآخَر" حَسَب مَن يَعرض المُحادَثة.</summary>
     private string OtherName
     {
         get
         {
             if (_conv is null) return "";
-            var myId = Store.Auth.UserId?.ToString();
+            var myId = Auth.UserId?.ToString();
             return string.Equals(_conv.OwnerId, myId, StringComparison.OrdinalIgnoreCase)
                 ? _conv.PartnerName ?? "—"
                 : _conv.OwnerName ?? "—";
         }
     }
 
+    /// <summary>صورة الطَرَف الآخَر — null تَترُك AcAvatar يَعرِض initials.</summary>
+    private string? OtherAvatar
+    {
+        get
+        {
+            if (_conv is null) return null;
+            var myId = Auth.UserId?.ToString();
+            return string.Equals(_conv.OwnerId, myId, StringComparison.OrdinalIgnoreCase)
+                ? _conv.PartnerAvatar
+                : _conv.OwnerAvatar;
+        }
+    }
+
     private void OnRealtimeMessage(IChatMessage msg)
     {
-        // De-dup by id (server echo of remote message) — لا نُضيف نفس المعرّف مرّتَين.
         if (_messages.Any(m => m.Id == msg.Id)) return;
 
-        // عند أرسال "أنا"، أضفنا echo محلّيّ بمعرّف "local-{ticks}". الـ server
-        // echo يأتي بمعرّف Guid حقيقيّ من نفس body+sender خلال ثوانٍ. لو وجدنا
-        // محلّيّ بنفس body من نفس sender خلال ٥ ثوانٍ، استبدله بدل التكرار.
         if (msg.SenderPartyId == MyPartyId)
         {
             for (int i = 0; i < _messages.Count; i++)
@@ -181,7 +190,7 @@
                 if (!existing.Id.StartsWith("local-")) continue;
                 if (existing.Body != msg.Body) continue;
                 if ((msg.SentAt - existing.SentAt).Duration() > TimeSpan.FromSeconds(10)) continue;
-                _messages[i] = msg; // نُبدّل local بالحقيقيّ
+                _messages[i] = msg;
                 InvokeAsync(StateHasChanged);
                 return;
             }
@@ -200,9 +209,6 @@
         var pending = _draft;
         try
         {
-            // Optimistic local echo بمعرف pending قبل الإرسال — لو نجح،
-            // الـ broadcast سيصل بنفس النصّ من معرّف الخادم؛ لو فشل نُزيل
-            // الـ echo ونعرض خطأ.
             var localId = $"local-{DateTime.UtcNow.Ticks}";
             _messages.Add(new ChatMessage(
                 Id: localId,
@@ -218,7 +224,7 @@
         catch (Exception ex)
         {
             _messages.RemoveAll(m => m.Body == pending && m.Id.StartsWith("local-"));
-            _sendError = $"تعذّر إرسال الرسالة: {ex.Message}";
+            _sendError = string.Format(L[TemplateStrings.ChatSendFailedFormat], ex.Message);
             _draft = pending;
         }
         finally { _sending = false; await InvokeAsync(StateHasChanged); }
@@ -226,7 +232,6 @@
 
     private async Task OnComposerKey(KeyboardEventArgs e)
     {
-        // Enter يُرسل، Shift+Enter يُدخل سطراً جديداً (سلوك معتاد في الدردشة).
         if (e.Key == "Enter" && !e.ShiftKey && !_sending && !string.IsNullOrWhiteSpace(_draft))
             await Send();
     }
@@ -236,20 +241,16 @@
     public async ValueTask DisposeAsync()
     {
         Chat.MessageReceived -= OnRealtimeMessage;
-        // Closing the chat channel re-opens the notif channel for this
-        // conversation, so future messages reach the user as notifications.
         if (Unread.ActiveConversationId == Id) Unread.ActiveConversationId = null;
         await Chat.LeaveAsync();
     }
 
     // Chat Kit shape: { conversation: ConvDto, messages: MessageDto[] }
-    // ConvDto حقول إضافيّة فوق IChatConversation (OwnerId/PartnerId/Subject/...)
-    // يضيفها EjarCustomerChatStore.ConversationView.
     private sealed record Payload(ConvDto? Conversation, List<MessageDto>? Messages);
     private sealed record ConvDto(
         string Id,
-        string? OwnerId, string? OwnerName,
-        string? PartnerId, string? PartnerName,
+        string? OwnerId, string? OwnerName, string? OwnerAvatar,
+        string? PartnerId, string? PartnerName, string? PartnerAvatar,
         string? Subject, string? ListingId,
         DateTime LastAt, int UnreadCount,
         string? LastMessage);
@@ -257,4 +258,28 @@
     private sealed record MessageDto(
         string Id, string ConversationId, string SenderPartyId,
         string Body, DateTime SentAt, DateTime? ReadAt) : IChatMessage;
+
+    /// <summary>
+    /// عُنوان فاصِل اليَوم بَين الرَسائِل. اليَوم/أَمس بِالعَرَبي + تاريخ كامِل
+    /// لِما تَجاوَزَ اليَومَين. <see cref="DateTime.Today"/> يَستَخدِم الـ
+    /// local time لِيَتَطابَق مَع <c>ToLocalTime()</c> أَعلاه.
+    /// </summary>
+    private string FormatDayHeader(DateTime day)
+    {
+        var today = DateTime.Now.Date;
+        if (day == today)                 return L[TemplateStrings.CommonToday];
+        if (day == today.AddDays(-1))     return L[TemplateStrings.CommonYesterday];
+        // التَّنسيق المُفَضَّل بِالعَرَبي: "الأَحَد ١٢ مايو ٢٠٢٦" — نَستَخدِم
+        // ar-SA culture لِيَتَكَفَّل بِالـ day-name + month-name. لَو لَم تَكُن
+        // مَدعومَة في runtime، نَعود لِـ yyyy-MM-dd.
+        try
+        {
+            var ar = new System.Globalization.CultureInfo("ar-SA");
+            return day.ToString("dddd، d MMMM yyyy", ar);
+        }
+        catch
+        {
+            return day.ToString("yyyy-MM-dd");
+        }
+    }
 }

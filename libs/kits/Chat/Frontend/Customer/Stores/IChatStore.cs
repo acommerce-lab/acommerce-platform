@@ -29,6 +29,13 @@ public interface IChatStore
     Task OpenConversationAsync(string conversationId, CancellationToken ct = default);
     Task SendAsync(string body, CancellationToken ct = default);
     Task MarkReadAsync(string conversationId, CancellationToken ct = default);
+
+    /// <summary>
+    /// يَبدأ مُحادَثة جَديدة حَول subjectId (إعلان، طَلَب، …) بِرَسالة أَوَّليّة
+    /// نَصّيّة. يَنجح ⇒ يُرجِع id المُحادَثة المَخلوقَة (أَو الموجودَة لو كانَت
+    /// مَفتوحَة سابِقاً مَع نَفس الطَرَفَين).
+    /// </summary>
+    Task<string?> StartConversationAsync(string subjectId, string text, CancellationToken ct = default);
 }
 
 /// <summary>ملخّص محادثة في قائمة الـ inbox.</summary>

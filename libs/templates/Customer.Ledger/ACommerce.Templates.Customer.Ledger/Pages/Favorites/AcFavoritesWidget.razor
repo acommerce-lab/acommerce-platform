@@ -1,4 +1,5 @@
 @inject IFavoritesStore Store
+@inject L L
 @implements IDisposable
 
 @*
@@ -9,20 +10,20 @@
 
 <section class="ac-favorites">
     <header class="ejar-section-head">
-        <h2 class="ejar-section-title">المفضّلة</h2>
+        <h2 class="ejar-section-title">@(L[LedgerStrings.FavoritesTitle])</h2>
         <span class="ejar-section-meta oam-mono">/ favorites · @Store.Ids.Count</span>
     </header>
 
     @if (Store.IsLoading)
     {
-        <p class="ejar-loading">جاري التحميل…</p>
+        <p class="ejar-loading">@(L[LedgerStrings.CommonLoading])</p>
     }
     else if (Store.Ids.Count == 0)
     {
         <div class="ejar-empty">
             <span class="ejar-empty-glyph" aria-hidden="true">♥</span>
-            <h3>لا توجد مفضّلات</h3>
-            <p>اضغط ♡ على أيّ إعلان لإضافته هنا.</p>
+            <h3>@(L[LedgerStrings.FavoritesEmptyTitle])</h3>
+            <p>@(L[LedgerStrings.FavoritesEmptyBody])</p>
         </div>
     }
     else
@@ -38,7 +39,7 @@
                     </a>
                     <button class="oam-btn-ghost ejar-fav-remove"
                             @onclick="@(() => Remove(lid))"
-                            aria-label="إزالة">إزالة</button>
+                            aria-label="@(L[LedgerStrings.CommonRemove])">@(L[LedgerStrings.CommonRemove])</button>
                 </li>
             }
         </ul>

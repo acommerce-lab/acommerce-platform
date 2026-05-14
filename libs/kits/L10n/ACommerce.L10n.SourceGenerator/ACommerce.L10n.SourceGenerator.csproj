@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <!-- Roslyn analyzers MUST target netstandard2.0 -->
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+
+    <!-- لا يُنتَج DLL لِلتَطبيقات؛ يُحمَّل كَ analyzer -->
+    <IsRoslynComponent>true</IsRoslynComponent>
+    <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+
+    <PackageId>ACommerce.L10n.SourceGenerator</PackageId>
+    <Description>
+      Roslyn IIncrementalGenerator يَقرأ كلّ <c>Strings.resx</c> (NEUTRAL)
+      المُسَجَّلَة كَ AdditionalFiles ويُوَلِّد <c>partial class</c> مُرافِقَة
+      تَحوي <c>TranslationKey</c> ثابِتَة لِكلّ مِفتاح. النَتيجَة: pages
+      تَكتُب <c>L[Strings.HomeTitle]</c> بَدَل <c>L["home.title"]</c>،
+      تُكسَب compile-time safety + autocomplete + F12 + refactor-rename.
+    </Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.8.0" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="3.3.4" PrivateAssets="all" />
+  </ItemGroup>
+
+  <!-- يُكشَف كَ analyzer لِلتَطبيقات التي تَرجِعه عَبر OutputItemType="Analyzer" -->
+  <ItemGroup>
+    <None Include="$(OutputPath)\$(AssemblyName).dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+  </ItemGroup>
+</Project>

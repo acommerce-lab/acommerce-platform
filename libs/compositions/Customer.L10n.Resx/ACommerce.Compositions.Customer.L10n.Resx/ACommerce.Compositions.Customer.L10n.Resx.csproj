@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <PackageId>ACommerce.Compositions.Customer.L10n.Resx</PackageId>
+    <Description>
+      composition تُحَوِّل ResourceManager-backed .resx إلى ITranslationProvider
+      مِن L10n.Blazor. التَطبيق يُسَجِّل: AddResxTranslationProvider(assembly,
+      baseName) ⇒ كلّ Strings.resx + Strings.{lang}.resx مُتاحَة عَبر L["key"].
+    </Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <SupportedPlatform Include="browser" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\kits\L10n\ACommerce.L10n.Blazor\ACommerce.L10n.Blazor.csproj" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.7" />
+  </ItemGroup>
+</Project>

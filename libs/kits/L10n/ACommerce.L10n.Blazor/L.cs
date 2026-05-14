@@ -17,6 +17,13 @@ public class L
 
     public string this[string key] => _provider.Translate(key, _ctx.Language);
 
+    /// <summary>
+    /// النَمَط المُكتَّب: <c>L[Strings.HomeTitle]</c>. المُولِّد يَكشِف ثوابِت
+    /// <see cref="TranslationKey"/> مِن كلّ <c>.resx</c>، فيَنال المُطَوِّر
+    /// compile-time safety + autocomplete + F12 + refactor-rename.
+    /// </summary>
+    public string this[TranslationKey key] => _provider.Translate(key.Key, _ctx.Language);
+
     public string Lang  => _ctx.Language;
     public bool   IsRtl => _ctx.IsRtl;
 

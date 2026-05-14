@@ -67,6 +67,8 @@
                                      PriceLabel="@PriceText(l)"
                                      Ribbon="مميّز"
                                      IsFavorite="@IsFavorite(l.Id)"
+                                     Attributes="@l.Attributes"
+                                     IsArabic="@IsArabicCulture"
                                      OnOpen="() => OpenListing(l)"
                                      OnToggleFavorite="on => ToggleFavorite(l, on)" />
                     </div>
@@ -138,6 +140,8 @@
 
     [Parameter] public IReadOnlyList<QuickActionDto>? QuickActions { get; set; }
     [Parameter] public ISet<string>? FavoriteIds { get; set; }
+    /// <summary>هَل تَفضيل اللُغَة عَرَبي ⇒ AcSpaceCard يَختار LabelAr مِن snapshots.</summary>
+    [Parameter] public bool IsArabicCulture { get; set; } = true;
 
     [Parameter] public EventCallback<string?> OnSearch { get; set; }
     [Parameter] public EventCallback<CategoryTileDto> OnCategorySelected { get; set; }

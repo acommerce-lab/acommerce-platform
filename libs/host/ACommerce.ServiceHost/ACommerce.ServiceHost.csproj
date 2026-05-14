@@ -14,6 +14,7 @@
     <ProjectReference Include="..\..\core\OperationEngine\ACommerce.OperationEngine\ACommerce.OperationEngine.csproj" />
     <ProjectReference Include="..\..\core\OperationEngine\ACommerce.OperationEngine.Interceptors\ACommerce.OperationEngine.Interceptors.csproj" />
     <ProjectReference Include="..\..\core\OperationEngine\ACommerce.OperationEngine.DataInterceptors\ACommerce.OperationEngine.DataInterceptors.csproj" />
+    <ProjectReference Include="..\..\core\OperationEngine\ACommerce.OperationEngine.Journal\ACommerce.OperationEngine.Journal.csproj" />
     <ProjectReference Include="..\..\core\SharedKernel\ACommerce.SharedKernel.Domain\ACommerce.SharedKernel.Domain.csproj" />
     <ProjectReference Include="..\..\core\SharedKernel\ACommerce.SharedKernel.Repositories\ACommerce.SharedKernel.Repositories.csproj" />
     <ProjectReference Include="..\..\core\SharedKernel\ACommerce.SharedKernel.Infrastructure.EFCores\ACommerce.SharedKernel.Infrastructure.EFCores.csproj" />
@@ -24,6 +25,7 @@
     <ProjectReference Include="..\..\kits\Auth\ACommerce.Kits.Auth.Backend\ACommerce.Kits.Auth.Backend.csproj" />
     <ProjectReference Include="..\..\kits\Auth.TwoFactor\ACommerce.Kits.Auth.TwoFactor.AsAuth\ACommerce.Kits.Auth.TwoFactor.AsAuth.csproj" />
     <ProjectReference Include="..\..\providers\Auth.TwoFactor\Sms\ACommerce.Authentication.TwoFactor.Providers.Sms.Mock\ACommerce.Authentication.TwoFactor.Providers.Sms.Mock.csproj" />
+    <ProjectReference Include="..\..\providers\Auth.TwoFactor\Nafath\ACommerce.Authentication.TwoFactor.Providers.Nafath.Mock\ACommerce.Authentication.TwoFactor.Providers.Nafath.Mock.csproj" />
     <ProjectReference Include="..\..\kits\Chat\ACommerce.Chat.Operations\ACommerce.Chat.Operations.csproj" />
     <ProjectReference Include="..\..\kits\Chat\ACommerce.Kits.Chat.Backend\ACommerce.Kits.Chat.Backend.csproj" />
     <ProjectReference Include="..\..\kits\Discovery\ACommerce.Kits.Discovery.Backend\ACommerce.Kits.Discovery.Backend.csproj" />

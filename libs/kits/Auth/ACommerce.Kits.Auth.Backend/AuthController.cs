@@ -43,6 +43,8 @@ public class AuthController : ControllerBase
     {
         var subject = (body.Phone ?? "").Trim();
         var expiresInSeconds = 0;
+        string? challengeId = null;
+        IReadOnlyDictionary<string, string>? providerData = null;
         var op = Entry.Create("auth.otp.request")
             .Describe($"Auth flow initiated for {Mask(subject)}")
             .From("System:Auth", 1, ("role", "issuer"))
@@ -55,6 +57,8 @@ public class AuthController : ControllerBase
                 var r = await _flow.InitiateAsync(subject, ctx.CancellationToken);
                 if (!r.Ok) throw new InvalidOperationException(r.Reason ?? "initiate_failed");
                 expiresInSeconds = r.ExpiresInSeconds;
+                challengeId      = r.ChallengeId;
+                providerData     = r.ProviderData;
                 ctx.Set("expiresInSeconds", r.ExpiresInSeconds);
             })
             .SaveAtEnd()  // F6: لو IAuthFlow ينشئ سجلّ تحدّي في DB يُحفَظ ذرّيّاً
@@ -64,7 +68,13 @@ public class AuthController : ControllerBase
         if (env.Operation.Status != "Success")
             return this.BadRequestEnvelope(env.Operation.FailedAnalyzer ?? "otp_request_failed", env.Operation.ErrorMessage);
         return this.OkEnvelope("auth.otp.request",
-            new { masked = Mask(subject), expiresInSeconds });
+            new
+            {
+                masked = Mask(subject),
+                expiresInSeconds,
+                challengeId,
+                providerData,
+            });
     }
 
     [HttpPost("otp/verify")]
@@ -81,7 +91,8 @@ public class AuthController : ControllerBase
             .To("System:Auth", 1, ("role", "authenticated"))
             .Tag("subject_masked", Mask(subject)).Tag("role", _jwt.Role)
             .Analyze(new RequiredFieldAnalyzer("subject", () => subject))
-            .Analyze(new RequiredFieldAnalyzer("secret",  () => secret))
+            // لا قَيد عَلى secret هُنا — بَعض الـ flows (نَفاذ) لا تَطلُب
+            // كوداً مِن المُستَخدِم، الـ flow نَفسه يَتَكَفَّل بِالقَبول/الرَفض.
             .Execute(async ctx =>
             {
                 var r = await _flow.CompleteAsync(subject, secret, ctx.CancellationToken);

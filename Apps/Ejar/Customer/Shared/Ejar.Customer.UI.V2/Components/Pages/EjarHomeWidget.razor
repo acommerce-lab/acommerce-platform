@@ -2,48 +2,48 @@
     EjarHomeWidget — الصفحة الرئيسيّة. لا route مباشرة؛ تُسَجَّل عبر
     AddAppPages في EjarV2CustomerHost. تَستعمل OAM design system.
 *@
+@inject L L
 
 <section class="ejar-page-intro">
-    <h1>أهلاً بك في إيجار</h1>
+    <h1>@(L[EjarV2Strings.HomeWelcomeTitle])</h1>
     <p>
-        منصّة إعلانات عقاريّة بنموذج عمليّات محاسبيّ —
-        كلّ فعل لك مُسجَّل كقيد، كلّ صفحة هنا تُجمّع من widgets قابلة لإعادة التَركيب.
+        @(L[EjarV2Strings.HomeWelcomeBody])
     </p>
 </section>
 
 <header class="ejar-section-head">
-    <h2 class="ejar-section-title">اختصارات</h2>
+    <h2 class="ejar-section-title">@(L[EjarV2Strings.HomeShortcutsTitle])</h2>
     <span class="ejar-section-meta oam-mono">/ home</span>
 </header>
 
 <a href="/properties" class="ejar-card">
     <div>
-        <div class="ejar-card-title">تَصفّح العقارات</div>
-        <div class="ejar-card-meta">عرض الإعلانات المتاحة + فلترة حسب المدينة والفئة</div>
+        <div class="ejar-card-title">@(L[EjarV2Strings.HomeCardBrowseTitle])</div>
+        <div class="ejar-card-meta">@(L[EjarV2Strings.HomeCardBrowseMeta])</div>
     </div>
     <span aria-hidden="true">←</span>
 </a>
 
 <a href="/notifications" class="ejar-card">
     <div>
-        <div class="ejar-card-title">الإشعارات</div>
-        <div class="ejar-card-meta">آخر التَنبيهات والتَعليقات على إعلاناتك</div>
+        <div class="ejar-card-title">@(L[EjarV2Strings.HomeCardNotificationsTitle])</div>
+        <div class="ejar-card-meta">@(L[EjarV2Strings.HomeCardNotificationsMeta])</div>
     </div>
     <AcNotificationsUnreadBadgeWidget />
 </a>
 
 <a href="/chat" class="ejar-card">
     <div>
-        <div class="ejar-card-title">المحادثات</div>
-        <div class="ejar-card-meta">رسائل المهتمّين بإعلاناتك أو ما تَتابعه</div>
+        <div class="ejar-card-title">@(L[EjarV2Strings.HomeCardChatsTitle])</div>
+        <div class="ejar-card-meta">@(L[EjarV2Strings.HomeCardChatsMeta])</div>
     </div>
     <AcChatUnreadBadgeWidget />
 </a>
 
 <a href="/dashboard" class="ejar-card">
     <div>
-        <div class="ejar-card-title">لوحة المعلومات</div>
-        <div class="ejar-card-meta">ملخّص نَشاطك — إعلاناتك، رسائلك، إشعاراتك</div>
+        <div class="ejar-card-title">@(L[EjarV2Strings.HomeCardDashboardTitle])</div>
+        <div class="ejar-card-meta">@(L[EjarV2Strings.HomeCardDashboardMeta])</div>
     </div>
     <span aria-hidden="true">←</span>
 </a>

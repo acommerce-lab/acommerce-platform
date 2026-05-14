@@ -53,15 +53,15 @@ else
 @code {
     [Parameter] public bool IsLoading { get; set; }
     [Parameter] public bool IsBlocked { get; set; }
-    [Parameter] public string RequiredTitle { get; set; } = "تحديث مطلوب";
-    [Parameter] public string RequiredBody { get; set; } = "يجب تحديث التطبيق للاستمرار في استخدامه";
-    [Parameter] public string CurrentLabel { get; set; } = "الإصدار الحالي";
-    [Parameter] public string LatestLabel { get; set; } = "الإصدار المتاح";
+    [Parameter] public string RequiredTitle { get; set; } = "Update required";
+    [Parameter] public string RequiredBody { get; set; } = "Please update the app to continue using it";
+    [Parameter] public string CurrentLabel { get; set; } = "Current version";
+    [Parameter] public string LatestLabel { get; set; } = "Latest version";
     [Parameter] public string CurrentVersion { get; set; } = "1.0.0";
     [Parameter] public string LatestVersion { get; set; } = "1.0.0";
-    [Parameter] public string DownloadLabel { get; set; } = "تنزيل الإصدار الجديد";
+    [Parameter] public string DownloadLabel { get; set; } = "Download new version";
     [Parameter] public string? SupportEmail { get; set; }
-    [Parameter] public string SupportLabel { get; set; } = "الدعم";
+    [Parameter] public string SupportLabel { get; set; } = "Support";
     [Parameter] public EventCallback OnDownloadClick { get; set; }
     [Parameter] public RenderFragment? ChildContent { get; set; }
 }

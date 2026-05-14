@@ -80,6 +80,30 @@ builder.Services.AddSingleton<IUserIdProvider, EjarUserIdProvider>();
 builder.Services.AddSingleton<IOperationInterceptor, OperationLogInterceptor>();
 builder.Services.AddScoped<ACommerce.Kits.Listings.Backend.IListingDetailEnricher, EjarListingDetailEnricher>();
 
+// Idempotency — يُسَجَّل عَلى مُستَوى المُعتَرِض + EF store.
+// المُعتَرِض singleton (state-less)، الـ store scoped (DbContext per-request).
+builder.Services.AddSingleton<IOperationInterceptor, ACommerce.OperationEngine.Interceptors.IdempotencyInterceptor>();
+builder.Services.AddScoped<ACommerce.OperationEngine.Interceptors.IOperationIdempotencyStore,
+                           Ejar.Api.Stores.EjarOperationIdempotencyStore>();
+
+// DynamicAttributes kit — مَصدَر القَوالِب الَّتي تَخدِم /profile/edit
+// ولِسِمات الإعلانات. EjarAttributeTemplateSource يَبني القَوالِب مَن
+// كود ثابِت (EjarAttributes.cs)؛ لا جَدول DB يَحتاج migration.
+builder.Services.AddSingleton<ACommerce.Kits.DynamicAttributes.Backend.IAttributeTemplateSource,
+                              Ejar.Api.Data.Templates.EjarAttributeTemplateSource>();
+
+// Taxonomy kit — شَجَرَة تَصنيف هَرَمِيَّة مُتَعَدِّدَة الجُذور (categories,
+// locations, …). يَفصِل بَين Listings/Profile وبَين شَكل الفِئات ⇒
+// IListing.PropertyType يَحفَظ slug العُقدَة فَقَط (no coupling).
+builder.Services.AddScoped<ACommerce.Kits.Taxonomy.Backend.ITaxonomyStore,
+                           Ejar.Api.Stores.EjarTaxonomyStore>();
+
+// MVC scan الافتِراضي = entry assembly فَقَط ⇒ نُلحِق Application Parts
+// لِالتِقاط controllers مَن كيتات الخَلفِيَّة.
+builder.Services.AddControllers()
+    .AddApplicationPart(typeof(ACommerce.Kits.DynamicAttributes.Backend.DynamicAttributesController).Assembly)
+    .AddApplicationPart(typeof(ACommerce.Kits.Taxonomy.Backend.TaxonomyController).Assembly);
+
 var app = builder.Build();
 
 // ─── DB Migrate + Seed + Versions promotion ─────────────────────────────

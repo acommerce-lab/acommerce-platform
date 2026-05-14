@@ -1,42 +1,39 @@
 @namespace Ejar.Customer.UI.Components.Layout
 @using ACommerce.Kits.Versions.Templates
-@using Ejar.Customer.UI.Operations
 @using Ejar.Customer.UI.Services
-@using Ejar.Customer.UI.Store
 @inherits LayoutComponentBase
-@inject AppStore Store
-@inject AppStorePersistence Persistence
-@inject ApiReader Api
-@inject L L
-@inject IJSRuntime JS
-@inject NavigationManager Nav
+@inject IClientAuthState Auth
+@inject IUiPreferences Prefs
+@inject IClientAuthPersistence AuthPersistence
+@inject LocalStorageUiPersistence UiPersistence
+@inject IClientCultureController Culture
+@inject IFavoritesStore Favs
+@inject UnreadComposition Unread
 @inject EjarRealtimeService Realtime
-@inject FavoritesSync Favorites
 @inject FirebasePushService FirebasePush
 @inject VersionPoll VersionPoll
-@inject UnreadService Unread
+@inject NavigationManager Nav
 @inject IConfiguration Config
+@inject IHttpClientFactory HttpFactory
+@inject IJSRuntime JS
+@inject L L
 @implements IAsyncDisposable
 
-<div class="acs-page @(Store.Ui.HideChrome ? "acm-chrome-hidden" : "")">
+<div class="acs-page @(Prefs.HideChrome ? "acm-chrome-hidden" : "")">
 @if (VersionPoll.UpdateAvailable)
 {
-    @* بانر التحديث — يظهر فوق كلّ شيء عندما يُكتشف إصدار جديد على الخادم.
-       الزرّ "تحديث الآن" يُنظّف SW + caches ثمّ يُعيد التحميل. الـ
-       version-check.js الأوّليّ ما زال يعمل عند بدء التحميل، لكن هذا
-       الـ banner يُعالج الحالة "مستخدم يفتح التطبيق ساعات بينما نشرنا
-       إصدارين". *@
+    @* بانر التحديث — يَظهَر فَوق كلّ شَيء عِندما يُكتَشَف إصدار جَديد. *@
     <div role="alert" style="position:sticky; top:0; z-index:1000;
                              background:#1d4ed8; color:#fff; padding:10px 14px;
                              display:flex; gap:12px; align-items:center;
                              justify-content:center; flex-wrap:wrap;
                              font-family:Cairo,sans-serif;">
-        <span>إصدار جديد متاح (@VersionPoll.AvailableVersion). أعد التحميل لتثبيته.</span>
+        <span>@(string.Format(L[TemplateStrings.LayoutVersionAvailableFormat], VersionPoll.AvailableVersion))</span>
         <button type="button"
                 style="background:#fff; color:#1d4ed8; border:0; padding:6px 14px;
                        border-radius:6px; font-weight:700; cursor:pointer;"
                 @onclick="ApplyAppUpdate">
-            تحديث الآن
+            @(L[TemplateStrings.LayoutUpdateNow])
         </button>
     </div>
 }
@@ -45,15 +42,15 @@
         <nav class="acm-mobile-nav">
             <div class="acm-mobile-nav-inner">
                 <div class="acm-mobile-nav-brand">
-                    <span class="acm-brand-text" style="font-size:1.3rem;font-weight:700;color:var(--ac-primary);">إيجار</span>
+                    <span class="acm-brand-text" style="font-size:1.3rem;font-weight:700;color:var(--ac-primary);">@(L[TemplateStrings.AppName])</span>
                 </div>
                 <div class="acm-mobile-nav-actions">
-                    <button class="acm-mobile-nav-btn" @onclick="@(() => Nav.NavigateTo("/search"))" aria-label="بحث">
+                    <button class="acm-mobile-nav-btn" @onclick="@(() => Nav.NavigateTo("/search"))" aria-label="@(L[TemplateStrings.CommonSearchAria])">
                         <AcIcon Name="search" Size="28" />
                     </button>
                     <button class="acm-mobile-nav-btn ejar-icon-with-badge"
                             @onclick="@(() => Nav.NavigateTo("/notifications"))"
-                            aria-label="@($"إشعارات{(Unread.NotifUnread > 0 ? $" ({Unread.NotifUnread} غير مقروء)" : "")}")">
+                            aria-label="@(string.Format(L[TemplateStrings.LayoutNotificationsAriaFormat], Unread.NotifUnread > 0 ? string.Format(L[TemplateStrings.LayoutUnreadAriaSuffixFormat], Unread.NotifUnread) : ""))">
                         <AcIcon Name="bell" Size="28" />
                         @if (Unread.NotifUnread > 0)
                         {
@@ -70,19 +67,19 @@
             <AcTopNav Items="_topItems">
                 <BrandContent>
                     <div class="acm-brand">
-                        <span style="font-size:1.4rem;font-weight:700;color:var(--ac-primary);">إيجار</span>
+                        <span style="font-size:1.4rem;font-weight:700;color:var(--ac-primary);">@(L[TemplateStrings.AppName])</span>
                     </div>
                 </BrandContent>
                 <RightActions>
-                    <AcThemeToggle IsDark="@Store.Ui.IsDark"
-                                   IsDarkChanged="@(v => { Store.SetTheme(v ? "dark" : "light"); return Task.CompletedTask; })" />
-                    <AcLanguageToggle IsArabic="@Store.Ui.IsArabic"
-                                      IsArabicChanged="@(v => { Store.SetCulture(Store.Ui.Culture with { Language = v ? "ar" : "en" }); return Task.CompletedTask; })" />
+                    <AcThemeToggle IsDark="@(Prefs.Theme == "dark")"
+                                   IsDarkChanged="@(async v => await Culture.SetThemeAsync(v ? "dark" : "light"))" />
+                    <AcLanguageToggle IsArabic="@(Prefs.Language == "ar")"
+                                      IsArabicChanged="@(async v => await Culture.SetLanguageAsync(v ? "ar" : "en"))" />
                 </RightActions>
             </AcTopNav>
         </div>
 
-        <main class="@(Store.Ui.IsDark ? "ac-dark-wrap" : "")">
+        <main class="@(Prefs.Theme == "dark" ? "ac-dark-wrap" : "")">
             @Body
             <div class="acm-v2-bottom-nav-wrap">
                 <AcBottomNav Items="_bottomItems" ExtraClass="acm-v2-bottomnav" />
@@ -95,30 +92,27 @@
 </div>
 
 @code {
-    // ملاحظة: حالة الإصدار يتولّاها AcAppVersionGate + VersionState تلقائياً.
-    // لم نعد نستدعي /version/check يدوياً.
     private bool _favoritesLoaded;
 
-    // الـ items مُحَسوبة من Unread.ChatUnread / NotifUnread فالشارات تَتَحدَّث
-    // realtime عند وصول رسالة/إشعار. NullableInt: null = لا badge، >0 = badge.
+    /// <summary>عَنصُر مُسَطَّح لِـ AcBottomNav.</summary>
     private IReadOnlyList<BottomNavItemDto> _bottomItems => new[]
     {
-        new BottomNavItemDto { Href = "/",          Label = "الرئيسية", IconName = "home",    Exact = true },
-        new BottomNavItemDto { Href = "/explore",   Label = "استكشاف",  IconName = "compass" },
-        new BottomNavItemDto { Href = "/favorites", Label = "المفضلة",  IconName = "heart" },
-        new BottomNavItemDto { Href = "/chats",     Label = "الرسائل",  IconName = "message",
+        new BottomNavItemDto { Href = "/",          Label = L[TemplateStrings.NavHome], IconName = "home",    Exact = true },
+        new BottomNavItemDto { Href = "/explore",   Label = L[TemplateStrings.NavExplore],  IconName = "compass" },
+        new BottomNavItemDto { Href = "/favorites", Label = L[TemplateStrings.NavFavorites],  IconName = "heart" },
+        new BottomNavItemDto { Href = "/chats",     Label = L[TemplateStrings.NavMessages],  IconName = "message",
                                Badge = Unread.ChatUnread > 0 ? Unread.ChatUnread : null },
-        new BottomNavItemDto { Href = "/me",        Label = "حسابي",    IconName = "user" }
+        new BottomNavItemDto { Href = "/me",        Label = L[TemplateStrings.NavAccount],    IconName = "user" }
     };
 
     private IReadOnlyList<AcTopNav.TopNavItem> _topItems => new[]
     {
-        new AcTopNav.TopNavItem("/",              "الرئيسية",  "home",    null, true),
-        new AcTopNav.TopNavItem("/explore",       "استكشاف",   "compass"),
-        new AcTopNav.TopNavItem("/favorites",     "المفضلة",   "heart"),
-        new AcTopNav.TopNavItem("/chats",         "الرسائل",   "message", Unread.ChatUnread > 0 ? Unread.ChatUnread : (int?)null),
-        new AcTopNav.TopNavItem("/notifications", "الإشعارات", "bell",    Unread.NotifUnread > 0 ? Unread.NotifUnread : (int?)null),
-        new AcTopNav.TopNavItem("/me",            "حسابي",     "user")
+        new AcTopNav.TopNavItem("/",              L[TemplateStrings.NavHome],  "home",    null, true),
+        new AcTopNav.TopNavItem("/explore",       L[TemplateStrings.NavExplore],   "compass"),
+        new AcTopNav.TopNavItem("/favorites",     L[TemplateStrings.NavFavorites],   "heart"),
+        new AcTopNav.TopNavItem("/chats",         L[TemplateStrings.NavMessages],   "message", Unread.ChatUnread > 0 ? Unread.ChatUnread : (int?)null),
+        new AcTopNav.TopNavItem("/notifications", L[TemplateStrings.NotificationsTitle], "bell",    Unread.NotifUnread > 0 ? Unread.NotifUnread : (int?)null),
+        new AcTopNav.TopNavItem("/me",            L[TemplateStrings.NavAccount],     "user")
     };
 
     private string? _appliedTheme;
@@ -126,16 +120,16 @@
 
     protected override void OnInitialized()
     {
-        Store.OnChanged += OnChange;
+        Prefs.OnChanged    += OnChange;
+        Auth.OnChanged     += OnChange;
         Nav.LocationChanged += OnLocationChanged;
         VersionPoll.Changed += OnVersionPollChanged;
-        Unread.Changed += OnUnreadChanged;
+        Unread.Changed      += OnUnreadChanged;
         _ = VersionPoll.StartAsync();
         UpdateChrome(Nav.Uri);
     }
 
-    private void OnUnreadChanged() => InvokeAsync(StateHasChanged);
-
+    private void OnUnreadChanged()    => InvokeAsync(StateHasChanged);
     private void OnVersionPollChanged() => InvokeAsync(StateHasChanged);
     private async Task ApplyAppUpdate() => await VersionPoll.ApplyUpdateAsync();
 
@@ -148,65 +142,64 @@
     private void UpdateChrome(string uri)
     {
         var path = new Uri(uri).AbsolutePath;
-        Store.Ui.HideChrome = path.StartsWith("/login", StringComparison.OrdinalIgnoreCase);
+        Prefs.HideChrome = path.StartsWith("/login", StringComparison.OrdinalIgnoreCase);
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
-            // استعادة حالة المستخدم من localStorage قبل أيّ شيء آخر — يُعيد JWT
-            // والمفضّلات والمسوّدة بعد إعادة تحميل الصفحة. لا يفعل شيئاً لو
-            // قد استُعيد سابقاً.
-            await Persistence.RestoreAsync();
+            // استَعِد حالة الـ Auth + UI prefs مِن localStorage قَبل أيّ شَيء
+            // آخَر — يُعيد JWT + Theme + Language + City + RecentSearches
+            // بَعد إعادة تَحميل الصَفحة. كلّ مِن RestoreAsync آمِن لِلاستِدعاء
+            // أكثَر مِن مَرّة.
+            await AuthPersistence.RestoreAsync();
+            await UiPersistence.RestoreAsync();
 
             // Connect to realtime hub if already authenticated (page reload case).
-            if (Store.Auth.IsAuthenticated)
+            if (Auth.IsAuthenticated)
                 await ConnectRealtimeAsync();
         }
 
-        // Connect after login (OnAfterRenderAsync fires after Store.NotifyChanged)
-        if (Store.Auth.IsAuthenticated && !Realtime.IsConnected)
+        // Connect after login (OnAfterRenderAsync fires after IClientAuthState.NotifyChanged)
+        if (Auth.IsAuthenticated && !Realtime.IsConnected)
             await ConnectRealtimeAsync();
 
-        // حمِّل المفضّلات من الخادم بعد المصادقة لتظهر على كلّ الأجهزة. مرّة
-        // واحدة لكلّ جلسة — Login.razor يتولّى التحميل بعد تسجيل الدخول الجديد.
-        if (Store.Auth.IsAuthenticated && !_favoritesLoaded)
+        // حمِّل المُفَضَّلات + شارات unread + سَجِّل FCM token عِند المُصادَقَة.
+        // مَرّة واحِدَة لِكلّ جَلسة — Login.razor يَتَوَلّى المُهِمَّة عِند تَسجيل
+        // دُخول جَديد. هذا الـ block يَحتاطُ لِـ reload + return-from-tab.
+        if (Auth.IsAuthenticated && !_favoritesLoaded)
         {
             _favoritesLoaded = true;
-            await Favorites.LoadFromServerAsync();
-            // عَدّاد الرسائل + الإشعارات غير المقروءة — يُغذِّي الشارات
-            // الحمراء على Bottom/Top nav بمجرّد إقلاع الجلسة.
+            _ = Favs.LoadAsync();
             _ = Unread.RefreshAsync();
-            // سَجِّل FCM token على كلّ session — لو المُستخدِم مُسَجَّل
-            // (reload أو يَعود من الـ tab المغلَق) Login.razor لا يُنفَّذ
-            // فلا تَسجيل ⇒ لا push notifications. هنا ضَمان.
             _ = FirebasePush.TryRegisterAsync();
         }
 
-        if (_appliedTheme != Store.Ui.Theme || _appliedLang != Store.Ui.Language)
+        if (_appliedTheme != Prefs.Theme || _appliedLang != Prefs.Language)
         {
-            _appliedTheme = Store.Ui.Theme;
-            _appliedLang = Store.Ui.Language;
-            var dir = Store.Ui.IsRtl ? "rtl" : "ltr";
-            try { await JS.InvokeVoidAsync("ejarUi.apply", Store.Ui.Theme, Store.Ui.Language, dir); }
+            _appliedTheme = Prefs.Theme;
+            _appliedLang = Prefs.Language;
+            var dir = Prefs.Language == "ar" ? "rtl" : "ltr";
+            try { await JS.InvokeVoidAsync("ejarUi.apply", Prefs.Theme, Prefs.Language, dir); }
             catch (InvalidOperationException) { }
         }
     }
 
     private async Task ConnectRealtimeAsync()
     {
-        var apiBase = Config["EjarApi:BaseUrl"]?.TrimEnd('/') ?? "http://localhost:5300";
-        // الـ hub في الباك مُركَّب على /realtime (راجع Program.cs MapHub).
-        // كان هنا "/hubs/ejar" خطأً — مسار غير موجود فيفشل negotiation
-        // ولا تصل أيّ رسالة حيّة. هذا سبب أنّ الإشعارات والدردشة الحيّة لم
-        // تعملا أبداً رغم أنّ كلّ القنوات والأكواد سليمة.
+        // مَكان عامّ: نَستَخدِم BaseAddress لِنَفس الـ HttpClient الَّذي
+        // تَستَخدِمه كُلّ ApiClients (مُسَجَّل بِاسم "ejar" بِغَضّ النَّظَر
+        // عَن التَطبيق). كُلّ تَطبيق يَضبِطه مَرَّة واحِدَة في Program.cs مِن
+        // appsettings (EjarApi/AshareApi/…) ⇒ realtime يَتبَع تِلقائيّاً
+        // بِلا الحاجَة لِتَوحيد اسم مِفتاح الـ config.
+        var apiBase = HttpFactory.CreateClient("ejar").BaseAddress?.ToString().TrimEnd('/')
+                      ?? Config["EjarApi:BaseUrl"]?.TrimEnd('/')
+                      ?? "http://localhost:5300";
+        // الـ hub في الباك مُركَّب عَلى /realtime (راجِع Program.cs MapHub).
         await Realtime.ConnectAsync($"{apiBase}/realtime");
 
-        // اشترك مرّة واحدة في إشعارات realtime لإظهار toast OS-level. لا
-        // نحتاج Firebase لهذا — Notification API الأصليّ يعمل ما دام التبويب
-        // مفتوحاً (حتى لو غير مرئيّ). لإشعارات يصل مع تبويب مغلق نحتاج Web
-        // Push (راجع notifications.js للخطوات).
+        // اشتَرِك مَرّة واحِدَة في إشعارات realtime لِإظهار toast OS-level.
         if (!_notifWired)
         {
             _notifWired = true;
@@ -218,18 +211,16 @@
     private bool _notifWired;
     private void OnRemoteNotification(string json)
     {
-        // payload شكل عامّ: { title, body, url? }. لو لم يُرسله الخادم بهذا
-        // الشكل نُحاول استخراج الحقول المعتادة.
         try
         {
             using var doc = System.Text.Json.JsonDocument.Parse(json);
             var root = doc.RootElement;
-            string title = TryGet(root, "title") ?? "إيجار";
+            string title = TryGet(root, "title") ?? L[TemplateStrings.AppName];
             string body  = TryGet(root, "body")  ?? TryGet(root, "text") ?? "";
             string? url  = TryGet(root, "url");
             _ = JS.InvokeVoidAsync("ejarNotify.show", title, body, new { url });
         }
-        catch { /* ignore — لا نُريد أن يكسر إشعار غير متوقّع layout */ }
+        catch { /* ignore — لا نُريد أن يَكسِر إشعار غير مُتَوَقَّع layout */ }
 
         static string? TryGet(System.Text.Json.JsonElement el, string name)
             => el.TryGetProperty(name, out var p) && p.ValueKind == System.Text.Json.JsonValueKind.String
@@ -241,17 +232,18 @@
         InvokeAsync(async () =>
         {
             StateHasChanged();
-            if (Store.Auth.IsAuthenticated && !Realtime.IsConnected)
+            if (Auth.IsAuthenticated && !Realtime.IsConnected)
                 await ConnectRealtimeAsync();
         });
     }
 
     public async ValueTask DisposeAsync()
     {
-        Store.OnChanged -= OnChange;
+        Prefs.OnChanged    -= OnChange;
+        Auth.OnChanged     -= OnChange;
         Nav.LocationChanged -= OnLocationChanged;
         VersionPoll.Changed -= OnVersionPollChanged;
-        Unread.Changed -= OnUnreadChanged;
+        Unread.Changed      -= OnUnreadChanged;
         await VersionPoll.DisposeAsync();
         await Realtime.DisposeAsync();
     }

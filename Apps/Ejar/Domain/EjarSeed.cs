@@ -38,6 +38,7 @@ public static class EjarSeed
     // ── التصنيفات ────────────────────────────────────────────────────────
     public static readonly IReadOnlyList<CategorySeed> Categories = new[]
     {
+        // العَقارات (residential / commercial / leisure)
         new CategorySeed("apartment", "شقة",     "🏢", "residential", new[] { "monthly", "yearly" }),
         new CategorySeed("villa",     "فيلا",     "🏡", "residential", new[] { "monthly", "yearly" }),
         new CategorySeed("office",    "مكتب",    "💼", "commercial",  new[] { "monthly", "yearly" }),
@@ -47,6 +48,24 @@ public static class EjarSeed
         new CategorySeed("studio",    "استوديو",   "🛌", "residential", new[] { "monthly" }),
         new CategorySeed("room",      "غرفة",     "🚪", "residential", new[] { "monthly" }),
         new CategorySeed("hotel_room", "فندقية",   "🏨", "leisure",     new[] { "daily" }),
+
+        // المُناسَبات (events)
+        new CategorySeed("hall",            "صالة أَفراح",     "🎉", "events", new[] { "daily" }),
+        new CategorySeed("wedding_clothes", "ملابس عرسان",     "👰", "events", new[] { "daily" }),
+        new CategorySeed("newborn_items",   "تَجهيزات مَواليد", "👶", "events", new[] { "daily" }),
+        new CategorySeed("kosha",           "كوشة",           "💐", "events", new[] { "daily" }),
+
+        // المَركَبات (vehicles)
+        new CategorySeed("car",         "سَيّارَة",      "🚗", "vehicles", new[] { "daily", "monthly" }),
+        new CategorySeed("bus",         "باص",         "🚌", "vehicles", new[] { "daily", "monthly" }),
+        new CategorySeed("motorcycle",  "درّاجَة ناريّة", "🏍️", "vehicles", new[] { "daily", "monthly" }),
+        new CategorySeed("pickup",      "دَينا",        "🛻", "vehicles", new[] { "daily" }),
+
+        // المُخَيَّمات (camps) — في اليَمَن تُستَخدَم لِلأَفراح والمُناسَبات
+        // (لا "رَحَلات" عامَّة). قِسم مُستَقِلّ بِنَفسه.
+        new CategorySeed("camp",         "مُخَيَّم",          "⛺", "camps", new[] { "daily" }),
+        new CategorySeed("wedding_camp", "مُخَيَّم أَفراح",   "🎪", "camps", new[] { "daily" }),
+        new CategorySeed("family_camp",  "مُخَيَّم عائِلي",   "👨‍👩‍👧", "camps", new[] { "daily" }),
     };
 
     // ── المزايا (Amenities) ──────────────────────────────────────────────

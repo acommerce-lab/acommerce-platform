@@ -424,6 +424,9 @@ namespace Ejar.Api.Migrations
                     b.Property<int>("AreaSqm")
                         .HasColumnType("int");
 
+                    b.Property<string>("AttributesJson")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<int>("BathroomCount")
                         .HasColumnType("int");
 
@@ -589,6 +592,44 @@ namespace Ejar.Api.Migrations
                     b.ToTable("Notifications");
                 });
 
+            modelBuilder.Entity("Ejar.Api.Data.OperationIdempotencyEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<string>("OperationType")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.Property<string>("Snapshot")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Key")
+                        .IsUnique();
+
+                    b.ToTable("OperationIdempotency");
+                });
+
             modelBuilder.Entity("Ejar.Api.Data.PlanEntity", b =>
                 {
                     b.Property<Guid>("Id")
@@ -732,11 +773,71 @@ namespace Ejar.Api.Migrations
                     b.ToTable("SupportMessages");
                 });
 
+            modelBuilder.Entity("Ejar.Api.Data.TaxonomyNodeEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Icon")
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.Property<string>("NameAr")
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.Property<Guid?>("ParentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("RootCode")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("nvarchar(60)");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RootCode", "Code")
+                        .IsUnique();
+
+                    b.HasIndex("RootCode", "ParentId", "SortOrder");
+
+                    b.ToTable("TaxonomyNodes");
+                });
+
             modelBuilder.Entity("Ejar.Api.Data.UserEntity", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("AttributesJson")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("AvatarUrl")
                         .HasMaxLength(2000)

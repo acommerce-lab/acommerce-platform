@@ -1,3 +1,5 @@
+using ACommerce.Kits.DynamicAttributes.Frontend.Customer.Stores;
+using ACommerce.Kits.Taxonomy.Frontend.Customer.Stores;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Ejar.Customer.UI.ClientHost;
@@ -12,10 +14,28 @@ namespace Ejar.Customer.UI.ClientHost;
 public static class EjarCustomerHostExtensions
 {
     /// <summary>
-    /// يُسَجِّل كلّ خَدَمات القالَب. <strong>المُتَطَلَّب</strong>: أن يَكون
-    /// <c>HttpClient</c> مُسَجَّلاً باسم <c>"ejar"</c> + <c>AppVersionInfo</c>
-    /// singleton قَبل الاستدعاء (تماماً كَما كانَ V1 OLD).
+    /// يُسَجِّل كلّ خَدَمات القالَب + طَبَقَة تَرجَمات Ejar V1 (overrides).
+    /// <strong>المُتَطَلَّب</strong>: أن يَكون <c>HttpClient</c> مُسَجَّلاً باسم
+    /// <c>"ejar"</c> + <c>AppVersionInfo</c> singleton قَبل الاستدعاء.
+    ///
+    /// <para><b>تَرتيب الطَبَقات (G4)</b>: AddEjarCustomerUI يُسَجِّل
+    /// طَبَقَة القالَب (الأَدنى) + AddLayeredTranslation. ثُمّ
+    /// AddEjarV1Translations يُضيف طَبَقَة Ejar V1 فَوقها (الأَعلى) ⇒
+    /// مَفاتيح Ejar تَفوز، الباقي يَنزَلِق لِلقالَب.</para>
     /// </summary>
     public static IServiceCollection AddEjarCustomer(this IServiceCollection services)
-        => services.AddEjarCustomerUI();
+    {
+        services.AddEjarCustomerUI();
+        services.AddEjarV1Translations();
+
+        // DynamicAttributes frontend kit — HttpAttributesStore يَستَهلِك
+        // HttpClient "ejar" لِجَلب القَوالِب مَن /dynamic-attributes/templates/{scope}.
+        services.AddScoped<IAttributesStore, HttpAttributesStore>();
+
+        // Taxonomy frontend kit — HttpTaxonomyStore يَجلِب شَجَرَة الفِئات
+        // مَن /taxonomy/{rootCode} ويُخَزِّنها في الذاكِرَة. AcTaxonomyTreeSelect
+        // في wizard CreateListing يَستَهلِكه.
+        services.AddScoped<ITaxonomyStore, HttpTaxonomyStore>();
+        return services;
+    }
 }

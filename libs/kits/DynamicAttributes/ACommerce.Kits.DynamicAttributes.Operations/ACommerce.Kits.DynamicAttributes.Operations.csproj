@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <PackageId>ACommerce.Kits.DynamicAttributes.Operations</PackageId>
+    <Version>1.0.0</Version>
+    <Description>Dynamic Attributes — pure OAM primitives. IHasDynamicAttributes (entity interface), AttributeScope, IAttributeTemplate/Definition/Option, DynamicAttributeOps + tag keys, value snapshot helper. No EF, no HTTP, no DI.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\core\OperationEngine\ACommerce.OperationEngine\ACommerce.OperationEngine.csproj" />
+  </ItemGroup>
+</Project>

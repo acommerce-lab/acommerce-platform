@@ -1,13 +1,24 @@
 using ACommerce.Client.Operations;
+using ACommerce.ClientHost.Auth;
 using ACommerce.Kits.Profiles.Operations;
 
 namespace ACommerce.Kits.Profiles.Frontend.Customer.Stores;
 
-/// <summary>OAM-shaped (F61) — profile.get_mine / profile.update عَبر ITemplateEngine.</summary>
-public sealed class DefaultProfileStore : IProfileStore
+/// <summary>OAM-shaped (F61) — profile.get_mine / profile.update عَبر ITemplateEngine.
+/// يَستَجيب لِتَغيُّر <see cref="IClientAuthState"/>: عِند logout يَمسَح <c>Current</c>،
+/// عِند login يَتَرُك الـ page تَستَدعي <c>LoadAsync</c> صَراحَةً (الـ store
+/// لا يَجلِب تِلقائيّاً لِيَتَجَنَّب طَلَب HTTP زائِد عَلى تَدَفُّقات
+/// background).</summary>
+public sealed class DefaultProfileStore : IProfileStore, IDisposable
 {
     private readonly ITemplateEngine _engine;
-    public DefaultProfileStore(ITemplateEngine engine) => _engine = engine;
+    private readonly IClientAuthState? _auth;
+    public DefaultProfileStore(ITemplateEngine engine, IClientAuthState? auth = null)
+    {
+        _engine = engine;
+        _auth = auth;
+        if (_auth is not null) _auth.OnChanged += OnAuthChanged;
+    }
 
     public IUserProfile? Current { get; private set; }
     public bool IsLoading { get; private set; }
@@ -19,18 +30,48 @@ public sealed class DefaultProfileStore : IProfileStore
         try
         {
             var env = await _engine.ExecuteAsync<InMemoryUserProfile>(ProfilesOps.GetMine(), ct: ct);
-            if (env.Operation.Status == "Success" && env.Data is not null)
-                Current = env.Data;
+            // اِمسَح الـ Current أَوَّلاً ثُمّ ضَع لَو نَجَح — يُجَنِّب
+            // عَرض بَيانات مُستَخدِم سابِق بَعد logout/login.
+            Current = (env.Operation.Status == "Success" && env.Data is not null)
+                ? env.Data
+                : null;
         }
         finally { IsLoading = false; Changed?.Invoke(); }
     }
 
-    public async Task UpdateAsync(IUserProfile next, CancellationToken ct = default)
+    public async Task UpdateAsync(IUserProfile next,
+                                  IReadOnlyDictionary<string, object?>? attributes = null,
+                                  CancellationToken ct = default)
     {
+        // wire shape مَطلوب الـ ProfilesController.UpdateBody:
+        // FullName/Phone/Email/City/AvatarUrl + attributes اختياري.
+        var body = new
+        {
+            fullName  = next.FullName,
+            phone     = next.Phone,
+            email     = next.Email,
+            city      = next.City,
+            avatarUrl = next.AvatarUrl,
+            attributes = attributes,
+        };
         var env = await _engine.ExecuteAsync<InMemoryUserProfile>(
-            ProfilesOps.Update(), payload: next, ct: ct);
+            ProfilesOps.Update(), payload: body, ct: ct);
         if (env.Operation.Status == "Success" && env.Data is not null)
             Current = env.Data;
         Changed?.Invoke();
+    }
+
+    private void OnAuthChanged()
+    {
+        if (_auth?.IsAuthenticated == false && Current is not null)
+        {
+            Current = null;
+            Changed?.Invoke();
+        }
+    }
+
+    public void Dispose()
+    {
+        if (_auth is not null) _auth.OnChanged -= OnAuthChanged;
     }
 }

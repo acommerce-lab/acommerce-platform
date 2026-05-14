@@ -1,0 +1,36 @@
+@* أَداة نَصِّيَّة ذَرِّيَّة لِسِمَة diem. Two-way @bind-Value فَيَكون
+   تَعبِئَة القِيمَة الحالِيَّة عِندَ التَعديل مَجّانِيّاً (Blazor binding). *@
+
+<div class="mb-3">
+    <label class="form-label">
+        @(Definition.LabelAr ?? Definition.Label)
+        @if (Definition.Required)
+        {
+            <span class="text-danger">*</span>
+        }
+    </label>
+    <input type="text"
+           class="form-control"
+           value="@AsString(Value)"
+           placeholder="@(Definition.PlaceholderAr ?? Definition.Placeholder)"
+           @oninput="@(e => OnInput(e.Value?.ToString()))" />
+    @if (!string.IsNullOrEmpty(Definition.Unit))
+    {
+        <small class="text-muted">@Definition.Unit</small>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public AttributeFieldDefinition Definition { get; set; } = default!;
+    [Parameter] public object? Value { get; set; }
+    [Parameter] public EventCallback<object?> ValueChanged { get; set; }
+
+    private static string AsString(object? v) => v switch
+    {
+        null => "",
+        string s => s,
+        _ => v.ToString() ?? "",
+    };
+
+    private Task OnInput(string? raw) => ValueChanged.InvokeAsync(raw);
+}

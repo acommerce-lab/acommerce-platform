@@ -15,7 +15,7 @@
 @code {
     [Parameter] public bool IsDark { get; set; }
     [Parameter] public EventCallback<bool> IsDarkChanged { get; set; }
-    [Parameter] public string AriaLabel { get; set; } = "تبديل السمة";
+    [Parameter] public string AriaLabel { get; set; } = "Toggle theme";
     [Parameter] public string? Class { get; set; }
 
     private Task Toggle()

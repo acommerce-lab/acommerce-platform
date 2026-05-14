@@ -1,0 +1,33 @@
+@* مِفتاح بولياني. القِيمَة الحالِيَّة تُحَدِّد <c>checked</c> فَيَكون
+   "تَحديد" مَجّانياً عَلى التَعديل. *@
+
+<div class="form-check form-switch mb-3">
+    <input type="checkbox"
+           class="form-check-input"
+           id="@_id"
+           checked="@AsBool(Value)"
+           @onchange="@(e => OnChange((bool)(e.Value ?? false)))" />
+    <label class="form-check-label" for="@_id">
+        @(Definition.LabelAr ?? Definition.Label)
+        @if (Definition.Required) { <span class="text-danger">*</span> }
+    </label>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public AttributeFieldDefinition Definition { get; set; } = default!;
+    [Parameter] public object? Value { get; set; }
+    [Parameter] public EventCallback<object?> ValueChanged { get; set; }
+
+    private readonly string _id = "swbool-" + Guid.NewGuid().ToString("N")[..8];
+
+    private static bool AsBool(object? v) => v switch
+    {
+        bool b => b,
+        string s => bool.TryParse(s, out var r) && r,
+        long l => l != 0,
+        int i => i != 0,
+        _ => false,
+    };
+
+    private Task OnChange(bool v) => ValueChanged.InvokeAsync(v);
+}

@@ -1,185 +1,30 @@
 @page "/login"
-@using Ejar.Customer.UI.Services
-@inject AppStore Store
-@inject ApiReader Api
-@inject NavigationManager Nav
-@inject FavoritesSync Favorites
-@inject FirebasePushService FirebasePush
-@inject IJSRuntime JS
+@inject IAuthLoginUi LoginUi
 @inject L L
-@inject INumeralNormalizer Numerals
-@implements IDisposable
 
-@code {
-    /// <summary>
-    /// مسار العودة بعد نجاح الدخول. يضعه RedirectToLogin عندما يحاول مستخدم
-    /// غير مصادَق فتح صفحة محميّة، فيُعاد إلى تلك الصفحة بدل الرئيسيّة.
-    /// </summary>
-    [SupplyParameterFromQuery] public string? ReturnUrl { get; set; }
-}
+@*
+    /login — dispatcher فَقَط. يَكتَشِف IAuthLoginUi مِن DI ويَرسُمه. الـ
+    Template نَفسه يُسَجِّل PhoneOtpLoginContent كَافتِراضي (في
+    EjarCustomerUiExtensions); تَطبيقات تُفَضِّل nafath أَو غَيره تُسَجِّل
+    IAuthLoginUi مَخصوص قَبل أَن يُبنى الـ host.
 
-<PageTitle>@(L["auth.login.title"]) — @(L["app.name"])</PageTitle>
+    لا مَنطِق هُنا — كُلّ شَيء داخِل المُكَوِّن المُختار. ReturnUrl يُمَرَّر
+    إلَيه عَبر [Parameter].
+*@
+
+<PageTitle>@(L[TemplateStrings.AuthLoginTitle]) — @(L[TemplateStrings.AppName])</PageTitle>
 
 <div class="acs-page acs-auth-page">
-    <div class="acs-nafath-head">
-        <AcIcon Name="smartphone" Size="48" />
-        <h1 class="acm-wizard-title">إيجار</h1>
-    </div>
-
-    <AcCard>
-        <ChildContent>
-            @if (!_otpSent)
-            {
-                @* @onkeydown على الـ wrapper يلتقط Enter من داخل أيّ <input>
-                   وُلِد عبر AcInput ويُشغّل زرّ الإرسال — كان زرّ Enter لا يفعل
-                   شيئاً، فيضطرّ المستخدم لرفع يده من المفاتيح والنقر بالماوس. *@
-                <div @onkeydown="OnPhoneKey">
-                    <AcField Label="@(L["auth.phone"])" Required="true">
-                        <AcInput Type="tel" Value="@_phone" id="login-phone"
-                                 ValueChanged="@(v => _phone = (Numerals.ToLatin(v) ?? string.Empty).Trim())"
-                                 Placeholder="7XXXXXXXX" />
-                    </AcField>
-
-                    @if (_error is not null)
-                    {
-                        <div class="ac-alert ac-alert-danger mt-2">@_error</div>
-                    }
-
-                    <AcButton Variant="primary" Size="lg" Class="ac-btn-block mt-2"
-                              Text="@(L["auth.send_otp"])"
-                              OnClick="@RequestOtp"
-                              Disabled="@(_phone.Length < 9 || _busy)" />
-                </div>
-            }
-            else
-            {
-                <div @onkeydown="OnCodeKey">
-                    <p class="acs-nafath-instruction">@(L["auth.otp.hint"])</p>
-
-                    <AcField Label="@(L["auth.otp"])" Required="true">
-                        <AcInput Type="tel" Value="@_code" id="login-code"
-                                 ValueChanged="@(v => _code = (Numerals.ToLatin(v) ?? string.Empty).Trim())"
-                                 Placeholder="123456" />
-                    </AcField>
-
-                    <div class="acs-nafath-state acs-nafath-state--ok mt-2">
-                        <AcIcon Name="check-circle" Size="16" />
-                        <span>@(L["auth.otp.demo"])</span>
-                    </div>
-
-                    @if (_error is not null)
-                    {
-                        <div class="ac-alert ac-alert-danger mt-2">@_error</div>
-                    }
-
-                    <AcButton Variant="primary" Size="lg" Class="ac-btn-block mt-2"
-                              Text="@(L["auth.verify"])"
-                              OnClick="@VerifyOtp"
-                              Disabled="@(_code.Length < 6 || _busy)" />
-                    <AcButton Variant="ghost" Class="ac-btn-block"
-                              Text="تغيير رقم الجوّال" OnClick="@Reset" />
-                </div>
-            }
-        </ChildContent>
-    </AcCard>
+    <DynamicComponent Type="@LoginUi.ComponentType" Parameters="@_params" />
 </div>
 
 @code {
-    private string _phone = "";
-    private string _code = "";
-    private bool _otpSent;
-    private bool _busy;
-    private string? _error;
+    [SupplyParameterFromQuery] public string? ReturnUrl { get; set; }
 
-    protected override void OnInitialized()
+    private Dictionary<string, object?> _params = new();
+
+    protected override void OnParametersSet()
     {
-        Store.OnChanged += OnChange;
-        Store.Ui.HideChrome = true;
-        if (Store.Auth.IsAuthenticated) Nav.NavigateTo("/");
+        _params = new Dictionary<string, object?> { ["ReturnUrl"] = ReturnUrl };
     }
-
-    private bool _wasOtpSent;
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (firstRender) Store.Ui.HideChrome = true;
-
-        // ركّز على الحقل المفتوح: phone في الخطوة الأولى، code بعد إرسال OTP.
-        // _wasOtpSent يضمن أن نُركّز على code فور الانتقال للخطوة الثانية مرّة
-        // واحدة فقط (لا في كل re-render).
-        var target = !_otpSent ? "#login-phone" : "#login-code";
-        if (firstRender || _wasOtpSent != _otpSent)
-        {
-            _wasOtpSent = _otpSent;
-            try { await JS.InvokeVoidAsync("ejarChatUi.focus", target); } catch { }
-        }
-    }
-
-    private async Task RequestOtp()
-    {
-        _error = null;
-        _busy = true;
-        await InvokeAsync(StateHasChanged);
-        var env = await Api.PostAsync<object>("/auth/otp/request", new { phone = _phone });
-        _busy = false;
-        if (env.Operation.Status == "Success") { _otpSent = true; }
-        else { _error = env.Operation.ErrorMessage ?? "فشل إرسال الرمز"; }
-        await InvokeAsync(StateHasChanged);
-    }
-
-    private async Task VerifyOtp()
-    {
-        _error = null;
-        _busy = true;
-        await InvokeAsync(StateHasChanged);
-        var env = await Api.PostAsync<AuthDto>("/auth/otp/verify", new { phone = _phone, code = _code });
-        _busy = false;
-        if (env.Operation.Status == "Success" && env.Data is not null)
-        {
-            // استخدم userId الفعليّ الذي يُرجعه الخادم — كنا نولّد Guid عشوائياً،
-            // فيختلف في كلّ تسجيل دخول ولا يربط بالكيانات الحقيقيّة في DB.
-            Store.Auth.UserId = Guid.TryParse(env.Data.UserId, out var uid)
-                ? uid : null;
-            Store.Auth.AccessToken = env.Data.Token;
-            Store.Auth.FullName    = env.Data.Name;
-            Store.Auth.Phone       = env.Data.Phone;
-            Store.NotifyChanged();
-            Store.Ui.HideChrome = false;
-            // اسحب المفضّلات من الخادم بعد تسجيل دخول جديد — حتّى تظهر مفضّلات
-            // الجهاز الآخر فوراً دون الحاجة للذهاب إلى صفحة المفضّلة.
-            try { await Favorites.LoadFromServerAsync(); } catch { /* غير قاتل */ }
-            // سجِّل رمز الجهاز في FCM ليصلَ المستخدم إشعارات الدفع حتى وهو
-            // خارج التبويب/التطبيق. آمن للاستدعاء حتى عند غياب الإعداد.
-            try { await FirebasePush.TryRegisterAsync(); } catch { /* غير قاتل */ }
-            // ارجع إلى المسار الذي حاول المستخدم زيارته قبل أن يُطلَب منه الدخول
-            // (يضعه RedirectToLogin في returnUrl). الافتراضيّ: الرئيسيّة.
-            var dest = !string.IsNullOrWhiteSpace(ReturnUrl) ? ReturnUrl! : "/";
-            Nav.NavigateTo(dest);
-        }
-        else { _error = env.Operation.ErrorMessage ?? "رمز التحقق غير صحيح"; }
-        await InvokeAsync(StateHasChanged);
-    }
-
-    private void Reset() { _otpSent = false; _code = ""; _error = null; }
-
-    private async Task OnPhoneKey(KeyboardEventArgs e)
-    {
-        if (e.Key == "Enter" && !_busy && _phone.Length >= 9)
-            await RequestOtp();
-    }
-
-    private async Task OnCodeKey(KeyboardEventArgs e)
-    {
-        if (e.Key == "Enter" && !_busy && _code.Length >= 6)
-            await VerifyOtp();
-    }
-
-    private void OnChange() => InvokeAsync(StateHasChanged);
-
-    public void Dispose()
-    {
-        Store.OnChanged -= OnChange;
-        Store.Ui.HideChrome = false;
-    }
-
-    private sealed record AuthDto(string Token, string UserId, string Name, string Phone);
 }

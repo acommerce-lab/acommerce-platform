@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <PackageId>ACommerce.Compositions.Customer.Timezone.Js</PackageId>
+    <Description>
+      composition تَكشِف ITimezoneProvider مَدعوم بِـ JS interop. JS module
+      (acTz.offset / acTz.name) مَحمول كَ static asset. تَطبيقات تَستَهلِك:
+      services.AddJsTimezoneProvider();
+    </Description>
+    <StaticWebAssetBasePath>_content/ACommerce.Compositions.Customer.Timezone.Js</StaticWebAssetBasePath>
+  </PropertyGroup>
+  <ItemGroup>
+    <SupportedPlatform Include="browser" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="10.0.7" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.7" />
+  </ItemGroup>
+</Project>

@@ -1,3 +1,5 @@
+using ACommerce.Authentication.TwoFactor.Providers.Nafath.Mock;
+using ACommerce.Authentication.TwoFactor.Providers.Nafath.Mock.Extensions;
 using ACommerce.Authentication.TwoFactor.Providers.Sms.Mock.Extensions;
 using ACommerce.Kits.Auth.TwoFactor.AsAuth;
 using Microsoft.Extensions.DependencyInjection;
@@ -61,8 +63,28 @@ public sealed class TwoFactorBuilder
         return this;
     }
 
+    /// <summary>
+    /// Mock نَفاذ — يَعرِض رَقماً ثابِتاً (افتِراضي "00") ويَنجَح تِلقائيّاً
+    /// بَعد N ثوانٍ (افتِراضي 10). مَع <paramref name="configure"/> يُمكِن
+    /// تَخصيص <c>DisplayCode</c> و <c>AutoVerifySeconds</c>:
+    /// <code>
+    /// tf.UseMockNafathProvider(opts =&gt;
+    /// {
+    ///     opts.DisplayCode       = "00";   // الرَقَم في تَطبيق نَفاذ
+    ///     opts.AutoVerifySeconds = 5;
+    /// });
+    /// </code>
+    /// </summary>
+    public TwoFactorBuilder UseMockNafathProvider(Action<MockNafathOptions>? configure = null)
+    {
+        if (configure is null) _services.AddMockNafathTwoFactor();
+        else                   _services.AddMockNafathTwoFactor(configure);
+        HasProvider = true;
+        return this;
+    }
+
     // مساحة لـ providers مستقبليّة:
     //   public TwoFactorBuilder UseSmsProvider<T>() where T : ITwoFactorChannel
     //   public TwoFactorBuilder UseEmailProvider(...)
-    //   public TwoFactorBuilder UseNafathProvider(...)
+    //   public TwoFactorBuilder UseNafathProvider(IConfigurationSection cfg)
 }

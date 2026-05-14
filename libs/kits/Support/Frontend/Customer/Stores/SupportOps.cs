@@ -24,4 +24,11 @@ public static class SupportOps
         .To($"Ticket:{ticketId}",    1, ("role", "subject"))
         .Tag("id", ticketId)
         .Build();
+
+    public static Operation GetTicket(string ticketId) => Entry
+        .Create("support.ticket.get")
+        .From("User:current",        1, ("role", "owner"))
+        .To($"Ticket:{ticketId}",    1, ("role", "subject"))
+        .Tag("id", ticketId)
+        .Build();
 }

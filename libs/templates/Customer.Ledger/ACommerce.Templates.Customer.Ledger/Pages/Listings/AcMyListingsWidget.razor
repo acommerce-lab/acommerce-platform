@@ -1,5 +1,6 @@
 @inject IListingsStore Store
 @inject NavigationManager Nav
+@inject L L
 @implements IDisposable
 
 @*
@@ -9,35 +10,35 @@
 
 <section class="ac-my-listings">
     <header class="ejar-section-head">
-        <h2 class="ejar-section-title">إعلاناتي</h2>
-        <a href="/my-listings/new" class="oam-btn ejar-add-btn">+ إعلان جديد</a>
+        <h2 class="ejar-section-title">@(L[LedgerStrings.MylistingsTitle])</h2>
+        <a href="/my-listings/new" class="oam-btn ejar-add-btn">@(L[LedgerStrings.MylistingsNewButton])</a>
     </header>
 
     @if (Store.IsLoading)
     {
-        <p class="ejar-loading">جاري التحميل…</p>
+        <p class="ejar-loading">@(L[LedgerStrings.CommonLoading])</p>
     }
     else if (Store.Mine.Count == 0)
     {
         <div class="ejar-empty">
             <span class="ejar-empty-glyph" aria-hidden="true">⌂</span>
-            <h3>لم تَنشر أيّ إعلان بَعد</h3>
-            <p>اضغط "إعلان جديد" لإضافة عقارك الأوّل.</p>
+            <h3>@(L[LedgerStrings.MylistingsEmptyTitle])</h3>
+            <p>@(L[LedgerStrings.MylistingsEmptyBody])</p>
         </div>
     }
     else
     {
         @* T-account: ما نَشَرت / ما لديك من نَشاط *@
-        <OamTAccount Title="ملخّص نَشاطي"
-                     LeftHeader="مَنشور"
-                     RightHeader="نَشاط"
+        <OamTAccount Title="@(L[LedgerStrings.MylistingsActivitySummary])"
+                     LeftHeader="@(L[LedgerStrings.MylistingsPublished])"
+                     RightHeader="@(L[LedgerStrings.MylistingsActivity])"
                      Left="@_summaryLeft"
                      Right="@_summaryRight"
                      Balanced="true"
                      ShowBalance="false" />
 
         <header class="ejar-section-head" style="margin-top:1.25rem">
-            <h2 class="ejar-section-title">قائمة الإعلانات</h2>
+            <h2 class="ejar-section-title">@(L[LedgerStrings.MylistingsListTitle])</h2>
             <span class="ejar-section-meta oam-mono">/ ledger</span>
         </header>
 
@@ -63,7 +64,7 @@
                         <div class="ejar-listing-meta">
                             <span class="oam-mono">@l.Price.ToString("0")</span>
                             <span class="ejar-listing-sep" aria-hidden="true">·</span>
-                            <span class="oam-mono">@l.ViewsCount مُشاهدة</span>
+                            <span class="oam-mono">@(string.Format(L[LedgerStrings.MylistingsViewsLabelFormat], l.ViewsCount))</span>
                         </div>
                     </div>
                 </li>
@@ -92,14 +93,14 @@
 
         _summaryLeft = new[]
         {
-            new OamTAccountLine("إعلانات",     total.ToString()),
-            new OamTAccountLine("نَشِطة",       active.ToString()),
-            new OamTAccountLine("مُوثَّقة",     verified.ToString()),
+            new OamTAccountLine(L[LedgerStrings.MylistingsSummaryListings],     total.ToString()),
+            new OamTAccountLine(L[LedgerStrings.MylistingsSummaryActive],       active.ToString()),
+            new OamTAccountLine(L[LedgerStrings.MylistingsSummaryVerified],     verified.ToString()),
         };
         _summaryRight = new[]
         {
-            new OamTAccountLine("إجماليّ المُشاهدات", totalViews.ToString()),
-            new OamTAccountLine("متوسّط لكلّ إعلان",   (total > 0 ? totalViews / total : 0).ToString()),
+            new OamTAccountLine(L[LedgerStrings.MylistingsSummaryTotalViews], totalViews.ToString()),
+            new OamTAccountLine(L[LedgerStrings.MylistingsSummaryAvgPerListing],   (total > 0 ? totalViews / total : 0).ToString()),
         };
     }
 

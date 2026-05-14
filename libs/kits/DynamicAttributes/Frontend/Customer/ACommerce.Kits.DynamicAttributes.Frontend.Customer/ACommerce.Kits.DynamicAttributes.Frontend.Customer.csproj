@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <PackageId>ACommerce.Kits.DynamicAttributes.Frontend.Customer</PackageId>
+    <Version>1.0.0</Version>
+    <Description>Dynamic Attributes frontend kit: IAttributesStore (reactive template cache) + atomic widgets (Text/Number/Bool/SingleSelect/MultiSelect) + Editor (two-way @bind) + Display (read-only).</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <SupportedPlatform Include="browser" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\ACommerce.Kits.DynamicAttributes.Operations\ACommerce.Kits.DynamicAttributes.Operations.csproj" />
+    <ProjectReference Include="..\..\..\..\..\core\SharedKernel\ACommerce.SharedKernel.Domain\ACommerce.SharedKernel.Domain.csproj" />
+    <ProjectReference Include="..\..\..\..\..\host-client\ACommerce.ClientHost\ACommerce.ClientHost.csproj" />
+    <!-- لا FrameworkReference لِـ Microsoft.AspNetCore.App: WASM مَنَع
+         runtime pack الـ server-side. ClientHost يَجلِب
+         Microsoft.AspNetCore.Components.Web كَـ PackageReference
+         (يَعمَل عَلى Server + WASM). -->
+  </ItemGroup>
+</Project>

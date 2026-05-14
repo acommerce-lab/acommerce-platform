@@ -77,6 +77,9 @@ public sealed class EjarListingStore : IListingStore
             ImagesCsv     = string.Join("|", listing.Images),
             ThumbnailUrl  = listing.ThumbnailUrl,
             AmenitiesCsv  = string.Join(",", listing.Amenities),
+            // الكيت يُمَرِّر InMemoryListing بِـ <c>AttributesJson</c>
+            // مُسَلسَل عَلى الـ record (الـ controller يَكتُبه قَبل dispatch).
+            AttributesJson = (listing as InMemoryListing)?.AttributesJson,
         };
         _db.Listings.Add(entity);
         return Task.CompletedTask;
@@ -104,6 +107,7 @@ public sealed class EjarListingStore : IListingStore
         if (p.Images    is not null)            l.ImagesCsv     = string.Join("|", p.Images);
         if (p.Thumbnail is not null)
             l.ThumbnailUrl = string.IsNullOrEmpty(p.Thumbnail) ? null : p.Thumbnail;
+        if (p.AttributesJson is not null) l.AttributesJson = p.AttributesJson;
         l.UpdatedAt = DateTime.UtcNow;
         return true;
     }

@@ -20,9 +20,22 @@ public sealed class HttpProfileApiClient : IProfileApiClient
         return res.Success ? res.Data : null;
     }
 
-    public async Task<IUserProfile?> UpdateAsync(IUserProfile next, CancellationToken ct = default)
+    public async Task<IUserProfile?> UpdateAsync(IUserProfile next,
+                                                 IReadOnlyDictionary<string, object?>? attributes = null,
+                                                 CancellationToken ct = default)
     {
-        var res = await _http.PutAsync<ProfileDto>(Kit, "/me/profile", next, ct);
+        // الحُمولَة المُسَطَّحَة الَّتي يَتَوَقَّعها <c>ProfilesController.UpdateBody</c>:
+        // FullName/Phone/Email/City/AvatarUrl + Attributes اختياري.
+        var body = new
+        {
+            fullName  = next.FullName,
+            phone     = next.Phone,
+            email     = next.Email,
+            city      = next.City,
+            avatarUrl = next.AvatarUrl,
+            attributes = attributes,
+        };
+        var res = await _http.PutAsync<ProfileDto>(Kit, "/me/profile", body, ct);
         return res.Success ? res.Data : null;
     }
 

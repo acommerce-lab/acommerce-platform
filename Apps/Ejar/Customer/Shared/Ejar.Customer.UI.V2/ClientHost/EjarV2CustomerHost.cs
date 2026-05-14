@@ -37,6 +37,9 @@ public static class EjarV2CustomerHostExtensions
             o.ExtraPages.Add(("/dashboard", typeof(EjarDashboardWidget), true));
         });
 
+        // G4: طَبَقَة تَرجَمات V2 (overrides فَوق Customer.Ledger إن استَعمَله).
+        services.AddEjarV2Translations();
+
         return services;
     }
 }

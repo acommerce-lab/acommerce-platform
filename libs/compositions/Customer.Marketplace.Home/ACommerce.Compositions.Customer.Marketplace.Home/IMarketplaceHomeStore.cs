@@ -73,7 +73,10 @@ public sealed record HomeListingCard(
     int     ViewsCount,
     bool    IsFavorite,
     IReadOnlyList<string> Amenities,
-    string? FirstImage);
+    string? FirstImage,
+    // snapshots سِمات ديناميكِيَّة (Template+Snapshot). الـ enricher في
+    // التَطبيق يَملَؤها لِكُلّ إعلان. null/empty ⇒ البِطاقَة لا تَعرِض chips.
+    IReadOnlyList<ACommerce.SharedKernel.Domain.DynamicAttributes.DynamicAttribute>? Attributes = null);
 
 /// <summary>عُنصُر فِئَة كما يَأتي مَع <c>/home/view</c> (مُختَصَر — slug + label + icon).</summary>
 public sealed record HomeCategoryItem(string Id, string Label, string? Icon);

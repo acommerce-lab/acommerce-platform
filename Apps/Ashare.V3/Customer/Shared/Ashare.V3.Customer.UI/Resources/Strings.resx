@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+
+  <!--
+    Ashare V3 string overrides — neutral (English).
+    Layered ABOVE Ejar V1's translations: anything declared here wins.
+    Anything else falls through to Ejar V1 → Customer.Marketplace template.
+  -->
+
+  <data name="app.name" xml:space="preserve"><value>Ashare</value></data>
+  <data name="home.title" xml:space="preserve"><value>Find your shared housing</value></data>
+  <data name="home.subtitle" xml:space="preserve"><value>The first shared-housing app in Yemen</value></data>
+  <data name="home.cta.title" xml:space="preserve"><value>Have a room or an apartment to share?</value></data>
+</root>

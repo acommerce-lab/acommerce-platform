@@ -11,12 +11,21 @@
       تَطبيق إيجار V2 — يَستَهلِك قالَب Customer.Ledger كَنُقطة دَخول
       وَحيدة. لا bindings، لا api clients، لا route registration هنا —
       كلّ ذلك في القالَب. هذا المَلَفّ يَحوي فقط: app pages مَخصّصة
-      (Home, Dashboard) + Layout + branding.
+      (Home, Dashboard) + Layout + branding + Resources/Strings للـ
+      overrides (G4 — جاهِزَة لِلتَخصيص لاحِقاً عِند ظُهور L[] في V2).
     </Description>
     <RazorLangVersion>latest</RazorLangVersion>
+    <!-- L10n Source Generator config (G4) -->
+    <L10nClassName>EjarV2Strings</L10nClassName>
+    <L10nNamespace>Ejar.Customer.UI.V2.Resources</L10nNamespace>
   </PropertyGroup>
   <ItemGroup>
     <SupportedPlatform Include="browser" />
+  </ItemGroup>
+  <ItemGroup>
+    <CompilerVisibleProperty Include="L10nClassName" />
+    <CompilerVisibleProperty Include="L10nNamespace" />
+    <CompilerVisibleProperty Include="RootNamespace" />
   </ItemGroup>
   <ItemGroup>
     <!-- قالَب Customer.Ledger — مَصدر كلّ pages + bindings + api clients -->
@@ -24,6 +33,19 @@
 
     <!-- Versions Templates يَكشف AppVersionInfo + AppVersionHeadersHandler -->
     <ProjectReference Include="..\..\..\..\..\libs\templates\Versions\ACommerce.Kits.Versions.Templates\ACommerce.Kits.Versions.Templates.csproj" />
+
+    <!-- G4: SG لِتَوليد EjarV2Strings مِن Resources/Strings.resx -->
+    <ProjectReference Include="..\..\..\..\..\libs\kits\L10n\ACommerce.L10n.SourceGenerator\ACommerce.L10n.SourceGenerator.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false" />
+
+    <!-- L10n.Resx composition لِـ AddTranslationLayer extension -->
+    <ProjectReference Include="..\..\..\..\..\libs\compositions\Customer.L10n.Resx\ACommerce.Compositions.Customer.L10n.Resx\ACommerce.Compositions.Customer.L10n.Resx.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <AdditionalFiles Include="Resources\Strings.resx" />
+    <EmbeddedResource Update="Resources\Strings.resx" />
+    <EmbeddedResource Update="Resources\Strings.ar.resx" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Components.Authorization" Version="10.0.7" />

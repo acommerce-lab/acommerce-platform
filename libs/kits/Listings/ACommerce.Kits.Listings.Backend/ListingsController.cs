@@ -132,7 +132,11 @@ public sealed class ListingsController : ControllerBase
         int? BedroomCount, int? BathroomCount, int? AreaSqm,
         IReadOnlyList<string>? Amenities,
         IReadOnlyList<string>? Images,
-        string? Thumbnail);
+        string? Thumbnail,
+        /// <summary>سِمات ديناميكِيَّة. مَفاتيح القالَب (مَن
+        /// <c>/categories/{slug}/attribute-template</c>) → قِيَم خام JSON.
+        /// التَطبيق يَفُكّ + يَحفَظ كَ snapshot عَلى Listing.</summary>
+        Dictionary<string, System.Text.Json.JsonElement>? Attributes);
 
     [HttpPost("/my-listings")]
     [Authorize(Policy = ListingsKitPolicies.AuthenticatedWriter)]
@@ -161,7 +165,12 @@ public sealed class ListingsController : ControllerBase
             ThumbnailUrl:  string.IsNullOrEmpty(req.Thumbnail) ? null : req.Thumbnail,
             Images:        req.Images ?? Array.Empty<string>(),
             Amenities:     req.Amenities ?? Array.Empty<string>(),
-            CreatedAt:     DateTime.UtcNow);
+            CreatedAt:     DateTime.UtcNow)
+        {
+            AttributesJson = req.Attributes is { Count: > 0 }
+                ? System.Text.Json.JsonSerializer.Serialize(req.Attributes)
+                : null,
+        };
 
         var op = Entry.Create(ListingOps.Create)
             .Describe($"User {CallerId} creates listing {listing.Id}")
@@ -200,7 +209,9 @@ public sealed class ListingsController : ControllerBase
         int? BedroomCount, int? BathroomCount, int? AreaSqm,
         IReadOnlyList<string>? Amenities,
         IReadOnlyList<string>? Images,
-        string? Thumbnail);
+        string? Thumbnail,
+        /// <summary>سِمات ديناميكِيَّة (نَفس صياغَة CreateBody).</summary>
+        Dictionary<string, System.Text.Json.JsonElement>? Attributes);
 
     [HttpPatch("/my-listings/{id}")]
     [Authorize(Policy = ListingsKitPolicies.AuthenticatedWriter)]
@@ -210,11 +221,15 @@ public sealed class ListingsController : ControllerBase
         if (!await _store.IsOwnerAsync(id, CallerId, ct))
             return this.ForbiddenEnvelope("not_owner");
 
+        var attrsJson = req.Attributes is { Count: > 0 }
+            ? System.Text.Json.JsonSerializer.Serialize(req.Attributes)
+            : null;
+
         var patch = new ListingUpdate(
             req.Title, req.Description, req.Price, req.TimeUnit, req.PropertyType,
             req.City, req.District, req.Lat, req.Lng,
             req.BedroomCount, req.BathroomCount, req.AreaSqm,
-            req.Amenities, req.Images, req.Thumbnail);
+            req.Amenities, req.Images, req.Thumbnail, attrsJson);
 
         var ok = false;
         var op = Entry.Create(ListingOps.Edit)

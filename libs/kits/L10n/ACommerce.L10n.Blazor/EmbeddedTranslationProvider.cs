@@ -18,9 +18,12 @@ public abstract class EmbeddedTranslationProvider : ITranslationProvider
     protected abstract IReadOnlyDictionary<string, string> Ar { get; }
     protected abstract IReadOnlyDictionary<string, string> En { get; }
 
-    public virtual string Translate(string key, string language)
+    public virtual string? TryTranslate(string key, string language)
     {
         if (language == "en" && En.TryGetValue(key, out var en)) return en;
-        return Ar.TryGetValue(key, out var ar) ? ar : key;
+        return Ar.TryGetValue(key, out var ar) ? ar : null;
     }
+
+    public virtual string Translate(string key, string language)
+        => TryTranslate(key, language) ?? key;
 }

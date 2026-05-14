@@ -40,9 +40,16 @@ public static class OperationEngineModule
         s.AddAuthGateInterceptor();
         s.AddSubscriptionGateInterceptor();
 
+        // MediatR يَكشِف handlers مِن:
+        //   ① Entry assembly لِلتَطبيق (handlers تَطبيقِيَّة، لَو وُجِدَت).
+        //   ② OperationEngine.Journal assembly — يَحوي
+        //      DataOperationHandler العامّ الَّذي يُكمِل ما يَبدَأه
+        //      CrudActionInterceptor. بِدون هذا، أَيّ kit يَستَخدِم تاج
+        //      db_action يَنفَجِر بِـ KeyNotFoundException("db_result").
         s.AddMediatR(cfg =>
         {
             cfg.RegisterServicesFromAssembly(mediatorAssembly ?? Assembly.GetEntryAssembly()!);
+            cfg.RegisterServicesFromAssembly(typeof(OperationEngine.Journal.DataOperationHandler).Assembly);
         });
 
         return host;

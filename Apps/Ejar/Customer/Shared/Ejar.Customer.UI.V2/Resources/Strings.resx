@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+
+  <!--
+    Ejar V2 strings — neutral (English) culture. Arabic in Strings.ar.resx.
+    Class: EjarV2Strings (configured via L10nClassName in csproj).
+  -->
+
+  <data name="app.name" xml:space="preserve"><value>Ejar V2</value></data>
+  <data name="app.brand_meta" xml:space="preserve"><value>· ledger</value></data>
+
+  <!-- Routes / global states -->
+  <data name="routes.loading" xml:space="preserve"><value>Loading…</value></data>
+  <data name="routes.not_found_title" xml:space="preserve"><value>Page not found</value></data>
+  <data name="routes.not_found_message" xml:space="preserve"><value>Go back to</value></data>
+  <data name="routes.not_found_home_link" xml:space="preserve"><value>Home</value></data>
+  <data name="routes.redirecting" xml:space="preserve"><value>Redirecting to sign in…</value></data>
+  <data name="routes.redirect_fallback" xml:space="preserve"><value>Click here if not redirected</value></data>
+
+  <!-- Layout / navigation -->
+  <data name="layout.brand_aria" xml:space="preserve"><value>Ejar</value></data>
+  <data name="layout.topbar_actions_aria" xml:space="preserve"><value>Quick actions</value></data>
+  <data name="layout.dashboard" xml:space="preserve"><value>Dashboard</value></data>
+  <data name="layout.notifications" xml:space="preserve"><value>Notifications</value></data>
+  <data name="layout.chats" xml:space="preserve"><value>Chats</value></data>
+  <data name="bottomnav.aria" xml:space="preserve"><value>Bottom navigation</value></data>
+  <data name="bottomnav.home" xml:space="preserve"><value>Home</value></data>
+  <data name="bottomnav.properties" xml:space="preserve"><value>Properties</value></data>
+  <data name="bottomnav.favorites" xml:space="preserve"><value>Favorites</value></data>
+  <data name="bottomnav.chats" xml:space="preserve"><value>Chats</value></data>
+  <data name="bottomnav.account" xml:space="preserve"><value>My account</value></data>
+
+  <!-- Home widget -->
+  <data name="home.welcome_title" xml:space="preserve"><value>Welcome to Ejar</value></data>
+  <data name="home.welcome_body" xml:space="preserve"><value>A real-estate listings platform on a double-entry operation model — every action you take is recorded as a ledger entry, and every page is composed from reusable widgets.</value></data>
+  <data name="home.shortcuts_title" xml:space="preserve"><value>Shortcuts</value></data>
+  <data name="home.card_browse_title" xml:space="preserve"><value>Browse properties</value></data>
+  <data name="home.card_browse_meta" xml:space="preserve"><value>View available listings + filter by city and category</value></data>
+  <data name="home.card_notifications_title" xml:space="preserve"><value>Notifications</value></data>
+  <data name="home.card_notifications_meta" xml:space="preserve"><value>Latest alerts and comments on your listings</value></data>
+  <data name="home.card_chats_title" xml:space="preserve"><value>Chats</value></data>
+  <data name="home.card_chats_meta" xml:space="preserve"><value>Messages from people interested in your listings or those you follow</value></data>
+  <data name="home.card_dashboard_title" xml:space="preserve"><value>Dashboard</value></data>
+  <data name="home.card_dashboard_meta" xml:space="preserve"><value>Summary of your activity — your listings, messages, notifications</value></data>
+
+  <!-- Dashboard widget -->
+  <data name="dashboard.title" xml:space="preserve"><value>Dashboard</value></data>
+  <data name="dashboard.subtitle" xml:space="preserve"><value>Summary of your account in ledger style.</value></data>
+  <data name="dashboard.account_section" xml:space="preserve"><value>My account</value></data>
+  <data name="dashboard.taccount_title" xml:space="preserve"><value>Activity summary</value></data>
+  <data name="dashboard.taccount_left" xml:space="preserve"><value>Debit</value></data>
+  <data name="dashboard.taccount_right" xml:space="preserve"><value>Credit</value></data>
+  <data name="dashboard.last_op" xml:space="preserve"><value>Last operation</value></data>
+  <data name="dashboard.ledger" xml:space="preserve"><value>Journal</value></data>
+  <data name="dashboard.ledger_meta" xml:space="preserve"><value>/ ledger · recent</value></data>
+  <data name="dashboard.badges" xml:space="preserve"><value>Badges</value></data>
+  <data name="dashboard.card_chats_meta" xml:space="preserve"><value>Unread messages</value></data>
+  <data name="dashboard.card_notifications_meta" xml:space="preserve"><value>Unread notifications</value></data>
+  <data name="dashboard.chat_unread_aria" xml:space="preserve"><value>Unread messages</value></data>
+  <data name="dashboard.notif_unread_aria" xml:space="preserve"><value>Unread notifications</value></data>
+  <data name="dashboard.demo_listings_published" xml:space="preserve"><value>Listings I published</value></data>
+  <data name="dashboard.demo_messages_sent" xml:space="preserve"><value>Messages I sent</value></data>
+  <data name="dashboard.demo_favorites_added" xml:space="preserve"><value>Favorites I added</value></data>
+  <data name="dashboard.demo_properties_viewed" xml:space="preserve"><value>Properties viewed</value></data>
+  <data name="dashboard.demo_notifications_read" xml:space="preserve"><value>Notifications read</value></data>
+  <data name="dashboard.demo_subscriptions" xml:space="preserve"><value>Subscriptions</value></data>
+  <data name="dashboard.demo_listing_title" xml:space="preserve"><value>Zuhour apartment</value></data>
+  <data name="dashboard.demo_listing_city" xml:space="preserve"><value>Ibb</value></data>
+
+  <!-- MAUI window -->
+  <data name="maui.window_title" xml:space="preserve"><value>Ejar</value></data>
+</root>

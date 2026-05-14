@@ -14,8 +14,8 @@
 *@
 
 <div class="ejar-redirect-fallback" data-redirect-url="@Url" id="ejar-redirect">
-    <p>تَحويل لتسجيل الدخول…</p>
-    <a class="ejar-redirect-link" href="@Url">اضغط هنا لو لم يَنتقل</a>
+    <p>@RedirectingMessage</p>
+    <a class="ejar-redirect-link" href="@Url">@FallbackLinkText</a>
 </div>
 <script>
 (function(){
@@ -30,6 +30,8 @@
 @code {
     [Parameter] public string Login  { get; set; } = "/login";
     [Parameter] public string Return { get; set; } = "/";
+    [Parameter] public string RedirectingMessage { get; set; } = "Redirecting to sign in…";
+    [Parameter] public string FallbackLinkText  { get; set; } = "Click here if not redirected";
 
     private string Url => $"{Login}?return={Uri.EscapeDataString(Return)}";
 

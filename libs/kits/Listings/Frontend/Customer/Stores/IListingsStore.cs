@@ -44,6 +44,12 @@ public interface IListingsStore
     /// </summary>
     Task<IListing?> CreateAsync(ListingDraftPayload payload, CancellationToken ct = default);
 
+    /// <summary>يُحَدِّث إعلاناً قائِماً (PATCH). جَميع حُقول
+    /// <see cref="ListingDraftPayload"/> اختِيارِيَّة عَبر الـ kit
+    /// (الـ store يَتَجاهَل القِيَم الافتِراضِيَّة الَّتي لَم تَتَغَيَّر —
+    /// التَطبيق يُمَرِّر القِيَم الكامِلَة).</summary>
+    Task<IListing?> UpdateAsync(string id, ListingDraftPayload payload, CancellationToken ct = default);
+
     /// <summary>يُبَدِّل حالة إعلان (نَشِط ↔ مُتَوَقِّف). يُحَدِّث <see cref="Mine"/>.</summary>
     Task ToggleStatusAsync(string id, CancellationToken ct = default);
 
@@ -71,7 +77,11 @@ public sealed record ListingDraftPayload(
     int     AreaSqm,
     IReadOnlyList<string> Amenities,
     IReadOnlyList<string> Images,
-    string? Thumbnail);
+    string? Thumbnail,
+    /// <summary>سِمات ديناميكِيَّة (مَفاتيح القالَب → قِيَم). يُرسَل
+    /// كَ <c>attributes</c> في الـ body. <c>null</c> إن لَم تَجمَع
+    /// الواجِهَة قَيماً (تَطبيقات بِلا قَوالِب فِئات).</summary>
+    IReadOnlyDictionary<string, object?>? Attributes = null);
 
 /// <summary>فلتر بحث/استكشاف للإعلانات. POCO قابل للـ serialize.</summary>
 public sealed record ListingFilter(

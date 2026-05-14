@@ -35,6 +35,12 @@ public sealed class EjarDbContext : DbContext
     public DbSet<DiscoveryRegion>     DiscoveryRegions    => Set<DiscoveryRegion>();
     public DbSet<DiscoveryAmenity>    DiscoveryAmenities   => Set<DiscoveryAmenity>();
 
+    // Taxonomy kit — جَدول واحِد لِكُلّ شَجَرَات التَطبيق (مُمَيَّزَة بِـ RootCode)
+    public DbSet<TaxonomyNodeEntity>  TaxonomyNodes       => Set<TaxonomyNodeEntity>();
+
+    // Idempotency — سِجِلّ التَكرارات الَّتي يَفحَصها IdempotencyInterceptor
+    public DbSet<OperationIdempotencyEntity> OperationIdempotency => Set<OperationIdempotencyEntity>();
+
     protected override void OnModelCreating(ModelBuilder b)
     {
         b.Entity<ConversationEntity>()
@@ -66,6 +72,16 @@ public sealed class EjarDbContext : DbContext
         b.Entity<ConversationEntity>().HasIndex(c => c.PartnerId);
         b.Entity<AppVersionEntity>().HasIndex(v => new { v.Platform, v.Version }).IsUnique();
         b.Entity<AppVersionEntity>().HasQueryFilter(e => !e.IsDeleted);
+
+        // Taxonomy: index رئيسي (RootCode, Code) لِـ slug lookup سَريع +
+        // index ثانوي (RootCode, ParentId, SortOrder) لِبِناء الشَجَرَة.
+        b.Entity<TaxonomyNodeEntity>().HasIndex(t => new { t.RootCode, t.Code }).IsUnique();
+        b.Entity<TaxonomyNodeEntity>().HasIndex(t => new { t.RootCode, t.ParentId, t.SortOrder });
+        b.Entity<TaxonomyNodeEntity>().HasQueryFilter(e => !e.IsDeleted);
+
+        // OperationIdempotency: Key فَريد لِيَكون lookup عَلى string فَريد.
+        b.Entity<OperationIdempotencyEntity>().HasIndex(o => o.Key).IsUnique();
+        b.Entity<OperationIdempotencyEntity>().HasQueryFilter(e => !e.IsDeleted);
 
         // Push tokens — index على UserId للبحث السريع، unique على Token وحده
         // (نفس رمز قد يصدُر لمستخدم بعد re-login على نفس الجهاز فنُحدّث UserId).

@@ -1013,6 +1013,10 @@ textarea.form-control, textarea.form-input { min-height: 6rem; resize: vertical;
     cursor: pointer;
 }
 .ac-space-fav:hover { color: var(--ac-primary, #0d6efd); }
+/* الحالَة المُفَضَّلَة: قَلب أَحمَر مَملوء (مُتَطابِق مَع .acs-fav-btn.active في
+   قالَب Customer.Marketplace + .ejar-fav-glyph في قالَب Customer.Ledger). */
+.ac-space-fav.is-fav,
+.ac-space-fav.is-fav:hover { color: var(--ac-danger, #dc2626); }
 .ac-space-body {
     display: flex;
     flex-direction: column;
@@ -1816,3 +1820,78 @@ body.ac-dark .acm-details-circle-btn { background: rgba(30, 41, 59, 0.92); color
 .ac-avatar-img      { width: 100%; height: 100%; object-fit: cover; }
 .ac-avatar-initials { font-weight: 700; letter-spacing: -.01em;
                       line-height: 1; user-select: none; }
+
+/* ─── AcTaxonomyTreeSelect / AcTaxonomyBreadcrumb ────────────────────── */
+.acm-taxo-tree { display:flex; flex-direction:column; gap:4px; }
+.acm-taxo-loading { color: var(--ac-text-muted, #888); padding: 8px 12px; }
+.acm-taxo-row { display:flex; flex-direction:column; }
+.acm-taxo-btn {
+  display:flex; align-items:center; gap:8px;
+  width:100%; padding:8px 12px;
+  background:transparent; border:1px solid transparent; border-radius:8px;
+  cursor:pointer; text-align:start;
+  color: inherit; font: inherit;
+  transition: background .12s, border-color .12s;
+}
+.acm-taxo-btn:hover    { background: var(--ac-surface-hover, rgba(0,0,0,.04)); }
+.acm-taxo-btn.is-selected {
+  background: var(--ac-primary-50, rgba(20,80,60,.08));
+  border-color: var(--ac-primary, #2e7d6b);
+  font-weight: 600;
+}
+.acm-taxo-caret { width: 12px; color: var(--ac-text-muted, #888); }
+.acm-taxo-icon  { color: var(--ac-text-muted, #888); }
+.acm-taxo-label { flex: 1 1 auto; }
+
+.acm-taxo-breadcrumb {
+  display:flex; flex-wrap:wrap; align-items:center; gap:6px;
+  font-size: 13px; color: var(--ac-text-muted, #666);
+}
+.acm-taxo-crumb { display:inline-flex; align-items:center; gap:4px; }
+.acm-taxo-sep   { color: var(--ac-text-muted, #aaa); }
+
+/* ─── AcTaxonomyChips (horizontal alternative to TreeSelect) ───────── */
+.acm-taxo-chips { display:flex; flex-direction:column; gap:8px; }
+.acm-taxo-chips-loading { color: var(--ac-text-muted, #888); padding: 6px; }
+.acm-taxo-chips-row {
+  display: flex; flex-wrap: nowrap;
+  gap: 6px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 4px;
+  scrollbar-width: thin;
+}
+.acm-taxo-chips-row::-webkit-scrollbar { height: 4px; }
+.acm-taxo-chips-row::-webkit-scrollbar-thumb {
+  background: rgba(0,0,0,.15); border-radius: 2px;
+}
+.acm-taxo-chips-sub {
+  padding-top: 4px;
+  border-top: 1px dashed rgba(0,0,0,.08);
+}
+.acm-taxo-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 12px;
+  background: var(--ac-surface, #f5f5f5);
+  border: 1px solid transparent;
+  border-radius: 999px;
+  cursor: pointer;
+  font: inherit; color: inherit;
+  white-space: nowrap;
+  transition: background .12s, border-color .12s, color .12s;
+}
+.acm-taxo-chip:hover { background: var(--ac-surface-hover, rgba(0,0,0,.06)); }
+.acm-taxo-chip.is-active {
+  background: var(--ac-primary, #2e7d6b);
+  border-color: var(--ac-primary, #2e7d6b);
+  color: #fff;
+}
+.acm-taxo-chip-icon { font-size: 14px; line-height: 1; }
+.acm-taxo-chips-sub .acm-taxo-chip {
+  background: transparent;
+  border: 1px solid rgba(0,0,0,.12);
+}
+.acm-taxo-chips-sub .acm-taxo-chip.is-active {
+  background: var(--ac-primary, #2e7d6b);
+  border-color: var(--ac-primary, #2e7d6b);
+}

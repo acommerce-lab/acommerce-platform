@@ -83,4 +83,8 @@ public sealed record ListingUpdate(
     int?     AreaSqm,
     IReadOnlyList<string>? Amenities,
     IReadOnlyList<string>? Images,
-    string? Thumbnail);
+    string? Thumbnail,
+    /// <summary>JSON خام لِسِمات ديناميكِيَّة (مَفاتيح القالَب → قِيَم).
+    /// <c>null</c> = "لا تَلمَسها". المَتَحَكِّم يَفُكّ Dictionary وَ
+    /// يُسَلسِله قَبل بِناء PATCH.</summary>
+    string?  AttributesJson = null);

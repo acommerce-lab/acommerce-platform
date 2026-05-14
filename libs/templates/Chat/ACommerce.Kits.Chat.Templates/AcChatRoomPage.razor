@@ -23,7 +23,7 @@
 else
 {
     <div class="acs-chat-header">
-        <h2 class="acm-wizard-title">@(Title ?? "محادثة")</h2>
+        <h2 class="acm-wizard-title">@(Title ?? "Conversation")</h2>
     </div>
 }
 
@@ -42,11 +42,11 @@ else
 </div>
 
 <div class="acs-chat-composer">
-    <input class="ac-input" type="text" @bind="_draft" placeholder="@(Placeholder ?? "اكتب رسالة…")" />
+    <input class="ac-input" type="text" @bind="_draft" placeholder="@(Placeholder ?? "Type a message…")" />
     <button class="ac-btn ac-btn-primary"
             @onclick="@Send"
             disabled="@(_sending || string.IsNullOrWhiteSpace(_draft))">
-        @(SendLabel ?? "إرسال")
+        @(SendLabel ?? "Send")
     </button>
 </div>
 

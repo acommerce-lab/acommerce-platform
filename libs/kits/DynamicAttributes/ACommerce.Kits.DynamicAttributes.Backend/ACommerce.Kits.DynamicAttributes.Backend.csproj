@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <PackageId>ACommerce.Kits.DynamicAttributes.Backend</PackageId>
+    <Version>1.0.0</Version>
+    <Description>Dynamic Attributes backend: IAttributeTemplateSource port + DynamicAttributesController exposing /dynamic-attributes/templates/{scopeId} and /dynamic-attributes/snapshot/{scopeId}. Apps bind IAttributeTemplateSource against their storage.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\ACommerce.Kits.DynamicAttributes.Operations\ACommerce.Kits.DynamicAttributes.Operations.csproj" />
+    <ProjectReference Include="..\..\..\core\SharedKernel\ACommerce.SharedKernel.Domain\ACommerce.SharedKernel.Domain.csproj" />
+    <ProjectReference Include="..\..\..\core\OperationEngine\ACommerce.OperationEngine\ACommerce.OperationEngine.csproj" />
+    <ProjectReference Include="..\..\..\core\OperationEngine\ACommerce.OperationEngine.Interceptors\ACommerce.OperationEngine.Interceptors.csproj" />
+    <ProjectReference Include="..\..\..\core\OperationEngine\ACommerce.OperationEngine.Wire\ACommerce.OperationEngine.Wire.csproj" />
+    <ProjectReference Include="..\..\..\core\OperationEngine\ACommerce.OperationEngine.AspNetCore\ACommerce.OperationEngine.AspNetCore.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+</Project>

@@ -27,11 +27,15 @@ public sealed class DefaultAuthStore : IAuthStore, IDisposable
     public string? FullName        => _state.FullName;
     public bool    IsBusy   { get; private set; }
     public string? LastError { get; private set; }
+    public string? LastChallengeId { get; private set; }
+    public IReadOnlyDictionary<string, string>? LastProviderData { get; private set; }
     public event Action? Changed;
 
     public async Task RequestOtpAsync(string phone, CancellationToken ct = default)
     {
-        IsBusy = true; LastError = null; FireChanged();
+        IsBusy = true; LastError = null;
+        LastChallengeId = null; LastProviderData = null;
+        FireChanged();
         try
         {
             var env = await _engine.ExecuteAsync<OtpRequestDto>(
@@ -39,7 +43,12 @@ public sealed class DefaultAuthStore : IAuthStore, IDisposable
                 payload: new { phone },
                 ct: ct);
             if (env.Operation.Status != "Success")
+            {
                 LastError = env.Error?.Message ?? "otp_request_failed";
+                return;
+            }
+            LastChallengeId  = env.Data?.ChallengeId;
+            LastProviderData = env.Data?.ProviderData;
         }
         finally { IsBusy = false; FireChanged(); }
     }
@@ -98,6 +107,10 @@ public sealed class DefaultAuthStore : IAuthStore, IDisposable
     private void FireChanged() => Changed?.Invoke();
     public void Dispose() => _state.OnChanged -= FireChanged;
 
-    private sealed record OtpRequestDto(string? Masked, int? ExpiresInSeconds);
+    private sealed record OtpRequestDto(
+        string? Masked,
+        int? ExpiresInSeconds,
+        string? ChallengeId,
+        IReadOnlyDictionary<string, string>? ProviderData);
     private sealed record AuthVerifyDto(string? Token, string? UserId, string? Name, string? Phone, string? Role);
 }

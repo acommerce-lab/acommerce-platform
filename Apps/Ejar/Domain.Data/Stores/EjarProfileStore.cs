@@ -32,6 +32,7 @@ public sealed class EjarProfileStore : IProfileStore
         if (p.Email     is not null)                 u.Email     = p.Email;
         if (p.City      is not null)                 u.City      = p.City;
         if (p.AvatarUrl is not null)                 u.AvatarUrl = p.AvatarUrl;
+        if (p.AttributesJson is not null)            u.AttributesJson = p.AttributesJson;
         u.UpdatedAt = DateTime.UtcNow;
         return true;
     }

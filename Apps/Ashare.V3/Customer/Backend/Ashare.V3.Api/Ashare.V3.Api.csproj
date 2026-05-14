@@ -1,0 +1,64 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RollForward>LatestMajor</RollForward>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>Ashare.V3.Api</RootNamespace>
+    <AssemblyName>Ashare.V3.Api</AssemblyName>
+    <UserSecretsId>ashare-v3-api</UserSecretsId>
+    <IsTransformWebConfigDisabled>true</IsTransformWebConfigDisabled>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Update="web.config">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\Domain\Ashare.V3.Domain.csproj" />
+    <ProjectReference Include="..\..\..\Domain.Data\Ashare.V3.Domain.Data.csproj" />
+
+    <!-- ServiceHost (fluent backend wiring) -->
+    <ProjectReference Include="..\..\..\..\..\libs\host\ACommerce.ServiceHost\ACommerce.ServiceHost.csproj" />
+
+    <!-- OAM engine + AspNetCore -->
+    <ProjectReference Include="..\..\..\..\..\libs\core\OperationEngine\ACommerce.OperationEngine\ACommerce.OperationEngine.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\core\OperationEngine\ACommerce.OperationEngine.AspNetCore\ACommerce.OperationEngine.AspNetCore.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\core\OperationEngine\ACommerce.OperationEngine.Interceptors\ACommerce.OperationEngine.Interceptors.csproj" />
+
+    <!-- Auth Kit + TwoFactor (SMS mock) -->
+    <ProjectReference Include="..\..\..\..\..\libs\providers\Auth.TwoFactor\Sms\ACommerce.Kits.Auth.TwoFactor.Sms\ACommerce.Kits.Auth.TwoFactor.Sms.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Auth.TwoFactor\ACommerce.Kits.Auth.TwoFactor.AsAuth\ACommerce.Kits.Auth.TwoFactor.AsAuth.csproj" />
+
+    <!-- Realtime + SignalR provider (AShareHub base + InMemoryConnectionTracker) -->
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Realtime\ACommerce.Realtime.Operations\ACommerce.Realtime.Operations.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\providers\Realtime\SignalR\ACommerce.Realtime.Providers.SignalR\ACommerce.Realtime.Providers.SignalR.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\providers\Realtime\InMemory\ACommerce.Realtime.Providers.InMemory\ACommerce.Realtime.Providers.InMemory.csproj" />
+
+    <!-- Chat.Operations: IChatService consumed by AshareV3RealtimeHub -->
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Chat\ACommerce.Chat.Operations\ACommerce.Chat.Operations.csproj" />
+
+    <!-- DynamicAttributes kit: Backend ⇒ DynamicAttributesController + IAttributeTemplateSource -->
+    <ProjectReference Include="..\..\..\..\..\libs\kits\DynamicAttributes\ACommerce.Kits.DynamicAttributes.Backend\ACommerce.Kits.DynamicAttributes.Backend.csproj" />
+
+    <!-- Compositions: Marketplace bundle (لا Chat.WithNotifications حَتّى يُسَجَّل Notifications kit) -->
+    <ProjectReference Include="..\..\..\..\..\libs\compositions\ACommerce.Compositions.Core\ACommerce.Compositions.Core.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\compositions\Marketplace\ACommerce.Compositions.Marketplace\ACommerce.Compositions.Marketplace.csproj" />
+
+    <!-- Payments — Mock في dev، يُستَبدَل بِـ Moyasar/Noon في الإنتاج -->
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Payments\ACommerce.Payments.Operations\ACommerce.Payments.Operations.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\providers\Payments\Mock\ACommerce.Payments.Providers.Mock\ACommerce.Payments.Providers.Mock.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.7" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.7" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.7" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.7" />
+    <PackageReference Include="Serilog.AspNetCore" Version="10.0.0" />
+    <PackageReference Include="Serilog.Sinks.Console" Version="6.1.1" />
+  </ItemGroup>
+</Project>

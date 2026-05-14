@@ -1,39 +1,33 @@
 @page "/complaints/{Id}"
 @attribute [Authorize]
-@inject ApiReader Api
+@inject ITemplateEngine Engine
 @inject NavigationManager Nav
-@using ACommerce.Client.Operations
-@using Ejar.Customer.UI.Operations
-@using ACommerce.Kits.Support.Frontend.Customer.Stores
-@inject ClientOpEngine Engine
 @inject L L
 
-<PageTitle>تفاصيل الشكوى — @(L["app.name"])</PageTitle>
+<PageTitle>@($"{L[TemplateStrings.ComplaintDetailTitle]} — {L[TemplateStrings.AppName]}")</PageTitle>
 
 <div class="acs-page acs-complaint-thread">
     @if (_loading) { <AcLoadingState /> }
-    else if (_t is null) { <AcEmptyState IconName="alert-circle" Message="الشكوى غير موجودة" /> }
+    else if (_t is null) { <AcEmptyState IconName="alert-circle" Message="@(L[TemplateStrings.ComplaintNotFound])" /> }
     else
     {
         <h1 class="acm-wizard-title">@_t.Subject</h1>
         <AcCard>
             <ChildContent>
-                <div class="acm-checkout-line"><span>الحالة:</span><AcBadge Variant="@StatusVariant(_t.Status)" Text="@StatusLabel(_t.Status)" /></div>
-                <div class="acm-checkout-line"><span>الأولويّة:</span><strong>@_t.Priority</strong></div>
+                <div class="acm-checkout-line"><span>@(L[TemplateStrings.CommonStatusLabel])</span><AcBadge Variant="@StatusVariant(_t.Status)" Text="@StatusLabel(_t.Status)" /></div>
+                <div class="acm-checkout-line"><span>@(L[TemplateStrings.ComplaintPriorityLabel])</span><strong>@_t.Priority</strong></div>
                 @if (!string.IsNullOrEmpty(_t.RelatedEntityId))
                 {
-                    <div class="acm-checkout-line"><span>مرتبطة بـ:</span><strong>@_t.RelatedEntityId</strong></div>
+                    <div class="acm-checkout-line"><span>@(L[TemplateStrings.ComplaintRelatedLabel])</span><strong>@_t.RelatedEntityId</strong></div>
                 }
-                <div class="acm-checkout-line"><span>أُنشئت:</span><strong>@_t.CreatedAt.ToString("yyyy-MM-dd HH:mm")</strong></div>
+                <div class="acm-checkout-line"><span>@(L[TemplateStrings.ComplaintCreatedLabel])</span><strong>@_t.CreatedAt.ToString("yyyy-MM-dd HH:mm")</strong></div>
             </ChildContent>
         </AcCard>
 
-        <h3 style="margin-top:16px;">المحادثة</h3>
+        <h3 style="margin-top:16px;">@(L[TemplateStrings.ChatConversationTitle])</h3>
         <div class="acs-chat-messages">
             @foreach (var m in _messages)
             {
-                // SenderPartyId له شكل "User:{guid}". رسائل النظام (تغيير الحالة)
-                // ترسل من Guid.Empty فنُميِّزها كـ system bubble.
                 var sender = m.SenderPartyId ?? "";
                 var senderId = sender.StartsWith("User:") ? sender[5..] : sender;
                 var isSystem = senderId == "00000000-0000-0000-0000-000000000000";
@@ -45,7 +39,7 @@
                     @if (!isMine && !isSystem)
                     {
                         <small style="display:block; font-weight:700; color:var(--ac-primary);">
-                            <AcIcon Name="shield" Size="14" /> موظّف دعم
+                            <AcIcon Name="shield" Size="14" /> @(L[TemplateStrings.SupportStaffLabel])
                         </small>
                     }
                     <div>@m.Body</div>
@@ -57,18 +51,18 @@
         @if (_t.Status is "open" or "in_progress")
         {
             <div style="display:flex; gap:8px; margin-top:12px;">
-                <AcInput Value="@_draft" ValueChanged="@(v => _draft = v ?? string.Empty)" Placeholder="اكتب ردّك…" />
-                <AcButton Variant="primary" Text="إرسال" OnClick="@Send"
+                <AcInput Value="@_draft" ValueChanged="@(v => _draft = v ?? string.Empty)" Placeholder="@(L[TemplateStrings.ComplaintReplyPlaceholder])" />
+                <AcButton Variant="primary" Text="@(L[TemplateStrings.CommonSend])" OnClick="@Send"
                           Disabled="@(string.IsNullOrWhiteSpace(_draft) || _sending)" />
             </div>
         }
         else
         {
-            <AcAlert Variant="secondary" Message="الشكوى مغلقة — لا يمكن إضافة ردود." />
+            <AcAlert Variant="secondary" Message="@(L[TemplateStrings.ComplaintClosedBody])" />
         }
 
         <div style="margin-top:12px;">
-            <AcButton Variant="ghost" Text="رجوع" OnClick="@GoBack" />
+            <AcButton Variant="ghost" Text="@(L[TemplateStrings.CommonBack])" OnClick="@GoBack" />
         </div>
     }
 </div>
@@ -90,8 +84,9 @@
 
     private async Task Reload()
     {
-        // Support kit يُرجع { ticket, messages } — رسائل من Chat kit (IChatMessage).
-        var env = await Api.GetAsync<DetailsDto>($"/support/tickets/{Id}");
+        // OAM-pure: support.ticket.get op (kit-defined). يَردّ
+        // { ticket, messages } — نَلتَقِطه بِـ DetailsDto مَحَلّيّ.
+        var env = await Engine.ExecuteAsync<DetailsDto>(SupportOps.GetTicket(Id));
         _t = env.Data?.Ticket;
         _messages = env.Data?.Messages ?? new();
         _loading = false;
@@ -107,7 +102,7 @@
             var env = await Engine.ExecuteAsync<object>(
                 SupportOps.Reply(Id),
                 payload: new { Text = _draft });
-            if (env?.Operation.Status == "Success")
+            if (env.Operation.Status == "Success")
             {
                 _draft = "";
                 await Reload();
@@ -118,10 +113,10 @@
 
     private void GoBack() => Nav.NavigateTo("/complaints");
 
-    private static string StatusLabel(string s) => s switch
+    private string StatusLabel(string s) => s switch
     {
-        "open" => "مفتوحة", "in_progress" => "قيد المعالجة",
-        "resolved" => "محلولة", "closed" => "مغلقة",
+        "open" => L[TemplateStrings.StatusOpen], "in_progress" => L[TemplateStrings.StatusInProgress],
+        "resolved" => L[TemplateStrings.StatusResolved], "closed" => L[TemplateStrings.StatusClosed],
         _ => s
     };
 
@@ -132,7 +127,6 @@
         _ => "secondary"
     };
 
-    // shapes تطابق ISupportTicket (kit) + IChatMessage (kit).
     private sealed record TicketDto(string Id, string UserId, string ConversationId,
         string Subject, string Status, string Priority,
         string? RelatedEntityId, string? AssignedAgentId,

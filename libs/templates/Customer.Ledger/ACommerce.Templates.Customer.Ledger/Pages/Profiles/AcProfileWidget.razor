@@ -1,5 +1,6 @@
 @inject IProfileStore Store
 @inject NavigationManager Nav
+@inject L L
 @implements IDisposable
 
 @*
@@ -12,21 +13,21 @@
 <section class="ac-profile">
     @if (Store.IsLoading)
     {
-        <p class="ejar-loading">جاري التحميل…</p>
+        <p class="ejar-loading">@(L[LedgerStrings.CommonLoading])</p>
     }
     else if (Store.Current is null)
     {
         <div class="ejar-empty">
             <span class="ejar-empty-glyph" aria-hidden="true">◉</span>
-            <h3>تَعذَّر تَحميل الملفّ</h3>
-            <p>تَأكَّد من تسجيل الدخول وحاول مَجدَّداً.</p>
+            <h3>@(L[LedgerStrings.ProfileLoadFailedTitle])</h3>
+            <p>@(L[LedgerStrings.ProfileLoadFailedBody])</p>
         </div>
     }
     else
     {
         var p = Store.Current;
         <header class="ejar-section-head">
-            <h2 class="ejar-section-title">حسابي</h2>
+            <h2 class="ejar-section-title">@(L[LedgerStrings.ProfileTitle])</h2>
             <span class="ejar-section-meta oam-mono">/ profile</span>
         </header>
 
@@ -37,20 +38,20 @@
                 @if (p.MemberSince != default)
                 {
                     <p class="ejar-profile-since oam-mono">
-                        عُضْو منذ @p.MemberSince.ToString("yyyy-MM-dd")
+                        @(string.Format(L[LedgerStrings.ProfileMemberSinceFormat], p.MemberSince.ToString("yyyy-MM-dd")))
                     </p>
                 }
             </div>
         </div>
 
         <header class="ejar-section-head">
-            <h2 class="ejar-section-title">الهويّة</h2>
+            <h2 class="ejar-section-title">@(L[LedgerStrings.ProfileIdentityTitle])</h2>
             <span class="ejar-section-meta oam-mono">/ identities</span>
         </header>
 
         <ul class="ejar-identity-list">
             <li class="ejar-identity-row">
-                <span class="ejar-identity-label">الهاتف</span>
+                <span class="ejar-identity-label">@(L[LedgerStrings.ProfilePhoneLabel])</span>
                 <span class="ejar-identity-value oam-mono">@p.Phone</span>
                 <OamStamp State="@(p.PhoneVerified ? OamState.Executed : OamState.Pending)"
                           Compact="true" />
@@ -58,7 +59,7 @@
             @if (!string.IsNullOrEmpty(p.Email))
             {
                 <li class="ejar-identity-row">
-                    <span class="ejar-identity-label">البريد</span>
+                    <span class="ejar-identity-label">@(L[LedgerStrings.ProfileEmailLabel])</span>
                     <span class="ejar-identity-value oam-mono">@p.Email</span>
                     <OamStamp State="@(p.EmailVerified ? OamState.Executed : OamState.Pending)"
                               Compact="true" />
@@ -67,15 +68,15 @@
             @if (!string.IsNullOrEmpty(p.City))
             {
                 <li class="ejar-identity-row">
-                    <span class="ejar-identity-label">المدينة</span>
+                    <span class="ejar-identity-label">@(L[LedgerStrings.ProfileCityLabel])</span>
                     <span class="ejar-identity-value">@p.City</span>
                 </li>
             }
         </ul>
 
         <div class="ejar-profile-actions">
-            <a href="/me/edit" class="oam-btn">تَعديل</a>
-            <a href="/me/settings" class="oam-btn oam-btn-ghost">الإعدادات</a>
+            <a href="/me/edit" class="oam-btn">@(L[LedgerStrings.ProfileEdit])</a>
+            <a href="/me/settings" class="oam-btn oam-btn-ghost">@(L[LedgerStrings.ProfileSettings])</a>
         </div>
     }
 </section>

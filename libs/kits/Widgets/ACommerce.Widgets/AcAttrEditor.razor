@@ -19,7 +19,7 @@
                 {
                     case "select":
                         <select class="ac-input" value="@GetString(key)" @onchange="@(e => Set(key, e.Value?.ToString()))">
-                            <option value="">@(IsArabic ? "— اختر —" : "— Select —")</option>
+                            <option value="">@SelectPlaceholder</option>
                             @foreach (var o in f.Options)
                             {
                                 <option value="@o.Value">@(IsArabic ? (o.LabelAr ?? o.Label) : o.Label)</option>
@@ -46,7 +46,7 @@
                         <label class="ac-attr-bool">
                             <input type="checkbox" checked="@GetBool(key)"
                                    @onchange="@(e => Set(key, (bool)(e.Value ?? false)))" />
-                            <span>@(IsArabic ? "نعم" : "Yes")</span>
+                            <span>@(GetBool(key) ? YesLabel : NoLabel)</span>
                         </label>
                         break;
 
@@ -91,6 +91,9 @@
     [Parameter] public EventCallback<Dictionary<string, object?>> ValuesChanged { get; set; }
     [Parameter] public bool IsArabic { get; set; } = true;
     [Parameter] public string? Class { get; set; }
+    [Parameter] public string SelectPlaceholder { get; set; } = "— اختَر —";
+    [Parameter] public string YesLabel          { get; set; } = "نَعَم";
+    [Parameter] public string NoLabel           { get; set; } = "لا";
 
     private string GetString(string key) => Values.TryGetValue(key, out var v) ? v?.ToString() ?? "" : "";
 

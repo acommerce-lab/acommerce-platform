@@ -16,6 +16,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\..\kits\Listings\Frontend\Customer\ACommerce.Kits.Listings.Frontend.Customer.csproj" />
+    <ProjectReference Include="..\..\..\core\SharedKernel\ACommerce.SharedKernel.Domain\ACommerce.SharedKernel.Domain.csproj" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.7" />
   </ItemGroup>
 </Project>

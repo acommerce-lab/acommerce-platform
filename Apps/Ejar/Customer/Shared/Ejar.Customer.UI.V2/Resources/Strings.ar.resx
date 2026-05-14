@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+
+  <data name="app.name" xml:space="preserve"><value>إيجار</value></data>
+  <data name="app.brand_meta" xml:space="preserve"><value>· ledger</value></data>
+
+  <data name="routes.loading" xml:space="preserve"><value>جاري التحميل…</value></data>
+  <data name="routes.not_found_title" xml:space="preserve"><value>الصفحة غير موجودة</value></data>
+  <data name="routes.not_found_message" xml:space="preserve"><value>عُد إلى</value></data>
+  <data name="routes.not_found_home_link" xml:space="preserve"><value>الرئيسيّة</value></data>
+  <data name="routes.redirecting" xml:space="preserve"><value>تَحويل لتسجيل الدخول…</value></data>
+  <data name="routes.redirect_fallback" xml:space="preserve"><value>اضغط هنا لو لم يَنتقل</value></data>
+
+  <data name="layout.brand_aria" xml:space="preserve"><value>إيجار</value></data>
+  <data name="layout.topbar_actions_aria" xml:space="preserve"><value>إجراءات سريعة</value></data>
+  <data name="layout.dashboard" xml:space="preserve"><value>لوحة المعلومات</value></data>
+  <data name="layout.notifications" xml:space="preserve"><value>الإشعارات</value></data>
+  <data name="layout.chats" xml:space="preserve"><value>المحادثات</value></data>
+  <data name="bottomnav.aria" xml:space="preserve"><value>القائمة السفليّة</value></data>
+  <data name="bottomnav.home" xml:space="preserve"><value>الرئيسيّة</value></data>
+  <data name="bottomnav.properties" xml:space="preserve"><value>العقارات</value></data>
+  <data name="bottomnav.favorites" xml:space="preserve"><value>المفضّلة</value></data>
+  <data name="bottomnav.chats" xml:space="preserve"><value>المحادثات</value></data>
+  <data name="bottomnav.account" xml:space="preserve"><value>حسابي</value></data>
+
+  <data name="home.welcome_title" xml:space="preserve"><value>أهلاً بك في إيجار</value></data>
+  <data name="home.welcome_body" xml:space="preserve"><value>منصّة إعلانات عقاريّة بنموذج عمليّات محاسبيّ — كلّ فعل لك مُسجَّل كقيد، كلّ صفحة هنا تُجمّع من widgets قابلة لإعادة التَركيب.</value></data>
+  <data name="home.shortcuts_title" xml:space="preserve"><value>اختصارات</value></data>
+  <data name="home.card_browse_title" xml:space="preserve"><value>تَصفّح العقارات</value></data>
+  <data name="home.card_browse_meta" xml:space="preserve"><value>عرض الإعلانات المتاحة + فلترة حسب المدينة والفئة</value></data>
+  <data name="home.card_notifications_title" xml:space="preserve"><value>الإشعارات</value></data>
+  <data name="home.card_notifications_meta" xml:space="preserve"><value>آخر التَنبيهات والتَعليقات على إعلاناتك</value></data>
+  <data name="home.card_chats_title" xml:space="preserve"><value>المحادثات</value></data>
+  <data name="home.card_chats_meta" xml:space="preserve"><value>رسائل المهتمّين بإعلاناتك أو ما تَتابعه</value></data>
+  <data name="home.card_dashboard_title" xml:space="preserve"><value>لوحة المعلومات</value></data>
+  <data name="home.card_dashboard_meta" xml:space="preserve"><value>ملخّص نَشاطك — إعلاناتك، رسائلك، إشعاراتك</value></data>
+
+  <data name="dashboard.title" xml:space="preserve"><value>لوحة المعلومات</value></data>
+  <data name="dashboard.subtitle" xml:space="preserve"><value>ملخَّص حسابك على نَمَط القيد المحاسبيّ.</value></data>
+  <data name="dashboard.account_section" xml:space="preserve"><value>حسابي</value></data>
+  <data name="dashboard.taccount_title" xml:space="preserve"><value>ملخّص النَشاط</value></data>
+  <data name="dashboard.taccount_left" xml:space="preserve"><value>مدين</value></data>
+  <data name="dashboard.taccount_right" xml:space="preserve"><value>دائن</value></data>
+  <data name="dashboard.last_op" xml:space="preserve"><value>آخر عمليّة</value></data>
+  <data name="dashboard.ledger" xml:space="preserve"><value>اليوميّة</value></data>
+  <data name="dashboard.ledger_meta" xml:space="preserve"><value>/ ledger · أخيرة</value></data>
+  <data name="dashboard.badges" xml:space="preserve"><value>شارات</value></data>
+  <data name="dashboard.card_chats_meta" xml:space="preserve"><value>رسائل غير مقروءة</value></data>
+  <data name="dashboard.card_notifications_meta" xml:space="preserve"><value>إشعارات غير مقروءة</value></data>
+  <data name="dashboard.chat_unread_aria" xml:space="preserve"><value>رسائل غير مقروءة</value></data>
+  <data name="dashboard.notif_unread_aria" xml:space="preserve"><value>إشعارات غير مقروءة</value></data>
+  <data name="dashboard.demo_listings_published" xml:space="preserve"><value>إعلانات نَشَرتها</value></data>
+  <data name="dashboard.demo_messages_sent" xml:space="preserve"><value>رسائل أرسلتها</value></data>
+  <data name="dashboard.demo_favorites_added" xml:space="preserve"><value>مفضّلات أضَفتَها</value></data>
+  <data name="dashboard.demo_properties_viewed" xml:space="preserve"><value>عقارات شُوهدت</value></data>
+  <data name="dashboard.demo_notifications_read" xml:space="preserve"><value>إشعارات قُرِئت</value></data>
+  <data name="dashboard.demo_subscriptions" xml:space="preserve"><value>اشتراكات</value></data>
+  <data name="dashboard.demo_listing_title" xml:space="preserve"><value>شقّة الزهور</value></data>
+  <data name="dashboard.demo_listing_city" xml:space="preserve"><value>إب</value></data>
+
+  <data name="maui.window_title" xml:space="preserve"><value>إيجار</value></data>
+</root>

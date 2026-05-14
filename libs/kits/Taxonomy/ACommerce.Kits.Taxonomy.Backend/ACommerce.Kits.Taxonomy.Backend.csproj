@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <PackageId>ACommerce.Kits.Taxonomy.Backend</PackageId>
+    <Version>1.0.0</Version>
+    <Description>Taxonomy backend: ITaxonomyStore port + TaxonomyController exposing /taxonomy/{rootCode}, /taxonomy/{rootCode}/path/{code}, /taxonomy/{rootCode}/subtree/{code}. Apps bind ITaxonomyStore against their storage; admin CRUD endpoints behind [Authorize].</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\ACommerce.Kits.Taxonomy.Operations\ACommerce.Kits.Taxonomy.Operations.csproj" />
+    <ProjectReference Include="..\..\..\core\OperationEngine\ACommerce.OperationEngine\ACommerce.OperationEngine.csproj" />
+    <ProjectReference Include="..\..\..\core\OperationEngine\ACommerce.OperationEngine.Wire\ACommerce.OperationEngine.Wire.csproj" />
+    <ProjectReference Include="..\..\..\core\OperationEngine\ACommerce.OperationEngine.AspNetCore\ACommerce.OperationEngine.AspNetCore.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+</Project>

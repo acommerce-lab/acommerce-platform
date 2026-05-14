@@ -1,0 +1,7 @@
+{
+  "_comment": "مِثال لِملف override مَحَلّي. انسَخ هذا إلى appsettings.Development.local.json (الحَقيقي gitignored) إن كُنتَ تَحتاج تَجاوُز قِيَم تَطوير. مَثَلاً لِتَوصيل clone tool بِالإنتاج مَرَّة واحِدَة، اِستَخدِم env var بَدَلاً مِنه: ASHAREDB_PROD_CONN='Server=…;…' dotnet run --project Apps/Ashare.V3/Tools/CloneAshareDb.",
+
+  "Database": {
+    "_note_": "الـ V3 API يَجِب أَن يَبقى عَلى SQLite. لا تَضَع هُنا ConnectionString إنتاج — الـ Bootstrap يَرفُض الإقلاع لَو رَأى prod IP."
+  }
+}

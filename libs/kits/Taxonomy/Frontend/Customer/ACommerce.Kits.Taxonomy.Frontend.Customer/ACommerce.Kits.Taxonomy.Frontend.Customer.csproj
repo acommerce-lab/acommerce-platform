@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <PackageId>ACommerce.Kits.Taxonomy.Frontend.Customer</PackageId>
+    <Version>1.0.0</Version>
+    <Description>Taxonomy frontend kit: ITaxonomyStore (reactive tree cache) + widgets: AcTaxonomyTreeSelect, AcTaxonomyBreadcrumb, AcTaxonomyChipFilter.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <SupportedPlatform Include="browser" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\ACommerce.Kits.Taxonomy.Operations\ACommerce.Kits.Taxonomy.Operations.csproj" />
+    <ProjectReference Include="..\..\..\..\..\host-client\ACommerce.ClientHost\ACommerce.ClientHost.csproj" />
+    <!-- Widgets لِـ AcIcon — يُرسَم SVG Lucide-style مَن أَسماء ASCII
+         (home/briefcase/sun/...) بَدَل bootstrap-icons (لا font مُحَمَّل). -->
+    <ProjectReference Include="..\..\..\..\Widgets\ACommerce.Widgets\ACommerce.Widgets.csproj" />
+    <!-- لا FrameworkReference لِـ Microsoft.AspNetCore.App: WASM مَنَع
+         runtime pack الـ server-side. ClientHost يَجلِب
+         Microsoft.AspNetCore.Components.Web كَـ PackageReference
+         (يَعمَل عَلى Server + WASM). -->
+  </ItemGroup>
+</Project>

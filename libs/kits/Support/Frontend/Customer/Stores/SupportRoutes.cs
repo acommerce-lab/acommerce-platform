@@ -18,6 +18,7 @@ internal sealed class SupportRoutesRegistrar : IRoutesRegistrar
     public void Register(HttpRouteRegistry routes)
     {
         routes.Map("support.tickets.list",  HttpMethod.Get,  "/support/tickets");
+        routes.Map("support.ticket.get",    HttpMethod.Get,  "/support/tickets/{id}");
         routes.Map("support.ticket.create", HttpMethod.Post, "/support/tickets");
         routes.Map("support.ticket.reply",  HttpMethod.Post, "/support/tickets/{id}/replies");
     }

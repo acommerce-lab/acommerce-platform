@@ -1,7 +1,8 @@
 @page "/help"
 @inject NavigationManager Nav
+@inject L L
 
-<PageTitle>المساعدة — إيجار</PageTitle>
+<PageTitle>@($"{L[TemplateStrings.HelpTitle]} — {L[TemplateStrings.AppName]}")</PageTitle>
 
 <div class="acs-page acs-help-page">
     @{ Nav.NavigateTo("/complaints", true); }

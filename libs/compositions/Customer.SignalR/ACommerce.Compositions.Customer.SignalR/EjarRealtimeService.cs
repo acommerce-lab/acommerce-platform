@@ -158,8 +158,17 @@ public sealed class EjarRealtimeService : IAsyncDisposable
         _connected = false;
         if (_module is not null)
         {
-            try { await _module.InvokeVoidAsync("unregisterBeforeUnload"); } catch { }
-            await _module.InvokeVoidAsync("stop");
+            // عَلى Blazor Server، الـ circuit قَد يَكون مَقطوعاً (page reload،
+            // tab close، شَبكَة) فَيَرمي JSDisconnectedException. نَتَجاهَل لأَنّ
+            // الـ JS module يَختَفي مَع الـ tab أَصلاً.
+            try { await _module.InvokeVoidAsync("unregisterBeforeUnload"); }
+            catch (JSDisconnectedException) { }
+            catch (TaskCanceledException) { }
+            catch { }
+            try { await _module.InvokeVoidAsync("stop"); }
+            catch (JSDisconnectedException) { }
+            catch (TaskCanceledException) { }
+            catch { }
         }
     }
 
@@ -169,9 +178,19 @@ public sealed class EjarRealtimeService : IAsyncDisposable
         _self?.Dispose();
         if (_module is not null)
         {
-            try { await _module.InvokeVoidAsync("unregisterBeforeUnload"); } catch { }
-            try { await _module.InvokeVoidAsync("stop"); } catch { }
-            await _module.DisposeAsync();
+            // نَفس مُلاحَظَة DisconnectAsync: circuit مَقطوع ⇒ لا JS interop.
+            try { await _module.InvokeVoidAsync("unregisterBeforeUnload"); }
+            catch (JSDisconnectedException) { }
+            catch (TaskCanceledException) { }
+            catch { }
+            try { await _module.InvokeVoidAsync("stop"); }
+            catch (JSDisconnectedException) { }
+            catch (TaskCanceledException) { }
+            catch { }
+            try { await _module.DisposeAsync(); }
+            catch (JSDisconnectedException) { }
+            catch (TaskCanceledException) { }
+            catch { }
         }
     }
 }

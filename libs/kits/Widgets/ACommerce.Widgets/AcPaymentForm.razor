@@ -57,15 +57,19 @@
 </form>
 
 @code {
-    [Parameter] public string CardNumberLabel { get; set; } = "رقم البطاقة";
-    [Parameter] public string ExpiryLabel { get; set; } = "تاريخ الانتهاء";
+    [Parameter] public string CardNumberLabel { get; set; } = "Card number";
+    [Parameter] public string ExpiryLabel { get; set; } = "Expiry date";
     [Parameter] public string CvvLabel { get; set; } = "CVV";
-    [Parameter] public string HolderLabel { get; set; } = "اسم حامل البطاقة";
-    [Parameter] public string SubmitLabel { get; set; } = "ادفع";
+    [Parameter] public string HolderLabel { get; set; } = "Cardholder name";
+    [Parameter] public string SubmitLabel { get; set; } = "Pay";
 
     [Parameter] public bool Submitting { get; set; }
     [Parameter] public EventCallback<PaymentFormValues> OnSubmit { get; set; }
     [Parameter] public string? Class { get; set; }
+    [Parameter] public string CardNumberInvalidMessage { get; set; } = "Invalid card number";
+    [Parameter] public string ExpiryInvalidMessage     { get; set; } = "Expiry must be MM/YY";
+    [Parameter] public string CvvInvalidMessage        { get; set; } = "Invalid CVV";
+    [Parameter] public string HolderRequiredMessage    { get; set; } = "Cardholder name is required";
 
     private string _cardNumber = "";
     private string _expiry = "";
@@ -77,13 +81,13 @@
     {
         _error = null;
         if (string.IsNullOrWhiteSpace(_cardNumber) || _cardNumber.Replace(" ", "").Length < 12)
-        { _error = "رقم البطاقة غير صحيح"; return; }
+        { _error = CardNumberInvalidMessage; return; }
         if (string.IsNullOrWhiteSpace(_expiry) || !_expiry.Contains('/'))
-        { _error = "تاريخ الانتهاء بصيغة MM/YY"; return; }
+        { _error = ExpiryInvalidMessage; return; }
         if (string.IsNullOrWhiteSpace(_cvv) || _cvv.Length < 3)
-        { _error = "رمز CVV غير صحيح"; return; }
+        { _error = CvvInvalidMessage; return; }
         if (string.IsNullOrWhiteSpace(_holder))
-        { _error = "اسم حامل البطاقة مطلوب"; return; }
+        { _error = HolderRequiredMessage; return; }
 
         await OnSubmit.InvokeAsync(new PaymentFormValues(
             _cardNumber.Replace(" ", ""), _expiry, _cvv, _holder));

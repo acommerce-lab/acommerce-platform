@@ -1,6 +1,7 @@
 @using ACommerce.Widgets
 @inject IAuthStore Auth
 @inject NavigationManager Nav
+@inject L L
 @implements IDisposable
 
 @*
@@ -13,11 +14,11 @@
     <div class="ejar-login-card">
         <header class="ejar-login-head">
             <span class="ejar-login-glyph" aria-hidden="true">▣</span>
-            <h1>@(_step == Step.Phone ? "تَسجيل الدخول" : "أَدخِل الرمز")</h1>
+            <h1>@(_step == Step.Phone ? L[LedgerStrings.LoginTitle] : L[LedgerStrings.LoginCodeTitle])</h1>
             <p class="ejar-login-sub">
                 @(_step == Step.Phone
-                    ? "أَدخِل رقم جوالك لاستلام رمز التَفعيل."
-                    : "أَدخل الرمز الذي وَصلك.")
+                    ? L[LedgerStrings.LoginPhoneSubtitle]
+                    : L[LedgerStrings.LoginCodeSubtitle])
             </p>
         </header>
 
@@ -25,7 +26,7 @@
         {
             <div @onkeydown="OnPhoneKey">
                 <label class="ejar-field">
-                    <span>رقم الجوال</span>
+                    <span>@(L[LedgerStrings.LoginPhoneLabel])</span>
                     <AcInput Type="tel" Value="@_phone"
                              ValueChanged="OnPhoneChanged"
                              Placeholder="7XXXXXXXX" />
@@ -34,7 +35,7 @@
                 <button class="oam-btn ejar-login-btn"
                         disabled="@(_phone.Length < 8 || Auth.IsBusy)"
                         @onclick="RequestOtp">
-                    @(Auth.IsBusy ? "جاري الإرسال…" : "إرسال الرمز")
+                    @(Auth.IsBusy ? L[LedgerStrings.LoginSending] : L[LedgerStrings.LoginSendCode])
                 </button>
             </div>
         }
@@ -42,7 +43,7 @@
         {
             <div @onkeydown="OnCodeKey">
                 <label class="ejar-field">
-                    <span>الرمز</span>
+                    <span>@(L[LedgerStrings.LoginCodeLabel])</span>
                     <AcInput Type="tel" Value="@_code"
                              ValueChanged="OnCodeChanged"
                              Placeholder="●●●●●●" />
@@ -51,12 +52,12 @@
                 <button class="oam-btn ejar-login-btn"
                         disabled="@(_code.Length < 4 || Auth.IsBusy)"
                         @onclick="VerifyOtp">
-                    @(Auth.IsBusy ? "جاري التحقّق…" : "تَأكيد الرمز")
+                    @(Auth.IsBusy ? L[LedgerStrings.LoginVerifying] : L[LedgerStrings.LoginVerify])
                 </button>
 
                 <button class="oam-btn-ghost ejar-login-back" type="button"
                         @onclick="BackToPhone">
-                    ← تَغيير الرقم
+                    @(L[LedgerStrings.LoginChangePhone])
                 </button>
             </div>
         }

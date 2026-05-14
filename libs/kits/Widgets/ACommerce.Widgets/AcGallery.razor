@@ -36,11 +36,11 @@
         @if (Images.Count > 1)
         {
             <button type="button" class="ac-gallery-arrow ac-gallery-arrow-prev"
-                    @onclick="Prev" aria-label="السابق">
+                    @onclick="Prev" aria-label="@PrevAriaLabel">
                 <AcIcon Name="chevron-right" Size="18" />
             </button>
             <button type="button" class="ac-gallery-arrow ac-gallery-arrow-next"
-                    @onclick="Next" aria-label="التالي">
+                    @onclick="Next" aria-label="@NextAriaLabel">
                 <AcIcon Name="chevron-left" Size="18" />
             </button>
         }
@@ -58,7 +58,7 @@
                 <button type="button"
                         class="ac-gallery-thumb @(ix == _index ? "ac-gallery-thumb-active" : "")"
                         @onclick="() => _index = ix"
-                        aria-label="@($"الصورة {ix + 1}")">
+                        aria-label="@(string.Format(ImageAriaFormat, ix + 1))">
                     <img src="@Images[ix]" alt="" loading="lazy" />
                 </button>
             }
@@ -72,6 +72,10 @@
     [Parameter] public string PlaceholderIcon { get; set; } = "building";
     [Parameter] public RenderFragment? OverlayContent { get; set; }
     [Parameter] public string? Class { get; set; }
+    [Parameter] public string PrevAriaLabel  { get; set; } = "Previous";
+    [Parameter] public string NextAriaLabel  { get; set; } = "Next";
+    /// <summary>Format: {0}=image index. Default: "Image {0}".</summary>
+    [Parameter] public string ImageAriaFormat { get; set; } = "Image {0}";
 
     private int _index;
 
