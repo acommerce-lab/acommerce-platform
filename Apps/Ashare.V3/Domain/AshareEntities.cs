@@ -181,8 +181,16 @@ public class ProductListingEntity : IBaseEntity, IListing, IHasDynamicAttributes
     /// <summary>JSON array مَن slugs (مَن Discovery.Amenities). مَنقول مَن AttributesJson عِندَ الترحيل.</summary>
     public string? AmenitiesJson { get; set; }
 
-    // ─── IHasDynamicAttributes — النِطاق = CategoryId الفِئَة ──
-    Guid? IHasDynamicAttributes.DynamicAttributeScopeId => CategoryId;
+    // ─── IHasDynamicAttributes — النِطاق ─
+    // لَو الـ Condition (= PropertyType slug) هو "roommate_has"/"roommate_wants"
+    // ⇒ نُرجِع Guid ثابِت يُطابِق Composite template source. غَير ذلك ⇒
+    // CategoryId الإنتاجي (asharedb).
+    Guid? IHasDynamicAttributes.DynamicAttributeScopeId => Condition?.ToLowerInvariant() switch
+    {
+        "roommate_has"   => Guid.Parse("0a01a01a-0a01-0a01-0a01-0a01000a01a2"),
+        "roommate_wants" => Guid.Parse("0a01a01a-0a01-0a01-0a01-0a01000a01a3"),
+        _                => CategoryId,
+    };
 
     // ─── IListing explicit implementation — Ashare names ↔ kit names ──
     string IListing.Id              => Id.ToString();
@@ -729,4 +737,20 @@ public class ListingPaymentEntity : IBaseEntity
     /// <summary>عَلَم: استُهلِك هذا الدَفع لِنَشر إعلان (مَنع إعادَة الاستِخدام).</summary>
     public bool Consumed { get; set; }
     public DateTime? CapturedAt { get; set; }
+}
+
+
+/// <summary>سِجِلّ Idempotency لِـ V3 — نَفس النَّمَط في Ejar. يَفحَصه
+/// <c>IdempotencyInterceptor</c> قَبل تَنفيذ أَيّ عَمَلِيَّة بِـ
+/// <c>idempotency_key</c> tag.</summary>
+public class OperationIdempotencyEntity : IBaseEntity
+{
+    public Guid Id { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public DateTime? UpdatedAt { get; set; }
+    public bool IsDeleted { get; set; }
+
+    public string Key { get; set; } = "";
+    public string OperationType { get; set; } = "";
+    public string Snapshot { get; set; } = "";
 }

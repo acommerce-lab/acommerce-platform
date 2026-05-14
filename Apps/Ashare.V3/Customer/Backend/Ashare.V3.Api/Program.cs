@@ -79,10 +79,10 @@ builder.Services.AddSingleton<IUserIdProvider, AshareV3UserIdProvider>();
 // تَستَعمِله أَوَّلاً ⇒ fallback لِـ CategoryAttributeTemplates ⇒ fallback
 // لِكود V3CategoryTemplates.
 builder.Services.AddScoped<Ashare.V3.Data.Templates.ProductionAttributeTemplateSource>();
-// كيت DynamicAttributes: نُسَجِّل نَفس المَصدَر تَحت واجِهَة الكيت
-// لِيَتَّخِذه DynamicAttributesController + أَيّ مُستَهلِك آخَر.
-builder.Services.AddScoped<ACommerce.Kits.DynamicAttributes.Backend.IAttributeTemplateSource>(sp =>
-    sp.GetRequiredService<Ashare.V3.Data.Templates.ProductionAttributeTemplateSource>());
+// Composite source: روممَت (hardcoded) → fallback لِـ Production.
+// التَسجيل الـ kit-public يَأتي مَن composite، فَيُغَطّي الحالَتَين.
+builder.Services.AddScoped<ACommerce.Kits.DynamicAttributes.Backend.IAttributeTemplateSource,
+                           Ashare.V3.Data.Templates.AshareV3CompositeTemplateSource>();
 // Taxonomy — شَجَرَة قَصيرَة (kind roommate + leaves "عَنده/يَدور سَكَن")
 // مَبنِيَّة في الذاكِرَة. لا migration. الشَجَرَة hardcoded في
 // AshareV3TaxonomyStore.
@@ -117,6 +117,13 @@ builder.Services.AddSingleton<ACommerce.OperationEngine.Interceptors.IOperationI
 // AttributesJson) لِواجِهَة التَفاصيل. الكيت يَكتَشِفه عَبر DI.
 builder.Services.AddScoped<ACommerce.Kits.Listings.Backend.IListingDetailEnricher,
                            Ashare.V3.Api.Enrichers.AshareV3ListingDetailEnricher>();
+
+// Idempotency — يَمنَع تَكرار النَّشر عِندَ retry. الـ interceptor singleton،
+// الـ store scoped (DbContext per-request).
+builder.Services.AddSingleton<ACommerce.OperationEngine.Interceptors.IOperationInterceptor,
+                              ACommerce.OperationEngine.Interceptors.IdempotencyInterceptor>();
+builder.Services.AddScoped<ACommerce.OperationEngine.Interceptors.IOperationIdempotencyStore,
+                           Ashare.V3.Data.Stores.AshareV3OperationIdempotencyStore>();
 
 var app = builder.Build();
 

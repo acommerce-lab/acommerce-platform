@@ -34,39 +34,51 @@ public sealed class IdempotencyInterceptor : IOperationInterceptor
     public string Name => "operation_idempotency";
     public InterceptorPhase Phase => InterceptorPhase.Both;
 
-    public bool AppliesTo(Core.Operation op)
-        => op.GetTagValue(OperationTagKeys.IdempotencyKey) is { Length: > 0 };
+    // يَنطَبِق عَلى كُلّ عَمَلِيَّة. الـ interceptor يُمَيِّز داخِلياً:
+    //   key مَوجود ⇒ يَفحَص storage ⇒ duplicate? block. غَير ذلك: allow + save.
+    //   key غائِب ⇒ يُوَلِّد + يَحقُن ⇒ allow (لِلتَدقيق).
+    // لا تَعديل عَلى المَكتَبات القائِمَة (الـ dispatchers لا تَحتاج تَغيير).
+    public bool AppliesTo(Core.Operation op) => true;
 
     public async Task<Core.AnalyzerResult> InterceptAsync(
         Core.OperationContext context, Core.OperationResult? result = null)
     {
-        var key = context.Operation.GetTagValue(OperationTagKeys.IdempotencyKey);
-        if (string.IsNullOrWhiteSpace(key)) return Core.AnalyzerResult.Pass();
-
         var store = context.Services.GetService(typeof(IOperationIdempotencyStore))
                     as IOperationIdempotencyStore;
         if (store is null) return Core.AnalyzerResult.Pass();   // التَطبيق لَم يُسَجِّل ⇒ تَجاوَز
 
-        // Pre-phase (result is null): تَحَقَّق مَن الـ cache. لَو مَوجود ⇒ نَمنَع
-        // التَّنفيذ ونَضَع الـ snapshot في Items لِيَعرِفه الـ controller.
+        var existingKey = context.Operation.GetTagValue(OperationTagKeys.IdempotencyKey);
+
+        // ─── Pre-phase ─────────────────────────────────────────────────
         if (result is null)
         {
-            var cached = await store.TryGetAsync(key, context.CancellationToken);
+            if (string.IsNullOrWhiteSpace(existingKey))
+            {
+                // لا key مُمَرَّر ⇒ نُوَلِّد + نَحقُن. الـ retry بِنَفس الـ key
+                // (لَو الكلاينت يُمَرِّره) سَيُطابِق هذا. الـ retry بِلا key
+                // يُوَلِّد جَديداً (لا dedup) — مَقبول لِلتَدقيق.
+                var fresh = Guid.NewGuid().ToString("N");
+                context.Operation.AddTag(OperationTagKeys.IdempotencyKey, fresh);
+                return Core.AnalyzerResult.Pass();
+            }
+
+            // الـ key مُمَرَّر ⇒ نَفحَص الـ storage.
+            var cached = await store.TryGetAsync(existingKey, context.CancellationToken);
             if (cached is not null)
             {
                 context.Items["idempotent_replay"] = cached;
-                return Core.AnalyzerResult.Fail(
-                    "idempotent_replay", blocking: true);
+                return Core.AnalyzerResult.Fail("idempotent_replay", blocking: true);
             }
             return Core.AnalyzerResult.Pass();
         }
 
-        // Post-phase (result != null): سَجِّل لَو نَجَح. الفَشَل لا يُسَجَّل
-        // — يَجِب أَن يُعيد المُستَخدِم بِبَيانات صَحيحَة.
-        if (result.Success)
+        // ─── Post-phase ────────────────────────────────────────────────
+        // نَستَخرِج الـ key مَرَّة أُخرى — قَد يَكون injected في pre-phase.
+        var keyAtPost = context.Operation.GetTagValue(OperationTagKeys.IdempotencyKey);
+        if (result.Success && !string.IsNullOrWhiteSpace(keyAtPost))
         {
             await store.SaveAsync(
-                key,
+                keyAtPost,
                 context.Operation.Type,
                 snapshot: result.OperationId.ToString(),
                 context.CancellationToken);

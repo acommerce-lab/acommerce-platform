@@ -80,6 +80,12 @@ builder.Services.AddSingleton<IUserIdProvider, EjarUserIdProvider>();
 builder.Services.AddSingleton<IOperationInterceptor, OperationLogInterceptor>();
 builder.Services.AddScoped<ACommerce.Kits.Listings.Backend.IListingDetailEnricher, EjarListingDetailEnricher>();
 
+// Idempotency — يُسَجَّل عَلى مُستَوى المُعتَرِض + EF store.
+// المُعتَرِض singleton (state-less)، الـ store scoped (DbContext per-request).
+builder.Services.AddSingleton<IOperationInterceptor, ACommerce.OperationEngine.Interceptors.IdempotencyInterceptor>();
+builder.Services.AddScoped<ACommerce.OperationEngine.Interceptors.IOperationIdempotencyStore,
+                           Ejar.Api.Stores.EjarOperationIdempotencyStore>();
+
 // DynamicAttributes kit — مَصدَر القَوالِب الَّتي تَخدِم /profile/edit
 // ولِسِمات الإعلانات. EjarAttributeTemplateSource يَبني القَوالِب مَن
 // كود ثابِت (EjarAttributes.cs)؛ لا جَدول DB يَحتاج migration.

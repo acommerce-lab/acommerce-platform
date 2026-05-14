@@ -62,20 +62,9 @@
                     </AcField>
                 </div>
 
-                <div class="acs-row">
-                    <AcField Label="@(L[TemplateStrings.ListingCreateFieldBedrooms])">
-                        <AcInput Type="number" Value="@_bedrooms.ToString()"
-                                 ValueChanged="@(v => _bedrooms = int.TryParse(Numerals.ToLatin(v), out var n) ? n : 0)" />
-                    </AcField>
-                    <AcField Label="@(L[TemplateStrings.ListingCreateFieldBathrooms])">
-                        <AcInput Type="number" Value="@_bathrooms.ToString()"
-                                 ValueChanged="@(v => _bathrooms = int.TryParse(Numerals.ToLatin(v), out var n) ? n : 0)" />
-                    </AcField>
-                    <AcField Label="@(L[TemplateStrings.ListingCreateFieldArea])">
-                        <AcInput Type="number" Value="@_area.ToString()"
-                                 ValueChanged="@(v => _area = int.TryParse(Numerals.ToLatin(v), out var n) ? n : 0)" />
-                    </AcField>
-                </div>
+                @* Bedrooms/Bathrooms/Area أُزيلَت كَحُقول ثابِتَة — تَنتَقِل
+                   إلى AcAttrEditor per-kind (Realty يَطلُبها، Vehicle يَطلُب
+                   Make/Model/Year بَدَلاً، …). *@
 
                 @if (_attrTemplate is { Fields.Count: > 0 })
                 {
@@ -124,9 +113,7 @@
     private string  _description = "";
     private decimal _price;
     private string  _timeUnit    = "monthly";
-    private int     _bedrooms;
-    private int     _bathrooms;
-    private int     _area;
+    // _bedrooms/_bathrooms/_area سابِقاً ⇒ الآن سَمات ديناميكِيَّة per-kind
     private string  _city        = "";
     private string  _district    = "";
     private HashSet<string> _amenities = new(StringComparer.OrdinalIgnoreCase);
@@ -153,10 +140,7 @@
             _description = _listing.Description;
             _price       = _listing.Price;
             _timeUnit    = _listing.TimeUnit;
-            _bedrooms    = _listing.BedroomCount;
-            _bathrooms   = _listing.BathroomCount;
-            _area        = _listing.AreaSqm;
-            _city        = _listing.City;
+            // Bedrooms/Bathrooms/Area تَأتي مَن snapshot عَبر AcAttrEditor            _city        = _listing.City;
             _district    = _listing.District;
             _amenities   = new HashSet<string>(_listing.Amenities ?? Array.Empty<string>(),
                                                StringComparer.OrdinalIgnoreCase);
@@ -217,9 +201,9 @@
                 District:      _district,
                 Lat:           _listing.Lat,
                 Lng:           _listing.Lng,
-                BedroomCount:  _bedrooms,
-                BathroomCount: _bathrooms,
-                AreaSqm:       _area,
+                BedroomCount:  0,                    // attr.BedroomCount
+                BathroomCount: 0,                    // attr.BathroomCount
+                AreaSqm:       0,                    // attr.AreaSqm
                 Amenities:     _amenities.ToList(),
                 Images:        _listing.Images.ToList(),
                 Thumbnail:     _listing.ThumbnailUrl,

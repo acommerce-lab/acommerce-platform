@@ -38,6 +38,9 @@ public sealed class EjarDbContext : DbContext
     // Taxonomy kit — جَدول واحِد لِكُلّ شَجَرَات التَطبيق (مُمَيَّزَة بِـ RootCode)
     public DbSet<TaxonomyNodeEntity>  TaxonomyNodes       => Set<TaxonomyNodeEntity>();
 
+    // Idempotency — سِجِلّ التَكرارات الَّتي يَفحَصها IdempotencyInterceptor
+    public DbSet<OperationIdempotencyEntity> OperationIdempotency => Set<OperationIdempotencyEntity>();
+
     protected override void OnModelCreating(ModelBuilder b)
     {
         b.Entity<ConversationEntity>()
@@ -75,6 +78,10 @@ public sealed class EjarDbContext : DbContext
         b.Entity<TaxonomyNodeEntity>().HasIndex(t => new { t.RootCode, t.Code }).IsUnique();
         b.Entity<TaxonomyNodeEntity>().HasIndex(t => new { t.RootCode, t.ParentId, t.SortOrder });
         b.Entity<TaxonomyNodeEntity>().HasQueryFilter(e => !e.IsDeleted);
+
+        // OperationIdempotency: Key فَريد لِيَكون lookup عَلى string فَريد.
+        b.Entity<OperationIdempotencyEntity>().HasIndex(o => o.Key).IsUnique();
+        b.Entity<OperationIdempotencyEntity>().HasQueryFilter(e => !e.IsDeleted);
 
         // Push tokens — index على UserId للبحث السريع، unique على Token وحده
         // (نفس رمز قد يصدُر لمستخدم بعد re-login على نفس الجهاز فنُحدّث UserId).

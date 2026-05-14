@@ -134,14 +134,10 @@
                         </select>
                     </AcField>
                 </div>
-                <AcField Label="@(L[TemplateStrings.CreateListingBedroomsOptional])">
-                    <AcInput Type="number" Value="@Draft.BedroomCount.ToString()"
-                             ValueChanged="@(v => { Draft.BedroomCount = int.TryParse(Numerals.ToLatin(v), out var n) ? n : 0; Draft.NotifyChanged(); })" />
-                </AcField>
-
-                @* السِمات الديناميكِيَّة لِهذه الفِئَة. تُجلَب مَرَّة واحِدَة
-                   بَعد اختيار الفِئَة (مَفتاحها هو slug). فِئَة بِلا
-                   AttributeDefinitions/Mappings ⇒ القِسم لا يَظهَر. *@
+                @* لا حُقول ثابِتَة لِـ Bedrooms/Bathrooms/Area — أَصبَحَت
+                   سِمات ديناميكِيَّة per-kind: الـ Realty يُظهِرها، الـ
+                   Vehicle يُظهِر Make/Model/Year بَدَلاً، إلخ. الـ wizard لا
+                   يَفرِض حُقولاً عَقارِيَّة عَلى إعلانات الباصات. *@
                 @if (_attrTemplate is { Fields.Count: > 0 })
                 {
                     <AcAttrEditor Template="_attrTemplate"
@@ -438,7 +434,7 @@
                 District:      Draft.District,
                 Lat:           _lat,
                 Lng:           _lng,
-                BedroomCount:  Draft.BedroomCount,
+                BedroomCount:  0,                    // attr.BedroomCount عَبر Attributes
                 BathroomCount: 0,
                 AreaSqm:       0,
                 Amenities:     Draft.Amenities.ToList(),

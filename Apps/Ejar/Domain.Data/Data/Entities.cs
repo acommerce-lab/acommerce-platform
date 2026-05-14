@@ -335,3 +335,25 @@ public sealed class SupportMessageEntity : IBaseEntity
     public string Body { get; set; } = "";
     public DateTime SentAt { get; set; }
 }
+
+
+/// <summary>
+/// سِجِلّ Idempotency لِلعَمَلِيّات. <c>Key</c> هو الـ idempotency_key
+/// مَن العَمَلِيَّة (إِمّا مُمَرَّر مَن الكلاينت أَو مُوَلَّد مَن الـ
+/// interceptor). الـ interceptor يَفحَص هذا الجَدول قَبل تَنفيذ أَيّ
+/// عَمَلِيَّة لَها key مُمَرَّر، فَإِن وُجِد ⇒ يَمنَع التَّكرار.
+///
+/// <para><b>TTL</b>: يَنبَغي background job يَحذِف الصُّفوف الأَقدَم مَن
+/// ٢٤-٤٨ ساعَة. لا job مَوجود بَعد — السِجِل يَنمو خَطّياً.</para>
+/// </summary>
+public sealed class OperationIdempotencyEntity : IBaseEntity
+{
+    [Key] public Guid Id { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public DateTime? UpdatedAt { get; set; }
+    public bool IsDeleted { get; set; }
+
+    [MaxLength(64)]  public string Key           { get; set; } = "";
+    [MaxLength(120)] public string OperationType { get; set; } = "";
+    [MaxLength(200)] public string Snapshot      { get; set; } = "";   // OperationId مَثَلاً
+}
