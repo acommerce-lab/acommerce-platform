@@ -140,9 +140,20 @@ public class ChatController : ControllerBase
         if (!await _store.CanParticipateAsync(convId, CallerId, ct))
             return this.ForbiddenEnvelope("not_a_participant");
 
-        // ١. صَفِّر unread + اقرأ الرسائل (DB) — حدث مَنطقيّ مُستقلّ عن
-        //    presence. يَنفّذ حتى لو الـ realtime hub غير مُهيّأ.
-        await _store.MarkReadAsync(convId, CallerId, ct);
+        // ١. صَفِّر unread + اقرأ الرسائل — حَدَث OAM مُسَجَّل: قَيد
+        //    <c>conversation.mark_read</c> يَستَدعي <c>MarkReadAsync</c>
+        //    (F6: تُعَدِّل الـ tracker بِلا حِفظ) ثُمّ <c>.SaveAtEnd()</c>
+        //    يُلزِم الـ commit ذَرّيّاً. كانَ السابِق يَستَدعي الـ store
+        //    مُباشَرَةً ويَكتُب خارِج الـ engine.
+        var markOp = Entry.Create("conversation.mark_read")
+            .Describe($"User {CallerId} marks conversation {convId} as read")
+            .From(CallerPartyId,              1, ("role", "reader"))
+            .To($"Conversation:{convId}",     1, ("role", "marked_read"))
+            .Tag(ChatTagKeys.ConversationId, convId)
+            .Execute(async ctx => await _store.MarkReadAsync(convId, CallerId, ctx.CancellationToken))
+            .SaveAtEnd()
+            .Build();
+        await _engine.ExecuteEnvelopeAsync(markOp, new { id = convId }, ct);
 
         // ٢. presence (للـ FCM وقمع notif بينما المُستخدِم يَقرأ) — اختياريّ.
         if (_chat is null) return this.OkEnvelope("chat.enter", new { ok = true });

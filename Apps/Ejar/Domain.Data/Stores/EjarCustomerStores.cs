@@ -221,17 +221,12 @@ public sealed class EjarCustomerChatStore : IChatStore
         if (conv is null) return;
 
         // كلّ طَرف يُصَفِّر عَدّاد جانبه فقط — رسائلي لا تُحسَب عليّ، فلا
-        // داعي لتَصفير الجانب الآخر.
-        var changed = false;
+        // داعي لتَصفير الجانب الآخر. (F6) لا SaveChangesAsync —
+        // ChatController.Enter يَلُفّ الاستِدعاء في op بِـ .SaveAtEnd().
         if (conv.OwnerId == uid && conv.OwnerUnread != 0)
-        {
-            conv.OwnerUnread = 0; changed = true;
-        }
+            conv.OwnerUnread = 0;
         else if (conv.PartnerId == uid && conv.PartnerUnread != 0)
-        {
-            conv.PartnerUnread = 0; changed = true;
-        }
-        if (changed) await _db.SaveChangesAsync(ct);
+            conv.PartnerUnread = 0;
     }
 
     private async Task<ConversationView> BuildViewAsync(ConversationEntity c, CancellationToken ct)
@@ -342,7 +337,7 @@ public sealed class EjarCustomerNotificationStore : INotificationStore
         var n = await _db.Notifications.FirstOrDefaultAsync(x => x.Id == nid && x.UserId == uid, ct);
         if (n is null) return false;
         n.IsRead = true; n.UpdatedAt = DateTime.UtcNow;
-        await _db.SaveChangesAsync(ct);
+        // (F6) لا SaveChangesAsync — NotificationsController يَلُفّ في op + SaveAtEnd.
         return true;
     }
 
@@ -352,7 +347,7 @@ public sealed class EjarCustomerNotificationStore : INotificationStore
         var rows = await _db.Notifications
             .Where(n => n.UserId == uid && !n.IsRead).ToListAsync(ct);
         foreach (var n in rows) { n.IsRead = true; n.UpdatedAt = DateTime.UtcNow; }
-        await _db.SaveChangesAsync(ct);
+        // (F6) لا SaveChangesAsync — NotificationsController يَلُفّ في op + SaveAtEnd.
         return rows.Count;
     }
 

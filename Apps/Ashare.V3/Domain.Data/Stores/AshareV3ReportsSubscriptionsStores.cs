@@ -71,7 +71,7 @@ public sealed class AshareV3ReportStore : IReportStore
         r.Status = newStatus;
         if (newStatus is "resolved" or "dismissed") r.ResolvedAt = DateTime.UtcNow;
         r.UpdatedAt = DateTime.UtcNow;
-        await _db.SaveChangesAsync(ct);
+        // (F6) لا SaveChangesAsync — ReportsController.SetStatus يَضَع .SaveAtEnd().
         return true;
     }
 

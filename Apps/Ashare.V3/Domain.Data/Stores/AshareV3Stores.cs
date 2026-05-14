@@ -158,7 +158,7 @@ public sealed class AshareV3VersionStore : IVersionStore
         row.ReleaseNotesAr = v.Notes;
         row.DownloadUrl = v.DownloadUrl;
         row.UpdatedAt = DateTime.UtcNow;
-        await _db.SaveChangesAsync(ct);
+        // (F6) لا SaveChangesAsync — AdminVersionsController.Upsert يَضَع .SaveAtEnd().
         return ToContract(row);
     }
 
@@ -171,7 +171,7 @@ public sealed class AshareV3VersionStore : IVersionStore
         row.Status = (int)newStatus;
         row.EndOfSupportDate = sunsetAt;
         row.UpdatedAt = DateTime.UtcNow;
-        await _db.SaveChangesAsync(ct);
+        // (F6) لا SaveChangesAsync — AdminVersionsController.SetStatus يَضَع .SaveAtEnd().
         return true;
     }
 
@@ -181,7 +181,7 @@ public sealed class AshareV3VersionStore : IVersionStore
             v => v.ApplicationCode == platform && v.VersionNumber == version, ct);
         if (row is null) return false;
         row.IsDeleted = true;
-        await _db.SaveChangesAsync(ct);
+        // (F6) لا SaveChangesAsync — AdminVersionsController.Delete يَضَع .SaveAtEnd().
         return true;
     }
 
@@ -449,15 +449,16 @@ public sealed class AshareV3ChatStore : IChatStore
 
     public async Task<IChatMessage> AppendMessageAsync(string conversationId, string senderId, string body, CancellationToken ct)
     {
-        var cid = Guid.Parse(conversationId);
-        var m = new MessageEntity
-        {
-            Id = Guid.NewGuid(), CreatedAt = DateTime.UtcNow,
-            ChatId = cid, SenderId = senderId, Content = body, Type = 0
-        };
-        _db.Messages.Add(m);
-        await _db.SaveChangesAsync(ct);
-        return m;
+        // مَسار قَديم (obsolete) — يَبني POCO + يُمَرِّره لِـ AppendNoSaveAsync.
+        // الـ caller يَلُفّ في op + .SaveAtEnd() ⇒ F6 مَحفوظ. لا SaveChanges هُنا.
+        var msg = new InMemoryChatMessage(
+            Id:             Guid.NewGuid().ToString(),
+            ConversationId: conversationId,
+            SenderPartyId:  $"User:{senderId}",
+            Body:           body,
+            SentAt:         DateTime.UtcNow);
+        await AppendNoSaveAsync(msg, ct);
+        return msg;
     }
 
     public async Task<IReadOnlyList<IChatMessage>> GetMessagesAsync(string conversationId, CancellationToken ct)
