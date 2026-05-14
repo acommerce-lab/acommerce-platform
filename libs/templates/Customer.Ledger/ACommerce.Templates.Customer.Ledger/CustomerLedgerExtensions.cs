@@ -20,6 +20,7 @@ using ACommerce.Kits.Subscriptions.Frontend.Customer;
 using ACommerce.Kits.Subscriptions.Frontend.Customer.Stores;
 using ACommerce.Kits.Support.Frontend.Customer;
 using ACommerce.Kits.Support.Frontend.Customer.Stores;
+using ACommerce.Kits.Taxonomy.Frontend.Customer.Stores;
 using ACommerce.L10n.Blazor;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -96,6 +97,12 @@ public static class CustomerLedgerExtensions
         services.AddScoped<ISubscriptionsApiClient, HttpSubscriptionsApiClient>();
         services.AddScoped<ISupportApiClient,       HttpSupportApiClient>();
         services.AddScoped<IFavoritesApiClient,     HttpFavoritesApiClient>();
+
+        // Taxonomy frontend store — يَتَّصِل بِـ /taxonomy/{rootCode} في الـ backend.
+        // يَستَخدِمه AcTaxonomyTreeSelect/AcTaxonomyChips في Explore + Home لِعَرض
+        // شَجَرَة فِئات الإعلانات بِأَيقونات + تَوَسُّع/طَيّ.
+        services.AddScoped<ITaxonomyStore>(sp =>
+            new HttpTaxonomyStore(sp.GetRequiredService<AuthenticatedHttpClient>().Client));
 
         // ─── routes + bindings + allowlist ───────────────────────────────
         services.AddACommerceClientHost(client =>

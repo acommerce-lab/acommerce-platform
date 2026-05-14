@@ -148,7 +148,7 @@
             MaxPrice: _filters.MaxPrice,
             Sort: _sort);
         await Home.ApplyExploreAsync(filter);
-        _listings = Home.Explore.Select(ToRow).ToList();
+        _listings = Home.Explore.Select(l => ToRow(l)).ToList();
         _mapListings = Home.Explore
             .Where(i => i.Lat is not null && i.Lng is not null && i.Lat != 0 && i.Lng != 0)
             .Select(i => new AcListingMapPage.MapListingDto(ToRow(i), i.Lat ?? 0, i.Lng ?? 0))
@@ -220,10 +220,10 @@
         return Favs.ToggleAsync(e.Listing.Id);
     }
 
-    private static ListingRowDto ToRow(HomeListingCard l) => new()
+    private ListingRowDto ToRow(HomeListingCard l) => new()
     {
         Id = l.Id, Title = l.Title,
-        Price = l.Price, Currency = "YER", TimeUnit = l.TimeUnitLabel ?? l.TimeUnit ?? "",
+        Price = l.Price, Currency = L[TemplateStrings.CommonCurrencyShort], TimeUnit = l.TimeUnitLabel ?? l.TimeUnit ?? "",
         City = l.City ?? "", District = l.District ?? "", Status = 1, IsFeatured = l.IsVerified,
         ThumbnailUrl = l.FirstImage,
         Capacity = l.BedroomCount == 0 ? null : l.BedroomCount

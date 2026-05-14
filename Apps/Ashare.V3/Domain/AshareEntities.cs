@@ -364,7 +364,7 @@ public class BookingEntity : IBaseEntity
     public decimal TotalPrice { get; set; }
     public decimal DepositPercentage { get; set; }
     public decimal DepositAmount { get; set; }
-    public string Currency { get; set; } = "YER";
+    public string Currency { get; set; } = "SAR";
     public string? DepositPaymentId { get; set; }
     public DateTime? DepositPaidAt { get; set; }
     public string? FinalPaymentId { get; set; }
@@ -732,7 +732,7 @@ public class ListingPaymentEntity : IBaseEntity
     public string Provider { get; set; } = "mock";    // gateway name
     public string Reference { get; set; } = "";       // returned by gateway
     public decimal Amount { get; set; }
-    public string Currency { get; set; } = "YER";
+    public string Currency { get; set; } = "SAR";
     /// <summary>pending / authorized / captured / failed / refunded / consumed.</summary>
     public string Status { get; set; } = "pending";
     /// <summary>عَلَم: استُهلِك هذا الدَفع لِنَشر إعلان (مَنع إعادَة الاستِخدام).</summary>

@@ -13,6 +13,10 @@
 
   <data name="app.name" xml:space="preserve"><value>Ashare</value></data>
   <data name="home.title" xml:space="preserve"><value>Find your shared housing</value></data>
-  <data name="home.subtitle" xml:space="preserve"><value>The first shared-housing app in Yemen</value></data>
+  <data name="home.subtitle" xml:space="preserve"><value>The first shared-housing app in Saudi Arabia</value></data>
   <data name="home.cta.title" xml:space="preserve"><value>Have a room or an apartment to share?</value></data>
+
+  <!-- V3 is a Saudi market — override SAR over the default YER. -->
+  <data name="common.currency_short" xml:space="preserve"><value>SAR</value></data>
+  <data name="subscribe.amount_format" xml:space="preserve"><value>{0} SAR</value></data>
 </root>

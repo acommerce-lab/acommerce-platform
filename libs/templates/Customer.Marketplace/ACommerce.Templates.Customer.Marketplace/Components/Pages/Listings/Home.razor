@@ -122,7 +122,7 @@
         Nav.NavigateTo($"/explore?category={Uri.EscapeDataString(slug)}");
     }
 
-    private static MarketplaceHomeDto MapHomeView(HomeView? v)
+    private MarketplaceHomeDto MapHomeView(HomeView? v)
     {
         if (v is null) return new MarketplaceHomeDto
         {
@@ -134,8 +134,8 @@
         {
             Categories = v.Categories.Select(c =>
                 new CategoryTileDto { Id = c.Id, Label = c.Label, Icon = c.Icon ?? "" }).ToList(),
-            Featured = v.Featured.Select(ToRow).ToList(),
-            New      = v.New.Select(ToRow).ToList()
+            Featured = v.Featured.Select(l => ToRow(l)).ToList(),
+            New      = v.New.Select(l => ToRow(l)).ToList()
         };
     }
 
@@ -178,10 +178,10 @@
     private async Task OnFavoriteToggled((ListingRowDto Listing, bool On) e)
         => await Favs.ToggleAsync(e.Listing.Id);
 
-    private static ListingRowDto ToRow(HomeListingCard l) => new()
+    private ListingRowDto ToRow(HomeListingCard l) => new()
     {
         Id = l.Id, Title = l.Title,
-        Price = l.Price, Currency = "YER", TimeUnit = l.TimeUnitLabel ?? l.TimeUnit ?? "",
+        Price = l.Price, Currency = L[TemplateStrings.CommonCurrencyShort], TimeUnit = l.TimeUnitLabel ?? l.TimeUnit ?? "",
         City = l.City ?? "", District = l.District ?? "", Status = 1, IsFeatured = l.IsVerified,
         ThumbnailUrl = l.FirstImage,
         Capacity = l.BedroomCount == 0 ? null : l.BedroomCount,

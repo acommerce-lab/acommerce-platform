@@ -1,5 +1,7 @@
+using ACommerce.Culture.Abstractions;
 using ACommerce.Kits.DynamicAttributes.Frontend.Customer.Stores;
 using ACommerce.Kits.Taxonomy.Frontend.Customer.Stores;
+using ACommerce.L10n.Blazor;
 using Ejar.Customer.UI.ClientHost;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -29,6 +31,11 @@ public static class AshareV3CustomerHostExtensions
         // CreateListing. لَو الـ V3 backend لَم يَزرَع شَجَرَة بَعد، الـ
         // GetTreeAsync يَرُدّ فارِغاً ⇒ الـ wizard يَسقُط لِلشَبَكَة الافتِراضِيَّة.
         services.AddScoped<ITaxonomyStore, HttpTaxonomyStore>();
+
+        // ICultureContext + ILanguageContext سُعودِيَّة — تَفوز عَلى تَسجيل
+        // قالَب Customer.Marketplace اليَمَني (Asia/Aden + YER).
+        services.AddScoped<ICultureContext, AshareV3CultureContext>();
+        services.AddScoped<ILanguageContext, AshareV3CultureContext>();
         return services;
     }
 }

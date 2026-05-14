@@ -53,5 +53,10 @@
 
     <!-- Taxonomy kit Frontend — ITaxonomyStore + AcTaxonomyTreeSelect (لِـ CreateListing) -->
     <ProjectReference Include="..\..\..\..\..\libs\kits\Taxonomy\Frontend\Customer\ACommerce.Kits.Taxonomy.Frontend.Customer\ACommerce.Kits.Taxonomy.Frontend.Customer.csproj" />
+
+    <!-- Culture — لِتَسجيل AshareV3CultureContext الَّذي يُعطي Asia/Riyadh + SAR
+         فَوق Asia/Aden + YER الافتِراضيَّتَين في قالَب Customer.Marketplace. -->
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Culture\ACommerce.Culture.Abstractions\ACommerce.Culture.Abstractions.csproj" />
+    <ProjectReference Include="..\..\..\..\..\libs\kits\Culture\ACommerce.Culture.Defaults\ACommerce.Culture.Defaults.csproj" />
   </ItemGroup>
 </Project>

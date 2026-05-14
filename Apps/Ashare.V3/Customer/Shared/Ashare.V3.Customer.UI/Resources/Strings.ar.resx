@@ -7,6 +7,10 @@
 
   <data name="app.name" xml:space="preserve"><value>عَشير</value></data>
   <data name="home.title" xml:space="preserve"><value>ابحث عن سكنك المشترك</value></data>
-  <data name="home.subtitle" xml:space="preserve"><value>تطبيق السكن المشترك الأوّل في اليمن</value></data>
+  <data name="home.subtitle" xml:space="preserve"><value>تطبيق السكن المشترك الأوّل في المملكة العربية السعودية</value></data>
   <data name="home.cta.title" xml:space="preserve"><value>لديك غرفة أو شقة للمشاركة؟</value></data>
+
+  <!-- V3 سوق سُعودي ⇒ override رِيال سُعودي (SAR) فَوق YER الافتِراضي. -->
+  <data name="common.currency_short" xml:space="preserve"><value>ر.س</value></data>
+  <data name="subscribe.amount_format" xml:space="preserve"><value>{0} ر.س</value></data>
 </root>

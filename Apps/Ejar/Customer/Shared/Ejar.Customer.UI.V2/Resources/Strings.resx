@@ -38,6 +38,7 @@
   <data name="home.welcome_title" xml:space="preserve"><value>Welcome to Ejar</value></data>
   <data name="home.welcome_body" xml:space="preserve"><value>A real-estate listings platform on a double-entry operation model — every action you take is recorded as a ledger entry, and every page is composed from reusable widgets.</value></data>
   <data name="home.shortcuts_title" xml:space="preserve"><value>Shortcuts</value></data>
+  <data name="home.categories_title" xml:space="preserve"><value>Categories</value></data>
   <data name="home.card_browse_title" xml:space="preserve"><value>Browse properties</value></data>
   <data name="home.card_browse_meta" xml:space="preserve"><value>View available listings + filter by city and category</value></data>
   <data name="home.card_notifications_title" xml:space="preserve"><value>Notifications</value></data>

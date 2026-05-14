@@ -51,7 +51,7 @@ public sealed class ListingPaymentsController : ControllerBase
                      ?? 5_000m;
         var currency = body?.Currency
                        ?? _config["Payments:Currency"]
-                       ?? "YER";
+                       ?? "SAR";
 
         var orderRef = "listing_" + Guid.NewGuid().ToString("N")[..12];
         var init = await _gateway.InitiateAsync(new PaymentRequest(
