@@ -50,25 +50,28 @@ public sealed class AshareV3AuthUserStore : IAuthUserStore
         // IgnoreQueryFilters: لو الـ Profile مُحَفَّمَة (IsDeleted=true) في
         // الإنتاج، نَتَجاوَز الفِلتَر ونُحييها بَدَل إنشاء مُكَرَّر. كُلّ
         // الجَداوِل المُتَفَرِّعَة في asharedb تُشير إلى الـ UserId الأَصلي.
+        //
+        // <para><b>F6</b>: هذا الـ store لا يَستَدعي <c>SaveChangesAsync</c>.
+        // الـ caller (<c>AuthController.VerifyOtp</c>) يَضَع <c>.SaveAtEnd()</c>
+        // عَلى الـ op، فَالـ engine يَحفَظ الـ tracked changes ذَرّيّاً مَع
+        // باقي audit/notification interceptors. لَو حَفَظنا هُنا، سَيَحصُل
+        // كِتابَتان مُنفَصِلَتان (Profile أَوَّلاً، ثُمّ الـ op state) — كَسر
+        // الذَرِّيَّة + هَدر I/O.</para>
         var existing = await _db.Profiles.IgnoreQueryFilters()
             .FirstOrDefaultAsync(p => p.NationalId == subject || p.Phone == subject, ct);
 
         if (existing is not null)
         {
-            var dirty = false;
             if (existing.IsDeleted)
             {
                 existing.IsDeleted = false;
                 existing.UpdatedAt = DateTime.UtcNow;
-                dirty = true;
             }
             if (string.IsNullOrEmpty(existing.UserId))
             {
                 existing.UserId = Guid.NewGuid().ToString();
                 existing.UpdatedAt = DateTime.UtcNow;
-                dirty = true;
             }
-            if (dirty) await _db.SaveChangesAsync(ct);
             return existing.UserId!;
         }
 
@@ -78,7 +81,7 @@ public sealed class AshareV3AuthUserStore : IAuthUserStore
                            && subject.All(char.IsDigit)
                            && (subject[0] == '1' || subject[0] == '2');
         var newUserId = Guid.NewGuid().ToString();
-        var p = new ProfileEntity
+        _db.Profiles.Add(new ProfileEntity
         {
             Id = Guid.NewGuid(), CreatedAt = DateTime.UtcNow,
             UserId = newUserId,
@@ -86,11 +89,8 @@ public sealed class AshareV3AuthUserStore : IAuthUserStore
             Phone = isNationalId ? null : subject,
             FullName = "عُضو جديد",
             City = "الرياض",
-            // Type/IsActive سَمات ديناميكِيَّة الآن (في AttributesJson عَبر
-            // AcAttrEditor)؛ المُستَخدِم الجَديد بِلا قِيَم ⇒ افتِراضي.
-        };
-        _db.Profiles.Add(p);
-        await _db.SaveChangesAsync(ct);   // اِحفَظ فَوريّاً مِثل حالَة التَحديث
+        });
+        // لا SaveChangesAsync — الـ op.SaveAtEnd() في AuthController يَحفَظ.
         return newUserId;
     }
 
