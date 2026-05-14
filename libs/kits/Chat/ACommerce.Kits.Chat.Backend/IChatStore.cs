@@ -41,8 +41,13 @@ public interface IChatStore
     /// <summary>تفاصيل المحادثة (المشاركون، الموضوع، …) أو <c>null</c> لو غير موجودة.</summary>
     Task<IChatConversation?> GetConversationAsync(string conversationId, CancellationToken ct);
 
-    /// <summary>كلّ محادثات المستخدم — للـ inbox.</summary>
-    Task<IReadOnlyList<IChatConversation>> ListForUserAsync(string userId, CancellationToken ct);
+    /// <summary>كلّ محادثات المستخدم — للـ inbox. يَرُدّ
+    /// <see cref="IChatConversationView"/> (واجِهَة مُوَسَّعَة بِكُلّ
+    /// الحُقول الَّتي تَستَهلِكها Chats.razor — OwnerName/PartnerName/
+    /// LastMessage/UnreadCount/HasMyUnread). كانَ سابِقاً يَرُدّ
+    /// <c>IChatConversation</c> فَقَط وَ كانَت السيريالايزيشن تَعتَمِد
+    /// عَلى runtime type — الآن العَقد typed بِالكامِل.</summary>
+    Task<IReadOnlyList<IChatConversationView>> ListForUserAsync(string userId, CancellationToken ct);
 
     /// <summary>
     /// يُحدِّد كلّ رسائل المحادثة <paramref name="conversationId"/> كمَقروءة

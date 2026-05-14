@@ -171,15 +171,15 @@ public sealed class EjarCustomerChatStore : IChatStore
         return await BuildViewAsync(c, ct);
     }
 
-    public async Task<IReadOnlyList<IChatConversation>> ListForUserAsync(
+    public async Task<IReadOnlyList<IChatConversationView>> ListForUserAsync(
         string userId, CancellationToken ct)
     {
-        if (!Guid.TryParse(userId, out var uid)) return Array.Empty<IChatConversation>();
+        if (!Guid.TryParse(userId, out var uid)) return Array.Empty<IChatConversationView>();
         var rows = await _db.Conversations.AsNoTracking()
             .Where(c => c.OwnerId == uid || c.PartnerId == uid)
             .OrderByDescending(c => c.LastAt)
             .ToListAsync(ct);
-        if (rows.Count == 0) return Array.Empty<IChatConversation>();
+        if (rows.Count == 0) return Array.Empty<IChatConversationView>();
 
         // ابحث عن أسماء الـ Owner و Partner في طلب واحد بدل n+1.
         var partyIds = rows.Select(c => c.OwnerId).Concat(rows.Select(c => c.PartnerId))
@@ -188,19 +188,20 @@ public sealed class EjarCustomerChatStore : IChatStore
             .Where(u => partyIds.Contains(u.Id))
             .ToDictionaryAsync(u => u.Id, u => u.FullName, ct);
 
-        // آخر رسالة في كلّ محادثة (للـ inbox preview).
+        // آخر رسالة + وَقتها في كُلّ محادثة (لِلـ inbox preview).
         var convIds = rows.Select(c => c.Id).ToList();
         var lastMsgs = await _db.Messages.AsNoTracking()
             .Where(m => convIds.Contains(m.ConversationId))
             .GroupBy(m => m.ConversationId)
             .Select(g => g.OrderByDescending(m => m.SentAt).First())
-            .ToDictionaryAsync(m => m.ConversationId, m => m.Text, ct);
+            .ToDictionaryAsync(m => m.ConversationId, m => new { m.Text, m.SentAt }, ct);
 
-        return rows.Select(c => (IChatConversation)new ConversationView(
+        return rows.Select(c => (IChatConversationView)new ConversationView(
             c,
             users.TryGetValue(c.OwnerId,   out var on) ? on : null,
             users.TryGetValue(c.PartnerId, out var pn) ? pn : c.PartnerName,
-            lastMsgs.TryGetValue(c.Id, out var last) ? last : null,
+            lastMsgs.TryGetValue(c.Id, out var last) ? last?.Text : null,
+            lastMsgs.TryGetValue(c.Id, out var lastM) ? lastM?.SentAt : null,
             viewerUserId: uid
         )).ToList();
     }
@@ -240,7 +241,7 @@ public sealed class EjarCustomerChatStore : IChatStore
         // viewerUserId غير مَعروف هنا (مَسار GET واحد للمحادثة) — نَعرض
         // 0 افتراضياً، الـ caller الذي يَملك السياق يَختار العَدّاد المناسب.
         return new ConversationView(c, owner?.FullName, partner?.FullName ?? c.PartnerName,
-            lastMessage: null, viewerUserId: Guid.Empty);
+            lastMessage: null, lastMessageAt: null, viewerUserId: Guid.Empty);
     }
 
     // ── views ──────────────────────────────────────────────────────────────
@@ -264,19 +265,20 @@ public sealed class EjarCustomerChatStore : IChatStore
         public DateTime? ReadAt         => null;
     }
 
-    private sealed class ConversationView : IChatConversation
+    private sealed class ConversationView : IChatConversationView
     {
         private readonly ConversationEntity _e;
         private readonly Guid _viewer;
         public ConversationView(
             ConversationEntity e, string? ownerName, string? partnerName,
-            string? lastMessage, Guid viewerUserId)
+            string? lastMessage, DateTime? lastMessageAt, Guid viewerUserId)
         {
             _e = e;
             _viewer = viewerUserId;
-            OwnerName   = ownerName ?? "—";
-            PartnerName = partnerName ?? "—";
-            LastMessage = lastMessage;
+            OwnerName     = ownerName ?? "—";
+            PartnerName   = partnerName ?? "—";
+            LastMessage   = lastMessage;
+            LastMessageAt = lastMessageAt;
         }
         public string Id => _e.Id.ToString();
         public IReadOnlyList<string> ParticipantPartyIds => new[]
@@ -284,19 +286,23 @@ public sealed class EjarCustomerChatStore : IChatStore
             $"User:{_e.OwnerId}", $"User:{_e.PartnerId}"
         };
 
-        public string OwnerId     => _e.OwnerId.ToString();
-        public string OwnerName   { get; }
-        public string PartnerId   => _e.PartnerId.ToString();
-        public string PartnerName { get; }
-        public string Subject     => _e.Subject;
-        public string ListingId   => _e.ListingId.ToString();
-        public DateTime LastAt    => _e.LastAt;
+        public string  OwnerId       => _e.OwnerId.ToString();
+        public string  OwnerName     { get; }
+        public string? OwnerAvatar   => null;
+        public string  PartnerId     => _e.PartnerId.ToString();
+        public string  PartnerName   { get; }
+        public string? PartnerAvatar => null;
+        public string  Subject       => _e.Subject;
+        public string? ListingId     => _e.ListingId.ToString();
+        public DateTime LastAt       => _e.LastAt;
         /// <summary>عَدّاد per-side حسب المُشاهِد. رسائلي لا تُحسَب عليّ.</summary>
-        public int UnreadCount    =>
+        public int     UnreadCount   =>
             _viewer == _e.OwnerId    ? _e.OwnerUnread :
             _viewer == _e.PartnerId  ? _e.PartnerUnread :
             0;
-        public string? LastMessage { get; }
+        public string?  LastMessage   { get; }
+        public DateTime? LastMessageAt { get; }
+        public bool     HasMyUnread   => UnreadCount > 0;
     }
 }
 
