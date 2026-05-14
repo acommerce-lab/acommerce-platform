@@ -83,11 +83,12 @@ builder.Services.AddScoped<Ashare.V3.Data.Templates.ProductionAttributeTemplateS
 // التَسجيل الـ kit-public يَأتي مَن composite، فَيُغَطّي الحالَتَين.
 builder.Services.AddScoped<ACommerce.Kits.DynamicAttributes.Backend.IAttributeTemplateSource,
                            Ashare.V3.Data.Templates.AshareV3CompositeTemplateSource>();
-// Taxonomy — شَجَرَة قَصيرَة (kind roommate + leaves "عَنده/يَدور سَكَن")
-// مَبنِيَّة في الذاكِرَة. لا migration. الشَجَرَة hardcoded في
-// AshareV3TaxonomyStore.
+// Taxonomy — مَوحَّدَة مَع إيجار: DB-backed عَلى جَدول <c>TaxonomyNodes</c>.
+// الـ AshareV3Bootstrap يَزرَع roommate + has/wants عَلى الإقلاع. لوحَة الإدارَة
+// تَستَطيع إضافَة/تَعديل فِئَة عَبر CRUD endpoints الَّتي يَكشِفها الكيت دون
+// نَشر كود. القَديم <c>AshareV3TaxonomyStore</c> الـ in-memory أُلغي.
 builder.Services.AddScoped<ACommerce.Kits.Taxonomy.Backend.ITaxonomyStore,
-                           Ashare.V3.Data.Templates.AshareV3TaxonomyStore>();
+                           Ashare.V3.Data.Stores.AshareV3DbTaxonomyStore>();
 
 // MVC scan الافتِراضي = entry assembly فَقَط ⇒ نُلحِق Application Parts
 // لِالتِقاط controllers مَن كيتات الخَلفِيَّة.

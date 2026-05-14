@@ -128,6 +128,7 @@ public static class AshareV3Bootstrap
             // ⇒ نَفس مَحَرِّك القَوالِب يَعمَل عَلى البروفايل.
             await SeedProfileAttributesAsync(db, logger, ct);
             await SeedRoommateCategoriesAsync(db, logger, ct);
+            await SeedTaxonomyNodesAsync(db, logger, ct);
         }
         else
         {
@@ -144,6 +145,11 @@ public static class AshareV3Bootstrap
                                        stmt.Length > 80 ? stmt[..80] + "…" : stmt);
                 }
             }
+            // الـ seeds تَركَض بَعد التَّأَكُّد مَن وُجود الجَداوِل. idempotent
+            // كُلّها فَلا أَثَر سَلبي لَو رُكِضَت مَرَّة بَعد أُخرى.
+            await SeedProfileAttributesAsync(db, logger, ct);
+            await SeedRoommateCategoriesAsync(db, logger, ct);
+            await SeedTaxonomyNodesAsync(db, logger, ct);
             logger?.LogInformation("Ashare V3: SQL Server additive schema check complete");
         }
     }
@@ -232,7 +238,31 @@ public static class AshareV3Bootstrap
             [IsDeleted] bit              NOT NULL,
             [Slug]      nvarchar(50)     NOT NULL,
             [Label]     nvarchar(100)    NOT NULL
-          );"
+          );",
+
+        // TaxonomyNodes — مَوحَّدَة مَع إيجار. شَجَرَة "listing_categories" =
+        // مَصدَر الفِئات في Home/Explore/CreateListing.
+        @"IF OBJECT_ID('dbo.TaxonomyNodes', 'U') IS NULL
+          CREATE TABLE [dbo].[TaxonomyNodes] (
+            [Id]        uniqueidentifier NOT NULL PRIMARY KEY,
+            [CreatedAt] datetime2        NOT NULL,
+            [UpdatedAt] datetime2        NULL,
+            [IsDeleted] bit              NOT NULL,
+            [ParentId]  uniqueidentifier NULL,
+            [RootCode]  nvarchar(60)     NOT NULL,
+            [Code]      nvarchar(80)     NOT NULL,
+            [Name]      nvarchar(120)    NOT NULL,
+            [NameAr]    nvarchar(120)    NULL,
+            [Icon]      nvarchar(40)     NULL,
+            [SortOrder] int              NOT NULL,
+            [IsActive]  bit              NOT NULL
+          );",
+
+        @"IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_TaxonomyNodes_RootCode_Code')
+          CREATE UNIQUE INDEX [IX_TaxonomyNodes_RootCode_Code] ON [dbo].[TaxonomyNodes] ([RootCode], [Code]);",
+
+        @"IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_TaxonomyNodes_RootCode_ParentId_SortOrder')
+          CREATE INDEX [IX_TaxonomyNodes_RootCode_ParentId_SortOrder] ON [dbo].[TaxonomyNodes] ([RootCode], [ParentId], [SortOrder]);"
     };
 
     /// <summary>
@@ -540,5 +570,108 @@ public static class AshareV3Bootstrap
                 IsActive              = true,
             });
         }
+    }
+
+    /// <summary>
+    /// يَزرَع شَجَرَة <c>listing_categories</c> في <see cref="TaxonomyNodeEntity"/>:
+    /// kind أَب <c>roommate</c> + leaf-ان <c>roommate_has</c> و <c>roommate_wants</c>.
+    /// مَطابِق لِأُسلوب إيجار في <c>DbInitializer.SeedTaxonomyIfMissing</c>.
+    ///
+    /// <para>idempotent: لِكُلّ عُقدَة، يُحَدِّث الـ Name/NameAr/Icon/SortOrder
+    /// لَو تَغَيَّر الـ seed، ويُعَطِّل الـ kinds القَديمَة الَّتي لَم تَعُد
+    /// في الـ seed (مَثَل: لَو كانَت هُناك "apartment" قَديمَة). لا يَلمَس
+    /// أَبناء غَير V3-managed.</para>
+    /// </summary>
+    private static async Task SeedTaxonomyNodesAsync(
+        AshareV3DbContext db, ILogger? logger, CancellationToken ct)
+    {
+        try
+        {
+            const string root = "listing_categories";
+            var now = DateTime.UtcNow;
+
+            var existing = await db.TaxonomyNodes.IgnoreQueryFilters()
+                .Where(t => t.RootCode == root)
+                .ToListAsync(ct);
+            var existingByCode = existing.ToDictionary(
+                n => n.Code, n => n, StringComparer.OrdinalIgnoreCase);
+
+            // الـ kind الأَب (Guid ثابِت يَطابِق <c>AshareV3TaxonomyStore</c>
+            // القَديم — لَو كان أَحَد قَد ربَط بَيانات بِالـ Id فَلا يَنكَسِر).
+            var roommateKindId = Guid.Parse("0a01a01a-0a01-0a01-0a01-0a01000a01a1");
+            await UpsertTaxonomyNodeAsync(db, existingByCode,
+                id: roommateKindId,
+                rootCode: root, code: "roommate",
+                name: "Roommate", nameAr: "سَكَن مُشتَرَك",
+                icon: "users", parentId: null, sortOrder: 1, now: now);
+
+            // الـ leaves — تَستَخدِم نَفس Guids الَّتي زَرَعناها في
+            // ProductCategories لِيَتَّسِق الـ slug ⇔ scopeId.
+            await UpsertTaxonomyNodeAsync(db, existingByCode,
+                id: AshareV3RoommateAttributes.RoommateHasCategoryId,
+                rootCode: root, code: AshareV3RoommateAttributes.RoommateHasSlug,
+                name: "Has a room", nameAr: AshareV3RoommateAttributes.RoommateHasName,
+                icon: "🏠", parentId: roommateKindId, sortOrder: 1, now: now);
+
+            await UpsertTaxonomyNodeAsync(db, existingByCode,
+                id: AshareV3RoommateAttributes.RoommateWantsCategoryId,
+                rootCode: root, code: AshareV3RoommateAttributes.RoommateWantsSlug,
+                name: "Looking for a room", nameAr: AshareV3RoommateAttributes.RoommateWantsName,
+                icon: "🔍", parentId: roommateKindId, sortOrder: 2, now: now);
+
+            // Cleanup: kinds (المُستَوى الأَوَّل) المَوجودَة في DB لكِن لَيست
+            // في الـ seed ⇒ نُعَطِّلها (لا حَذف لِنَحفَظ سَجِل التَدقيق).
+            // ChildNodes لِأَبٍ آخَر لا تُلمَس.
+            var seedKindCodes = new[] { "roommate" }.ToHashSet(StringComparer.OrdinalIgnoreCase);
+            foreach (var n in existing.Where(n => n.ParentId == null))
+            {
+                if (!seedKindCodes.Contains(n.Code) && n.IsActive)
+                {
+                    n.IsActive  = false;
+                    n.UpdatedAt = now;
+                }
+            }
+
+            await db.SaveChangesAsync(ct);
+
+            var count = await db.TaxonomyNodes
+                .CountAsync(t => t.RootCode == root && t.IsActive, ct);
+            logger?.LogInformation("Ashare V3: taxonomy seed → {Count} active nodes under '{Root}'", count, root);
+        }
+        catch (Exception ex)
+        {
+            logger?.LogWarning(ex, "Ashare V3: taxonomy seed skipped");
+        }
+    }
+
+    private static Task UpsertTaxonomyNodeAsync(
+        AshareV3DbContext db, Dictionary<string, TaxonomyNodeEntity> existingByCode,
+        Guid id, string rootCode, string code, string name, string nameAr,
+        string icon, Guid? parentId, int sortOrder, DateTime now)
+    {
+        if (existingByCode.TryGetValue(code, out var existing))
+        {
+            // مَوجود — نُحَدِّث الحُقول الَّتي قَد تَتَغَيَّر بِالـ seed.
+            // لا نَلمَس Id (قَد تَكون كَيانات أُخرى تُشير إلَيه).
+            var changed = false;
+            if (existing.Name      != name)      { existing.Name      = name;      changed = true; }
+            if (existing.NameAr    != nameAr)    { existing.NameAr    = nameAr;    changed = true; }
+            if (existing.Icon      != icon)      { existing.Icon      = icon;      changed = true; }
+            if (existing.SortOrder != sortOrder) { existing.SortOrder = sortOrder; changed = true; }
+            if (existing.ParentId  != parentId)  { existing.ParentId  = parentId;  changed = true; }
+            if (!existing.IsActive)              { existing.IsActive  = true;      changed = true; }
+            if (existing.IsDeleted)              { existing.IsDeleted = false;     changed = true; }
+            if (changed) existing.UpdatedAt = now;
+            return Task.CompletedTask;
+        }
+
+        db.TaxonomyNodes.Add(new TaxonomyNodeEntity
+        {
+            Id = id, CreatedAt = now,
+            RootCode = rootCode, ParentId = parentId,
+            Code = code, Name = name, NameAr = nameAr, Icon = icon,
+            SortOrder = sortOrder, IsActive = true,
+        });
+        return Task.CompletedTask;
     }
 }
