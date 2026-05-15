@@ -264,7 +264,26 @@ public static class AshareV3Bootstrap
           CREATE UNIQUE INDEX [IX_TaxonomyNodes_RootCode_Code] ON [dbo].[TaxonomyNodes] ([RootCode], [Code]);",
 
         @"IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_TaxonomyNodes_RootCode_ParentId_SortOrder')
-          CREATE INDEX [IX_TaxonomyNodes_RootCode_ParentId_SortOrder] ON [dbo].[TaxonomyNodes] ([RootCode], [ParentId], [SortOrder]);"
+          CREATE INDEX [IX_TaxonomyNodes_RootCode_ParentId_SortOrder] ON [dbo].[TaxonomyNodes] ([RootCode], [ParentId], [SortOrder]);",
+
+        // ProductListing — أَعمِدَة أُضيفَت في V3 لِتُغَطّي <see cref="IListing"/>
+        // (TimeUnit/BedroomCount/BathroomCount/AreaSqm/AmenitiesJson). تَطبيقات
+        // V3 المُتَّصِلَة بِـ asharedb V2 (runasp.net) لا تَملِكها بَعد ⇒ EF
+        // يَفشَل بِـ "Invalid column name". الإضافَة آمِنَة (NULL DEFAULT).
+        @"IF COL_LENGTH('dbo.ProductListing', 'TimeUnit') IS NULL
+          ALTER TABLE [dbo].[ProductListing] ADD [TimeUnit] nvarchar(40) NULL;",
+
+        @"IF COL_LENGTH('dbo.ProductListing', 'BedroomCount') IS NULL
+          ALTER TABLE [dbo].[ProductListing] ADD [BedroomCount] int NOT NULL CONSTRAINT [DF_ProductListing_BedroomCount] DEFAULT 0;",
+
+        @"IF COL_LENGTH('dbo.ProductListing', 'BathroomCount') IS NULL
+          ALTER TABLE [dbo].[ProductListing] ADD [BathroomCount] int NOT NULL CONSTRAINT [DF_ProductListing_BathroomCount] DEFAULT 0;",
+
+        @"IF COL_LENGTH('dbo.ProductListing', 'AreaSqm') IS NULL
+          ALTER TABLE [dbo].[ProductListing] ADD [AreaSqm] int NOT NULL CONSTRAINT [DF_ProductListing_AreaSqm] DEFAULT 0;",
+
+        @"IF COL_LENGTH('dbo.ProductListing', 'AmenitiesJson') IS NULL
+          ALTER TABLE [dbo].[ProductListing] ADD [AmenitiesJson] nvarchar(max) NULL;"
     };
 
     /// <summary>
