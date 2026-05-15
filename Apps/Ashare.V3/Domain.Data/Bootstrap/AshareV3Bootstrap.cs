@@ -130,6 +130,7 @@ public static class AshareV3Bootstrap
             await SeedRoommateCategoriesAsync(db, logger, ct);
             await SeedTaxonomyNodesAsync(db, logger, ct);
             await SeedSaudiCitiesAsync(db, logger, ct);
+            await MaybeWipeLegacyListingsAsync(db, logger, ct);
         }
         else
         {
@@ -152,7 +153,54 @@ public static class AshareV3Bootstrap
             await SeedRoommateCategoriesAsync(db, logger, ct);
             await SeedTaxonomyNodesAsync(db, logger, ct);
             await SeedSaudiCitiesAsync(db, logger, ct);
+            await MaybeWipeLegacyListingsAsync(db, logger, ct);
             logger?.LogInformation("Ashare V3: SQL Server additive schema check complete");
+        }
+    }
+
+    /// <summary>
+    /// تَنظيف اختياري لِلعُروض القَديمَة المَنقولَة مَن V2 الإنتاج.
+    /// مَحروس بِـ env var <c>ASHAREV3_WIPE_LISTINGS=true</c> — لا يَعمَل
+    /// تِلقائيّاً. السَبَب: صُوَر V2 (<c>api.ashare.sa/media/...</c>) لَم
+    /// تَعُد يُمكِن الوُصول إلَيها (host مُعَلَّق). الصاحِب يُفَعِّل المُتَغَيِّر
+    /// لِبَدء طازَج: <c>SET ASHAREV3_WIPE_LISTINGS=true</c> ⇒ يُعيد التَّشغيل
+    /// مَرَّة ⇒ يُلغي المُتَغَيِّر.
+    ///
+    /// <para>الحَذف soft — <c>IsDeleted = true</c> + <c>UpdatedAt = utcNow</c>،
+    /// المُستَخدِمون يَبقَون كَما هُم (لِتَجارِب أَكثَر واقِعِيَّة، طَلَب صَريح
+    /// مَن المالِك). لا يَلمَس Profiles/Chats/Favorites.</para>
+    /// </summary>
+    private static async Task MaybeWipeLegacyListingsAsync(
+        AshareV3DbContext db, ILogger? logger, CancellationToken ct)
+    {
+        var wipe = string.Equals(
+            Environment.GetEnvironmentVariable("ASHAREV3_WIPE_LISTINGS"),
+            "true", StringComparison.OrdinalIgnoreCase);
+        if (!wipe) return;
+
+        try
+        {
+            var now = DateTime.UtcNow;
+            var rows = await db.ProductListings.IgnoreQueryFilters()
+                .Where(l => !l.IsDeleted).ToListAsync(ct);
+            if (rows.Count == 0)
+            {
+                logger?.LogInformation("Ashare V3: ASHAREV3_WIPE_LISTINGS=true but nothing to wipe");
+                return;
+            }
+            foreach (var r in rows)
+            {
+                r.IsDeleted = true;
+                r.UpdatedAt = now;
+            }
+            await db.SaveChangesAsync(ct);
+            logger?.LogWarning(
+                "Ashare V3: WIPED {Count} ProductListing rows (ASHAREV3_WIPE_LISTINGS=true). " +
+                "Unset the env var before next start.", rows.Count);
+        }
+        catch (Exception ex)
+        {
+            logger?.LogError(ex, "Ashare V3: legacy listings wipe failed");
         }
     }
 
@@ -283,7 +331,24 @@ public static class AshareV3Bootstrap
           ALTER TABLE [dbo].[ProductListing] ADD [AreaSqm] int NOT NULL CONSTRAINT [DF_ProductListing_AreaSqm] DEFAULT 0;",
 
         @"IF COL_LENGTH('dbo.ProductListing', 'AmenitiesJson') IS NULL
-          ALTER TABLE [dbo].[ProductListing] ADD [AmenitiesJson] nvarchar(max) NULL;"
+          ALTER TABLE [dbo].[ProductListing] ADD [AmenitiesJson] nvarchar(max) NULL;",
+
+        // OperationIdempotency — جَدول جَديد لِـ V3. يَفحَصه
+        // <c>IdempotencyInterceptor</c> قَبل كُلّ كِتابَة لِمَنع إعادَة
+        // التَنفيذ نَفس <c>idempotency_key</c>.
+        @"IF OBJECT_ID('dbo.OperationIdempotency', 'U') IS NULL
+          CREATE TABLE [dbo].[OperationIdempotency] (
+            [Id]            uniqueidentifier NOT NULL PRIMARY KEY,
+            [CreatedAt]     datetime2        NOT NULL,
+            [UpdatedAt]     datetime2        NULL,
+            [IsDeleted]     bit              NOT NULL,
+            [Key]           nvarchar(64)     NOT NULL,
+            [OperationType] nvarchar(120)    NOT NULL,
+            [Snapshot]      nvarchar(200)    NOT NULL
+          );",
+
+        @"IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_OperationIdempotency_Key')
+          CREATE UNIQUE INDEX [IX_OperationIdempotency_Key] ON [dbo].[OperationIdempotency] ([Key]);"
     };
 
     /// <summary>
