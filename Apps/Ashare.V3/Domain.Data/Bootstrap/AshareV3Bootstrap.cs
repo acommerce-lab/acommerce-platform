@@ -348,7 +348,48 @@ public static class AshareV3Bootstrap
           );",
 
         @"IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_OperationIdempotency_Key')
-          CREATE UNIQUE INDEX [IX_OperationIdempotency_Key] ON [dbo].[OperationIdempotency] ([Key]);"
+          CREATE UNIQUE INDEX [IX_OperationIdempotency_Key] ON [dbo].[OperationIdempotency] ([Key]);",
+
+        // CategoryAttributeTemplates — جَدول V3-additive لِخَدمَة قَوالِب
+        // فِئات admin-edited (JSON طازَج لِسلاجات بِلا CategoryAttributeMappings).
+        @"IF OBJECT_ID('dbo.CategoryAttributeTemplates', 'U') IS NULL
+          CREATE TABLE [dbo].[CategoryAttributeTemplates] (
+            [Id]           uniqueidentifier NOT NULL PRIMARY KEY,
+            [CreatedAt]    datetime2        NOT NULL,
+            [UpdatedAt]    datetime2        NULL,
+            [IsDeleted]    bit              NOT NULL,
+            [CategorySlug] nvarchar(100)    NOT NULL,
+            [TemplateJson] nvarchar(max)    NOT NULL,
+            [CodeVersion]  int              NOT NULL
+          );",
+
+        @"IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_CategoryAttributeTemplates_CategorySlug')
+          CREATE UNIQUE INDEX [IX_CategoryAttributeTemplates_CategorySlug] ON [dbo].[CategoryAttributeTemplates] ([CategorySlug]);",
+
+        // ListingPayments — جَدول V3-additive (لا باقات اشتِراك في V3،
+        // الدَفع لِلإعلان الواحِد). ListingPaymentGateInterceptor يَفحَصه.
+        @"IF OBJECT_ID('dbo.ListingPayments', 'U') IS NULL
+          CREATE TABLE [dbo].[ListingPayments] (
+            [Id]         uniqueidentifier NOT NULL PRIMARY KEY,
+            [CreatedAt]  datetime2        NOT NULL,
+            [UpdatedAt]  datetime2        NULL,
+            [IsDeleted]  bit              NOT NULL,
+            [UserId]     nvarchar(450)    NOT NULL,
+            [ListingId]  uniqueidentifier NULL,
+            [Provider]   nvarchar(60)     NOT NULL,
+            [Reference]  nvarchar(120)    NOT NULL,
+            [Amount]     decimal(18,2)    NOT NULL,
+            [Currency]   nvarchar(10)     NOT NULL,
+            [Status]     nvarchar(40)     NOT NULL,
+            [Consumed]   bit              NOT NULL,
+            [CapturedAt] datetime2        NULL
+          );",
+
+        @"IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_ListingPayments_UserId_Status')
+          CREATE INDEX [IX_ListingPayments_UserId_Status] ON [dbo].[ListingPayments] ([UserId], [Status]);",
+
+        @"IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_ListingPayments_Reference')
+          CREATE UNIQUE INDEX [IX_ListingPayments_Reference] ON [dbo].[ListingPayments] ([Reference]);"
     };
 
     /// <summary>
