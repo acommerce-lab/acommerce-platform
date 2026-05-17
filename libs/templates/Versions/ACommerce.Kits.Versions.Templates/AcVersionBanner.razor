@@ -14,7 +14,17 @@
 <div class="ac-version-banner ac-version-banner-@Severity" role="status" aria-live="polite">
     <span class="ac-version-banner-icon">@Icon</span>
     <span class="ac-version-banner-text">@Text</span>
-    @if (!string.IsNullOrEmpty(Result.DownloadUrl))
+    @* OnUpdate (لِـ web/PWA) يَأخُذ الأَولَويّة عَلى DownloadUrl (لِـ mobile
+       native). إنّ كانَ كلاهُما مَوجوداً نَعرِض الزَّرّ فَقَط — الـ host
+       يَختار سُلوكاً واحِداً. لَو لا OnUpdate ولا DownloadUrl ⇒ بَنر
+       إخباريّ فَقَط (مُناسِب لـ Active/HasNewer دون فِعل قابِل). *@
+    @if (OnUpdate.HasDelegate)
+    {
+        <button type="button" class="ac-version-banner-cta" @onclick="OnUpdate">
+            @(CtaLabel ?? "Update")
+        </button>
+    }
+    else if (!string.IsNullOrEmpty(Result.DownloadUrl))
     {
         <a class="ac-version-banner-cta" href="@Result.DownloadUrl" target="_blank" rel="noopener">
             @(CtaLabel ?? "Update")
@@ -25,6 +35,14 @@
 @code {
     [Parameter, EditorRequired] public VersionCheckResult Result { get; set; } = default!;
     [Parameter] public string? CtaLabel { get; set; }
+
+    /// <summary>
+    /// عِندَ التَّعريف يَستَبدِل الـ <c>&lt;a href=DownloadUrl&gt;</c> بِزَرّ
+    /// يَستَدعي هذا الـ callback. مُفيد لِـ PWA/WASM حَيث "تَحديث" يَعني
+    /// تَنظيف SW + caches + reload (لا فَتح متجر تَطبيقات). الـ host عادَةً
+    /// يَربِطه إلى <see cref="VersionPoll.ApplyUpdateAsync"/>.
+    /// </summary>
+    [Parameter] public EventCallback OnUpdate { get; set; }
 
     /// <summary>Format: {0}=current version, {1}=latest version.</summary>
     [Parameter] public string? DeprecatedFormat { get; set; }

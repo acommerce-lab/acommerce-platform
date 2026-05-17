@@ -37,7 +37,11 @@
         </button>
     </div>
 }
-<AcAppVersionGate>
+@* OnUpdate يَربِط زَرّ "Update" في AcVersionBanner (يَظهَر عِندَما يُبَلِّغ
+   الباك بِـ HasNewer) إلى نَفس آليّة VersionPoll: تَنظيف SW + caches +
+   reload. بِدون هذا، البَنر كانَ يَعرِض رابِط <a> فَقَط لِـ DownloadUrl
+   الفارِغ في PWA — فَيَظهَر "إصدار جَديد مُتاح" دون خِيار فِعل. *@
+<AcAppVersionGate OnUpdate="ApplyAppUpdate" CtaLabel="@(L[TemplateStrings.LayoutUpdateNow])">
     <ChildContent>
         <nav class="acm-mobile-nav">
             <div class="acm-mobile-nav-inner">

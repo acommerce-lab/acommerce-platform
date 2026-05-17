@@ -22,13 +22,23 @@ else
 {
     @if (State.Last.ShouldWarn || State.Last.HasNewer)
     {
-        <AcVersionBanner Result="@State.Last" />
+        <AcVersionBanner Result="@State.Last" OnUpdate="OnUpdate" CtaLabel="@CtaLabel" />
     }
     @ChildContent
 }
 
 @code {
     [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>
+    /// تَمريرَ مُباشِر لِـ <see cref="AcVersionBanner.OnUpdate"/>. لِـ PWA/WASM
+    /// يُربَط عادَةً إلى <see cref="VersionPoll.ApplyUpdateAsync"/> لِيُنَفِّذ
+    /// تَنظيف SW + caches + reload.
+    /// </summary>
+    [Parameter] public EventCallback OnUpdate { get; set; }
+
+    /// <summary>تَمريرَ مُباشِر لِـ <see cref="AcVersionBanner.CtaLabel"/>.</summary>
+    [Parameter] public string? CtaLabel { get; set; }
 
     protected override async Task OnInitializedAsync()
     {

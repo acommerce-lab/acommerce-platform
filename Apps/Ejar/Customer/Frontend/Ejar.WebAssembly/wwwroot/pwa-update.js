@@ -5,6 +5,31 @@
 // السُلوك السابِق: SW يَستَدعي skipWaiting صَامِتاً ⇒ المُستَخدِم لا يَرى
 // التَّحديث. الجَديد: نَسأَله "حَدِّث الآن؟ / لاحِقاً" قَبل skipWaiting.
 
+// window.acVersionRefresh — دالّة عامّة آمنة CSP يَستَدعيها Blazor (عَبر
+// IJSRuntime.InvokeVoidAsync) بَدَل eval. تُلغي تَسجيل SW + تَمسَح caches +
+// تُعيد التَّحميل مع ?ac_v=<ts> لِكَسر CDN cache. تُسجَّل فَوراً قَبل
+// تَحميل WASM فَتَكون مُتاحَة عِندَما يَنقُر المُستَخدِم زَرّ "تَحديث الآن"
+// (سَواء في VersionPoll banner أو AcVersionBanner).
+window.acVersionRefresh = async function () {
+  try {
+    if ('serviceWorker' in navigator) {
+      const regs = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(regs.map(r => r.unregister().catch(() => {})));
+    }
+    if ('caches' in window) {
+      const keys = await caches.keys();
+      await Promise.all(keys.map(k => caches.delete(k).catch(() => {})));
+    }
+  } catch (e) { console.warn('[acVersionRefresh] cleanup failed', e); }
+  try {
+    const u = new URL(location.href);
+    u.searchParams.set('ac_v', Date.now().toString());
+    location.replace(u.toString());
+  } catch {
+    location.reload();
+  }
+};
+
 (function () {
   if (!('serviceWorker' in navigator)) return;
 
