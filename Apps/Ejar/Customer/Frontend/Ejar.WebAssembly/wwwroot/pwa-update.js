@@ -10,7 +10,13 @@
 // تُعيد التَّحميل مع ?ac_v=<ts> لِكَسر CDN cache. تُسجَّل فَوراً قَبل
 // تَحميل WASM فَتَكون مُتاحَة عِندَما يَنقُر المُستَخدِم زَرّ "تَحديث الآن"
 // (سَواء في VersionPoll banner أو AcVersionBanner).
+//
+// تَعرِض overlay فَوريّ "جاري التَّحديث..." قَبل بَدء التَّنظيف لِأَنّ
+// unregister + caches.delete يَستَغرِق ثَوانٍ — بِدونه المُستَخدِم يَرى
+// "لا شَيء" بَعد النَّقر فَيَنقُر مَرّة أُخرى أو يَظُنّ أَنّ الزَّرّ مَكسور
+// (وَهذا تَقريباً ما حَصَل عِندَ الناشِر).
 window.acVersionRefresh = async function () {
+  showRefreshOverlay();
   try {
     if ('serviceWorker' in navigator) {
       const regs = await navigator.serviceWorker.getRegistrations();
@@ -29,6 +35,28 @@ window.acVersionRefresh = async function () {
     location.reload();
   }
 };
+
+function showRefreshOverlay() {
+  if (document.getElementById('ac-refresh-overlay')) return;
+  const div = document.createElement('div');
+  div.id = 'ac-refresh-overlay';
+  div.style.cssText = [
+    'position:fixed', 'inset:0',
+    'background:#1d4ed8', 'color:#fff',
+    'display:flex', 'align-items:center', 'justify-content:center',
+    'flex-direction:column', 'gap:16px',
+    'z-index:2147483647',
+    'font-family:Cairo,system-ui,sans-serif', 'font-size:18px',
+    'direction:rtl'
+  ].join(';');
+  div.innerHTML = `
+    <div style="font-size:22px;font-weight:700">جاري تَحديث إيجار…</div>
+    <div style="font-size:14px;opacity:0.85">لَحظَة مِن فَضلك، لا تُغلِق التَّطبيق</div>
+    <div style="margin-top:8px;width:48px;height:48px;border:4px solid rgba(255,255,255,0.3);
+                border-top-color:#fff;border-radius:50%;animation:ac-refresh-spin 1s linear infinite"></div>
+    <style>@keyframes ac-refresh-spin{to{transform:rotate(360deg)}}</style>`;
+  (document.body || document.documentElement).appendChild(div);
+}
 
 (function () {
   if (!('serviceWorker' in navigator)) return;
@@ -72,6 +100,9 @@ window.acVersionRefresh = async function () {
   }
 
   function applyUpdate() {
+    // overlay فَوريّ — controllerchange قَد يَستَغرِق ثَوانٍ، بِدون رَدّ
+    // فِعل بَصَريّ المُستَخدِم يَظُنّ أَنّ الزَّرّ مَكسور.
+    showRefreshOverlay();
     if (waitingSw) waitingSw.postMessage('skipWaiting');
     // controllerchange listener يُعيد التَّحميل تِلقائيّاً
   }

@@ -1,9 +1,15 @@
 @*
   Top-level wrapper that decides what to render based on the version check.
-  Status == Unsupported  -> AcVersionBlockedPage replaces ChildContent.
-  Status == NearSunset / Deprecated -> ChildContent + AcVersionBanner.
-  Status == Active w/ HasNewer -> ChildContent + AcVersionBanner (info).
-  Status == Latest -> ChildContent only.
+  Status == Unsupported           -> AcVersionBlockedPage replaces ChildContent.
+  Status == NearSunset/Deprecated -> ChildContent + AcVersionBanner (warning).
+  Status == Active w/ HasNewer    -> ChildContent + AcVersionBanner (info) —
+                                     سَوف يُكتَم بِـ ShowHasNewerBanner=false
+                                     عِندَما يَملُك الـ host VersionPoll +
+                                     pwa-update.js (PWA — تَجَنُّب ٣ بَنرات
+                                     مُتَكَدِّسَة). الـ NearSunset/Deprecated
+                                     يَبقى لِأَنّ الـ kit وَحدَه يَملُك تِلكَ
+                                     الإشارَة.
+  Status == Latest                -> ChildContent only.
 *@
 
 @using ACommerce.Kits.Versions.Operations
@@ -20,7 +26,7 @@ else if (State.Last.IsBlocked)
 }
 else
 {
-    @if (State.Last.ShouldWarn || State.Last.HasNewer)
+    @if (State.Last.ShouldWarn || (State.Last.HasNewer && ShowHasNewerBanner))
     {
         <AcVersionBanner Result="@State.Last" OnUpdate="OnUpdate" CtaLabel="@CtaLabel" />
     }
@@ -39,6 +45,14 @@ else
 
     /// <summary>تَمريرَ مُباشِر لِـ <see cref="AcVersionBanner.CtaLabel"/>.</summary>
     [Parameter] public string? CtaLabel { get; set; }
+
+    /// <summary>
+    /// عَرض بَنر "إصدار أَحدَث مُتاح" عِندَ <c>HasNewer</c> (وَ Status=Active).
+    /// افتراضيّاً <c>true</c> لِلتَّوافُق الخَلفيّ. الـ PWA الَّتي تَستَعمِل
+    /// <c>VersionPoll</c> + <c>pwa-update.js</c> يَجِب أَن تُمَرِّر
+    /// <c>false</c> — وَ إلاّ يَظهَر ٣ بَنرات لِنَفس الحَدَث.
+    /// </summary>
+    [Parameter] public bool ShowHasNewerBanner { get; set; } = true;
 
     protected override async Task OnInitializedAsync()
     {

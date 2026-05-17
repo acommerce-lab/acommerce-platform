@@ -1895,3 +1895,33 @@ body.ac-dark .acm-details-circle-btn { background: rgba(30, 41, 59, 0.92); color
   background: var(--ac-primary, #2e7d6b);
   border-color: var(--ac-primary, #2e7d6b);
 }
+
+/* AcVersionBanner — كانَ بِلا تَنسيق فَيَظهَر كَنَصّ خام أَعلى الصَفحَة.
+   يَظهَر فَقَط لِـ NearSunset/Deprecated بَعد ShowHasNewerBanner=false في
+   الـ host PWA. */
+.ac-version-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  font: 14px/1.4 Cairo, system-ui, sans-serif;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.ac-version-banner-info    { background: #dbeafe; color: #1e3a8a; border-bottom: 1px solid #93c5fd; }
+.ac-version-banner-warning { background: #fef3c7; color: #92400e; border-bottom: 1px solid #fcd34d; }
+.ac-version-banner-danger  { background: #fee2e2; color: #991b1b; border-bottom: 1px solid #fca5a5; }
+.ac-version-banner-icon    { font-size: 18px; line-height: 1; }
+.ac-version-banner-text    { flex: 1 1 auto; min-width: 0; }
+.ac-version-banner-cta {
+  background: #fff;
+  color: #1e3a8a;
+  border: 1px solid currentColor;
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: none;
+  font: inherit;
+}
+.ac-version-banner-cta:hover { filter: brightness(0.95); }
