@@ -15,8 +15,31 @@
 // unregister + caches.delete يَستَغرِق ثَوانٍ — بِدونه المُستَخدِم يَرى
 // "لا شَيء" بَعد النَّقر فَيَنقُر مَرّة أُخرى أو يَظُنّ أَنّ الزَّرّ مَكسور
 // (وَهذا تَقريباً ما حَصَل عِندَ الناشِر).
+//
+// hard timeout 5s — في Chrome (خاصّةً Android multi-tab) أَحياناً
+// <c>unregister()</c> أَو <c>caches.delete()</c> Promise لا يَنتَهي أَبَداً
+// فَالـ await يَتَجَمَّد وَ المُستَخدِم يَرى spinner لِلأَبَد. الحَلّ:
+// race مَع <c>setTimeout</c> ⇒ إعادَة التَّحميل تَحدُث بِالتَأكيد خِلال
+// ٥ث حَتّى لَو التَّنظيف لَم يَنتَهِ (نَسخَة جَديدَة سَوف تَستَلِم بَعد
+// reload عَلى أَيّ حال).
 window.acVersionRefresh = async function () {
   showRefreshOverlay();
+  const HARD_DEADLINE_MS = 5000;
+  let reloaded = false;
+  const doReload = () => {
+    if (reloaded) return;
+    reloaded = true;
+    try {
+      const u = new URL(location.href);
+      u.searchParams.set('ac_v', Date.now().toString());
+      location.replace(u.toString());
+    } catch {
+      location.reload();
+    }
+  };
+  // ① مُؤَقِّت احتياطيّ — يَضمَن الانتِقال حَتّى لَو الـ Promises تَجَمَّدَت.
+  setTimeout(doReload, HARD_DEADLINE_MS);
+  // ② تَنظيف فِعليّ — بِأَسرَع وَقت مُمكِن، يَنهي قَبل deadline في الغالِب.
   try {
     if ('serviceWorker' in navigator) {
       const regs = await navigator.serviceWorker.getRegistrations();
@@ -27,13 +50,7 @@ window.acVersionRefresh = async function () {
       await Promise.all(keys.map(k => caches.delete(k).catch(() => {})));
     }
   } catch (e) { console.warn('[acVersionRefresh] cleanup failed', e); }
-  try {
-    const u = new URL(location.href);
-    u.searchParams.set('ac_v', Date.now().toString());
-    location.replace(u.toString());
-  } catch {
-    location.reload();
-  }
+  doReload();
 };
 
 function showRefreshOverlay() {
@@ -104,7 +121,16 @@ function showRefreshOverlay() {
     // فِعل بَصَريّ المُستَخدِم يَظُنّ أَنّ الزَّرّ مَكسور.
     showRefreshOverlay();
     if (waitingSw) waitingSw.postMessage('skipWaiting');
-    // controllerchange listener يُعيد التَّحميل تِلقائيّاً
+    // fallback: لَو controllerchange لَم يُطلَق خِلال ٥ث (تَبويب آخَر
+    // يُبقي SW القَديم نَشطاً، أَو skipWaiting لَم يَصِل) أَجبِر reload.
+    // نَفس النَّسخَة سَوف تَستَخدِم SW الجَديد بَعد reload لِأَنّ المُتَصَفِّح
+    // يَفحَص service-worker.js عِندَ كلّ navigation (updateViaCache=none).
+    setTimeout(() => {
+      if (!reloading) {
+        reloading = true;
+        window.location.reload();
+      }
+    }, 5000);
   }
 
   navigator.serviceWorker.ready.then(reg => {
