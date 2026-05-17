@@ -47,6 +47,10 @@
     <ProjectReference Include="..\..\..\kits\Subscriptions\Frontend\Customer\ACommerce.Kits.Subscriptions.Frontend.Customer.csproj" />
     <ProjectReference Include="..\..\..\kits\Support\Frontend\Customer\ACommerce.Kits.Support.Frontend.Customer.csproj" />
     <ProjectReference Include="..\..\..\kits\Favorites\Frontend\Customer\ACommerce.Kits.Favorites.Frontend.Customer.csproj" />
+    <!-- Taxonomy kit — شَجَرَة الفِئات في Home/Explore (AcTaxonomyTreeSelect،
+         AcTaxonomyChips). كَلاسات الـ AcTaxo* تَجلِب ITaxonomyStore +
+         AddTaxonomy() الَّتي يُسَجِّلها AddTemplate_Customer_Ledger. -->
+    <ProjectReference Include="..\..\..\kits\Taxonomy\Frontend\Customer\ACommerce.Kits.Taxonomy.Frontend.Customer\ACommerce.Kits.Taxonomy.Frontend.Customer.csproj" />
 
     <!-- OAM templates — atoms (OamLedger, OamReceipt, OamStamp...) لإعادَة الاستِخدام داخل widgets -->
     <ProjectReference Include="..\..\OAM\ACommerce.Templates.OAM\ACommerce.Templates.OAM.csproj" />

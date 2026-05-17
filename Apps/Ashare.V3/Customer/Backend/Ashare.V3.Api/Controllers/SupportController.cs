@@ -1,3 +1,6 @@
+using ACommerce.OperationEngine.Core;
+using ACommerce.OperationEngine.Patterns;
+using ACommerce.OperationEngine.Wire;
 using ACommerce.OperationEngine.Wire.Http;
 using Ashare.V3.Data;
 using Ashare.V3.Domain;
@@ -13,23 +16,21 @@ namespace Ashare.V3.Api.Controllers;
 /// <see cref="ComplaintEntity"/> الإنتاجِي بَدَل ربط Chat الَّذي يَفرِضه
 /// Support kit (V3.ComplaintEntity لا يَحوي <c>ConversationId</c>).
 ///
-/// <para>الـ wire shape مُطابِق لِـ <c>HttpSupportApiClient</c>:</para>
-/// <list type="bullet">
-///   <item><c>GET  /support/tickets</c> → <c>List&lt;SupportTicketSummary&gt;</c></item>
-///   <item><c>GET  /support/tickets/{id}</c> → كائِن تَفاصيل + رِسائِل</item>
-///   <item><c>POST /support/tickets</c> body=<c>{subject, body}</c> → <c>{id}</c></item>
-///   <item><c>POST /support/tickets/{id}/replies</c> body=<c>{body}</c> → ok</item>
-/// </list>
-///
-/// <para>قَبل هذا الـ controller كان POST يَفشَل بِـ 500 (لا endpoint
-/// مُسَجَّل) ⇒ frontend يَفُكّ الجِسم "S..." كَ JSON ⇒ <c>'S' is invalid</c>.</para>
+/// <para>كُلّ المَسارات الكِتابِيَّة (Create + Reply) تَمُرّ عَبر
+/// <see cref="OpEngine"/> + <c>SaveAtEnd</c> — لا <c>SaveChangesAsync</c>
+/// مُباشِر، تَدقيق كامِل، وَ idempotency في حالَة إعادَة المُحاوَلَة.</para>
 /// </summary>
 [ApiController]
 [Authorize]
 public sealed class SupportController : ControllerBase
 {
     private readonly AshareV3DbContext _db;
-    public SupportController(AshareV3DbContext db) => _db = db;
+    private readonly OpEngine          _engine;
+    public SupportController(AshareV3DbContext db, OpEngine engine)
+    {
+        _db = db;
+        _engine = engine;
+    }
 
     private string? CallerId =>
         User.FindFirst("user_id")?.Value
@@ -100,24 +101,39 @@ public sealed class SupportController : ControllerBase
             return this.BadRequestEnvelope("subject_required");
 
         var ticketNumber = "T" + DateTime.UtcNow.ToString("yyMMddHHmmss");
-        var complaint = new ComplaintEntity
-        {
-            Id = Guid.NewGuid(),
-            CreatedAt = DateTime.UtcNow,
-            UserId = CallerId,
-            TicketNumber = ticketNumber,
-            Type = "general",
-            Title = body.Subject!.Trim(),
-            Description = body.Body?.Trim() ?? "",
-            Status = "open",
-            Priority = "normal",
-            Category = "support",
-        };
-        _db.Complaints.Add(complaint);
-        await _db.SaveChangesAsync(ct);
+        var ticketId = Guid.NewGuid();
+        var op = Entry.Create("support.ticket.create")
+            .Describe($"User {CallerId} opens support ticket {ticketNumber}")
+            .From($"User:{CallerId}",       1, ("role", "reporter"))
+            .To($"Ticket:{ticketId}",       1, ("role", "created"))
+            .Tag("user_id",       CallerId)
+            .Tag("ticket_number", ticketNumber)
+            .Tag("subject",       body.Subject!.Trim())
+            .Execute(ctx =>
+            {
+                _db.Complaints.Add(new ComplaintEntity
+                {
+                    Id           = ticketId,
+                    CreatedAt    = DateTime.UtcNow,
+                    UserId       = CallerId,
+                    TicketNumber = ticketNumber,
+                    Type         = "general",
+                    Title        = body.Subject!.Trim(),
+                    Description  = body.Body?.Trim() ?? "",
+                    Status       = "open",
+                    Priority     = "normal",
+                    Category     = "support",
+                });
+                return Task.CompletedTask;
+            })
+            .SaveAtEnd()
+            .Build();
+        var env = await _engine.ExecuteEnvelopeAsync(op, new { id = ticketId }, ct);
+        if (env.Operation.Status != "Success")
+            return this.BadRequestEnvelope(env.Operation.FailedAnalyzer ?? "create_failed",
+                                           env.Operation.ErrorMessage);
 
-        return this.OkEnvelope("support.ticket.create",
-            new { id = complaint.Id.ToString() });
+        return this.OkEnvelope("support.ticket.create", new { id = ticketId.ToString() });
     }
 
     public sealed record ReplyBody(string? Body);
@@ -133,20 +149,34 @@ public sealed class SupportController : ControllerBase
             .AnyAsync(c => c.Id == cid && c.UserId == CallerId, ct);
         if (!owns) return this.ForbiddenEnvelope("not_owner");
 
-        _db.ComplaintReplies.Add(new ComplaintReplyEntity
-        {
-            Id = Guid.NewGuid(),
-            CreatedAt = DateTime.UtcNow,
-            ComplaintId = cid,
-            SenderId = CallerId,
-            SenderName = "",
-            IsStaff = false,
-            Message = body.Body!.Trim(),
-            IsInternal = false,
-        });
-        var ticket = await _db.Complaints.FirstAsync(c => c.Id == cid, ct);
-        ticket.UpdatedAt = DateTime.UtcNow;
-        await _db.SaveChangesAsync(ct);
+        var replyId = Guid.NewGuid();
+        var op = Entry.Create("support.ticket.reply")
+            .Describe($"User {CallerId} replies on ticket {cid}")
+            .From($"User:{CallerId}",        1, ("role", "replier"))
+            .To($"Ticket:{cid}",             1, ("role", "appended"))
+            .Tag("ticket_id", cid.ToString())
+            .Execute(async ctx =>
+            {
+                _db.ComplaintReplies.Add(new ComplaintReplyEntity
+                {
+                    Id          = replyId,
+                    CreatedAt   = DateTime.UtcNow,
+                    ComplaintId = cid,
+                    SenderId    = CallerId,
+                    SenderName  = "",
+                    IsStaff     = false,
+                    Message     = body.Body!.Trim(),
+                    IsInternal  = false,
+                });
+                var ticket = await _db.Complaints.FirstAsync(c => c.Id == cid, ctx.CancellationToken);
+                ticket.UpdatedAt = DateTime.UtcNow;
+            })
+            .SaveAtEnd()
+            .Build();
+        var env = await _engine.ExecuteEnvelopeAsync(op, new { id = replyId, ticketId = cid }, ct);
+        if (env.Operation.Status != "Success")
+            return this.BadRequestEnvelope(env.Operation.FailedAnalyzer ?? "reply_failed",
+                                           env.Operation.ErrorMessage);
 
         return this.OkEnvelope("support.ticket.reply", new { ok = true });
     }

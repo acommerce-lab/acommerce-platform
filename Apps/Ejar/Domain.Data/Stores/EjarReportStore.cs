@@ -1,5 +1,6 @@
 using ACommerce.Kits.Reports.Domain;
 using ACommerce.Kits.Reports.Operations;
+using ACommerce.SharedKernel.Infrastructure.EFCore.Stores;
 using Ejar.Api.Data;
 using Microsoft.EntityFrameworkCore;
 
@@ -8,12 +9,13 @@ namespace Ejar.Api.Stores;
 /// <summary>
 /// مخزن البلاغات — جدول <c>Reports</c> في <see cref="EjarDbContext"/>.
 /// نحيف عمداً: لا منطق دومين هنا، فقط CRUD مع per-user scoping على
-/// <c>ListMineAsync</c>.
+/// <c>ListMineAsync</c>. يَرِث <see cref="EfOwnedStoreBase{TEntity}"/>
+/// لِـ <c>SetStatusAsync</c> الَّتي صارَت سَطراً واحِداً.
 /// </summary>
-public sealed class EjarReportStore : IReportStore
+public sealed class EjarReportStore : EfOwnedStoreBase<ReportEntity>, IReportStore
 {
     private readonly EjarDbContext _db;
-    public EjarReportStore(EjarDbContext db) => _db = db;
+    public EjarReportStore(EjarDbContext db) : base(db) => _db = db;
 
     public async Task<IReport> SubmitAsync(
         string reporterId, string entityType, string entityId,
@@ -73,14 +75,6 @@ public sealed class EjarReportStore : IReportStore
         return rows.Cast<IReport>().ToList();
     }
 
-    public async Task<bool> SetStatusAsync(string reportId, string newStatus, CancellationToken ct)
-    {
-        if (!Guid.TryParse(reportId, out var rid)) return false;
-        var r = await _db.Reports.FirstOrDefaultAsync(x => x.Id == rid, ct);
-        if (r is null) return false;
-        r.Status    = newStatus;
-        r.UpdatedAt = DateTime.UtcNow;
-        // (F6) tracked mutation only. ReportsController.SetStatus يحفظ.
-        return true;
-    }
+    public Task<bool> SetStatusAsync(string reportId, string newStatus, CancellationToken ct) =>
+        ApplyPatchNoSaveAsync(reportId, newStatus, (r, s) => r.Status = s, ct);
 }

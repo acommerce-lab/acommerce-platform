@@ -50,25 +50,28 @@ public sealed class AshareV3AuthUserStore : IAuthUserStore
         // IgnoreQueryFilters: لو الـ Profile مُحَفَّمَة (IsDeleted=true) في
         // الإنتاج، نَتَجاوَز الفِلتَر ونُحييها بَدَل إنشاء مُكَرَّر. كُلّ
         // الجَداوِل المُتَفَرِّعَة في asharedb تُشير إلى الـ UserId الأَصلي.
+        //
+        // <para><b>F6</b>: هذا الـ store لا يَستَدعي <c>SaveChangesAsync</c>.
+        // الـ caller (<c>AuthController.VerifyOtp</c>) يَضَع <c>.SaveAtEnd()</c>
+        // عَلى الـ op، فَالـ engine يَحفَظ الـ tracked changes ذَرّيّاً مَع
+        // باقي audit/notification interceptors. لَو حَفَظنا هُنا، سَيَحصُل
+        // كِتابَتان مُنفَصِلَتان (Profile أَوَّلاً، ثُمّ الـ op state) — كَسر
+        // الذَرِّيَّة + هَدر I/O.</para>
         var existing = await _db.Profiles.IgnoreQueryFilters()
             .FirstOrDefaultAsync(p => p.NationalId == subject || p.Phone == subject, ct);
 
         if (existing is not null)
         {
-            var dirty = false;
             if (existing.IsDeleted)
             {
                 existing.IsDeleted = false;
                 existing.UpdatedAt = DateTime.UtcNow;
-                dirty = true;
             }
             if (string.IsNullOrEmpty(existing.UserId))
             {
                 existing.UserId = Guid.NewGuid().ToString();
                 existing.UpdatedAt = DateTime.UtcNow;
-                dirty = true;
             }
-            if (dirty) await _db.SaveChangesAsync(ct);
             return existing.UserId!;
         }
 
@@ -78,19 +81,16 @@ public sealed class AshareV3AuthUserStore : IAuthUserStore
                            && subject.All(char.IsDigit)
                            && (subject[0] == '1' || subject[0] == '2');
         var newUserId = Guid.NewGuid().ToString();
-        var p = new ProfileEntity
+        _db.Profiles.Add(new ProfileEntity
         {
             Id = Guid.NewGuid(), CreatedAt = DateTime.UtcNow,
             UserId = newUserId,
             NationalId = isNationalId ? subject : null,
             Phone = isNationalId ? null : subject,
             FullName = "عُضو جديد",
-            City = "صنعاء",
-            // Type/IsActive سَمات ديناميكِيَّة الآن (في AttributesJson عَبر
-            // AcAttrEditor)؛ المُستَخدِم الجَديد بِلا قِيَم ⇒ افتِراضي.
-        };
-        _db.Profiles.Add(p);
-        await _db.SaveChangesAsync(ct);   // اِحفَظ فَوريّاً مِثل حالَة التَحديث
+            City = "الرياض",
+        });
+        // لا SaveChangesAsync — الـ op.SaveAtEnd() في AuthController يَحفَظ.
         return newUserId;
     }
 
@@ -158,7 +158,7 @@ public sealed class AshareV3VersionStore : IVersionStore
         row.ReleaseNotesAr = v.Notes;
         row.DownloadUrl = v.DownloadUrl;
         row.UpdatedAt = DateTime.UtcNow;
-        await _db.SaveChangesAsync(ct);
+        // (F6) لا SaveChangesAsync — AdminVersionsController.Upsert يَضَع .SaveAtEnd().
         return ToContract(row);
     }
 
@@ -171,7 +171,7 @@ public sealed class AshareV3VersionStore : IVersionStore
         row.Status = (int)newStatus;
         row.EndOfSupportDate = sunsetAt;
         row.UpdatedAt = DateTime.UtcNow;
-        await _db.SaveChangesAsync(ct);
+        // (F6) لا SaveChangesAsync — AdminVersionsController.SetStatus يَضَع .SaveAtEnd().
         return true;
     }
 
@@ -181,7 +181,7 @@ public sealed class AshareV3VersionStore : IVersionStore
             v => v.ApplicationCode == platform && v.VersionNumber == version, ct);
         if (row is null) return false;
         row.IsDeleted = true;
-        await _db.SaveChangesAsync(ct);
+        // (F6) لا SaveChangesAsync — AdminVersionsController.Delete يَضَع .SaveAtEnd().
         return true;
     }
 
@@ -449,15 +449,16 @@ public sealed class AshareV3ChatStore : IChatStore
 
     public async Task<IChatMessage> AppendMessageAsync(string conversationId, string senderId, string body, CancellationToken ct)
     {
-        var cid = Guid.Parse(conversationId);
-        var m = new MessageEntity
-        {
-            Id = Guid.NewGuid(), CreatedAt = DateTime.UtcNow,
-            ChatId = cid, SenderId = senderId, Content = body, Type = 0
-        };
-        _db.Messages.Add(m);
-        await _db.SaveChangesAsync(ct);
-        return m;
+        // مَسار قَديم (obsolete) — يَبني POCO + يُمَرِّره لِـ AppendNoSaveAsync.
+        // الـ caller يَلُفّ في op + .SaveAtEnd() ⇒ F6 مَحفوظ. لا SaveChanges هُنا.
+        var msg = new InMemoryChatMessage(
+            Id:             Guid.NewGuid().ToString(),
+            ConversationId: conversationId,
+            SenderPartyId:  $"User:{senderId}",
+            Body:           body,
+            SentAt:         DateTime.UtcNow);
+        await AppendNoSaveAsync(msg, ct);
+        return msg;
     }
 
     public async Task<IReadOnlyList<IChatMessage>> GetMessagesAsync(string conversationId, CancellationToken ct)
@@ -474,15 +475,15 @@ public sealed class AshareV3ChatStore : IChatStore
         return await _db.Chats.Include(c => c.Participants).FirstOrDefaultAsync(c => c.Id == cid, ct);
     }
 
-    public async Task<IReadOnlyList<IChatConversation>> ListForUserAsync(string userId, CancellationToken ct)
+    public async Task<IReadOnlyList<IChatConversationView>> ListForUserAsync(string userId, CancellationToken ct)
     {
         // الواجِهَة (Chats.razor → ConvDto) تَتَوَقَّع شَكلاً غَنيّاً —
-        // OwnerName/PartnerName/Avatars/LastMessage/LastAt/UnreadCount. الـ
-        // kit يُسَلسِل runtime type عَبر .Cast<object>() ⇒ نُرجِع
-        // ConversationView بِالحُقول كامِلَة.
+        // OwnerName/PartnerName/Avatars/LastMessage/LastAt/UnreadCount.
+        // الكيت يَتَوَقَّع typed <see cref="IChatConversationView"/> ⇒
+        // نَبني الـ POCO <see cref="ChatConversationView"/> مُباشَرَةً.
         var chatIds = await _db.ChatParticipants.AsNoTracking()
             .Where(p => p.UserId == userId).Select(p => p.ChatId).ToListAsync(ct);
-        if (chatIds.Count == 0) return Array.Empty<IChatConversation>();
+        if (chatIds.Count == 0) return Array.Empty<IChatConversationView>();
 
         var chats = await _db.Chats.AsNoTracking()
             .Where(c => chatIds.Contains(c.Id))
@@ -512,7 +513,7 @@ public sealed class AshareV3ChatStore : IChatStore
 
         var partsByChat = parts.GroupBy(p => p.ChatId).ToDictionary(g => g.Key, g => g.ToList());
 
-        var views = new List<IChatConversation>(chats.Count);
+        var views = new List<IChatConversationView>(chats.Count);
         foreach (var c in chats)
         {
             var cps = partsByChat.GetValueOrDefault(c.Id) ?? new();
@@ -521,53 +522,35 @@ public sealed class AshareV3ChatStore : IChatStore
             var meProf    = meSide   is null ? null : profByUser.GetValueOrDefault(meSide.UserId);
             var otherProf = other    is null ? null : profByUser.GetValueOrDefault(other.UserId);
 
-            var ownerName    = meProf?.FullName;
-            var ownerAvatar  = meProf?.AvatarUrl;
-            var partnerName  = otherProf?.FullName;
-            var partnerAvatar = otherProf?.AvatarUrl;
-
             var last = lastByChat.GetValueOrDefault(c.Id);
+            var participants = cps.Select(p => p.UserId)
+                .Where(s => !string.IsNullOrEmpty(s))
+                .Select(s => $"User:{s}")
+                .ToList();
 
-            views.Add(new ConversationView(
-                Id:            c.Id.ToString(),
-                ParticipantIds: cps.Select(p => p.UserId).Where(s => !string.IsNullOrEmpty(s)).ToList()!,
-                OwnerId:        meSide?.UserId,
-                OwnerName:      ownerName,
-                OwnerAvatar:    ownerAvatar,
-                PartnerId:      other?.UserId,
-                PartnerName:    partnerName,
-                PartnerAvatar:  partnerAvatar,
-                Subject:        c.Title,
-                ListingId:      null,
-                LastAt:         last?.CreatedAt ?? c.UpdatedAt ?? c.CreatedAt,
-                UnreadCount:    0,
-                LastMessage:    last?.Content));
+            views.Add(new ChatConversationView(
+                Id:                  c.Id.ToString(),
+                ParticipantPartyIds: participants!,
+                OwnerId:             meSide?.UserId ?? "",
+                OwnerName:           meProf?.FullName ?? "—",
+                OwnerAvatar:         meProf?.AvatarUrl,
+                PartnerId:           other?.UserId ?? "",
+                PartnerName:         otherProf?.FullName ?? "—",
+                PartnerAvatar:       otherProf?.AvatarUrl,
+                Subject:             c.Title ?? "",
+                ListingId:           null,
+                LastAt:              last?.CreatedAt ?? c.UpdatedAt ?? c.CreatedAt,
+                UnreadCount:         0,
+                LastMessage:         last?.Content,
+                LastMessageAt:       last?.CreatedAt,
+                HasMyUnread:         false));
         }
         return views;
     }
 
-    /// <summary>
-    /// شَكل عَرض المُحادَثَة الَّذي تَستَهلِكه Chats.razor (Marketplace).
-    /// يَنفُذ <see cref="IChatConversation"/> بِالحَدّ الأَدنى ولكِنّ كُلّ
-    /// الحُقول الإضافِيَّة public ⇒ تُسَلسَل في JSON عَبر runtime type.
-    /// </summary>
-    public sealed record ConversationView(
-        string Id,
-        IReadOnlyList<string> ParticipantIds,
-        string? OwnerId,
-        string? OwnerName,
-        string? OwnerAvatar,
-        string? PartnerId,
-        string? PartnerName,
-        string? PartnerAvatar,
-        string? Subject,
-        string? ListingId,
-        DateTime LastAt,
-        int UnreadCount,
-        string? LastMessage) : IChatConversation
-    {
-        IReadOnlyList<string> IChatConversation.ParticipantPartyIds => ParticipantIds;
-    }
+    // ConversationView القَديم حُذِفَ — كانَ يَعتَمِد عَلى السيريالايزر يَكتُب
+    // runtime type. الآن نَبني <see cref="ChatConversationView"/> POCO المُعَرَّف
+    // في <c>ACommerce.Chat.Operations</c> مُباشَرَةً.
 }
 
 public sealed class AshareV3ChatPresenceProbe : IPresenceProbe

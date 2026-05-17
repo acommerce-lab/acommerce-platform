@@ -1,3 +1,6 @@
+using ACommerce.OperationEngine.Core;
+using ACommerce.OperationEngine.Patterns;
+using ACommerce.OperationEngine.Wire;
 using ACommerce.OperationEngine.Wire.Http;
 using ACommerce.Payments.Operations.Abstractions;
 using Ashare.V3.Data;
@@ -10,29 +13,40 @@ using System.Security.Claims;
 namespace Ashare.V3.Api.Controllers;
 
 /// <summary>
-/// نُقَط الدَفع لِنَشر إعلان في V3. الـ frontend يَستَدعي
-/// <c>POST /payments/listing/initiate</c> قَبل ما يَنشُر، يَتَلَقّى
-/// <c>{reference, paymentUrl}</c>، يَنتَظِر اكتِمال الدَفع (mock يَنجَح
-/// تِلقائيّاً بَعد ثَوانٍ — production يَستَخدِم webhook)، ثُمّ يُرسِل
-/// <c>POST /my-listings</c> مَع header <c>X-Payment-Reference: {ref}</c>
-/// — <see cref="Interceptors.ListingPaymentGateInterceptor"/> يَفحَصه.
+/// نُقَط الدَفع لِنَشر إعلان في V3. كُلّ مَسار هُنا الآن يَمُرّ عَبر
+/// <see cref="OpEngine"/> + <c>SaveAtEnd</c> ⇒ التَدقيق + Idempotency +
+/// كُلّ interceptors الـ post-write تَنطَبِق تِلقائيّاً. <b>لا
+/// <c>SaveChangesAsync</c> مُباشِر هُنا</b>.
 ///
-/// <para>سِعر الإعلان: ثابِت مِن أَجل MVP، قابِل لِلتَكوين عَبر
-/// <c>appsettings:Payments:ListingPrice</c>. مَكان مُلائِم لاحِقاً
-/// لِتَسعير حَسَب الفِئَة أَو الإبراز.</para>
+/// <para>تَدَفُّق نَموذجي:</para>
+/// <list type="number">
+///   <item>Frontend ⇒ <c>POST /payments/listing/initiate</c> ⇒ op
+///         <c>payment.listing.initiate</c> يُسَجِّل صَفّ pending.</item>
+///   <item>Frontend ⇒ polls <c>/status</c> أَو الـ gateway يُرسِل webhook ⇒
+///         op <c>payment.listing.status</c> أَو <c>payment.webhook.{provider}</c>
+///         يُرَقّي الحالَة.</item>
+///   <item>Frontend ⇒ <c>POST /my-listings</c> مَع
+///         <c>X-Payment-Reference</c> ⇒ ListingPaymentGateInterceptor
+///         يَسمَح، ListingPaymentConsumeInterceptor يَضَع
+///         <c>Consumed = true</c> عِندَ نَجاح إنشاء الإعلان.</item>
+/// </list>
 /// </summary>
 [ApiController]
 [Authorize]
 public sealed class ListingPaymentsController : ControllerBase
 {
     private readonly AshareV3DbContext _db;
-    private readonly IPaymentGateway _gateway;
-    private readonly IConfiguration _config;
-    public ListingPaymentsController(AshareV3DbContext db, IPaymentGateway gateway, IConfiguration config)
+    private readonly IPaymentGateway   _gateway;
+    private readonly IConfiguration    _config;
+    private readonly OpEngine          _engine;
+    public ListingPaymentsController(
+        AshareV3DbContext db, IPaymentGateway gateway,
+        IConfiguration config, OpEngine engine)
     {
         _db = db;
         _gateway = gateway;
         _config = config;
+        _engine = engine;
     }
 
     private string? CallerId =>
@@ -51,7 +65,7 @@ public sealed class ListingPaymentsController : ControllerBase
                      ?? 5_000m;
         var currency = body?.Currency
                        ?? _config["Payments:Currency"]
-                       ?? "YER";
+                       ?? "SAR";
 
         var orderRef = "listing_" + Guid.NewGuid().ToString("N")[..12];
         var init = await _gateway.InitiateAsync(new PaymentRequest(
@@ -64,18 +78,38 @@ public sealed class ListingPaymentsController : ControllerBase
         if (!init.Succeeded || init.PaymentReference is null)
             return this.BadRequestEnvelope("payment_initiate_failed", init.Error);
 
-        _db.ListingPayments.Add(new ListingPaymentEntity
-        {
-            Id = Guid.NewGuid(),
-            CreatedAt = DateTime.UtcNow,
-            UserId = CallerId,
-            Provider = _gateway.Name,
-            Reference = init.PaymentReference,
-            Amount = amount,
-            Currency = currency,
-            Status = "pending",
-        });
-        await _db.SaveChangesAsync(ct);
+        var paymentId = Guid.NewGuid();
+        var op = Entry.Create("payment.listing.initiate")
+            .Describe($"User {CallerId} initiates listing payment {init.PaymentReference}")
+            .From($"User:{CallerId}",        1, ("role", "payer"))
+            .To($"Payment:{init.PaymentReference}", 1, ("role", "created"))
+            .Tag("user_id",          CallerId)
+            .Tag("provider",         _gateway.Name)
+            .Tag("reference",        init.PaymentReference)
+            .Tag("amount",           amount.ToString())
+            .Tag("currency",         currency)
+            .Execute(ctx =>
+            {
+                _db.ListingPayments.Add(new ListingPaymentEntity
+                {
+                    Id        = paymentId,
+                    CreatedAt = DateTime.UtcNow,
+                    UserId    = CallerId,
+                    Provider  = _gateway.Name,
+                    Reference = init.PaymentReference,
+                    Amount    = amount,
+                    Currency  = currency,
+                    Status    = "pending",
+                });
+                return Task.CompletedTask;
+            })
+            .SaveAtEnd()
+            .Build();
+
+        var env = await _engine.ExecuteEnvelopeAsync(op, new { reference = init.PaymentReference }, ct);
+        if (env.Operation.Status != "Success")
+            return this.BadRequestEnvelope(env.Operation.FailedAnalyzer ?? "initiate_failed",
+                                           env.Operation.ErrorMessage);
 
         return this.OkEnvelope("payment.listing.initiate", new
         {
@@ -108,10 +142,24 @@ public sealed class ListingPaymentsController : ControllerBase
 
         if (status.Succeeded && payment.Status != effective)
         {
-            payment.Status = effective;
-            if (effective == "captured") payment.CapturedAt = DateTime.UtcNow;
-            payment.UpdatedAt = DateTime.UtcNow;
-            await _db.SaveChangesAsync(ct);
+            // التَّحديث عَبر op لِتَدقيق التَغيير + Idempotency.
+            var op = Entry.Create("payment.listing.status")
+                .Describe($"Payment {reference} status: {payment.Status} → {effective}")
+                .From($"User:{CallerId}",                1, ("role", "poller"))
+                .To($"Payment:{reference}",              1, ("role", "updated"))
+                .Tag("reference",  reference)
+                .Tag("from",       payment.Status)
+                .Tag("to",         effective)
+                .Execute(ctx =>
+                {
+                    payment.Status    = effective;
+                    if (effective == "captured") payment.CapturedAt = DateTime.UtcNow;
+                    payment.UpdatedAt = DateTime.UtcNow;
+                    return Task.CompletedTask;
+                })
+                .SaveAtEnd()
+                .Build();
+            await _engine.ExecuteEnvelopeAsync(op, new { reference }, ct);
         }
 
         return this.OkEnvelope("payment.listing.status", new
@@ -124,10 +172,15 @@ public sealed class ListingPaymentsController : ControllerBase
     }
 
     /// <summary>
-    /// Webhook عامّ لِكُلّ المُزَوِّدين. الـ gateway يَستَدعيها بِـ rawBody +
-    /// headers ⇒ <see cref="IPaymentGateway.ParseWebhookAsync"/> يَتَحَقَّق
-    /// مَن التَوقيع ويُرجِع الحالَة الجَديدَة. نُحَدِّث الـ DB row فَوراً.
-    /// Mock يَستَقبِل: <c>{"ref":"…","status":"captured"}</c>.
+    /// Webhook عامّ لِكُلّ المُزَوِّدين. <b>طَلَب أَنونيموس</b> — الـ gateway
+    /// يَتَوَقَّع endpoint مَفتوح. الحِمايَة تَأتي مَن:
+    /// <list type="bullet">
+    ///   <item><see cref="IPaymentGateway.ParseWebhookAsync"/> يَتَحَقَّق مَن
+    ///         التَوقيع (HMAC/signature المُزَوِّد).</item>
+    ///   <item>الـ op يَحوي <c>idempotency_key = "webhook:" + reference + ":" + status</c>
+    ///         ⇒ Idempotency interceptor يَرفُض إعادَة المُحاوَلَة بِنَفس
+    ///         الحالَة (المُزَوِّدون يُكَرِّرون webhooks عادَةً).</item>
+    /// </list>
     /// </summary>
     [HttpPost("/payments/webhook/{provider}")]
     [AllowAnonymous]
@@ -146,13 +199,36 @@ public sealed class ListingPaymentsController : ControllerBase
         if (payment is null) return this.NotFoundEnvelope("payment_not_found");
 
         var newStatus = parsed.Status?.ToString() ?? payment.Status;
-        if (payment.Status != newStatus)
-        {
-            payment.Status = newStatus;
-            if (newStatus == "captured") payment.CapturedAt = DateTime.UtcNow;
-            payment.UpdatedAt = DateTime.UtcNow;
-            await _db.SaveChangesAsync(ct);
-        }
+
+        // الـ op يَحمِل idempotency_key مَبني مَن reference+status ⇒ نَفس
+        // webhook لِنَفس الحالَة لا يُنَفَّذ مَرَّتَين (المُزَوِّدون يُعيدون
+        // إرسال webhooks عِندَ retry). الـ IdempotencyInterceptor يَفحَص.
+        var idKey = $"webhook:{provider}:{parsed.PaymentReference}:{newStatus}";
+        var op = Entry.Create("payment.webhook")
+            .Describe($"Webhook {provider} for {parsed.PaymentReference}: {payment.Status} → {newStatus}")
+            .From($"PaymentProvider:{provider}", 1, ("role", "webhook"))
+            .To($"Payment:{parsed.PaymentReference}", 1, ("role", "updated"))
+            .Tag("provider",        provider)
+            .Tag("reference",       parsed.PaymentReference)
+            .Tag("from",            payment.Status)
+            .Tag("to",              newStatus)
+            .Tag("idempotency_key", idKey)
+            .Execute(ctx =>
+            {
+                if (payment.Status != newStatus)
+                {
+                    payment.Status = newStatus;
+                    if (newStatus == "captured") payment.CapturedAt = DateTime.UtcNow;
+                    payment.UpdatedAt = DateTime.UtcNow;
+                }
+                return Task.CompletedTask;
+            })
+            .SaveAtEnd()
+            .Build();
+
+        var env = await _engine.ExecuteEnvelopeAsync(op, new { reference = parsed.PaymentReference, status = newStatus }, ct);
+        if (env.Operation.Status != "Success" && env.Operation.FailedAnalyzer != "idempotent_replay")
+            return this.BadRequestEnvelope(env.Operation.FailedAnalyzer ?? "webhook_failed", env.Operation.ErrorMessage);
 
         return this.OkEnvelope("payment.webhook", new { ok = true, status = newStatus });
     }

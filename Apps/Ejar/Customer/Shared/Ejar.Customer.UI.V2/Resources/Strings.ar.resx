@@ -30,6 +30,7 @@
   <data name="home.welcome_title" xml:space="preserve"><value>أهلاً بك في إيجار</value></data>
   <data name="home.welcome_body" xml:space="preserve"><value>منصّة إعلانات عقاريّة بنموذج عمليّات محاسبيّ — كلّ فعل لك مُسجَّل كقيد، كلّ صفحة هنا تُجمّع من widgets قابلة لإعادة التَركيب.</value></data>
   <data name="home.shortcuts_title" xml:space="preserve"><value>اختصارات</value></data>
+  <data name="home.categories_title" xml:space="preserve"><value>الفِئات</value></data>
   <data name="home.card_browse_title" xml:space="preserve"><value>تَصفّح العقارات</value></data>
   <data name="home.card_browse_meta" xml:space="preserve"><value>عرض الإعلانات المتاحة + فلترة حسب المدينة والفئة</value></data>
   <data name="home.card_notifications_title" xml:space="preserve"><value>الإشعارات</value></data>

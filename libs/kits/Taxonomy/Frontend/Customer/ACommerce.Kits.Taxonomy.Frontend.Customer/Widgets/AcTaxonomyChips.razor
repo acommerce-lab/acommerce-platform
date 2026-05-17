@@ -88,13 +88,22 @@ else
     protected override async Task OnAfterRenderAsync(bool first)
     {
         if (!first) return;
-        await Tax.GetTreeAsync(RootCode);
+        var tree = await Tax.GetTreeAsync(RootCode);
 
         // لَو Selected مُمَرَّر، نَفتَح الـ kind الَّذي يَحويه تِلقائيّاً.
+        // غَير ذلك، نَفتَح أَوَّل kind لَه أَولاد لِيَرى المُستَخدِم
+        // الـ leaves فَوراً — يَتَجَنَّب وَهم "لا شَيء قابِل لِلنَّقر".
         if (!string.IsNullOrEmpty(Selected))
         {
             var path = Tax.GetPath(RootCode, Selected);
             if (path.Count > 0) _activeKindId = path[0].Id;
+        }
+        if (_activeKindId is null && tree.Count > 0)
+        {
+            var firstWithKids = tree
+                .Where(n => n.ParentId is null)
+                .FirstOrDefault(k => Tax.GetChildren(RootCode, k.Id).Count > 0);
+            _activeKindId = firstWithKids?.Id ?? tree.FirstOrDefault(n => n.ParentId is null)?.Id;
         }
         _loading = false;
         await InvokeAsync(StateHasChanged);

@@ -8,12 +8,15 @@ namespace Ashare.V3.Api.Controllers;
 /// <summary>
 /// يَتَجاوَز <c>/categories</c> الكيت الافتِراضي (الذي يَقرَأ
 /// <see cref="ACommerce.Kits.Discovery.Domain.DiscoveryCategory"/> الفارِغ
-/// في V3) بِقِراءَة مِن جَدول <c>ProductCategory</c> الإنتاجِي. نَفس wire
-/// shape (<c>{id, label, icon, kind}</c>) ⇒ store الواجِهَة لا يَحتاج تَعديل.
+/// في V3) بِقِراءَة مِن جَدول <c>TaxonomyNodes</c> — نَفس المَصدَر الَّذي
+/// تَستَخدِمه <c>/taxonomy/listing_categories</c>. هذا يَضمَن أَنّ كُلّ
+/// الصَّفَحات (Home, Explore, CreateListing, Search) تَرى نَفس الفِئات،
+/// ولوحَة الإدارَة المُستَقبَلِيَّة تُعَدِّل مَكاناً واحِداً.
 ///
-/// <para><b>الفِئات</b>: <c>id = Slug</c> (مَفتاح ثابِت)،
-/// <c>label = Name</c>، <c>icon = Icon</c>، <c>kind = "category"</c>
-/// (الكيت يُمَيِّز بَين أَنواع، V3 يَستَخدِم نَوعاً واحِداً).</para>
+/// <para><b>التَّحويل</b>: <c>TaxonomyNode</c> ⇒ wire shape الـ Discovery
+/// kit: <c>{ id = Code, label = NameAr ?? Name, icon = Icon, kind = "category" }</c>.
+/// نَستَخدِم الـ leaves فَقَط (<c>ParentId != null</c>) لِأَنّ المُستَخدِم
+/// يَختار نَوع إعلان مَحَدَّد، لا الفِئَة الأَب.</para>
 /// </summary>
 [ApiController]
 public sealed class CategoriesController : ControllerBase
@@ -24,14 +27,15 @@ public sealed class CategoriesController : ControllerBase
     [HttpGet("/categories", Order = -10)]   // يَفوز عَلى kit's Discovery.Categories
     public async Task<IActionResult> List(CancellationToken ct)
     {
-        var rows = await _db.ProductCategories.AsNoTracking()
-            .Where(c => c.IsActive)
-            .OrderBy(c => c.SortOrder).ThenBy(c => c.Name)
-            .Select(c => new
+        const string root = "listing_categories";
+        var rows = await _db.TaxonomyNodes.AsNoTracking()
+            .Where(t => t.RootCode == root && t.IsActive && t.ParentId != null)
+            .OrderBy(t => t.SortOrder).ThenBy(t => t.Code)
+            .Select(t => new
             {
-                id    = c.Slug,
-                label = c.Name,
-                icon  = c.Icon ?? "tag",
+                id    = t.Code,
+                label = t.NameAr ?? t.Name,
+                icon  = t.Icon ?? "tag",
                 kind  = "category",
             })
             .ToListAsync(ct);

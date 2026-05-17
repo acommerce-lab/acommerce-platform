@@ -13,8 +13,8 @@
 
 <PageTitle>@(L[TemplateStrings.AppName])</PageTitle>
 
-@* شَجَرَة الأَنواع — عَرض أَفقي مُكَثَّف (kinds في صَفّ، children الـ kind
-   المُختار تَحته). يُوَفِّر ارتِفاع كَبير مَقارَنَة بِالـ TreeSelect العَمودي.
+@* شَجَرَة الأَنواع — أُفُقِيَّة (chips) بِفَتح أَوَّل kind تِلقائيّاً.
+   صَفّان: kinds في الأَعلى، leaves الـ kind النَّشِط أَسفَلَه.
    اختيار leaf ⇒ /explore فَلتَراً بِالـ slug. مَخفي لَو الـ root غَير مَزروع. *@
 @if (_taxonomyHasNodes)
 {
@@ -99,16 +99,16 @@
         await HomeStore.LoadHomeAsync(string.IsNullOrEmpty(Prefs.City) ? null : Prefs.City);
         _data = MapHomeView(HomeStore.Home);
 
-        // شَجَرَة Taxonomy — تَأتي مَن endpoint مُختَلِف، نُحَمِّلها بِالتَوازي
-        // مَع Home view. فارِغَة ⇒ الـ section يَختَفي تِلقائيّاً.
+        // قِسم الفِئات القَديم (دَوائِر مُكَدَّسَة في AcMarketplaceHomePage) لَم
+        // يَعُد له مَكان: شَجَرَة Taxonomy هي المَصدَر الكانوني الوَحيد. نُفَرِّغ
+        // Categories دائِماً ⇒ المُكَوِّن يُخفي القِسم. لَو Taxonomy فارِغَة
+        // (مَثَلاً قَبل seed)، الـ wrapper يُخفي card الشَجَرَة أَيضاً ⇒ لا
+        // ازدِواجِيَّة ولا فَوضى.
+        if (_data is not null)
+            _data = _data with { Categories = Array.Empty<CategoryTileDto>() };
+
         var tree = await Taxonomy.GetTreeAsync("listing_categories");
         _taxonomyHasNodes = tree.Count > 0;
-
-        // إخفاء قِسم الفِئات الافتِراضي في <c>AcMarketplaceHomePage</c> لَو
-        // الشَجَرَة مَوجودَة: قِسمان بِنَفس العُنوان "فِئات" تَكرار مُزعِج.
-        // نُفَرِّغ Categories ⇒ المُكَوِّن يُخفي القِسم تِلقائيّاً.
-        if (_taxonomyHasNodes && _data is not null)
-            _data = _data with { Categories = Array.Empty<CategoryTileDto>() };
 
         await InvokeAsync(StateHasChanged);
     }
@@ -122,7 +122,7 @@
         Nav.NavigateTo($"/explore?category={Uri.EscapeDataString(slug)}");
     }
 
-    private static MarketplaceHomeDto MapHomeView(HomeView? v)
+    private MarketplaceHomeDto MapHomeView(HomeView? v)
     {
         if (v is null) return new MarketplaceHomeDto
         {
@@ -134,8 +134,8 @@
         {
             Categories = v.Categories.Select(c =>
                 new CategoryTileDto { Id = c.Id, Label = c.Label, Icon = c.Icon ?? "" }).ToList(),
-            Featured = v.Featured.Select(ToRow).ToList(),
-            New      = v.New.Select(ToRow).ToList()
+            Featured = v.Featured.Select(l => ToRow(l)).ToList(),
+            New      = v.New.Select(l => ToRow(l)).ToList()
         };
     }
 
@@ -178,10 +178,10 @@
     private async Task OnFavoriteToggled((ListingRowDto Listing, bool On) e)
         => await Favs.ToggleAsync(e.Listing.Id);
 
-    private static ListingRowDto ToRow(HomeListingCard l) => new()
+    private ListingRowDto ToRow(HomeListingCard l) => new()
     {
         Id = l.Id, Title = l.Title,
-        Price = l.Price, Currency = "YER", TimeUnit = l.TimeUnitLabel ?? l.TimeUnit ?? "",
+        Price = l.Price, Currency = L[TemplateStrings.CommonCurrencyShort], TimeUnit = l.TimeUnitLabel ?? l.TimeUnit ?? "",
         City = l.City ?? "", District = l.District ?? "", Status = 1, IsFeatured = l.IsVerified,
         ThumbnailUrl = l.FirstImage,
         Capacity = l.BedroomCount == 0 ? null : l.BedroomCount,

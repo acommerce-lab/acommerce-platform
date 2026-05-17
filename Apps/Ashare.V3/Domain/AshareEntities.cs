@@ -2,6 +2,7 @@ using ACommerce.Chat.Operations;
 using ACommerce.Kits.DynamicAttributes.Operations;
 using ACommerce.Kits.Listings.Domain;
 using ACommerce.Kits.Profiles.Operations;
+using ACommerce.Kits.Taxonomy.Operations;
 using ACommerce.SharedKernel.Domain.Entities;
 
 namespace Ashare.V3.Domain;
@@ -363,7 +364,7 @@ public class BookingEntity : IBaseEntity
     public decimal TotalPrice { get; set; }
     public decimal DepositPercentage { get; set; }
     public decimal DepositAmount { get; set; }
-    public string Currency { get; set; } = "YER";
+    public string Currency { get; set; } = "SAR";
     public string? DepositPaymentId { get; set; }
     public DateTime? DepositPaidAt { get; set; }
     public string? FinalPaymentId { get; set; }
@@ -731,7 +732,7 @@ public class ListingPaymentEntity : IBaseEntity
     public string Provider { get; set; } = "mock";    // gateway name
     public string Reference { get; set; } = "";       // returned by gateway
     public decimal Amount { get; set; }
-    public string Currency { get; set; } = "YER";
+    public string Currency { get; set; } = "SAR";
     /// <summary>pending / authorized / captured / failed / refunded / consumed.</summary>
     public string Status { get; set; } = "pending";
     /// <summary>عَلَم: استُهلِك هذا الدَفع لِنَشر إعلان (مَنع إعادَة الاستِخدام).</summary>
@@ -753,4 +754,35 @@ public class OperationIdempotencyEntity : IBaseEntity
     public string Key { get; set; } = "";
     public string OperationType { get; set; } = "";
     public string Snapshot { get; set; } = "";
+}
+
+// ─── Taxonomy ───────────────────────────────────────────────────────────
+/// <summary>
+/// عُقدَة شَجَرَة Taxonomy لِـ V3 — مَوحَّدَة مَع إيجار. جَدول واحِد
+/// <c>TaxonomyNodes</c> يَحوي كُلّ شَجَرَة (categories, locations…) مُمَيَّزَة
+/// بِـ <see cref="RootCode"/>. <c>Code</c> هو slug فَريد ضِمن الشَجَرَة
+/// (<c>roommate</c>, <c>roommate_has</c>…).
+///
+/// <para>الـ V3 frontend (Home/Explore/CreateListing) يَستَعمِل
+/// <see cref="ACommerce.Kits.Taxonomy.Backend.ITaxonomyStore"/> فَقَط
+/// (نَفس إيجار) — لا قِراءَة مُباشَرَة لِجَدول <c>ProductCategory</c>
+/// الإنتاجي. الـ slug في <c>ProductListing.PropertyType</c> يُطابِق
+/// <c>TaxonomyNode.Code</c>.</para>
+/// </summary>
+public sealed class TaxonomyNodeEntity : IBaseEntity, ITaxonomyNode
+{
+    public Guid Id { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public DateTime? UpdatedAt { get; set; }
+    public bool IsDeleted { get; set; }
+
+    public Guid? ParentId { get; set; }
+
+    public string RootCode { get; set; } = "";
+    public string Code     { get; set; } = "";
+    public string Name     { get; set; } = "";
+    public string? NameAr  { get; set; }
+    public string? Icon    { get; set; }
+    public int  SortOrder { get; set; }
+    public bool IsActive  { get; set; } = true;
 }

@@ -73,6 +73,10 @@ public sealed class AshareV3DbContext : DbContext
     // عَمَلِيَّة بِـ idempotency_key tag. يَمنَع تَكرار النَّشر.
     public DbSet<OperationIdempotencyEntity> OperationIdempotency => Set<OperationIdempotencyEntity>();
 
+    // ── Taxonomy — جَدول مُوَحَّد مَع إيجار، يَخدِم Home/Explore/CreateListing.
+    // مُنشَأ عَبر additive Bootstrap CREATE TABLE — لا migration EF عَلى asharedb.
+    public DbSet<TaxonomyNodeEntity> TaxonomyNodes => Set<TaxonomyNodeEntity>();
+
     protected override void OnModelCreating(ModelBuilder b)
     {
         // ─── أَسماء جَداوِل asharedb (singular pattern V2) ────────────
@@ -138,6 +142,18 @@ public sealed class AshareV3DbContext : DbContext
         b.Entity<OperationIdempotencyEntity>().Property(o => o.Key).HasMaxLength(64);
         b.Entity<OperationIdempotencyEntity>().Property(o => o.OperationType).HasMaxLength(120);
         b.Entity<OperationIdempotencyEntity>().Property(o => o.Snapshot).HasMaxLength(200);
+
+        // ── Taxonomy: نَفس shape إيجار. index رئيسي (RootCode, Code) فَريد +
+        // ثانوي (RootCode, ParentId, SortOrder) لِبِناء الشَجَرَة.
+        b.Entity<TaxonomyNodeEntity>().ToTable("TaxonomyNodes")
+            .HasQueryFilter(e => !e.IsDeleted);
+        b.Entity<TaxonomyNodeEntity>().HasIndex(t => new { t.RootCode, t.Code }).IsUnique();
+        b.Entity<TaxonomyNodeEntity>().HasIndex(t => new { t.RootCode, t.ParentId, t.SortOrder });
+        b.Entity<TaxonomyNodeEntity>().Property(t => t.RootCode).HasMaxLength(60);
+        b.Entity<TaxonomyNodeEntity>().Property(t => t.Code).HasMaxLength(80);
+        b.Entity<TaxonomyNodeEntity>().Property(t => t.Name).HasMaxLength(120);
+        b.Entity<TaxonomyNodeEntity>().Property(t => t.NameAr).HasMaxLength(120);
+        b.Entity<TaxonomyNodeEntity>().Property(t => t.Icon).HasMaxLength(40);
 
         // ─── soft-delete global query filter (مُتَّسِق مَع V2 pattern) ─
         b.Entity<ProfileEntity>().HasQueryFilter(e => !e.IsDeleted);

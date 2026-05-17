@@ -17,6 +17,7 @@ using ACommerce.Kits.Versions.Backend;
 using ACommerce.Authentication.TwoFactor.Providers.Sms.Mock.Extensions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using System.Reflection;
 
 namespace ACommerce.ServiceHost;
 
@@ -30,6 +31,11 @@ public sealed class KitBuilder
     public IServiceCollection Services { get; }
     public IConfiguration Configuration { get; }
     public Microsoft.Extensions.Hosting.IHostEnvironment? Environment { get; }
+
+    /// <summary>قائِمَة assemblies الَّتي تَحوي كَيانات الكيت — تُضاف
+    /// تِلقائيّاً عِندَ <c>RegisterEntities</c>. الـ kits الَّتي تَملِك
+    /// كَيانات (Favorites، Discovery، Support، Versions) تُساهِم هُنا.</summary>
+    internal HashSet<Assembly> EntityAssemblies { get; } = new();
 
     public KitBuilder(
         IServiceCollection services,
@@ -100,6 +106,8 @@ public sealed class KitBuilder
     public KitBuilder AddDiscovery()
     {
         Services.AddDiscoveryKit();
+        // كَيانات DiscoveryRegion/DiscoveryCategory/DiscoveryAmenity.
+        EntityAssemblies.Add(typeof(ACommerce.Kits.Discovery.Domain.DiscoveryRegion).Assembly);
         return this;
     }
 
@@ -107,6 +115,7 @@ public sealed class KitBuilder
     public KitBuilder AddFavorites()
     {
         Services.AddFavoritesKit();
+        EntityAssemblies.Add(typeof(ACommerce.Favorites.Operations.Entities.Favorite).Assembly);
         return this;
     }
 
@@ -114,6 +123,7 @@ public sealed class KitBuilder
     public KitBuilder AddFavorites<TStore>() where TStore : class, IFavoritesStore
     {
         Services.AddFavoritesKit<TStore>();
+        EntityAssemblies.Add(typeof(ACommerce.Favorites.Operations.Entities.Favorite).Assembly);
         return this;
     }
 
@@ -168,6 +178,7 @@ public sealed class KitBuilder
         where TStore : class, ACommerce.Kits.Support.Operations.ISupportStore
     {
         Services.AddSupportKit<TStore>(configure);
+        EntityAssemblies.Add(typeof(ACommerce.Kits.Support.Domain.SupportTicket).Assembly);
         return this;
     }
 

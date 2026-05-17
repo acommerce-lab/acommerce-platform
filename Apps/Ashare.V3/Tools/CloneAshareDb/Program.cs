@@ -256,28 +256,37 @@ async Task<long> CopyStreaming<T>(IQueryable<T> src, DbSet<T> tgt, AshareV3DbCon
 
     // streaming عَبر AsAsyncEnumerable. لا نُحَمِّل كُلّ شَيء إلى الذاكِرَة
     // مَرَّة واحِدَة — نَقرَأ ونَكتُب دُفعَة بِدُفعَة.
+    //
+    // <para><b>إشارَة الحَياة</b>: نَطبَع تَقَدُّم القِراءَة كُلّ ثانِيَتَين
+    // قَبل أَوَّل flush — لِأَنّ القِراءَة مَن SQL Server بَعيد بَطيئَة جِدّاً
+    // ولا يَجِب أَن يَظَنّ المُستَخدِم أَنّ الأَداة عَلِقَت. نُميِّز
+    // <c>read</c> (سَطر مَقروء) عَن <c>copied</c> (سَطر مَكتوب بَعد flush).</para>
     var copied = 0L;
+    var read   = 0L;
     var batch = new List<T>(batchSize);
     var lastPrint = DateTime.UtcNow;
 
     await foreach (var row in src.AsNoTracking().IgnoreQueryFilters().AsAsyncEnumerable())
     {
         batch.Add(row);
+        read++;
+        if ((DateTime.UtcNow - lastPrint).TotalSeconds > 2)
+        {
+            Console.Write($"read {read:N0}/{total:N0} ");
+            lastPrint = DateTime.UtcNow;
+        }
         if (batch.Count >= batchSize)
         {
+            Console.Write($"[flush {batch.Count}] ");
             await FlushBatch(batch, tgt, tgtCtx);
             copied += batch.Count;
             batch.Clear();
-
-            if ((DateTime.UtcNow - lastPrint).TotalSeconds > 2)
-            {
-                Console.Write($"{copied * 100L / total}% ");
-                lastPrint = DateTime.UtcNow;
-            }
+            lastPrint = DateTime.UtcNow;
         }
     }
     if (batch.Count > 0)
     {
+        Console.Write($"[flush {batch.Count}] ");
         await FlushBatch(batch, tgt, tgtCtx);
         copied += batch.Count;
     }
@@ -331,9 +340,19 @@ async Task<long> CopyProfilesAsync(string prodConn, AshareV3DbContext tgtCtx,
         await using var rdr = await cmd.ExecuteReaderAsync();
         var batch = new List<ProfileEntity>(batchSz);
         var lastPrint = DateTime.UtcNow;
+        long read = 0;
 
+        // إشارَة حَياة قَبل أَوَّل flush — مُهِمَّة جِدّاً عَلى cloud SQL Server
+        // البَطيء؛ المُستَخدِم يَرى read counter يَتَزايَد ولا يَظُنّ الأَداة عَلِقَت.
+        Console.Write("reading… ");
         while (await rdr.ReadAsync())
         {
+            read++;
+            if ((DateTime.UtcNow - lastPrint).TotalSeconds > 2)
+            {
+                Console.Write($"r{read:N0} ");
+                lastPrint = DateTime.UtcNow;
+            }
             // كُلّ ما لا يَنتَمي لِواجِهَة <c>IUserProfile</c> + الأَعمِدَة
             // السَطحِيَّة (UserId, NationalId) يَنتَقِل لِـ AttributesJson.
             // هذا يُحَقِّق قاعِدَة "العَمود ⇔ الواجِهَة": الـ entity المَحَلِّي
@@ -386,20 +405,18 @@ async Task<long> CopyProfilesAsync(string prodConn, AshareV3DbContext tgtCtx,
 
             if (batch.Count >= batchSz)
             {
+                Console.Write($"[flush {batch.Count}] ");
                 await tgtCtx.Profiles.AddRangeAsync(batch);
                 await tgtCtx.SaveChangesAsync();
                 tgtCtx.ChangeTracker.Clear();
                 copied += batch.Count;
                 batch.Clear();
-                if ((DateTime.UtcNow - lastPrint).TotalSeconds > 2)
-                {
-                    Console.Write($"{copied:N0} ");
-                    lastPrint = DateTime.UtcNow;
-                }
+                lastPrint = DateTime.UtcNow;
             }
         }
         if (batch.Count > 0)
         {
+            Console.Write($"[flush {batch.Count}] ");
             await tgtCtx.Profiles.AddRangeAsync(batch);
             await tgtCtx.SaveChangesAsync();
             tgtCtx.ChangeTracker.Clear();
@@ -453,7 +470,9 @@ async Task<long> CopyProductListingsAsync(string prodConn, AshareV3DbContext tgt
         await using var rdr = await cmd.ExecuteReaderAsync();
         var batch = new List<ProductListingEntity>(batchSz);
         var lastPrint = DateTime.UtcNow;
+        long read = 0;
 
+        Console.Write("reading… ");
         // عَدَد الأَعمِدَة مُتَغَيِّر بَين بيئات؛ نَستَخدِم HasColumn.
         bool HasColumn(string name)
         {
@@ -506,6 +525,13 @@ async Task<long> CopyProductListingsAsync(string prodConn, AshareV3DbContext tgt
 
         while (await rdr.ReadAsync())
         {
+            read++;
+            if ((DateTime.UtcNow - lastPrint).TotalSeconds > 2)
+            {
+                Console.Write($"r{read:N0} ");
+                lastPrint = DateTime.UtcNow;
+            }
+
             var attrsJsonRaw = Get<string>("AttributesJson");
             var (promoted, leftover) = PromoteListingAttrs(attrsJsonRaw);
             var (timeUnit, bedroomCount, bathroomCount, areaSqm, amenitiesJson) = promoted;
@@ -562,20 +588,18 @@ async Task<long> CopyProductListingsAsync(string prodConn, AshareV3DbContext tgt
 
             if (batch.Count >= batchSz)
             {
+                Console.Write($"[flush {batch.Count}] ");
                 await tgtCtx.ProductListings.AddRangeAsync(batch);
                 await tgtCtx.SaveChangesAsync();
                 tgtCtx.ChangeTracker.Clear();
                 copied += batch.Count;
                 batch.Clear();
-                if ((DateTime.UtcNow - lastPrint).TotalSeconds > 2)
-                {
-                    Console.Write($"{copied:N0} ");
-                    lastPrint = DateTime.UtcNow;
-                }
+                lastPrint = DateTime.UtcNow;
             }
         }
         if (batch.Count > 0)
         {
+            Console.Write($"[flush {batch.Count}] ");
             await tgtCtx.ProductListings.AddRangeAsync(batch);
             await tgtCtx.SaveChangesAsync();
             tgtCtx.ChangeTracker.Clear();

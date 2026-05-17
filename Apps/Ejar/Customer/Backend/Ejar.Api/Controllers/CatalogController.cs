@@ -2,6 +2,9 @@ using ACommerce.Chat.Operations;
 using ACommerce.Favorites.Operations.Entities;
 using ACommerce.Kits.Support.Domain;
 using ACommerce.Notification.Providers.Firebase.Storage;
+using ACommerce.OperationEngine.Core;
+using ACommerce.OperationEngine.Patterns;
+using ACommerce.OperationEngine.Wire;
 using ACommerce.OperationEngine.Wire.Http;
 using ACommerce.Realtime.Operations.Abstractions;
 using Ejar.Api.Data;
@@ -24,15 +27,18 @@ namespace Ejar.Api.Controllers;
 public sealed class CatalogController : ControllerBase
 {
     private readonly EjarDbContext _db;
+    private readonly OpEngine _engine;
     private readonly IChatService? _chat;
     private readonly IConnectionTracker? _connections;
 
     public CatalogController(
         EjarDbContext db,
+        OpEngine engine,
         IChatService? chat = null,
         IConnectionTracker? connections = null)
     {
         _db = db;
+        _engine = engine;
         _chat = chat;
         _connections = connections;
     }
@@ -110,12 +116,9 @@ public sealed class CatalogController : ControllerBase
             ? explicitPartner
             : listing.OwnerId;
 
-        // لا يُسمح بمحادثة الذات.
         if (partnerId == uid) return this.BadRequestEnvelope("cannot_chat_with_self");
 
         // إيجاد محادثة سابقة لنفس الطرفَين على نفس الإعلان — بأيّ اتجاه.
-        // ليس فقط (Owner=me, Partner=them): قد يكون الآخر بدأها أوّلاً وأصبح
-        // Owner. نطابق على الأزواج بصرف النظر عن الترتيب.
         var existing = await _db.Conversations.FirstOrDefaultAsync(
             c => c.ListingId == listingId &&
                  ((c.OwnerId == uid && c.PartnerId == partnerId) ||
@@ -128,27 +131,41 @@ public sealed class CatalogController : ControllerBase
         }
 
         var partner = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == partnerId, ct);
-        var conv = new ConversationEntity {
-            Id = Guid.NewGuid(),
-            CreatedAt = DateTime.UtcNow,
-            OwnerId = uid,
-            PartnerId = partnerId, ListingId = listingId,
-            PartnerName = partner?.FullName ?? "—",
-            Subject = listing.Title,
-            LastAt = DateTime.UtcNow,
-            UnreadCount = 0
-        };
-        _db.Conversations.Add(conv);
-        await _db.SaveChangesAsync(ct);
+        var convId = Guid.NewGuid();
+        var op = Entry.Create("conversation.start")
+            .Describe($"User {uid} starts conversation with {partnerId} on listing {listingId}")
+            .From($"User:{uid}",          1, ("role", "initiator"))
+            .To($"Conversation:{convId}", 1, ("role", "created"))
+            .Tag("listing_id", listingId.ToString())
+            .Tag("partner_id", partnerId.ToString())
+            .Execute(ctx =>
+            {
+                _db.Conversations.Add(new ConversationEntity {
+                    Id          = convId,
+                    CreatedAt   = DateTime.UtcNow,
+                    OwnerId     = uid,
+                    PartnerId   = partnerId,
+                    ListingId   = listingId,
+                    PartnerName = partner?.FullName ?? "—",
+                    Subject     = listing.Title,
+                    LastAt      = DateTime.UtcNow,
+                    UnreadCount = 0,
+                });
+                return Task.CompletedTask;
+            })
+            .SaveAtEnd()
+            .Build();
+        var env = await _engine.ExecuteEnvelopeAsync(op, new { id = convId }, ct);
+        if (env.Operation.Status != "Success")
+            return this.BadRequestEnvelope(env.Operation.FailedAnalyzer ?? "start_failed",
+                                           env.Operation.ErrorMessage);
 
-        // اشترك الطرفَين في notif:conv:X الآن لو هما متّصلَين بـ realtime —
-        // الـ Hub يفعل ذلك على اتصال جديد، لكن لو الطرف الآخر متّصل بالفعل
-        // بدون أن تكن المحادثة موجودة وقت اتصاله، لن يكون مشتركاً. هذا
-        // الاشتراك هنا يُغلق الفجوة فورَ الإنشاء.
-        await SubscribeBothPartiesAsync(conv.Id, uid, partnerId, ct);
+        // اشتِراك realtime — side effect بَعد commit، خارِج الـ op لِأَنّ
+        // SignalR لا يَدخُل في الـ DB unit-of-work.
+        await SubscribeBothPartiesAsync(convId, uid, partnerId, ct);
 
-        await AppendInitialMessageIfAny(conv.Id, uid, body.Text, ct);
-        return this.OkEnvelope("conversation.start", new { id = conv.Id, created = true });
+        await AppendInitialMessageIfAny(convId, uid, body.Text, ct);
+        return this.OkEnvelope("conversation.start", new { id = convId, created = true });
     }
 
     private async Task SubscribeBothPartiesAsync(Guid convId, Guid a, Guid b, CancellationToken ct)
@@ -180,21 +197,32 @@ public sealed class CatalogController : ControllerBase
     private async Task AppendInitialMessageIfAny(Guid conversationId, Guid senderId, string? text, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(text)) return;
-        _db.Messages.Add(new MessageEntity
-        {
-            Id = Guid.NewGuid(),
-            CreatedAt = DateTime.UtcNow,
-            ConversationId = conversationId,
-            From = senderId.ToString(),
-            Text = text!,
-            SentAt = DateTime.UtcNow,
-        });
-        var conv = await _db.Conversations.FirstOrDefaultAsync(c => c.Id == conversationId, ct);
-        if (conv is not null)
-        {
-            conv.LastAt = DateTime.UtcNow;
-            conv.UnreadCount += 1;
-        }
-        await _db.SaveChangesAsync(ct);
+        var msgId = Guid.NewGuid();
+        var op = Entry.Create("message.send")
+            .Describe($"Initial message in conversation {conversationId} from {senderId}")
+            .From($"User:{senderId}",                1, ("role", "sender"))
+            .To($"Conversation:{conversationId}",    1, ("role", "appended"))
+            .Tag("conversation_id", conversationId.ToString())
+            .Execute(async ctx =>
+            {
+                _db.Messages.Add(new MessageEntity
+                {
+                    Id             = msgId,
+                    CreatedAt      = DateTime.UtcNow,
+                    ConversationId = conversationId,
+                    From           = senderId.ToString(),
+                    Text           = text!,
+                    SentAt         = DateTime.UtcNow,
+                });
+                var conv = await _db.Conversations.FirstOrDefaultAsync(c => c.Id == conversationId, ctx.CancellationToken);
+                if (conv is not null)
+                {
+                    conv.LastAt = DateTime.UtcNow;
+                    conv.UnreadCount += 1;
+                }
+            })
+            .SaveAtEnd()
+            .Build();
+        await _engine.ExecuteEnvelopeAsync(op, new { id = msgId }, ct);
     }
 }

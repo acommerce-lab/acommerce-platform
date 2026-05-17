@@ -59,6 +59,9 @@
     <!-- ─── Auth.TwoFactor: SMS Mock (رمز ثابت 123456 — أبدله بمزوّد SMS حقيقي في الإنتاج) ── -->
     <ProjectReference Include="..\..\..\..\..\libs\providers\Auth.TwoFactor\Sms\ACommerce.Kits.Auth.TwoFactor.Sms\ACommerce.Kits.Auth.TwoFactor.Sms.csproj" />
     <ProjectReference Include="..\..\..\..\..\libs\kits\Auth.TwoFactor\ACommerce.Kits.Auth.TwoFactor.AsAuth\ACommerce.Kits.Auth.TwoFactor.AsAuth.csproj" />
+    <!-- Customer Marketplace Home composition — يَكشِف /home/* + /legal مَن
+         مَكتَبَة مُشتَرَكَة بَدَل HomeController مُكَرَّر لِكُلّ تَطبيق. -->
+    <ProjectReference Include="..\..\..\..\..\libs\compositions\Customer.Marketplace.Home.Backend\ACommerce.Compositions.Customer.Marketplace.Home.Backend\ACommerce.Compositions.Customer.Marketplace.Home.Backend.csproj" />
   </ItemGroup>
 
   <ItemGroup>

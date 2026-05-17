@@ -58,13 +58,11 @@ public class ChatController : ControllerBase
     [HttpGet("/conversations")]
     public async Task<IActionResult> ListMine(CancellationToken ct)
     {
+        // IChatConversationView مُعَرَّف بِالحُقول الكامِلَة (OwnerName/
+        // PartnerName/LastMessage/UnreadCount/HasMyUnread) ⇒ السيريالايزر
+        // يَكتُبها مَن typed surface مُباشَرَةً. لا حاجَة لِـ <c>Cast&lt;object&gt;()</c>.
         var rows = await _store.ListForUserAsync(CallerId, ct);
-        // System.Text.Json يُسَلسِل حسب declared type (IChatConversation) الذي
-        // يَحوي Id + ParticipantPartyIds فقط. الـ ConversationView (runtime
-        // type) لديه OwnerName/PartnerName/LastMessage/LastAt/UnreadCount/Subject —
-        // كلّها مَفقودة في الـ JSON بدون cast لـ object الذي يُجبر السيريالايزر
-        // على استخدام runtime type. نَتيجة بدون الـ cast: inbox فارغ كاملاً.
-        return this.OkEnvelope("conversation.list", rows.Cast<object>().ToList());
+        return this.OkEnvelope("conversation.list", rows);
     }
 
     [HttpGet("/conversations/{id}")]
@@ -142,9 +140,20 @@ public class ChatController : ControllerBase
         if (!await _store.CanParticipateAsync(convId, CallerId, ct))
             return this.ForbiddenEnvelope("not_a_participant");
 
-        // ١. صَفِّر unread + اقرأ الرسائل (DB) — حدث مَنطقيّ مُستقلّ عن
-        //    presence. يَنفّذ حتى لو الـ realtime hub غير مُهيّأ.
-        await _store.MarkReadAsync(convId, CallerId, ct);
+        // ١. صَفِّر unread + اقرأ الرسائل — حَدَث OAM مُسَجَّل: قَيد
+        //    <c>conversation.mark_read</c> يَستَدعي <c>MarkReadAsync</c>
+        //    (F6: تُعَدِّل الـ tracker بِلا حِفظ) ثُمّ <c>.SaveAtEnd()</c>
+        //    يُلزِم الـ commit ذَرّيّاً. كانَ السابِق يَستَدعي الـ store
+        //    مُباشَرَةً ويَكتُب خارِج الـ engine.
+        var markOp = Entry.Create("conversation.mark_read")
+            .Describe($"User {CallerId} marks conversation {convId} as read")
+            .From(CallerPartyId,              1, ("role", "reader"))
+            .To($"Conversation:{convId}",     1, ("role", "marked_read"))
+            .Tag(ChatTagKeys.ConversationId, convId)
+            .Execute(async ctx => await _store.MarkReadAsync(convId, CallerId, ctx.CancellationToken))
+            .SaveAtEnd()
+            .Build();
+        await _engine.ExecuteEnvelopeAsync(markOp, new { id = convId }, ct);
 
         // ٢. presence (للـ FCM وقمع notif بينما المُستخدِم يَقرأ) — اختياريّ.
         if (_chat is null) return this.OkEnvelope("chat.enter", new { ok = true });

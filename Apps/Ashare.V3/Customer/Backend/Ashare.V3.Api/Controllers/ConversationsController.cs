@@ -1,3 +1,6 @@
+using ACommerce.OperationEngine.Core;
+using ACommerce.OperationEngine.Patterns;
+using ACommerce.OperationEngine.Wire;
 using ACommerce.OperationEngine.Wire.Http;
 using Ashare.V3.Data;
 using Ashare.V3.Domain;
@@ -9,25 +12,25 @@ using System.Security.Claims;
 namespace Ashare.V3.Api.Controllers;
 
 /// <summary>
-/// نُقطَة <c>POST /conversations/start</c> لِـ V3 — نَظير
-/// <c>Ejar.Api/Controllers/CatalogController.cs:StartConversation</c>. الكيت
-/// Chat لا يَكشِف هذا الـ endpoint لِأَنّ السَّياسَة (مَن partner؟) خاصَّة
-/// بِالتَطبيق: V3 يَستَنبِط VendorId مِن جَدول ProductListing بَدَل
-/// Listings.OwnerId.
+/// نُقطَة <c>POST /conversations/start</c> لِـ V3. كُلّ كِتابَة هُنا تَمُرّ عَبر
+/// <see cref="OpEngine"/> + <c>SaveAtEnd</c> ⇒ لا <c>SaveChangesAsync</c>
+/// مُباشِر، تَدقيق كامِل، وَ idempotency.
 ///
-/// <para>الاستِجابَة: <c>{ id, created }</c> — تَتَطابَق مَع DTO
-/// <c>StartConversationDto</c> في <c>DefaultChatStore</c>.</para>
-///
-/// <para>قَبل هذا الكونترولر كان <c>chat.conversation.start</c> يَفشَل بِـ
-/// 404 (نَصّ فارِغ) ⇒ frontend يُحاوِل تَفسير الـ body فارِغاً كَـ JSON ⇒
-/// "The input does not contain any JSON tokens".</para>
+/// <para>الكيت Chat لا يَكشِف هذا الـ endpoint لِأَنّ سِياسَة استِنباط
+/// الـ partner (مَن مالِك الإعلان؟) خاصَّة بِالتَطبيق — V3 يَستَخدِم
+/// <c>ProductListing.VendorId</c> ثُمّ يَستَنبِط <c>Profile.UserId</c>.</para>
 /// </summary>
 [ApiController]
 [Authorize]
 public sealed class ConversationsController : ControllerBase
 {
     private readonly AshareV3DbContext _db;
-    public ConversationsController(AshareV3DbContext db) => _db = db;
+    private readonly OpEngine          _engine;
+    public ConversationsController(AshareV3DbContext db, OpEngine engine)
+    {
+        _db = db;
+        _engine = engine;
+    }
 
     public sealed record StartConversationBody(string? ListingId, string? PartnerId, string? Text);
 
@@ -54,8 +57,7 @@ public sealed class ConversationsController : ControllerBase
         if (string.Equals(partnerId, callerId, StringComparison.Ordinal))
             return this.BadRequestEnvelope("cannot_chat_with_self");
 
-        // ابحَث عَن Chat قائِم بَين الطَّرفَين (بِغَضّ النَّظَر عَن listing —
-        // ChatEntity في V3 لا يَحفَظ ListingId).
+        // ابحَث عَن Chat قائِم بَين الطَّرفَين (بِغَضّ النَّظَر عَن listing).
         var existingChatId = await FindExistingChatAsync(callerId, partnerId, ct);
         if (existingChatId is Guid existingId)
         {
@@ -64,33 +66,55 @@ public sealed class ConversationsController : ControllerBase
                 new { id = existingId.ToString(), created = false });
         }
 
-        // أَنشِئ Chat جَديد + ChatParticipants لِكِلا الطَّرفَين + رِسالَة بِدء.
-        var chat = new ChatEntity
-        {
-            Id = Guid.NewGuid(),
-            CreatedAt = DateTime.UtcNow,
-            Title = listing.Title,
-            Type = 0, // direct
-        };
-        _db.Chats.Add(chat);
-        _db.ChatParticipants.Add(new ChatParticipantEntity
-        {
-            Id = Guid.NewGuid(), CreatedAt = DateTime.UtcNow,
-            ChatId = chat.Id, UserId = callerId, Role = 0,
-        });
-        _db.ChatParticipants.Add(new ChatParticipantEntity
-        {
-            Id = Guid.NewGuid(), CreatedAt = DateTime.UtcNow,
-            ChatId = chat.Id, UserId = partnerId, Role = 0,
-        });
-        await _db.SaveChangesAsync(ct);
-        await AppendInitialMessageIfAny(chat.Id, callerId, body.Text, ct);
+        // ─── إنشاء Chat + ChatParticipants عَبر op + SaveAtEnd ────────────
+        var chatId = Guid.NewGuid();
+        var op = Entry.Create("conversation.start")
+            .Describe($"User {callerId} starts conversation with {partnerId} on listing {listingId}")
+            .From($"User:{callerId}",      1, ("role", "initiator"))
+            .To($"Conversation:{chatId}",  1, ("role", "created"))
+            .Tag("listing_id", listingId.ToString())
+            .Tag("partner_id", partnerId)
+            .Execute(ctx =>
+            {
+                _db.Chats.Add(new ChatEntity
+                {
+                    Id        = chatId,
+                    CreatedAt = DateTime.UtcNow,
+                    Title     = listing.Title,
+                    Type      = 0, // direct
+                });
+                _db.ChatParticipants.Add(new ChatParticipantEntity
+                {
+                    Id        = Guid.NewGuid(),
+                    CreatedAt = DateTime.UtcNow,
+                    ChatId    = chatId,
+                    UserId    = callerId,
+                    Role      = 0,
+                });
+                _db.ChatParticipants.Add(new ChatParticipantEntity
+                {
+                    Id        = Guid.NewGuid(),
+                    CreatedAt = DateTime.UtcNow,
+                    ChatId    = chatId,
+                    UserId    = partnerId,
+                    Role      = 0,
+                });
+                return Task.CompletedTask;
+            })
+            .SaveAtEnd()
+            .Build();
 
+        var env = await _engine.ExecuteEnvelopeAsync(op, new { id = chatId }, ct);
+        if (env.Operation.Status != "Success")
+            return this.BadRequestEnvelope(env.Operation.FailedAnalyzer ?? "start_failed",
+                                           env.Operation.ErrorMessage);
+
+        await AppendInitialMessageIfAny(chatId, callerId, body.Text, ct);
         return this.OkEnvelope("conversation.start",
-            new { id = chat.Id.ToString(), created = true });
+            new { id = chatId.ToString(), created = true });
     }
 
-    /// <summary>VendorId في ProductListing يُشير إلى Profile.Id؛ الـ chat يَستَخدِم Profile.UserId (AspNetUsers).</summary>
+    /// <summary>VendorId في ProductListing يُشير إلى Profile.Id؛ الـ chat يَستَخدِم Profile.UserId.</summary>
     private async Task<string> ResolveVendorUserIdAsync(Guid vendorProfileId, CancellationToken ct)
     {
         var vendor = await _db.Profiles.AsNoTracking()
@@ -100,10 +124,6 @@ public sealed class ConversationsController : ControllerBase
         return vendor ?? vendorProfileId.ToString();
     }
 
-    /// <summary>
-    /// محادَثَة مَوجودَة = Chat فيه كِلا UserIds في ChatParticipants.
-    /// ChatEntity.Type=0 (direct) لِتَجَنُّب اقتِران group chats.
-    /// </summary>
     private async Task<Guid?> FindExistingChatAsync(string userA, string userB, CancellationToken ct)
     {
         var chatIdsA = _db.ChatParticipants.AsNoTracking()
@@ -119,11 +139,27 @@ public sealed class ConversationsController : ControllerBase
     private async Task AppendInitialMessageIfAny(Guid chatId, string senderId, string? text, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(text)) return;
-        _db.Messages.Add(new MessageEntity
-        {
-            Id = Guid.NewGuid(), CreatedAt = DateTime.UtcNow,
-            ChatId = chatId, SenderId = senderId, Content = text.Trim(), Type = 0,
-        });
-        await _db.SaveChangesAsync(ct);
+        var msgId = Guid.NewGuid();
+        var op = Entry.Create("message.send")
+            .Describe($"Initial message in conversation {chatId} from {senderId}")
+            .From($"User:{senderId}",          1, ("role", "sender"))
+            .To($"Conversation:{chatId}",      1, ("role", "appended"))
+            .Tag("conversation_id", chatId.ToString())
+            .Execute(ctx =>
+            {
+                _db.Messages.Add(new MessageEntity
+                {
+                    Id        = msgId,
+                    CreatedAt = DateTime.UtcNow,
+                    ChatId    = chatId,
+                    SenderId  = senderId,
+                    Content   = text!.Trim(),
+                    Type      = 0,
+                });
+                return Task.CompletedTask;
+            })
+            .SaveAtEnd()
+            .Build();
+        await _engine.ExecuteEnvelopeAsync(op, new { id = msgId }, ct);
     }
 }

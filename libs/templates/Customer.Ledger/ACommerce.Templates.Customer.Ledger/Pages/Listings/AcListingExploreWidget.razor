@@ -1,5 +1,6 @@
 @inject IListingsStore Store
 @inject NavigationManager Nav
+@inject ITaxonomyStore Taxonomy
 @inject L L
 @implements IDisposable
 
@@ -24,19 +25,36 @@
         <span class="ejar-section-meta oam-mono">/ listings · @Store.Visible.Count</span>
     </header>
 
+    @* شَجَرَة فِئات الإعلانات — أُفُقِيَّة بِأَيقونات، أَوَّل kind مَفتوح.
+       اختيار leaf يَفلِتِر القائِمَة بِالـ slug. *@
+    @if (_taxonomyHasNodes)
+    {
+        <div class="ac-explore-taxonomy">
+            <AcTaxonomyChips RootCode="listing_categories"
+                             Selected="@_propertyType"
+                             SelectedChanged="@OnTaxonomyPicked"
+                             IsArabic="true" />
+        </div>
+    }
+
     <form class="ac-listings-filters" @onsubmit="OnFilter" @onsubmit:preventDefault>
         <input class="ac-input ejar-filter-input"
                type="search"
                placeholder="@(L[LedgerStrings.ListingsSearchPlaceholder])"
                value="@_query"
                @oninput="@(e => _query = e.Value?.ToString() ?? "")" />
-        <select class="ac-input ejar-filter-input" @bind="_propertyType">
-            <option value="">@(L[LedgerStrings.ListingsAllTypes])</option>
-            <option value="apartment">@(L[LedgerStrings.PropertytypeApartment])</option>
-            <option value="villa">@(L[LedgerStrings.PropertytypeVilla])</option>
-            <option value="studio">@(L[LedgerStrings.PropertytypeStudio])</option>
-            <option value="office">@(L[LedgerStrings.PropertytypeOffice])</option>
-        </select>
+        @* الـ select البَسيط يَبقى كَ fallback لَو الـ taxonomy فارِغَة
+           (لا حاجَة لِعَرضه إذا الشَجَرَة مَوجودَة — تَكرار لِنَفس الاختيار). *@
+        @if (!_taxonomyHasNodes)
+        {
+            <select class="ac-input ejar-filter-input" @bind="_propertyType">
+                <option value="">@(L[LedgerStrings.ListingsAllTypes])</option>
+                <option value="apartment">@(L[LedgerStrings.PropertytypeApartment])</option>
+                <option value="villa">@(L[LedgerStrings.PropertytypeVilla])</option>
+                <option value="studio">@(L[LedgerStrings.PropertytypeStudio])</option>
+                <option value="office">@(L[LedgerStrings.PropertytypeOffice])</option>
+            </select>
+        }
         @if (ExtraFilters is not null) { @ExtraFilters }
         <button class="oam-btn" type="submit">@(L[LedgerStrings.ListingsApplyFilter])</button>
     </form>
@@ -109,11 +127,14 @@
 
     private string _query = "";
     private string _propertyType = "";
+    private bool _taxonomyHasNodes;
 
     protected override async Task OnInitializedAsync()
     {
         Store.Changed += OnChanged;
         await Store.ApplyFilterAsync(ListingFilter.Empty);
+        var tree = await Taxonomy.GetTreeAsync("listing_categories");
+        _taxonomyHasNodes = tree.Count > 0;
     }
 
     private async Task OnFilter()
@@ -122,6 +143,14 @@
             City: null,
             PropertyType: string.IsNullOrEmpty(_propertyType) ? null : _propertyType,
             Query: string.IsNullOrEmpty(_query) ? null : _query));
+    }
+
+    /// <summary>اختيار عُقدَة مَن الشَجَرَة ⇒ يَضَع <c>_propertyType</c>
+    /// وَيُطَبِّق الفلتر فَوراً (بِلا الحاجَة لِزِرّ تَطبيق).</summary>
+    private async Task OnTaxonomyPicked(string? slug)
+    {
+        _propertyType = slug ?? string.Empty;
+        await OnFilter();
     }
 
     private string PriceUnit(string timeUnit) => timeUnit switch

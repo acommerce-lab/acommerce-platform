@@ -23,6 +23,10 @@ public static class ServiceHostFluentExtensions
     {
         var kits = new KitBuilder(host.Builder.Services, host.Builder.Configuration, host.Builder.Environment);
         configure(kits);
+        // كُلّ kit ساهَمَ بِـ entity assembly يَنتَقِل إلى الـ host —
+        // <c>RegisterEntities</c> يَفحَصها تِلقائيّاً + يَضُمّ الـ app entities.
+        foreach (var asm in kits.EntityAssemblies)
+            host.ExtraEntityAssemblies.Add(asm);
         return host;
     }
 
@@ -55,14 +59,24 @@ public static class ServiceHostFluentExtensions
     }
 
     /// <summary>
-    /// يَمسح الـ assembly المُعطى عن كلّ <c>IBaseEntity</c> ويُسجِّله في
-    /// <c>EntityDiscoveryRegistry</c> — يُستهلكه <c>CrudActionInterceptor</c>
-    /// في مسار generic CRUD path.
+    /// يَمسح الـ assemblies المُعطاة + كُلّ assembly ساهَمَت بِها كيتات/
+    /// تَراكيب (<see cref="ServiceHostBuilder.ExtraEntityAssemblies"/>)
+    /// عَن كُلّ <c>IBaseEntity</c> ويُسَجِّلها في <c>EntityDiscoveryRegistry</c>.
+    /// التَطبيق يَكتَفي بِتَمرير assembly الـ DbContext الخاصّ بِه —
+    /// كَيانات الكيتات (Favorite/SupportTicket/DiscoveryRegion/…) تَنضَمّ
+    /// تِلقائيّاً.
+    ///
+    /// <para><b>تَرتيب الـ chain</b>: يَجِب أَن يَكون <c>RegisterEntities</c>
+    /// <i>بَعد</i> <see cref="AddKits"/> لِيَلتَقِط مُساهَمات الكيتس
+    /// (الـ chain يَنفُذ سَطراً سَطراً).</para>
     /// </summary>
     public static ServiceHostBuilder RegisterEntities(
         this ServiceHostBuilder host, params Assembly[] assemblies)
     {
-        foreach (var asm in assemblies)
+        var all = new HashSet<Assembly>(assemblies);
+        foreach (var kitAsm in host.ExtraEntityAssemblies) all.Add(kitAsm);
+
+        foreach (var asm in all)
         {
             var entityTypes = asm.GetTypes()
                 .Where(t => t.IsClass && !t.IsAbstract && typeof(IBaseEntity).IsAssignableFrom(t));

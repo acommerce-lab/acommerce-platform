@@ -1,3 +1,4 @@
+using ACommerce.ClientHost.Auth;
 using ACommerce.Kits.DynamicAttributes.Frontend.Customer.Stores;
 using ACommerce.Kits.Taxonomy.Frontend.Customer.Stores;
 using Microsoft.Extensions.DependencyInjection;
@@ -30,12 +31,17 @@ public static class EjarCustomerHostExtensions
 
         // DynamicAttributes frontend kit — HttpAttributesStore يَستَهلِك
         // HttpClient "ejar" لِجَلب القَوالِب مَن /dynamic-attributes/templates/{scope}.
-        services.AddScoped<IAttributesStore, HttpAttributesStore>();
+        // <b>مُهِمّ</b>: نَحقُن <c>AuthenticatedHttpClient.Client</c> صَراحَةً
+        // (لَه BaseAddress + Bearer header) — الـ default HttpClient فارِغ
+        // وَلَو حُقِن سَيُرسِل لِـ <c>/dynamic-attributes/...</c> بِلا host.
+        services.AddScoped<IAttributesStore>(sp =>
+            new HttpAttributesStore(sp.GetRequiredService<AuthenticatedHttpClient>().Client));
 
         // Taxonomy frontend kit — HttpTaxonomyStore يَجلِب شَجَرَة الفِئات
         // مَن /taxonomy/{rootCode} ويُخَزِّنها في الذاكِرَة. AcTaxonomyTreeSelect
-        // في wizard CreateListing يَستَهلِكه.
-        services.AddScoped<ITaxonomyStore, HttpTaxonomyStore>();
+        // في wizard CreateListing + قِسم Home/Explore يَستَهلِكه.
+        services.AddScoped<ITaxonomyStore>(sp =>
+            new HttpTaxonomyStore(sp.GetRequiredService<AuthenticatedHttpClient>().Client));
         return services;
     }
 }

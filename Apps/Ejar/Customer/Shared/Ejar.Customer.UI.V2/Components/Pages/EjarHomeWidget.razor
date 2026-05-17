@@ -1,8 +1,15 @@
 @*
     EjarHomeWidget — الصفحة الرئيسيّة. لا route مباشرة؛ تُسَجَّل عبر
     AddAppPages في EjarV2CustomerHost. تَستعمل OAM design system.
+
+    شَجَرَة الفِئات (AcTaxonomyTreeSelect) تَظهَر أَعلى الصَفحَة. اختيار
+    عُقدَة يَنقُل المُستَخدِم لِـ /properties بِفلتر بِالـ slug.
 *@
+@using ACommerce.Kits.Taxonomy.Frontend.Customer.Stores
+@using ACommerce.Kits.Taxonomy.Frontend.Customer.Widgets
 @inject L L
+@inject ITaxonomyStore Taxonomy
+@inject NavigationManager Nav
 
 <section class="ejar-page-intro">
     <h1>@(L[EjarV2Strings.HomeWelcomeTitle])</h1>
@@ -10,6 +17,20 @@
         @(L[EjarV2Strings.HomeWelcomeBody])
     </p>
 </section>
+
+@if (_taxonomyHasNodes)
+{
+    <header class="ejar-section-head">
+        <h2 class="ejar-section-title">@(L[EjarV2Strings.HomeCategoriesTitle])</h2>
+        <span class="ejar-section-meta oam-mono">/ categories</span>
+    </header>
+
+    <div class="ejar-card" style="display:block;">
+        <AcTaxonomyChips RootCode="listing_categories"
+                         SelectedChanged="@OnTaxonomyPicked"
+                         IsArabic="true" />
+    </div>
+}
 
 <header class="ejar-section-head">
     <h2 class="ejar-section-title">@(L[EjarV2Strings.HomeShortcutsTitle])</h2>
@@ -47,3 +68,22 @@
     </div>
     <span aria-hidden="true">←</span>
 </a>
+
+@code {
+    private bool _taxonomyHasNodes;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        var tree = await Taxonomy.GetTreeAsync("listing_categories");
+        _taxonomyHasNodes = tree.Count > 0;
+        if (_taxonomyHasNodes) await InvokeAsync(StateHasChanged);
+    }
+
+    /// <summary>اختيار فِئَة ⇒ يَنتَقِل لِـ /properties مَع فلتر بِالـ slug.</summary>
+    private void OnTaxonomyPicked(string? slug)
+    {
+        if (string.IsNullOrEmpty(slug)) return;
+        Nav.NavigateTo($"/properties?type={Uri.EscapeDataString(slug)}");
+    }
+}

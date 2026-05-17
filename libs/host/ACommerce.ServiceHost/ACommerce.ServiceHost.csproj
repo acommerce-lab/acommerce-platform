@@ -40,6 +40,12 @@
     <ProjectReference Include="..\..\kits\Subscriptions\ACommerce.Kits.Subscriptions.Backend\ACommerce.Kits.Subscriptions.Backend.csproj" />
     <ProjectReference Include="..\..\kits\Support\ACommerce.Kits.Support.Backend\ACommerce.Kits.Support.Backend.csproj" />
     <ProjectReference Include="..\..\kits\Versions\ACommerce.Kits.Versions.Backend\ACommerce.Kits.Versions.Backend.csproj" />
+    <!-- DynamicAttributes + Taxonomy kits — تَستَهلِكها modules .UseDynamicAttributes /
+         .UseTaxonomy. الـ Customer.Marketplace.Home.Backend composition تَنزَلِق
+         عَبر .UseMarketplaceHomeBackend. -->
+    <ProjectReference Include="..\..\kits\DynamicAttributes\ACommerce.Kits.DynamicAttributes.Backend\ACommerce.Kits.DynamicAttributes.Backend.csproj" />
+    <ProjectReference Include="..\..\kits\Taxonomy\ACommerce.Kits.Taxonomy.Backend\ACommerce.Kits.Taxonomy.Backend.csproj" />
+    <ProjectReference Include="..\..\compositions\Customer.Marketplace.Home.Backend\ACommerce.Compositions.Customer.Marketplace.Home.Backend\ACommerce.Compositions.Customer.Marketplace.Home.Backend.csproj" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="MediatR" Version="14.1.0" />

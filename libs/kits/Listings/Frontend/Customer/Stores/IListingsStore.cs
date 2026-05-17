@@ -81,7 +81,13 @@ public sealed record ListingDraftPayload(
     /// <summary>سِمات ديناميكِيَّة (مَفاتيح القالَب → قِيَم). يُرسَل
     /// كَ <c>attributes</c> في الـ body. <c>null</c> إن لَم تَجمَع
     /// الواجِهَة قَيماً (تَطبيقات بِلا قَوالِب فِئات).</summary>
-    IReadOnlyDictionary<string, object?>? Attributes = null);
+    IReadOnlyDictionary<string, object?>? Attributes = null,
+    /// <summary>مِفتاح حِمايَة مَن التَّكرار — يُرسَل كَـ <c>idempotency_key</c>
+    /// tag عَلى الـ operation. <b>الواجِهَة تُوَلِّده مَرَّة واحِدَة لِكُلّ
+    /// "نِيَّة كِتابَة"</b> (مَثَل: عَلى أَوَّل ضَغطَة Publish) وتُعيد
+    /// استِخدامه عِندَ إعادَة المُحاوَلَة. <c>null</c> ⇒ السيرفر يُوَلِّد
+    /// مِفتاحاً (لا dedup فِعليّ).</summary>
+    Guid? IdempotencyKey = null);
 
 /// <summary>فلتر بحث/استكشاف للإعلانات. POCO قابل للـ serialize.</summary>
 public sealed record ListingFilter(

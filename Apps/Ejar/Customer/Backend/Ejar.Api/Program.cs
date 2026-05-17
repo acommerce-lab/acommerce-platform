@@ -1,4 +1,5 @@
 using ACommerce.Chat.Operations;
+using ACommerce.Compositions.Customer.Marketplace.Home.Backend;
 using ACommerce.Kits.Auth.Operations;
 using ACommerce.OperationEngine.Interceptors;
 using ACommerce.ServiceHost;
@@ -29,17 +30,17 @@ builder.AddACommerceServiceHost(host => host
     .UseOperationEngine(typeof(Program).Assembly)
     .UseJwtAuthentication(jwt => { jwt.Secret = JwtSecret; jwt.Issuer = "ejar.api"; jwt.Audience = "ejar.mobile"; })
     .UseRealtime<EjarSignalRTransport, EjarRealtimeHub>()
+
+    // ── حِزَم Phase 3 (ServiceHost modules) ──────────────────────────────
+    .UseIdempotency<Ejar.Api.Stores.EjarOperationIdempotencyStore>()
+    .UseDynamicAttributes<Ejar.Api.Data.Templates.EjarAttributeTemplateSource>()
+    .UseTaxonomy<Ejar.Api.Stores.EjarTaxonomyStore>()
+    .UseMarketplaceHomeBackend<
+        Ejar.Api.Home.EjarHomeListingsSource,
+        Ejar.Api.Home.EjarHomeListingProjection,
+        Ejar.Api.Home.EjarDiscoveryCategoryProvider>()
+
     .UseControllers()
-    // EntityDiscoveryRegistry يَحتاج كلّ entity يَستهلكها CrudActionInterceptor
-    // (مَسار /cities و /amenities و /categories مَثَلاً). assembly الـ
-    // EjarDbContext يَحوي Listing/User/etc.، لكن DiscoveryRegion +
-    // DiscoveryAmenity + DiscoveryCategory + SupportTicket في assemblies
-    // أخرى. نُسَجّلها هنا.
-    .RegisterEntities(
-        typeof(EjarDbContext).Assembly,
-        typeof(ACommerce.Kits.Discovery.Domain.DiscoveryRegion).Assembly,
-        typeof(ACommerce.Kits.Support.Domain.SupportTicket).Assembly,
-        typeof(ACommerce.Favorites.Operations.Entities.Favorite).Assembly)
 
     // ── الكيتس ──────────────────────────────────────────────────────────
     .AddKits(kits => kits
@@ -73,6 +74,12 @@ builder.AddACommerceServiceHost(host => host
         .Add<ACommerce.Compositions.Chat.WithNotifications.ChatNotificationsComposition>()
         .Add<ACommerce.Compositions.Auth.WithSmsOtp.AuthSmsOtpComposition>()
         .Add<ACommerce.Compositions.Marketplace.MarketplaceComposition>())
+
+    // ── EntityDiscoveryRegistry ─────────────────────────────────────────
+    // assembly الـ EjarDbContext يَحوي Listing/User/etc. — كَيانات الكيتس
+    // (Favorite/SupportTicket/DiscoveryRegion) تُضاف تِلقائيّاً عَبر AddKits.
+    // يَجِب أَن يَكون <c>RegisterEntities</c> بَعد <c>AddKits</c>.
+    .RegisterEntities(typeof(EjarDbContext).Assembly)
 );
 
 // ── Ejar-specific extras ─────────────────────────────────────────────────
@@ -80,29 +87,9 @@ builder.Services.AddSingleton<IUserIdProvider, EjarUserIdProvider>();
 builder.Services.AddSingleton<IOperationInterceptor, OperationLogInterceptor>();
 builder.Services.AddScoped<ACommerce.Kits.Listings.Backend.IListingDetailEnricher, EjarListingDetailEnricher>();
 
-// Idempotency — يُسَجَّل عَلى مُستَوى المُعتَرِض + EF store.
-// المُعتَرِض singleton (state-less)، الـ store scoped (DbContext per-request).
-builder.Services.AddSingleton<IOperationInterceptor, ACommerce.OperationEngine.Interceptors.IdempotencyInterceptor>();
-builder.Services.AddScoped<ACommerce.OperationEngine.Interceptors.IOperationIdempotencyStore,
-                           Ejar.Api.Stores.EjarOperationIdempotencyStore>();
-
-// DynamicAttributes kit — مَصدَر القَوالِب الَّتي تَخدِم /profile/edit
-// ولِسِمات الإعلانات. EjarAttributeTemplateSource يَبني القَوالِب مَن
-// كود ثابِت (EjarAttributes.cs)؛ لا جَدول DB يَحتاج migration.
-builder.Services.AddSingleton<ACommerce.Kits.DynamicAttributes.Backend.IAttributeTemplateSource,
-                              Ejar.Api.Data.Templates.EjarAttributeTemplateSource>();
-
-// Taxonomy kit — شَجَرَة تَصنيف هَرَمِيَّة مُتَعَدِّدَة الجُذور (categories,
-// locations, …). يَفصِل بَين Listings/Profile وبَين شَكل الفِئات ⇒
-// IListing.PropertyType يَحفَظ slug العُقدَة فَقَط (no coupling).
-builder.Services.AddScoped<ACommerce.Kits.Taxonomy.Backend.ITaxonomyStore,
-                           Ejar.Api.Stores.EjarTaxonomyStore>();
-
-// MVC scan الافتِراضي = entry assembly فَقَط ⇒ نُلحِق Application Parts
-// لِالتِقاط controllers مَن كيتات الخَلفِيَّة.
-builder.Services.AddControllers()
-    .AddApplicationPart(typeof(ACommerce.Kits.DynamicAttributes.Backend.DynamicAttributesController).Assembly)
-    .AddApplicationPart(typeof(ACommerce.Kits.Taxonomy.Backend.TaxonomyController).Assembly);
+// Marketplace Home — اقتِراحات بَحث يَمَنِيَّة. الـ Source/Projection/
+// CategoryProvider مُسَجَّلَة في UseMarketplaceHomeBackend أَعلاه.
+builder.Services.AddSingleton<IHomeSearchSuggestions, Ejar.Api.Home.EjarHomeSearchSuggestions>();
 
 var app = builder.Build();
 
