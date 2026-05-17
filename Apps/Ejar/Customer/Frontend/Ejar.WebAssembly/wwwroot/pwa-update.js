@@ -16,15 +16,24 @@
 // "لا شَيء" بَعد النَّقر فَيَنقُر مَرّة أُخرى أو يَظُنّ أَنّ الزَّرّ مَكسور
 // (وَهذا تَقريباً ما حَصَل عِندَ الناشِر).
 //
-// hard timeout 5s — في Chrome (خاصّةً Android multi-tab) أَحياناً
+// hard timeout 6s — في Chrome (خاصّةً Android multi-tab) أَحياناً
 // <c>unregister()</c> أَو <c>caches.delete()</c> Promise لا يَنتَهي أَبَداً
 // فَالـ await يَتَجَمَّد وَ المُستَخدِم يَرى spinner لِلأَبَد. الحَلّ:
 // race مَع <c>setTimeout</c> ⇒ إعادَة التَّحميل تَحدُث بِالتَأكيد خِلال
-// ٥ث حَتّى لَو التَّنظيف لَم يَنتَهِ (نَسخَة جَديدَة سَوف تَستَلِم بَعد
+// ٦ث حَتّى لَو التَّنظيف لَم يَنتَهِ (نَسخَة جَديدَة سَوف تَستَلِم بَعد
 // reload عَلى أَيّ حال).
+//
+// browser HTTP cache هُوَ سَبَب رَئيس لِبُقاء النَّسخَة القَديمَة بَعد
+// reload: <c>caches.delete()</c> يَمسَح cache الـ SW فَقَط لا cache المُتَصَفِّح
+// الـ HTTP. لِذا appsettings.json (الَّذي يَحوي App.Version) يَبقى قَديماً
+// حَتّى يَفتَح المُستَخدِم التَّطبيق مَرَّة أُخرى (cold start يُجبِر
+// revalidate). الحَلّ: <c>fetch(..., { cache: 'reload' })</c> قَبل
+// navigation — يَتَجاوَز HTTP cache لِيَجلِب نَسخَة طازَجَة + يُحَدِّث
+// HTTP cache. عِندَما يَقرَأ Blazor appsettings.json بَعد reload يَجِد
+// النَّسخَة الجَديدَة في cache المُتَصَفِّح فَلا حاجَة إلى cold start.
 window.acVersionRefresh = async function () {
   showRefreshOverlay();
-  const HARD_DEADLINE_MS = 5000;
+  const HARD_DEADLINE_MS = 6000;
   let reloaded = false;
   const doReload = () => {
     if (reloaded) return;
@@ -41,13 +50,29 @@ window.acVersionRefresh = async function () {
   setTimeout(doReload, HARD_DEADLINE_MS);
   // ② تَنظيف فِعليّ — بِأَسرَع وَقت مُمكِن، يَنهي قَبل deadline في الغالِب.
   try {
-    if ('serviceWorker' in navigator) {
-      const regs = await navigator.serviceWorker.getRegistrations();
-      await Promise.all(regs.map(r => r.unregister().catch(() => {})));
-    }
+    // ②-أ: warmup HTTP cache بِنَسخَة طازَجَة مِن الـ shell critical files.
+    //       يَسبِق unregister/caches.delete لِأَنّ بَعدَهُما الـ SW قَد يَختَفي
+    //       فَيَخدِم المُتَصَفِّح مَن HTTP cache القَديم. <c>cache: 'reload'</c>
+    //       يُخبِر المُتَصَفِّح "تَجاهَل cache واجلِب مَن الشَّبَكَة، ثُمَّ
+    //       حَدِّث الـ cache".
+    const critical = [
+      'appsettings.json',
+      'version.json',
+      '_framework/blazor.boot.json'
+    ];
+    await Promise.all(critical.map(f =>
+      fetch(f, { cache: 'reload' }).catch(() => {})
+    ));
+    // ②-ب: امسَح cache الـ SW (الَّذي يَخدُم _framework + index.html…).
     if ('caches' in window) {
       const keys = await caches.keys();
       await Promise.all(keys.map(k => caches.delete(k).catch(() => {})));
+    }
+    // ②-ج: ألغِ تَسجيل SW القَديم — النَّسخَة الجَديدَة سَتُسَجَّل تِلقائيّاً
+    //       مَن index.html بَعد reload.
+    if ('serviceWorker' in navigator) {
+      const regs = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(regs.map(r => r.unregister().catch(() => {})));
     }
   } catch (e) { console.warn('[acVersionRefresh] cleanup failed', e); }
   doReload();

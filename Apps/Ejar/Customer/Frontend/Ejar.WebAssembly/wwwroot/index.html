@@ -49,13 +49,15 @@
          version-check.js أوّلاً ودائماً — يفحص version.json قبل أي شيء
          آخر، يفرض حذف SW + caches إذا كانت النسخة المحفوظة محلياً قديمة،
          ثم يعيد التحميل ضارباً عرض الحائط بأي cache على CDN/proxy. -->
-    <script src="version-check.js?v=20260517c"></script>
-    <script src="api-diagnostics.js?v=20260517c"></script>
+    <script src="version-check.js?v=20260517d"></script>
+    <script src="api-diagnostics.js?v=20260517d"></script>
     <!-- يَكشِف نَسخَة SW جَديدَة + يَعرِض شَريط تَحديث لِلمُستَخدِم +
          يُسَجِّل window.acVersionRefresh (دالّة عامّة CSP-safe يَستَدعيها
          Blazor بَدَل eval المَمنوع) + يَعرِض overlay فَوريّ عِندَ النَّقر
-         + hard timeout 5s يُجبِر reload لَو الـ Promises تَجَمَّدَت. -->
-    <script src="pwa-update.js?v=20260517c"></script>
+         + hard timeout 6s يُجبِر reload لَو الـ Promises تَجَمَّدَت +
+         preload appsettings.json بِـ cache:'reload' لِيَتَجاوَز HTTP cache
+         فَتَظهَر النَّسخَة الجَديدَة فَوراً بَعد reload (لا cold start). -->
+    <script src="pwa-update.js?v=20260517d"></script>
     <!-- signalr.min.js قبل blazor.webassembly.js: على الهاتف الشبكة أبطأ
          فيبدأ Blazor تنفيذ EjarRealtimeService.start قبل ما ينتهي تحميل
          signalr من cloudflare CDN، فيخرج "signalR is not defined".
