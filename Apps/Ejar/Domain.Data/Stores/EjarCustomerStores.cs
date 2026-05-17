@@ -263,11 +263,13 @@ public sealed class EjarCustomerChatStore : IChatStore
             viewerUserId:  viewerUserId);
     }
 
-    /// <summary>FullName فارِغ ("") أَو whitespace ⇒ null لِيُسقِطه الـ
-    /// fallback chain. JSON يَستَهلِك "" كَ قِيمَة فِعليّة، فَلَو وَصَل
-    /// لِلواجِهَة الأَمامِيَّة يَعرِض "" بَدَل initials.</summary>
+    /// <summary>FullName فارِغ ("") أَو whitespace أَو placeholder "—" ⇒
+    /// null لِيُسقِطه الـ fallback chain. السَّبَب: لَمّا تُنشَأ مُحادَثَة
+    /// وَ شَريك المالِك غَير مَوجود في الـ Users، السابِق كانَ يَحفَظ "—"
+    /// في <c>c.PartnerName</c> ⇒ يَبقى poison value يَتَجاوَز كُلّ lookup
+    /// لاحِق حَتّى لَمّا الـ Users يَحوي البِيانات الصَّحيحَة.</summary>
     private static string? NormalizeName(string? name) =>
-        string.IsNullOrWhiteSpace(name) ? null : name;
+        string.IsNullOrWhiteSpace(name) || name.Trim() == "—" ? null : name;
 
     // ── views ──────────────────────────────────────────────────────────────
     // PartyKind بادئة "User:" تطابق ChatKitOptions في AddChatKit؛ بدونها
