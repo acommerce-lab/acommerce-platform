@@ -22,7 +22,7 @@ report() {
 
 # Collect only .razor files under Apps/ (templates and widgets may legitimately
 # use raw HTML — rules apply to page consumers only)
-FILES=$(find "$ROOT/Apps" -name '*.razor' -not -path '*/bin/*' -not -path '*/obj/*' \
+FILES=$(find "${APP_FILES_ROOT:-$ROOT/Apps}" -name '*.razor' -not -path '*/bin/*' -not -path '*/obj/*' \
   -not -name 'App.razor' \
   -not -name 'Routes.razor' \
   -not -name 'MainLayout.razor' \
@@ -121,7 +121,7 @@ done < <(grep -HnE 'Engine\.(Execute|Dispatch)[A-Za-z]*\Async.*ClientOps\.(SetLa
 # "9665…" create three different records for the same person.
 echo ""
 echo "--- Rule 12: AuthController normalises PhoneNumber before query ---"
-for ctrl in $(find "$ROOT/Apps" -name 'AuthController.cs' -not -path '*/bin/*' -not -path '*/obj/*'); do
+for ctrl in $(find "${APP_FILES_ROOT:-$ROOT/Apps}" -name 'AuthController.cs' -not -path '*/bin/*' -not -path '*/obj/*'); do
     # Does the file query by PhoneNumber? If yes, it must reference PhoneNormalization.
     if grep -qE 'PhoneNumber\s*==' "$ctrl" && ! grep -qE 'PhoneNormalization\.Normalize' "$ctrl"; then
         rel=$(realpath --relative-to="$ROOT" "$ctrl")
@@ -135,7 +135,7 @@ done
 # the other controller also registers and produces an AmbiguousMatchException.
 echo ""
 echo "--- Rule 13: AddControllers must not scan piggy-backed service assemblies ---"
-for prog in $(find "$ROOT/Apps" -name 'Program.cs' -path '*/Backend/*' -not -path '*/bin/*' -not -path '*/obj/*'); do
+for prog in $(find "${APP_FILES_ROOT:-$ROOT/Apps}" -name 'Program.cs' -path '*/Backend/*' -not -path '*/bin/*' -not -path '*/obj/*'); do
     csproj_dir=$(dirname "$prog")
     csproj=$(ls "$csproj_dir"/*.csproj 2>/dev/null | head -1)
     [ -z "$csproj" ] && continue
@@ -180,7 +180,7 @@ while IFS= read -r csproj; do
             report "missing-css-link [$pkg]" "$(realpath --relative-to="$ROOT" "$app_razor")" "1" "referenced via .csproj but App.razor doesn't link _content/$pkg/*.css"
         fi
     done
-done < <(find "$ROOT/Apps" -name '*.csproj' -path '*/Frontend/*' -not -path '*/bin/*' -not -path '*/obj/*' 2>/dev/null | sort)
+done < <(find "${APP_FILES_ROOT:-$ROOT/Apps}" -name '*.csproj' -path '*/Frontend/*' -not -path '*/bin/*' -not -path '*/obj/*' 2>/dev/null | sort)
 
 echo ""
 echo "=== Report ==="

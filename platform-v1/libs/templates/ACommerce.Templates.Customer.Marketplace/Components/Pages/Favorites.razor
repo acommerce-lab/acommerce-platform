@@ -1,0 +1,62 @@
+@page "/{slug}/favorites"
+@inject IDocumentStore Store
+@inject AuthSession Auth
+@inject NavigationManager Nav
+
+<div class="acs-page">
+    @if (!Auth.IsAuthenticated)
+    {
+        <AcEmptyState IconName="heart"
+                      Title="المُفَضَّلَة تَحتاج تَسجيل دُخول"
+                      Message="سَجِّل دُخولك لِحِفظ الإعلانات الَّتي تَهُمّك."
+                      ActionLabel="تَسجيل دُخول"
+                      ActionHref="@($"/{Slug}/login?returnUrl=/{Slug}/favorites")" />
+    }
+    else
+    {
+        <h1 class="acm-wizard-title">المُفَضَّلَة</h1>
+
+        @if (items is null)
+        {
+            <AcLoadingState Message="جارٍ التَحميل…" />
+        }
+        else if (items.Count == 0)
+        {
+            <AcEmptyState IconName="heart"
+                          Title="لا مُفَضَّلَة بَعد"
+                          Message="ابدَأ بِالتَصَفُّح وأَضِف الإعلانات الَّتي تُعجِبك."
+                          ActionLabel="استِكشاف"
+                          ActionHref="@($"/{Slug}/explore")" />
+        }
+        else
+        {
+            <div class="acm-home-grid">
+                @foreach (var l in items)
+                {
+                    <AcSpaceCard Title="@l.Title"
+                                 Href="@($"/{Slug}/listings/{l.Id}")"
+                                 Location="@($"{l.City} — {l.District}")"
+                                 PriceLabel="@($"{l.Price:N0} ريال")" />
+                }
+            </div>
+        }
+    }
+</div>
+
+@code {
+    [Parameter] public string Slug { get; set; } = "";
+    List<Listing>? items;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (!Auth.IsAuthenticated) return;
+        await using var s = Store.QuerySession(Slug);
+        var favs = await s.Query<Favorite>()
+            .Where(f => f.UserId == Auth.UserId!.Value)
+            .OrderByDescending(f => f.At).ToListAsync();
+        var listingIds = favs.Select(f => f.ListingId).ToList();
+        items = (await s.Query<Listing>()
+            .Where(l => listingIds.Contains(l.Id) && !l.IsDeleted)
+            .ToListAsync()).ToList();
+    }
+}

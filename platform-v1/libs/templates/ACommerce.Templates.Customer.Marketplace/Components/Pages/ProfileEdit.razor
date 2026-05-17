@@ -1,0 +1,62 @@
+@page "/{slug}/me/edit"
+@inject IDocumentStore Store
+@inject AuthSession Auth
+
+<div class="acs-page">
+@if (!Auth.IsAuthenticated)
+{
+    <AcEmptyState IconName="user"
+                  Title="تَحتاج تَسجيل دُخول"
+                  Message="سَجِّل دُخولك لِتَعديل بَياناتك."
+                  ActionLabel="تَسجيل دُخول"
+                  ActionHref="@($"/{Slug}/login?returnUrl=/{Slug}/me/edit")" />
+}
+else if (user is null)
+{
+    <AcLoadingState Message="جارٍ التَحميل…" />
+}
+else
+{
+    <h1 class="acm-wizard-title">تَعديل المَلَفّ الشَخصيّ</h1>
+
+    <AcCard Class="ac-card-form" style="max-width:420px;">
+        <ChildContent>
+            <form method="post" action="@($"/{Slug}/me/save")">
+                <AcField Label="الاسم الكامِل" Required="true">
+                    <input type="text" name="fullName" value="@user.FullName"
+                           required maxlength="60" class="ac-input" />
+                </AcField>
+
+                <AcField Label="الهاتف">
+                    <input type="text" value="@user.Phone" readonly
+                           class="ac-input" style="background:var(--ac-bg-alt);direction:ltr;" />
+                </AcField>
+
+                @if (!string.IsNullOrEmpty(user.NationalId))
+                {
+                    <AcField Label="رَقم الهُويَّة">
+                        <input type="text" value="@user.NationalId" readonly
+                               class="ac-input" style="background:var(--ac-bg-alt);direction:ltr;" />
+                    </AcField>
+                }
+
+                <AcButton Type="submit" Variant="primary" Block="true" Text="حِفظ التَعديلات" />
+                <a href="@($"/{Slug}/me")"
+                   style="display:block;text-align:center;margin-top:8px;
+                          color:var(--ac-text-muted);font-size:13px;text-decoration:none;">إلغاء</a>
+            </form>
+        </ChildContent>
+    </AcCard>
+}
+</div>
+
+@code {
+    [Parameter] public string Slug { get; set; } = "";
+    User? user;
+    protected override async Task OnParametersSetAsync()
+    {
+        if (!Auth.IsAuthenticated) return;
+        await using var s = Store.QuerySession(Slug);
+        user = await s.LoadAsync<User>(Auth.UserId!.Value);
+    }
+}

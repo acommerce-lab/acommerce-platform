@@ -1,0 +1,74 @@
+@page "/{slug}/support"
+@inject IDocumentStore Store
+@inject AuthSession Auth
+
+<div class="acs-page">
+@if (!Auth.IsAuthenticated)
+{
+    <AcEmptyState IconName="alert-circle"
+                  Title="الدَعم يَحتاج تَسجيل دُخول"
+                  Message="سَجِّل دُخولك لِفَتح طَلَب أو مُتابَعَة طَلَباتك."
+                  ActionLabel="تَسجيل دُخول"
+                  ActionHref="@($"/{Slug}/login?returnUrl=/{Slug}/support")" />
+}
+else
+{
+    <h1 class="acm-wizard-title">الدَعم والشَكاوى</h1>
+
+    <AcCard>
+        <ChildContent>
+            <h3 style="margin-top:0;">طَلَب جَديد</h3>
+            <form method="post" action="@($"/{Slug}/support/open")">
+                <AcField Label="المَوضوع" Required="true">
+                    <input type="text" name="subject" required maxlength="100" class="ac-input" />
+                </AcField>
+
+                <AcField Label="التَفاصيل" Required="true">
+                    <textarea name="body" required rows="4" maxlength="2000"
+                              class="ac-input" style="resize:vertical;"></textarea>
+                </AcField>
+
+                <AcButton Type="submit" Variant="primary" Text="إرسال الطَلَب" />
+            </form>
+        </ChildContent>
+    </AcCard>
+
+    <h2 style="margin-top:24px;">طَلَباتي السابِقَة</h2>
+    @if (tickets is null)        { <AcLoadingState Message="جارٍ التَحميل…" /> }
+    else if (tickets.Count == 0) { <AcEmptyState Title="لا توجَد طَلَبات بَعد" IconName="inbox" /> }
+    else
+    {
+        <div style="display:flex;flex-direction:column;gap:8px;">
+            @foreach (var t in tickets)
+            {
+                <AcCard>
+                    <ChildContent>
+                        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+                            <strong>@t.Subject</strong>
+                            <AcBadge Variant="@(t.Status == "open" ? "info" : t.Status == "answered" ? "success" : "neutral")"
+                                     Text="@t.Status" />
+                        </div>
+                        <p class="ac-muted" style="margin:6px 0;font-size:13px;">@t.Body</p>
+                        <p class="ac-muted" style="font-size:11px;">
+                            @t.CreatedAt.ToString("yyyy-MM-dd HH:mm") — @(t.Replies.Count) ردّ
+                        </p>
+                    </ChildContent>
+                </AcCard>
+            }
+        </div>
+    }
+}
+</div>
+
+@code {
+    [Parameter] public string Slug { get; set; } = "";
+    IReadOnlyList<ACommerce.Kit.Support.Ticket>? tickets;
+    protected override async Task OnParametersSetAsync()
+    {
+        if (!Auth.IsAuthenticated) return;
+        await using var s = Store.QuerySession(Slug);
+        tickets = await s.Query<ACommerce.Kit.Support.Ticket>()
+            .Where(t => t.AuthorId == Auth.UserId!.Value)
+            .OrderByDescending(t => t.UpdatedAt).Take(50).ToListAsync();
+    }
+}
