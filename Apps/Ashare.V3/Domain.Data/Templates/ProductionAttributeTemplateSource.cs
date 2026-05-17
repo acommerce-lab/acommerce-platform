@@ -136,7 +136,12 @@ public sealed class ProductionAttributeTemplateSource : IAttributeTemplateSource
             fields.Add(new AttributeFieldDefinition
             {
                 Key      = code,
-                Label    = d.Name,
+                // الـ AttributeDefinitions.Name مَخزون عَرَبيّاً في V3 ⇒
+                // الـ LabelAr هو الاسم نَفسه. الـ Label الإنجِليزي يَأتي مَن
+                // <see cref="V3AttributeLabelTranslations"/> (قاموس صَريح
+                // بِالـ Code)، أَو يَعود لِلعَرَبي fallback إذا الكود غَير
+                // مَوجود في القاموس.
+                Label    = V3AttributeLabelTranslations.TryEnglish(code) ?? d.Name,
                 LabelAr  = d.Name,
                 Type     = MapType(d.Type),
                 Required = m.IsRequiredOverride ?? d.IsRequired,

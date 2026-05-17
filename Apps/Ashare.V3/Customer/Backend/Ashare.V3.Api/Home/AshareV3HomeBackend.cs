@@ -1,6 +1,7 @@
 using ACommerce.Compositions.Customer.Marketplace.Home.Backend;
 using ACommerce.Kits.Discovery.Domain;
 using ACommerce.Kits.Listings.Domain;
+using ACommerce.Kits.Taxonomy.Backend;
 using ACommerce.SharedKernel.Domain.DynamicAttributes;
 using Ashare.V3.Data;
 using Ashare.V3.Data.Templates;
@@ -18,7 +19,12 @@ namespace Ashare.V3.Api.Home;
 public sealed class AshareV3HomeListingsSource : IHomeListingsSource
 {
     private readonly AshareV3DbContext _db;
-    public AshareV3HomeListingsSource(AshareV3DbContext db) => _db = db;
+    private readonly ITaxonomyStore    _taxonomy;
+    public AshareV3HomeListingsSource(AshareV3DbContext db, ITaxonomyStore taxonomy)
+    {
+        _db = db;
+        _taxonomy = taxonomy;
+    }
 
     public async Task<IReadOnlyList<IListing>> GetActiveListingsAsync(string? city, CancellationToken ct)
     {
@@ -31,8 +37,15 @@ public sealed class AshareV3HomeListingsSource : IHomeListingsSource
     public async Task<IReadOnlyList<IListing>> ExploreAsync(ExploreFilter f, CancellationToken ct)
     {
         var query = _db.ProductListings.AsNoTracking().Where(l => l.IsActive);
-        if (!string.IsNullOrWhiteSpace(f.City))         query = query.Where(l => l.City == f.City);
-        if (!string.IsNullOrWhiteSpace(f.PropertyType)) query = query.Where(l => l.Condition == f.PropertyType);
+        if (!string.IsNullOrWhiteSpace(f.City)) query = query.Where(l => l.City == f.City);
+        if (!string.IsNullOrWhiteSpace(f.PropertyType))
+        {
+            // subtree filter: kind ⇒ كُلّ leaves تَحته. raw slug غَير
+            // مَوجود في الشَجَرَة (V2 legacy) يَبقى كَ exact match.
+            var slugs = await _taxonomy.GetSubtreeSlugsAsync("listing_categories", f.PropertyType, ct);
+            var list = slugs.Count > 0 ? (IReadOnlyList<string>)slugs : new[] { f.PropertyType };
+            query = query.Where(l => list.Contains(l.Condition));
+        }
         if (f.MinPrice is { } minP)                     query = query.Where(l => l.Price >= minP);
         if (f.MaxPrice is { } maxP)                     query = query.Where(l => l.Price <= maxP);
         if (!string.IsNullOrWhiteSpace(f.Query))

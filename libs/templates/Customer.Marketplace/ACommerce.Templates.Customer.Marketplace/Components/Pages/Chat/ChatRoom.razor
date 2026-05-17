@@ -269,12 +269,15 @@
         var today = DateTime.Now.Date;
         if (day == today)                 return L[TemplateStrings.CommonToday];
         if (day == today.AddDays(-1))     return L[TemplateStrings.CommonYesterday];
-        // التَّنسيق المُفَضَّل بِالعَرَبي: "الأَحَد ١٢ مايو ٢٠٢٦" — نَستَخدِم
-        // ar-SA culture لِيَتَكَفَّل بِالـ day-name + month-name. لَو لَم تَكُن
-        // مَدعومَة في runtime، نَعود لِـ yyyy-MM-dd.
+        // تَنسيق عَرَبي بِالتَّقويم الميلادي صَراحَةً: <c>ar-SA</c> الافتِراضي
+        // يَستَخدِم Hijri ⇒ نَستَبدِله بِـ <see cref="GregorianCalendar"/>
+        // عَلى نُسخَة Clone. النَّتيجَة: "الأَحَد ١٢ مايو ٢٠٢٦" بِأَرقام عَرَبِيَّة-هندِيَّة
+        // وَ شَهر مَيلادي.
         try
         {
-            var ar = new System.Globalization.CultureInfo("ar-SA");
+            var ar = (System.Globalization.CultureInfo)
+                new System.Globalization.CultureInfo("ar-SA").Clone();
+            ar.DateTimeFormat.Calendar = new System.Globalization.GregorianCalendar();
             return day.ToString("dddd، d MMMM yyyy", ar);
         }
         catch

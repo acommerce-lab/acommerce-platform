@@ -29,7 +29,8 @@
             <AcTaxonomyChips RootCode="listing_categories"
                              Selected="@_categoryId"
                              SelectedChanged="@(s => OnCategorySelected(s ?? string.Empty))"
-                             IsArabic="true" />
+                             AllowKindSelect="true"
+                             IsArabic="@(Prefs.Language == "ar")" />
         </ChildContent>
     </AcCard>
 }

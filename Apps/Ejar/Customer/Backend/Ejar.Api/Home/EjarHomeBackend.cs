@@ -1,6 +1,7 @@
 using ACommerce.Compositions.Customer.Marketplace.Home.Backend;
 using ACommerce.Kits.Discovery.Domain;
 using ACommerce.Kits.Listings.Domain;
+using ACommerce.Kits.Taxonomy.Backend;
 using Ejar.Api.Data;
 using Microsoft.EntityFrameworkCore;
 
@@ -9,12 +10,19 @@ namespace Ejar.Api.Home;
 /// <summary>
 /// تَنفيذ <see cref="IHomeListingsSource"/> فَوق <see cref="EjarDbContext"/>.
 /// <c>Status==1</c> = نَشِط في إيجار. الفلتر يَدعَم city/propertyType/q/price/
-/// bedrooms كَما كانَ في <c>HomeController</c> القَديم.
+/// bedrooms. اختيار <c>PropertyType</c> = slug في شَجَرَة Taxonomy ⇒
+/// نُحَوِّله إلى subtree slugs (kind ⇒ كُلّ leaves تَحته) فَيَفلتِر الإعلانات
+/// بِأَيّ طَبَقَة، لا leaves فَقَط.
 /// </summary>
 public sealed class EjarHomeListingsSource : IHomeListingsSource
 {
-    private readonly EjarDbContext _db;
-    public EjarHomeListingsSource(EjarDbContext db) => _db = db;
+    private readonly EjarDbContext  _db;
+    private readonly ITaxonomyStore _taxonomy;
+    public EjarHomeListingsSource(EjarDbContext db, ITaxonomyStore taxonomy)
+    {
+        _db = db;
+        _taxonomy = taxonomy;
+    }
 
     public async Task<IReadOnlyList<IListing>> GetActiveListingsAsync(string? city, CancellationToken ct)
     {
@@ -27,8 +35,16 @@ public sealed class EjarHomeListingsSource : IHomeListingsSource
     public async Task<IReadOnlyList<IListing>> ExploreAsync(ExploreFilter f, CancellationToken ct)
     {
         var query = _db.Listings.AsNoTracking().Where(l => l.Status == 1);
-        if (!string.IsNullOrWhiteSpace(f.City))         query = query.Where(l => l.City == f.City);
-        if (!string.IsNullOrWhiteSpace(f.PropertyType)) query = query.Where(l => l.PropertyType == f.PropertyType);
+        if (!string.IsNullOrWhiteSpace(f.City)) query = query.Where(l => l.City == f.City);
+        if (!string.IsNullOrWhiteSpace(f.PropertyType))
+        {
+            // subtree: اختيار "residential" ⇒ apartment+villa+studio+room+...
+            // اختيار "apartment" ⇒ apartment فَقَط (الـ slug نَفسه دائِماً
+            // ضِمن نَتيجَة GetSubtreeSlugsAsync).
+            var slugs = await _taxonomy.GetSubtreeSlugsAsync("listing_categories", f.PropertyType, ct);
+            var list = slugs.Count > 0 ? (IReadOnlyList<string>)slugs : new[] { f.PropertyType };
+            query = query.Where(l => list.Contains(l.PropertyType));
+        }
         if (f.MinPrice is { } minP)                     query = query.Where(l => l.Price >= minP);
         if (f.MaxPrice is { } maxP)                     query = query.Where(l => l.Price <= maxP);
         if (f.MinBedrooms > 0)                          query = query.Where(l => l.BedroomCount >= f.MinBedrooms);

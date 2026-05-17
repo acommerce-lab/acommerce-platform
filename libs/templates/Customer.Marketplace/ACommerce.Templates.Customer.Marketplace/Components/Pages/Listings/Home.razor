@@ -23,7 +23,8 @@
             <h3 style="margin:0 0 8px;">@(L[TemplateStrings.HomeCategoriesTitle])</h3>
             <AcTaxonomyChips RootCode="listing_categories"
                              SelectedChanged="@OnTaxonomyPicked"
-                             IsArabic="true" />
+                             AllowKindSelect="true"
+                             IsArabic="@(Prefs.Language == "ar")" />
         </ChildContent>
     </AcCard>
 }

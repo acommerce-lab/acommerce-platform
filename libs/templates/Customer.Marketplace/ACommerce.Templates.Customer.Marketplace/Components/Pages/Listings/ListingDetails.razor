@@ -97,6 +97,11 @@
             </ChildContent>
         </AcCard>
 
+        @* تَنبيه احتِيال — مُلزَم عَلى كُلّ صَفحَة تَفاصيل لِحِمايَة المُستَخدِم
+           مَن دَفع مَبالِغ قَبل المُعايَنَة. النَّصّ مُحايد بَين السُّوقَين
+           (يَمَني/سُعودي). *@
+        <AcAlert Variant="warning" Message="@(L[TemplateStrings.ListingScamWarning])" />
+
         @if (_listing.Owner is not null && !IsMine)
         {
             <AcCard>
