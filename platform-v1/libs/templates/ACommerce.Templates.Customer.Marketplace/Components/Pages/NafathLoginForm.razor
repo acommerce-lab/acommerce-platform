@@ -1,0 +1,55 @@
+@if (Stage != "verify")
+{
+    <form method="post" action="@($"/{Slug}/auth/nafath/login")">
+        <AcField Label="رَقم الهُويَّة الوَطَنِيَّة" Required="true">
+            <input type="tel" name="nid" value="@NationalId" required pattern="[0-9]{10}" maxlength="10"
+                   class="ac-input" style="direction:ltr;font-size:18px;
+                          text-align:center;letter-spacing:.2em;"
+                   placeholder="1XXXXXXXXX" />
+        </AcField>
+        @if (ErrorMessage is not null) { <AcAlert Variant="danger">@ErrorMessage</AcAlert> }
+        <AcButton Type="submit" Variant="primary" Size="lg" Block="true" Text="بَدء التَحَقُّق عَبر نَفاذ" />
+    </form>
+}
+else
+{
+    <form method="post" action="@($"/{Slug}/auth/nafath/verify")">
+        <input type="hidden" name="nid"     value="@NationalId" />
+        <input type="hidden" name="attempt" value="@AttemptId" />
+
+        <p class="acs-nafath-instruction" style="text-align:center;">
+            اِفتَح تَطبيق <strong>نَفاذ</strong> في جَوّالك واختَر الرَقم المَوضَح:
+        </p>
+
+        <div class="acs-nafath-code-wrap">
+            <div class="acs-nafath-code-circle">
+                <div class="acs-nafath-code-num">@DisplayCode</div>
+            </div>
+        </div>
+
+        <div class="acs-nafath-state acs-nafath-state--waiting" style="margin-top:10px;text-align:center;display:flex;gap:6px;align-items:center;justify-content:center;">
+            <AcIcon Name="clock" Size="16" />
+            <span>وَضع التَطوير: يُعتَبَر مُؤَكَّداً تلقائيّاً بَعد 5 ثَوانٍ</span>
+        </div>
+
+        @if (ErrorMessage is not null) { <AcAlert Variant="danger">@ErrorMessage</AcAlert> }
+
+        <AcButton Type="submit" Variant="primary" Size="lg" Block="true"
+                  Text="تَأكَّدت في تَطبيق نَفاذ — أَكمِل الدُخول" />
+
+        <a href="@($"/{Slug}/login")"
+           style="display:block;text-align:center;margin-top:10px;
+                  color:var(--ac-text-muted);font-size:13px;text-decoration:none;">
+            تَغيير الرَقم
+        </a>
+    </form>
+}
+
+@code {
+    [Parameter] public string Slug { get; set; } = "";
+    [Parameter] public string? Stage { get; set; }
+    [Parameter] public string? NationalId { get; set; }
+    [Parameter] public string? AttemptId { get; set; }
+    [Parameter] public string? DisplayCode { get; set; }
+    [Parameter] public string? ErrorMessage { get; set; }
+}

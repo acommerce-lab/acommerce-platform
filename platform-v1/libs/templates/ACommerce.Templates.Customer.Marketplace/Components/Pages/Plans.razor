@@ -1,0 +1,62 @@
+@page "/{slug}/plans"
+@inject IDocumentStore Store
+@inject AuthSession Auth
+
+<div class="acs-page">
+<h1 class="acm-wizard-title">الباقات</h1>
+
+@if (plans is null)
+{
+    <AcLoadingState Message="جارٍ التَحميل…" />
+}
+else if (plans.Count == 0)
+{
+    <AcEmptyState IconName="package"
+                  Title="لا توجَد باقات بَعد"
+                  Message="يُسَجِّل المَتجَر باقاته مِن لوحَة التَحَكُّم." />
+}
+else
+{
+    <div class="acm-home-grid">
+        @foreach (var p in plans)
+        {
+            <AcCard>
+                <ChildContent>
+                    <h3 style="margin:0 0 8px;">@p.Name</h3>
+                    <p style="color:var(--ac-primary);font-weight:700;font-size:1.5rem;">
+                        @p.Price.ToString("N0") <span style="font-size:0.8rem;">ريال / @(p.DaysPeriod) يوم</span>
+                    </p>
+                    <ul style="list-style:none;padding:0;margin:8px 0;font-size:13px;">
+                        <li>✓ @p.ListingsQuota إعلان</li>
+                        @if (!string.IsNullOrEmpty(p.Description)) { <li>@p.Description</li> }
+                    </ul>
+                    @if (Auth.IsAuthenticated)
+                    {
+                        <form method="post" action="@($"/{Slug}/plans/{p.Id}/subscribe")">
+                            <AcButton Type="submit" Variant="primary" Size="sm" Class="ac-btn-block" Text="اشتِراك" />
+                        </form>
+                    }
+                    else
+                    {
+                        <a class="ac-login-cta ac-login-cta-block" href="@($"/{Slug}/login?returnUrl=/{Slug}/plans")"
+                           style="display:block;text-align:center;padding:8px;background:var(--ac-primary);color:#fff;
+                                  border-radius:var(--ac-radius-sm);text-decoration:none;">دُخول للاشتِراك</a>
+                    }
+                </ChildContent>
+            </AcCard>
+        }
+    </div>
+}
+</div>
+
+@code {
+    [Parameter] public string Slug { get; set; } = "";
+    IReadOnlyList<ACommerce.Kit.Subscriptions.Plan>? plans;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await using var s = Store.QuerySession(Slug);
+        plans = await s.Query<ACommerce.Kit.Subscriptions.Plan>()
+            .Where(p => p.IsActive).OrderBy(p => p.Price).ToListAsync();
+    }
+}

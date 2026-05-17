@@ -1,0 +1,95 @@
+@page "/{slug}/chats"
+@inject IDocumentStore Store
+@inject AuthSession Auth
+
+<div class="acs-page">
+@if (!Auth.IsAuthenticated)
+{
+    <AcEmptyState IconName="message"
+                  Title="المُحادَثات تَحتاج تَسجيل دُخول"
+                  Message="سَجِّل دُخولك للوصول إلى رَسائلك"
+                  ActionLabel="تَسجيل دُخول"
+                  ActionHref="@($"/{Slug}/login?returnUrl=/{Slug}/chats")" />
+}
+else
+{
+    <h1 class="acm-wizard-title">المُحادَثات</h1>
+
+    @if (convs is null)
+    {
+        <AcLoadingState Message="جارٍ التَحميل…" />
+    }
+    else if (convs.Count == 0)
+    {
+        <AcEmptyState Title="لا توجَد مُحادَثات بَعد"
+                      Message="ابدأ مُحادَثَة من صَفحَة إعلان"
+                      IconName="message" />
+    }
+    else
+    {
+        <ul style="list-style:none;padding:0;margin:0;">
+            @foreach (var c in convs)
+            {
+                var iAmOwner = c.OwnerId == Auth.UserId;
+                var partnerName = iAmOwner ? c.PartnerName : c.OwnerName;
+                var unread = iAmOwner ? c.OwnerUnread : c.PartnerUnread;
+                <li style="border-bottom:1px solid var(--ac-border);">
+                    <a href="@($"/{Slug}/chats/{c.Id}")"
+                       style="display:flex;gap:12px;align-items:center;padding:14px 8px;
+                              text-decoration:none;color:var(--ac-text);">
+                        <AcAvatar Name="@partnerName" Size="48" />
+                        <div style="flex:1;min-width:0;">
+                            <div style="display:flex;justify-content:space-between;align-items:baseline;">
+                                <strong style="font-size:15px;">@partnerName</strong>
+                                <span class="ac-muted" style="font-size:11px;">@FormatWhen(c.LastAt)</span>
+                            </div>
+                            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px;">
+                                <span class="ac-muted" style="font-size:13px;white-space:nowrap;
+                                       overflow:hidden;text-overflow:ellipsis;max-width:200px;">
+                                    @(c.LastMessage ?? c.Subject ?? "—")
+                                </span>
+                                @if (unread > 0)
+                                {
+                                    <AcBadge Variant="primary" Text="@unread.ToString()" />
+                                }
+                            </div>
+                        </div>
+                    </a>
+                </li>
+            }
+        </ul>
+    }
+}
+</div>
+
+@code {
+    [Parameter] public string Slug { get; set; } = "";
+    List<Conversation>? convs;
+
+    /// <summary>
+    /// تَنسيق وَقت آخِر رِسالَة بِأُسلوب تَطبيقات المُحادَثات: السَّاعَة
+    /// لِليَوم نَفسه، "أَمس" لِلأَمس، اسم اليَوم في الأُسبوع الحالي،
+    /// التَّاريخ القَصير ما عَدا ذلك.
+    /// </summary>
+    static string FormatWhen(DateTime at)
+    {
+        var localAt = at.Kind == DateTimeKind.Utc ? at.ToLocalTime() : at;
+        var nowDate = DateTime.Now.Date;
+        var atDate  = localAt.Date;
+        if (atDate == nowDate)                  return localAt.ToString("HH:mm");
+        if (atDate == nowDate.AddDays(-1))      return "أَمس";
+        if ((nowDate - atDate).TotalDays < 7)   return localAt.ToString("dddd", new System.Globalization.CultureInfo("ar"));
+        if (localAt.Year == nowDate.Year)       return localAt.ToString("dd/MM");
+        return localAt.ToString("yyyy/MM/dd");
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (!Auth.IsAuthenticated) return;
+        await using var s = Store.QuerySession(Slug);
+        convs = (await s.Query<Conversation>()
+            .Where(c => c.OwnerId == Auth.UserId!.Value || c.PartnerId == Auth.UserId!.Value)
+            .OrderByDescending(c => c.LastAt)
+            .Take(50).ToListAsync()).ToList();
+    }
+}

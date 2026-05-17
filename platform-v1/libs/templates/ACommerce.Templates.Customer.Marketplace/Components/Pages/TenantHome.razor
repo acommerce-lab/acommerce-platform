@@ -1,0 +1,196 @@
+@page "/{slug}"
+@inject IDocumentStore Store
+@inject AuthSession Auth
+@inject ITenantContext Tenant
+@inject NavigationManager Nav
+
+@*
+    صَفحة الـ tenant الرَئيسيّة. كُلّ النَّقَرات تَستَخدِم Href بَدَلَ
+    OnClick لِتَعمَل تَحت SSR بِلا Blazor interactivity.
+*@
+
+<div class="acs-page acm-home">
+    @if (loaded is null)
+    {
+        <AcLoadingState />
+    }
+    else
+    {
+        <AcHeroBanner Title="@($"ابحَث في {loaded.Name}")"
+                      Subtitle="@loaded.TagLine">
+            <LogoContent>
+                <div class="acm-hero-brand">
+                    <span class="acm-hero-brand-mark" aria-hidden="true">
+                        <AcIcon Name="home" Size="20" />
+                    </span>
+                    <span class="acm-hero-brand-text">@loaded.Name</span>
+
+                    @* مُنتَقي المَدينَة: form GET يُرسِل ?city=… على change.
+                       تَحت SSR لا يَتَوَفَّر <select dropdown مُخَصَّص>، نَستَخدِم
+                       <select> الأَصلي بِشكل style مُتوافِق مَع AcCityPicker. *@
+                    @if (cities is { Count: > 0 })
+                    {
+                        <form method="get" action="@($"/{Slug}")" class="acm-hero-city">
+                            <label for="city-select" class="acm-hero-city-icon" aria-hidden="true">
+                                <AcIcon Name="map-pin" Size="14" />
+                            </label>
+                            <select id="city-select" name="city" class="acm-hero-city-select"
+                                    aria-label="اختَر المَدينَة" onchange="this.form.submit()">
+                                <option value="">كلّ المُدُن</option>
+                                @foreach (var c in cities)
+                                {
+                                    <option value="@c" selected="@(City == c)">@c</option>
+                                }
+                            </select>
+                        </form>
+                    }
+                </div>
+            </LogoContent>
+            <ChildContent>
+                <form method="get" action="@($"/{Slug}/explore")" role="search" class="ac-search">
+                    <span class="ac-search-icon" aria-hidden="true">
+                        <AcIcon Name="search" Size="18" />
+                    </span>
+                    <input type="search" name="q" class="ac-search-input"
+                           placeholder="@($"ابحَث في {loaded.Name}…")"
+                           autocomplete="off" inputmode="search" />
+                    <button type="submit" class="ac-search-submit" aria-label="بَحث">
+                        <AcIcon Name="arrow-left" Size="18" />
+                    </button>
+                </form>
+            </ChildContent>
+        </AcHeroBanner>
+
+        @if (loaded.Categories is { Count: > 0 })
+        {
+            <AcSectionHeader Title="الفِئات" />
+            <AcHScroll>
+                @foreach (var c in loaded.Categories)
+                {
+                    <AcCategoryTile Label="@c.Label"
+                                    Icon="@c.Icon"
+                                    Href="@($"/{Slug}/explore?category={Uri.EscapeDataString(c.Slug)}")" />
+                }
+            </AcHScroll>
+        }
+
+        @* CTA "أَضِف إعلانك" — وِجهَة ثابِتَة /create-listing لأَيّ زائِر؛
+           الصَفحَة نَفسها تَتَوَلّى إعادَة التَوجيه لِلتَّسجيل عِندَ الحاجَة. *@
+        <AcCtaCard Title="عِندَك ما تَعرِضه؟"
+                   Subtitle="أَضِف إعلانك الآن واصِل لِلمُهتَمّين بِسُرعَة"
+                   IconName="house-add"
+                   Variant="surface"
+                   Href="@($"/{Slug}/create-listing")" />
+
+        @if (featured is { Count: > 0 })
+        {
+            <AcSectionHeader Title="مُمَيَّز"
+                             ActionLabel="عَرض الكلّ"
+                             ActionHref="@($"/{Slug}/explore")" />
+            <AcHScroll Class="acm-home-rail">
+                @foreach (var l in featured)
+                {
+                    <div class="acm-home-rail-item">
+                        <AcSpaceCard Title="@l.Title"
+                                     Href="@($"/{Slug}/listings/{l.Id}")"
+                                     ImageUrl="@null"
+                                     Location="@($"{l.City} — {l.District}")"
+                                     PriceLabel="@($"{l.Price:N0} ريال")"
+                                     Ribbon="مُمَيَّز"
+                                     ShowFavorite="@Auth.IsAuthenticated"
+                                     IsFavorite="@favIds.Contains(l.Id)"
+                                     FavoriteFormAction="@($"/{Slug}/listings/{l.Id}/favorite")"
+                                     FavoriteFormReturn="@($"/{Slug}")"
+                                     AddFavoriteAriaLabel="أَضِف لِلمُفَضَّلَة"
+                                     RemoveFavoriteAriaLabel="أَزِل مِن المُفَضَّلَة" />
+                    </div>
+                }
+            </AcHScroll>
+        }
+
+        @if (latest is { Count: > 0 })
+        {
+            <AcSectionHeader Title="أُضيفَ حَديثاً"
+                             ActionLabel="عَرض الكلّ"
+                             ActionHref="@($"/{Slug}/explore")" />
+            <div class="acm-home-grid">
+                @foreach (var l in latest)
+                {
+                    <AcSpaceCard Title="@l.Title"
+                                 Href="@($"/{Slug}/listings/{l.Id}")"
+                                 ImageUrl="@null"
+                                 Location="@($"{l.City} — {l.District}")"
+                                 PriceLabel="@($"{l.Price:N0} ريال")"
+                                 Ribbon="جَديد"
+                                 ShowFavorite="@Auth.IsAuthenticated"
+                                 IsFavorite="@favIds.Contains(l.Id)"
+                                 FavoriteFormAction="@($"/{Slug}/listings/{l.Id}/favorite")"
+                                 FavoriteFormReturn="@($"/{Slug}")"
+                                 AddFavoriteAriaLabel="أَضِف لِلمُفَضَّلَة"
+                                 RemoveFavoriteAriaLabel="أَزِل مِن المُفَضَّلَة" />
+                }
+            </div>
+        }
+
+        <section class="acm-home-actions">
+            <AcActionCard Label="استِكشاف"
+                          IconName="search-heart"
+                          Variant="primary"
+                          Href="@($"/{Slug}/explore")" />
+            <AcActionCard Label="@(Auth.IsAuthenticated ? "حِسابي" : "تَسجيل دُخول")"
+                          IconName="user"
+                          Variant="surface"
+                          Href="@(Auth.IsAuthenticated ? $"/{Slug}/me" : $"/{Slug}/login")" />
+        </section>
+
+        @if ((featured is null || featured.Count == 0) && (latest is null || latest.Count == 0))
+        {
+            <AcEmptyState IconName="building" Message="لا إعلانات بَعد." />
+        }
+    }
+</div>
+
+@code {
+    [Parameter] public string Slug { get; set; } = "";
+    [SupplyParameterFromQuery(Name = "city")] public string? City { get; set; }
+
+    Tenant? loaded;
+    List<Listing>? latest;
+    List<Listing>? featured;
+    List<string> cities = new();
+    HashSet<Guid> favIds = new();
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await using var g = Store.QuerySession();
+        loaded = await g.LoadAsync<Tenant>(Slug);
+        if (loaded is null) return;
+
+        await using var tq = Store.QuerySession(Slug);
+
+        var baseQ = tq.Query<Listing>().Where(x => !x.IsDeleted);
+        if (!string.IsNullOrEmpty(City))
+            baseQ = baseQ.Where(x => x.City == City);
+
+        latest = (await baseQ
+            .OrderByDescending(x => x.CreatedAt)
+            .Take(6).ToListAsync()).ToList();
+
+        featured = (await baseQ
+            .OrderByDescending(x => x.Price)
+            .Take(4).ToListAsync()).ToList();
+
+        cities = (await tq.Query<Listing>()
+            .Where(x => !x.IsDeleted && x.City != null)
+            .Select(x => x.City!)
+            .ToListAsync())
+            .Distinct().OrderBy(s => s).ToList();
+
+        if (Auth.IsAuthenticated && Auth.UserId.HasValue)
+        {
+            var favs = await tq.Query<Favorite>()
+                .Where(f => f.UserId == Auth.UserId.Value).ToListAsync();
+            favIds = favs.Select(f => f.ListingId).ToHashSet();
+        }
+    }
+}

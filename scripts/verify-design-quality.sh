@@ -36,7 +36,7 @@ echo "════════════════════════�
 
 # Resolve every frontend app and the CSS scope it actually ships.
 # Scope = app's own CSS  +  each referenced libs/frontend/* CSS.
-APPS=$(find "$ROOT/Apps" -name '*.csproj' -path '*/Frontend/*' \
+APPS=$(find "${APP_FILES_ROOT:-$ROOT/Apps}" -name '*.csproj' -path '*/Frontend/*' \
     -not -path '*/bin/*' -not -path '*/obj/*' 2>/dev/null | sort)
 
 # Build a comma-separated list of CSS search roots for a given csproj.
@@ -141,7 +141,7 @@ done <<< "$APPS"
 # 5. WIDGET USAGE DISTRIBUTION (top 10, global — inspection only)
 # ═══════════════════════════════════════════════════════════════
 section "5. Widget usage distribution (top 10 across all apps)"
-find "$ROOT/Apps" -name '*.razor' -not -path '*/bin/*' -not -path '*/obj/*' \
+find "${APP_FILES_ROOT:-$ROOT/Apps}" -name '*.razor' -not -path '*/bin/*' -not -path '*/obj/*' \
     -exec grep -hoE '<Ac[A-Z][a-zA-Z]+' {} \; 2>/dev/null |
     sort | uniq -c | sort -rn | head -10 |
     awk '{ printf "  %4d  %s\n", $1, $2 }'
@@ -151,7 +151,7 @@ find "$ROOT/Apps" -name '*.razor' -not -path '*/bin/*' -not -path '*/obj/*' \
 # ═══════════════════════════════════════════════════════════════
 section "6. Per-page sibling consistency"
 MIXED_SIZES=$(
-    find "$ROOT/Apps" -name '*.razor' -not -path '*/bin/*' -not -path '*/obj/*' | while read f; do
+    find "${APP_FILES_ROOT:-$ROOT/Apps}" -name '*.razor' -not -path '*/bin/*' -not -path '*/obj/*' | while read f; do
         if grep -q 'Size="sm"' "$f" && grep -q 'Size="lg"' "$f"; then
             echo "  ⚠ mixed sm+lg AcButton in: $(realpath --relative-to="$ROOT" "$f")"
         fi
@@ -178,7 +178,7 @@ while IFS= read -r f; do
         soft "page doesn't start with approved root: $(realpath --relative-to="$ROOT" "$f")"
         BAD_PAGES=$((BAD_PAGES + 1))
     fi
-done < <(find "$ROOT/Apps" -name '*.razor' -path '*/Pages/*' -not -path '*/bin/*' -not -path '*/obj/*')
+done < <(find "${APP_FILES_ROOT:-$ROOT/Apps}" -name '*.razor' -path '*/Pages/*' -not -path '*/bin/*' -not -path '*/obj/*')
 
 # ═══════════════════════════════════════════════════════════════
 # REPORT

@@ -1,0 +1,62 @@
+@page "/{slug}/login"
+@inject ITenantContext Tenant
+@inject NavigationManager Nav
+
+@*
+    صَفحَة دُخول SSR. لا Blazor interactivity — كلّ شَيء forms POST عاديّة
+    تَصِل إلى endpoints مُسَجَّلَة في Program.cs، والـ endpoint يَضَع cookie
+    ويُعيد التَوجيه. هذا يَعمَل بدون JS ويَتَجاوَز مَشاكِل circuit/HttpContext.
+
+    الـ tenant يُحَدِّد القَناة: Ashare = Nafath، Ejar = Phone. لا اختِيار للمُستَخدِم.
+*@
+
+@if (!Tenant.IsResolved)
+{
+    <p>المَتجَر غير مَوجود.</p>
+}
+else
+{
+    <div class="acs-nafath-head" style="text-align:center;padding-top:24px;">
+        <div style="font-size:48px;">@(Tenant.AuthChannel == "nafath" ? "🪪" : "📱")</div>
+        <h1 class="acm-wizard-title">@Tenant.Name</h1>
+        <p class="acs-nafath-instruction">تَسجيل الدُخول بـ @(Tenant.AuthChannel == "nafath" ? "نَفاذ" : "الهاتف")</p>
+    </div>
+
+    <div style="max-width:420px;margin:0 auto;background:var(--ac-surface);
+                border:1px solid var(--ac-border);border-radius:var(--ac-radius-md);
+                padding:20px;">
+        @if (Tenant.AuthChannel == "nafath")
+        {
+            <NafathLoginForm Slug="@Slug" ErrorMessage="@ErrorMessage" Stage="@Stage"
+                             NationalId="@NationalIdValue" AttemptId="@AttemptId" DisplayCode="@DisplayCode" />
+        }
+        else
+        {
+            <PhoneLoginForm Slug="@Slug" ErrorMessage="@ErrorMessage" Stage="@Stage"
+                            Phone="@PhoneValue" />
+        }
+    </div>
+
+    <p style="text-align:center;margin-top:16px;font-size:13px;color:var(--ac-text-muted);">
+        ← <a href="@($"/{Slug}")" style="color:var(--ac-primary);text-decoration:none;">العَودَة لِـ @Tenant.Name</a>
+    </p>
+}
+
+@code {
+    [Parameter] public string Slug { get; set; } = "";
+    [SupplyParameterFromQuery] public string? Stage { get; set; }
+    [SupplyParameterFromQuery] public string? Err { get; set; }
+    [SupplyParameterFromQuery(Name = "phone")]    public string? PhoneValue { get; set; }
+    [SupplyParameterFromQuery(Name = "nid")]      public string? NationalIdValue { get; set; }
+    [SupplyParameterFromQuery(Name = "attempt")]  public string? AttemptId { get; set; }
+    [SupplyParameterFromQuery(Name = "code")]     public string? DisplayCode { get; set; }
+
+    string? ErrorMessage => Err switch
+    {
+        "phone_required" => "اِكتُب رَقم الهاتف.",
+        "code_invalid"   => "الكود غير صَحيح أو انتَهَت صَلاحِيَّته.",
+        "nid_required"   => "اِكتُب رَقم الهُويَّة.",
+        "not_approved"   => "لم يُؤَكَّد بَعد. حاوِل مَرَّة أُخرى.",
+        _                => null
+    };
+}

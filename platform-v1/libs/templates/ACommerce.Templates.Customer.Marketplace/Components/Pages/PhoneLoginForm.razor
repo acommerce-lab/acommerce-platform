@@ -1,0 +1,51 @@
+@if (Stage != "verify")
+{
+    <form method="post" action="@($"/{Slug}/auth/phone/login")">
+        <AcField Label="رَقم الهاتف" Required="true">
+            <input type="tel" name="phone" value="@Phone" required pattern="[0-9]{9,15}"
+                   class="ac-input" style="direction:ltr;font-size:16px;"
+                   placeholder="7XXXXXXXX" />
+        </AcField>
+        @if (ErrorMessage is not null)
+        {
+            <AcAlert Variant="danger">@ErrorMessage</AcAlert>
+        }
+        <AcButton Type="submit" Variant="primary" Size="lg" Block="true" Text="إرسال الكود" />
+    </form>
+}
+else
+{
+    <form method="post" action="@($"/{Slug}/auth/phone/verify")">
+        <input type="hidden" name="phone" value="@Phone" />
+        <p class="acs-nafath-instruction">أَدخِل الكود المُرسَل إلى <strong>@Phone</strong></p>
+
+        <AcField Label="الكود" Required="true">
+            <input type="text" name="code" required minlength="4" maxlength="6"
+                   pattern="[0-9]{4,6}" autofocus
+                   class="ac-input" style="direction:ltr;font-size:18px;
+                          letter-spacing:.4em;text-align:center;"
+                   placeholder="123456" />
+        </AcField>
+
+        <div class="acs-nafath-state acs-nafath-state--ok mt-2" style="display:flex;gap:6px;align-items:center;">
+            <AcIcon Name="info" Size="16" />
+            <span>وَضع التَطوير — الكود: <strong>123456</strong></span>
+        </div>
+
+        @if (ErrorMessage is not null) { <AcAlert Variant="danger">@ErrorMessage</AcAlert> }
+
+        <AcButton Type="submit" Variant="primary" Size="lg" Block="true" Text="تَحَقُّق ودُخول" />
+        <a href="@($"/{Slug}/login")"
+           style="display:block;text-align:center;margin-top:10px;
+                  color:var(--ac-text-muted);font-size:13px;text-decoration:none;">
+            تَغيير الرَقم
+        </a>
+    </form>
+}
+
+@code {
+    [Parameter] public string Slug { get; set; } = "";
+    [Parameter] public string? Stage { get; set; }
+    [Parameter] public string? Phone { get; set; }
+    [Parameter] public string? ErrorMessage { get; set; }
+}
