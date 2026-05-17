@@ -39,3 +39,6 @@ scripts/package-lock.json
 # (راجع Apps/Ejar/Customer/Backend/Ejar.Api/Secrets/README.md). الملف
 # .example.json آمن للالتزام كنموذج فقط.
 **/Secrets/firebase-service-account.json
+
+# importer local secrets
+platform-v1/tools/ACommerce.Importer/appsettings.Local.json
