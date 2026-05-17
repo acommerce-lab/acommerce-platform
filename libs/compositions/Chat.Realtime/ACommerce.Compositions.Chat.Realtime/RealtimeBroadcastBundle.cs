@@ -69,7 +69,9 @@ public sealed class RealtimeBroadcastInterceptor : IOperationInterceptor
             string? recipientId = null;
             if (chatStore is not null)
             {
-                var conv = await chatStore.GetConversationAsync(convId, ctx.CancellationToken);
+                // viewer = فارِغ: الـ broadcast يَستَخدِم ParticipantPartyIds فَقَط،
+                // لا perspective عَلى Owner/Partner.
+                var conv = await chatStore.GetConversationAsync(convId, "", ctx.CancellationToken);
                 if (conv is not null)
                 {
                     foreach (var partyId in conv.ParticipantPartyIds)

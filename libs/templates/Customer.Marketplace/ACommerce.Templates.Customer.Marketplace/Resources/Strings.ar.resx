@@ -248,6 +248,7 @@
   <data name="listing.report_link" xml:space="preserve"><value>إبلاغ عن هذا الإعلان</value></data>
   <data name="listing.report_modal_title" xml:space="preserve"><value>إبلاغ عن إعلان</value></data>
   <data name="listing.location" xml:space="preserve"><value>الموقع</value></data>
+  <data name="listing.scam_warning" xml:space="preserve"><value>برجاء الانتباه من عمليات النصب وعدم دفع أي مبالغ مالية لأي شخص أو جهة غير موثوق منها، ومعاينة العقار قبل إتمام الصفقة، والإبلاغ عن الإعلانات المخالفة فوراً.</value></data>
   <data name="report.choose_reason" xml:space="preserve"><value>— اختر سبباً —</value></data>
   <data name="report.reason.spam" xml:space="preserve"><value>إعلان مزعج / spam</value></data>
   <data name="report.reason.scam" xml:space="preserve"><value>احتيال</value></data>

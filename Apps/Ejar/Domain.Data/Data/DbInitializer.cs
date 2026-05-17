@@ -94,6 +94,27 @@ public static class DbInitializer
     }
 
     /// <summary>
+    /// يُفَرِّغ <c>ConversationEntity.PartnerName</c> الَّذي كانَ يُحفَظ
+    /// كَـ "—" عِندَ غِياب الـ partner في Users وَقت إنشاء المُحادَثَة.
+    /// الـ BuildView الآن يَستَعيد الاسم مَن Users لَو الـ snapshot فارِغ،
+    /// فَتَنظيف الـ "—" المَحفوظ يُحَرِّر السِلسِلَة لِتَعمَل. idempotent.
+    /// </summary>
+    public static void NormalizeConversationPartnerNames(EjarDbContext db)
+    {
+        try
+        {
+            var n = db.Database.ExecuteSqlRaw(
+                "UPDATE Conversations SET PartnerName = '' WHERE PartnerName = '—'");
+            // الـ inbox سَيَستَعيد الأَسماء بَعد إعادَة النَّشر التالِيَة.
+        }
+        catch
+        {
+            // فَشَل DDL — DB قد لا يَدعم أَو الجَدول غَير مَوجود. لا
+            // نَكسِر الإقلاع.
+        }
+    }
+
+    /// <summary>
     /// يُحَدّث صفوف Favorites القديمة التي EntityType فيها = "ListingEntity"
     /// (من CatalogController قبل Q1) إلى "Listing" (الصيغة الحاليّة في
     /// FavoritesController.ToggleListing). idempotent — يَنجح حتى لو لا صفوف

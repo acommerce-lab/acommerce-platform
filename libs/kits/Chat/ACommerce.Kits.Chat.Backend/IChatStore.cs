@@ -38,8 +38,16 @@ public interface IChatStore
     /// <summary>يجلب رسائل المحادثة مرتّبة بالأقدم أوّلاً.</summary>
     Task<IReadOnlyList<IChatMessage>> GetMessagesAsync(string conversationId, CancellationToken ct);
 
-    /// <summary>تفاصيل المحادثة (المشاركون، الموضوع، …) أو <c>null</c> لو غير موجودة.</summary>
-    Task<IChatConversation?> GetConversationAsync(string conversationId, CancellationToken ct);
+    /// <summary>تفاصيل المحادثة (المشاركون، الموضوع، …) أو <c>null</c> لو غير موجودة.
+    /// يَرُدّ <see cref="IChatConversationView"/> — العَقد المُوَسَّع الَّذي يَحوي
+    /// OwnerName/PartnerName/Avatars/LastMessage/Subject. الـ controller يُسَلسِله
+    /// عَبر typed surface فَلا تَختَفي الحُقول في JSON.
+    ///
+    /// <para><paramref name="viewerUserId"/> = المُستَخدِم الحالي (CallerId).
+    /// الـ store يَستَخدِمه لِتَحديد UnreadCount per-side + لِاختيار الطَّرف
+    /// الآخَر في حالات n-party.</para></summary>
+    Task<IChatConversationView?> GetConversationAsync(
+        string conversationId, string viewerUserId, CancellationToken ct);
 
     /// <summary>كلّ محادثات المستخدم — للـ inbox. يَرُدّ
     /// <see cref="IChatConversationView"/> (واجِهَة مُوَسَّعَة بِكُلّ

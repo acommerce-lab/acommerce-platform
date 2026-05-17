@@ -70,7 +70,7 @@ public class ChatController : ControllerBase
     {
         if (!await _store.CanParticipateAsync(id, CallerId, ct))
             return this.ForbiddenEnvelope("not_a_participant");
-        var conv = await _store.GetConversationAsync(id, ct);
+        var conv = await _store.GetConversationAsync(id, CallerId, ct);
         if (conv is null) return this.NotFoundEnvelope("conversation_not_found");
         var msgs = await _store.GetMessagesAsync(id, ct);
         return this.OkEnvelope("conversation.details", new { conversation = conv, messages = msgs });

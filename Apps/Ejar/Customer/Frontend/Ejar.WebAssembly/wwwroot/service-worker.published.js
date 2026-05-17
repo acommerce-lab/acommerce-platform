@@ -26,13 +26,42 @@ async function onActivate(event) {
         .map(key => caches.delete(key)));
 }
 
+// مَلَفّات تَتَبَدَّل مَع كلّ نَشر — لا تُخَزَّن أَبَداً. بِدون هذا
+// appsettings.json (الَّذي يَحوي App.Version) و version.json يَبقَيان
+// قَديمَين بَعد التَّحديث حَتّى cold start، فَيَظهَر رَقَم النَّسخَة
+// القَديم في صَفحَة "حِسابي".
+const noStorePaths = new Set([
+    'appsettings.json',
+    'version.json',
+    'manifest.webmanifest',
+    'install-prompt.js',
+    'pwa-update.js',
+    'version-check.js',
+    'api-diagnostics.js'
+]);
+
 async function onFetch(event) {
-    let cachedResponse = null;
-    if (event.request.method === 'GET') {
-        const shouldServeIndexHtml = event.request.mode === 'navigate';
-        const request = shouldServeIndexHtml ? 'index.html' : event.request;
-        const cache = await caches.open(cacheName);
-        cachedResponse = await cache.match(request);
-    }
+    if (event.request.method !== 'GET') return fetch(event.request);
+
+    // ① ملفّات حَيَويّة لِلتَّحديث ⇒ شَبَكَة دائِماً، مَع fallback لِلـ cache
+    //    لَو offline.
+    try {
+        const url = new URL(event.request.url);
+        const last = url.pathname.split('/').pop();
+        if (url.origin === self.location.origin && noStorePaths.has(last)) {
+            try {
+                return await fetch(event.request, { cache: 'no-store' });
+            } catch {
+                const cache = await caches.open(cacheName);
+                return (await cache.match(event.request)) || new Response('', { status: 504 });
+            }
+        }
+    } catch { /* URL parse فَشَل — اُكمِل بِالسُّلوك العاديّ */ }
+
+    // ② أيّ شَيء آخَر: cache-first ثُمَّ شَبَكَة (السُّلوك الأَصليّ).
+    const shouldServeIndexHtml = event.request.mode === 'navigate';
+    const request = shouldServeIndexHtml ? 'index.html' : event.request;
+    const cache = await caches.open(cacheName);
+    const cachedResponse = await cache.match(request);
     return cachedResponse || fetch(event.request);
 }

@@ -93,26 +93,29 @@ public sealed class VersionPoll : IAsyncDisposable
     /// ينظّف SW + caches المتصفّح ثمّ يُعيد التحميل بـ ?ac_v=<version> ليكسر
     /// أيّ HTTP cache على CDN/proxy. نفس منطق version-check.js لكن المستخدم
     /// يُشغّله بضغطة زرّ.
+    ///
+    /// <para>السابِق: <c>eval(...)</c> — يُمنَع تَحت CSP الافتراضيّ لِـ
+    /// Blazor WASM (<c>'wasm-unsafe-eval'</c> دون <c>'unsafe-eval'</c>) فَلا
+    /// تَعمَل النَّقرَة على زَرّ "تَحديث الآن". الجَديد: نَستَدعي
+    /// <c>window.acVersionRefresh</c> دالّة عامّة مُعَرَّفَة في
+    /// <c>pwa-update.js</c> — اسم دالّة عاديّ بِلا eval فَيَمُرّ تَحت CSP
+    /// الصارِم. التَّطبيقات الَّتي تَستَعمِل الـ kit يَجِب أَن تَنشُر
+    /// <c>pwa-update.js</c> (أو تَعرِض <c>acVersionRefresh</c> بِأيّ طَريقة
+    /// أُخرى) — وإلاّ نَسقُط إلى <c>location.reload</c>.</para>
     /// </summary>
     public async Task ApplyUpdateAsync()
     {
-        try { await _js.InvokeVoidAsync("eval", @"(async()=>{
-            try {
-              if ('serviceWorker' in navigator) {
-                const regs = await navigator.serviceWorker.getRegistrations();
-                await Promise.all(regs.map(r => r.unregister().catch(()=>{})));
-              }
-              if ('caches' in window) {
-                const keys = await caches.keys();
-                await Promise.all(keys.map(k => caches.delete(k).catch(()=>{})));
-              }
-            } catch (e) { console.warn('[VersionPoll] cleanup failed', e); }
-            const u = new URL(location.href);
-            u.searchParams.set('ac_v', Date.now().toString());
-            location.replace(u.toString());
-        })()"); }
-        catch { /* لو JS فشل، إعادة تحميل بسيطة كحلّ احتياط */ }
-        try { await _js.InvokeVoidAsync("eval", "location.reload()"); } catch { }
+        try
+        {
+            await _js.InvokeVoidAsync("acVersionRefresh");
+            return;
+        }
+        catch
+        {
+            // غير مَعروفَة أو فَشلَت — أعِد التَّحميل عَلى الأَقَلّ.
+        }
+        try { await _js.InvokeVoidAsync("location.reload"); }
+        catch { /* last resort — لا شَيء يُمكِن فِعله */ }
     }
 
     public ValueTask DisposeAsync()

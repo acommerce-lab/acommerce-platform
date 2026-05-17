@@ -162,13 +162,14 @@ public sealed class EjarCustomerChatStore : IChatStore
         return rows.Select(m => (IChatMessage)new MessageView(m)).ToList();
     }
 
-    public async Task<IChatConversation?> GetConversationAsync(
-        string conversationId, CancellationToken ct)
+    public async Task<IChatConversationView?> GetConversationAsync(
+        string conversationId, string viewerUserId, CancellationToken ct)
     {
         if (!Guid.TryParse(conversationId, out var cid)) return null;
         var c = await _db.Conversations.AsNoTracking().FirstOrDefaultAsync(x => x.Id == cid, ct);
         if (c is null) return null;
-        return await BuildViewAsync(c, ct);
+        Guid.TryParse(viewerUserId, out var viewer);
+        return await BuildViewAsync(c, viewer, ct);
     }
 
     public async Task<IReadOnlyList<IChatConversationView>> ListForUserAsync(
@@ -181,12 +182,13 @@ public sealed class EjarCustomerChatStore : IChatStore
             .ToListAsync(ct);
         if (rows.Count == 0) return Array.Empty<IChatConversationView>();
 
-        // ابحث عن أسماء الـ Owner و Partner في طلب واحد بدل n+1.
+        // ابحث عن أَسماء + صُور الـ Owner و Partner في طَلَب واحِد (لا N+1).
         var partyIds = rows.Select(c => c.OwnerId).Concat(rows.Select(c => c.PartnerId))
                            .Distinct().ToList();
         var users = await _db.Users.AsNoTracking()
             .Where(u => partyIds.Contains(u.Id))
-            .ToDictionaryAsync(u => u.Id, u => u.FullName, ct);
+            .Select(u => new { u.Id, u.FullName, u.AvatarUrl })
+            .ToDictionaryAsync(u => u.Id, u => u, ct);
 
         // آخر رسالة + وَقتها في كُلّ محادثة (لِلـ inbox preview).
         var convIds = rows.Select(c => c.Id).ToList();
@@ -196,14 +198,20 @@ public sealed class EjarCustomerChatStore : IChatStore
             .Select(g => g.OrderByDescending(m => m.SentAt).First())
             .ToDictionaryAsync(m => m.ConversationId, m => new { m.Text, m.SentAt }, ct);
 
-        return rows.Select(c => (IChatConversationView)new ConversationView(
-            c,
-            users.TryGetValue(c.OwnerId,   out var on) ? on : null,
-            users.TryGetValue(c.PartnerId, out var pn) ? pn : c.PartnerName,
-            lastMsgs.TryGetValue(c.Id, out var last) ? last?.Text : null,
-            lastMsgs.TryGetValue(c.Id, out var lastM) ? lastM?.SentAt : null,
-            viewerUserId: uid
-        )).ToList();
+        return rows.Select(c =>
+        {
+            users.TryGetValue(c.OwnerId,   out var ownerU);
+            users.TryGetValue(c.PartnerId, out var partnerU);
+            lastMsgs.TryGetValue(c.Id, out var last);
+            return (IChatConversationView)new ConversationView(c,
+                ownerName:     NormalizeName(ownerU?.FullName),
+                partnerName:   NormalizeName(partnerU?.FullName) ?? NormalizeName(c.PartnerName),
+                ownerAvatar:   ownerU?.AvatarUrl,
+                partnerAvatar: partnerU?.AvatarUrl,
+                lastMessage:   last?.Text,
+                lastMessageAt: last?.SentAt,
+                viewerUserId:  uid);
+        }).ToList();
     }
 
     /// <summary>
@@ -229,15 +237,39 @@ public sealed class EjarCustomerChatStore : IChatStore
             conv.PartnerUnread = 0;
     }
 
-    private async Task<ConversationView> BuildViewAsync(ConversationEntity c, CancellationToken ct)
+    private async Task<ConversationView> BuildViewAsync(
+        ConversationEntity c, Guid viewerUserId, CancellationToken ct)
     {
         var owner   = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == c.OwnerId, ct);
         var partner = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == c.PartnerId, ct);
-        // viewerUserId غير مَعروف هنا (مَسار GET واحد للمحادثة) — نَعرض
-        // 0 افتراضياً، الـ caller الذي يَملك السياق يَختار العَدّاد المناسب.
-        return new ConversationView(c, owner?.FullName, partner?.FullName ?? c.PartnerName,
-            lastMessage: null, lastMessageAt: null, viewerUserId: Guid.Empty);
+        // آخِر رِسالَة + وَقتها لِواجِهَة /conversations/{id}.
+        var last = await _db.Messages.AsNoTracking()
+            .Where(m => m.ConversationId == c.Id)
+            .OrderByDescending(m => m.SentAt)
+            .Select(m => new { m.Text, m.SentAt })
+            .FirstOrDefaultAsync(ct);
+        // FullName قَد يَكون فارِغاً ("") أَو null لِمُستَخدِم جَديد لَم
+        // يَملَأ بِيانات بَعد. NormalizeName يَعتَبِر كِلا الحالَتَين كَ
+        // null لِيَنفُذ الـ fallback عَلى الـ persisted c.PartnerName.
+        var ownerName   = NormalizeName(owner?.FullName);
+        var partnerName = NormalizeName(partner?.FullName) ?? NormalizeName(c.PartnerName);
+        return new ConversationView(c,
+            ownerName:    ownerName,
+            partnerName:  partnerName,
+            ownerAvatar:   owner?.AvatarUrl,
+            partnerAvatar: partner?.AvatarUrl,
+            lastMessage:   last?.Text,
+            lastMessageAt: last?.SentAt,
+            viewerUserId:  viewerUserId);
     }
+
+    /// <summary>FullName فارِغ ("") أَو whitespace أَو placeholder "—" ⇒
+    /// null لِيُسقِطه الـ fallback chain. السَّبَب: لَمّا تُنشَأ مُحادَثَة
+    /// وَ شَريك المالِك غَير مَوجود في الـ Users، السابِق كانَ يَحفَظ "—"
+    /// في <c>c.PartnerName</c> ⇒ يَبقى poison value يَتَجاوَز كُلّ lookup
+    /// لاحِق حَتّى لَمّا الـ Users يَحوي البِيانات الصَّحيحَة.</summary>
+    private static string? NormalizeName(string? name) =>
+        string.IsNullOrWhiteSpace(name) || name.Trim() == "—" ? null : name;
 
     // ── views ──────────────────────────────────────────────────────────────
     // PartyKind بادئة "User:" تطابق ChatKitOptions في AddChatKit؛ بدونها
@@ -265,13 +297,17 @@ public sealed class EjarCustomerChatStore : IChatStore
         private readonly ConversationEntity _e;
         private readonly Guid _viewer;
         public ConversationView(
-            ConversationEntity e, string? ownerName, string? partnerName,
+            ConversationEntity e,
+            string? ownerName, string? partnerName,
+            string? ownerAvatar, string? partnerAvatar,
             string? lastMessage, DateTime? lastMessageAt, Guid viewerUserId)
         {
             _e = e;
             _viewer = viewerUserId;
             OwnerName     = ownerName ?? "—";
             PartnerName   = partnerName ?? "—";
+            OwnerAvatar   = ownerAvatar;
+            PartnerAvatar = partnerAvatar;
             LastMessage   = lastMessage;
             LastMessageAt = lastMessageAt;
         }
@@ -283,10 +319,10 @@ public sealed class EjarCustomerChatStore : IChatStore
 
         public string  OwnerId       => _e.OwnerId.ToString();
         public string  OwnerName     { get; }
-        public string? OwnerAvatar   => null;
+        public string? OwnerAvatar   { get; }
         public string  PartnerId     => _e.PartnerId.ToString();
         public string  PartnerName   { get; }
-        public string? PartnerAvatar => null;
+        public string? PartnerAvatar { get; }
         public string  Subject       => _e.Subject;
         public string? ListingId     => _e.ListingId.ToString();
         public DateTime LastAt       => _e.LastAt;
