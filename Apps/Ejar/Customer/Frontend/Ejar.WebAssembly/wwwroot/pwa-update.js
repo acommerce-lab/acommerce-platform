@@ -5,6 +5,101 @@
 // السُلوك السابِق: SW يَستَدعي skipWaiting صَامِتاً ⇒ المُستَخدِم لا يَرى
 // التَّحديث. الجَديد: نَسأَله "حَدِّث الآن؟ / لاحِقاً" قَبل skipWaiting.
 
+// window.acVersionRefresh — دالّة عامّة آمنة CSP يَستَدعيها Blazor (عَبر
+// IJSRuntime.InvokeVoidAsync) بَدَل eval. تُلغي تَسجيل SW + تَمسَح caches +
+// تُعيد التَّحميل مع ?ac_v=<ts> لِكَسر CDN cache. تُسجَّل فَوراً قَبل
+// تَحميل WASM فَتَكون مُتاحَة عِندَما يَنقُر المُستَخدِم زَرّ "تَحديث الآن"
+// (سَواء في VersionPoll banner أو AcVersionBanner).
+//
+// تَعرِض overlay فَوريّ "جاري التَّحديث..." قَبل بَدء التَّنظيف لِأَنّ
+// unregister + caches.delete يَستَغرِق ثَوانٍ — بِدونه المُستَخدِم يَرى
+// "لا شَيء" بَعد النَّقر فَيَنقُر مَرّة أُخرى أو يَظُنّ أَنّ الزَّرّ مَكسور
+// (وَهذا تَقريباً ما حَصَل عِندَ الناشِر).
+//
+// hard timeout 6s — في Chrome (خاصّةً Android multi-tab) أَحياناً
+// <c>unregister()</c> أَو <c>caches.delete()</c> Promise لا يَنتَهي أَبَداً
+// فَالـ await يَتَجَمَّد وَ المُستَخدِم يَرى spinner لِلأَبَد. الحَلّ:
+// race مَع <c>setTimeout</c> ⇒ إعادَة التَّحميل تَحدُث بِالتَأكيد خِلال
+// ٦ث حَتّى لَو التَّنظيف لَم يَنتَهِ (نَسخَة جَديدَة سَوف تَستَلِم بَعد
+// reload عَلى أَيّ حال).
+//
+// browser HTTP cache هُوَ سَبَب رَئيس لِبُقاء النَّسخَة القَديمَة بَعد
+// reload: <c>caches.delete()</c> يَمسَح cache الـ SW فَقَط لا cache المُتَصَفِّح
+// الـ HTTP. لِذا appsettings.json (الَّذي يَحوي App.Version) يَبقى قَديماً
+// حَتّى يَفتَح المُستَخدِم التَّطبيق مَرَّة أُخرى (cold start يُجبِر
+// revalidate). الحَلّ: <c>fetch(..., { cache: 'reload' })</c> قَبل
+// navigation — يَتَجاوَز HTTP cache لِيَجلِب نَسخَة طازَجَة + يُحَدِّث
+// HTTP cache. عِندَما يَقرَأ Blazor appsettings.json بَعد reload يَجِد
+// النَّسخَة الجَديدَة في cache المُتَصَفِّح فَلا حاجَة إلى cold start.
+window.acVersionRefresh = async function () {
+  showRefreshOverlay();
+  const HARD_DEADLINE_MS = 6000;
+  let reloaded = false;
+  const doReload = () => {
+    if (reloaded) return;
+    reloaded = true;
+    try {
+      const u = new URL(location.href);
+      u.searchParams.set('ac_v', Date.now().toString());
+      location.replace(u.toString());
+    } catch {
+      location.reload();
+    }
+  };
+  // ① مُؤَقِّت احتياطيّ — يَضمَن الانتِقال حَتّى لَو الـ Promises تَجَمَّدَت.
+  setTimeout(doReload, HARD_DEADLINE_MS);
+  // ② تَنظيف فِعليّ — بِأَسرَع وَقت مُمكِن، يَنهي قَبل deadline في الغالِب.
+  try {
+    // ②-أ: warmup HTTP cache بِنَسخَة طازَجَة مِن الـ shell critical files.
+    //       يَسبِق unregister/caches.delete لِأَنّ بَعدَهُما الـ SW قَد يَختَفي
+    //       فَيَخدِم المُتَصَفِّح مَن HTTP cache القَديم. <c>cache: 'reload'</c>
+    //       يُخبِر المُتَصَفِّح "تَجاهَل cache واجلِب مَن الشَّبَكَة، ثُمَّ
+    //       حَدِّث الـ cache".
+    const critical = [
+      'appsettings.json',
+      'version.json',
+      '_framework/blazor.boot.json'
+    ];
+    await Promise.all(critical.map(f =>
+      fetch(f, { cache: 'reload' }).catch(() => {})
+    ));
+    // ②-ب: امسَح cache الـ SW (الَّذي يَخدُم _framework + index.html…).
+    if ('caches' in window) {
+      const keys = await caches.keys();
+      await Promise.all(keys.map(k => caches.delete(k).catch(() => {})));
+    }
+    // ②-ج: ألغِ تَسجيل SW القَديم — النَّسخَة الجَديدَة سَتُسَجَّل تِلقائيّاً
+    //       مَن index.html بَعد reload.
+    if ('serviceWorker' in navigator) {
+      const regs = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(regs.map(r => r.unregister().catch(() => {})));
+    }
+  } catch (e) { console.warn('[acVersionRefresh] cleanup failed', e); }
+  doReload();
+};
+
+function showRefreshOverlay() {
+  if (document.getElementById('ac-refresh-overlay')) return;
+  const div = document.createElement('div');
+  div.id = 'ac-refresh-overlay';
+  div.style.cssText = [
+    'position:fixed', 'inset:0',
+    'background:#1d4ed8', 'color:#fff',
+    'display:flex', 'align-items:center', 'justify-content:center',
+    'flex-direction:column', 'gap:16px',
+    'z-index:2147483647',
+    'font-family:Cairo,system-ui,sans-serif', 'font-size:18px',
+    'direction:rtl'
+  ].join(';');
+  div.innerHTML = `
+    <div style="font-size:22px;font-weight:700">جاري تَحديث إيجار…</div>
+    <div style="font-size:14px;opacity:0.85">لَحظَة مِن فَضلك، لا تُغلِق التَّطبيق</div>
+    <div style="margin-top:8px;width:48px;height:48px;border:4px solid rgba(255,255,255,0.3);
+                border-top-color:#fff;border-radius:50%;animation:ac-refresh-spin 1s linear infinite"></div>
+    <style>@keyframes ac-refresh-spin{to{transform:rotate(360deg)}}</style>`;
+  (document.body || document.documentElement).appendChild(div);
+}
+
 (function () {
   if (!('serviceWorker' in navigator)) return;
 
@@ -47,8 +142,20 @@
   }
 
   function applyUpdate() {
+    // overlay فَوريّ — controllerchange قَد يَستَغرِق ثَوانٍ، بِدون رَدّ
+    // فِعل بَصَريّ المُستَخدِم يَظُنّ أَنّ الزَّرّ مَكسور.
+    showRefreshOverlay();
     if (waitingSw) waitingSw.postMessage('skipWaiting');
-    // controllerchange listener يُعيد التَّحميل تِلقائيّاً
+    // fallback: لَو controllerchange لَم يُطلَق خِلال ٥ث (تَبويب آخَر
+    // يُبقي SW القَديم نَشطاً، أَو skipWaiting لَم يَصِل) أَجبِر reload.
+    // نَفس النَّسخَة سَوف تَستَخدِم SW الجَديد بَعد reload لِأَنّ المُتَصَفِّح
+    // يَفحَص service-worker.js عِندَ كلّ navigation (updateViaCache=none).
+    setTimeout(() => {
+      if (!reloading) {
+        reloading = true;
+        window.location.reload();
+      }
+    }, 5000);
   }
 
   navigator.serviceWorker.ready.then(reg => {

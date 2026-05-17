@@ -88,6 +88,12 @@ public static class EjarBootstrap
         // CategoryAttributeMappings مِن EjarListingAttributes (idempotent).
         DbInitializer.SeedListingAttributesIfMissing(db);
 
+        // تَنظيف poison value "—" مَن ConversationEntity.PartnerName الَّذي
+        // كانَ يُحفَظ سابِقاً عِندَ غياب الـ partner User. الآن نَحفَظ ""
+        // بَدَلاً، وَ هذا الـ migration يُصلِح الصُّفوف القَديمَة لِيَستَعيد
+        // الـ inbox أَسماء الشُّركاء بَعد إعادَة النَّشر.
+        DbInitializer.NormalizeConversationPartnerNames(db);
+
         // ترحيل صفوف Favorites القديمة من EntityType="ListingEntity" (الكود
         // قبل Q1) إلى "Listing" (الكود الحاليّ). idempotent.
         DbInitializer.NormalizeFavoriteEntityType(db);

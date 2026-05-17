@@ -248,6 +248,7 @@
   <data name="listing.report_link" xml:space="preserve"><value>Report this listing</value></data>
   <data name="listing.report_modal_title" xml:space="preserve"><value>Report a listing</value></data>
   <data name="listing.location" xml:space="preserve"><value>Location</value></data>
+  <data name="listing.scam_warning" xml:space="preserve"><value>Beware of fraud. Do not pay any amounts to untrusted parties, inspect the property before closing any deal, and report violating listings immediately.</value></data>
   <data name="report.choose_reason" xml:space="preserve"><value>— Choose reason —</value></data>
   <data name="report.reason.spam" xml:space="preserve"><value>Spam</value></data>
   <data name="report.reason.scam" xml:space="preserve"><value>Scam</value></data>

@@ -469,10 +469,49 @@ public sealed class AshareV3ChatStore : IChatStore
         return rows.Cast<IChatMessage>().ToList();
     }
 
-    public async Task<IChatConversation?> GetConversationAsync(string conversationId, CancellationToken ct)
+    public async Task<IChatConversationView?> GetConversationAsync(
+        string conversationId, string viewerUserId, CancellationToken ct)
     {
         if (!Guid.TryParse(conversationId, out var cid)) return null;
-        return await _db.Chats.Include(c => c.Participants).FirstOrDefaultAsync(c => c.Id == cid, ct);
+        var chat = await _db.Chats.AsNoTracking().FirstOrDefaultAsync(c => c.Id == cid, ct);
+        if (chat is null) return null;
+
+        var parts = await _db.ChatParticipants.AsNoTracking()
+            .Where(p => p.ChatId == cid).ToListAsync(ct);
+        var allUserIds = parts.Select(p => p.UserId)
+            .Where(s => !string.IsNullOrEmpty(s)).Distinct().ToList();
+        var profByUser = await _db.Profiles.AsNoTracking()
+            .Where(p => allUserIds.Contains(p.UserId!))
+            .Select(p => new { p.UserId, p.FullName, p.AvatarUrl })
+            .ToDictionaryAsync(p => p.UserId!, p => p, ct);
+
+        var meSide = parts.FirstOrDefault(p => p.UserId == viewerUserId);
+        var other  = parts.FirstOrDefault(p => p.UserId != viewerUserId);
+        var meProf    = meSide   is null ? null : profByUser.GetValueOrDefault(meSide.UserId);
+        var otherProf = other    is null ? null : profByUser.GetValueOrDefault(other.UserId);
+
+        var last = await _db.Messages.AsNoTracking()
+            .Where(m => m.ChatId == cid)
+            .OrderByDescending(m => m.CreatedAt)
+            .Select(m => new { m.Content, m.CreatedAt })
+            .FirstOrDefaultAsync(ct);
+
+        return new ChatConversationView(
+            Id:                  chat.Id.ToString(),
+            ParticipantPartyIds: parts.Select(p => $"User:{p.UserId}").ToList()!,
+            OwnerId:             meSide?.UserId ?? "",
+            OwnerName:           meProf?.FullName ?? "—",
+            OwnerAvatar:         meProf?.AvatarUrl,
+            PartnerId:           other?.UserId ?? "",
+            PartnerName:         otherProf?.FullName ?? "—",
+            PartnerAvatar:       otherProf?.AvatarUrl,
+            Subject:             chat.Title ?? "",
+            ListingId:           null,
+            LastAt:              last?.CreatedAt ?? chat.UpdatedAt ?? chat.CreatedAt,
+            UnreadCount:         0,
+            LastMessage:         last?.Content,
+            LastMessageAt:       last?.CreatedAt,
+            HasMyUnread:         false);
     }
 
     public async Task<IReadOnlyList<IChatConversationView>> ListForUserAsync(string userId, CancellationToken ct)

@@ -140,13 +140,17 @@ public sealed class CatalogController : ControllerBase
             .Tag("partner_id", partnerId.ToString())
             .Execute(ctx =>
             {
+                // PartnerName هُنا snapshot لِلعَرض السَّريع (avoiding Users join
+                // عَلى مَسارات الـ inbox). نَحفَظ "" لَو partner مَفقود — الـ
+                // BuildView يَحُلّ مُجَدَّداً مَن live Users كـ fallback، فَلا
+                // poison value "—" يَبقى لِلأَبَد.
                 _db.Conversations.Add(new ConversationEntity {
                     Id          = convId,
                     CreatedAt   = DateTime.UtcNow,
                     OwnerId     = uid,
                     PartnerId   = partnerId,
                     ListingId   = listingId,
-                    PartnerName = partner?.FullName ?? "—",
+                    PartnerName = partner?.FullName ?? "",
                     Subject     = listing.Title,
                     LastAt      = DateTime.UtcNow,
                     UnreadCount = 0,

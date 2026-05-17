@@ -37,7 +37,14 @@
         </button>
     </div>
 }
-<AcAppVersionGate>
+@* ShowHasNewerBanner=false — VersionPoll أَعلاه + pwa-update.js + version-check.js
+   كَلاثَتُهُم يُعالِجون نَفس الحَدَث (نَسخَة أَحدَث). تَكديس ٣ بَنرات يُربِك
+   المُستَخدِم — يَبقى AcVersionBanner فَقَط لِـ NearSunset/Deprecated الَّتي
+   لا يَملِك مَصدَر آخَر إشارَتها. الـ OnUpdate وَ CtaLabel تَبقى لِأَنّ
+   تِلكَ الحالات قَد تَستَفيد مِن نَفس آليّة التَّحديث الصامِتَة. *@
+<AcAppVersionGate OnUpdate="ApplyAppUpdate"
+                  CtaLabel="@(L[TemplateStrings.LayoutUpdateNow])"
+                  ShowHasNewerBanner="false">
     <ChildContent>
         <nav class="acm-mobile-nav">
             <div class="acm-mobile-nav-inner">

@@ -61,7 +61,8 @@ public sealed class ChatPushNotificationInterceptor : IOperationInterceptor
             if (sender is null) return AnalyzerResult.Pass();
             var senderId = ExtractId(sender.Identity);
 
-            var conv = await chatStore.GetConversationAsync(convId, ctx.CancellationToken);
+            // viewer = فارِغ: الـ push notification يَستَخدِم ParticipantPartyIds فَقَط.
+            var conv = await chatStore.GetConversationAsync(convId, "", ctx.CancellationToken);
             if (conv is null) return AnalyzerResult.Pass();
 
             string? recipientId = null;
