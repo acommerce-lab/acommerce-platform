@@ -162,13 +162,14 @@ public sealed class EjarCustomerChatStore : IChatStore
         return rows.Select(m => (IChatMessage)new MessageView(m)).ToList();
     }
 
-    public async Task<IChatConversation?> GetConversationAsync(
-        string conversationId, CancellationToken ct)
+    public async Task<IChatConversationView?> GetConversationAsync(
+        string conversationId, string viewerUserId, CancellationToken ct)
     {
         if (!Guid.TryParse(conversationId, out var cid)) return null;
         var c = await _db.Conversations.AsNoTracking().FirstOrDefaultAsync(x => x.Id == cid, ct);
         if (c is null) return null;
-        return await BuildViewAsync(c, ct);
+        Guid.TryParse(viewerUserId, out var viewer);
+        return await BuildViewAsync(c, viewer, ct);
     }
 
     public async Task<IReadOnlyList<IChatConversationView>> ListForUserAsync(
@@ -229,14 +230,19 @@ public sealed class EjarCustomerChatStore : IChatStore
             conv.PartnerUnread = 0;
     }
 
-    private async Task<ConversationView> BuildViewAsync(ConversationEntity c, CancellationToken ct)
+    private async Task<ConversationView> BuildViewAsync(
+        ConversationEntity c, Guid viewerUserId, CancellationToken ct)
     {
         var owner   = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == c.OwnerId, ct);
         var partner = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == c.PartnerId, ct);
-        // viewerUserId غير مَعروف هنا (مَسار GET واحد للمحادثة) — نَعرض
-        // 0 افتراضياً، الـ caller الذي يَملك السياق يَختار العَدّاد المناسب.
+        // آخِر رِسالَة + وَقتها لِواجِهَة /conversations/{id}.
+        var last = await _db.Messages.AsNoTracking()
+            .Where(m => m.ConversationId == c.Id)
+            .OrderByDescending(m => m.SentAt)
+            .Select(m => new { m.Text, m.SentAt })
+            .FirstOrDefaultAsync(ct);
         return new ConversationView(c, owner?.FullName, partner?.FullName ?? c.PartnerName,
-            lastMessage: null, lastMessageAt: null, viewerUserId: Guid.Empty);
+            lastMessage: last?.Text, lastMessageAt: last?.SentAt, viewerUserId: viewerUserId);
     }
 
     // ── views ──────────────────────────────────────────────────────────────
