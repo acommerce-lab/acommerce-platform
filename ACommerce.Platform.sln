@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 18
-VisualStudioVersion = 18.7.11811.120 insiders
+VisualStudioVersion = 18.7.11811.120
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Apps", "Apps", "{1CC5531A-DA2C-4C10-B5C6-D5AD2654FD3D}"
 EndProject
@@ -646,6 +646,16 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACommerce.Compositions.Customer.Marketplace.Home.Backend", "libs\compositions\Customer.Marketplace.Home.Backend\ACommerce.Compositions.Customer.Marketplace.Home.Backend\ACommerce.Compositions.Customer.Marketplace.Home.Backend.csproj", "{DE439C8F-F38D-4BD4-A05E-139A6DEEC8E4}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACommerce.Importer", "platform-v1\tools\ACommerce.Importer\ACommerce.Importer.csproj", "{AB1E4D66-F82D-0FF5-880F-8964DDD1A240}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "platform-v1", "platform-v1", "{ACEB84F2-E633-5244-5C2F-34C7A11BFFD2}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "libs", "libs", "{03C72B40-D6EB-CC67-2D24-F1A8EF2E490F}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "kits", "kits", "{675A5A51-5CBE-5C92-1AB2-31F818B28D97}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Roles", "Roles", "{113FD17D-11BD-3683-48DE-279691A42D5D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACommerce.Kit.Roles.Core", "platform-v1\libs\kits\Roles\ACommerce.Kit.Roles.Core\ACommerce.Kit.Roles.Core.csproj", "{810A52A2-57B8-4DF7-8D27-CA5BD86EEE5A}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -2757,6 +2767,18 @@ Global
 		{AB1E4D66-F82D-0FF5-880F-8964DDD1A240}.Release|x64.Build.0 = Release|Any CPU
 		{AB1E4D66-F82D-0FF5-880F-8964DDD1A240}.Release|x86.ActiveCfg = Release|Any CPU
 		{AB1E4D66-F82D-0FF5-880F-8964DDD1A240}.Release|x86.Build.0 = Release|Any CPU
+		{810A52A2-57B8-4DF7-8D27-CA5BD86EEE5A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{810A52A2-57B8-4DF7-8D27-CA5BD86EEE5A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{810A52A2-57B8-4DF7-8D27-CA5BD86EEE5A}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{810A52A2-57B8-4DF7-8D27-CA5BD86EEE5A}.Debug|x64.Build.0 = Debug|Any CPU
+		{810A52A2-57B8-4DF7-8D27-CA5BD86EEE5A}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{810A52A2-57B8-4DF7-8D27-CA5BD86EEE5A}.Debug|x86.Build.0 = Debug|Any CPU
+		{810A52A2-57B8-4DF7-8D27-CA5BD86EEE5A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{810A52A2-57B8-4DF7-8D27-CA5BD86EEE5A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{810A52A2-57B8-4DF7-8D27-CA5BD86EEE5A}.Release|x64.ActiveCfg = Release|Any CPU
+		{810A52A2-57B8-4DF7-8D27-CA5BD86EEE5A}.Release|x64.Build.0 = Release|Any CPU
+		{810A52A2-57B8-4DF7-8D27-CA5BD86EEE5A}.Release|x86.ActiveCfg = Release|Any CPU
+		{810A52A2-57B8-4DF7-8D27-CA5BD86EEE5A}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -3079,6 +3101,10 @@ Global
 		{E96E08CB-EBE1-F8C5-66A5-79B5662B1CC3} = {7BFCF2B6-4240-6566-704B-BEA297B2DE71}
 		{DE439C8F-F38D-4BD4-A05E-139A6DEEC8E4} = {E96E08CB-EBE1-F8C5-66A5-79B5662B1CC3}
 		{AB1E4D66-F82D-0FF5-880F-8964DDD1A240} = {15982EFF-AB73-4D48-BB4D-F68904833BAA}
+		{03C72B40-D6EB-CC67-2D24-F1A8EF2E490F} = {ACEB84F2-E633-5244-5C2F-34C7A11BFFD2}
+		{675A5A51-5CBE-5C92-1AB2-31F818B28D97} = {03C72B40-D6EB-CC67-2D24-F1A8EF2E490F}
+		{113FD17D-11BD-3683-48DE-279691A42D5D} = {675A5A51-5CBE-5C92-1AB2-31F818B28D97}
+		{810A52A2-57B8-4DF7-8D27-CA5BD86EEE5A} = {113FD17D-11BD-3683-48DE-279691A42D5D}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {F51764D1-82DA-4F44-B331-BCE0EC74DAE1}
