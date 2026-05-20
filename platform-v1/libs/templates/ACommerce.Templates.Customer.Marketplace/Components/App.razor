@@ -41,6 +41,26 @@
             var el = document.getElementById('thread-bottom');
             if (el && el.scrollIntoView) el.scrollIntoView({ behavior: 'smooth', block: 'end' });
         };
+
+        // تَقديم عَرض مَع التِقاط مَوقِع تِلقائيّ. السائِق يَكتُب السِعر
+        // فَقَط، الـ JS يَملأ lat/lng ثُمّ يُرسِل الـ form.
+        window.acSubmitOffer = function (btn) {
+            var form = btn.closest('form');
+            if (!form) return;
+            btn.disabled = true;
+            btn.textContent = 'جارٍ التِقاط مَوقِعكَ…';
+            var send = function () { try { form.submit(); } catch (e) { /* ignore */ } };
+            if (!navigator.geolocation) { send(); return; }
+            navigator.geolocation.getCurrentPosition(
+                function (p) {
+                    form.querySelector('#offer_lat').value = p.coords.latitude.toFixed(6);
+                    form.querySelector('#offer_lng').value = p.coords.longitude.toFixed(6);
+                    send();
+                },
+                function () { send(); /* fallback: أَرسِل بِلا مَوقِع */ },
+                { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
+            );
+        };
     </script>
 </body>
 </html>

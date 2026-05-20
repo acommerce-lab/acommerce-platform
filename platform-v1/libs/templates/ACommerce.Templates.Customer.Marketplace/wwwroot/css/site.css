@@ -527,17 +527,19 @@
 .acm-manager-card span { display: block; color: var(--ac-text-muted); font-size: 12px; line-height: 1.5; }
 .acm-manager-icon {
     width: 44px; height: 44px;
-    display: grid;
-    place-items: center;
     background: var(--ac-bg-alt);
     color: var(--ac-primary);
     border-radius: 12px; flex-shrink: 0;
-    overflow: hidden;
+    position: relative;             /* مَركَز إنزال الـ child */
+    align-self: center;             /* وَ مَركَزه عَموديّاً في الـ card */
 }
-.acm-manager-icon > svg {
-    display: block;
-    width: 24px; height: 24px;
+.acm-manager-icon > * {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    /* أَيّ child (SVG أَو img أَو span) يَكون مُمَركَزاً تَماماً */
 }
+.acm-manager-icon > svg { width: 22px; height: 22px; }
 
 /* قائِمَة الفِئات (TenantEdit + TenantCategories) */
 .acm-cat-list { display: flex; flex-direction: column; gap: 6px; }
@@ -761,6 +763,49 @@
 }
 .acm-role-hero-actions {
     display: flex; flex-direction: column; gap: 8px;
+}
+
+/* ═══ Role picklist (TenantRoles checklist) ═══════════════════════ */
+.acm-role-picklist { display: flex; flex-direction: column; gap: 8px; }
+.acm-role-pickcard {
+    display: flex; gap: 12px; align-items: flex-start;
+    padding: 14px;
+    background: var(--ac-surface);
+    border: 2px solid var(--ac-border);
+    border-radius: var(--ac-radius-md);
+    cursor: pointer;
+    transition: border-color 120ms, background 120ms;
+}
+.acm-role-pickcard:hover { border-color: var(--ac-primary); }
+.acm-role-pickcard.is-picked {
+    border-color: var(--ac-primary);
+    background: color-mix(in srgb, var(--ac-primary) 8%, transparent);
+}
+/* :has() fallback لِلمُتَصَفِّحات الَّتي تَدعَمُه — تَأخُذ التَّأثير الفَوريّ
+   عِندَ النَّقر بِلا حاجَة لِـ form submit. */
+.acm-role-pickcard:has(input[type="checkbox"]:checked) {
+    border-color: var(--ac-primary);
+    background: color-mix(in srgb, var(--ac-primary) 8%, transparent);
+}
+.acm-role-pickcard:has(input[type="checkbox"]:not(:checked)) {
+    border-color: var(--ac-border);
+    background: var(--ac-surface);
+}
+.acm-role-pickcard > input[type="checkbox"] {
+    margin-top: 4px; width: 20px; height: 20px;
+    flex-shrink: 0; cursor: pointer;
+}
+.acm-role-pickcard-body { flex: 1; min-width: 0; display: block; }
+.acm-role-pickcard-body strong { display: block; }
+.acm-role-pickcard-body > span:nth-of-type(1) {
+    display: block; color: var(--ac-text-muted); font-size: 13px; margin-top: 4px;
+}
+.acm-role-pickcard-default {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 12px; color: var(--ac-text-muted);
+    white-space: nowrap; align-self: flex-start;
+    padding: 4px 8px; border-radius: 6px;
+    background: var(--ac-bg-alt);
 }
 
 /* ═══ Offers (InDrive-style negotiation) ═══════════════════════════ */

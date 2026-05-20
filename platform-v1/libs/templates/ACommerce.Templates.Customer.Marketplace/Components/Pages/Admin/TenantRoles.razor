@@ -38,16 +38,24 @@
                 </p>
 
                 <form method="post" action="@($"/admin/tenants/{Slug}/roles/save")">
-                    <div class="acm-radio-cards" style="grid-template-columns:1fr;">
+                    <div class="acm-role-picklist">
                         @foreach (var tmpl in RoleCatalog.All)
                         {
                             var existing = tenant.Roles.FirstOrDefault(r => r.CatalogSlug == tmpl.Slug);
                             var isPicked = existing is not null;
-                            <label class="acm-radio-card" style="display:flex;gap:12px;align-items:flex-start;">
-                                <input type="checkbox" name="role_@(tmpl.Slug)" value="1"
-                                       checked="@isPicked"
-                                       style="margin-top:4px;width:18px;height:18px;position:static;opacity:1;pointer-events:auto;" />
-                                <span class="acm-radio-card-body" style="flex:1;">
+                            <label class="acm-role-pickcard @(isPicked ? "is-picked" : "")">
+                                @* Razor يَتَعامَل مَع checked كَ boolean attr عَبر
+                                   conditional rendering لِيَتَجَنَّب gotcha أَنّ
+                                   checked="False" يَجعَل الـ checkbox مَفعَّلَة. *@
+                                @if (isPicked)
+                                {
+                                    <input type="checkbox" name="role_@(tmpl.Slug)" value="1" checked />
+                                }
+                                else
+                                {
+                                    <input type="checkbox" name="role_@(tmpl.Slug)" value="1" />
+                                }
+                                <span class="acm-role-pickcard-body">
                                     <strong style="font-size:15px;">@tmpl.Icon @tmpl.Label</strong>
                                     <span>@tmpl.Description</span>
                                     <div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:4px;">
@@ -59,12 +67,11 @@
                                     @if (tmpl.Fields.Count > 0)
                                     {
                                         <small style="display:block;margin-top:6px;color:var(--ac-text-muted);">
-                                            بَيانات إضافِيَّة لِلتَّسجيل: @string.Join("، ", tmpl.Fields.Select(f => f.Label))
+                                            بَيانات لِلتَّسجيل: @string.Join("، ", tmpl.Fields.Select(f => f.Label))
                                         </small>
                                     }
                                 </span>
-                                <label style="display:inline-flex;align-items:center;gap:4px;font-size:12px;
-                                              color:var(--ac-text-muted);white-space:nowrap;">
+                                <label class="acm-role-pickcard-default">
                                     <input type="radio" name="default_role" value="@tmpl.Slug"
                                            checked="@(existing?.IsDefault == true)" />
                                     افتراضي

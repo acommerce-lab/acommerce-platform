@@ -207,8 +207,16 @@ public static class MarketplaceTemplateExtensions
             s.Store(user);
             await s.SaveChangesAsync();
 
-            // إن كانَ لِلدَور حُقول بَيانات، حَوِّل إلى onboarding، وإلّا إلى HomeRoute.
-            if (picked.Fields.Any(f => f.IsRequired))
+            // إن كانَ لِلدَور حُقول بَيانات مَطلوبَة غَير مَملوءَة، حَوِّل
+            // إلى onboarding. لَو البَيانات مَوجودَة (مَثَلاً المُستَخدِم
+            // عَبَّأَها سابِقاً ثُمّ بَدَّلَ الدَور)، اِذهَب مُباشَرَة إلى
+            // HomeRoute بِلا إعادَة طَلَب.
+            var roleValues = user.RoleAttributesJson.TryGetValue(picked.Slug, out var rv)
+                ? rv : new Dictionary<string, string>();
+            var needsOnboarding = picked.Fields
+                .Where(f => f.IsRequired)
+                .Any(f => !roleValues.TryGetValue(f.Code, out var v) || string.IsNullOrEmpty(v));
+            if (needsOnboarding)
                 return Results.Redirect($"/{slug}/me/role/onboarding");
             return Results.Redirect(string.IsNullOrEmpty(picked.HomeRoute)
                 ? $"/{slug}" : $"/{slug}{picked.HomeRoute}");
@@ -808,6 +816,43 @@ public static class MarketplaceTemplateExtensions
             });
             await s.SaveChangesAsync();
             return Results.Redirect($"/admin");
+        }).DisableAntiforgery();
+
+        // ─── Admin: grant / revoke tenant_admin to a user ──────────────
+        app.MapPost("/admin/tenants/{slug}/users/{userId:guid}/grant-admin",
+            async (string slug, Guid userId, IDocumentStore store) =>
+        {
+            await using var g = store.QuerySession();
+            var tenant = await g.LoadAsync<ACommerce.Kit.Tenants.Tenant>(slug);
+            if (tenant is null ||
+                !tenant.Roles.Any(r => r.CatalogSlug == "tenant_admin"))
+                return Results.Redirect($"/admin/tenants/{slug}/users");
+            await using var s = store.LightweightSession(slug);
+            var user = await s.LoadAsync<User>(userId);
+            if (user is null) return Results.Redirect($"/admin/tenants/{slug}/users");
+            user.ActiveRole = "tenant_admin";
+            user.UpdatedAt = DateTime.UtcNow;
+            s.Store(user);
+            await s.SaveChangesAsync();
+            return Results.Redirect($"/admin/tenants/{slug}/users?saved=1");
+        }).DisableAntiforgery();
+
+        app.MapPost("/admin/tenants/{slug}/users/{userId:guid}/revoke-admin",
+            async (string slug, Guid userId, IDocumentStore store) =>
+        {
+            await using var g = store.QuerySession();
+            var tenant = await g.LoadAsync<ACommerce.Kit.Tenants.Tenant>(slug);
+            if (tenant is null) return Results.Redirect($"/admin/tenants/{slug}/users");
+            await using var s = store.LightweightSession(slug);
+            var user = await s.LoadAsync<User>(userId);
+            if (user is null) return Results.Redirect($"/admin/tenants/{slug}/users");
+            // اِرجِع لِأَوَّل دَور غَير-إداريّ كَ افتراضي.
+            var fallback = tenant.Roles.FirstOrDefault(r => r.CatalogSlug != "tenant_admin");
+            user.ActiveRole = fallback?.Slug ?? "";
+            user.UpdatedAt = DateTime.UtcNow;
+            s.Store(user);
+            await s.SaveChangesAsync();
+            return Results.Redirect($"/admin/tenants/{slug}/users?saved=1");
         }).DisableAntiforgery();
 
         // ─── Admin: save roles ──────────────────────────────────────────

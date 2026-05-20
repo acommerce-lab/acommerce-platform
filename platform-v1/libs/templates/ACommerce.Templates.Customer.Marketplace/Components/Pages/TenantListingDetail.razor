@@ -39,7 +39,11 @@ else
                 <AcIcon Name="arrow-right" Size="18" />
             </a>
             <div class="acm-details-gallery-actions-end">
-                @if (Auth.IsAuthenticated)
+                @* المُفَضَّلَة: تُخفَى عَن مالِك الإعلان (لا مَعنَى لِأَن
+                   يُفَضِّل المَرء إعلانَه)، وَعَن السائِق/الشَحّان عَلى
+                   إعلان طَلَب-عَرض (نَموذَج المُحادَثَة هو العَرض، لا
+                   التَّفضيل).  *@
+                @if (Auth.IsAuthenticated && !isOwner && !isOfferBased)
                 {
                     <form method="post" action="@($"/{Slug}/listings/{Id}/favorite")" style="margin:0;">
                         <input type="hidden" name="return" value="@($"/{Slug}/listings/{Id}")" />
@@ -117,28 +121,37 @@ else
                    غَير صاحِب الإعلان: يَرى نَموذَج تَقديم عَرض. *@
                 @if (Auth.IsAuthenticated && !isOwner)
                 {
-                    <form method="post" action="@($"/{Slug}/listings/{Id}/offers")"
-                          style="display:flex;flex-direction:column;gap:8px;margin:0 0 16px;">
-                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-                            <AcField Label="عَرضُكَ (ريال)" Required="true">
-                                <input type="number" name="price" required min="1" step="1"
-                                       class="ac-input" inputmode="numeric" />
-                            </AcField>
-                            <AcField Label="مُدَّة الصَلاحِيَّة (دَقائِق)">
-                                <input type="number" name="ttl_minutes" value="15" min="1" max="120" class="ac-input" />
-                            </AcField>
-                        </div>
-                        <AcLocationInput Name="loc" Label="مَوقِعُكَ الحاليّ" Required="true" />
-                        <AcField Label="رِسالَة (اختياريّ)">
-                            <textarea name="message" rows="2" maxlength="200"
-                                      class="ac-input" style="resize:vertical;font-family:inherit;"></textarea>
+                    @* نَموذَج مُبَسَّط: السِعر فَقَط ظاهِراً. الـ ttl ثابِت
+                       ١٥ دَقيقَة. المَوقِع يُلتَقَط تِلقائيّاً عَبر
+                       navigator.geolocation عِندَ الضَّغط. *@
+                    <form id="offerForm" method="post" action="@($"/{Slug}/listings/{Id}/offers")"
+                          style="display:flex;flex-direction:column;gap:10px;margin:0 0 16px;">
+                        <input type="hidden" name="lat" id="offer_lat" value="0" />
+                        <input type="hidden" name="lng" id="offer_lng" value="0" />
+                        <input type="hidden" name="ttl_minutes" value="15" />
+
+                        <AcField Label="عَرضُكَ (ريال)" Required="true">
+                            <input type="number" name="price" required min="1" step="1"
+                                   class="ac-input ac-input-lg" inputmode="numeric"
+                                   placeholder="مَثَلاً 50" autofocus />
                         </AcField>
-                        <input type="hidden" name="lat" id="offer_lat" />
-                        <input type="hidden" name="lng" id="offer_lng" />
-                        <button type="submit" class="ac-btn ac-btn-primary"
-                                onclick="document.getElementById('offer_lat').value=document.getElementById('loc_lat').value;document.getElementById('offer_lng').value=document.getElementById('loc_lng').value;">
-                            <AcIcon Name="send" Size="16" /> تَقديم عَرضي
+
+                        <details>
+                            <summary style="cursor:pointer;font-size:13px;color:var(--ac-text-muted);">
+                                إضافَة رِسالَة (اختياريّ)
+                            </summary>
+                            <textarea name="message" rows="2" maxlength="200"
+                                      class="ac-input" style="margin-top:6px;resize:vertical;font-family:inherit;"
+                                      placeholder="مَثَلاً: عَلَيَّ ٥ دَقائِق لِأَصِل، أَو سَيَّارَتي عائِليَّة"></textarea>
+                        </details>
+
+                        <button type="button" class="ac-btn ac-btn-primary ac-btn-lg ac-btn-block"
+                                onclick="acSubmitOffer(this)">
+                            <AcIcon Name="send" Size="18" /> تَقديم العَرض
                         </button>
+                        <p style="text-align:center;font-size:11px;color:var(--ac-text-muted);margin:0;">
+                            سَيُلتَقَط مَوقِعكَ الحاليّ تِلقائيّاً.
+                        </p>
                     </form>
                 }
                 else if (!Auth.IsAuthenticated)
@@ -196,25 +209,32 @@ else
         </section>
     }
 
-    <section class="acm-details-section">
-        <h2 class="acm-details-section-title">تَواصُل</h2>
-        @if (Auth.IsAuthenticated)
-        {
-            <form method="post" action="@($"/{Slug}/listings/{Id}/chat")" style="margin:0;">
-                <button type="submit" class="ac-btn ac-btn-primary ac-btn-lg ac-btn-block">
-                    <AcIcon Name="message" Size="18" /> تَواصُل مَع المُعلِن
-                </button>
-            </form>
-        }
-        else
-        {
-            <a href="@($"/{Slug}/login?returnUrl=/{Slug}/listings/{Id}")"
-               class="ac-btn ac-btn-primary ac-btn-lg ac-btn-block"
-               style="text-decoration:none;text-align:center;">
-                دُخول لِلتَواصُل
-            </a>
-        }
-    </section>
+    @* قِسم التَّواصُل المُباشَر:
+        - يُخفَى عَن مالِك الإعلان (لا يُحادِث نَفسه).
+        - يُخفَى عَلى الإعلانات الَّتي تَقبَل عُروضاً (نَموذَج المُحادَثَة
+          يَفتَح تِلقائيّاً بَعد قَبول العَرض، فَلا داعِيَ لِزِرّ مُنفَصِل). *@
+    @if (!isOwner && !isOfferBased)
+    {
+        <section class="acm-details-section">
+            <h2 class="acm-details-section-title">تَواصُل</h2>
+            @if (Auth.IsAuthenticated)
+            {
+                <form method="post" action="@($"/{Slug}/listings/{Id}/chat")" style="margin:0;">
+                    <button type="submit" class="ac-btn ac-btn-primary ac-btn-lg ac-btn-block">
+                        <AcIcon Name="message" Size="18" /> تَواصُل مَع المُعلِن
+                    </button>
+                </form>
+            }
+            else
+            {
+                <a href="@($"/{Slug}/login?returnUrl=/{Slug}/listings/{Id}")"
+                   class="ac-btn ac-btn-primary ac-btn-lg ac-btn-block"
+                   style="text-decoration:none;text-align:center;">
+                    دُخول لِلتَواصُل
+                </a>
+            }
+        </section>
+    }
 
     @* قِسم التَبليغ — يَنطَوي بِالـ <details>، يَفتَحه المُتَصَفِّح بِلا JS *@
     <details class="acm-details-report">
@@ -274,6 +294,7 @@ else
     ACommerce.Kit.Offers.ListingMatch? listingMatch;
     bool showOffers;
     bool isOwner;
+    bool isOfferBased;   // accepts_offers=true → نَموذَج تَفاوُض، لا دَردَشَة مُباشَرَة
 
     string CategoryLabel => tenant?.Categories.FirstOrDefault(c => c.Slug == listing?.CategorySlug)?.Label ?? "";
 
@@ -306,6 +327,7 @@ else
             // مَوجودَة. نَجلِب الـ ListingMatch أَيضاً لِمَعرِفَة الحالَة.
             listing.Attributes.TryGetValue("accepts_offers", out var acceptsOffers);
             var enabled = string.Equals(acceptsOffers, "true", StringComparison.OrdinalIgnoreCase);
+            isOfferBased = enabled;
             // هَل المُستَخدِم الحاليّ هو صاحِب الإعلان؟ يُستَخدَم لإخفاء
             // نَموذَج تَقديم العَرض عَنه + إظهار أَزرار القَبول/الرَفض لَه.
             if (Auth.IsAuthenticated && Auth.UserId.HasValue &&
