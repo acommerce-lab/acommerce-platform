@@ -1,0 +1,118 @@
+@page "/{slug}/me/offers"
+@inject IDocumentStore Store
+@inject AuthSession Auth
+
+@*
+    قائِمَة العُروض الَّتي قَدَّمها هذا المُستَخدِم — pending أَوَّلاً،
+    ثُمّ المُقَرَّرَة. مُلاءِم لِلسائِق (Injez) لِيَرى عُروضَه الفَعّالَة.
+*@
+
+<div class="acs-page">
+    <h1 class="acm-wizard-title">عُروضي</h1>
+
+    @if (!Auth.IsAuthenticated)
+    {
+        <AcEmptyState IconName="user" Title="تَحتاج تَسجيل دُخول"
+                      ActionLabel="تَسجيل دُخول"
+                      ActionHref="@($"/{Slug}/login?returnUrl=/{Slug}/me/offers")" />
+    }
+    else if (offers is null)
+    {
+        <AcLoadingState />
+    }
+    else if (offers.Count == 0)
+    {
+        <AcEmptyState IconName="package" Title="لا عُروض بَعد"
+                      Message="قَدِّم عَرضاً مِن أَيّ إعلان مَفتوح لِلتَفاوُض." />
+    }
+    else
+    {
+        <div class="ac-offer-list">
+            @foreach (var o in offers)
+            {
+                var dist = ListingPickup.TryGetValue(o.ListingId, out var pu) && pu is not null
+                    ? ACommerce.Kit.Offers.OfferHelpers.DistanceKm(o.Lat, o.Lng, pu.Value.Lat, pu.Value.Lng)
+                    : (double?)null;
+                <a class="ac-offer" href="@($"/{Slug}/listings/{o.ListingId}")"
+                   style="text-decoration:none;color:inherit;display:block;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;">
+                        <span class="ac-chip ac-chip-sm">@StatusLabel(o.Status)</span>
+                        <span class="acm-details-price">@o.Price.ToString("N0") ريال</span>
+                    </div>
+                    @if (!string.IsNullOrEmpty(o.Message))
+                    {
+                        <p style="margin:6px 0 0;font-size:13px;color:var(--ac-text-muted);">@o.Message</p>
+                    }
+                    <p style="margin:6px 0 0;font-size:11px;color:var(--ac-text-muted);">
+                        قُدِّم: @o.SubmittedAt.ToString("yyyy-MM-dd HH:mm")
+                        @if (o.Status == ACommerce.Kit.Offers.OfferStatus.Pending)
+                        {
+                            <span> · صالِح حَتَّى @o.ExpiresAt.ToString("HH:mm")</span>
+                        }
+                        @if (dist.HasValue)
+                        {
+                            <span> · 📍 @dist.Value.ToString("0.#") كم مِن الراكِب</span>
+                        }
+                    </p>
+                </a>
+                @if (o.Status == ACommerce.Kit.Offers.OfferStatus.Pending)
+                {
+                    <form method="post" action="@($"/{Slug}/offers/{o.Id}/withdraw")" style="margin:0;">
+                        <button type="submit" class="ac-btn ac-btn-ghost ac-btn-sm">
+                            <AcIcon Name="x" Size="14" /> سَحب
+                        </button>
+                    </form>
+                }
+            }
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public string Slug { get; set; } = "";
+    List<ACommerce.Kit.Offers.Offer>? offers;
+    Dictionary<Guid, (double Lat, double Lng)?> ListingPickup = new();
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (!Auth.IsAuthenticated) return;
+        await using var s = Store.QuerySession(Slug);
+        var now = DateTime.UtcNow;
+        // فَلتَرَة العُروض المُنتَهيَة client-side: pending وَ ExpiresAt مَضَى
+        // = اعتَبِرها مُنتَهيَة في العَرض رَغمَ أَنَّها لا تَزال "Pending"
+        // في الـ store (لا مُهَمَّة دَوريَّة بَعد).
+        offers = (await s.Query<ACommerce.Kit.Offers.Offer>()
+            .Where(o => o.OffererId == Auth.UserId!.Value)
+            .ToListAsync())
+            .OrderBy(o => o.Status == ACommerce.Kit.Offers.OfferStatus.Pending && o.ExpiresAt > now ? 0 : 1)
+            .ThenByDescending(o => o.SubmittedAt)
+            .ToList();
+
+        // اِجلِب pickup_lat/pickup_lng مِن كُلّ إعلان لِحِساب المَسافَة.
+        var listingIds = offers.Select(o => o.ListingId).Distinct().ToList();
+        foreach (var lid in listingIds)
+        {
+            var listing = await s.Events.AggregateStreamAsync<Listing>(lid);
+            if (listing is null) { ListingPickup[lid] = null; continue; }
+            if (listing.Attributes.TryGetValue("pickup_lat", out var latStr) &&
+                listing.Attributes.TryGetValue("pickup_lng", out var lngStr) &&
+                double.TryParse(latStr, System.Globalization.NumberStyles.Float,
+                                System.Globalization.CultureInfo.InvariantCulture, out var lat) &&
+                double.TryParse(lngStr, System.Globalization.NumberStyles.Float,
+                                System.Globalization.CultureInfo.InvariantCulture, out var lng))
+                ListingPickup[lid] = (lat, lng);
+            else
+                ListingPickup[lid] = null;
+        }
+    }
+
+    static string StatusLabel(ACommerce.Kit.Offers.OfferStatus s) => s switch
+    {
+        ACommerce.Kit.Offers.OfferStatus.Pending   => "قَيد المُراجَعَة",
+        ACommerce.Kit.Offers.OfferStatus.Accepted  => "مَقبول",
+        ACommerce.Kit.Offers.OfferStatus.Rejected  => "مَرفوض",
+        ACommerce.Kit.Offers.OfferStatus.Withdrawn => "مَسحوب",
+        ACommerce.Kit.Offers.OfferStatus.Expired   => "مُنتَهي",
+        _ => s.ToString()
+    };
+}

@@ -95,33 +95,65 @@ public sealed class AshareImporter
         Guid? ResolveProfile(string? userId)
             => userId is not null && userIdMap.TryGetValue(userId, out var g) ? g : null;
 
-        // 3) Listings — ProductListing + Product لِلوَصف. الـ Category في V3
-        // مُنفَصِل عَبر ProductCategoryMapping. حاليّاً نَترُك CategorySlug
-        // فارِغ لأَنّ بَيانات production قَد لا تَملُك mapping كامِل؛
-        // يُمكِن تَحسينه لاحِقاً بِالتَوصيل مَع DiscoveryCategories عَن طَريق
-        // attribute "category" أو slug في Product.Type.
-        var listings = (await src.QueryAsync<AshareListingRow>(
+        // 3) Listings — ProductListing + Product لِلوَصف.
+        //
+        // CategoryId يُحَدِّد أَيّ فِئَة (Guids ثابِتَة في
+        // AshareV3RoommateAttributes). إن لم يُطابِق أَحَدَهما نَحفَظ
+        // CategorySlug فارِغاً.
+        //
+        // قَيد IsActive=1 أُسقِط. كَذلك الـ INNER JOIN مَع Products
+        // أَصبَح LEFT JOIN — لَو الإعلان يَتيم بِلا Product (بَيانات
+        // مُهَجَّرَة جُزئيّاً) لا نَفقِده. كَذلك دُمنا نُلَخِّص:
+        //   - عَدَد الصُفوف قَبل أَيّ فَلتَر
+        //   - عَدَد المَحذوفَة
+        //   - عَدَد ما يَتَبَقّى لِلكِتابَة
+        var roomHas    = Guid.Parse("0a01a01a-0a01-0a01-0a01-0a01000a01a2");
+        var roomWants  = Guid.Parse("0a01a01a-0a01-0a01-0a01-0a01000a01a3");
+
+        var allRows = (await src.QueryAsync<AshareListingRow>(
             @"SELECT pl.Id, pl.Title,
                      COALESCE(NULLIF(pl.Description, ''), p.LongDescription, p.ShortDescription, '') AS Description,
-                     pl.Price, p.Type AS PType,
+                     pl.Price, pl.CategoryId,
+                     pl.City, pl.AttributesJson, pl.AmenitiesJson,
+                     pl.BedroomCount, pl.BathroomCount, pl.AreaSqm, pl.TimeUnit,
                      pl.IsDeleted, pl.CreatedAt, pl.UpdatedAt
               FROM ProductListing pl
-              JOIN Products p ON p.Id = pl.ProductId
-              WHERE pl.IsDeleted = 0 AND pl.IsActive = 1"
-        )).Select(l => new Listing
+              LEFT JOIN Products p ON p.Id = pl.ProductId"
+        )).ToList();
+        var deletedCount = allRows.Count(l => l.IsDeleted);
+        var aliveRows = allRows.Where(l => !l.IsDeleted).ToList();
+        _log.LogInformation("  ⓘ ProductListing: total {Total} (deleted {Del}, alive {Alive}).",
+            allRows.Count, deletedCount, aliveRows.Count);
+
+        var listings = aliveRows.Select(l =>
         {
-            Id           = l.Id,
-            TenantSlug   = TenantSlug,
-            Title        = l.Title ?? "",
-            Description  = string.IsNullOrEmpty(l.Description) ? null : l.Description,
-            Price        = l.Price,
-            CategorySlug = l.PType ?? "",   // Product.Type يَحوي slug الفِئَة في V3
-            City         = null,
-            District     = null,
-            Attributes   = new(),
-            IsDeleted    = false,
-            CreatedAt    = l.CreatedAt,
-            UpdatedAt    = l.UpdatedAt ?? l.CreatedAt
+            // AttributesJson سِمَة snapshot — نُحَلِّله إلى Dictionary، ثُمّ
+            // نَدمُج الحُقول البِنيَويَّة (Bedrooms/Bathrooms/Area/TimeUnit/
+            // Amenities) لِيَستَخدِمها AcDynAttrEditor عَلى صَفحَة التَفاصيل.
+            var attrs = ParseAttributes(l.AttributesJson);
+            if (l.BedroomCount  > 0) attrs["BedroomCount"]  = l.BedroomCount.ToString();
+            if (l.BathroomCount > 0) attrs["BathroomCount"] = l.BathroomCount.ToString();
+            if (l.AreaSqm       > 0) attrs["AreaSqm"]       = l.AreaSqm.ToString();
+            if (!string.IsNullOrEmpty(l.TimeUnit))     attrs["TimeUnit"]  = l.TimeUnit;
+            if (!string.IsNullOrEmpty(l.AmenitiesJson)) attrs["Amenities"] = l.AmenitiesJson;
+
+            return new Listing
+            {
+                Id           = l.Id,
+                TenantSlug   = TenantSlug,
+                Title        = l.Title ?? "",
+                Description  = string.IsNullOrEmpty(l.Description) ? null : l.Description,
+                Price        = l.Price,
+                CategorySlug = l.CategoryId == roomHas   ? "roommate_has"
+                             : l.CategoryId == roomWants ? "roommate_wants"
+                             : "",
+                City         = string.IsNullOrEmpty(l.City) ? null : l.City,
+                District     = null,
+                Attributes   = attrs,
+                IsDeleted    = false,
+                CreatedAt    = l.CreatedAt,
+                UpdatedAt    = l.UpdatedAt ?? l.CreatedAt
+            };
         }).ToList();
         await _target.UpsertListingsAsync(TenantSlug, listings);
 
@@ -273,8 +305,44 @@ public sealed class AshareImporter
     // ──── Row types — مُطابِقَة لِأَعمِدَة SELECT أَعلاه ───────────────
     private sealed record AshareProfileRow(Guid Id, string? FullName, string? Phone, string? NationalId, DateTime CreatedAt);
     private sealed record AshareUserIdMapRow(string? UserId, Guid Id);
-    private sealed record AshareListingRow(Guid Id, string? Title, string? Description, decimal Price,
-                                            string? PType, bool IsDeleted, DateTime CreatedAt, DateTime? UpdatedAt);
+    private sealed record AshareListingRow(
+        Guid Id, string? Title, string? Description, decimal Price,
+        Guid? CategoryId, string? City,
+        string? AttributesJson, string? AmenitiesJson,
+        int BedroomCount, int BathroomCount, int AreaSqm, string? TimeUnit,
+        bool IsDeleted, DateTime CreatedAt, DateTime? UpdatedAt);
+
+    /// <summary>
+    /// يُحَلِّل JSON snapshot لِسِمات الإعلان (object{key:value}) إلى
+    /// <c>Dictionary&lt;string,string&gt;</c>. الأَرقام والـ booleans
+    /// تَتَحَوَّل إلى نُصوصها (مَثَلاً "3" أو "true") لِأنّ Listing.Attributes
+    /// نَصّيّ بِالكامِل. أَيّ خَلَل في JSON ⇒ Dictionary فارِغ.
+    /// </summary>
+    internal static Dictionary<string, string> ParseAttributes(string? json)
+    {
+        var result = new Dictionary<string, string>();
+        if (string.IsNullOrWhiteSpace(json)) return result;
+        try
+        {
+            using var doc = System.Text.Json.JsonDocument.Parse(json);
+            if (doc.RootElement.ValueKind != System.Text.Json.JsonValueKind.Object) return result;
+            foreach (var p in doc.RootElement.EnumerateObject())
+            {
+                var s = p.Value.ValueKind switch
+                {
+                    System.Text.Json.JsonValueKind.String => p.Value.GetString() ?? "",
+                    System.Text.Json.JsonValueKind.Null   => "",
+                    System.Text.Json.JsonValueKind.True   => "true",
+                    System.Text.Json.JsonValueKind.False  => "false",
+                    System.Text.Json.JsonValueKind.Number => p.Value.GetRawText(),
+                    _                                     => p.Value.GetRawText()
+                };
+                if (!string.IsNullOrEmpty(s)) result[p.Name] = s;
+            }
+        }
+        catch { /* invalid JSON — نَترُك dict فارِغ */ }
+        return result;
+    }
     private sealed record AshareFavoriteRow(Guid Id, string? UserId, Guid ListingId, DateTime CreatedAt);
     private sealed record AshareChatRow(Guid Id, string? OwnerUserId, string? PartnerUserId,
                                          string? Subject, DateTime LastAt, DateTime CreatedAt);

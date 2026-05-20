@@ -24,20 +24,14 @@ else
 {
     <h1 class="acm-explore-title">@($"كلّ إعلانات {tenant.Name}")</h1>
 
-    @* Filter bar: chips + sliders button *@
+    @* Filter bar: شَجَرَة kinds + leaves + sliders button — مُطابِق
+       لِبِنية AcTaxonomyChips الأَصلِيَّة. *@
     <div class="acm-explore-filterbar">
         <div class="acm-explore-chips">
-            <div class="ac-hscroll">
-                <a class="@(string.IsNullOrEmpty(Category)?"ac-filter-chip is-active":"ac-filter-chip")"
-                   href="@($"/{Slug}/explore" + Preserve(except: "category"))">الكلّ</a>
-                @foreach (var c in tenant.Categories)
-                {
-                    <a class="@(Category == c.Slug ? "ac-filter-chip is-active" : "ac-filter-chip")"
-                       href="@($"/{Slug}/explore?category={c.Slug}" + Preserve(prefix: "&", except: "category"))">
-                        @c.Icon @c.Label
-                    </a>
-                }
-            </div>
+            <TaxonomyChips Slug="@Slug"
+                           Categories="tenant.Categories"
+                           ActiveKind="@Kind"
+                           ActiveCategory="@Category" />
         </div>
         <a class="acm-explore-filterbtn" href="@FilterToggleHref" aria-label="الفَلاتِر">
             <AcIcon Name="sliders" Size="18" />
@@ -48,6 +42,19 @@ else
     <div class="acm-explore-sortbar">
         <span class="acm-explore-count">@(items?.Count ?? 0) نَتيجَة</span>
         <div class="acm-explore-sortbar-right">
+            @* حَفظ الفَلتَر الحالي كَ بَحث لِلإشعارات. POST عَلى نَفس
+               endpoint /searches/save مَع الحُقول المَأخوذَة مِن الـ
+               query string الحالي. *@
+            <form method="post" action="@($"/{Slug}/searches/save")" class="acm-sort-form">
+                <input type="hidden" name="label" value="@SearchLabel()" />
+                <input type="hidden" name="category" value="@(Category ?? "")" />
+                <input type="hidden" name="district" value="@(District ?? "")" />
+                <input type="hidden" name="min" value="@(MinPrice?.ToString() ?? "")" />
+                <input type="hidden" name="max" value="@(MaxPrice?.ToString() ?? "")" />
+                <button type="submit" class="ac-btn ac-btn-ghost ac-btn-sm" title="حَفظ كَبَحث لِيَصِلكَ إشعار">
+                    <AcIcon Name="bell" Size="14" /> حِفظ كَبَحث
+                </button>
+            </form>
             <form method="get" action="@($"/{Slug}/explore")" class="acm-sort-form">
                 @PreserveHidden(except: "sort")
                 <select name="sort" class="ac-input acm-filter-select" aria-label="تَرتيب"
@@ -60,24 +67,33 @@ else
         </div>
     </div>
 
-    @* Filter modal — يُفتَح بِـ ?filters=open *@
+    @* Filter modal — مُطابِق بِنيَة AcModal الأَصلِيَّة (backdrop +
+       ac-modal-header + ac-modal-body + ac-modal-footer). يُفتَح بِـ
+       ?filters=open. الـ backdrop رابِط يُغلِق الـ modal. *@
     @if (Filters == "open")
     {
-        <div class="acm-explore-filter-modal">
-            <div class="acm-explore-filter-modal-head">
-                <strong>الفَلاتِر</strong>
-                <a class="acm-explore-circle-btn" href="@($"/{Slug}/explore" + Preserve(except: "filters"))" aria-label="إغلاق">
-                    <AcIcon Name="x" Size="16" />
-                </a>
+        var closeHref = $"/{Slug}/explore" + Preserve(except: "filters");
+        <a class="ac-modal-backdrop" href="@closeHref" aria-label="إغلاق"></a>
+        <div class="ac-modal acm-explore-filter-modal" role="dialog" aria-modal="true">
+            <div class="ac-modal-header">
+                <h3 class="ac-modal-title">الفَلاتِر</h3>
+                <div class="ac-modal-header-actions">
+                    <a class="ac-modal-close" href="@closeHref" aria-label="إغلاق">
+                        <AcIcon Name="x" Size="20" />
+                    </a>
+                </div>
             </div>
-            <form method="get" action="@($"/{Slug}/explore")" class="acm-explore-filter-form">
+            @* form يَحفَظ السِياق الحاليّ (category/kind/sort) كَ hidden inputs
+               حَتّى لا تُفقَد عِنْدَ تَطبيق الفَلتَر. الـ inputs المَرئيَّة
+               (district/min/max/q) تَملِك أَسماء فَريدَة فلا تَكرار. *@
+            <form method="get" action="@($"/{Slug}/explore")">
                 @if (!string.IsNullOrEmpty(Category)) { <input type="hidden" name="category" value="@Category" /> }
-                @if (!string.IsNullOrEmpty(Query))    { <input type="hidden" name="q"        value="@Query" /> }
+                @if (!string.IsNullOrEmpty(Kind))     { <input type="hidden" name="kind"     value="@Kind" /> }
                 @if (!string.IsNullOrEmpty(Sort))     { <input type="hidden" name="sort"     value="@Sort" /> }
 
-                <section class="acm-explore-filtersec">
-                    <h4 class="acm-explore-filtersec-title">المَوقِع</h4>
-                    <div class="acm-explore-location">
+                <div class="ac-modal-body">
+                    <section class="acm-explore-filtersec">
+                        <h4 class="acm-explore-filtersec-title">المَوقِع</h4>
                         <select name="district" class="ac-input">
                             <option value="">الكلّ</option>
                             @foreach (var d in districts)
@@ -85,26 +101,32 @@ else
                                 <option value="@d" selected="@(District == d)">@d</option>
                             }
                         </select>
-                    </div>
-                </section>
+                    </section>
 
-                <section class="acm-explore-filtersec">
-                    <h4 class="acm-explore-filtersec-title">السِعر</h4>
-                    <div class="acm-explore-pricerange">
-                        <input type="number" name="min" class="ac-input" min="0" step="1000"
-                               value="@MinPrice" placeholder="من" />
-                        <span>—</span>
-                        <input type="number" name="max" class="ac-input" min="0" step="1000"
-                               value="@MaxPrice" placeholder="إلى" />
-                    </div>
-                </section>
+                    <section class="acm-explore-filtersec">
+                        <h4 class="acm-explore-filtersec-title">السِعر</h4>
+                        <div class="acm-explore-pricerange">
+                            <input type="number" name="min" class="ac-input" min="0" step="1"
+                                   inputmode="numeric"
+                                   value="@(MinPrice?.ToString("0", System.Globalization.CultureInfo.InvariantCulture) ?? "")"
+                                   placeholder="مِن" />
+                            <span>—</span>
+                            <input type="number" name="max" class="ac-input" min="0" step="1"
+                                   inputmode="numeric"
+                                   value="@(MaxPrice?.ToString("0", System.Globalization.CultureInfo.InvariantCulture) ?? "")"
+                                   placeholder="إلى" />
+                        </div>
+                    </section>
 
-                <section class="acm-explore-filtersec">
-                    <h4 class="acm-explore-filtersec-title">البَحث</h4>
-                    <input type="search" name="q" class="ac-input" value="@Query" placeholder="كَلِمَة مِفتاحيّة…" />
-                </section>
+                    <section class="acm-explore-filtersec">
+                        <h4 class="acm-explore-filtersec-title">البَحث</h4>
+                        <input type="search" name="q" class="ac-input"
+                               value="@(Query ?? "")"
+                               placeholder="كَلِمَة مِفتاحيّة…" />
+                    </section>
+                </div>
 
-                <div class="acm-explore-filter-actions">
+                <div class="ac-modal-footer">
                     <a class="ac-btn ac-btn-ghost" href="@($"/{Slug}/explore")">إعادَة ضَبط</a>
                     <button type="submit" class="ac-btn ac-btn-primary">تَطبيق</button>
                 </div>
@@ -154,6 +176,7 @@ else
     [SupplyParameterFromQuery(Name = "max")]      public decimal? MaxPrice { get; set; }
     [SupplyParameterFromQuery(Name = "district")] public string? District { get; set; }
     [SupplyParameterFromQuery(Name = "filters")]  public string? Filters  { get; set; }
+    [SupplyParameterFromQuery(Name = "kind")]     public string? Kind     { get; set; }
 
     Tenant? tenant;
     List<Listing>? items;
@@ -163,6 +186,18 @@ else
     string FilterToggleHref =>
         $"/{Slug}/explore" + Preserve(set: Filters == "open" ? null : ("filters", "open"),
                                        except: "filters");
+
+    /// <summary>اِسم وَصفيّ لِلبَحث المَحفوظ يَعتَمِد عَلى الفَلاتِر الحالِيَّة.</summary>
+    string SearchLabel()
+    {
+        var parts = new List<string>();
+        if (!string.IsNullOrEmpty(Category)) parts.Add(Category);
+        if (!string.IsNullOrEmpty(District)) parts.Add(District);
+        if (MinPrice.HasValue || MaxPrice.HasValue)
+            parts.Add($"{MinPrice?.ToString("N0") ?? "0"}-{MaxPrice?.ToString("N0") ?? "∞"}");
+        if (!string.IsNullOrEmpty(Query)) parts.Add($"«{Query}»");
+        return parts.Count == 0 ? "بَحث عامّ" : string.Join(" · ", parts);
+    }
 
     /// <summary>يَبني query-string يَحفَظ القِيَم الحاليّة مَع إمكان حَذف
     /// مِفتاح أو إضافَة جَديد. النَّتيجَة تَبدَأ بِـ ? لَو غَير فارِغَة.</summary>
@@ -209,6 +244,8 @@ else
         }
     </text>;
 
+    bool driverMode;
+
     protected override async Task OnParametersSetAsync()
     {
         await using var g = Store.QuerySession();
@@ -216,8 +253,30 @@ else
         if (tenant is null) return;
 
         await using var t = Store.QuerySession(Slug);
+
+        // فَلتَرَة تِلقائيَّة لِلسائِق/الشَحّان: لا يَرى إلّا الإعلانات
+        // الَّتي تَقبَل عُروضاً (طَلَبات الراكِبين). UI بَقيَّة الـ explore
+        // كَما هو لِكُلّ الأَدوار.
+        if (tenant.Roles.Count > 0 && Auth.IsAuthenticated && Auth.UserId.HasValue)
+        {
+            var me = await t.LoadAsync<User>(Auth.UserId.Value);
+            var role = me is null ? null
+                : tenant.Roles.FirstOrDefault(r => r.Slug == me.ActiveRole);
+            driverMode = role?.CatalogSlug is "driver" or "shipper";
+        }
+
         var q = t.Query<Listing>().Where(x => !x.IsDeleted);
         if (!string.IsNullOrEmpty(Category))   q = q.Where(x => x.CategorySlug == Category);
+        else if (!string.IsNullOrEmpty(Kind))
+        {
+            // فَلتَرَة بِالـ Kind: نَأخُذ كُلّ slugs الَّتي تَنتَمي لِلـ Kind
+            // المُختار مِن tenant.Categories. هذا يَسمَح بِفَلتَرَة "كُلّ
+            // العَقارات السَكَنيّة" دون اختِيار فِئَة بِعَينها.
+            var slugs = tenant.Categories
+                .Where(c => c.Kind == Kind)
+                .Select(c => c.Slug).ToList();
+            q = q.Where(x => slugs.Contains(x.CategorySlug));
+        }
         if (!string.IsNullOrEmpty(District))   q = q.Where(x => x.District == District);
         if (MinPrice.HasValue && MinPrice > 0) q = q.Where(x => x.Price >= MinPrice.Value);
         if (MaxPrice.HasValue && MaxPrice > 0) q = q.Where(x => x.Price <= MaxPrice.Value);
@@ -233,7 +292,16 @@ else
             "price_desc" => q.OrderByDescending(x => x.Price),
             _            => q.OrderByDescending(x => x.CreatedAt),
         };
-        items = (await q.Take(60).ToListAsync()).ToList();
+        items = (await q.Take(driverMode ? 200 : 60).ToListAsync()).ToList();
+        if (driverMode)
+        {
+            // أَبقِ فَقَط الَّتي تَقبَل عُروضاً — هذه هي طَلَبات الراكِبين.
+            // فَلتَرَة في الذاكِرَة لِأَنّ Attributes قاموس JSON.
+            items = items
+                .Where(l => l.Attributes.TryGetValue("accepts_offers", out var v) &&
+                            string.Equals(v, "true", System.StringComparison.OrdinalIgnoreCase))
+                .Take(60).ToList();
+        }
 
         districts = (await t.Query<Listing>()
             .Where(x => !x.IsDeleted && x.District != null)
