@@ -63,9 +63,18 @@ public sealed class Offer
     public void Apply(OfferExpired   e) { Status = OfferStatus.Expired;   ResolvedAt = e.At; }
 }
 
+/// <summary>حالات الرِحلَة بَعدَ القَبول:
+/// active = جارِيَة (السائِق مُلتَزَم) — لا يَستَطيع تَقديم عُروض جَديدَة.
+/// completed = انتَهَت بِنَجاح (وَصَل لِنُقطَة الوُصول).
+/// aborted = قُطِعَت (السائِق أَو الراكِب أَلغَى) — السائِق يَدخُل
+///           فَترَة تَهدِئَة قَبل أَن يَستَطيع تَقديم عَرض جَديد.
+/// </summary>
+public enum TripStatus { Active, Completed, Aborted }
+
 /// <summary>
 /// نَتيجَة المُطابَقَة عَلى مُستَوى الإعلان — doc بِـ Id = ListingId.
 /// يُنشَأ/يُحَدَّث عِندَ قَبول عَرض. وُجودُه يَعني "الإعلان مُتَطابِق".
+/// يَتَتَبَّع أَيضاً دَورَة حَياة الرِحلَة بَعد القَبول.
 /// </summary>
 public sealed class ListingMatch
 {
@@ -77,6 +86,18 @@ public sealed class ListingMatch
     public double OffererLat { get; set; }
     public double OffererLng { get; set; }
     public System.DateTime MatchedAt { get; set; }
+
+    /// <summary>الحالَة الحالِيَّة لِلرِحلَة. الافتراضي Active فَور القَبول.</summary>
+    public TripStatus Status { get; set; } = TripStatus.Active;
+
+    /// <summary>وَقت الانتِهاء (completed/aborted). null = لا تَزال Active.</summary>
+    public System.DateTime? ResolvedAt { get; set; }
+
+    /// <summary>مَن أَنهَى/قَطَع: "offerer" (السائِق) أَو "owner" (الراكِب).</summary>
+    public string? ResolvedBy { get; set; }
+
+    /// <summary>اختِياريّ: مُذَكِّرَة عَن سَبَب الإلغاء.</summary>
+    public string? AbortReason { get; set; }
 }
 
 // ─── Helpers ────────────────────────────────────────────────────────

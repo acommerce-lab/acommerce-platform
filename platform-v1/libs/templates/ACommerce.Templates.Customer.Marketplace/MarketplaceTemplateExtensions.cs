@@ -563,21 +563,43 @@ public static class MarketplaceTemplateExtensions
             var lngStr   = req.Form["lng"].ToString().Trim();
             var ttlStr   = req.Form["ttl_minutes"].ToString().Trim();
 
+            // فَلتَرَة صارِمَة: سِعر مَوجَب فَقَط، وَ مَوقِع غَير-صِفر مَطلوب.
             if (!decimal.TryParse(priceStr, out var price) || price <= 0)
                 return Results.Redirect($"/{slug}/listings/{id}?err=offer_price");
             _ = double.TryParse(latStr, System.Globalization.NumberStyles.Float,
                                 System.Globalization.CultureInfo.InvariantCulture, out var lat);
             _ = double.TryParse(lngStr, System.Globalization.NumberStyles.Float,
                                 System.Globalization.CultureInfo.InvariantCulture, out var lng);
+            if (lat == 0 && lng == 0)
+                return Results.Redirect($"/{slug}/listings/{id}?err=offer_geo");
             _ = int.TryParse(ttlStr, out var ttl);
             if (ttl <= 0) ttl = 15;
 
             await using var s = store.LightweightSession(slug);
             var listing = await s.Events.AggregateStreamAsync<Listing>(id);
             if (listing is null) return Results.Redirect($"/{slug}");
-            // مَنع صاحِب الإعلان مِن تَقديم عَرض عَلى نَفسه — لا نَملِك
-            // ownerId مُباشَر عَلى الـ aggregate، نَترُك السَّماح حاليّاً
-            // ولكِنّ السلوك يُمكِن تَقييدُه لاحِقاً بِإضافَة Listing.OwnerId.
+            // مَنع صاحِب الإعلان مِن تَقديم عَرض عَلى نَفسه.
+            if (listing.Attributes.TryGetValue("owner_id", out var ownerStr2) &&
+                ownerStr2 == userId.ToString())
+                return Results.Redirect($"/{slug}/listings/{id}?err=self_offer");
+
+            // مَنع تَقديم عَرض جَديد إن كانَ السائِق في رِحلَة نَشِطَة، أَو
+            // إن قَطَع رِحلَة في آخِر ٥ دَقائِق (تَهدِئَة لِمَنع الاستِغلال).
+            var matches = await s.Query<ACommerce.Kit.Offers.ListingMatch>().ToListAsync();
+            var active = matches.FirstOrDefault(m =>
+                m.OffererId == userId &&
+                m.Status == ACommerce.Kit.Offers.TripStatus.Active);
+            if (active is not null)
+                return Results.Redirect($"/{slug}/listings/{active.Id}?err=active_trip");
+            var lastAbort = matches
+                .Where(m => m.OffererId == userId &&
+                            m.Status == ACommerce.Kit.Offers.TripStatus.Aborted &&
+                            m.ResolvedBy == "offerer" &&
+                            m.ResolvedAt.HasValue)
+                .OrderByDescending(m => m.ResolvedAt).FirstOrDefault();
+            if (lastAbort is not null &&
+                (DateTime.UtcNow - lastAbort.ResolvedAt!.Value).TotalMinutes < 5)
+                return Results.Redirect($"/{slug}/listings/{id}?err=cooldown");
 
             var oid = Guid.NewGuid();
             var ev = new ACommerce.Kit.Offers.OfferSubmitted(
@@ -656,6 +678,18 @@ public static class MarketplaceTemplateExtensions
             };
             s.Store(conv);
 
+            // إشعار لِلسائِق بِأَنّ عَرضَه قُبِلَ.
+            s.Store(new ACommerce.Kit.Notifications.Notification
+            {
+                Id = Guid.NewGuid(),
+                UserId = offer.OffererId,
+                Type = "offer_accepted",
+                Title = "تَمّ قَبول عَرضكَ ✓",
+                Body  = $"{acceptorName} قَبِلَ عَرضكَ بِـ {offer.Price:N0} ريال. افتَح المُحادَثَة لِلتَنسيق.",
+                RelatedUrl = $"/{slug}/chats/{conv.Id}",
+                At = now
+            });
+
             await s.SaveChangesAsync();
             return Results.Redirect($"/{slug}/chats/{conv.Id}");
         }).DisableAntiforgery();
@@ -685,6 +719,89 @@ public static class MarketplaceTemplateExtensions
             s.Events.Append(id, new ACommerce.Kit.Offers.OfferRejected(id, DateTime.UtcNow));
             await s.SaveChangesAsync();
             return Results.Redirect($"/{slug}/listings/{offer.ListingId}");
+        }).DisableAntiforgery();
+
+        // ─── Trip lifecycle — complete / abort ──────────────────────────
+        // كِلاهُما عَلى مُستَوى الإعلان (ListingId)، لِأَنّ ListingMatch
+        // doc بِالـ Id = ListingId. مَن يُؤَكِّد: owner (الراكِب) أَو
+        // offerer (السائِق المَقبول).
+        app.MapPost("/{slug}/trips/{listingId:guid}/complete",
+            async (string slug, Guid listingId, HttpRequest req, IDocumentStore store) =>
+        {
+            var token = req.Cookies[AuthSession.CookieName(slug)];
+            var parsed = AuthHandlers.ParseToken(token);
+            if (parsed is null) return Results.Redirect($"/{slug}/login");
+            var (userId, _, _) = parsed.Value;
+
+            await using var s = store.LightweightSession(slug);
+            var match = await s.LoadAsync<ACommerce.Kit.Offers.ListingMatch>(listingId);
+            if (match is null || match.Status != ACommerce.Kit.Offers.TripStatus.Active)
+                return Results.Redirect($"/{slug}/listings/{listingId}");
+
+            var listing = await s.Events.AggregateStreamAsync<Listing>(listingId);
+            var isOwner = listing is not null &&
+                          listing.Attributes.TryGetValue("owner_id", out var oid) &&
+                          oid == userId.ToString();
+            var isOfferer = match.OffererId == userId;
+            if (!isOwner && !isOfferer)
+                return Results.Redirect($"/{slug}/listings/{listingId}?err=not_party");
+
+            match.Status = ACommerce.Kit.Offers.TripStatus.Completed;
+            match.ResolvedAt = DateTime.UtcNow;
+            match.ResolvedBy = isOwner ? "owner" : "offerer";
+            s.Store(match);
+
+            // أَنهِ المُحادَثَة المُؤَقَّتَة المُرتَبِطَة بِالعَرض المَقبول.
+            var conv = (await s.Query<Conversation>()
+                .Where(c => c.LinkedOfferId == match.AcceptedOfferId).ToListAsync())
+                .FirstOrDefault();
+            if (conv is not null)
+            {
+                conv.ExpiresAt = DateTime.UtcNow;   // = انتَهَت فَوراً
+                s.Store(conv);
+            }
+            await s.SaveChangesAsync();
+            return Results.Redirect($"/{slug}/listings/{listingId}?trip=completed");
+        }).DisableAntiforgery();
+
+        app.MapPost("/{slug}/trips/{listingId:guid}/abort",
+            async (string slug, Guid listingId, HttpRequest req, IDocumentStore store) =>
+        {
+            var token = req.Cookies[AuthSession.CookieName(slug)];
+            var parsed = AuthHandlers.ParseToken(token);
+            if (parsed is null) return Results.Redirect($"/{slug}/login");
+            var (userId, _, _) = parsed.Value;
+            var reason = req.Form["reason"].ToString().Trim();
+
+            await using var s = store.LightweightSession(slug);
+            var match = await s.LoadAsync<ACommerce.Kit.Offers.ListingMatch>(listingId);
+            if (match is null || match.Status != ACommerce.Kit.Offers.TripStatus.Active)
+                return Results.Redirect($"/{slug}/listings/{listingId}");
+
+            var listing = await s.Events.AggregateStreamAsync<Listing>(listingId);
+            var isOwner = listing is not null &&
+                          listing.Attributes.TryGetValue("owner_id", out var oid) &&
+                          oid == userId.ToString();
+            var isOfferer = match.OffererId == userId;
+            if (!isOwner && !isOfferer)
+                return Results.Redirect($"/{slug}/listings/{listingId}?err=not_party");
+
+            match.Status = ACommerce.Kit.Offers.TripStatus.Aborted;
+            match.ResolvedAt = DateTime.UtcNow;
+            match.ResolvedBy = isOwner ? "owner" : "offerer";
+            match.AbortReason = string.IsNullOrEmpty(reason) ? null : reason;
+            s.Store(match);
+
+            var conv = (await s.Query<Conversation>()
+                .Where(c => c.LinkedOfferId == match.AcceptedOfferId).ToListAsync())
+                .FirstOrDefault();
+            if (conv is not null)
+            {
+                conv.ExpiresAt = DateTime.UtcNow;
+                s.Store(conv);
+            }
+            await s.SaveChangesAsync();
+            return Results.Redirect($"/{slug}/listings/{listingId}?trip=aborted");
         }).DisableAntiforgery();
 
         app.MapPost("/{slug}/offers/{id:guid}/withdraw",
@@ -734,6 +851,31 @@ public static class MarketplaceTemplateExtensions
             s.Store(msg);
             conv.LastMessage = body.Length > 100 ? body[..100] : body;
             conv.LastAt = msg.SentAt;
+            // أَنشِئ إشعاراً لِلطَّرَف الآخَر — يَظهَر في /notifications +
+            // عَلى جَرَس الـ topnav. تَحَقُّق سَريع: لا تُكَرِّر إشعاراً عَلى
+            // نَفس المُحادَثَة في آخِر ٣٠ ثانِيَة لِتَفادي السپام لَو أَرسَل
+            // المُستَخدِم رَسائِل مُتَتالِيَة.
+            var recipientId = userId == conv.OwnerId ? conv.PartnerId : conv.OwnerId;
+            var senderName  = userId == conv.OwnerId ? conv.OwnerName  : conv.PartnerName;
+            var since = DateTime.UtcNow.AddSeconds(-30);
+            var hasRecent = await s.Query<ACommerce.Kit.Notifications.Notification>()
+                .AnyAsync(n => n.UserId == recipientId &&
+                               n.Type == "chat_message" &&
+                               n.RelatedUrl == $"/{slug}/chats/{conversationId}" &&
+                               n.At > since);
+            if (!hasRecent)
+            {
+                s.Store(new ACommerce.Kit.Notifications.Notification
+                {
+                    Id = Guid.NewGuid(),
+                    UserId = recipientId,
+                    Type = "chat_message",
+                    Title = $"رِسالَة مِن {senderName}",
+                    Body = conv.LastMessage ?? "—",
+                    RelatedUrl = $"/{slug}/chats/{conversationId}",
+                    At = msg.SentAt
+                });
+            }
             if (userId == conv.OwnerId) conv.PartnerUnread++;
             else if (userId == conv.PartnerId) conv.OwnerUnread++;
             s.Store(conv);

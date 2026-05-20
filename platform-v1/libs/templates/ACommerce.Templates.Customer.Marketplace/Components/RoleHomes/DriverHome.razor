@@ -94,7 +94,8 @@
                 !string.Equals(ao, "true", System.StringComparison.OrdinalIgnoreCase))
                 continue;
             var match = await s.LoadAsync<ACommerce.Kit.Offers.ListingMatch>(l.Id);
-            if (match is not null) continue;
+            if (match is not null && match.Status == ACommerce.Kit.Offers.TripStatus.Active)
+                continue;
             open.Add(l);
             if (open.Count >= 10) break;
         }

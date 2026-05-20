@@ -99,19 +99,113 @@ else
     @* العُروض المُقابِلَة (نَموذَج InDrive). تَظهَر إن كانَ الإعلان
        مَفتوحاً لِلعُروض (خاصِّيَّة accepts_offers=true) أَو إن وُجِدَت
        عُروض سابِقَة. التَّحَكُّم في إظهارها مَتروك لِلفِئَة عَبر الخَصائِص. *@
+    @* رَسائِل خَطَأ مِن POST handlers — تَظهَر فَوق قِسم العُروض *@
+    @if (Err == "offer_price")
+    {
+        <AcAlert Variant="danger" Message="السِعر يَجِب أَن يَكون أَكبَر مِن صِفر." />
+    }
+    else if (Err == "offer_geo")
+    {
+        <AcAlert Variant="danger" Message="يَجِب السَّماح بِالوُصول إلى مَوقِعكَ لِتَقديم العَرض. اِسمَح بِالإذن مِن مُتَصَفِّحكَ ثُمّ أَعِد المُحاوَلَة." />
+    }
+    else if (Err == "active_trip")
+    {
+        <AcAlert Variant="warning" Message="لَدَيكَ رِحلَة نَشِطَة — أَنهِها أَوّلاً قَبل تَقديم عَرض جَديد." />
+    }
+    else if (Err == "cooldown")
+    {
+        <AcAlert Variant="warning" Message="فَترَة تَهدِئَة: قَطَعتَ رِحلَة مُؤَخَّراً. حاوِل بَعد ٥ دَقائِق." />
+    }
+    else if (Err == "self_offer")
+    {
+        <AcAlert Variant="danger" Message="لا يُمكِنُكَ تَقديم عَرض عَلى إعلانِكَ." />
+    }
+
+    @if (Trip == "completed") { <AcAlert Variant="success" Message="تَمّ تَأكيد انتِهاء الرِحلَة. شُكراً." /> }
+    @if (Trip == "aborted")   { <AcAlert Variant="warning" Message="الرِحلَة أُلغِيَت." /> }
+
+    @* خَريطَة لِنِقاط الانطِلاق/الوُصول — تَظهَر لِأَيّ إعلان لَه إحداثيّات
+       في الخَصائِص. زِرّ "افتَح في الخَريطَة" يَستَخدِم OSM (يَفتَحه
+       النِظام أَو المُتَصَفِّح أَو خَرائِط Google عَلى الجَوّال). *@
+    @if (pickupLat is not null || dropoffLat is not null)
+    {
+        <section class="acm-details-section">
+            <h2 class="acm-details-section-title">المَوقِع</h2>
+            @if (pickupLat is not null)
+            {
+                <div style="margin-bottom:12px;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+                        <strong style="font-size:14px;">📍 الانطِلاق</strong>
+                        <a class="ac-btn ac-btn-ghost ac-btn-sm" target="_blank" rel="noopener"
+                           href="@($"https://www.openstreetmap.org/?mlat={pickupLat}&mlon={pickupLng}#map=16/{pickupLat}/{pickupLng}")">
+                            <AcIcon Name="map-pin" Size="14" /> افتَح في الخَريطَة
+                        </a>
+                    </div>
+                    <AcMapPin Lat="@(pickupLat.Value)" Lng="@(pickupLng!.Value)" Height="160" />
+                </div>
+            }
+            @if (dropoffLat is not null)
+            {
+                <div>
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+                        <strong style="font-size:14px;">🏁 الوُصول</strong>
+                        <a class="ac-btn ac-btn-ghost ac-btn-sm" target="_blank" rel="noopener"
+                           href="@($"https://www.openstreetmap.org/?mlat={dropoffLat}&mlon={dropoffLng}#map=16/{dropoffLat}/{dropoffLng}")">
+                            <AcIcon Name="map-pin" Size="14" /> افتَح في الخَريطَة
+                        </a>
+                    </div>
+                    <AcMapPin Lat="@(dropoffLat.Value)" Lng="@(dropoffLng!.Value)" Height="160" />
+                </div>
+            }
+        </section>
+    }
+
     @if (showOffers)
     {
         <section class="acm-details-section">
             <h2 class="acm-details-section-title">العُروض المُقابِلَة</h2>
             @if (listingMatch is not null)
             {
-                <div class="ac-offer ac-offer-accepted">
-                    <strong>تَمّ قَبول عَرض @listingMatch.OffererName بِـ @listingMatch.AcceptedPrice.ToString("N0") ريال.</strong>
-                    @if (listingMatch.OffererLat != 0 || listingMatch.OffererLng != 0)
+                var status = listingMatch.Status;
+                var statusClass = status switch
+                {
+                    ACommerce.Kit.Offers.TripStatus.Completed => "ac-offer ac-offer-accepted",
+                    ACommerce.Kit.Offers.TripStatus.Aborted   => "ac-offer",
+                    _ => "ac-offer ac-offer-accepted"
+                };
+                <div class="@statusClass" style="@(status == ACommerce.Kit.Offers.TripStatus.Aborted ? "opacity:.7;" : "")">
+                    <strong>
+                        @switch (status)
+                        {
+                            case ACommerce.Kit.Offers.TripStatus.Active:
+                                <text>رِحلَة نَشِطَة مَع @listingMatch.OffererName — @listingMatch.AcceptedPrice.ToString("N0") ريال.</text>
+                                break;
+                            case ACommerce.Kit.Offers.TripStatus.Completed:
+                                <text>✓ انتَهَت الرِحلَة (@listingMatch.AcceptedPrice.ToString("N0") ريال).</text>
+                                break;
+                            case ACommerce.Kit.Offers.TripStatus.Aborted:
+                                <text>أُلغِيَت الرِحلَة (@listingMatch.AcceptedPrice.ToString("N0") ريال).</text>
+                                break;
+                        }
+                    </strong>
+
+                    @if (status == ACommerce.Kit.Offers.TripStatus.Active &&
+                         Auth.IsAuthenticated &&
+                         (isOwner || Auth.UserId == listingMatch.OffererId))
                     {
-                        <p style="margin:8px 0 0;font-size:12px;color:var(--ac-text-muted);">
-                            مَوقِع المُقَدِّم وَقت القَبول مَحفوظ — افتَح المُحادَثَة لِلتَنسيق.
-                        </p>
+                        <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;">
+                            <form method="post" action="@($"/{Slug}/trips/{Id}/complete")" style="margin:0;">
+                                <button type="submit" class="ac-btn ac-btn-primary ac-btn-sm">
+                                    <AcIcon Name="check" Size="14" /> تَأكيد انتِهاء الرِحلَة
+                                </button>
+                            </form>
+                            <form method="post" action="@($"/{Slug}/trips/{Id}/abort")" style="margin:0;">
+                                <button type="submit" class="ac-btn ac-btn-ghost ac-btn-sm"
+                                        style="color:var(--ac-danger);">
+                                    <AcIcon Name="x" Size="14" /> إلغاء الرِحلَة
+                                </button>
+                            </form>
+                        </div>
                     }
                 </div>
             }
@@ -286,6 +380,8 @@ else
     [Parameter] public string Slug { get; set; } = "";
     [Parameter] public Guid Id { get; set; }
     [SupplyParameterFromQuery(Name = "reported")] public string? Reported { get; set; }
+    [SupplyParameterFromQuery(Name = "err")]      public string? Err      { get; set; }
+    [SupplyParameterFromQuery(Name = "trip")]     public string? Trip     { get; set; }
     Listing? listing;
     Tenant? tenant;
     bool IsFav;
@@ -295,6 +391,7 @@ else
     bool showOffers;
     bool isOwner;
     bool isOfferBased;   // accepts_offers=true → نَموذَج تَفاوُض، لا دَردَشَة مُباشَرَة
+    double? pickupLat, pickupLng, dropoffLat, dropoffLng;
 
     string CategoryLabel => tenant?.Categories.FirstOrDefault(c => c.Slug == listing?.CategorySlug)?.Label ?? "";
 
@@ -336,6 +433,12 @@ else
                 isOwner = oid == Auth.UserId.Value.ToString();
             }
             listingMatch = await t.LoadAsync<ACommerce.Kit.Offers.ListingMatch>(Id);
+
+            // اِستَخرِج إحداثيّات pickup/dropoff إن وُجِدَت في الخَصائِص.
+            pickupLat  = ParseDouble(listing.Attributes, "pickup_lat");
+            pickupLng  = ParseDouble(listing.Attributes, "pickup_lng");
+            dropoffLat = ParseDouble(listing.Attributes, "dropoff_lat");
+            dropoffLng = ParseDouble(listing.Attributes, "dropoff_lng");
             if (enabled || listingMatch is not null)
             {
                 showOffers = true;
@@ -348,5 +451,13 @@ else
                     .OrderBy(o => o.Price).ToList();
             }
         }
+    }
+
+    static double? ParseDouble(Dictionary<string,string> attrs, string key)
+    {
+        if (!attrs.TryGetValue(key, out var s) || string.IsNullOrEmpty(s)) return null;
+        return double.TryParse(s, System.Globalization.NumberStyles.Float,
+                               System.Globalization.CultureInfo.InvariantCulture, out var d)
+               ? d : null;
     }
 }
