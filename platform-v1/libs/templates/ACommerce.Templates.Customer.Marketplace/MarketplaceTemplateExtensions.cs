@@ -45,10 +45,13 @@ public static class MarketplaceTemplateExtensions
         {
             if (!tenant.IsResolved) return Results.NotFound();
             var phone = req.Form["phone"].ToString().Trim();
+            var asRole = req.Form["as"].ToString().Trim();
             if (string.IsNullOrEmpty(phone))
-                return Results.Redirect($"/{slug}/login?err=phone_required");
+                return Results.Redirect($"/{slug}/login?err=phone_required" +
+                    (string.IsNullOrEmpty(asRole) ? "" : $"&as={Uri.EscapeDataString(asRole)}"));
             await AuthHandlers.RequestPhoneOtpHandler(new RequestPhoneOtp(phone), tenant, channel, default);
-            return Results.Redirect($"/{slug}/login?stage=verify&phone={Uri.EscapeDataString(phone)}");
+            var asParam = string.IsNullOrEmpty(asRole) ? "" : $"&as={Uri.EscapeDataString(asRole)}";
+            return Results.Redirect($"/{slug}/login?stage=verify&phone={Uri.EscapeDataString(phone)}{asParam}");
         }).DisableAntiforgery();
 
         app.MapPost("/{slug}/auth/phone/verify",
@@ -62,6 +65,11 @@ public static class MarketplaceTemplateExtensions
                 return Results.Redirect(
                     $"/{slug}/login?stage=verify&phone={Uri.EscapeDataString(phone)}&err=code_invalid");
             AuthSession.WriteCookie(res, slug, result);
+            // إن اختارَ المُستَخدِم دَوراً مِن صَفحَة الدُخول (?as=...) سَكِّنه
+            // قَبل التَوجيه — يَتَخَطَّى role picker.
+            var asRole = req.Form["as"].ToString().Trim().ToLowerInvariant();
+            if (!string.IsNullOrEmpty(asRole))
+                await AssignRoleAsync(slug, result.UserId, asRole, store);
             return Results.Redirect(await PostLoginRouteAsync(slug, result.UserId, store));
         }).DisableAntiforgery();
 
@@ -93,6 +101,9 @@ public static class MarketplaceTemplateExtensions
                     $"/{slug}/login?stage=verify&nid={Uri.EscapeDataString(nid)}" +
                     $"&attempt={attempt}&code=00&err=not_approved");
             AuthSession.WriteCookie(res, slug, result);
+            var asRole = req.Form["as"].ToString().Trim().ToLowerInvariant();
+            if (!string.IsNullOrEmpty(asRole))
+                await AssignRoleAsync(slug, result.UserId, asRole, store);
             return Results.Redirect(await PostLoginRouteAsync(slug, result.UserId, store));
         }).DisableAntiforgery();
 
@@ -1617,6 +1628,28 @@ public static class MarketplaceTemplateExtensions
         if (user is null) return false;
         return ACommerce.Kit.Roles.RolePermissions.Has(
             tenant.Roles, user.ActiveRole, permission);
+    }
+
+    // تَسكين دَور لِمُستَخدِم بَعد تَوثيقِه — يُستَدعَى مِن /verify عِندَ
+    // وُجود ?as=role مِن صَفحَة الدُخول. tenant_admin مَمنوع: يَجِب أَن
+    // يُمنَح يَدَويّاً مِن /admin/tenants/{slug}/users.
+    private static async Task AssignRoleAsync(
+        string slug, Guid userId, string roleSlug, IDocumentStore store)
+    {
+        if (roleSlug == "tenant_admin") return;
+        await using var g = store.QuerySession();
+        var tenant = await g.LoadAsync<ACommerce.Kit.Tenants.Tenant>(slug);
+        if (tenant is null) return;
+        var picked = tenant.Roles.FirstOrDefault(r => r.Slug == roleSlug);
+        if (picked is null) return;
+
+        await using var s = store.LightweightSession(slug);
+        var user = await s.LoadAsync<ACommerce.Kit.Auth.User>(userId);
+        if (user is null) return;
+        user.ActiveRole = roleSlug;
+        user.UpdatedAt = DateTime.UtcNow;
+        s.Store(user);
+        await s.SaveChangesAsync();
     }
 
     // قَرار التَّوجيه بَعد دُخول ناجِح:

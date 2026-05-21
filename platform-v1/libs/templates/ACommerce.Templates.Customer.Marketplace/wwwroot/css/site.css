@@ -665,6 +665,59 @@
     border-radius: var(--ac-radius-lg);
 }
 
+/* ═══ Role Landing — صَفحَة دُخول التَّطبيقات الفَرعيَّة ═══════════════ */
+.acm-role-landing {
+    max-width: 480px; margin: 0 auto; padding: 32px 16px;
+    min-height: 80vh; display: flex; flex-direction: column; gap: 24px;
+}
+.acm-role-landing-head { text-align: center; }
+.acm-role-landing-brand {
+    width: 72px; height: 72px; border-radius: 16px;
+    display: grid; place-items: center; margin: 0 auto 12px;
+    color: #fff; font-size: 36px; font-weight: 700;
+}
+.acm-role-landing-head h1 { margin: 0; font-size: 24px; font-weight: 700; }
+.acm-role-landing-head p { margin: 8px 0 0; color: var(--ac-text-muted); }
+.acm-role-landing-hint {
+    display: inline-block; margin-top: 16px;
+    font-size: 13px; color: var(--ac-text-muted);
+    padding: 4px 12px; background: var(--ac-bg-alt); border-radius: 999px;
+}
+.acm-role-landing-cards { display: flex; flex-direction: column; gap: 12px; }
+.acm-role-landing-card {
+    display: flex; align-items: center; gap: 14px;
+    padding: 18px 20px;
+    background: var(--ac-surface);
+    border: 2px solid var(--ac-border);
+    border-radius: var(--ac-radius-lg);
+    text-decoration: none; color: var(--ac-text);
+    transition: transform 120ms, border-color 120ms, box-shadow 120ms;
+}
+.acm-role-landing-card:hover {
+    transform: translateY(-2px);
+    border-color: var(--ac-primary);
+    box-shadow: 0 6px 20px rgba(0,0,0,.08);
+}
+.acm-role-landing-card-icon {
+    font-size: 32px; line-height: 1; width: 56px; height: 56px;
+    display: grid; place-items: center;
+    background: var(--ac-bg-alt); border-radius: 14px; flex-shrink: 0;
+}
+.acm-role-landing-card > div { flex: 1; min-width: 0; }
+.acm-role-landing-card strong { display: block; font-size: 17px; margin-bottom: 3px; }
+.acm-role-landing-card span:not(.acm-role-landing-card-cta) {
+    display: block; color: var(--ac-text-muted); font-size: 13px; line-height: 1.5;
+}
+.acm-role-landing-card-cta {
+    font-size: 13px; color: var(--ac-primary); font-weight: 600;
+    align-self: center; white-space: nowrap;
+}
+.acm-role-landing-foot { text-align: center; }
+.acm-role-landing-foot a {
+    color: var(--ac-text-muted); font-size: 13px; text-decoration: none;
+}
+.acm-role-landing-foot a:hover { color: var(--ac-primary); }
+
 /* ═══ Role Home — قَوالِب صَفَحات بَدء كامِلَة لِكُلّ دَور ════════════ */
 .acm-role-home { padding-bottom: 24px; }
 .acm-role-home-head { margin: 8px 0 16px; }

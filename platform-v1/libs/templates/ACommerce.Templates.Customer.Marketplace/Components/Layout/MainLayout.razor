@@ -12,6 +12,13 @@
     var path = new Uri(Nav.Uri).AbsolutePath;
     var isLogin = path.Contains("/login", StringComparison.OrdinalIgnoreCase);
 
+    // إخفاء nav عَلى صَفحَة اختِيار التَّطبيق الفَرعيّ — لا nav قَبل
+    // أَن يَختار المُستَخدِم دَوراً، فَالـ tabs لا تَنطَبِق بَعد.
+    var trimmed = path.TrimEnd('/');
+    var isEntry = trimmed.Equals($"/{slug}", StringComparison.OrdinalIgnoreCase) &&
+                  tenantHasRoles && !Auth.IsAuthenticated;
+    var chromeHidden = isLogin || isEntry;
+
     // قائِمَة nav مُلائِمَة لِلدَور النَّشِط — تَحتاج load بِسيط.
     var (topItems, bottomItems) = BuildNav(slug, activeRoleSlug);
 }
@@ -19,7 +26,7 @@
 @if (Tenant.IsResolved)
 {
     @* nav fixed-positioned: خارِج .acs-page حَتّى لا تُفَسَّر كَ overflow في فُحوص الـ runtime. *@
-    @if (!isLogin)
+    @if (!chromeHidden)
     {
         <nav class="acm-mobile-nav" style="--ac-primary:@brand;">
             <div class="acm-mobile-nav-inner">
@@ -36,7 +43,7 @@
     }
 
     <div class="acs-page" style="--ac-primary:@brand; --ac-primary-dark:@brand; --ac-primary-light:@brand; --ac-primary-hover:@brand;">
-        @if (!isLogin)
+        @if (!chromeHidden)
         {
             <div class="acm-v2-topnav-wrap">
                 <AcTopNav Items="topItems">
@@ -61,7 +68,7 @@
         <main>
             @Body
 
-            @if (!isLogin)
+            @if (!chromeHidden)
             {
                 <div class="acm-v2-bottom-nav-wrap">
                     <AcBottomNav Items="bottomItems" ExtraClass="acm-v2-bottomnav" />
@@ -79,6 +86,7 @@ else
 
 @code {
     string activeRoleSlug = "";
+    bool tenantHasRoles;
     int unreadMessages;
     int unreadNotifications;
 
@@ -88,6 +96,15 @@ else
         {
             Auth.SetTenant(Tenant.Slug);
             Auth.Load(ctx, Tenant.Slug);
+
+            // اِكتَشِف هَل لِلمَتجَر أَدوار — تَحديد عَرض الـ landing.
+            try
+            {
+                await using var gs = Store.QuerySession();
+                var t = await gs.LoadAsync<ACommerce.Kit.Tenants.Tenant>(Tenant.Slug);
+                tenantHasRoles = t is not null && t.Roles.Count > 0;
+            }
+            catch { /* ignore */ }
 
             if (Auth.IsAuthenticated && Auth.UserId.HasValue)
             {

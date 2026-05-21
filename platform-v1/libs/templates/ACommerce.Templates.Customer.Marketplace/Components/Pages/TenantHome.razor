@@ -14,6 +14,13 @@
     {
         <AcLoadingState />
     }
+    else if (loaded.Roles.Count > 0 && (!Auth.IsAuthenticated || activeRole is null))
+    {
+        @* مَتجَر بِأَدوار + غَير مُسَجَّل دُخول (أَو بِلا ActiveRole):
+           لا يَرى أَيّ مُحتَوى. يَرَى صَفحَة اختِيار التَّطبيق الفَرعيّ.
+           هذا يُحَوِّل /{slug} مِن صَفحَة عامَّة إلى نُقطَة دُخول مُتَفَرِّعَة. *@
+        <RoleLanding Slug="@Slug" Tenant="loaded" />
+    }
     else if (activeRole?.CatalogSlug == "rider")
     {
         <ACommerce.Templates.Customer.Marketplace.Components.RoleHomes.RiderHome Slug="@Slug" />

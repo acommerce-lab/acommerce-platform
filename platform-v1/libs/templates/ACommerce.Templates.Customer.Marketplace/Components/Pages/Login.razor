@@ -28,12 +28,13 @@ else
         @if (Tenant.AuthChannel == "nafath")
         {
             <NafathLoginForm Slug="@Slug" ErrorMessage="@ErrorMessage" Stage="@Stage"
-                             NationalId="@NationalIdValue" AttemptId="@AttemptId" DisplayCode="@DisplayCode" />
+                             NationalId="@NationalIdValue" AttemptId="@AttemptId" DisplayCode="@DisplayCode"
+                             AsRole="@AsRole" />
         }
         else
         {
             <PhoneLoginForm Slug="@Slug" ErrorMessage="@ErrorMessage" Stage="@Stage"
-                            Phone="@PhoneValue" />
+                            Phone="@PhoneValue" AsRole="@AsRole" />
         }
     </div>
 
@@ -50,6 +51,9 @@ else
     [SupplyParameterFromQuery(Name = "nid")]      public string? NationalIdValue { get; set; }
     [SupplyParameterFromQuery(Name = "attempt")]  public string? AttemptId { get; set; }
     [SupplyParameterFromQuery(Name = "code")]     public string? DisplayCode { get; set; }
+    /// <summary>دَور مَختار مُسبَقاً (مِن صَفحَة /{slug}/r/landing).
+    /// يُمَرَّر كَ hidden إلى الـ POST لِيُسَكِّن ActiveRole بَعد التَّوثيق.</summary>
+    [SupplyParameterFromQuery(Name = "as")]       public string? AsRole { get; set; }
 
     string? ErrorMessage => Err switch
     {

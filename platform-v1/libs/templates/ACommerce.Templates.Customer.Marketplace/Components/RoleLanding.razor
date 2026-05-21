@@ -1,0 +1,50 @@
+@*
+    صَفحَة دُخول المَتجَر مُتَعَدِّد التَّطبيقات الفَرعيَّة (مَتجَر بِأَدوار).
+    تَظهَر عَلى /{slug} عِندَ مَتجَر مِثل إنجيز قَبل أَن يَختار المُستَخدِم
+    تَطبيقَه الفَرعيّ. لا مُحتَوى ولا feed — فَقَط بِطاقات لِلتَّطبيقات
+    المُتاحَة. كُلّ بِطاقَة تَحمِل لِـ login مُسبَق-التَّحديد لِلدَور.
+*@
+
+<div class="acs-page acm-role-landing">
+    <header class="acm-role-landing-head">
+        <div class="acm-role-landing-brand"
+             style="background:@Tenant.BrandColor;">
+            @(Tenant.Name.FirstOrDefault())
+        </div>
+        <h1>@Tenant.Name</h1>
+        @if (!string.IsNullOrEmpty(Tenant.TagLine))
+        {
+            <p>@Tenant.TagLine</p>
+        }
+        <span class="acm-role-landing-hint">اختَر التَّطبيق الفَرعيّ</span>
+    </header>
+
+    <div class="acm-role-landing-cards">
+        @foreach (var r in Tenant.Roles
+                    .Where(r => r.CatalogSlug != "tenant_admin")
+                    .OrderBy(r => r.SortOrder))
+        {
+            <a class="acm-role-landing-card"
+               href="@($"/{Slug}/login?as={r.Slug}")">
+                <span class="acm-role-landing-card-icon">@(r.Icon ?? "👤")</span>
+                <div>
+                    <strong>@r.Label</strong>
+                    @if (!string.IsNullOrEmpty(r.Description))
+                    {
+                        <span>@r.Description</span>
+                    }
+                </div>
+                <span class="acm-role-landing-card-cta">دُخول ←</span>
+            </a>
+        }
+    </div>
+
+    <div class="acm-role-landing-foot">
+        <a href="@($"/{Slug}/login")">دُخول بِدَور مَوجود مُسبَقاً</a>
+    </div>
+</div>
+
+@code {
+    [Parameter] public string Slug { get; set; } = "";
+    [Parameter] public ACommerce.Kit.Tenants.Tenant Tenant { get; set; } = default!;
+}
