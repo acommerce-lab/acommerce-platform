@@ -61,6 +61,27 @@
                 { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
             );
         };
+
+        // تَأكيد وُصول السائِق — يَلتَقِط المَوقِع وَيُرسِل لِـ /trips/{id}/arrived
+        // الخادِم يَفحَص قُربَه مِن نُقطَة الانطِلاق وَيُرفِض إن كانَ > 1 كم.
+        window.acSubmitArrived = function (btn) {
+            var form = btn.closest('form');
+            if (!form || !navigator.geolocation) return;
+            btn.disabled = true;
+            btn.textContent = 'جارٍ التَّحَقُّق…';
+            navigator.geolocation.getCurrentPosition(
+                function (p) {
+                    form.querySelector('#arrived_lat').value = p.coords.latitude.toFixed(6);
+                    form.querySelector('#arrived_lng').value = p.coords.longitude.toFixed(6);
+                    form.submit();
+                },
+                function () {
+                    btn.disabled = false;
+                    btn.textContent = 'يَجِب السَّماح بِالوُصول لِلمَوقِع';
+                },
+                { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+            );
+        };
     </script>
 </body>
 </html>

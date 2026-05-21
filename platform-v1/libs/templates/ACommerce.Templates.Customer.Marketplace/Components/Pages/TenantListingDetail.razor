@@ -123,6 +123,20 @@ else
 
     @if (Trip == "completed") { <AcAlert Variant="success" Message="تَمّ تَأكيد انتِهاء الرِحلَة. شُكراً." /> }
     @if (Trip == "aborted")   { <AcAlert Variant="warning" Message="الرِحلَة أُلغِيَت." /> }
+    @if (Trip == "arrived")   { <AcAlert Variant="success" Message="تَمّ تَأكيد وُصولِكَ لِنُقطَة الانطِلاق." /> }
+    @if (Err == "too_far")
+    {
+        <AcAlert Variant="danger"
+                 Message="@($"أَنتَ بَعيد عَن نُقطَة الانطِلاق ({Dist} كم). اِقتَرِب ثُمّ حاوِل مَرَّة أُخرى.")" />
+    }
+    else if (Err == "arrived_geo")
+    {
+        <AcAlert Variant="danger" Message="يَجِب السَّماح بِالمَوقِع لِتَأكيد الوُصول." />
+    }
+    else if (Err == "not_driver")
+    {
+        <AcAlert Variant="danger" Message="هذا الإجراء لِلسائِق المَقبول فَقَط." />
+    }
 
     @* خَريطَة لِنِقاط الانطِلاق/الوُصول — تَظهَر لِأَيّ إعلان لَه إحداثيّات
        في الخَصائِص. زِرّ "افتَح في الخَريطَة" يَستَخدِم OSM (يَفتَحه
@@ -189,22 +203,47 @@ else
                         }
                     </strong>
 
-                    @if (status == ACommerce.Kit.Offers.TripStatus.Active &&
-                         Auth.IsAuthenticated &&
-                         (isOwner || Auth.UserId == listingMatch.OffererId))
+                    @if (status == ACommerce.Kit.Offers.TripStatus.Active && Auth.IsAuthenticated)
                     {
+                        var isDriver = Auth.UserId == listingMatch.OffererId;
+                        var hasArrived = listingMatch.ArrivedAt.HasValue;
+
+                        @if (hasArrived)
+                        {
+                            <p style="margin:8px 0 0;font-size:12px;color:var(--ac-text-muted);">
+                                ✓ السائِق وَصَلَ نُقطَة الانطِلاق @listingMatch.ArrivedAt!.Value.ToString("HH:mm")
+                            </p>
+                        }
+
                         <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;">
-                            <form method="post" action="@($"/{Slug}/trips/{Id}/complete")" style="margin:0;">
-                                <button type="submit" class="ac-btn ac-btn-primary ac-btn-sm">
-                                    <AcIcon Name="check" Size="14" /> تَأكيد انتِهاء الرِحلَة
-                                </button>
-                            </form>
-                            <form method="post" action="@($"/{Slug}/trips/{Id}/abort")" style="margin:0;">
-                                <button type="submit" class="ac-btn ac-btn-ghost ac-btn-sm"
-                                        style="color:var(--ac-danger);">
-                                    <AcIcon Name="x" Size="14" /> إلغاء الرِحلَة
-                                </button>
-                            </form>
+                            @if (isDriver && !hasArrived)
+                            {
+                                @* السائِق فَقَط يُؤَكِّد الوُصول، الـ JS يَملَأ مَوقِعَه *@
+                                <form id="arrivedForm" method="post"
+                                      action="@($"/{Slug}/trips/{Id}/arrived")" style="margin:0;">
+                                    <input type="hidden" name="lat" id="arrived_lat" value="0" />
+                                    <input type="hidden" name="lng" id="arrived_lng" value="0" />
+                                    <button type="button" class="ac-btn ac-btn-primary ac-btn-sm"
+                                            onclick="acSubmitArrived(this)">
+                                        <AcIcon Name="map-pin" Size="14" /> أَنا واصِل
+                                    </button>
+                                </form>
+                            }
+
+                            @if (isOwner || isDriver)
+                            {
+                                <form method="post" action="@($"/{Slug}/trips/{Id}/complete")" style="margin:0;">
+                                    <button type="submit" class="ac-btn ac-btn-primary ac-btn-sm">
+                                        <AcIcon Name="check" Size="14" /> تَأكيد انتِهاء الرِحلَة
+                                    </button>
+                                </form>
+                                <form method="post" action="@($"/{Slug}/trips/{Id}/abort")" style="margin:0;">
+                                    <button type="submit" class="ac-btn ac-btn-ghost ac-btn-sm"
+                                            style="color:var(--ac-danger);">
+                                        <AcIcon Name="x" Size="14" /> إلغاء الرِحلَة
+                                    </button>
+                                </form>
+                            }
                         </div>
                     }
                 </div>
@@ -382,6 +421,7 @@ else
     [SupplyParameterFromQuery(Name = "reported")] public string? Reported { get; set; }
     [SupplyParameterFromQuery(Name = "err")]      public string? Err      { get; set; }
     [SupplyParameterFromQuery(Name = "trip")]     public string? Trip     { get; set; }
+    [SupplyParameterFromQuery(Name = "dist")]     public string? Dist     { get; set; }
     Listing? listing;
     Tenant? tenant;
     bool IsFav;

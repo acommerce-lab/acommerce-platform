@@ -98,6 +98,13 @@ public sealed class ListingMatch
 
     /// <summary>اختِياريّ: مُذَكِّرَة عَن سَبَب الإلغاء.</summary>
     public string? AbortReason { get; set; }
+
+    /// <summary>وَقت تَأكيد السائِق وُصولَه لِنُقطَة الانطِلاق. null = لَم
+    /// يَصِل بَعد. لا يُغَيِّر الـ Status — تَبقَى Active، لكِنّ UI يَتَغَيَّر
+    /// (تَظهَر "تَأكيد انتِهاء" بَدَل "أَنا واصِل").</summary>
+    public System.DateTime? ArrivedAt { get; set; }
+    public double ArrivedLat { get; set; }
+    public double ArrivedLng { get; set; }
 }
 
 // ─── Helpers ────────────────────────────────────────────────────────

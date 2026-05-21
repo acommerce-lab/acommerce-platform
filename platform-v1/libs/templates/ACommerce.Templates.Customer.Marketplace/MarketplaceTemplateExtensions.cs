@@ -721,6 +721,71 @@ public static class MarketplaceTemplateExtensions
             return Results.Redirect($"/{slug}/listings/{offer.ListingId}");
         }).DisableAntiforgery();
 
+        // ─── Trip lifecycle — driver marks "arrived at pickup" ───────────
+        // فَحص قُرب: السائِق يُرسِل مَوقِعَه الحاليّ، نُقارِنه مَع
+        // pickup_lat/pickup_lng. لَو > 1 كم يُرفَض الادِّعاء.
+        app.MapPost("/{slug}/trips/{listingId:guid}/arrived",
+            async (string slug, Guid listingId, HttpRequest req, IDocumentStore store) =>
+        {
+            var token = req.Cookies[AuthSession.CookieName(slug)];
+            var parsed = AuthHandlers.ParseToken(token);
+            if (parsed is null) return Results.Redirect($"/{slug}/login");
+            var (userId, _, _) = parsed.Value;
+
+            _ = double.TryParse(req.Form["lat"].ToString(),
+                System.Globalization.NumberStyles.Float,
+                System.Globalization.CultureInfo.InvariantCulture, out var lat);
+            _ = double.TryParse(req.Form["lng"].ToString(),
+                System.Globalization.NumberStyles.Float,
+                System.Globalization.CultureInfo.InvariantCulture, out var lng);
+            if (lat == 0 && lng == 0)
+                return Results.Redirect($"/{slug}/listings/{listingId}?err=arrived_geo");
+
+            await using var s = store.LightweightSession(slug);
+            var match = await s.LoadAsync<ACommerce.Kit.Offers.ListingMatch>(listingId);
+            if (match is null || match.Status != ACommerce.Kit.Offers.TripStatus.Active)
+                return Results.Redirect($"/{slug}/listings/{listingId}");
+            if (match.OffererId != userId)
+                return Results.Redirect($"/{slug}/listings/{listingId}?err=not_driver");
+
+            var listing = await s.Events.AggregateStreamAsync<Listing>(listingId);
+            if (listing is null) return Results.Redirect($"/{slug}");
+
+            // قارِن المَسافَة بَين مَوقِع السائِق وَ نُقطَة الانطِلاق.
+            if (listing.Attributes.TryGetValue("pickup_lat", out var plat) &&
+                listing.Attributes.TryGetValue("pickup_lng", out var plng) &&
+                double.TryParse(plat, System.Globalization.NumberStyles.Float,
+                    System.Globalization.CultureInfo.InvariantCulture, out var pLat) &&
+                double.TryParse(plng, System.Globalization.NumberStyles.Float,
+                    System.Globalization.CultureInfo.InvariantCulture, out var pLng))
+            {
+                var dKm = ACommerce.Kit.Offers.OfferHelpers.DistanceKm(lat, lng, pLat, pLng);
+                if (dKm > 1.0)   // عَتَبَة 1 كم — يُمكِن جَعلُها قابِلَة لِلتَكوين
+                    return Results.Redirect(
+                        $"/{slug}/listings/{listingId}?err=too_far&dist={dKm:0.#}");
+            }
+
+            match.ArrivedAt = DateTime.UtcNow;
+            match.ArrivedLat = lat;
+            match.ArrivedLng = lng;
+            s.Store(match);
+
+            // أَخطِر الراكِب — السائِق وَصَل.
+            s.Store(new ACommerce.Kit.Notifications.Notification
+            {
+                Id = Guid.NewGuid(),
+                UserId = ParseListingOwnerId(listing) ?? Guid.Empty,
+                Type = "driver_arrived",
+                Title = "السائِق وَصَل ✓",
+                Body  = $"{match.OffererName} في نُقطَة الانطِلاق.",
+                RelatedUrl = $"/{slug}/listings/{listingId}",
+                At = DateTime.UtcNow
+            });
+
+            await s.SaveChangesAsync();
+            return Results.Redirect($"/{slug}/listings/{listingId}?trip=arrived");
+        }).DisableAntiforgery();
+
         // ─── Trip lifecycle — complete / abort ──────────────────────────
         // كِلاهُما عَلى مُستَوى الإعلان (ListingId)، لِأَنّ ListingMatch
         // doc بِالـ Id = ListingId. مَن يُؤَكِّد: owner (الراكِب) أَو
@@ -1465,6 +1530,13 @@ public static class MarketplaceTemplateExtensions
         }).DisableAntiforgery();
 
         return app;
+    }
+
+    // اِستِخراج owner_id مِن listing.Attributes كَ Guid.
+    private static Guid? ParseListingOwnerId(Listing listing)
+    {
+        if (!listing.Attributes.TryGetValue("owner_id", out var s)) return null;
+        return Guid.TryParse(s, out var g) ? g : null;
     }
 
     // فَحص صَلاحِيَّة لِلمُستَخدِم الحاليّ — يَجلِب tenant + user وَيُفَوِّض
