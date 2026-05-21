@@ -245,6 +245,9 @@ else
     </text>;
 
     bool driverMode;
+    bool driverHasAnchor;
+    double driverAnchorLat, driverAnchorLng;
+    int driverRadius;
 
     protected override async Task OnParametersSetAsync()
     {
@@ -263,6 +266,13 @@ else
             var role = me is null ? null
                 : tenant.Roles.FirstOrDefault(r => r.Slug == me.ActiveRole);
             driverMode = role?.CatalogSlug is "driver" or "shipper";
+            if (driverMode && me is not null)
+            {
+                driverHasAnchor = me.HasAnchor;
+                driverAnchorLat = me.AnchorLat;
+                driverAnchorLng = me.AnchorLng;
+                driverRadius    = me.RadiusKm;
+            }
         }
 
         var q = t.Query<Listing>().Where(x => !x.IsDeleted);
@@ -303,7 +313,25 @@ else
                             string.Equals(v, "true", System.StringComparison.OrdinalIgnoreCase))
                 .Where(l => !allMatches.TryGetValue(l.Id, out var m) ||
                             m.Status != ACommerce.Kit.Offers.TripStatus.Active)
-                .Take(60).ToList();
+                .ToList();
+
+            // فَلتَرَة المَنطِقَة لَو السائِق ضَبَط نِصف قُطر.
+            if (driverHasAnchor && driverRadius > 0)
+            {
+                items = items.Where(l =>
+                {
+                    if (!l.Attributes.TryGetValue("pickup_lat", out var latS) ||
+                        !l.Attributes.TryGetValue("pickup_lng", out var lngS)) return true;
+                    if (!double.TryParse(latS, System.Globalization.NumberStyles.Float,
+                                         System.Globalization.CultureInfo.InvariantCulture, out var plat)) return true;
+                    if (!double.TryParse(lngS, System.Globalization.NumberStyles.Float,
+                                         System.Globalization.CultureInfo.InvariantCulture, out var plng)) return true;
+                    var d = ACommerce.Kit.Offers.OfferHelpers.DistanceKm(
+                        driverAnchorLat, driverAnchorLng, plat, plng);
+                    return d <= driverRadius;
+                }).ToList();
+            }
+            items = items.Take(60).ToList();
         }
         else
         {

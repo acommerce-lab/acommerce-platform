@@ -32,6 +32,17 @@ public sealed class User
     /// "driver" فارِغاً ويَملأ "rider" إن كانَت لَه خَصائِص خاصَّة. الـ
     /// <c>AttributesJson</c> العامّ يَبقَى مُشتَرَكاً بَين كُلّ الأَدوار.</summary>
     public Dictionary<string, Dictionary<string, string>> RoleAttributesJson { get; set; } = new();
+
+    /// <summary>مَركَز المَنطِقَة الجُغرافيّة الَّتي يَعمَل فيها (السائِق
+    /// يَضبُطها لِيَفلتِر فقط المَشاوير في نِطاقها). 0,0 = غَير مَضبوط.</summary>
+    public double AnchorLat { get; set; }
+    public double AnchorLng { get; set; }
+
+    /// <summary>نِصف قُطر العَمَل بِالكيلومِترات. 0 = بِلا حَدّ. مَثَلاً
+    /// السائِق في صَنعاء قَد يَضبُطها عَلى 15 كم.</summary>
+    public int RadiusKm { get; set; }
+
+    public bool HasAnchor => AnchorLat != 0 || AnchorLng != 0;
 }
 
 // ─── Events (للـ stream المُستَقِلّ "AuthAttempts") ──────────────────

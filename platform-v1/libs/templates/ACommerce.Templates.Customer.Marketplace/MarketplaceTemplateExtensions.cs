@@ -824,6 +824,37 @@ public static class MarketplaceTemplateExtensions
             return Results.Redirect($"/{slug}/me/offers");
         }).DisableAntiforgery();
 
+        // ─── Save driver area (anchor + radius) ─────────────────────────
+        app.MapPost("/{slug}/me/area/save",
+            async (string slug, HttpRequest req, IDocumentStore store) =>
+        {
+            var token = req.Cookies[AuthSession.CookieName(slug)];
+            var parsed = AuthHandlers.ParseToken(token);
+            if (parsed is null) return Results.Redirect($"/{slug}/login");
+            var (userId, _, _) = parsed.Value;
+
+            _ = double.TryParse(req.Form["anchor_lat"].ToString(),
+                System.Globalization.NumberStyles.Float,
+                System.Globalization.CultureInfo.InvariantCulture, out var lat);
+            _ = double.TryParse(req.Form["anchor_lng"].ToString(),
+                System.Globalization.NumberStyles.Float,
+                System.Globalization.CultureInfo.InvariantCulture, out var lng);
+            _ = int.TryParse(req.Form["radius"].ToString(), out var radius);
+            if (radius < 0) radius = 0;
+            if (radius > 500) radius = 500;
+
+            await using var s = store.LightweightSession(slug);
+            var user = await s.LoadAsync<User>(userId);
+            if (user is null) return Results.Redirect($"/{slug}/me");
+            user.AnchorLat = lat;
+            user.AnchorLng = lng;
+            user.RadiusKm  = radius;
+            user.UpdatedAt = DateTime.UtcNow;
+            s.Store(user);
+            await s.SaveChangesAsync();
+            return Results.Redirect($"/{slug}/me/area?saved=1");
+        }).DisableAntiforgery();
+
         // ─── Start direct chat with another user ────────────────────────
         // مُستَخدَم في صَفحَة /{slug}/drivers — العَميل يَفتَح مُحادَثَة
         // مُباشَرَة مَع سائِق بِلا حاجَة لِنَشر طَلَب مِشوار.
