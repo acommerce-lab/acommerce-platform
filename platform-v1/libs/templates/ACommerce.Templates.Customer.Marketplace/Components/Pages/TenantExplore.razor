@@ -27,12 +27,20 @@ else
     @* Filter bar: شَجَرَة kinds + leaves + sliders button — مُطابِق
        لِبِنية AcTaxonomyChips الأَصلِيَّة. *@
     <div class="acm-explore-filterbar">
-        <div class="acm-explore-chips">
-            <TaxonomyChips Slug="@Slug"
-                           Categories="tenant.Categories"
-                           ActiveKind="@Kind"
-                           ActiveCategory="@Category" />
-        </div>
+        @* TaxonomyChips تَظهَر فَقَط لَو فيه أَكثَر مِن فِئَة. *@
+        @if (tenant.Categories.Count > 1)
+        {
+            <div class="acm-explore-chips">
+                <TaxonomyChips Slug="@Slug"
+                               Categories="tenant.Categories"
+                               ActiveKind="@Kind"
+                               ActiveCategory="@Category" />
+            </div>
+        }
+        else
+        {
+            <div class="acm-explore-chips"></div>
+        }
         <a class="acm-explore-filterbtn" href="@FilterToggleHref" aria-label="الفَلاتِر">
             <AcIcon Name="sliders" Size="18" />
         </a>

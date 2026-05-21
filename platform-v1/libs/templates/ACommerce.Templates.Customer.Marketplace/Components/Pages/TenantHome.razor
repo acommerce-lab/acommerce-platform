@@ -76,13 +76,11 @@
             </ChildContent>
         </AcHeroBanner>
 
-        @if (loaded.Categories is { Count: > 0 })
+        @* شَجَرَة الفِئات تَظهَر فَقَط لَو فيه أَكثَر مِن فِئَة. مَتجَر بِفِئَة
+           واحِدَة لا يَحتاج اختِيار — كُلّ شَيء في تِلكَ الفِئَة. *@
+        @if (loaded.Categories.Count > 1)
         {
             <AcSectionHeader Title="الفِئات" />
-            @* شَجَرَة فِئات أَفقيّة كَ AcTaxonomyChips الأَصلي:
-               صَفّ kinds أَوّلاً، ثُمّ leaves الـ kind المُختار تَحته.
-               اختِيار الـ kind يَستَخدِم ?kind=X في الـ URL (SSR-friendly).
-               الـ tenants ذات الـ Kind الواحِد (عَشير) يَظهَرَن مُسَطَّحَة. *@
             <TaxonomyChips Slug="@Slug"
                            Categories="loaded.Categories"
                            ActiveKind="@Kind" />

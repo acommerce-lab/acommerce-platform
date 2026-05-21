@@ -52,7 +52,13 @@ else
                      Message="دَوركَ الحاليّ لا يَسمَح بِنَشر إعلان. إن كانَ هذا غَير مُتَوَقَّع، تَواصَل مَع إدارَة المَتجَر." />
         }
 
-        @if (string.IsNullOrEmpty(Category))
+        @* تَخَطّي خَطوَة اختِيار الفِئَة عِندَ وُجود فِئَة واحِدَة فَقَط
+           في المَتجَر — لا داعِيَ لِسُؤال المُستَخدِم. *@
+        var singleCategoryAuto = string.IsNullOrEmpty(Category) && tenant.Categories.Count == 1
+            ? tenant.Categories[0].Slug : null;
+        var effectiveCategory = Category ?? singleCategoryAuto;
+
+        @if (string.IsNullOrEmpty(effectiveCategory))
         {
             @* خَطوَة 1: شَجَرَة فِئات. عِنْدَ تَعَدُّد الـ Kinds (مَثَل
                إيجار) كُلّ Kind = <details> قابِل لِلطَيّ يَحوي شَبَكَة
@@ -111,10 +117,10 @@ else
         }
         else
         {
-            var selectedCategory = tenant.Categories.FirstOrDefault(c => c.Slug == Category);
+            var selectedCategory = tenant.Categories.FirstOrDefault(c => c.Slug == effectiveCategory);
 
             <form method="post" action="@($"/{Slug}/listings/create")">
-                <input type="hidden" name="category" value="@Category" />
+                <input type="hidden" name="category" value="@effectiveCategory" />
 
                 <AcCard>
                     <ChildContent>
@@ -227,6 +233,9 @@ else
 
         if (!string.IsNullOrEmpty(Category))
             dynFields = await DynAttrs.GetForListingCategoryAsync(Slug, Category);
+        else if (tenant.Categories.Count == 1)
+            // فِئَة وَحيدَة → اِجلِب خَصائِصها مُباشَرَة
+            dynFields = await DynAttrs.GetForListingCategoryAsync(Slug, tenant.Categories[0].Slug);
     }
 
     static string KindLabel(string kind) => kind switch

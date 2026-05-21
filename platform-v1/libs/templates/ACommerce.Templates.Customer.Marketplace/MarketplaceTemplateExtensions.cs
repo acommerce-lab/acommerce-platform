@@ -889,6 +889,32 @@ public static class MarketplaceTemplateExtensions
             return Results.Redirect($"/{slug}/me/offers");
         }).DisableAntiforgery();
 
+        // ─── Live unread counts — polled by JS in App.razor كُلّ ٢٠ ث ─────
+        // يُحَدِّث الـ badges في الـ nav بِلا إعادَة تَحميل. مَنطِق العَدّ:
+        //   - الرَسائِل: عَدَد المُحادَثات الَّتي فيها OwnerUnread/PartnerUnread
+        //     لِلطَّرَف الَّذي = userId. الرَسائِل الَّتي أَرسَلَها المُستَخدِم
+        //     لا تُحسَب لِأَنّ /send يَزيد عَدّاد الطَّرَف الآخَر فَقَط.
+        //   - الإشعارات: عَدَد Notification بِـ IsRead=false.
+        app.MapGet("/api/{slug}/unread-counts",
+            async (string slug, HttpRequest req, IDocumentStore store) =>
+        {
+            var token = req.Cookies[AuthSession.CookieName(slug)];
+            var parsed = AuthHandlers.ParseToken(token);
+            if (parsed is null) return Results.Json(new { messages = 0, notifications = 0 });
+            var (userId, tenantSlug, _) = parsed.Value;
+            if (tenantSlug != slug) return Results.Json(new { messages = 0, notifications = 0 });
+
+            await using var s = store.QuerySession(slug);
+            var convs = await s.Query<Conversation>()
+                .Where(c => c.OwnerId == userId || c.PartnerId == userId).ToListAsync();
+            var messages = convs.Count(c =>
+                (c.OwnerId == userId && c.OwnerUnread > 0) ||
+                (c.PartnerId == userId && c.PartnerUnread > 0));
+            var notifications = await s.Query<ACommerce.Kit.Notifications.Notification>()
+                .CountAsync(n => n.UserId == userId && !n.IsRead);
+            return Results.Json(new { messages, notifications });
+        });
+
         // ─── Save driver area (anchor + radius) ─────────────────────────
         app.MapPost("/{slug}/me/area/save",
             async (string slug, HttpRequest req, IDocumentStore store) =>

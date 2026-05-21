@@ -114,6 +114,20 @@ else
         _items = (await s.Query<Notification>()
             .Where(n => n.UserId == _userId)
             .OrderByDescending(n => n.At).Take(50).ToListAsync()).ToList();
+
+        // عَلِّم كُلّ الغَير-مَقروء كَ مَقروء عِندَ فَتح الصَفحَة — يُصَفِّر
+        // الـ badge في الـ nav. الكِتابَة منفصلة عن الـ Read فَوقُ.
+        var unread = _items.Where(n => !n.IsRead).ToList();
+        if (unread.Count > 0)
+        {
+            await using var ws = Store.LightweightSession(Slug);
+            foreach (var n in unread)
+            {
+                n.IsRead = true;
+                ws.Store(n);
+            }
+            await ws.SaveChangesAsync();
+        }
     }
 
     public async ValueTask DisposeAsync()

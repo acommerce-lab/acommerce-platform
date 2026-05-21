@@ -62,6 +62,39 @@
             );
         };
 
+        // تَحديث live لِعَدّاد الرَسائِل وَالإشعارات في الـ nav.
+        // poll بَسيط كُلّ ٢٠ ث + عِندَ عَودَة الصَفحَة (window.focus). يَجلِب
+        // مِن /api/{slug}/unread-counts ثُمّ يُحَدِّث الـ DOM بِـ
+        // data-badge-key. أَخَفّ مِن SignalR وَ يَكفي لِغالِب التَطبيق.
+        (function () {
+            var match = location.pathname.match(/^\/([^\/]+)/);
+            if (!match) return;
+            var slug = match[1];
+            // تَخَطّ على المَسارات الإداريَّة
+            if (slug === 'admin' || slug === 'api') return;
+
+            async function refresh() {
+                try {
+                    var r = await fetch('/api/' + slug + '/unread-counts',
+                                        { credentials: 'same-origin' });
+                    if (!r.ok) return;
+                    var d = await r.json();
+                    apply('messages',      d.messages);
+                    apply('notifications', d.notifications);
+                } catch (e) { /* ignore */ }
+            }
+            function apply(key, n) {
+                var els = document.querySelectorAll('[data-badge-key="' + key + '"]');
+                els.forEach(function (el) {
+                    el.textContent = n > 99 ? '99+' : String(n);
+                    el.style.display = n > 0 ? '' : 'none';
+                });
+            }
+            refresh();
+            setInterval(refresh, 20000);
+            window.addEventListener('focus', refresh);
+        })();
+
         // تَأكيد وُصول السائِق — يَلتَقِط المَوقِع وَيُرسِل لِـ /trips/{id}/arrived
         // الخادِم يَفحَص قُربَه مِن نُقطَة الانطِلاق وَيُرفِض إن كانَ > 1 كم.
         window.acSubmitArrived = function (btn) {
