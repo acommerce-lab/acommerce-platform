@@ -824,6 +824,49 @@ public static class MarketplaceTemplateExtensions
             return Results.Redirect($"/{slug}/me/offers");
         }).DisableAntiforgery();
 
+        // ─── Start direct chat with another user ────────────────────────
+        // مُستَخدَم في صَفحَة /{slug}/drivers — العَميل يَفتَح مُحادَثَة
+        // مُباشَرَة مَع سائِق بِلا حاجَة لِنَشر طَلَب مِشوار.
+        app.MapPost("/{slug}/users/{userId:guid}/chat",
+            async (string slug, Guid userId, HttpRequest req, IDocumentStore store) =>
+        {
+            var token = req.Cookies[AuthSession.CookieName(slug)];
+            var parsed = AuthHandlers.ParseToken(token);
+            if (parsed is null) return Results.Redirect($"/{slug}/login?returnUrl=/{slug}/drivers");
+            var (meId, tenantSlug, _) = parsed.Value;
+            if (tenantSlug != slug) return Results.Redirect($"/{slug}/login");
+            if (meId == userId) return Results.Redirect($"/{slug}/drivers");
+            var meName = req.Cookies[AuthSession.CookieName(slug) + ".name"] ?? "أنا";
+
+            await using var s = store.LightweightSession(slug);
+            var partner = await s.LoadAsync<User>(userId);
+            if (partner is null) return Results.Redirect($"/{slug}/drivers");
+
+            // ابحَث عَن مُحادَثَة قائِمَة بَين الاثنَين (بِلا ListingId).
+            var existing = (await s.Query<Conversation>()
+                .Where(c => c.ListingId == null &&
+                            ((c.OwnerId == meId && c.PartnerId == userId) ||
+                             (c.OwnerId == userId && c.PartnerId == meId)))
+                .ToListAsync()).FirstOrDefault();
+            if (existing is not null)
+                return Results.Redirect($"/{slug}/chats/{existing.Id}");
+
+            var conv = new Conversation
+            {
+                Id = Guid.NewGuid(),
+                OwnerId = meId, OwnerName = meName,
+                PartnerId = partner.Id, PartnerName = partner.FullName,
+                Subject = $"تَواصُل مَع {partner.FullName}",
+                ListingId = null,
+                LastAt = DateTime.UtcNow,
+                // مُحادَثَة عامَّة بِلا TTL — لَيسَت مُؤَقَّتَة كَالمَشوار.
+                ExpiresAt = null
+            };
+            s.Store(conv);
+            await s.SaveChangesAsync();
+            return Results.Redirect($"/{slug}/chats/{conv.Id}");
+        }).DisableAntiforgery();
+
         // ─── Send chat message ──────────────────────────────────────────
         app.MapPost("/{slug}/chats/{conversationId:guid}/send",
             async (string slug, Guid conversationId, HttpRequest req, IDocumentStore store) =>

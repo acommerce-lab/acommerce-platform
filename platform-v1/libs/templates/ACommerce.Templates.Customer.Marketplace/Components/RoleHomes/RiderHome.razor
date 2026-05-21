@@ -21,6 +21,16 @@
         <AcIcon Name="chevron-left" Size="20" />
     </a>
 
+    <a class="acm-role-cta-pill" href="@($"/{Slug}/drivers")"
+       style="display:block;text-align:center;padding:14px;margin-bottom:16px;text-decoration:none;">
+        <strong style="font-size:14px;color:var(--ac-text);">
+            <AcIcon Name="user" Size="14" /> تَصَفُّح السائِقين
+        </strong>
+        <span style="font-size:11px;color:var(--ac-text-muted);display:block;margin-top:2px;">
+            تَواصَل مَع سائِق مُباشَرَةً
+        </span>
+    </a>
+
     @if (myRequests is null)
     {
         <AcLoadingState />

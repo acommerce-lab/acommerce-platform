@@ -292,12 +292,10 @@ else
             "price_desc" => q.OrderByDescending(x => x.Price),
             _            => q.OrderByDescending(x => x.CreatedAt),
         };
-        items = (await q.Take(driverMode ? 200 : 60).ToListAsync()).ToList();
+        items = (await q.Take(driverMode ? 200 : 200).ToListAsync()).ToList();
         if (driverMode)
         {
-            // أَبقِ فَقَط الَّتي تَقبَل عُروضاً وَ لَيسَت مُتَطابِقَة بِالفِعل
-            // (أَو مُتَطابِقَة لكِنّ الرِحلَة انتَهَت/أُلغِيَت — هذه نادِرَة
-            // لكِنّ نَترُكها مَفتوحَة لِلتَّقديم مَرَّة أُخرى).
+            // أَبقِ فَقَط الَّتي تَقبَل عُروضاً وَ لَيسَت مُتَطابِقَة بِالفِعل.
             var allMatches = (await t.Query<ACommerce.Kit.Offers.ListingMatch>().ToListAsync())
                 .ToDictionary(m => m.Id);
             items = items
@@ -305,6 +303,15 @@ else
                             string.Equals(v, "true", System.StringComparison.OrdinalIgnoreCase))
                 .Where(l => !allMatches.TryGetValue(l.Id, out var m) ||
                             m.Status != ACommerce.Kit.Offers.TripStatus.Active)
+                .Take(60).ToList();
+        }
+        else
+        {
+            // باقي الزَوّار (عَميل/زائِر/تاجِر…): لا يَرَون طَلَبات السائِق
+            // المُؤَقَّتَة. تَظهَر فَقَط الإعلانات الكاتالوجِيَّة.
+            items = items
+                .Where(l => !(l.Attributes.TryGetValue("accepts_offers", out var v) &&
+                              string.Equals(v, "true", System.StringComparison.OrdinalIgnoreCase)))
                 .Take(60).ToList();
         }
 

@@ -212,11 +212,17 @@
 
         latest = (await baseQ
             .OrderByDescending(x => x.CreatedAt)
-            .Take(6).ToListAsync()).ToList();
+            .Take(20).ToListAsync()).ToList();   // نَجلِب أَكثَر ثُمّ نُصَفِّي
 
         featured = (await baseQ
             .OrderByDescending(x => x.Price)
-            .Take(4).ToListAsync()).ToList();
+            .Take(20).ToListAsync()).ToList();
+
+        // فَلتَرَة الإعلانات الَّتي تَقبَل عُروضاً (طَلَبات السائِق المُؤَقَّتَة):
+        // لا تَظهَر في الصَفحَة الرَّئيسِيَّة العامَّة لِأَنَّها لَيسَت كاتالوج.
+        // السائِق يَراها في feed الخاصّ بِه. الـ owner يَراها في "طَلَباتي".
+        latest   = latest.Where(l => !IsTripRequest(l)).Take(6).ToList();
+        featured = featured.Where(l => !IsTripRequest(l)).Take(4).ToList();
 
         cities = (await tq.Query<Listing>()
             .Where(x => !x.IsDeleted && x.City != null)
@@ -231,4 +237,8 @@
             favIds = favs.Select(f => f.ListingId).ToHashSet();
         }
     }
+
+    static bool IsTripRequest(Listing l) =>
+        l.Attributes.TryGetValue("accepts_offers", out var v) &&
+        string.Equals(v, "true", System.StringComparison.OrdinalIgnoreCase);
 }
