@@ -8,6 +8,7 @@ using Marten;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace ACommerce.Templates.Customer.Marketplace;
@@ -386,7 +387,8 @@ public static class MarketplaceTemplateExtensions
 
         // ─── Create listing ─────────────────────────────────────────────
         app.MapPost("/{slug}/listings/create",
-            async (string slug, HttpRequest req, IDocumentStore store) =>
+            async (string slug, HttpRequest req, IDocumentStore store,
+                   Microsoft.AspNetCore.SignalR.IHubContext<ACommerce.Kit.Realtime.Server.RealtimeHub> hub) =>
         {
             var token = req.Cookies[AuthSession.CookieName(slug)];
             var parsed = AuthHandlers.ParseToken(token);
@@ -450,6 +452,7 @@ public static class MarketplaceTemplateExtensions
             };
             var savedSearches = await s.Query<ACommerce.Kit.SavedSearches.SavedSearch>()
                 .Where(ss => ss.IsEnabled).ToListAsync();
+            var nudged = new HashSet<Guid>();
             foreach (var ss in savedSearches)
             {
                 if (!ss.Matches(newListing)) continue;
@@ -463,9 +466,11 @@ public static class MarketplaceTemplateExtensions
                     RelatedUrl = $"/{slug}/listings/{id}",
                     At = DateTime.UtcNow
                 });
+                nudged.Add(ss.UserId);
             }
 
             await s.SaveChangesAsync();
+            foreach (var uid in nudged) await NudgeAsync(hub, slug, uid);
             return Results.Redirect($"/{slug}/listings/{id}");
         }).DisableAntiforgery();
 
@@ -601,12 +606,19 @@ public static class MarketplaceTemplateExtensions
                 (DateTime.UtcNow - lastAbort.ResolvedAt!.Value).TotalMinutes < 5)
                 return Results.Redirect($"/{slug}/listings/{id}?err=cooldown");
 
+            // اِجمَع خَصائِص العَرض الديناميكِيَّة مِن أَيّ حَقل بِالبادِئَة
+            // attr_ (مَثَلاً attr_seats=4 أَو attr_eta_minutes=8).
+            var offerAttrs = req.Form
+                .Where(kv => kv.Key.StartsWith("attr_", StringComparison.Ordinal))
+                .ToDictionary(kv => kv.Key["attr_".Length..], kv => kv.Value.ToString());
+
             var oid = Guid.NewGuid();
             var ev = new ACommerce.Kit.Offers.OfferSubmitted(
                 oid, id, userId, userName, price,
                 string.IsNullOrEmpty(message) ? null : message,
                 lat, lng,
-                DateTime.UtcNow.AddMinutes(ttl), DateTime.UtcNow);
+                DateTime.UtcNow.AddMinutes(ttl), DateTime.UtcNow,
+                offerAttrs.Count > 0 ? offerAttrs : null);
             s.Events.StartStream<ACommerce.Kit.Offers.Offer>(oid, ev);
             await s.SaveChangesAsync();
             return Results.Redirect($"/{slug}/listings/{id}?offer=submitted");
@@ -614,7 +626,8 @@ public static class MarketplaceTemplateExtensions
 
         // ─── Accept an offer (listing owner) ────────────────────────────
         app.MapPost("/{slug}/offers/{id:guid}/accept",
-            async (string slug, Guid id, HttpRequest req, IDocumentStore store) =>
+            async (string slug, Guid id, HttpRequest req, IDocumentStore store,
+                   Microsoft.AspNetCore.SignalR.IHubContext<ACommerce.Kit.Realtime.Server.RealtimeHub> hub) =>
         {
             var token = req.Cookies[AuthSession.CookieName(slug)];
             var parsed = AuthHandlers.ParseToken(token);
@@ -691,6 +704,8 @@ public static class MarketplaceTemplateExtensions
             });
 
             await s.SaveChangesAsync();
+            // أَخطِر السائِق فَوراً — الإشعار + المُحادَثَة ظَهَرا.
+            await NudgeAsync(hub, slug, offer.OffererId);
             return Results.Redirect($"/{slug}/chats/{conv.Id}");
         }).DisableAntiforgery();
 
@@ -725,7 +740,8 @@ public static class MarketplaceTemplateExtensions
         // فَحص قُرب: السائِق يُرسِل مَوقِعَه الحاليّ، نُقارِنه مَع
         // pickup_lat/pickup_lng. لَو > 1 كم يُرفَض الادِّعاء.
         app.MapPost("/{slug}/trips/{listingId:guid}/arrived",
-            async (string slug, Guid listingId, HttpRequest req, IDocumentStore store) =>
+            async (string slug, Guid listingId, HttpRequest req, IDocumentStore store,
+                   Microsoft.AspNetCore.SignalR.IHubContext<ACommerce.Kit.Realtime.Server.RealtimeHub> hub) =>
         {
             var token = req.Cookies[AuthSession.CookieName(slug)];
             var parsed = AuthHandlers.ParseToken(token);
@@ -783,6 +799,8 @@ public static class MarketplaceTemplateExtensions
             });
 
             await s.SaveChangesAsync();
+            var ownerGuid = ParseListingOwnerId(listing);
+            if (ownerGuid.HasValue) await NudgeAsync(hub, slug, ownerGuid.Value);
             return Results.Redirect($"/{slug}/listings/{listingId}?trip=arrived");
         }).DisableAntiforgery();
 
@@ -991,7 +1009,8 @@ public static class MarketplaceTemplateExtensions
 
         // ─── Send chat message ──────────────────────────────────────────
         app.MapPost("/{slug}/chats/{conversationId:guid}/send",
-            async (string slug, Guid conversationId, HttpRequest req, IDocumentStore store) =>
+            async (string slug, Guid conversationId, HttpRequest req, IDocumentStore store,
+                   Microsoft.AspNetCore.SignalR.IHubContext<ACommerce.Kit.Realtime.Server.RealtimeHub> hub) =>
         {
             var token = req.Cookies[AuthSession.CookieName(slug)];
             var parsed = AuthHandlers.ParseToken(token);
@@ -1045,6 +1064,7 @@ public static class MarketplaceTemplateExtensions
             else if (userId == conv.PartnerId) conv.OwnerUnread++;
             s.Store(conv);
             await s.SaveChangesAsync();
+            await NudgeAsync(hub, slug, recipientId);
             return Results.Redirect($"/{slug}/chats/{conversationId}");
         }).DisableAntiforgery();
 
@@ -1556,6 +1576,23 @@ public static class MarketplaceTemplateExtensions
         }).DisableAntiforgery();
 
         return app;
+    }
+
+    // إشعار live بِأَنّ عَدّاد الغَير-مَقروء تَغَيَّر لِمُستَخدِم مُعَيَّن.
+    // الـ client (JS في App.razor) يَستَمِع لِـ "unread_changed" عَلى hub
+    // /realtime ويُحَدِّث الـ badges. آمِنَة لِلاستِدعاء حَتَّى لَو الـ hub
+    // غَير مُتاح — اِلتِقاط الاستِثناء بِصَمت.
+    private static async Task NudgeAsync(
+        Microsoft.AspNetCore.SignalR.IHubContext<ACommerce.Kit.Realtime.Server.RealtimeHub> hub,
+        string slug, Guid userId)
+    {
+        try
+        {
+            await hub.Clients
+                .Group(ACommerce.Kit.Realtime.Server.RealtimeHub.GroupName(slug, userId))
+                .SendAsync("unread_changed");
+        }
+        catch { /* لا نَكسِر تَدَفُّق الـ POST لَو SignalR فَشِل */ }
     }
 
     // اِستِخراج owner_id مِن listing.Attributes كَ Guid.

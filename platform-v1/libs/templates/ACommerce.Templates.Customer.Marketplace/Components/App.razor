@@ -1,5 +1,7 @@
 @inject L L
 @inject ITenantContext Tenant
+@inject AuthSession Auth
+@inject IHttpContextAccessor HttpCtx
 <!DOCTYPE html>
 <html lang="@L.Lang" dir="@L.Dir">
 <head>
@@ -34,6 +36,25 @@
     <Routes />
     <script src="_framework/blazor.web.js"></script>
     <script src="_content/ACommerce.Kit.Maps.Web/maps.js" defer></script>
+
+    @* SignalR JS client مِن CDN — يَكفي لِلاتِّصال بِـ /realtime hub.
+       تُحَمَّل عِندَ الحاجَة فَقَط (لَو مُستَخدِم مُتَّصِل) لِتَجَنُّب
+       تَحميل إضافيّ لِلصَفَحات العامَّة. *@
+    @{
+        if (HttpCtx.HttpContext is { } ctx2 && Tenant.IsResolved)
+        {
+            Auth.SetTenant(Tenant.Slug);
+            Auth.Load(ctx2, Tenant.Slug);
+        }
+    }
+    @if (Auth.IsAuthenticated && !string.IsNullOrEmpty(Auth.Token))
+    {
+        <script src="https://cdn.jsdelivr.net/npm/@@microsoft/signalr@@8.0.7/dist/browser/signalr.min.js"></script>
+        <script>
+            window.acRealtimeToken = '@Auth.Token';
+            window.acRealtimeSlug  = '@Tenant.Slug';
+        </script>
+    }
     <script>
         // مُمَرِّر تِلقائيّ لِأَسفَل thread الوَكيل بَعد كُلّ تَحديث.
         // يُستَدعَى مِن AgentChat عَبر IJSRuntime.InvokeVoidAsync.
@@ -63,14 +84,11 @@
         };
 
         // تَحديث live لِعَدّاد الرَسائِل وَالإشعارات في الـ nav.
-        // poll بَسيط كُلّ ٢٠ ث + عِندَ عَودَة الصَفحَة (window.focus). يَجلِب
-        // مِن /api/{slug}/unread-counts ثُمّ يُحَدِّث الـ DOM بِـ
-        // data-badge-key. أَخَفّ مِن SignalR وَ يَكفي لِغالِب التَطبيق.
+        // SignalR push لَو مُتاح، مَع polling كُلّ ٦٠ث كَ احتِياط.
         (function () {
             var match = location.pathname.match(/^\/([^\/]+)/);
             if (!match) return;
             var slug = match[1];
-            // تَخَطّ على المَسارات الإداريَّة
             if (slug === 'admin' || slug === 'api') return;
 
             async function refresh() {
@@ -90,9 +108,29 @@
                     el.style.display = n > 0 ? '' : 'none';
                 });
             }
+
             refresh();
-            setInterval(refresh, 20000);
             window.addEventListener('focus', refresh);
+
+            // SignalR — لَو لِبَريريّ مُحَمَّلَة + token مَوجود.
+            if (window.signalR && window.acRealtimeToken) {
+                var conn = new signalR.HubConnectionBuilder()
+                    .withUrl('/realtime?token=' + encodeURIComponent(window.acRealtimeToken))
+                    .withAutomaticReconnect()
+                    .build();
+                conn.on('unread_changed', function () { refresh(); });
+                // chat + notification channels مَوروثة مِن RealtimeHub (تَستَخدِم
+                // نَفس الـ refresh لأَنّ الـ counts تَتَغَيَّر مَع كِليهِما).
+                conn.on('notification', function () { refresh(); });
+                conn.on('chat',         function () { refresh(); });
+                conn.start().catch(function () {
+                    // فَشَل الـ hub — نَرجِع لِـ polling احتِياط
+                    setInterval(refresh, 30000);
+                });
+            } else {
+                // بِلا SignalR — polling كُلّ ٣٠ ثا
+                setInterval(refresh, 30000);
+            }
         })();
 
         // تَأكيد وُصول السائِق — يَلتَقِط المَوقِع وَيُرسِل لِـ /trips/{id}/arrived

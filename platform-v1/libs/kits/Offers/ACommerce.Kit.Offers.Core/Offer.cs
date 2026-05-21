@@ -23,7 +23,8 @@ public sealed record OfferSubmitted(
     double Lat,
     double Lng,
     System.DateTime ExpiresAt,
-    System.DateTime At);
+    System.DateTime At,
+    System.Collections.Generic.Dictionary<string, string>? Attributes = null);
 
 public sealed record OfferWithdrawn(System.Guid Id, System.DateTime At);
 public sealed record OfferAccepted(System.Guid Id, System.DateTime At);
@@ -48,6 +49,12 @@ public sealed class Offer
     public System.DateTime ExpiresAt { get; set; }
     public System.DateTime? ResolvedAt { get; set; }
 
+    /// <summary>خَصائِص العَرض الديناميكِيَّة — مَأخوذَة مِن form بِالبادِئَة
+    /// <c>attr_</c> عِندَ التَّقديم. تَختَلِف عَن خَصائِص الإعلان: السائِق
+    /// قَد يَذكُر "مَركَبَتي 7-رُكّاب" أَو "وَقت وُصولي 8 دَقائِق" كَ
+    /// إجابات مُهَيكَلَة لا نَصّ حُرّ في الرِسالَة.</summary>
+    public System.Collections.Generic.Dictionary<string, string> Attributes { get; set; } = new();
+
     public void Apply(OfferSubmitted e)
     {
         Id = e.Id; ListingId = e.ListingId;
@@ -56,6 +63,7 @@ public sealed class Offer
         Lat = e.Lat; Lng = e.Lng;
         ExpiresAt = e.ExpiresAt; SubmittedAt = e.At;
         Status = OfferStatus.Pending;
+        if (e.Attributes is not null) Attributes = new(e.Attributes);
     }
     public void Apply(OfferWithdrawn e) { Status = OfferStatus.Withdrawn; ResolvedAt = e.At; }
     public void Apply(OfferAccepted  e) { Status = OfferStatus.Accepted;  ResolvedAt = e.At; }

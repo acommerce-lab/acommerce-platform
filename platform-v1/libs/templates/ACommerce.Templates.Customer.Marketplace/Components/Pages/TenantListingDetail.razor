@@ -315,6 +315,15 @@ else
                                 {
                                     <p style="margin:6px 0;font-size:13px;color:var(--ac-text-muted);">@o.Message</p>
                                 }
+                                @if (o.Attributes.Count > 0)
+                                {
+                                    <div style="display:flex;flex-wrap:wrap;gap:4px;margin:6px 0;">
+                                        @foreach (var (k, v) in o.Attributes)
+                                        {
+                                            <span class="ac-chip ac-chip-sm" style="font-size:11px;">@k: @v</span>
+                                        }
+                                    </div>
+                                }
                                 <span style="font-size:11px;color:var(--ac-text-muted);">
                                     صالِح حَتَّى @o.ExpiresAt.ToString("HH:mm")
                                 </span>
