@@ -1,4 +1,5 @@
 @page "/{slug}"
+@page "/{slug}/r/{role}"
 @inject IDocumentStore Store
 @inject AuthSession Auth
 @inject ITenantContext Tenant
@@ -176,6 +177,7 @@
 
 @code {
     [Parameter] public string Slug { get; set; } = "";
+    [Parameter] public string? Role { get; set; }   // مِن /r/{role}/
     [SupplyParameterFromQuery(Name = "city")] public string? City { get; set; }
     [SupplyParameterFromQuery(Name = "kind")] public string? Kind { get; set; }
 

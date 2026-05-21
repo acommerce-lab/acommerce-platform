@@ -25,7 +25,7 @@
                     .OrderBy(r => r.SortOrder))
         {
             <a class="acm-role-landing-card"
-               href="@($"/{Slug}/login?as={r.Slug}")">
+               href="@($"/{Slug}/r/{r.Slug}/login")">
                 <span class="acm-role-landing-card-icon">@(r.Icon ?? "👤")</span>
                 <div>
                     <strong>@r.Label</strong>

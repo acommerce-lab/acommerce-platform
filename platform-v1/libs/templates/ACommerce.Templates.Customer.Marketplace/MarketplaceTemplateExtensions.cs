@@ -64,13 +64,14 @@ public static class MarketplaceTemplateExtensions
             if (result is null)
                 return Results.Redirect(
                     $"/{slug}/login?stage=verify&phone={Uri.EscapeDataString(phone)}&err=code_invalid");
-            AuthSession.WriteCookie(res, slug, result);
-            // إن اختارَ المُستَخدِم دَوراً مِن صَفحَة الدُخول (?as=...) سَكِّنه
-            // قَبل التَوجيه — يَتَخَطَّى role picker.
             var asRole = req.Form["as"].ToString().Trim().ToLowerInvariant();
+            // كَتابَة cookie باسم يَتَضَمَّن الدَور — يَسمَح بِجَلَسات مُتَوازِيَة
+            // (راكِب في تَبويب، سائِق في آخَر) في نَفس المُتَصَفِّح.
+            AuthSession.WriteCookie(res, slug, result,
+                role: string.IsNullOrEmpty(asRole) ? null : asRole);
             if (!string.IsNullOrEmpty(asRole))
                 await AssignRoleAsync(slug, result.UserId, asRole, store);
-            return Results.Redirect(await PostLoginRouteAsync(slug, result.UserId, store));
+            return Results.Redirect(await PostLoginRouteAsync(slug, result.UserId, asRole, store));
         }).DisableAntiforgery();
 
         // ─── Nafath ─────────────────────────────────────────────────────
@@ -100,11 +101,12 @@ public static class MarketplaceTemplateExtensions
                 return Results.Redirect(
                     $"/{slug}/login?stage=verify&nid={Uri.EscapeDataString(nid)}" +
                     $"&attempt={attempt}&code=00&err=not_approved");
-            AuthSession.WriteCookie(res, slug, result);
             var asRole = req.Form["as"].ToString().Trim().ToLowerInvariant();
+            AuthSession.WriteCookie(res, slug, result,
+                role: string.IsNullOrEmpty(asRole) ? null : asRole);
             if (!string.IsNullOrEmpty(asRole))
                 await AssignRoleAsync(slug, result.UserId, asRole, store);
-            return Results.Redirect(await PostLoginRouteAsync(slug, result.UserId, store));
+            return Results.Redirect(await PostLoginRouteAsync(slug, result.UserId, asRole, store));
         }).DisableAntiforgery();
 
         // ─── Language toggle ─────────────────────────────────────────────
@@ -1654,13 +1656,11 @@ public static class MarketplaceTemplateExtensions
 
     // قَرار التَّوجيه بَعد دُخول ناجِح:
     //  1) مَتجَر بِلا أَدوار → الصَفحَة الرَّئيسِيَّة (سُلوك قَديم لِـ ashare/ejar).
-    //  2) المُستَخدِم بِلا ActiveRole، تَنفيذ:
-    //     - دَور واحِد في المَتجَر → اِضبِطه + تَخَطّ السُؤال.
-    //     - عِدَّة أَدوار → صَفحَة الاختِيار.
-    //  3) المُستَخدِم بِـ ActiveRole مَوجود → HomeRoute لِلدَور (أَو
-    //     الصَفحَة الافتراضِيَّة لَو فارِغ).
+    //  2) إن وُجِدَ <paramref name="asRole"/> (مِن ?as= أَو /r/role/login)
+    //     → URL مَفروع تَحت /r/{role}/ لِيَفصِل الـ session.
+    //  3) خِلاف ذلك: نَتَّبِع ActiveRole مِن user doc (legacy/no-prefix).
     private static async Task<string> PostLoginRouteAsync(
-        string slug, Guid userId, IDocumentStore store)
+        string slug, Guid userId, string? asRole, IDocumentStore store)
     {
         await using var g = store.QuerySession();
         var tenant = await g.LoadAsync<ACommerce.Kit.Tenants.Tenant>(slug);
@@ -1671,18 +1671,22 @@ public static class MarketplaceTemplateExtensions
         var user = await t.LoadAsync<ACommerce.Kit.Auth.User>(userId);
         if (user is null) return $"/{slug}";
 
-        // دَور واحِد فَقَط — اِضبِطه تِلقائيّاً (لا داعي لِلسُؤال).
-        if (tenant.Roles.Count == 1 && string.IsNullOrEmpty(user.ActiveRole))
+        // إن لَم يُعطَ asRole + لا ActiveRole + دَور واحِد → اِضبِطه تِلقائيّاً.
+        if (string.IsNullOrEmpty(asRole) &&
+            tenant.Roles.Count == 1 && string.IsNullOrEmpty(user.ActiveRole))
         {
             user.ActiveRole = tenant.Roles[0].Slug;
             t.Store(user);
             await t.SaveChangesAsync();
         }
 
-        if (string.IsNullOrEmpty(user.ActiveRole))
+        // الدَور الفِعليّ الَّذي سَنَستَخدِمُه لِلـ URL: asRole إن وُجِدَ، أَو
+        // ActiveRole كَ احتِياط.
+        var effectiveRoleSlug = !string.IsNullOrEmpty(asRole) ? asRole : user.ActiveRole;
+        if (string.IsNullOrEmpty(effectiveRoleSlug))
             return $"/{slug}/me/role";
 
-        var role = tenant.Roles.FirstOrDefault(r => r.Slug == user.ActiveRole);
+        var role = tenant.Roles.FirstOrDefault(r => r.Slug == effectiveRoleSlug);
         if (role is null) return $"/{slug}/me/role";
 
         // الـ onboarding مَطلوب لَو دَور لَه حُقول مَطلوبَة لَم تُملَأ بَعد.
@@ -1691,8 +1695,18 @@ public static class MarketplaceTemplateExtensions
         var needsOnboarding = role.Fields
             .Where(f => f.IsRequired)
             .Any(f => !roleValues.ContainsKey(f.Code) || string.IsNullOrEmpty(roleValues[f.Code]));
-        if (needsOnboarding) return $"/{slug}/me/role/onboarding";
 
+        // عِندَ asRole نَبني URL مَفروع تَحت /r/{role}/ — يَضمَن أَنَّ
+        // المُتَصَفِّح في هذا التَّبويب يَستَخدِم الـ cookie role-scoped.
+        if (!string.IsNullOrEmpty(asRole))
+        {
+            if (needsOnboarding) return $"/{slug}/r/{asRole}/me/role/onboarding";
+            return string.IsNullOrEmpty(role.HomeRoute)
+                ? $"/{slug}/r/{asRole}"
+                : $"/{slug}/r/{asRole}{role.HomeRoute}";
+        }
+
+        if (needsOnboarding) return $"/{slug}/me/role/onboarding";
         return string.IsNullOrEmpty(role.HomeRoute)
             ? $"/{slug}" : $"/{slug}{role.HomeRoute}";
     }

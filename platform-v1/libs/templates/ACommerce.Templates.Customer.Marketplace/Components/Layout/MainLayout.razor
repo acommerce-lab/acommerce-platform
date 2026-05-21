@@ -19,8 +19,10 @@
                   tenantHasRoles && !Auth.IsAuthenticated;
     var chromeHidden = isLogin || isEntry;
 
-    // قائِمَة nav مُلائِمَة لِلدَور النَّشِط — تَحتاج load بِسيط.
-    var (topItems, bottomItems) = BuildNav(slug, activeRoleSlug);
+    // الدَور المُستَخرَج مِن URL (لِبِناء روابِط /r/{role}/ في الـ nav).
+    var urlRole = AuthSession.ExtractRoleFromPath(new PathString(path));
+
+    var (topItems, bottomItems) = BuildNav(slug, activeRoleSlug, urlRole);
 }
 
 @if (Tenant.IsResolved)
@@ -134,22 +136,27 @@ else
     }
 
     // قائِمَة عَناصِر nav حَسَب الدَور النَّشِط — مَع badge عَلى الرَسائِل
-    // والإشعارات لِلعَدّ الغَير-مَقروء.
+    // والإشعارات. <paramref name="urlRole"/> يُحَدِّد البادِئَة /r/{role}/
+    // لِكُلّ رابِط داخِل التَّطبيق الفَرعيّ، فَكُلّ التَنَقُّل يَبقَى داخِل
+    // الـ session role-scoped.
     (List<AcTopNav.TopNavItem> Top, List<ACommerce.Templates.Shared.Models.BottomNavItemDto> Bottom)
-        BuildNav(string slug, string roleSlug)
+        BuildNav(string slug, string roleSlug, string? urlRole)
     {
         var ar = (
             Top:    new List<AcTopNav.TopNavItem>(),
             Bottom: new List<ACommerce.Templates.Shared.Models.BottomNavItemDto>()
         );
 
-        void Add(string href, string label, string icon, bool exact = false, int? badge = null)
+        string Link(string path) => AuthSession.LinkFor(slug, urlRole, path);
+
+        void Add(string path, string label, string icon, bool exact = false, int? badge = null)
         {
+            var href = Link(path);
             ar.Top.Add(new(href, label, icon, badge, exact));
             ar.Bottom.Add(new() { Href = href, Label = label, IconName = icon, Exact = exact, Badge = badge });
         }
 
-        Add($"/{slug}", "الرَئيسيّة", "home", exact: true);
+        Add("", "الرَئيسيّة", "home", exact: true);
 
         var msgBadge   = unreadMessages > 0      ? (int?)unreadMessages      : null;
         var notifBadge = unreadNotifications > 0 ? (int?)unreadNotifications : null;
@@ -157,38 +164,39 @@ else
         switch (roleSlug)
         {
             case "rider":
-                Add($"/{slug}/me/listings", "طَلَباتي",  "package");
-                Add($"/{slug}/chats",       "رَسائل",    "message", badge: msgBadge);
-                Add($"/{slug}/notifications","إشعارات",  "bell",    badge: notifBadge);
+                Add("me/listings",  "طَلَباتي", "package");
+                Add("chats",        "رَسائل",   "message", badge: msgBadge);
+                Add("notifications","إشعارات", "bell",    badge: notifBadge);
                 break;
             case "driver":
             case "shipper":
-                Add($"/{slug}/explore",      "مَشاوير",   "search");
-                Add($"/{slug}/me/offers",    "عُروضي",     "package");
-                Add($"/{slug}/me/searches",  "إشعارات",   "bell",    badge: notifBadge);
-                Add($"/{slug}/chats",        "رَسائل",     "message", badge: msgBadge);
+                Add("explore",      "مَشاوير",  "search");
+                Add("me/offers",    "عُروضي",   "package");
+                Add("me/searches",  "إشعارات",  "bell",    badge: notifBadge);
+                Add("chats",        "رَسائل",   "message", badge: msgBadge);
                 break;
             case "vendor":
             case "host":
-                Add($"/{slug}/me/listings",  "إعلاناتي",  "package");
-                Add($"/{slug}/chats",        "رَسائل",     "message", badge: msgBadge);
-                Add($"/{slug}/notifications","إشعارات",   "bell",    badge: notifBadge);
+                Add("me/listings",  "إعلاناتي", "package");
+                Add("chats",        "رَسائل",   "message", badge: msgBadge);
+                Add("notifications","إشعارات",  "bell",    badge: notifBadge);
                 break;
             case "tenant_admin":
-                Add($"/{slug}/manage",       "إدارَة",     "settings");
-                Add($"/{slug}/chats",        "رَسائل",     "message", badge: msgBadge);
-                Add($"/{slug}/notifications","إشعارات",   "bell",    badge: notifBadge);
+                Add("manage",       "إدارَة",   "settings");
+                Add("chats",        "رَسائل",   "message", badge: msgBadge);
+                Add("notifications","إشعارات",  "bell",    badge: notifBadge);
                 break;
             default:
-                Add($"/{slug}/explore",      "استِكشاف",   "search");
-                Add($"/{slug}/favorites",    "مُفَضَّلَة",     "heart");
-                Add($"/{slug}/chats",        "رَسائل",     "message", badge: msgBadge);
-                Add($"/{slug}/notifications","إشعارات",   "bell",    badge: notifBadge);
+                Add("explore",      "استِكشاف", "search");
+                Add("favorites",    "مُفَضَّلَة",   "heart");
+                Add("chats",        "رَسائل",   "message", badge: msgBadge);
+                Add("notifications","إشعارات",  "bell",    badge: notifBadge);
                 break;
         }
 
-        ar.Top.Add(new($"/{slug}/me", "حِسابي", "user"));
-        ar.Bottom.Add(new() { Href = $"/{slug}/me", Label = "حِسابي", IconName = "user" });
+        var meHref = Link("me");
+        ar.Top.Add(new(meHref, "حِسابي", "user"));
+        ar.Bottom.Add(new() { Href = meHref, Label = "حِسابي", IconName = "user" });
         return ar;
     }
 }
