@@ -52,6 +52,7 @@
 
 @code {
     [Parameter] public string Slug { get; set; } = "";
+    [Parameter] public string? Role { get; set; }
     List<Listing>? items;
 
     protected override async Task OnParametersSetAsync()

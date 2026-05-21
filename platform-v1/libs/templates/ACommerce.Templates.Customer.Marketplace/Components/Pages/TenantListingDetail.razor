@@ -427,6 +427,7 @@ else
 @code {
     static readonly string[] _noImages = Array.Empty<string>();
     [Parameter] public string Slug { get; set; } = "";
+    [Parameter] public string? Role { get; set; }
     [Parameter] public Guid Id { get; set; }
     [SupplyParameterFromQuery(Name = "reported")] public string? Reported { get; set; }
     [SupplyParameterFromQuery(Name = "err")]      public string? Err      { get; set; }

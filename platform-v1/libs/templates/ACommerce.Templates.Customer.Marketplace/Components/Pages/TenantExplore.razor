@@ -178,6 +178,7 @@ else
 
 @code {
     [Parameter] public string Slug { get; set; } = "";
+    [Parameter] public string? Role { get; set; }
     [SupplyParameterFromQuery(Name = "category")] public string? Category { get; set; }
     [SupplyParameterFromQuery(Name = "q")]        public string? Query    { get; set; }
     [SupplyParameterFromQuery(Name = "sort")]     public string? Sort     { get; set; }

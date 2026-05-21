@@ -116,6 +116,7 @@
 
 @code {
     [Parameter] public string Slug { get; set; } = "";
+    [Parameter] public string? Role { get; set; }
     [SupplyParameterFromQuery(Name = "saved")] public string? Saved { get; set; }
     Tenant? tenant;
     List<ACommerce.Kit.SavedSearches.SavedSearch>? searches;

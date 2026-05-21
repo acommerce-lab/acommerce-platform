@@ -61,6 +61,7 @@ else
 
 @code {
     [Parameter] public string Slug { get; set; } = "";
+    [Parameter] public string? Role { get; set; }
     bool _authed;
     Guid _userId;
     string? _token;

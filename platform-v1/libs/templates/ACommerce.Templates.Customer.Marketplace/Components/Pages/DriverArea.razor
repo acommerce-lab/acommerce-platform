@@ -55,6 +55,7 @@
 
 @code {
     [Parameter] public string Slug { get; set; } = "";
+    [Parameter] public string? Role { get; set; }
     [SupplyParameterFromQuery(Name = "saved")] public string? Saved { get; set; }
     User? user;
 

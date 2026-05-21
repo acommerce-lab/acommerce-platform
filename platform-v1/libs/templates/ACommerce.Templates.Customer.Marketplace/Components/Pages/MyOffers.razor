@@ -71,6 +71,7 @@
 
 @code {
     [Parameter] public string Slug { get; set; } = "";
+    [Parameter] public string? Role { get; set; }
     List<ACommerce.Kit.Offers.Offer>? offers;
     Dictionary<Guid, (double Lat, double Lng)?> ListingPickup = new();
 

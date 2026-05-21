@@ -47,11 +47,12 @@ public static class MarketplaceTemplateExtensions
             var phone = req.Form["phone"].ToString().Trim();
             var asRole = req.Form["as"].ToString().Trim();
             if (string.IsNullOrEmpty(phone))
-                return Results.Redirect($"/{slug}/login?err=phone_required" +
-                    (string.IsNullOrEmpty(asRole) ? "" : $"&as={Uri.EscapeDataString(asRole)}"));
+                return Results.Redirect(Link(req, slug,
+                    $"login?err=phone_required" +
+                    (string.IsNullOrEmpty(asRole) ? "" : $"&as={Uri.EscapeDataString(asRole)}")));
             await AuthHandlers.RequestPhoneOtpHandler(new RequestPhoneOtp(phone), tenant, channel, default);
             var asParam = string.IsNullOrEmpty(asRole) ? "" : $"&as={Uri.EscapeDataString(asRole)}";
-            return Results.Redirect($"/{slug}/login?stage=verify&phone={Uri.EscapeDataString(phone)}{asParam}");
+            return Results.Redirect(Link(req, slug, $"login?stage=verify&phone={Uri.EscapeDataString(phone)}{asParam}"));
         }).DisableAntiforgery();
 
         app.MapPost("/{slug}/auth/phone/verify",
@@ -62,8 +63,8 @@ public static class MarketplaceTemplateExtensions
             var code = req.Form["code"].ToString().Trim();
             var result = await AuthHandlers.VerifyPhoneOtpHandler(new VerifyPhoneOtp(phone, code), tenant, store);
             if (result is null)
-                return Results.Redirect(
-                    $"/{slug}/login?stage=verify&phone={Uri.EscapeDataString(phone)}&err=code_invalid");
+                return Results.Redirect(Link(req, slug,
+                    $"login?stage=verify&phone={Uri.EscapeDataString(phone)}&err=code_invalid"));
             var asRole = req.Form["as"].ToString().Trim().ToLowerInvariant();
             // كَتابَة cookie باسم يَتَضَمَّن الدَور — يَسمَح بِجَلَسات مُتَوازِيَة
             // (راكِب في تَبويب، سائِق في آخَر) في نَفس المُتَصَفِّح.
@@ -81,11 +82,11 @@ public static class MarketplaceTemplateExtensions
             if (!tenant.IsResolved) return Results.NotFound();
             var nid = req.Form["nid"].ToString().Trim();
             if (string.IsNullOrEmpty(nid) || nid.Length != 10)
-                return Results.Redirect($"/{slug}/login?err=nid_required");
+                return Results.Redirect(Link(req, slug, $"login?err=nid_required"));
             var pending = await AuthHandlers.RequestNafathHandler(new RequestNafath(nid), tenant, channel, default);
-            return Results.Redirect(
-                $"/{slug}/login?stage=verify&nid={Uri.EscapeDataString(nid)}" +
-                $"&attempt={pending.AttemptId}&code={pending.DisplayCode}");
+            return Results.Redirect(Link(req, slug,
+                $"login?stage=verify&nid={Uri.EscapeDataString(nid)}" +
+                $"&attempt={pending.AttemptId}&code={pending.DisplayCode}"));
         }).DisableAntiforgery();
 
         app.MapPost("/{slug}/auth/nafath/verify",
@@ -98,9 +99,9 @@ public static class MarketplaceTemplateExtensions
             var result = await AuthHandlers.VerifyNafathHandler(
                 new VerifyNafath(attempt, nid), tenant, channel, store, default);
             if (result is null)
-                return Results.Redirect(
-                    $"/{slug}/login?stage=verify&nid={Uri.EscapeDataString(nid)}" +
-                    $"&attempt={attempt}&code=00&err=not_approved");
+                return Results.Redirect(Link(req, slug,
+                    $"login?stage=verify&nid={Uri.EscapeDataString(nid)}" +
+                    $"&attempt={attempt}&code=00&err=not_approved"));
             var asRole = req.Form["as"].ToString().Trim().ToLowerInvariant();
             AuthSession.WriteCookie(res, slug, result,
                 role: string.IsNullOrEmpty(asRole) ? null : asRole);
@@ -135,7 +136,7 @@ public static class MarketplaceTemplateExtensions
         {
             var token = req.Cookies[AuthSession.CookieName(slug)];
             var parsed = AuthHandlers.ParseToken(token);
-            if (parsed is null) return Results.Redirect($"/{slug}/login");
+            if (parsed is null) return Results.Redirect(Link(req, slug, $"login"));
             var (userId, _, _) = parsed.Value;
 
             await using var s = store.LightweightSession(slug);
@@ -160,9 +161,9 @@ public static class MarketplaceTemplateExtensions
         {
             var token = req.Cookies[AuthSession.CookieName(slug)];
             var parsed = AuthHandlers.ParseToken(token);
-            if (parsed is null) return Results.Redirect($"/{slug}/login?returnUrl=/{slug}/listings/{id}");
+            if (parsed is null) return Results.Redirect(Link(req, slug, $"login?returnUrl=/{slug}/listings/{id}"));
             var (userId, tenantSlug, _) = parsed.Value;
-            if (tenantSlug != slug) return Results.Redirect($"/{slug}/login");
+            if (tenantSlug != slug) return Results.Redirect(Link(req, slug, $"login"));
             var userName = req.Cookies[AuthSession.CookieName(slug) + ".name"] ?? "أنا";
 
             await using var s = store.LightweightSession(slug);
@@ -187,7 +188,7 @@ public static class MarketplaceTemplateExtensions
                 await s.SaveChangesAsync();
                 convId = conv.Id;
             }
-            return Results.Redirect($"/{slug}/chats/{convId}");
+            return Results.Redirect(Link(req, slug, $"chats/{convId}"));
         }).DisableAntiforgery();
 
         // ─── Pick role (after first login or via switch) ────────────────
@@ -196,26 +197,26 @@ public static class MarketplaceTemplateExtensions
         {
             var token = req.Cookies[AuthSession.CookieName(slug)];
             var parsed = AuthHandlers.ParseToken(token);
-            if (parsed is null) return Results.Redirect($"/{slug}/login");
+            if (parsed is null) return Results.Redirect(Link(req, slug, $"login"));
             var (userId, _, _) = parsed.Value;
 
             var role = req.Form["role"].ToString().Trim().ToLowerInvariant();
             if (string.IsNullOrEmpty(role))
-                return Results.Redirect($"/{slug}/me/role");
+                return Results.Redirect(Link(req, slug, $"me/role"));
 
             await using var sg = store.QuerySession();
             var tenant = await sg.LoadAsync<ACommerce.Kit.Tenants.Tenant>(slug);
             if (tenant is null) return Results.Redirect("/admin");
             var picked = tenant.Roles.FirstOrDefault(r => r.Slug == role);
-            if (picked is null) return Results.Redirect($"/{slug}/me/role?err=invalid_role");
+            if (picked is null) return Results.Redirect(Link(req, slug, $"me/role?err=invalid_role"));
             // أَدوار إداريَّة لا يُمكِن مَنحُها ذاتيّاً — يُجَهَّز التَّعيين
             // مِن قِبَل إداريّ آخَر أَو DB seed.
             if (picked.CatalogSlug == "tenant_admin")
-                return Results.Redirect($"/{slug}/me/role?err=admin_self_grant");
+                return Results.Redirect(Link(req, slug, $"me/role?err=admin_self_grant"));
 
             await using var s = store.LightweightSession(slug);
             var user = await s.LoadAsync<User>(userId);
-            if (user is null) return Results.Redirect($"/{slug}/me");
+            if (user is null) return Results.Redirect(Link(req, slug, $"me"));
             user.ActiveRole = role;
             user.UpdatedAt = DateTime.UtcNow;
             s.Store(user);
@@ -231,7 +232,7 @@ public static class MarketplaceTemplateExtensions
                 .Where(f => f.IsRequired)
                 .Any(f => !roleValues.TryGetValue(f.Code, out var v) || string.IsNullOrEmpty(v));
             if (needsOnboarding)
-                return Results.Redirect($"/{slug}/me/role/onboarding");
+                return Results.Redirect(Link(req, slug, $"me/role/onboarding"));
             return Results.Redirect(string.IsNullOrEmpty(picked.HomeRoute)
                 ? $"/{slug}" : $"/{slug}{picked.HomeRoute}");
         }).DisableAntiforgery();
@@ -241,7 +242,7 @@ public static class MarketplaceTemplateExtensions
         {
             var token = req.Cookies[AuthSession.CookieName(slug)];
             var parsed = AuthHandlers.ParseToken(token);
-            if (parsed is null) return Results.Redirect($"/{slug}/login");
+            if (parsed is null) return Results.Redirect(Link(req, slug, $"login"));
             var (userId, _, _) = parsed.Value;
 
             await using var sg = store.QuerySession();
@@ -250,7 +251,7 @@ public static class MarketplaceTemplateExtensions
 
             await using var s = store.LightweightSession(slug);
             var user = await s.LoadAsync<User>(userId);
-            if (user is null) return Results.Redirect($"/{slug}/me");
+            if (user is null) return Results.Redirect(Link(req, slug, $"me"));
 
             foreach (var (key, vals) in req.Form)
             {
@@ -282,17 +283,17 @@ public static class MarketplaceTemplateExtensions
         {
             var token = req.Cookies[AuthSession.CookieName(slug)];
             var parsed = AuthHandlers.ParseToken(token);
-            if (parsed is null) return Results.Redirect($"/{slug}/login");
+            if (parsed is null) return Results.Redirect(Link(req, slug, $"login"));
             var (userId, _, _) = parsed.Value;
             var fullName = req.Form["fullName"].ToString().Trim();
-            if (fullName.Length == 0) return Results.Redirect($"/{slug}/me/edit");
+            if (fullName.Length == 0) return Results.Redirect(Link(req, slug, $"me/edit"));
 
             // الخَصائِص الديناميكِيَّة: كُلّ حَقل بِالـ form بِالبادِئَة
             // attr_<Code> يُحَدِّث user.AttributesJson. لا نَمسَح المَفاتيح
             // غَير المَوجودَة (سَلوك upsert: نُحَدِّث المُمَرَّر، نَتُرك الباقي).
             await using var s = store.LightweightSession(slug);
             var user = await s.LoadAsync<User>(userId);
-            if (user is null) return Results.Redirect($"/{slug}/me");
+            if (user is null) return Results.Redirect(Link(req, slug, $"me"));
             user.FullName = fullName;
             user.UpdatedAt = DateTime.UtcNow;
 
@@ -329,7 +330,7 @@ public static class MarketplaceTemplateExtensions
             await s.SaveChangesAsync();
 
             AuthSession.UpdateNameCookie(req.HttpContext.Response, slug, fullName);
-            return Results.Redirect($"/{slug}/me");
+            return Results.Redirect(Link(req, slug, $"me"));
         }).DisableAntiforgery();
 
         // ─── Plans subscribe ────────────────────────────────────────────
@@ -338,17 +339,17 @@ public static class MarketplaceTemplateExtensions
         {
             var token = req.Cookies[AuthSession.CookieName(slug)];
             var parsed = AuthHandlers.ParseToken(token);
-            if (parsed is null) return Results.Redirect($"/{slug}/login?returnUrl=/{slug}/plans");
+            if (parsed is null) return Results.Redirect(Link(req, slug, $"login?returnUrl=/{slug}/plans"));
             var (userId, _, _) = parsed.Value;
 
             await using var s = store.LightweightSession(slug);
             var plan = await s.LoadAsync<ACommerce.Kit.Subscriptions.Plan>(planId);
-            if (plan is null) return Results.Redirect($"/{slug}/plans");
+            if (plan is null) return Results.Redirect(Link(req, slug, $"plans"));
             var ev = new ACommerce.Kit.Subscriptions.SubscriptionCreated(
                 Guid.NewGuid(), userId, planId, plan.ListingsQuota, plan.DaysPeriod, DateTime.UtcNow);
             s.Events.StartStream<ACommerce.Kit.Subscriptions.Subscription>(ev.Id, ev);
             await s.SaveChangesAsync();
-            return Results.Redirect($"/{slug}/me");
+            return Results.Redirect(Link(req, slug, $"me"));
         }).DisableAntiforgery();
 
         // ─── Support open ticket ────────────────────────────────────────
@@ -357,19 +358,19 @@ public static class MarketplaceTemplateExtensions
         {
             var token = req.Cookies[AuthSession.CookieName(slug)];
             var parsed = AuthHandlers.ParseToken(token);
-            if (parsed is null) return Results.Redirect($"/{slug}/login");
+            if (parsed is null) return Results.Redirect(Link(req, slug, $"login"));
             var (userId, _, _) = parsed.Value;
             var userName = req.Cookies[AuthSession.CookieName(slug) + ".name"] ?? "—";
             var subject = req.Form["subject"].ToString().Trim();
             var body    = req.Form["body"].ToString().Trim();
-            if (subject.Length == 0 || body.Length == 0) return Results.Redirect($"/{slug}/support");
+            if (subject.Length == 0 || body.Length == 0) return Results.Redirect(Link(req, slug, $"support"));
 
             await using var s = store.LightweightSession(slug);
             var ev = new ACommerce.Kit.Support.TicketCreated(
                 Guid.NewGuid(), userId, userName, subject, body, DateTime.UtcNow);
             s.Events.StartStream<ACommerce.Kit.Support.Ticket>(ev.Id, ev);
             await s.SaveChangesAsync();
-            return Results.Redirect($"/{slug}/support");
+            return Results.Redirect(Link(req, slug, $"support"));
         }).DisableAntiforgery();
 
         // ─── Report listing — يَفتَح طَلَب دَعم مُسبَق التَعبِئَة ─────────
@@ -378,9 +379,9 @@ public static class MarketplaceTemplateExtensions
         {
             var token = req.Cookies[AuthSession.CookieName(slug)];
             var parsed = AuthHandlers.ParseToken(token);
-            if (parsed is null) return Results.Redirect($"/{slug}/login?returnUrl=/{slug}/listings/{id}");
+            if (parsed is null) return Results.Redirect(Link(req, slug, $"login?returnUrl=/{slug}/listings/{id}"));
             var (userId, tenantSlug, _) = parsed.Value;
-            if (tenantSlug != slug) return Results.Redirect($"/{slug}/login");
+            if (tenantSlug != slug) return Results.Redirect(Link(req, slug, $"login"));
             var userName = req.Cookies[AuthSession.CookieName(slug) + ".name"] ?? "—";
 
             var reason = req.Form["reason"].ToString().Trim();
@@ -395,7 +396,7 @@ public static class MarketplaceTemplateExtensions
                 At:      DateTime.UtcNow);
             s.Events.StartStream<ACommerce.Kit.Support.Ticket>(ev.Id, ev);
             await s.SaveChangesAsync();
-            return Results.Redirect($"/{slug}/listings/{id}?reported=1");
+            return Results.Redirect(Link(req, slug, $"listings/{id}?reported=1"));
         }).DisableAntiforgery();
 
         // ─── Create listing ─────────────────────────────────────────────
@@ -405,12 +406,12 @@ public static class MarketplaceTemplateExtensions
         {
             var token = req.Cookies[AuthSession.CookieName(slug)];
             var parsed = AuthHandlers.ParseToken(token);
-            if (parsed is null) return Results.Redirect($"/{slug}/login?returnUrl=/{slug}/create-listing");
+            if (parsed is null) return Results.Redirect(Link(req, slug, $"login?returnUrl=/{slug}/create-listing"));
             var (userId, tenantSlug, _) = parsed.Value;
-            if (tenantSlug != slug) return Results.Redirect($"/{slug}/login");
+            if (tenantSlug != slug) return Results.Redirect(Link(req, slug, $"login"));
 
             if (!await HasPermissionAsync(slug, userId, "listing.create", store))
-                return Results.Redirect($"/{slug}/create-listing?err=forbidden");
+                return Results.Redirect(Link(req, slug, $"create-listing?err=forbidden"));
 
             var title       = req.Form["title"].ToString().Trim();
             var description = req.Form["description"].ToString().Trim();
@@ -427,7 +428,7 @@ public static class MarketplaceTemplateExtensions
             var priceOk = acceptsOffers ? price >= 0 : price > 0;
             if (title.Length < 3 || string.IsNullOrEmpty(category) || !priceOk)
             {
-                return Results.Redirect($"/{slug}/create-listing?err=invalid");
+                return Results.Redirect(Link(req, slug, $"create-listing?err=invalid"));
             }
 
             // الخَصائِص الديناميكِيَّة: كُلّ حَقل بِالـ form بِالبادِئَة
@@ -484,7 +485,7 @@ public static class MarketplaceTemplateExtensions
 
             await s.SaveChangesAsync();
             foreach (var uid in nudged) await NudgeAsync(hub, slug, uid);
-            return Results.Redirect($"/{slug}/listings/{id}");
+            return Results.Redirect(Link(req, slug, $"listings/{id}"));
         }).DisableAntiforgery();
 
         // ─── Saved Searches — create/delete/toggle ──────────────────────
@@ -493,7 +494,7 @@ public static class MarketplaceTemplateExtensions
         {
             var token = req.Cookies[AuthSession.CookieName(slug)];
             var parsed = AuthHandlers.ParseToken(token);
-            if (parsed is null) return Results.Redirect($"/{slug}/login");
+            if (parsed is null) return Results.Redirect(Link(req, slug, $"login"));
             var (userId, _, _) = parsed.Value;
 
             var label = req.Form["label"].ToString().Trim();
@@ -521,7 +522,7 @@ public static class MarketplaceTemplateExtensions
             await using var s = store.LightweightSession(slug);
             s.Store(ss);
             await s.SaveChangesAsync();
-            return Results.Redirect($"/{slug}/me/searches?saved=1");
+            return Results.Redirect(Link(req, slug, $"me/searches?saved=1"));
 
             static string? NullIfEmpty(string s) => string.IsNullOrWhiteSpace(s) ? null : s.Trim();
         }).DisableAntiforgery();
@@ -531,16 +532,16 @@ public static class MarketplaceTemplateExtensions
         {
             var token = req.Cookies[AuthSession.CookieName(slug)];
             var parsed = AuthHandlers.ParseToken(token);
-            if (parsed is null) return Results.Redirect($"/{slug}/login");
+            if (parsed is null) return Results.Redirect(Link(req, slug, $"login"));
             var (userId, _, _) = parsed.Value;
 
             await using var s = store.LightweightSession(slug);
             var ss = await s.LoadAsync<ACommerce.Kit.SavedSearches.SavedSearch>(id);
             if (ss is null || ss.UserId != userId)
-                return Results.Redirect($"/{slug}/me/searches");
+                return Results.Redirect(Link(req, slug, $"me/searches"));
             s.Delete(ss);
             await s.SaveChangesAsync();
-            return Results.Redirect($"/{slug}/me/searches");
+            return Results.Redirect(Link(req, slug, $"me/searches"));
         }).DisableAntiforgery();
 
         app.MapPost("/{slug}/searches/{id:guid}/toggle",
@@ -548,17 +549,17 @@ public static class MarketplaceTemplateExtensions
         {
             var token = req.Cookies[AuthSession.CookieName(slug)];
             var parsed = AuthHandlers.ParseToken(token);
-            if (parsed is null) return Results.Redirect($"/{slug}/login");
+            if (parsed is null) return Results.Redirect(Link(req, slug, $"login"));
             var (userId, _, _) = parsed.Value;
 
             await using var s = store.LightweightSession(slug);
             var ss = await s.LoadAsync<ACommerce.Kit.SavedSearches.SavedSearch>(id);
             if (ss is null || ss.UserId != userId)
-                return Results.Redirect($"/{slug}/me/searches");
+                return Results.Redirect(Link(req, slug, $"me/searches"));
             ss.IsEnabled = !ss.IsEnabled;
             s.Store(ss);
             await s.SaveChangesAsync();
-            return Results.Redirect($"/{slug}/me/searches");
+            return Results.Redirect(Link(req, slug, $"me/searches"));
         }).DisableAntiforgery();
 
         // ─── Submit offer on a listing ──────────────────────────────────
@@ -567,12 +568,12 @@ public static class MarketplaceTemplateExtensions
         {
             var token = req.Cookies[AuthSession.CookieName(slug)];
             var parsed = AuthHandlers.ParseToken(token);
-            if (parsed is null) return Results.Redirect($"/{slug}/login?returnUrl=/{slug}/listings/{id}");
+            if (parsed is null) return Results.Redirect(Link(req, slug, $"login?returnUrl=/{slug}/listings/{id}"));
             var (userId, tenantSlug, _) = parsed.Value;
-            if (tenantSlug != slug) return Results.Redirect($"/{slug}/login");
+            if (tenantSlug != slug) return Results.Redirect(Link(req, slug, $"login"));
 
             if (!await HasPermissionAsync(slug, userId, "offer.submit", store))
-                return Results.Redirect($"/{slug}/listings/{id}?err=forbidden");
+                return Results.Redirect(Link(req, slug, $"listings/{id}?err=forbidden"));
             var userName = req.Cookies[AuthSession.CookieName(slug) + ".name"] ?? "—";
 
             var priceStr = req.Form["price"].ToString().Trim();
@@ -583,13 +584,13 @@ public static class MarketplaceTemplateExtensions
 
             // فَلتَرَة صارِمَة: سِعر مَوجَب فَقَط، وَ مَوقِع غَير-صِفر مَطلوب.
             if (!decimal.TryParse(priceStr, out var price) || price <= 0)
-                return Results.Redirect($"/{slug}/listings/{id}?err=offer_price");
+                return Results.Redirect(Link(req, slug, $"listings/{id}?err=offer_price"));
             _ = double.TryParse(latStr, System.Globalization.NumberStyles.Float,
                                 System.Globalization.CultureInfo.InvariantCulture, out var lat);
             _ = double.TryParse(lngStr, System.Globalization.NumberStyles.Float,
                                 System.Globalization.CultureInfo.InvariantCulture, out var lng);
             if (lat == 0 && lng == 0)
-                return Results.Redirect($"/{slug}/listings/{id}?err=offer_geo");
+                return Results.Redirect(Link(req, slug, $"listings/{id}?err=offer_geo"));
             _ = int.TryParse(ttlStr, out var ttl);
             if (ttl <= 0) ttl = 15;
 
@@ -599,7 +600,7 @@ public static class MarketplaceTemplateExtensions
             // مَنع صاحِب الإعلان مِن تَقديم عَرض عَلى نَفسه.
             if (listing.Attributes.TryGetValue("owner_id", out var ownerStr2) &&
                 ownerStr2 == userId.ToString())
-                return Results.Redirect($"/{slug}/listings/{id}?err=self_offer");
+                return Results.Redirect(Link(req, slug, $"listings/{id}?err=self_offer"));
 
             // مَنع تَقديم عَرض جَديد إن كانَ السائِق في رِحلَة نَشِطَة، أَو
             // إن قَطَع رِحلَة في آخِر ٥ دَقائِق (تَهدِئَة لِمَنع الاستِغلال).
@@ -608,7 +609,7 @@ public static class MarketplaceTemplateExtensions
                 m.OffererId == userId &&
                 m.Status == ACommerce.Kit.Offers.TripStatus.Active);
             if (active is not null)
-                return Results.Redirect($"/{slug}/listings/{active.Id}?err=active_trip");
+                return Results.Redirect(Link(req, slug, $"listings/{active.Id}?err=active_trip"));
             var lastAbort = matches
                 .Where(m => m.OffererId == userId &&
                             m.Status == ACommerce.Kit.Offers.TripStatus.Aborted &&
@@ -617,7 +618,7 @@ public static class MarketplaceTemplateExtensions
                 .OrderByDescending(m => m.ResolvedAt).FirstOrDefault();
             if (lastAbort is not null &&
                 (DateTime.UtcNow - lastAbort.ResolvedAt!.Value).TotalMinutes < 5)
-                return Results.Redirect($"/{slug}/listings/{id}?err=cooldown");
+                return Results.Redirect(Link(req, slug, $"listings/{id}?err=cooldown"));
 
             // اِجمَع خَصائِص العَرض الديناميكِيَّة مِن أَيّ حَقل بِالبادِئَة
             // attr_ (مَثَلاً attr_seats=4 أَو attr_eta_minutes=8).
@@ -634,7 +635,7 @@ public static class MarketplaceTemplateExtensions
                 offerAttrs.Count > 0 ? offerAttrs : null);
             s.Events.StartStream<ACommerce.Kit.Offers.Offer>(oid, ev);
             await s.SaveChangesAsync();
-            return Results.Redirect($"/{slug}/listings/{id}?offer=submitted");
+            return Results.Redirect(Link(req, slug, $"listings/{id}?offer=submitted"));
         }).DisableAntiforgery();
 
         // ─── Accept an offer (listing owner) ────────────────────────────
@@ -644,14 +645,14 @@ public static class MarketplaceTemplateExtensions
         {
             var token = req.Cookies[AuthSession.CookieName(slug)];
             var parsed = AuthHandlers.ParseToken(token);
-            if (parsed is null) return Results.Redirect($"/{slug}/login");
+            if (parsed is null) return Results.Redirect(Link(req, slug, $"login"));
             var (acceptorId, tenantSlug, _) = parsed.Value;
-            if (tenantSlug != slug) return Results.Redirect($"/{slug}/login");
+            if (tenantSlug != slug) return Results.Redirect(Link(req, slug, $"login"));
 
             await using var s = store.LightweightSession(slug);
             var offer = await s.Events.AggregateStreamAsync<ACommerce.Kit.Offers.Offer>(id);
             if (offer is null || offer.Status != ACommerce.Kit.Offers.OfferStatus.Pending)
-                return Results.Redirect($"/{slug}/listings/{(offer?.ListingId ?? Guid.Empty)}");
+                return Results.Redirect(Link(req, slug, $"listings/{(offer?.ListingId ?? Guid.Empty)}"));
 
             // مالِك الإعلان فَقَط يَقبَل العَرض — التَّحَقُّق عَبر خاصِّيَّة
             // owner_id المَحفوظَة عِندَ الإنشاء. الـ UI أَيضاً يُخفي زِرّ
@@ -661,7 +662,7 @@ public static class MarketplaceTemplateExtensions
             if (listing is null) return Results.Redirect($"/{slug}");
             if (!listing.Attributes.TryGetValue("owner_id", out var ownerStr) ||
                 ownerStr != acceptorId.ToString())
-                return Results.Redirect($"/{slug}/listings/{offer.ListingId}?err=not_owner");
+                return Results.Redirect(Link(req, slug, $"listings/{offer.ListingId}?err=not_owner"));
 
             var now = DateTime.UtcNow;
             s.Events.Append(id, new ACommerce.Kit.Offers.OfferAccepted(id, now));
@@ -719,7 +720,7 @@ public static class MarketplaceTemplateExtensions
             await s.SaveChangesAsync();
             // أَخطِر السائِق فَوراً — الإشعار + المُحادَثَة ظَهَرا.
             await NudgeAsync(hub, slug, offer.OffererId);
-            return Results.Redirect($"/{slug}/chats/{conv.Id}");
+            return Results.Redirect(Link(req, slug, $"chats/{conv.Id}"));
         }).DisableAntiforgery();
 
         // ─── Reject / Withdraw offer ────────────────────────────────────
@@ -728,7 +729,7 @@ public static class MarketplaceTemplateExtensions
         {
             var token = req.Cookies[AuthSession.CookieName(slug)];
             var parsed = AuthHandlers.ParseToken(token);
-            if (parsed is null) return Results.Redirect($"/{slug}/login");
+            if (parsed is null) return Results.Redirect(Link(req, slug, $"login"));
             var (rejectorId, _, _) = parsed.Value;
 
             await using var s = store.LightweightSession(slug);
@@ -742,11 +743,11 @@ public static class MarketplaceTemplateExtensions
             if (listing is null ||
                 !listing.Attributes.TryGetValue("owner_id", out var ownerStr) ||
                 ownerStr != rejectorId.ToString())
-                return Results.Redirect($"/{slug}/listings/{offer.ListingId}?err=not_owner");
+                return Results.Redirect(Link(req, slug, $"listings/{offer.ListingId}?err=not_owner"));
 
             s.Events.Append(id, new ACommerce.Kit.Offers.OfferRejected(id, DateTime.UtcNow));
             await s.SaveChangesAsync();
-            return Results.Redirect($"/{slug}/listings/{offer.ListingId}");
+            return Results.Redirect(Link(req, slug, $"listings/{offer.ListingId}"));
         }).DisableAntiforgery();
 
         // ─── Trip lifecycle — driver marks "arrived at pickup" ───────────
@@ -758,7 +759,7 @@ public static class MarketplaceTemplateExtensions
         {
             var token = req.Cookies[AuthSession.CookieName(slug)];
             var parsed = AuthHandlers.ParseToken(token);
-            if (parsed is null) return Results.Redirect($"/{slug}/login");
+            if (parsed is null) return Results.Redirect(Link(req, slug, $"login"));
             var (userId, _, _) = parsed.Value;
 
             _ = double.TryParse(req.Form["lat"].ToString(),
@@ -768,14 +769,14 @@ public static class MarketplaceTemplateExtensions
                 System.Globalization.NumberStyles.Float,
                 System.Globalization.CultureInfo.InvariantCulture, out var lng);
             if (lat == 0 && lng == 0)
-                return Results.Redirect($"/{slug}/listings/{listingId}?err=arrived_geo");
+                return Results.Redirect(Link(req, slug, $"listings/{listingId}?err=arrived_geo"));
 
             await using var s = store.LightweightSession(slug);
             var match = await s.LoadAsync<ACommerce.Kit.Offers.ListingMatch>(listingId);
             if (match is null || match.Status != ACommerce.Kit.Offers.TripStatus.Active)
-                return Results.Redirect($"/{slug}/listings/{listingId}");
+                return Results.Redirect(Link(req, slug, $"listings/{listingId}"));
             if (match.OffererId != userId)
-                return Results.Redirect($"/{slug}/listings/{listingId}?err=not_driver");
+                return Results.Redirect(Link(req, slug, $"listings/{listingId}?err=not_driver"));
 
             var listing = await s.Events.AggregateStreamAsync<Listing>(listingId);
             if (listing is null) return Results.Redirect($"/{slug}");
@@ -814,7 +815,7 @@ public static class MarketplaceTemplateExtensions
             await s.SaveChangesAsync();
             var ownerGuid = ParseListingOwnerId(listing);
             if (ownerGuid.HasValue) await NudgeAsync(hub, slug, ownerGuid.Value);
-            return Results.Redirect($"/{slug}/listings/{listingId}?trip=arrived");
+            return Results.Redirect(Link(req, slug, $"listings/{listingId}?trip=arrived"));
         }).DisableAntiforgery();
 
         // ─── Trip lifecycle — complete / abort ──────────────────────────
@@ -826,13 +827,13 @@ public static class MarketplaceTemplateExtensions
         {
             var token = req.Cookies[AuthSession.CookieName(slug)];
             var parsed = AuthHandlers.ParseToken(token);
-            if (parsed is null) return Results.Redirect($"/{slug}/login");
+            if (parsed is null) return Results.Redirect(Link(req, slug, $"login"));
             var (userId, _, _) = parsed.Value;
 
             await using var s = store.LightweightSession(slug);
             var match = await s.LoadAsync<ACommerce.Kit.Offers.ListingMatch>(listingId);
             if (match is null || match.Status != ACommerce.Kit.Offers.TripStatus.Active)
-                return Results.Redirect($"/{slug}/listings/{listingId}");
+                return Results.Redirect(Link(req, slug, $"listings/{listingId}"));
 
             var listing = await s.Events.AggregateStreamAsync<Listing>(listingId);
             var isOwner = listing is not null &&
@@ -840,7 +841,7 @@ public static class MarketplaceTemplateExtensions
                           oid == userId.ToString();
             var isOfferer = match.OffererId == userId;
             if (!isOwner && !isOfferer)
-                return Results.Redirect($"/{slug}/listings/{listingId}?err=not_party");
+                return Results.Redirect(Link(req, slug, $"listings/{listingId}?err=not_party"));
 
             match.Status = ACommerce.Kit.Offers.TripStatus.Completed;
             match.ResolvedAt = DateTime.UtcNow;
@@ -857,7 +858,7 @@ public static class MarketplaceTemplateExtensions
                 s.Store(conv);
             }
             await s.SaveChangesAsync();
-            return Results.Redirect($"/{slug}/listings/{listingId}?trip=completed");
+            return Results.Redirect(Link(req, slug, $"listings/{listingId}?trip=completed"));
         }).DisableAntiforgery();
 
         app.MapPost("/{slug}/trips/{listingId:guid}/abort",
@@ -865,14 +866,14 @@ public static class MarketplaceTemplateExtensions
         {
             var token = req.Cookies[AuthSession.CookieName(slug)];
             var parsed = AuthHandlers.ParseToken(token);
-            if (parsed is null) return Results.Redirect($"/{slug}/login");
+            if (parsed is null) return Results.Redirect(Link(req, slug, $"login"));
             var (userId, _, _) = parsed.Value;
             var reason = req.Form["reason"].ToString().Trim();
 
             await using var s = store.LightweightSession(slug);
             var match = await s.LoadAsync<ACommerce.Kit.Offers.ListingMatch>(listingId);
             if (match is null || match.Status != ACommerce.Kit.Offers.TripStatus.Active)
-                return Results.Redirect($"/{slug}/listings/{listingId}");
+                return Results.Redirect(Link(req, slug, $"listings/{listingId}"));
 
             var listing = await s.Events.AggregateStreamAsync<Listing>(listingId);
             var isOwner = listing is not null &&
@@ -880,7 +881,7 @@ public static class MarketplaceTemplateExtensions
                           oid == userId.ToString();
             var isOfferer = match.OffererId == userId;
             if (!isOwner && !isOfferer)
-                return Results.Redirect($"/{slug}/listings/{listingId}?err=not_party");
+                return Results.Redirect(Link(req, slug, $"listings/{listingId}?err=not_party"));
 
             match.Status = ACommerce.Kit.Offers.TripStatus.Aborted;
             match.ResolvedAt = DateTime.UtcNow;
@@ -897,7 +898,7 @@ public static class MarketplaceTemplateExtensions
                 s.Store(conv);
             }
             await s.SaveChangesAsync();
-            return Results.Redirect($"/{slug}/listings/{listingId}?trip=aborted");
+            return Results.Redirect(Link(req, slug, $"listings/{listingId}?trip=aborted"));
         }).DisableAntiforgery();
 
         app.MapPost("/{slug}/offers/{id:guid}/withdraw",
@@ -905,7 +906,7 @@ public static class MarketplaceTemplateExtensions
         {
             var token = req.Cookies[AuthSession.CookieName(slug)];
             var parsed = AuthHandlers.ParseToken(token);
-            if (parsed is null) return Results.Redirect($"/{slug}/login");
+            if (parsed is null) return Results.Redirect(Link(req, slug, $"login"));
             var (offererId, _, _) = parsed.Value;
 
             await using var s = store.LightweightSession(slug);
@@ -914,10 +915,10 @@ public static class MarketplaceTemplateExtensions
                 return Results.Redirect($"/{slug}");
             // فَقَط مُقَدِّم العَرض يَسحَب عَرضَه.
             if (offer.OffererId != offererId)
-                return Results.Redirect($"/{slug}/me/offers");
+                return Results.Redirect(Link(req, slug, $"me/offers"));
             s.Events.Append(id, new ACommerce.Kit.Offers.OfferWithdrawn(id, DateTime.UtcNow));
             await s.SaveChangesAsync();
-            return Results.Redirect($"/{slug}/me/offers");
+            return Results.Redirect(Link(req, slug, $"me/offers"));
         }).DisableAntiforgery();
 
         // ─── Live unread counts — polled by JS in App.razor كُلّ ٢٠ ث ─────
@@ -952,7 +953,7 @@ public static class MarketplaceTemplateExtensions
         {
             var token = req.Cookies[AuthSession.CookieName(slug)];
             var parsed = AuthHandlers.ParseToken(token);
-            if (parsed is null) return Results.Redirect($"/{slug}/login");
+            if (parsed is null) return Results.Redirect(Link(req, slug, $"login"));
             var (userId, _, _) = parsed.Value;
 
             _ = double.TryParse(req.Form["anchor_lat"].ToString(),
@@ -967,14 +968,14 @@ public static class MarketplaceTemplateExtensions
 
             await using var s = store.LightweightSession(slug);
             var user = await s.LoadAsync<User>(userId);
-            if (user is null) return Results.Redirect($"/{slug}/me");
+            if (user is null) return Results.Redirect(Link(req, slug, $"me"));
             user.AnchorLat = lat;
             user.AnchorLng = lng;
             user.RadiusKm  = radius;
             user.UpdatedAt = DateTime.UtcNow;
             s.Store(user);
             await s.SaveChangesAsync();
-            return Results.Redirect($"/{slug}/me/area?saved=1");
+            return Results.Redirect(Link(req, slug, $"me/area?saved=1"));
         }).DisableAntiforgery();
 
         // ─── Start direct chat with another user ────────────────────────
@@ -985,15 +986,15 @@ public static class MarketplaceTemplateExtensions
         {
             var token = req.Cookies[AuthSession.CookieName(slug)];
             var parsed = AuthHandlers.ParseToken(token);
-            if (parsed is null) return Results.Redirect($"/{slug}/login?returnUrl=/{slug}/drivers");
+            if (parsed is null) return Results.Redirect(Link(req, slug, $"login?returnUrl=/{slug}/drivers"));
             var (meId, tenantSlug, _) = parsed.Value;
-            if (tenantSlug != slug) return Results.Redirect($"/{slug}/login");
-            if (meId == userId) return Results.Redirect($"/{slug}/drivers");
+            if (tenantSlug != slug) return Results.Redirect(Link(req, slug, $"login"));
+            if (meId == userId) return Results.Redirect(Link(req, slug, $"drivers"));
             var meName = req.Cookies[AuthSession.CookieName(slug) + ".name"] ?? "أنا";
 
             await using var s = store.LightweightSession(slug);
             var partner = await s.LoadAsync<User>(userId);
-            if (partner is null) return Results.Redirect($"/{slug}/drivers");
+            if (partner is null) return Results.Redirect(Link(req, slug, $"drivers"));
 
             // ابحَث عَن مُحادَثَة قائِمَة بَين الاثنَين (بِلا ListingId).
             var existing = (await s.Query<Conversation>()
@@ -1002,7 +1003,7 @@ public static class MarketplaceTemplateExtensions
                              (c.OwnerId == userId && c.PartnerId == meId)))
                 .ToListAsync()).FirstOrDefault();
             if (existing is not null)
-                return Results.Redirect($"/{slug}/chats/{existing.Id}");
+                return Results.Redirect(Link(req, slug, $"chats/{existing.Id}"));
 
             var conv = new Conversation
             {
@@ -1017,7 +1018,7 @@ public static class MarketplaceTemplateExtensions
             };
             s.Store(conv);
             await s.SaveChangesAsync();
-            return Results.Redirect($"/{slug}/chats/{conv.Id}");
+            return Results.Redirect(Link(req, slug, $"chats/{conv.Id}"));
         }).DisableAntiforgery();
 
         // ─── Send chat message ──────────────────────────────────────────
@@ -1027,18 +1028,18 @@ public static class MarketplaceTemplateExtensions
         {
             var token = req.Cookies[AuthSession.CookieName(slug)];
             var parsed = AuthHandlers.ParseToken(token);
-            if (parsed is null) return Results.Redirect($"/{slug}/login");
+            if (parsed is null) return Results.Redirect(Link(req, slug, $"login"));
             var (userId, tenantSlug, _) = parsed.Value;
-            if (tenantSlug != slug) return Results.Redirect($"/{slug}/login");
+            if (tenantSlug != slug) return Results.Redirect(Link(req, slug, $"login"));
 
             var body = req.Form["body"].ToString().Trim();
-            if (string.IsNullOrEmpty(body)) return Results.Redirect($"/{slug}/chats/{conversationId}");
+            if (string.IsNullOrEmpty(body)) return Results.Redirect(Link(req, slug, $"chats/{conversationId}"));
 
             await using var s = store.LightweightSession(slug);
             var conv = await s.LoadAsync<Conversation>(conversationId);
-            if (conv is null) return Results.Redirect($"/{slug}/chats");
+            if (conv is null) return Results.Redirect(Link(req, slug, $"chats"));
             if (conv.OwnerId != userId && conv.PartnerId != userId) return Results.Forbid();
-            if (conv.IsExpired) return Results.Redirect($"/{slug}/chats/{conversationId}?err=expired");
+            if (conv.IsExpired) return Results.Redirect(Link(req, slug, $"chats/{conversationId}?err=expired"));
 
             var msg = new Message
             {
@@ -1078,7 +1079,7 @@ public static class MarketplaceTemplateExtensions
             s.Store(conv);
             await s.SaveChangesAsync();
             await NudgeAsync(hub, slug, recipientId);
-            return Results.Redirect($"/{slug}/chats/{conversationId}");
+            return Results.Redirect(Link(req, slug, $"chats/{conversationId}"));
         }).DisableAntiforgery();
 
         // ─── Admin: create tenant ───────────────────────────────────────
@@ -1590,6 +1591,23 @@ public static class MarketplaceTemplateExtensions
 
         return app;
     }
+
+    // اِستِخراج الدَور مِن Referer لِلطَلَبات POST الَّتي تَأتي مِن صَفحَة
+    // داخِل /{slug}/r/{role}/... — نَستَخدِمه لِبِناء redirect role-aware.
+    private static string? RoleFromReferer(HttpRequest req)
+    {
+        var referer = req.Headers["Referer"].ToString();
+        if (string.IsNullOrEmpty(referer)) return null;
+        try
+        {
+            var uri = new Uri(referer);
+            return AuthSession.ExtractRoleFromPath(new PathString(uri.AbsolutePath));
+        }
+        catch { return null; }
+    }
+
+    private static string Link(HttpRequest req, string slug, string path)
+        => AuthSession.LinkFor(slug, RoleFromReferer(req), path);
 
     // إشعار live بِأَنّ عَدّاد الغَير-مَقروء تَغَيَّر لِمُستَخدِم مُعَيَّن.
     // الـ client (JS في App.razor) يَستَمِع لِـ "unread_changed" عَلى hub

@@ -63,6 +63,7 @@ else
 
 @code {
     [Parameter] public string Slug { get; set; } = "";
+    [Parameter] public string? Role { get; set; }
     IReadOnlyList<ACommerce.Kit.Support.Ticket>? tickets;
     protected override async Task OnParametersSetAsync()
     {

@@ -66,6 +66,7 @@
 
 @code {
     [Parameter] public string Slug { get; set; } = "";
+    [Parameter] public string? Role { get; set; }
     List<User>? drivers;
 
     protected override async Task OnParametersSetAsync()
