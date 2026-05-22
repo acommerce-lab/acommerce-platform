@@ -243,30 +243,121 @@
             }
         })();
 
-        // ─── Install prompt — يُعرَض بَعد إيماءَة المُستَخدِم (Android/Chrome).
-        // iOS لا تَدعَم beforeinstallprompt — المُستَخدِم يَستَخدِم زِرّ
-        // "Share → Add to Home Screen" يَدَويّاً.
-        window.addEventListener('beforeinstallprompt', function (e) {
-            e.preventDefault();
-            window.acInstallPrompt = e;
-            var banner = document.getElementById('ac-install-banner');
-            if (banner) banner.style.display = 'flex';
-        });
-        window.acInstall = function () {
-            var p = window.acInstallPrompt;
-            if (!p) return;
-            p.prompt();
-            p.userChoice.then(function () {
-                window.acInstallPrompt = null;
-                var banner = document.getElementById('ac-install-banner');
-                if (banner) banner.style.display = 'none';
+        // ─── Install prompt — نَمَط Ejar: زِرّ ظاهِر دائِماً + تَعليمات
+        // بَديلَة. السَّبَب: Chrome قَد لا يُطلِق beforeinstallprompt حَتَّى
+        // يَتَفاعَل المُستَخدِم لِبِضع ثَوانٍ، iOS لا تَدعَمه أَصلاً، و
+        // المُستَخدِم لا يَنتَظِر بَنِراً قَد لا يَظهَر. الزِرّ يَفتَح dialog
+        // تَعليمات بِحَسَب المُتَصَفِّح (Android/Chrome/iOS/Safari) إن لَم
+        // يَكُن لَدَينا deferredPrompt مَخزون.
+        (function () {
+            var deferredPrompt = null;
+            var ua = navigator.userAgent;
+            var isIOS = /iPad|iPhone|iPod/.test(ua) && !window.MSStream;
+            var isAndroid = /Android/.test(ua);
+            var isChromiumBased = /Chrome|CriOS|Edg|EdgA/.test(ua);
+            var isStandalone =
+                window.matchMedia('(display-mode: standalone)').matches ||
+                window.navigator.standalone === true;
+            if (isStandalone) return;
+            if (!('serviceWorker' in navigator)) return;
+
+            // Chrome لا يَعرِض «تَثبيت» إلّا عَلى https أَو localhost.
+            var isLocalhost = /^(localhost|127\.|\[::1\])/.test(location.hostname)
+                           || location.hostname.endsWith('.localhost');
+            if (location.protocol !== 'https:' && !isLocalhost) {
+                console.warn('[AC PWA] الصَفحَة عَلى', location.protocol,
+                    '— Chrome لَن يَعرِض زِرّ التَّثبيت. اِنشُر عَلى https.');
+                return;
+            }
+
+            // اِخفاء لِأُسبوع بَعد الإغلاق.
+            function dismissed() {
+                try {
+                    var t = parseInt(localStorage.getItem('ac.install.dismissed') || '0', 10);
+                    return t > 0 && (Date.now() - t) < 7 * 24 * 60 * 60 * 1000;
+                } catch (_) { return false; }
+            }
+            if (dismissed()) return;
+
+            function showInstructions() {
+                var body;
+                if (isIOS) {
+                    body = '<p><strong>عَلى iPhone / iPad:</strong></p>' +
+                           '<ol style="padding-inline-start:18px;line-height:2;">' +
+                           '<li>اِضغَط زِرّ المُشارَكَة <span style="font-size:18px;">⬆︎</span> في Safari</li>' +
+                           '<li>اِختَر «إضافَة إلى الشاشَة الرَئيسِيَّة»</li>' +
+                           '<li>اِضغَط «إضافَة» لِيَظهَر التَّطبيق مُستَقِلّاً</li></ol>';
+                } else if (isAndroid) {
+                    body = '<p><strong>عَلى Android:</strong></p>' +
+                           '<ol style="padding-inline-start:18px;line-height:2;">' +
+                           '<li>اِضغَط ⋮ في أَعلى Chrome</li>' +
+                           '<li>اِختَر «تَثبيت التَّطبيق» أَو «إضافَة إلى الشاشَة الرَئيسِيَّة»</li></ol>' +
+                           '<small style="color:#64748b;">إن لَم يَظهَر، اِنتَظِر ثَوانٍ بَعد تَصَفُّحك ثُمَّ أَعِد المحاوَلَة.</small>';
+                } else if (isChromiumBased) {
+                    body = '<p><strong>عَلى Chrome / Edge:</strong></p>' +
+                           '<ol style="padding-inline-start:18px;line-height:2;">' +
+                           '<li>اِبحَث عَن أَيقونَة التَّثبيت <span style="font-size:18px;">⊕</span> في شَريط العُنوان</li>' +
+                           '<li>أَو افتَح القائِمَة (⋮) واختَر «تَثبيت…»</li></ol>' +
+                           '<small style="color:#64748b;">إن لَم تَظهَر، تَصَفَّح لِثَوانٍ ثُمَّ أَعِد المحاوَلَة.</small>';
+                } else {
+                    body = '<p>مُتَصَفِّحك لا يَدعَم تَثبيت PWA. جَرِّب Chrome أَو Edge أَو Safari (iOS).</p>';
+                }
+                var dlg = document.createElement('div');
+                dlg.id = 'ac-install-dialog';
+                dlg.style.cssText = 'position:fixed;inset:0;background:rgba(15,23,42,0.55);' +
+                    'display:flex;align-items:center;justify-content:center;z-index:2147483647;padding:20px;';
+                dlg.innerHTML = '<div style="background:#fff;border-radius:16px;padding:24px;' +
+                    'max-width:440px;font-family:Cairo,sans-serif;color:#0f172a;direction:rtl;' +
+                    'box-shadow:0 20px 50px rgba(0,0,0,0.3);">' +
+                    '<h3 style="margin:0 0 12px;font-size:18px;">تَثبيت التَّطبيق</h3>' + body +
+                    '<button id="ac-install-dlg-close" style="margin-top:16px;padding:8px 16px;' +
+                    'border:none;border-radius:8px;background:#1d4ed8;color:#fff;font-family:inherit;' +
+                    'font-size:14px;cursor:pointer;">حَسَناً</button></div>';
+                document.body.appendChild(dlg);
+                dlg.addEventListener('click', function (e) {
+                    if (e.target === dlg || e.target.id === 'ac-install-dlg-close') dlg.remove();
+                });
+            }
+
+            window.acInstall = async function () {
+                if (deferredPrompt) {
+                    deferredPrompt.prompt();
+                    try {
+                        var res = await deferredPrompt.userChoice;
+                        deferredPrompt = null;
+                        if (res.outcome === 'accepted') {
+                            var w = document.getElementById('ac-install-banner');
+                            if (w) w.remove();
+                        }
+                    } catch (_) { /* اِنسَحَب الـ prompt */ }
+                } else {
+                    showInstructions();
+                }
+            };
+            window.acDismissInstall = function () {
+                var w = document.getElementById('ac-install-banner');
+                if (w) w.remove();
+                try { localStorage.setItem('ac.install.dismissed', String(Date.now())); } catch (_) {}
+            };
+
+            window.addEventListener('beforeinstallprompt', function (e) {
+                e.preventDefault();
+                deferredPrompt = e;
             });
-        };
-        window.acDismissInstall = function () {
-            var banner = document.getElementById('ac-install-banner');
-            if (banner) banner.style.display = 'none';
-            try { localStorage.setItem('ac-install-dismissed', '1'); } catch (_) {}
-        };
+            window.addEventListener('appinstalled', function () {
+                var w = document.getElementById('ac-install-banner');
+                if (w) w.remove();
+                deferredPrompt = null;
+            });
+
+            // اِعرِض الزِرّ فَوراً (نَمَط Ejar) — لا نَنتَظِر beforeinstallprompt.
+            function reveal() {
+                var w = document.getElementById('ac-install-banner');
+                if (w) w.style.display = 'flex';
+            }
+            if (document.readyState !== 'loading') reveal();
+            else document.addEventListener('DOMContentLoaded', reveal);
+        })();
 
         // تَأكيد وُصول السائِق — يَلتَقِط المَوقِع وَيُرسِل لِـ /trips/{id}/arrived
         // الخادِم يَفحَص قُربَه مِن نُقطَة الانطِلاق وَيُرفِض إن كانَ > 1 كم.

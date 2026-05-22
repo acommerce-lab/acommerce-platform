@@ -946,6 +946,58 @@ public static class MarketplaceTemplateExtensions
             return Results.Redirect(Link(req, slug, $"me/offers"));
         }).DisableAntiforgery();
 
+        // ─── PWA — Service Worker على الجَذر ──────────────────────────
+        // الـ wwwroot لِلمَكتَبَة يُقَدَّم تَحت /_content/<lib>/، لكِنّ SW
+        // scope مَحدود تَحت مَسار المَلَفّ نَفسه. فَلِيَستَطيع تَسجيله بِـ
+        // scope /{slug}/ يَجِب تَقديمه مِن جَذر المَوقِع.
+        // نَستَخدِم WebRootFileProvider الَّذي يَجمَع static assets كُلّ
+        // المَكتَبات؛ ابحَث أَوَّلاً في /sw.js لِلتَطبيق المُستَهلِك (تَجاوُز
+        // اختِياريّ)، ثُمَّ في /_content/<this-lib>/sw.js.
+        app.MapGet("/sw.js", (HttpResponse res, Microsoft.AspNetCore.Hosting.IWebHostEnvironment env) =>
+        {
+            var fp = env.WebRootFileProvider;
+            var candidates = new[]
+            {
+                "/sw.js",
+                "/_content/ACommerce.Templates.Customer.Marketplace/sw.js"
+            };
+            foreach (var path in candidates)
+            {
+                var fi = fp.GetFileInfo(path);
+                if (fi.Exists)
+                {
+                    using var s = fi.CreateReadStream();
+                    using var ms = new MemoryStream();
+                    s.CopyTo(ms);
+                    // Service-Worker-Allowed يُوَسِّع الـ scope المَسموح بِه
+                    // فَوق مَسار المَلَفّ — نَسمَح بِالجَذر "/".
+                    res.Headers["Service-Worker-Allowed"] = "/";
+                    return Results.File(ms.ToArray(), "application/javascript",
+                        lastModified: fi.LastModified);
+                }
+            }
+            return Results.NotFound();
+        });
+
+        // offline.html عَلى الجَذر أَيضاً (لِيَستَطيع SW الوُصول إلَيها).
+        app.MapGet("/offline.html", (Microsoft.AspNetCore.Hosting.IWebHostEnvironment env) =>
+        {
+            var fp = env.WebRootFileProvider;
+            foreach (var path in new[] { "/offline.html",
+                "/_content/ACommerce.Templates.Customer.Marketplace/offline.html" })
+            {
+                var fi = fp.GetFileInfo(path);
+                if (fi.Exists)
+                {
+                    using var s = fi.CreateReadStream();
+                    using var ms = new MemoryStream();
+                    s.CopyTo(ms);
+                    return Results.File(ms.ToArray(), "text/html; charset=utf-8");
+                }
+            }
+            return Results.NotFound();
+        });
+
         // ─── PWA — manifest + icons لِكُلّ تَطبيق فَرعيّ ──────────────────
         // كُلّ (slug, role) لَه manifest مُستَقِلّ بِاسم وَلَون وَأَيقونَة
         // مُلائِمَة. الـ scope يُحدِّد حَدّ الـ PWA — تَنَقُّل المُستَخدِم
@@ -1797,8 +1849,14 @@ public static class MarketplaceTemplateExtensions
             launch_handler = new { client_mode = "navigate-existing" },
             icons = new object[]
             {
-                new { src = iconUrl, sizes = "any", type = "image/svg+xml", purpose = "any" },
-                new { src = iconUrl + "?mask=1", sizes = "any", type = "image/svg+xml", purpose = "maskable" }
+                // Chrome's installability checklist يَتَطَلَّب maskable + at-least
+                // واحِد ≥ 192x192. SVG واحِدَة تُغَطّي كُلّ الأَحجام لكِنّ
+                // نَذكُرها بِأَحجام مُحَدَّدَة لِيَقتَنِع المُتَصَفِّح.
+                new { src = iconUrl, sizes = "192x192", type = "image/svg+xml", purpose = "any" },
+                new { src = iconUrl, sizes = "512x512", type = "image/svg+xml", purpose = "any" },
+                new { src = iconUrl + "?mask=1", sizes = "192x192", type = "image/svg+xml", purpose = "maskable" },
+                new { src = iconUrl + "?mask=1", sizes = "512x512", type = "image/svg+xml", purpose = "maskable" },
+                new { src = iconUrl, sizes = "any", type = "image/svg+xml", purpose = "any" }
             },
             shortcuts,
             categories = new[] { "business", "lifestyle", "productivity" },
