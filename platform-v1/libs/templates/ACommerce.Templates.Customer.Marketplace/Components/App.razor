@@ -30,9 +30,48 @@
     {
         <link rel="stylesheet" href="@($"/branding/{Tenant.Slug}.css")" />
     }
+
+    @* PWA: manifest + theme-color + iOS web-app meta. الـ manifest يَتَغَيَّر
+       لِكُلّ تَطبيق فَرعيّ (rider/driver/…) فَيَتَعامَل المُتَصَفِّح مَع كُلّ
+       URL prefix كَ PWA مُستَقِلّ قابِل لِلتَّثبيت. *@
+    @{
+        var pwaPath = Tenant.IsResolved
+            ? (HttpCtx.HttpContext is { } pctx
+                ? ACommerce.Templates.Customer.Marketplace.AuthSession.ExtractRoleFromPath(pctx.Request.Path)
+                : null) is string roleForPwa && !string.IsNullOrEmpty(roleForPwa)
+                ? $"/api/{Tenant.Slug}/r/{roleForPwa}"
+                : $"/api/{Tenant.Slug}"
+            : null;
+    }
+    @if (pwaPath is not null)
+    {
+        <link rel="manifest" href="@($"{pwaPath}/manifest.json")" />
+        <link rel="icon" type="image/svg+xml" href="@($"{pwaPath}/icon.svg")" />
+        <link rel="apple-touch-icon" href="@($"{pwaPath}/icon.svg")" />
+        <meta name="theme-color" content="@Tenant.BrandColor" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <meta name="apple-mobile-web-app-title" content="@Tenant.Name" />
+        <meta name="mobile-web-app-capable" content="yes" />
+    }
+
     <HeadOutlet />
 </head>
 <body>
+    @* Install banner — مَخفيّ افتراضيّاً، يُظهَر عِندَ استِقبال
+       beforeinstallprompt مِن المُتَصَفِّح (Android Chrome، Edge، …). *@
+    @if (pwaPath is not null)
+    {
+        <div id="ac-install-banner" class="ac-pwa-banner" style="display:none;">
+            <span class="ac-pwa-banner-icon">📱</span>
+            <div class="ac-pwa-banner-text">
+                <strong>ثَبِّت التَطبيق</strong>
+                <span>وُصول أَسرَع + إشعارات فَوريَّة</span>
+            </div>
+            <button type="button" onclick="acInstall()" class="ac-pwa-banner-cta">تَثبيت</button>
+            <button type="button" onclick="acDismissInstall()" class="ac-pwa-banner-x" aria-label="إغلاق">✕</button>
+        </div>
+    }
     <Routes />
     <script src="_framework/blazor.web.js"></script>
     <script src="_content/ACommerce.Kit.Maps.Web/maps.js" defer></script>
@@ -132,6 +171,102 @@
                 setInterval(refresh, 30000);
             }
         })();
+
+        // ─── PWA — Service Worker registration + Web Push subscribe ──
+        // الـ SW مُشتَرَك (واحِد) لكِنّ يُسَجَّل بِـ scope مُختَلِف لِكُلّ
+        // تَطبيق فَرعيّ، فَالمُتَصَفِّح يُنشِئ instance مُنفَصِل لِكُلّ
+        // /{slug}/r/{role}/. تَجاهَل مَسارات /admin و /api.
+        (function () {
+            if (!('serviceWorker' in navigator)) return;
+            var path = location.pathname;
+            if (path.startsWith('/admin') || path.startsWith('/api')) return;
+            var seg = path.split('/').filter(Boolean);
+            if (seg.length === 0) return;   // home page — no PWA
+            var slug = seg[0];
+            // اِبني scope: /{slug}/r/{role}/ أَو /{slug}/ لِـ legacy.
+            var scope = '/' + slug + '/';
+            if (seg.length >= 3 && seg[1] === 'r') {
+                scope = '/' + slug + '/r/' + seg[2] + '/';
+            }
+            navigator.serviceWorker.register('/sw.js', { scope: scope })
+                .then(function (reg) {
+                    // اِشتِراك Web Push عَلى أَوَّل تَسجيل ناجِح + إذن مَنوح.
+                    // نَجلِب VAPID public key مِن السيرفر (مَفتوح، لَيس سِرّاً).
+                    if ('PushManager' in window) subscribeToPush(reg);
+                })
+                .catch(function (e) { console.warn('SW register failed:', e); });
+
+            async function subscribeToPush(reg) {
+                try {
+                    // لا نَطلُب الإذن تِلقائيّاً — نَنتَظِر إيماءَة المُستَخدِم
+                    // (window.acEnableNotifications()) عَلى زِرّ صَريح في الواجِهَة.
+                    // هذا يَتَوافَق مَع تَوصِيَة Chrome (heuristic-quiet-prompts).
+                    if (Notification.permission !== 'granted') return;
+                    var key = window.acVapidPublicKey
+                          || await (await fetch('/api/push/vapid-key')).text();
+                    window.acVapidPublicKey = key;
+                    var sub = await reg.pushManager.getSubscription();
+                    if (!sub) {
+                        sub = await reg.pushManager.subscribe({
+                            userVisibleOnly: true,
+                            applicationServerKey: urlBase64ToUint8Array(key)
+                        });
+                    }
+                    await fetch('/api/' + slug + '/push/subscribe', {
+                        method: 'POST',
+                        credentials: 'same-origin',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(sub.toJSON())
+                    });
+                } catch (e) { console.warn('Push subscribe failed:', e); }
+            }
+
+            // يَطلُب إذن الإشعارات صَراحَةً ثُمَّ يُعيد محاوَلَة الاشتِراك.
+            // يُربَط بِزِرّ في الواجِهَة (مَثَلاً «فَعِّل الإشعارات»).
+            window.acEnableNotifications = async function () {
+                try {
+                    var perm = await Notification.requestPermission();
+                    if (perm !== 'granted') return false;
+                    var reg = await navigator.serviceWorker.ready;
+                    await subscribeToPush(reg);
+                    return true;
+                } catch (_) { return false; }
+            };
+
+            function urlBase64ToUint8Array(s) {
+                var pad = '='.repeat((4 - s.length % 4) % 4);
+                var b64 = (s + pad).replace(/-/g, '+').replace(/_/g, '/');
+                var raw = atob(b64);
+                var arr = new Uint8Array(raw.length);
+                for (var i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i);
+                return arr;
+            }
+        })();
+
+        // ─── Install prompt — يُعرَض بَعد إيماءَة المُستَخدِم (Android/Chrome).
+        // iOS لا تَدعَم beforeinstallprompt — المُستَخدِم يَستَخدِم زِرّ
+        // "Share → Add to Home Screen" يَدَويّاً.
+        window.addEventListener('beforeinstallprompt', function (e) {
+            e.preventDefault();
+            window.acInstallPrompt = e;
+            var banner = document.getElementById('ac-install-banner');
+            if (banner) banner.style.display = 'flex';
+        });
+        window.acInstall = function () {
+            var p = window.acInstallPrompt;
+            if (!p) return;
+            p.prompt();
+            p.userChoice.then(function () {
+                window.acInstallPrompt = null;
+                var banner = document.getElementById('ac-install-banner');
+                if (banner) banner.style.display = 'none';
+            });
+        };
+        window.acDismissInstall = function () {
+            var banner = document.getElementById('ac-install-banner');
+            if (banner) banner.style.display = 'none';
+            try { localStorage.setItem('ac-install-dismissed', '1'); } catch (_) {}
+        };
 
         // تَأكيد وُصول السائِق — يَلتَقِط المَوقِع وَيُرسِل لِـ /trips/{id}/arrived
         // الخادِم يَفحَص قُربَه مِن نُقطَة الانطِلاق وَيُرفِض إن كانَ > 1 كم.

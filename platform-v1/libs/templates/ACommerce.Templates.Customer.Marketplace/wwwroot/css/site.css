@@ -818,6 +818,31 @@
     display: flex; flex-direction: column; gap: 8px;
 }
 
+/* ═══ PWA install banner ═══════════════════════════════════════════ */
+.ac-pwa-banner {
+    position: fixed; bottom: 80px; inset-inline: 12px; z-index: 950;
+    display: flex; align-items: center; gap: 10px;
+    padding: 12px 14px;
+    background: #fff; border: 1px solid var(--ac-border);
+    border-radius: 14px;
+    box-shadow: 0 10px 30px rgba(0,0,0,.12);
+    animation: ac-pwa-up .25s ease-out;
+}
+@keyframes ac-pwa-up { from { transform: translateY(20px); opacity: 0; } to { transform: none; opacity: 1; } }
+.ac-pwa-banner-icon { font-size: 28px; }
+.ac-pwa-banner-text { flex: 1; min-width: 0; }
+.ac-pwa-banner-text strong { display: block; font-size: 14px; }
+.ac-pwa-banner-text span { display: block; font-size: 12px; color: var(--ac-text-muted); }
+.ac-pwa-banner-cta {
+    background: var(--ac-primary); color: #fff;
+    padding: 8px 16px; border-radius: 8px; border: 0;
+    font-weight: 700; cursor: pointer;
+}
+.ac-pwa-banner-x {
+    background: transparent; border: 0; color: var(--ac-text-muted);
+    cursor: pointer; padding: 4px 8px; font-size: 14px;
+}
+
 /* ═══ Role picklist (TenantRoles checklist) ═══════════════════════ */
 .acm-role-picklist { display: flex; flex-direction: column; gap: 8px; }
 .acm-role-pickcard {

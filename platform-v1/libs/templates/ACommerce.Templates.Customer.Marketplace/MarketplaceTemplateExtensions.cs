@@ -33,6 +33,7 @@ public static class MarketplaceTemplateExtensions
                 .Create(sp.GetRequiredService<Microsoft.Extensions.Configuration.IConfiguration>()));
         services.AddSingleton<ACommerce.Templates.Customer.Marketplace.Services.AgentService>();
         services.AddSingleton<ACommerce.Templates.Customer.Marketplace.Services.AgentToolExecutor>();
+        services.AddSingleton<ACommerce.Templates.Customer.Marketplace.Services.WebPushService>();
         return services;
     }
 
@@ -402,7 +403,8 @@ public static class MarketplaceTemplateExtensions
         // ─── Create listing ─────────────────────────────────────────────
         app.MapPost("/{slug}/listings/create",
             async (string slug, HttpRequest req, IDocumentStore store,
-                   Microsoft.AspNetCore.SignalR.IHubContext<ACommerce.Kit.Realtime.Server.RealtimeHub> hub) =>
+                   Microsoft.AspNetCore.SignalR.IHubContext<ACommerce.Kit.Realtime.Server.RealtimeHub> hub,
+                   ACommerce.Templates.Customer.Marketplace.Services.WebPushService push) =>
         {
             var token = req.Cookies[AuthSession.CookieName(slug)];
             var parsed = AuthHandlers.ParseToken(token);
@@ -484,7 +486,15 @@ public static class MarketplaceTemplateExtensions
             }
 
             await s.SaveChangesAsync();
-            foreach (var uid in nudged) await NudgeAsync(hub, slug, uid);
+            foreach (var uid in nudged)
+            {
+                await NudgeAsync(hub, slug, uid);
+                await push.SendAsync(store, slug, uid,
+                    "إعلان جَديد يُطابِق بَحثكَ",
+                    title,
+                    url: $"/{slug}/listings/{id}",
+                    tag: $"ss-{id}");
+            }
             return Results.Redirect(Link(req, slug, $"listings/{id}"));
         }).DisableAntiforgery();
 
@@ -641,7 +651,8 @@ public static class MarketplaceTemplateExtensions
         // ─── Accept an offer (listing owner) ────────────────────────────
         app.MapPost("/{slug}/offers/{id:guid}/accept",
             async (string slug, Guid id, HttpRequest req, IDocumentStore store,
-                   Microsoft.AspNetCore.SignalR.IHubContext<ACommerce.Kit.Realtime.Server.RealtimeHub> hub) =>
+                   Microsoft.AspNetCore.SignalR.IHubContext<ACommerce.Kit.Realtime.Server.RealtimeHub> hub,
+                   ACommerce.Templates.Customer.Marketplace.Services.WebPushService push) =>
         {
             var token = req.Cookies[AuthSession.CookieName(slug)];
             var parsed = AuthHandlers.ParseToken(token);
@@ -720,6 +731,11 @@ public static class MarketplaceTemplateExtensions
             await s.SaveChangesAsync();
             // أَخطِر السائِق فَوراً — الإشعار + المُحادَثَة ظَهَرا.
             await NudgeAsync(hub, slug, offer.OffererId);
+            await push.SendAsync(store, slug, offer.OffererId,
+                "تَمّ قَبول عَرضكَ ✓",
+                $"{acceptorName} قَبِلَ عَرضكَ بِـ {offer.Price:N0} ريال.",
+                url: $"/{slug}/chats/{conv.Id}",
+                tag: $"offer-{id}");
             return Results.Redirect(Link(req, slug, $"chats/{conv.Id}"));
         }).DisableAntiforgery();
 
@@ -755,7 +771,8 @@ public static class MarketplaceTemplateExtensions
         // pickup_lat/pickup_lng. لَو > 1 كم يُرفَض الادِّعاء.
         app.MapPost("/{slug}/trips/{listingId:guid}/arrived",
             async (string slug, Guid listingId, HttpRequest req, IDocumentStore store,
-                   Microsoft.AspNetCore.SignalR.IHubContext<ACommerce.Kit.Realtime.Server.RealtimeHub> hub) =>
+                   Microsoft.AspNetCore.SignalR.IHubContext<ACommerce.Kit.Realtime.Server.RealtimeHub> hub,
+                   ACommerce.Templates.Customer.Marketplace.Services.WebPushService push) =>
         {
             var token = req.Cookies[AuthSession.CookieName(slug)];
             var parsed = AuthHandlers.ParseToken(token);
@@ -814,7 +831,15 @@ public static class MarketplaceTemplateExtensions
 
             await s.SaveChangesAsync();
             var ownerGuid = ParseListingOwnerId(listing);
-            if (ownerGuid.HasValue) await NudgeAsync(hub, slug, ownerGuid.Value);
+            if (ownerGuid.HasValue)
+            {
+                await NudgeAsync(hub, slug, ownerGuid.Value);
+                await push.SendAsync(store, slug, ownerGuid.Value,
+                    "السائِق وَصَل ✓",
+                    $"{match.OffererName} في نُقطَة الانطِلاق.",
+                    url: $"/{slug}/listings/{listingId}",
+                    tag: $"arrived-{listingId}");
+            }
             return Results.Redirect(Link(req, slug, $"listings/{listingId}?trip=arrived"));
         }).DisableAntiforgery();
 
@@ -921,6 +946,79 @@ public static class MarketplaceTemplateExtensions
             return Results.Redirect(Link(req, slug, $"me/offers"));
         }).DisableAntiforgery();
 
+        // ─── PWA — manifest + icons لِكُلّ تَطبيق فَرعيّ ──────────────────
+        // كُلّ (slug, role) لَه manifest مُستَقِلّ بِاسم وَلَون وَأَيقونَة
+        // مُلائِمَة. الـ scope يُحدِّد حَدّ الـ PWA — تَنَقُّل المُستَخدِم
+        // خارِجَه يَفتَحه المُتَصَفِّح كَ صَفحَة عاديَّة. لِمَتاجِر بِلا
+        // أَدوار (ashare/ejar) نَعرِض manifest عَلى /{slug} بِلا role.
+        app.MapGet("/api/{slug}/manifest.json", async (
+            string slug, IDocumentStore store) =>
+            await BuildManifestAsync(slug, role: null, store));
+
+        app.MapGet("/api/{slug}/r/{role}/manifest.json", async (
+            string slug, string role, IDocumentStore store) =>
+            await BuildManifestAsync(slug, role, store));
+
+        // أَيقونَة تِلقائيَّة SVG — تَستَخدِم لَون المَتجَر + الحَرف الأَوَّل
+        // مِن اسم الدَور (أَو إيموجي الدَور إن كانَ مَضبوطاً). إذا كانَ
+        // المُصَمِّم رَفَعَ أَيقونَة مُخَصَّصَة (Role.PwaIconUrl) نُحَوِّل لَها.
+        app.MapGet("/api/{slug}/icon.svg", async (
+            string slug, IDocumentStore store) =>
+            await BuildIconAsync(slug, role: null, store));
+
+        app.MapGet("/api/{slug}/r/{role}/icon.svg", async (
+            string slug, string role, IDocumentStore store) =>
+            await BuildIconAsync(slug, role, store));
+
+        // ─── PWA — VAPID public key (لِـ JS لِبَناء PushSubscription) ─────
+        // الـ public key لَيس سِرّاً — يَكفي أَن يَكون مُتاحاً لِأَيّ client.
+        // الـ private key يَبقى فَقَط في السيرفر.
+        app.MapGet("/api/push/vapid-key",
+            (ACommerce.Templates.Customer.Marketplace.Services.WebPushService push)
+                => Results.Text(push.PublicKey, "text/plain"));
+
+        // ─── PWA — Web Push subscribe endpoint ───────────────────────────
+        // الـ client (sw.js) يَستَلِم رِسالَة Push مِن السيرفر. هذا الـ
+        // endpoint يَحفَظ subscription المُستَخدِم لِيَستَطيع السيرفر
+        // إرسال push لاحِقاً.
+        app.MapPost("/api/{slug}/push/subscribe",
+            async (string slug, HttpRequest req, IDocumentStore store) =>
+        {
+            var token = req.Cookies[AuthSession.CookieName(slug)];
+            // جَرِّب رول-سكوبد cookies إذا الـ legacy ما وُجِدَ.
+            if (string.IsNullOrEmpty(token))
+            {
+                var role = AuthSession.ExtractRoleFromPath(req.Path);
+                if (role is not null)
+                    token = req.Cookies[AuthSession.CookieName(slug, role)];
+            }
+            var parsed = AuthHandlers.ParseToken(token);
+            if (parsed is null) return Results.Unauthorized();
+            var (userId, _, _) = parsed.Value;
+
+            using var doc = await System.Text.Json.JsonDocument.ParseAsync(req.Body);
+            var root = doc.RootElement;
+            var endpoint = root.GetProperty("endpoint").GetString() ?? "";
+            var keys = root.GetProperty("keys");
+            var p256dh = keys.GetProperty("p256dh").GetString() ?? "";
+            var auth   = keys.GetProperty("auth").GetString() ?? "";
+            if (string.IsNullOrEmpty(endpoint)) return Results.BadRequest();
+
+            await using var s = store.LightweightSession(slug);
+            var user = await s.LoadAsync<User>(userId);
+            if (user is null) return Results.NotFound();
+            // اِستَبدِل subscription بِنَفس الـ endpoint (نَفس الجِهاز/المُتَصَفِّح)
+            user.PushSubscriptions.RemoveAll(p => p.Endpoint == endpoint);
+            user.PushSubscriptions.Add(new ACommerce.Kit.Auth.PushSubscription
+            {
+                Endpoint = endpoint, P256dh = p256dh, Auth = auth,
+                CreatedAt = DateTime.UtcNow
+            });
+            s.Store(user);
+            await s.SaveChangesAsync();
+            return Results.Ok();
+        }).DisableAntiforgery();
+
         // ─── Live unread counts — polled by JS in App.razor كُلّ ٢٠ ث ─────
         // يُحَدِّث الـ badges في الـ nav بِلا إعادَة تَحميل. مَنطِق العَدّ:
         //   - الرَسائِل: عَدَد المُحادَثات الَّتي فيها OwnerUnread/PartnerUnread
@@ -1024,7 +1122,8 @@ public static class MarketplaceTemplateExtensions
         // ─── Send chat message ──────────────────────────────────────────
         app.MapPost("/{slug}/chats/{conversationId:guid}/send",
             async (string slug, Guid conversationId, HttpRequest req, IDocumentStore store,
-                   Microsoft.AspNetCore.SignalR.IHubContext<ACommerce.Kit.Realtime.Server.RealtimeHub> hub) =>
+                   Microsoft.AspNetCore.SignalR.IHubContext<ACommerce.Kit.Realtime.Server.RealtimeHub> hub,
+                   ACommerce.Templates.Customer.Marketplace.Services.WebPushService push) =>
         {
             var token = req.Cookies[AuthSession.CookieName(slug)];
             var parsed = AuthHandlers.ParseToken(token);
@@ -1079,6 +1178,12 @@ public static class MarketplaceTemplateExtensions
             s.Store(conv);
             await s.SaveChangesAsync();
             await NudgeAsync(hub, slug, recipientId);
+            if (!hasRecent)
+                await push.SendAsync(store, slug, recipientId,
+                    $"رِسالَة مِن {senderName}",
+                    conv.LastMessage ?? "—",
+                    url: $"/{slug}/chats/{conversationId}",
+                    tag: $"chat-{conversationId}");
             return Results.Redirect(Link(req, slug, $"chats/{conversationId}"));
         }).DisableAntiforgery();
 
@@ -1320,6 +1425,49 @@ public static class MarketplaceTemplateExtensions
             s.Store(t);
             await s.SaveChangesAsync();
             return Results.Redirect($"/admin/tenants/{slug}?saved=1");
+        }).DisableAntiforgery();
+
+        // ─── Admin: save PWA per-role (name + custom icon) ──────────────
+        // مُتَعَدِّد الـ parts (file upload). لِكُلّ دَور: name_{slug} +
+        // icon_{slug} (مَلَفّ) + clear_{slug} (checkbox). الأَيقونَة تُحَوَّل
+        // لِـ data: URL وَتُخزَّن مَعَ الدَور. سَقف ٢٥٦ كيلوبايت لِلحِفاظ
+        // عَلى حَجم Tenant doc مَعقولاً.
+        app.MapPost("/admin/tenants/{slug}/pwa/save",
+            async (string slug, HttpRequest req, IDocumentStore store) =>
+        {
+            await using var s = store.LightweightSession();
+            var t = await s.LoadAsync<ACommerce.Kit.Tenants.Tenant>(slug);
+            if (t is null) return Results.Redirect("/admin");
+
+            const long maxBytes = 256 * 1024;
+            var allowed = new[] { "image/png", "image/svg+xml", "image/webp" };
+
+            foreach (var r in t.Roles)
+            {
+                var nameInput = req.Form[$"name_{r.Slug}"].ToString().Trim();
+                r.PwaName = string.IsNullOrEmpty(nameInput) ? null : nameInput;
+
+                if (req.Form[$"clear_{r.Slug}"].ToString() == "1")
+                    r.PwaIconDataUrl = null;
+
+                var file = req.Form.Files[$"icon_{r.Slug}"];
+                if (file is { Length: > 0 })
+                {
+                    if (file.Length > maxBytes)
+                        return Results.Redirect($"/admin/tenants/{slug}/pwa?err=icon_too_large");
+                    var ct = file.ContentType.ToLowerInvariant();
+                    if (!allowed.Contains(ct))
+                        return Results.Redirect($"/admin/tenants/{slug}/pwa?err=icon_bad_type");
+                    using var ms = new MemoryStream();
+                    await file.CopyToAsync(ms);
+                    var b64 = Convert.ToBase64String(ms.ToArray());
+                    r.PwaIconDataUrl = $"data:{ct};base64,{b64}";
+                }
+            }
+
+            s.Store(t);
+            await s.SaveChangesAsync();
+            return Results.Redirect($"/admin/tenants/{slug}/pwa?saved=1");
         }).DisableAntiforgery();
 
         // ─── Admin: save regions ────────────────────────────────────────
@@ -1608,6 +1756,135 @@ public static class MarketplaceTemplateExtensions
 
     private static string Link(HttpRequest req, string slug, string path)
         => AuthSession.LinkFor(slug, RoleFromReferer(req), path);
+
+    // ─── PWA — manifest builder ──────────────────────────────────────
+    private static async Task<IResult> BuildManifestAsync(
+        string slug, string? role, IDocumentStore store)
+    {
+        await using var s = store.QuerySession();
+        var tenant = await s.LoadAsync<ACommerce.Kit.Tenants.Tenant>(slug);
+        if (tenant is null) return Results.NotFound();
+
+        ACommerce.Kit.Roles.Role? r = null;
+        if (!string.IsNullOrEmpty(role))
+            r = tenant.Roles.FirstOrDefault(x => x.Slug == role);
+
+        var prefix    = string.IsNullOrEmpty(role) ? $"/{slug}" : $"/{slug}/r/{role}";
+        var appName   = !string.IsNullOrEmpty(r?.PwaName) ? r!.PwaName!
+                      : r is not null            ? $"{tenant.Name} — {r.Label}"
+                                                 : tenant.Name;
+        var shortName = r?.Label ?? tenant.Name;
+        var iconUrl   = $"{prefix}/icon.svg";
+        // مَسارات الـ icon — نَنشُر الـ SVG كَ "any" + "maskable" (نَفس
+        // الصورَة لكِنّ مَع padding مَبنيّ داخِلها).
+        var shortcuts = BuildShortcuts(slug, role, r, iconUrl);
+
+        return Results.Json(new
+        {
+            name = appName,
+            short_name = shortName,
+            description = tenant.TagLine,
+            lang = "ar",
+            dir = "rtl",
+            id = $"{prefix}/",
+            start_url = $"{prefix}/",
+            scope = $"{prefix}/",
+            display = "standalone",
+            display_override = new[] { "window-controls-overlay", "standalone", "minimal-ui" },
+            orientation = "any",
+            background_color = "#f4f4f5",
+            theme_color = tenant.BrandColor,
+            launch_handler = new { client_mode = "navigate-existing" },
+            icons = new object[]
+            {
+                new { src = iconUrl, sizes = "any", type = "image/svg+xml", purpose = "any" },
+                new { src = iconUrl + "?mask=1", sizes = "any", type = "image/svg+xml", purpose = "maskable" }
+            },
+            shortcuts,
+            categories = new[] { "business", "lifestyle", "productivity" },
+            prefer_related_applications = false
+        }, contentType: "application/manifest+json");
+    }
+
+    private static object[] BuildShortcuts(string slug, string? role,
+        ACommerce.Kit.Roles.Role? r, string iconUrl)
+    {
+        // shortcuts حَسَب الدَور — مُختَصَرَات تَظهَر في long-press عَلى
+        // الأَيقونَة (Android + Edge).
+        var prefix = string.IsNullOrEmpty(role) ? $"/{slug}" : $"/{slug}/r/{role}";
+        var icons  = new[] { new { src = iconUrl, sizes = "any", type = "image/svg+xml" } };
+        return r?.CatalogSlug switch
+        {
+            "rider" => new object[]
+            {
+                new { name = "اِنشُر مِشواراً", short_name = "مِشوار", url = $"{prefix}/create-listing", icons },
+                new { name = "طَلَباتي",      short_name = "طَلَباتي", url = $"{prefix}/me/listings",   icons },
+                new { name = "السائِقون",     short_name = "سائِقون",  url = $"{prefix}/drivers",       icons }
+            },
+            "driver" or "shipper" => new object[]
+            {
+                new { name = "مَشاوير مُتاحَة", short_name = "مَشاوير", url = $"{prefix}/explore",      icons },
+                new { name = "عُروضي",          short_name = "عُروضي",  url = $"{prefix}/me/offers",   icons },
+                new { name = "مَنطِقَتي",       short_name = "مَنطِقَتي",url = $"{prefix}/me/area",    icons }
+            },
+            "vendor" or "host" => new object[]
+            {
+                new { name = "إعلان جَديد",    short_name = "إعلان",   url = $"{prefix}/create-listing", icons },
+                new { name = "إعلاناتي",       short_name = "إعلاناتي",url = $"{prefix}/me/listings",   icons },
+                new { name = "المُحادَثات",     short_name = "رَسائِل", url = $"{prefix}/chats",          icons }
+            },
+            "tenant_admin" => new object[]
+            {
+                new { name = "لَوحَة الإدارَة", short_name = "إدارَة",  url = $"{prefix}/manage", icons }
+            },
+            _ => new object[]
+            {
+                new { name = "اِستِكشاف",      short_name = "تَصَفُّح",url = $"{prefix}/explore",      icons },
+                new { name = "حِسابي",        short_name = "حِسابي",  url = $"{prefix}/me",           icons }
+            }
+        };
+    }
+
+    // ─── PWA — icon builder (SVG ديناميكيّ) ───────────────────────────
+    private static async Task<IResult> BuildIconAsync(
+        string slug, string? role, IDocumentStore store)
+    {
+        await using var s = store.QuerySession();
+        var tenant = await s.LoadAsync<ACommerce.Kit.Tenants.Tenant>(slug);
+        if (tenant is null) return Results.NotFound();
+
+        ACommerce.Kit.Roles.Role? r = null;
+        if (!string.IsNullOrEmpty(role))
+            r = tenant.Roles.FirstOrDefault(x => x.Slug == role);
+
+        // أَيقونَة مُخَصَّصَة (data URL) → نَفُكّ الـ base64 وَنُقَدِّمها كَ صورَة.
+        var custom = r?.PwaIconDataUrl;
+        if (!string.IsNullOrEmpty(custom) && custom.StartsWith("data:"))
+        {
+            var comma = custom.IndexOf(',');
+            if (comma > 0)
+            {
+                var meta = custom.Substring(5, comma - 5);   // "image/png;base64"
+                var b64  = custom[(comma + 1)..];
+                var contentType = meta.Split(';')[0];
+                try { return Results.File(Convert.FromBase64String(b64), contentType); }
+                catch { /* fall through to generated */ }
+            }
+        }
+
+        // أَيقونَة مَولَّدَة: مُرَبَّع 512x512 بِلَون المَتجَر + الإيموجي/الحَرف.
+        var color    = tenant.BrandColor;
+        var emoji    = r?.Icon ?? tenant.Categories.FirstOrDefault()?.Icon ?? "";
+        var initial  = (r?.Label ?? tenant.Name).FirstOrDefault().ToString();
+        var label    = !string.IsNullOrEmpty(emoji) ? emoji : initial;
+        var svg = $@"<svg xmlns=""http://www.w3.org/2000/svg"" viewBox=""0 0 512 512"">
+  <rect width=""512"" height=""512"" rx=""96"" fill=""{color}""/>
+  <text x=""256"" y=""335"" text-anchor=""middle""
+        font-family=""Cairo, Segoe UI Emoji, system-ui, sans-serif""
+        font-size=""280"" font-weight=""700"" fill=""#ffffff"">{System.Net.WebUtility.HtmlEncode(label)}</text>
+</svg>";
+        return Results.Content(svg, "image/svg+xml; charset=utf-8");
+    }
 
     // إشعار live بِأَنّ عَدّاد الغَير-مَقروء تَغَيَّر لِمُستَخدِم مُعَيَّن.
     // الـ client (JS في App.razor) يَستَمِع لِـ "unread_changed" عَلى hub

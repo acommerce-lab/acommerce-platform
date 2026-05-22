@@ -7,6 +7,7 @@
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
     <PackageReference Include="Microsoft.AspNetCore.Components.Web" />
     <PackageReference Include="Marten" />
+    <PackageReference Include="WebPush" />
 
     <ProjectReference Include="..\..\widgets\ACommerce.Widgets\ACommerce.Widgets.csproj" />
     <ProjectReference Include="..\ACommerce.Templates.Shared\ACommerce.Templates.Shared.csproj" />

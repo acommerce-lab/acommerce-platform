@@ -43,6 +43,23 @@ public sealed class User
     public int RadiusKm { get; set; }
 
     public bool HasAnchor => AnchorLat != 0 || AnchorLng != 0;
+
+    /// <summary>اشتِراكات Web Push لِلجِهاز الواحِد — كُلّ subscription
+    /// مَفتاح لِجِهاز/مُتَصَفِّح مُعَيَّن. السيرفر يَستَخدِمها لِإرسال
+    /// إشعار push عَلى مُستَوى نِظام التَّشغيل (يَعمَل حَتَّى لَو PWA
+    /// مُغلَق).</summary>
+    public List<PushSubscription> PushSubscriptions { get; set; } = new();
+}
+
+/// <summary>اشتِراك Web Push واحِد — جِهاز + مُتَصَفِّح. الـ Endpoint مِن
+/// تَزويد المُتَصَفِّح، P256dh + Auth مَفاتيح ECDH/HMAC تُستَخدَم لِتَشفير
+/// الـ payload.</summary>
+public sealed class PushSubscription
+{
+    public string Endpoint { get; set; } = "";
+    public string P256dh { get; set; } = "";
+    public string Auth { get; set; } = "";
+    public DateTime CreatedAt { get; set; }
 }
 
 // ─── Events (للـ stream المُستَقِلّ "AuthAttempts") ──────────────────

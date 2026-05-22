@@ -219,6 +219,7 @@ public sealed class AgentService
 - تَعديل المُدُن والأَحياء
 - تَعديل الخَصائِص الديناميكِيَّة (لِإعلانات فِئَة، أَو لِلبروفايل)
 - تَعديل الهُويَّة البَصَريَّة (اسم/لَون/شِعار/مَدينَة/قَناة الدُخول)
+- تَخصيص PWA لِكُلّ دَور (set_pwa): اسم وَأَيقونَة data: URL
 
 قَواعِد:
 1. اِستَخدِم الأَدَوات لِكُلّ كِتابَة. لا تَكتُب SQL. لا تَختَرِع APIs.
@@ -326,7 +327,12 @@ public sealed class AgentService
             "إعادَة كِتابَة الخَصائِص الديناميكِيَّة لِنِطاق (scope) مَحَدَّد. "
           + "النِّطاق إمّا Guid فِئَة أَو scope_id بروفايل دَور أَو "
           + "00000000-0000-0000-0000-000000000F01 لِلبروفايل العامّ.",
-            SetAttributesSchema)
+            SetAttributesSchema),
+        new("set_pwa",
+            "تَخصيص PWA لِدَور: اسم مُخَصَّص (يَتَجاوَز التَّوليد) أَو "
+          + "أَيقونَة مُخَصَّصَة (data: URL، يَتَجاوَز التَّوليد بِلَون "
+          + "العَلامَة). الحَذف بِتَمرير سِلسِلَة فارِغَة.",
+            SetPwaSchema)
     };
 
     private static readonly string CategoryItemSchema = """
@@ -380,6 +386,19 @@ public sealed class AgentService
         "city":    {"type": "string"},
         "color":   {"type": "string"},
         "channel": {"type": "string", "enum": ["phone", "nafath"]}
+      }
+    }
+    """;
+
+    private static readonly string SetPwaSchema = """
+    {
+      "type": "object",
+      "required": ["slug", "role"],
+      "properties": {
+        "slug":          {"type": "string", "description": "slug المَتجَر"},
+        "role":          {"type": "string", "description": "slug الدَور"},
+        "pwa_name":      {"type": "string", "description": "اسم التَطبيق، فارِغ = حَذف"},
+        "pwa_icon_url":  {"type": "string", "description": "data:image/png;base64,… (حَتَّى ٢٥٦ ك.ب.)، فارِغ = حَذف"}
       }
     }
     """;
@@ -490,6 +509,7 @@ public sealed class AgentToolExecutor
                 "set_regions"    => await SetRegionsAsync(root, ct),
                 "set_roles"      => await SetRolesAsync(root, ct),
                 "set_attributes" => await SetAttributesAsync(root, ct),
+                "set_pwa"        => await SetPwaAsync(root, ct),
                 _ => (false, $"أَداة غَير مَعروفَة: {toolName}")
             };
         }
@@ -666,6 +686,50 @@ public sealed class AgentToolExecutor
         }
         await s.SaveChangesAsync(ct);
         return (true, $"تَمّ تَحديث «{slug}» إلى {cityCount} مُدُن، {distCount} أَحياء.");
+    }
+
+    private async Task<(bool, string)> SetPwaAsync(JsonElement root, CancellationToken ct)
+    {
+        var slug = Str(root, "slug").ToLowerInvariant();
+        var roleSlug = Str(root, "role").ToLowerInvariant();
+        if (string.IsNullOrEmpty(slug) || string.IsNullOrEmpty(roleSlug))
+            return (false, "slug وَ role مَطلوبان.");
+
+        await using var s = _store.LightweightSession();
+        var t = await s.LoadAsync<Tenant>(slug, ct);
+        if (t is null) return (false, "المَتجَر غَير مَوجود.");
+        var role = t.Roles.FirstOrDefault(r => r.Slug == roleSlug);
+        if (role is null) return (false, $"الدَور «{roleSlug}» غَير مَوجود.");
+
+        var changed = new List<string>();
+        if (TryStr(root, "pwa_name", out var pwaName))
+        {
+            role.PwaName = string.IsNullOrEmpty(pwaName) ? null : pwaName;
+            changed.Add("الاسم");
+        }
+        if (TryStr(root, "pwa_icon_url", out var iconUrl))
+        {
+            if (string.IsNullOrEmpty(iconUrl))
+            {
+                role.PwaIconDataUrl = null;
+                changed.Add("الأَيقونَة (حُذِفَت)");
+            }
+            else
+            {
+                if (!iconUrl.StartsWith("data:image/", StringComparison.OrdinalIgnoreCase))
+                    return (false, "pwa_icon_url يَجِب أَن يَكون data:image/…");
+                // سَقف ٢٥٦ كيلوبايت بَعد فَكّ base64 (نَحسِبُه تَقريباً بِـ length * 3/4).
+                if (iconUrl.Length > 350_000)
+                    return (false, "الأَيقونَة أَكبَر مِن ٢٥٦ كيلوبايت.");
+                role.PwaIconDataUrl = iconUrl;
+                changed.Add("الأَيقونَة");
+            }
+        }
+        if (changed.Count == 0) return (true, "لا تَغيير.");
+
+        s.Store(t);
+        await s.SaveChangesAsync(ct);
+        return (true, $"تَمّ تَحديث PWA «{roleSlug}»: {string.Join("، ", changed)}.");
     }
 
     private async Task<(bool, string)> SetAttributesAsync(JsonElement root, CancellationToken ct)
