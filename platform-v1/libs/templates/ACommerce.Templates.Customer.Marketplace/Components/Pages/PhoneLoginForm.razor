@@ -43,7 +43,7 @@ else
         @if (ErrorMessage is not null) { <AcAlert Variant="danger">@ErrorMessage</AcAlert> }
 
         <AcButton Type="submit" Variant="primary" Size="lg" Block="true" Text="تَحَقُّق ودُخول" />
-        <a href="@($"/{Slug}/login")"
+        <a href="@AuthSession.LinkFor(Slug, AsRole, $"login")"
            style="display:block;text-align:center;margin-top:10px;
                   color:var(--ac-text-muted);font-size:13px;text-decoration:none;">
             تَغيير الرَقم

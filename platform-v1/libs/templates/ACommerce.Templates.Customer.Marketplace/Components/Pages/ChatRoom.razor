@@ -9,7 +9,7 @@
     <AcEmptyState IconName="message"
                   Title="تَحتاج تَسجيل دُخول"
                   ActionLabel="تَسجيل دُخول"
-                  ActionHref="@($"/{Slug}/login")" />
+                  ActionHref="@AuthSession.LinkFor(Slug, Role, $"login")" />
 }
 else if (conv is null)
 {
@@ -22,7 +22,7 @@ else
 
     <div style="display:flex;align-items:center;gap:12px;padding-bottom:12px;
                 border-bottom:1px solid var(--ac-border);margin-bottom:12px;">
-        <a href="@($"/{Slug}/chats")"
+        <a href="@AuthSession.LinkFor(Slug, Role, $"chats")"
            style="display:inline-flex;text-decoration:none;color:var(--ac-text);">
             <AcIcon Name="arrow-right" Size="24" />
         </a>

@@ -14,7 +14,7 @@
 {
     <AcEmptyState IconName="user" Title="تَحتاج تَسجيل دُخول"
                   ActionLabel="تَسجيل دُخول"
-                  ActionHref="@($"/{Slug}/login?returnUrl=/{Slug}/manage")" />
+                  ActionHref="@AuthSession.LinkFor(Slug, Role, $"login?returnUrl=/{Slug}/manage")" />
 }
 else if (!canManage)
 {
@@ -39,11 +39,11 @@ else
     </div>
 
     <div class="acm-home-grid acm-stats-grid" style="margin-top:8px;">
-        <a class="acm-stat-tile" href="@($"/{Slug}/explore")">
+        <a class="acm-stat-tile" href="@AuthSession.LinkFor(Slug, Role, $"explore")">
             <strong>@listingsCount</strong>
             <span>إعلان نَشِط</span>
         </a>
-        <a class="acm-stat-tile" href="@($"/{Slug}/chats")">
+        <a class="acm-stat-tile" href="@AuthSession.LinkFor(Slug, Role, $"chats")">
             <strong>@convsCount</strong>
             <span>مُحادَثَة</span>
         </a>
@@ -61,10 +61,10 @@ else
         <ChildContent>
             <h3 style="margin-top:0;">إجراءات سَريعَة</h3>
             <div class="acm-home-actions">
-                <AcActionCard Label="إنشاء إعلان"  IconName="plus"      Variant="primary" Href="@($"/{Slug}/create-listing")" />
-                <AcActionCard Label="تَصَفُّح الإعلانات" IconName="search"  Variant="surface" Href="@($"/{Slug}/explore")" />
-                <AcActionCard Label="مُحادَثات المَتجَر" IconName="message" Variant="surface" Href="@($"/{Slug}/chats")" />
-                <AcActionCard Label="الشَكاوى والدَّعم"  IconName="alert-circle" Variant="surface" Href="@($"/{Slug}/support")" />
+                <AcActionCard Label="إنشاء إعلان"  IconName="plus"      Variant="primary" Href="@AuthSession.LinkFor(Slug, Role, $"create-listing")" />
+                <AcActionCard Label="تَصَفُّح الإعلانات" IconName="search"  Variant="surface" Href="@AuthSession.LinkFor(Slug, Role, $"explore")" />
+                <AcActionCard Label="مُحادَثات المَتجَر" IconName="message" Variant="surface" Href="@AuthSession.LinkFor(Slug, Role, $"chats")" />
+                <AcActionCard Label="الشَكاوى والدَّعم"  IconName="alert-circle" Variant="surface" Href="@AuthSession.LinkFor(Slug, Role, $"support")" />
             </div>
         </ChildContent>
     </AcCard>

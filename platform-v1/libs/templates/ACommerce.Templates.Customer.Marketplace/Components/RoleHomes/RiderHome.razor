@@ -12,7 +12,7 @@
         <p>اُكتُب وِجهَتَكَ، وَ سَيَصِلكَ سائِقون قَريبون بِعُروض أَسعار.</p>
     </header>
 
-    <a class="acm-role-cta-primary" href="@($"/{Slug}/create-listing")">
+    <a class="acm-role-cta-primary" href="@AuthSession.LinkFor(Slug, Role, $"create-listing")">
         <span class="acm-role-cta-icon">📍</span>
         <span class="acm-role-cta-label">
             <strong>اِنشُر طَلَب مِشوار</strong>
@@ -21,7 +21,7 @@
         <AcIcon Name="chevron-left" Size="20" />
     </a>
 
-    <a class="acm-role-cta-pill" href="@($"/{Slug}/drivers")"
+    <a class="acm-role-cta-pill" href="@AuthSession.LinkFor(Slug, Role, $"drivers")"
        style="display:block;text-align:center;padding:14px;margin-bottom:16px;text-decoration:none;">
         <strong style="font-size:14px;color:var(--ac-text);">
             <AcIcon Name="user" Size="14" /> تَصَفُّح السائِقين
@@ -41,7 +41,7 @@
         <div class="acm-role-list">
             @foreach (var (l, offers, matched) in myRequests)
             {
-                <a class="acm-role-request-card" href="@($"/{Slug}/listings/{l.Id}")">
+                <a class="acm-role-request-card" href="@AuthSession.LinkFor(Slug, Role, $"listings/{l.Id}")">
                     <div style="flex:1;min-width:0;">
                         <strong>@l.Title</strong>
                         <span class="ac-muted" style="font-size:12px;display:block;">
@@ -77,6 +77,7 @@
 
 @code {
     [Parameter] public string Slug { get; set; } = "";
+    [Parameter] public string? Role { get; set; }
 
     List<(Listing Listing, int Offers, bool Matched)>? myRequests;
 

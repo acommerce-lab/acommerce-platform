@@ -11,7 +11,7 @@
                   Title="تَحتاج تَسجيل دُخول"
                   Message="سَجِّل دُخولك لِتَعديل بَياناتك."
                   ActionLabel="تَسجيل دُخول"
-                  ActionHref="@($"/{Slug}/login?returnUrl=/{Slug}/me/edit")" />
+                  ActionHref="@AuthSession.LinkFor(Slug, Role, $"login?returnUrl=/{Slug}/me/edit")" />
 }
 else if (user is null || tenant is null)
 {
@@ -126,7 +126,7 @@ else
         }
 
         <div style="display:flex;gap:8px;margin-top:16px;">
-            <a class="ac-btn ac-btn-ghost" href="@($"/{Slug}/me")">إلغاء</a>
+            <a class="ac-btn ac-btn-ghost" href="@AuthSession.LinkFor(Slug, Role, $"me")">إلغاء</a>
             <button type="submit" class="ac-btn ac-btn-primary ac-btn-lg ac-btn-block">
                 <AcIcon Name="check" Size="18" /> حِفظ التَعديلات
             </button>

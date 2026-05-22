@@ -36,7 +36,7 @@ else
         <AcGallery Images="_noImages" PlaceholderIcon="building" />
 
         <div class="acm-details-gallery-actions">
-            <a class="acm-details-circle-btn" href="@($"/{Slug}/explore")" aria-label="الرُجوع">
+            <a class="acm-details-circle-btn" href="@AuthSession.LinkFor(Slug, Role, $"explore")" aria-label="الرُجوع">
                 <AcIcon Name="arrow-right" Size="18" />
             </a>
             <div class="acm-details-gallery-actions-end">
@@ -290,7 +290,7 @@ else
                 }
                 else if (!Auth.IsAuthenticated)
                 {
-                    <a href="@($"/{Slug}/login?returnUrl=/{Slug}/listings/{Id}")"
+                    <a href="@AuthSession.LinkFor(Slug, Role, $"login?returnUrl=/{Slug}/listings/{Id}")"
                        class="ac-btn ac-btn-ghost ac-btn-block">
                         دُخول لِتَقديم عَرض
                     </a>
@@ -370,7 +370,7 @@ else
             }
             else
             {
-                <a href="@($"/{Slug}/login?returnUrl=/{Slug}/listings/{Id}")"
+                <a href="@AuthSession.LinkFor(Slug, Role, $"login?returnUrl=/{Slug}/listings/{Id}")"
                    class="ac-btn ac-btn-primary ac-btn-lg ac-btn-block"
                    style="text-decoration:none;text-align:center;">
                     دُخول لِلتَواصُل
@@ -411,7 +411,7 @@ else
             else
             {
                 <p>سَجِّل دُخولك أَوَّلاً لِيَتَمَكَّن فَريقنا مِن مُتابَعَة البَلاغ مَعَك.</p>
-                <a class="ac-btn ac-btn-primary" href="@($"/{Slug}/login?returnUrl=/{Slug}/listings/{Id}")">
+                <a class="ac-btn ac-btn-primary" href="@AuthSession.LinkFor(Slug, Role, $"login?returnUrl=/{Slug}/listings/{Id}")">
                     تَسجيل دُخول
                 </a>
             }

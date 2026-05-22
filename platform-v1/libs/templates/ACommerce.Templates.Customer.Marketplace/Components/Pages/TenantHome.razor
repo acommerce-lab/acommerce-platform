@@ -20,20 +20,20 @@
         @* مَتجَر بِأَدوار + غَير مُسَجَّل دُخول (أَو بِلا ActiveRole):
            لا يَرى أَيّ مُحتَوى. يَرَى صَفحَة اختِيار التَّطبيق الفَرعيّ.
            هذا يُحَوِّل /{slug} مِن صَفحَة عامَّة إلى نُقطَة دُخول مُتَفَرِّعَة. *@
-        <RoleLanding Slug="@Slug" Tenant="loaded" />
+        <RoleLanding Slug="@Slug" Tenant="loaded" Role="@Role"/>
     }
     else if (activeRole?.CatalogSlug == "rider")
     {
-        <ACommerce.Templates.Customer.Marketplace.Components.RoleHomes.RiderHome Slug="@Slug" />
+        <ACommerce.Templates.Customer.Marketplace.Components.RoleHomes.RiderHome Slug="@Slug" Role="@Role"/>
     }
     else if (activeRole?.CatalogSlug == "driver" || activeRole?.CatalogSlug == "shipper")
     {
-        <ACommerce.Templates.Customer.Marketplace.Components.RoleHomes.DriverHome Slug="@Slug" />
+        <ACommerce.Templates.Customer.Marketplace.Components.RoleHomes.DriverHome Slug="@Slug" Role="@Role"/>
     }
     else if (activeRole?.CatalogSlug == "vendor" || activeRole?.CatalogSlug == "host")
     {
         <ACommerce.Templates.Customer.Marketplace.Components.RoleHomes.SellerHome
-            Slug="@Slug" RoleSlug="@activeRole.CatalogSlug" />
+            Slug="@Slug" RoleSlug="@activeRole.CatalogSlug" Role="@Role"/>
     }
     else
     {
@@ -104,20 +104,20 @@
                        Subtitle="أَضِف إعلانك الآن واصِل لِلمُهتَمّين بِسُرعَة"
                        IconName="house-add"
                        Variant="surface"
-                       Href="@($"/{Slug}/create-listing")" />
+                       Href="@AuthSession.LinkFor(Slug, Role, $"create-listing")" />
         }
 
         @if (featured is { Count: > 0 })
         {
             <AcSectionHeader Title="مُمَيَّز"
                              ActionLabel="عَرض الكلّ"
-                             ActionHref="@($"/{Slug}/explore")" />
+                             ActionHref="@AuthSession.LinkFor(Slug, Role, $"explore")" />
             <AcHScroll Class="acm-home-rail">
                 @foreach (var l in featured)
                 {
                     <div class="acm-home-rail-item">
                         <AcSpaceCard Title="@l.Title"
-                                     Href="@($"/{Slug}/listings/{l.Id}")"
+                                     Href="@AuthSession.LinkFor(Slug, Role, $"listings/{l.Id}")"
                                      ImageUrl="@null"
                                      Location="@($"{l.City} — {l.District}")"
                                      PriceLabel="@($"{l.Price:N0} ريال")"
@@ -137,12 +137,12 @@
         {
             <AcSectionHeader Title="أُضيفَ حَديثاً"
                              ActionLabel="عَرض الكلّ"
-                             ActionHref="@($"/{Slug}/explore")" />
+                             ActionHref="@AuthSession.LinkFor(Slug, Role, $"explore")" />
             <div class="acm-home-grid">
                 @foreach (var l in latest)
                 {
                     <AcSpaceCard Title="@l.Title"
-                                 Href="@($"/{Slug}/listings/{l.Id}")"
+                                 Href="@AuthSession.LinkFor(Slug, Role, $"listings/{l.Id}")"
                                  ImageUrl="@null"
                                  Location="@($"{l.City} — {l.District}")"
                                  PriceLabel="@($"{l.Price:N0} ريال")"
@@ -161,7 +161,7 @@
             <AcActionCard Label="استِكشاف"
                           IconName="search-heart"
                           Variant="primary"
-                          Href="@($"/{Slug}/explore")" />
+                          Href="@AuthSession.LinkFor(Slug, Role, $"explore")" />
             <AcActionCard Label="@(Auth.IsAuthenticated ? "حِسابي" : "تَسجيل دُخول")"
                           IconName="user"
                           Variant="surface"

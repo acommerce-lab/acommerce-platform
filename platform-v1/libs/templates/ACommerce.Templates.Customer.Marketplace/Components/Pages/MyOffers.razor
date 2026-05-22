@@ -15,7 +15,7 @@
     {
         <AcEmptyState IconName="user" Title="تَحتاج تَسجيل دُخول"
                       ActionLabel="تَسجيل دُخول"
-                      ActionHref="@($"/{Slug}/login?returnUrl=/{Slug}/me/offers")" />
+                      ActionHref="@AuthSession.LinkFor(Slug, Role, $"login?returnUrl=/{Slug}/me/offers")" />
     }
     else if (offers is null)
     {
@@ -34,7 +34,7 @@
                 var dist = ListingPickup.TryGetValue(o.ListingId, out var pu) && pu is not null
                     ? ACommerce.Kit.Offers.OfferHelpers.DistanceKm(o.Lat, o.Lng, pu.Value.Lat, pu.Value.Lng)
                     : (double?)null;
-                <a class="ac-offer" href="@($"/{Slug}/listings/{o.ListingId}")"
+                <a class="ac-offer" href="@AuthSession.LinkFor(Slug, Role, $"listings/{o.ListingId}")"
                    style="text-decoration:none;color:inherit;display:block;">
                     <div style="display:flex;justify-content:space-between;align-items:center;">
                         <span class="ac-chip ac-chip-sm">@StatusLabel(o.Status)</span>

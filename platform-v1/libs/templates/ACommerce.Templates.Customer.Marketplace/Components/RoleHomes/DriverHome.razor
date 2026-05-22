@@ -13,15 +13,15 @@
     </header>
 
     <div class="acm-role-cta-row">
-        <a class="acm-role-cta-pill" href="@($"/{Slug}/me/offers")">
+        <a class="acm-role-cta-pill" href="@AuthSession.LinkFor(Slug, Role, $"me/offers")">
             <strong>@pendingOffers</strong>
             <span>عَرض قَيد المُراجَعَة</span>
         </a>
-        <a class="acm-role-cta-pill" href="@($"/{Slug}/me/searches")">
+        <a class="acm-role-cta-pill" href="@AuthSession.LinkFor(Slug, Role, $"me/searches")">
             <strong>@savedSearches</strong>
             <span>بَحث مَحفوظ</span>
         </a>
-        <a class="acm-role-cta-pill" href="@($"/{Slug}/me/area")">
+        <a class="acm-role-cta-pill" href="@AuthSession.LinkFor(Slug, Role, $"me/area")">
             <strong>@(driverRadius > 0 ? $"{driverRadius} كم" : "—")</strong>
             <span>مَنطِقَة عَمَلي</span>
         </a>
@@ -29,7 +29,7 @@
 
     <AcSectionHeader Title="مَشاوير مَفتوحَة"
                      ActionLabel="كُلّ المَشاوير"
-                     ActionHref="@($"/{Slug}/explore")" />
+                     ActionHref="@AuthSession.LinkFor(Slug, Role, $"explore")" />
 
     @if (openRequests is null)
     {
@@ -40,7 +40,7 @@
         <div class="acm-role-empty">
             <span style="font-size:36px;">🚗</span>
             <p>لا مَشاوير مَفتوحَة حاليّاً. اِحفَظ بَحثاً وَ سَنُنَبِّهُكَ.</p>
-            <a class="ac-btn ac-btn-primary ac-btn-sm" href="@($"/{Slug}/me/searches")">
+            <a class="ac-btn ac-btn-primary ac-btn-sm" href="@AuthSession.LinkFor(Slug, Role, $"me/searches")">
                 <AcIcon Name="bell" Size="14" /> حِفظ بَحث
             </a>
         </div>
@@ -50,7 +50,7 @@
         <div class="acm-role-list">
             @foreach (var (l, dist) in openRequests)
             {
-                <a class="acm-role-trip-card" href="@($"/{Slug}/listings/{l.Id}")">
+                <a class="acm-role-trip-card" href="@AuthSession.LinkFor(Slug, Role, $"listings/{l.Id}")">
                     <div style="flex:1;min-width:0;">
                         <strong>@l.Title</strong>
                         <span class="ac-muted" style="font-size:12px;display:block;">
@@ -80,6 +80,7 @@
 
 @code {
     [Parameter] public string Slug { get; set; } = "";
+    [Parameter] public string? Role { get; set; }
 
     List<(Listing Listing, double? DistanceKm)>? openRequests;
     int pendingOffers;

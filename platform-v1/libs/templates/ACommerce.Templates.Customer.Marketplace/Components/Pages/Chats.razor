@@ -10,7 +10,7 @@
                   Title="المُحادَثات تَحتاج تَسجيل دُخول"
                   Message="سَجِّل دُخولك للوصول إلى رَسائلك"
                   ActionLabel="تَسجيل دُخول"
-                  ActionHref="@($"/{Slug}/login?returnUrl=/{Slug}/chats")" />
+                  ActionHref="@AuthSession.LinkFor(Slug, Role, $"login?returnUrl=/{Slug}/chats")" />
 }
 else
 {
@@ -35,7 +35,7 @@ else
                 var partnerName = iAmOwner ? c.PartnerName : c.OwnerName;
                 var unread = iAmOwner ? c.OwnerUnread : c.PartnerUnread;
                 <li style="border-bottom:1px solid var(--ac-border);">
-                    <a href="@($"/{Slug}/chats/{c.Id}")"
+                    <a href="@AuthSession.LinkFor(Slug, Role, $"chats/{c.Id}")"
                        style="display:flex;gap:12px;align-items:center;padding:14px 8px;
                               text-decoration:none;color:var(--ac-text);">
                         <AcAvatar Name="@partnerName" Size="48" />

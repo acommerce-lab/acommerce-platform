@@ -25,7 +25,7 @@
                     .OrderBy(r => r.SortOrder))
         {
             <a class="acm-role-landing-card"
-               href="@($"/{Slug}/r/{r.Slug}/login")">
+               href="@AuthSession.LinkFor(Slug, Role, $"r/{r.Slug}/login")">
                 <span class="acm-role-landing-card-icon">@(r.Icon ?? "👤")</span>
                 <div>
                     <strong>@r.Label</strong>
@@ -40,11 +40,12 @@
     </div>
 
     <div class="acm-role-landing-foot">
-        <a href="@($"/{Slug}/login")">دُخول بِدَور مَوجود مُسبَقاً</a>
+        <a href="@AuthSession.LinkFor(Slug, Role, $"login")">دُخول بِدَور مَوجود مُسبَقاً</a>
     </div>
 </div>
 
 @code {
     [Parameter] public string Slug { get; set; } = "";
+    [Parameter] public string? Role { get; set; }
     [Parameter] public ACommerce.Kit.Tenants.Tenant Tenant { get; set; } = default!;
 }

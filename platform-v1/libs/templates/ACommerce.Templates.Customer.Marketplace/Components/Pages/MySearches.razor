@@ -18,7 +18,7 @@
     {
         <AcEmptyState IconName="user" Title="تَحتاج تَسجيل دُخول"
                       ActionLabel="تَسجيل دُخول"
-                      ActionHref="@($"/{Slug}/login?returnUrl=/{Slug}/me/searches")" />
+                      ActionHref="@AuthSession.LinkFor(Slug, Role, $"login?returnUrl=/{Slug}/me/searches")" />
     }
     else if (searches is null)
     {

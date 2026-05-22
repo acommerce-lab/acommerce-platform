@@ -28,7 +28,7 @@ else
                       Title="تَحتاج تَسجيل دُخول"
                       Message="سَجِّل دُخولك قَبل نَشر إعلان."
                       ActionLabel="تَسجيل دُخول"
-                      ActionHref="@($"/{Slug}/login?returnUrl=/{Slug}/create-listing")" />
+                      ActionHref="@AuthSession.LinkFor(Slug, Role, $"login?returnUrl=/{Slug}/create-listing")" />
     }
     else if (tenant is null)
     {
@@ -90,7 +90,7 @@ else
                                         @foreach (var c in g.Items)
                                         {
                                             <a class="acs-cat-pick"
-                                               href="@($"/{Slug}/create-listing?category={Uri.EscapeDataString(c.Slug)}")">
+                                               href="@AuthSession.LinkFor(Slug, Role, $"create-listing?category={Uri.EscapeDataString(c.Slug)}")">
                                                 <span style="font-size:28px;">@c.Icon</span>
                                                 <span>@c.Label</span>
                                             </a>
@@ -106,7 +106,7 @@ else
                             @foreach (var c in groups.SelectMany(g => g.Items))
                             {
                                 <a class="acs-cat-pick"
-                                   href="@($"/{Slug}/create-listing?category={Uri.EscapeDataString(c.Slug)}")">
+                                   href="@AuthSession.LinkFor(Slug, Role, $"create-listing?category={Uri.EscapeDataString(c.Slug)}")">
                                     <span style="font-size:28px;">@c.Icon</span>
                                     <span>@c.Label</span>
                                 </a>
@@ -127,7 +127,7 @@ else
                     <ChildContent>
                         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
                             <h3 style="margin:0;">تَفاصيل الإعلان</h3>
-                            <a href="@($"/{Slug}/create-listing")" class="ac-btn ac-btn-ghost ac-btn-sm">
+                            <a href="@AuthSession.LinkFor(Slug, Role, $"create-listing")" class="ac-btn ac-btn-ghost ac-btn-sm">
                                 <AcIcon Name="arrow-right" Size="14" /> تَغيير الفِئَة
                             </a>
                         </div>

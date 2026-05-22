@@ -136,7 +136,7 @@ else
                 </div>
 
                 <div class="ac-modal-footer">
-                    <a class="ac-btn ac-btn-ghost" href="@($"/{Slug}/explore")">إعادَة ضَبط</a>
+                    <a class="ac-btn ac-btn-ghost" href="@AuthSession.LinkFor(Slug, Role, $"explore")">إعادَة ضَبط</a>
                     <button type="submit" class="ac-btn ac-btn-primary">تَطبيق</button>
                 </div>
             </form>
@@ -153,7 +153,7 @@ else
                       Title="لا إعلانات في هذه الفِئَة"
                       Message="جَرِّب فِئَة أُخرى أو غَيِّر البَحث."
                       ActionLabel="إعادَة ضَبط الفَلاتِر"
-                      ActionHref="@($"/{Slug}/explore")" />
+                      ActionHref="@AuthSession.LinkFor(Slug, Role, $"explore")" />
     }
     else
     {
@@ -161,7 +161,7 @@ else
             @foreach (var l in items)
             {
                 <AcSpaceCard Title="@l.Title"
-                             Href="@($"/{Slug}/listings/{l.Id}")"
+                             Href="@AuthSession.LinkFor(Slug, Role, $"listings/{l.Id}")"
                              Location="@($"{l.City} — {l.District}")"
                              PriceLabel="@($"{l.Price:N0} ريال")"
                              ShowFavorite="@Auth.IsAuthenticated"

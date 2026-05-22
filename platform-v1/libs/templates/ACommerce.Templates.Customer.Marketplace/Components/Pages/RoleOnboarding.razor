@@ -13,7 +13,7 @@
 @if (!Auth.IsAuthenticated)
 {
     <AcEmptyState IconName="user" Title="تَحتاج تَسجيل دُخول"
-                  ActionLabel="تَسجيل دُخول" ActionHref="@($"/{Slug}/login")" />
+                  ActionLabel="تَسجيل دُخول" ActionHref="@AuthSession.LinkFor(Slug, Role, $"login")" />
 }
 else if (user is null || tenant is null || activeRole is null)
 {
