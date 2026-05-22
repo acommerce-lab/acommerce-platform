@@ -40,7 +40,10 @@
             </ChildContent>
         </AcCard>
 
-        @if (activeRole is not null)
+        @* بِطاقَة الدَور النَّشِط — تَظهَر فَقَط في النَّمَط القَديم (بِلا /r/).
+           داخِل PWA دَور مُحَدَّد، الدَور هو التَّطبيق نَفسه فَلا يُعرَض
+           لا الدَور ولا زِرّ التَبديل. *@
+        @if (activeRole is not null && string.IsNullOrEmpty(Role))
         {
             <AcCard>
                 <ChildContent>

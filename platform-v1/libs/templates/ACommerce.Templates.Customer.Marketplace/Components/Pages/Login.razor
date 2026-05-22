@@ -2,6 +2,8 @@
 @page "/{slug}/r/{role}/login"
 @inject ITenantContext Tenant
 @inject NavigationManager Nav
+@inject AuthSession Auth
+@inject IHttpContextAccessor HttpCtx
 
 @*
     صَفحَة دُخول SSR. لا Blazor interactivity — كلّ شَيء forms POST عاديّة
@@ -11,7 +13,31 @@
     الـ tenant يُحَدِّد القَناة: Ashare = Nafath، Ejar = Phone. لا اختِيار للمُستَخدِم.
 *@
 
-@if (!Tenant.IsResolved)
+@{
+    // إن كانَ المُستَخدِم مُسَجَّل دُخول بِالفِعل (cookie صالِح)، أَعِده لِلصَفحَة
+    // الرَئيسِيَّة بِـ history.replaceState — يَكسِر الـ trap حَيث الـ back
+    // مِن الرَئيسِيَّة يَرجِع إلى /login → /verify. لِأَنّ POST /verify لا
+    // يَستَطيع حَذف صَفحات سابِقَة مِن history، نَستَخدِم replace هُنا
+    // لِبَعد الدُخول الناجِح.
+    if (HttpCtx.HttpContext is { } authCtx && Tenant.IsResolved)
+    {
+        Auth.SetTenant(Tenant.Slug);
+        Auth.Load(authCtx, Tenant.Slug);
+    }
+    var bouncePath = AuthSession.LinkFor(Slug, Role, "");
+}
+
+@if (Auth.IsAuthenticated)
+{
+    <script>
+        (function () {
+            try { history.replaceState(null, '', '@bouncePath'); } catch (_) {}
+            location.replace('@bouncePath');
+        })();
+    </script>
+    <p style="text-align:center;padding:20px;">جارٍ التَّحويل…</p>
+}
+else if (!Tenant.IsResolved)
 {
     <p>المَتجَر غير مَوجود.</p>
 }
