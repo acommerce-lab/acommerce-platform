@@ -31,17 +31,45 @@
         <link rel="stylesheet" href="@($"/branding/{Tenant.Slug}.css")" />
     }
 
-    @* PWA: manifest + theme-color + iOS web-app meta. الـ manifest يَتَغَيَّر
-       لِكُلّ تَطبيق فَرعيّ (rider/driver/…) فَيَتَعامَل المُتَصَفِّح مَع كُلّ
-       URL prefix كَ PWA مُستَقِلّ قابِل لِلتَّثبيت. *@
+    @* PWA: manifest + theme-color + iOS web-app meta.
+       قاعِدَة: التَّثبيت "يَبدَأ" مِن داخِل تَطبيق دَور فِعليّ — لا مِن
+       صَفحَة /login أَو /terms أَو /admin أَو الـ launcher الفارِغ
+       (مَثَلاً /injez). هذا يَمنَع المُستَخدِم مِن تَثبيت "صَفحَة
+       الدُخول" كَ PWA مُستَقِلّ. لِمَتاجِر بِلا أَدوار (ashare/ejar)
+       نَسمَح بِالتَّثبيت مِن أَيّ صَفحَة-تَطبيق (غَير عابِرَة). *@
     @{
-        var pwaPath = Tenant.IsResolved
-            ? (HttpCtx.HttpContext is { } pctx
-                ? ACommerce.Templates.Customer.Marketplace.AuthSession.ExtractRoleFromPath(pctx.Request.Path)
-                : null) is string roleForPwa && !string.IsNullOrEmpty(roleForPwa)
-                ? $"/api/{Tenant.Slug}/r/{roleForPwa}"
-                : $"/api/{Tenant.Slug}"
+        var rawPath = HttpCtx.HttpContext?.Request.Path.Value ?? "";
+        var roleForPwa = HttpCtx.HttpContext is { } pctx
+            ? ACommerce.Templates.Customer.Marketplace.AuthSession.ExtractRoleFromPath(pctx.Request.Path)
             : null;
+
+        // مَسارات عابِرَة: لا تُمَثِّل التَّطبيق نَفسه.
+        var isTransient = rawPath.Contains("/login")
+                       || rawPath.Contains("/verify")
+                       || rawPath.Contains("/terms")
+                       || rawPath.Contains("/logout")
+                       || rawPath.Contains("/auth/")
+                       || rawPath.StartsWith("/admin");
+
+        // launcher: المَسار = "/{slug}" بِدون أَيّ شَيء بَعدَه. لِلمَتاجِر
+        // ذات الأَدوار (إنجيز)، هذه الصَفحَة لِاختِيار الدَور لا لِلاستِخدام —
+        // التَّثبيت يَجِب أَن يَكون مِن داخِل دَور.
+        var pathSegments = rawPath.Trim('/').Split('/', StringSplitOptions.RemoveEmptyEntries);
+        var isLauncher = pathSegments.Length == 1;
+
+        // قاعِدَة الـ manifest:
+        //  - عابِرَة → لا manifest (لا تَظهَر القابِليَّة لِلتَّثبيت)
+        //  - URL فيه /r/{role}/ → manifest الدَور
+        //  - بِلا /r/ و لَيس launcher → manifest الـ slug (لِمَتاجِر بِلا أَدوار)
+        //  - launcher بِدون /r/ → لا manifest (نَنتَظِر دُخول الدَور)
+        string? pwaPath = null;
+        if (Tenant.IsResolved && !isTransient)
+        {
+            if (!string.IsNullOrEmpty(roleForPwa))
+                pwaPath = $"/api/{Tenant.Slug}/r/{roleForPwa}";
+            else if (!isLauncher)
+                pwaPath = $"/api/{Tenant.Slug}";
+        }
     }
     @if (pwaPath is not null)
     {
@@ -261,6 +289,19 @@
                 window.navigator.standalone === true;
             if (isStandalone) return;
             if (!('serviceWorker' in navigator)) return;
+
+            // طَبَقَة JS مُماثِلَة لِفَحص الـ server: لا تَثبيت مِن صَفَحات
+            // عابِرَة (login/verify/terms/logout/auth/admin) ولا مِن
+            // launcher بِلا /r/. لَو السيرفر رَكَّب pwaPath = null لَن
+            // يَكون عُنصُر #ac-install-banner مَوجوداً — هذا فَحص ثانوي
+            // لِلسَلامَة.
+            var p = location.pathname;
+            var isTransient = /\/(login|verify|terms|logout|auth)(\/|$|\?)/.test(p)
+                           || p.startsWith('/admin');
+            if (isTransient) return;
+            var segs = p.split('/').filter(Boolean);
+            var hasRole = segs.length >= 3 && segs[1] === 'r';
+            if (segs.length <= 1 && !hasRole) return;   // launcher أَو جَذر
 
             // Chrome لا يَعرِض «تَثبيت» إلّا عَلى https أَو localhost.
             var isLocalhost = /^(localhost|127\.|\[::1\])/.test(location.hostname)
