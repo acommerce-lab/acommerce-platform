@@ -35,6 +35,8 @@ public static class MarketplaceTemplateExtensions
         services.AddSingleton<ACommerce.Templates.Customer.Marketplace.Services.AgentService>();
         services.AddSingleton<ACommerce.Templates.Customer.Marketplace.Services.AgentToolExecutor>();
         services.AddSingleton<ACommerce.Templates.Customer.Marketplace.Services.WebPushService>();
+        services.AddScoped<Gates.GatePipeline>();
+        services.AddScoped<Commands.AcceptTermsHandler>();
         return services;
     }
 
@@ -1066,9 +1068,13 @@ public static class MarketplaceTemplateExtensions
             return Results.Ok();
         }).DisableAntiforgery();
 
-        // ─── Terms acceptance — يَحتاج auth، لا يَحتاج terms gate لِأَنّه القَبول ─
+        // ─── Terms acceptance — Phase 2 demo: command + pipeline pattern ───
+        // الـ adapter يَجمَع المُدخَلات مِن HTTP، يُنشِئ command، يُمَرِّره
+        // لِلـ pipeline. الـ pipeline يَفحَص IRequireAuth + IRequireTenant
+        // ثُمَّ يَستَدعي الـ handler. لا boilerplate cookie هُنا.
         app.MapPost("/{slug}/terms/accept", async (
-            string slug, HttpRequest req, HttpContext http, IDocumentStore store) =>
+            string slug, HttpRequest req, HttpContext http,
+            Gates.GatePipeline pipeline, Commands.AcceptTermsHandler handler) =>
         {
             var userId = http.UserId();
             var role   = http.Role();
@@ -1076,15 +1082,15 @@ public static class MarketplaceTemplateExtensions
             if (string.IsNullOrEmpty(returnUrl) || !returnUrl.StartsWith("/"))
                 returnUrl = AuthSession.LinkFor(slug, role, "");
 
-            await using var s = store.LightweightSession(slug);
-            var user = await s.LoadAsync<User>(userId);
-            if (user is null) return Results.Redirect(AuthSession.LinkFor(slug, role, "login"));
-
-            user.AcceptedTermsAt = DateTime.UtcNow;
-            user.AcceptedTermsVersion = TermsPolicy.CurrentVersion;
-            user.UpdatedAt = DateTime.UtcNow;
-            s.Store(user);
-            await s.SaveChangesAsync();
+            var cmd = new Commands.AcceptTermsCommand(userId, slug, TermsPolicy.CurrentVersion);
+            try
+            {
+                await pipeline.ExecuteAsync(cmd, () => handler.HandleAsync(cmd));
+            }
+            catch (Gates.GateDeniedException ex)
+            {
+                return Results.Redirect(AuthSession.LinkFor(slug, role, $"login?err={ex.GateName}"));
+            }
             return Results.Redirect(returnUrl);
         }).DisableAntiforgery().RequireAuth();
 

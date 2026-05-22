@@ -1,11 +1,9 @@
 @page "/{slug}/notifications"
 @page "/{slug}/r/{role}/notifications"
 @*
-    SSR صَرِف — لا @@rendermode. السَّبَب: InteractiveServerRenderMode
-    يَستَدعي OnInitializedAsync مَرَّتَين (SSR ثُمَّ circuit boot)، وَفي
-    الـ circuit الثاني HttpContext = null فَلا يُحَمَّل Auth، فَيَظهَر
-    "تَحتاج تَسجيل" رَغم وُجود cookie صالِح. الـ live updates تَصِل عَبر
-    nav badge JS العامّ في App.razor (SignalR + polling).
+    SSR صَرِف. الفَحص (auth) يَتِم في <GatedPage> — لا داعي لِكود يَدَويّ
+    في الصَفحَة. لَو لَم يَكُن مُسَجَّلاً يَظهَر AcEmptyState مَع زِرّ
+    تَسجيل، خِلاف ذلِك المُحتَوى.
 *@
 @inject IDocumentStore Store
 @inject AuthSession Auth
@@ -13,16 +11,7 @@
 @using ACommerce.Kit.Notifications
 
 <div class="acs-page">
-@if (!_authed)
-{
-    <AcEmptyState IconName="bell"
-                  Title="الإشعارات تَحتاج تَسجيل دُخول"
-                  Message="سَجِّل دُخولك لِتَلَقّي تَنبيهات لَحظيّة."
-                  ActionLabel="تَسجيل دُخول"
-                  ActionHref="@AuthSession.LinkFor(Slug, Role, $"login?returnUrl=/{Slug}/notifications")" />
-}
-else
-{
+<GatedPage Slug="@Slug" Role="@Role" RequireAuth>
     <h1 class="acm-wizard-title" style="margin:0;">الإشعارات</h1>
 
     @* بَنر تَفعيل إشعارات Push — يَظهَر فَقَط إذا الإذن لَم يُمنَح بَعد. *@
@@ -79,38 +68,35 @@ else
             }
         </div>
     }
-}
+</GatedPage>
 </div>
 
 @code {
     [Parameter] public string Slug { get; set; } = "";
     [Parameter] public string? Role { get; set; }
-    bool _authed;
-    Guid _userId;
     List<Notification>? _items;
 
     protected override async Task OnInitializedAsync()
     {
+        // الـ GatedPage يَتَكَفَّل بِفَحص التَّوثيق. هُنا فَقَط نُحَمِّل
+        // البَيانات لَو المُستَخدِم مَوثَّق — وَإلّا الـ _items يَبقى null
+        // وَالمُحتَوى داخِل GatedPage لَن يُعرَض أَصلاً.
         if (HttpCtx.HttpContext is { } ctx)
         {
             Auth.SetTenant(Slug);
             Auth.Load(ctx, Slug);
         }
-        _authed = Auth.IsAuthenticated;
-        if (!_authed) return;
-        _userId = Auth.UserId!.Value;
-        await LoadAsync();
+        if (!Auth.IsAuthenticated) return;
+        await LoadAsync(Auth.UserId!.Value);
     }
 
-    async Task LoadAsync()
+    async Task LoadAsync(Guid userId)
     {
         await using var s = Store.QuerySession(Slug);
         _items = (await s.Query<Notification>()
-            .Where(n => n.UserId == _userId)
+            .Where(n => n.UserId == userId)
             .OrderByDescending(n => n.At).Take(50).ToListAsync()).ToList();
 
-        // عَلِّم كُلّ الغَير-مَقروء كَ مَقروء عِندَ فَتح الصَفحَة — يُصَفِّر
-        // الـ badge في الـ nav. الكِتابَة منفصلة عن الـ Read فَوقُ.
         var unread = _items.Where(n => !n.IsRead).ToList();
         if (unread.Count > 0)
         {
