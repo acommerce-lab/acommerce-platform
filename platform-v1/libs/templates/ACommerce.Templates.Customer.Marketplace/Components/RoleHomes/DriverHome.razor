@@ -123,8 +123,8 @@
                 !string.Equals(ao, "true", System.StringComparison.OrdinalIgnoreCase))
                 continue;
             var match = await s.LoadAsync<ACommerce.Kit.Offers.ListingMatch>(l.Id);
-            if (match is not null && match.Status == ACommerce.Kit.Offers.TripStatus.Active)
-                continue;
+            // أَيّ مُطابَقَة (Active/Completed/Aborted) → الإعلان لَه نَتيجَة. يُحجَب.
+            if (match is not null) continue;
 
             // فَلتَرَة المَسافَة لَو السائِق ضَبَط مَنطِقَة.
             double? dist = null;
