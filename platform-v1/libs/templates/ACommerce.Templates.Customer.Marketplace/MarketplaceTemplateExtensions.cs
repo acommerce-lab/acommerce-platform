@@ -4,6 +4,7 @@ using ACommerce.Kit.Chat;
 using ACommerce.Kit.Favorites;
 using ACommerce.Kit.Listings;
 using ACommerce.Platform.Shared;
+using ACommerce.Templates.Customer.Marketplace.Gates;
 using Marten;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -400,20 +401,14 @@ public static class MarketplaceTemplateExtensions
             return Results.Redirect(Link(req, slug, $"listings/{id}?reported=1"));
         }).DisableAntiforgery();
 
-        // ─── Create listing ─────────────────────────────────────────────
+        // ─── Create listing — gates: auth + terms + permission ──────────
+        // الـ filters تَتَكَفَّل بِالتَّوثيق وَالشُروط وَ "listing.create".
         app.MapPost("/{slug}/listings/create",
-            async (string slug, HttpRequest req, IDocumentStore store,
+            async (string slug, HttpContext http, HttpRequest req, IDocumentStore store,
                    Microsoft.AspNetCore.SignalR.IHubContext<ACommerce.Kit.Realtime.Server.RealtimeHub> hub,
                    ACommerce.Templates.Customer.Marketplace.Services.WebPushService push) =>
         {
-            var token = req.Cookies[AuthSession.CookieName(slug)];
-            var parsed = AuthHandlers.ParseToken(token);
-            if (parsed is null) return Results.Redirect(Link(req, slug, $"login?returnUrl=/{slug}/create-listing"));
-            var (userId, tenantSlug, _) = parsed.Value;
-            if (tenantSlug != slug) return Results.Redirect(Link(req, slug, $"login"));
-
-            if (!await HasPermissionAsync(slug, userId, "listing.create", store))
-                return Results.Redirect(Link(req, slug, $"create-listing?err=forbidden"));
+            var userId = http.UserId();
 
             var title       = req.Form["title"].ToString().Trim();
             var description = req.Form["description"].ToString().Trim();
@@ -496,7 +491,7 @@ public static class MarketplaceTemplateExtensions
                     tag: $"ss-{id}");
             }
             return Results.Redirect(Link(req, slug, $"listings/{id}"));
-        }).DisableAntiforgery();
+        }).DisableAntiforgery().RequireAuth().RequireTerms().RequirePermission("listing.create");
 
         // ─── Saved Searches — create/delete/toggle ──────────────────────
         app.MapPost("/{slug}/searches/save",
@@ -1071,6 +1066,28 @@ public static class MarketplaceTemplateExtensions
             return Results.Ok();
         }).DisableAntiforgery();
 
+        // ─── Terms acceptance — يَحتاج auth، لا يَحتاج terms gate لِأَنّه القَبول ─
+        app.MapPost("/{slug}/terms/accept", async (
+            string slug, HttpRequest req, HttpContext http, IDocumentStore store) =>
+        {
+            var userId = http.UserId();
+            var role   = http.Role();
+            var returnUrl = req.Query["returnUrl"].ToString();
+            if (string.IsNullOrEmpty(returnUrl) || !returnUrl.StartsWith("/"))
+                returnUrl = AuthSession.LinkFor(slug, role, "");
+
+            await using var s = store.LightweightSession(slug);
+            var user = await s.LoadAsync<User>(userId);
+            if (user is null) return Results.Redirect(AuthSession.LinkFor(slug, role, "login"));
+
+            user.AcceptedTermsAt = DateTime.UtcNow;
+            user.AcceptedTermsVersion = TermsPolicy.CurrentVersion;
+            user.UpdatedAt = DateTime.UtcNow;
+            s.Store(user);
+            await s.SaveChangesAsync();
+            return Results.Redirect(returnUrl);
+        }).DisableAntiforgery().RequireAuth();
+
         // ─── Live unread counts — polled by JS in App.razor كُلّ ٢٠ ث ─────
         // يُحَدِّث الـ badges في الـ nav بِلا إعادَة تَحميل. مَنطِق العَدّ:
         //   - الرَسائِل: عَدَد المُحادَثات الَّتي فيها OwnerUnread/PartnerUnread
@@ -1171,17 +1188,16 @@ public static class MarketplaceTemplateExtensions
             return Results.Redirect(Link(req, slug, $"chats/{conv.Id}"));
         }).DisableAntiforgery();
 
-        // ─── Send chat message ──────────────────────────────────────────
+        // ─── Send chat message — gates: auth + terms ─────────────────────
+        // boilerplate التَّوثيق المُتَكَرِّر استُبدِل بِـ .RequireAuth().RequireTerms()
+        // — الـ filter يَكتُب userId إلى HttpContext.Items وَنَقرَأها هُنا.
         app.MapPost("/{slug}/chats/{conversationId:guid}/send",
-            async (string slug, Guid conversationId, HttpRequest req, IDocumentStore store,
+            async (string slug, Guid conversationId, HttpContext http, HttpRequest req,
+                   IDocumentStore store,
                    Microsoft.AspNetCore.SignalR.IHubContext<ACommerce.Kit.Realtime.Server.RealtimeHub> hub,
                    ACommerce.Templates.Customer.Marketplace.Services.WebPushService push) =>
         {
-            var token = req.Cookies[AuthSession.CookieName(slug)];
-            var parsed = AuthHandlers.ParseToken(token);
-            if (parsed is null) return Results.Redirect(Link(req, slug, $"login"));
-            var (userId, tenantSlug, _) = parsed.Value;
-            if (tenantSlug != slug) return Results.Redirect(Link(req, slug, $"login"));
+            var userId = http.UserId();
 
             var body = req.Form["body"].ToString().Trim();
             if (string.IsNullOrEmpty(body)) return Results.Redirect(Link(req, slug, $"chats/{conversationId}"));
@@ -1237,7 +1253,7 @@ public static class MarketplaceTemplateExtensions
                     url: $"/{slug}/chats/{conversationId}",
                     tag: $"chat-{conversationId}");
             return Results.Redirect(Link(req, slug, $"chats/{conversationId}"));
-        }).DisableAntiforgery();
+        }).DisableAntiforgery().RequireAuth().RequireTerms();
 
         // ─── Admin: create tenant ───────────────────────────────────────
         // نَموذَج SSR على /admin/tenants/new يُرسِل لِهُنا. عَلى الفَشَل نُعيد

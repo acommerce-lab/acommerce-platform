@@ -49,6 +49,14 @@ public sealed class User
     /// إشعار push عَلى مُستَوى نِظام التَّشغيل (يَعمَل حَتَّى لَو PWA
     /// مُغلَق).</summary>
     public List<PushSubscription> PushSubscriptions { get; set; } = new();
+
+    /// <summary>تاريخ قَبول الشُروط والأَحكام. <c>null</c> = لَم يَقبَل
+    /// بَعد. الـ TermsGate يُجبِر القَبول قَبل أَيّ إجراء يَكتُب بَيانات.</summary>
+    public DateTime? AcceptedTermsAt { get; set; }
+
+    /// <summary>إصدار الشُروط الَّتي قَبِلَها — لَو تَحَدَّثَت الشُروط نَرفَع
+    /// <see cref="TermsPolicy.CurrentVersion"/> وَنُجبِر القَبول مَرَّة أُخرى.</summary>
+    public int AcceptedTermsVersion { get; set; }
 }
 
 /// <summary>اشتِراك Web Push واحِد — جِهاز + مُتَصَفِّح. الـ Endpoint مِن
