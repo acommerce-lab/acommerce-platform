@@ -58,18 +58,19 @@
     <HeadOutlet />
 </head>
 <body>
-    @* Install banner — مَخفيّ افتراضيّاً، يُظهَر عِندَ استِقبال
-       beforeinstallprompt مِن المُتَصَفِّح (Android Chrome، Edge، …). *@
+    @* Install pill — زِرّ صَغير عائِم في زاوِيَة الشاشَة. مَخفيّ
+       افتراضيّاً، يَظهَره JS فَقَط لَو الـ PWA قابِلَة لِلتَثبيت
+       (https/localhost + SW + manifest). *@
     @if (pwaPath is not null)
     {
-        <div id="ac-install-banner" class="ac-pwa-banner" style="display:none;">
-            <span class="ac-pwa-banner-icon">📱</span>
-            <div class="ac-pwa-banner-text">
-                <strong>ثَبِّت التَطبيق</strong>
-                <span>وُصول أَسرَع + إشعارات فَوريَّة</span>
-            </div>
-            <button type="button" onclick="acInstall()" class="ac-pwa-banner-cta">تَثبيت</button>
-            <button type="button" onclick="acDismissInstall()" class="ac-pwa-banner-x" aria-label="إغلاق">✕</button>
+        <div id="ac-install-banner" class="ac-pwa-pill" style="display:none;">
+            <button type="button" onclick="acInstall()" class="ac-pwa-pill-cta"
+                    aria-label="تَثبيت التَطبيق">
+                <span class="ac-pwa-pill-icon">⤓</span>
+                <span class="ac-pwa-pill-text">تَثبيت</span>
+            </button>
+            <button type="button" onclick="acDismissInstall()" class="ac-pwa-pill-x"
+                    aria-label="إغلاق">✕</button>
         </div>
     }
     <Routes />

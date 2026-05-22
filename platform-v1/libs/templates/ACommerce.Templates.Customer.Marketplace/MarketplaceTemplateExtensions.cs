@@ -1822,13 +1822,16 @@ public static class MarketplaceTemplateExtensions
             r = tenant.Roles.FirstOrDefault(x => x.Slug == role);
 
         var prefix    = string.IsNullOrEmpty(role) ? $"/{slug}" : $"/{slug}/r/{role}";
+        // الـ icon endpoint مُسَجَّل تَحت /api/… لا تَحت scope الـ PWA،
+        // فَنُشير إليه بِالمَسار المُطلَق الصَحيح. تَركه تَحت prefix يُسَبِّب
+        // 404 وَيُفشِل installability check (لا أَيقونات صالِحَة).
+        var iconUrl   = string.IsNullOrEmpty(role)
+            ? $"/api/{slug}/icon.svg"
+            : $"/api/{slug}/r/{role}/icon.svg";
         var appName   = !string.IsNullOrEmpty(r?.PwaName) ? r!.PwaName!
                       : r is not null            ? $"{tenant.Name} — {r.Label}"
                                                  : tenant.Name;
         var shortName = r?.Label ?? tenant.Name;
-        var iconUrl   = $"{prefix}/icon.svg";
-        // مَسارات الـ icon — نَنشُر الـ SVG كَ "any" + "maskable" (نَفس
-        // الصورَة لكِنّ مَع padding مَبنيّ داخِلها).
         var shortcuts = BuildShortcuts(slug, role, r, iconUrl);
 
         return Results.Json(new

@@ -818,29 +818,38 @@
     display: flex; flex-direction: column; gap: 8px;
 }
 
-/* ═══ PWA install banner ═══════════════════════════════════════════ */
-.ac-pwa-banner {
-    position: fixed; bottom: 80px; inset-inline: 12px; z-index: 950;
-    display: flex; align-items: center; gap: 10px;
-    padding: 12px 14px;
-    background: #fff; border: 1px solid var(--ac-border);
-    border-radius: 14px;
-    box-shadow: 0 10px 30px rgba(0,0,0,.12);
-    animation: ac-pwa-up .25s ease-out;
-}
-@keyframes ac-pwa-up { from { transform: translateY(20px); opacity: 0; } to { transform: none; opacity: 1; } }
-.ac-pwa-banner-icon { font-size: 28px; }
-.ac-pwa-banner-text { flex: 1; min-width: 0; }
-.ac-pwa-banner-text strong { display: block; font-size: 14px; }
-.ac-pwa-banner-text span { display: block; font-size: 12px; color: var(--ac-text-muted); }
-.ac-pwa-banner-cta {
+/* ═══ PWA install pill (compact, top-start corner) ═══════════════════ */
+/* صَغير وَمُحايِد — لا يَحجُب المُحتَوى. !important يُغَلِّب أَيّ CSS
+   مِن RCLs قَد يَكسِر المَوقِع. */
+.ac-pwa-pill {
+    position: fixed !important;
+    top: calc(12px + env(safe-area-inset-top, 0px)) !important;
+    inset-inline-start: 12px !important;
+    bottom: auto !important; inset-inline-end: auto !important;
+    z-index: 950 !important;
+    display: inline-flex !important; align-items: center !important; gap: 0;
     background: var(--ac-primary); color: #fff;
-    padding: 8px 16px; border-radius: 8px; border: 0;
-    font-weight: 700; cursor: pointer;
+    border-radius: 999px;
+    box-shadow: 0 6px 20px rgba(0,0,0,.18);
+    font-size: 12px; font-weight: 600;
+    animation: ac-pwa-pop .2s ease-out;
 }
-.ac-pwa-banner-x {
-    background: transparent; border: 0; color: var(--ac-text-muted);
-    cursor: pointer; padding: 4px 8px; font-size: 14px;
+@keyframes ac-pwa-pop { from { transform: scale(.85); opacity: 0; } to { transform: none; opacity: 1; } }
+.ac-pwa-pill-cta {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 12px;
+    background: transparent; color: inherit; border: 0;
+    font: inherit; cursor: pointer;
+    border-radius: 999px 0 0 999px;
+}
+.ac-pwa-pill-icon { font-size: 14px; line-height: 1; }
+.ac-pwa-pill-text { line-height: 1; }
+.ac-pwa-pill-x {
+    background: transparent; border: 0;
+    color: rgba(255,255,255,.85);
+    cursor: pointer; padding: 4px 10px 6px;
+    font-size: 14px; line-height: 1;
+    border-radius: 0 999px 999px 0;
 }
 
 /* ═══ Role picklist (TenantRoles checklist) ═══════════════════════ */
