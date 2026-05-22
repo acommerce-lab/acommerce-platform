@@ -219,11 +219,49 @@
             }
             navigator.serviceWorker.register('/sw.js', { scope: scope })
                 .then(function (reg) {
-                    // اِشتِراك Web Push عَلى أَوَّل تَسجيل ناجِح + إذن مَنوح.
-                    // نَجلِب VAPID public key مِن السيرفر (مَفتوح، لَيس سِرّاً).
                     if ('PushManager' in window) subscribeToPush(reg);
+                    // اِكتِشاف تَحديث: عِندَ ظُهور SW جَديد في install/installed
+                    // و يَتَوَفَّر controller حاليّ، اعرِض banner تَحديث.
+                    if (reg.waiting && navigator.serviceWorker.controller) {
+                        showUpdateBanner(reg.waiting);
+                    }
+                    reg.addEventListener('updatefound', function () {
+                        var nw = reg.installing;
+                        if (!nw) return;
+                        nw.addEventListener('statechange', function () {
+                            if (nw.state === 'installed' && navigator.serviceWorker.controller) {
+                                showUpdateBanner(nw);
+                            }
+                        });
+                    });
                 })
                 .catch(function (e) { console.warn('SW register failed:', e); });
+
+            // إعادَة تَحميل تِلقائيَّة عِندَ تَفعيل SW جَديد — تَضمَن أَنّ
+            // كُلّ الـ tabs تَعمَل عَلى نَفس الإصدار بَعد التَّحديث.
+            var refreshing = false;
+            navigator.serviceWorker.addEventListener('controllerchange', function () {
+                if (refreshing) return;
+                refreshing = true;
+                location.reload();
+            });
+
+            function showUpdateBanner(worker) {
+                if (document.getElementById('ac-update-banner')) return;
+                var b = document.createElement('div');
+                b.id = 'ac-update-banner';
+                b.className = 'ac-pwa-pill is-update';
+                b.innerHTML =
+                    '<button type="button" class="ac-pwa-pill-cta">' +
+                    '  <span class="ac-pwa-pill-icon">↻</span>' +
+                    '  <span class="ac-pwa-pill-text">تَحديث جَديد جاهِز</span>' +
+                    '</button>';
+                b.style.top = 'calc(60px + env(safe-area-inset-top, 0px))';
+                b.querySelector('.ac-pwa-pill-cta').addEventListener('click', function () {
+                    worker.postMessage({ type: 'SKIP_WAITING' });
+                });
+                document.body.appendChild(b);
+            }
 
             async function subscribeToPush(reg) {
                 try {
@@ -312,14 +350,38 @@
                 return;
             }
 
-            // اِخفاء لِأُسبوع بَعد الإغلاق.
+            // ─── حالَة التَّثبيت ─────────────────────────────────────────
+            // مُفتاح فَريد لِكُلّ scope (rider لَه مَفتاح، driver مَفتاح
+            // آخَر). نَحفَظ "مُثَبَّت" في localStorage عِندَ appinstalled،
+            // وَنَفحَصه عِندَ تَحميل أَيّ صَفحَة لاحِقَة. لا API مُتَصَفِّح
+            // تُخبِرنا "هَل PWA لِهذا الـ scope مُثَبَّتَة" — نُحاكيها بِالمُتَصَفِّح
+            // المَحَلّيّ.
+            var scopeKey = hasRole ? '/' + segs[0] + '/r/' + segs[2] + '/'
+                                   : '/' + segs[0] + '/';
+            var installedKey = 'ac.pwa.installed.' + scopeKey;
+            function isInstalled() {
+                try { return localStorage.getItem(installedKey) === '1'; }
+                catch (_) { return false; }
+            }
+            // اِستَخدِم getInstalledRelatedApps إن مُتاحَة (Chrome/Android +
+            // بَعض المُتَصَفِّحات الحَديثَة) لِتَأكيد إضافيّ.
+            if ('getInstalledRelatedApps' in navigator) {
+                navigator.getInstalledRelatedApps().then(function (apps) {
+                    if (apps && apps.length > 0) {
+                        try { localStorage.setItem(installedKey, '1'); } catch (_) {}
+                        toggleInstalledMode(true);
+                    }
+                }).catch(function () {});
+            }
+
+            // اِخفاء لِأُسبوع بَعد الإغلاق اليَدَويّ.
             function dismissed() {
                 try {
-                    var t = parseInt(localStorage.getItem('ac.install.dismissed') || '0', 10);
+                    var t = parseInt(localStorage.getItem('ac.install.dismissed.' + scopeKey) || '0', 10);
                     return t > 0 && (Date.now() - t) < 7 * 24 * 60 * 60 * 1000;
                 } catch (_) { return false; }
             }
-            if (dismissed()) return;
+            if (dismissed() && !isInstalled()) return;
 
             function showInstructions() {
                 var body;
@@ -368,8 +430,8 @@
                         var res = await deferredPrompt.userChoice;
                         deferredPrompt = null;
                         if (res.outcome === 'accepted') {
-                            var w = document.getElementById('ac-install-banner');
-                            if (w) w.remove();
+                            try { localStorage.setItem(installedKey, '1'); } catch (_) {}
+                            toggleInstalledMode(true);
                         }
                     } catch (_) { /* اِنسَحَب الـ prompt */ }
                 } else {
@@ -379,23 +441,57 @@
             window.acDismissInstall = function () {
                 var w = document.getElementById('ac-install-banner');
                 if (w) w.remove();
-                try { localStorage.setItem('ac.install.dismissed', String(Date.now())); } catch (_) {}
+                try {
+                    localStorage.setItem('ac.install.dismissed.' + scopeKey, String(Date.now()));
+                } catch (_) {}
             };
+            // زِرّ "افتَح في التَّطبيق" — نُحاوِل فَتح الـ scope. النِظام
+            // يَلتَقِطها وَيَفتَحها في الـ PWA المُثَبَّتَة (handle_links=preferred).
+            window.acOpenInApp = function () {
+                window.open(scopeKey, '_blank');
+            };
+
+            // يُغَيِّر الـ pill بَين وَضعَي "تَثبيت" و "افتَح في التَّطبيق".
+            function toggleInstalledMode(installed) {
+                var w = document.getElementById('ac-install-banner');
+                if (!w) return;
+                var cta = w.querySelector('.ac-pwa-pill-cta');
+                var iconSpan = w.querySelector('.ac-pwa-pill-icon');
+                var textSpan = w.querySelector('.ac-pwa-pill-text');
+                if (installed) {
+                    if (iconSpan) iconSpan.textContent = '↗';
+                    if (textSpan) textSpan.textContent = 'افتَح في التَّطبيق';
+                    if (cta) cta.setAttribute('onclick', 'acOpenInApp()');
+                    w.classList.add('is-installed');
+                } else {
+                    if (iconSpan) iconSpan.textContent = '⤓';
+                    if (textSpan) textSpan.textContent = 'تَثبيت';
+                    if (cta) cta.setAttribute('onclick', 'acInstall()');
+                    w.classList.remove('is-installed');
+                }
+            }
 
             window.addEventListener('beforeinstallprompt', function (e) {
                 e.preventDefault();
                 deferredPrompt = e;
+                // الـ event يُطلَق فَقَط إذا الـ PWA غَير مُثَبَّتَة — نُصَحِّح
+                // لَو الـ localStorage يُشير لِغَير ذلِك.
+                try { localStorage.removeItem(installedKey); } catch (_) {}
+                toggleInstalledMode(false);
             });
             window.addEventListener('appinstalled', function () {
-                var w = document.getElementById('ac-install-banner');
-                if (w) w.remove();
+                try { localStorage.setItem(installedKey, '1'); } catch (_) {}
                 deferredPrompt = null;
+                toggleInstalledMode(true);
             });
 
-            // اِعرِض الزِرّ فَوراً (نَمَط Ejar) — لا نَنتَظِر beforeinstallprompt.
+            // اِعرِض الزِرّ فَوراً، ثُمَّ بَدِّل لِوَضع "مُثَبَّت" لَو
+            // localStorage يَدُلّ عَلى ذلِك.
             function reveal() {
                 var w = document.getElementById('ac-install-banner');
-                if (w) w.style.display = 'flex';
+                if (!w) return;
+                w.style.display = 'flex';
+                if (isInstalled()) toggleInstalledMode(true);
             }
             if (document.readyState !== 'loading') reveal();
             else document.addEventListener('DOMContentLoaded', reveal);

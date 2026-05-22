@@ -3,7 +3,13 @@
    يُسَجِّل SW بِـ scope مُنفَصِل، فَيَتَعامَل المُتَصَفِّح مَع كُلّ تَطبيق
    كَ PWA مُستَقِلّ. */
 
-const VERSION = 'ac-pwa-v1';
+const VERSION = 'ac-pwa-v2';
+
+// عِندَ ضَغط المُستَخدِم زِرّ "تَحديث جاهِز" في الواجِهَة، الـ JS يُرسِل
+// SKIP_WAITING لِنَنشَط فَوراً بَدَلاً مِن انتِظار إغلاق كُلّ الـ tabs.
+self.addEventListener('message', (event) => {
+    if (event.data && event.data.type === 'SKIP_WAITING') self.skipWaiting();
+});
 
 self.addEventListener('install', (event) => {
     // اِفتَح cache بَسيط لِلصَفحَة الافتراضيَّة فَقَط. الباقي

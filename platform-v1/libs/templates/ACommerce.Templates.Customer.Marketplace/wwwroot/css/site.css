@@ -851,6 +851,14 @@
     font-size: 14px; line-height: 1;
     border-radius: 0 999px 999px 0;
 }
+/* وَضع "مُثَبَّت" — أَخضَر هادِئ، يُشير لِلجاهِزيَّة لا لِلتَّحفيز. */
+.ac-pwa-pill.is-installed {
+    background: #16a34a;   /* tailwind green-600 */
+}
+/* وَضع "تَحديث جاهِز" — كَهرَمانيّ، يَلفِت الانتِباه بِدون إنذار. */
+.ac-pwa-pill.is-update {
+    background: #d97706;   /* tailwind amber-600 */
+}
 
 /* ═══ Role picklist (TenantRoles checklist) ═══════════════════════ */
 .acm-role-picklist { display: flex; flex-direction: column; gap: 8px; }

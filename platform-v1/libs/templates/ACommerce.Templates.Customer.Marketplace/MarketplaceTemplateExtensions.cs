@@ -76,6 +76,16 @@ public static class MarketplaceTemplateExtensions
                 role: string.IsNullOrEmpty(asRole) ? null : asRole);
             if (!string.IsNullOrEmpty(asRole))
                 await AssignRoleAsync(slug, result.UserId, asRole, store);
+            // إن كانَ المُستَخدِم أُنشِئ تَوّاً، أَخطِر مُديري المَتجَر.
+            await using (var qs = store.QuerySession(slug))
+            {
+                var user = await qs.LoadAsync<User>(result.UserId);
+                if (user is not null && (DateTime.UtcNow - user.CreatedAt).TotalMinutes < 1)
+                    await NotifyAdminsAsync(store, slug, "new_user",
+                        "مُستَخدِم جَديد سَجَّل",
+                        $"{user.FullName} · {user.Phone}",
+                        $"/admin/tenants/{slug}/users");
+            }
             return Results.Redirect(await PostLoginRouteAsync(slug, result.UserId, asRole, store));
         }).DisableAntiforgery();
 
@@ -400,6 +410,10 @@ public static class MarketplaceTemplateExtensions
                 At:      DateTime.UtcNow);
             s.Events.StartStream<ACommerce.Kit.Support.Ticket>(ev.Id, ev);
             await s.SaveChangesAsync();
+            await NotifyAdminsAsync(store, slug, "report",
+                $"بَلاغ: {reason}",
+                $"{userName} بَلَّغَ عَن إعلان",
+                $"/admin/tenants/{slug}/tickets");
             return Results.Redirect(Link(req, slug, $"listings/{id}?reported=1"));
         }).DisableAntiforgery();
 
@@ -492,6 +506,10 @@ public static class MarketplaceTemplateExtensions
                     url: $"/{slug}/listings/{id}",
                     tag: $"ss-{id}");
             }
+            await NotifyAdminsAsync(store, slug, "new_listing",
+                "إعلان جَديد",
+                title,
+                $"/{slug}/listings/{id}", hub);
             return Results.Redirect(Link(req, slug, $"listings/{id}"));
         }).DisableAntiforgery().RequireAuth().RequireTerms().RequirePermission("listing.create");
 
@@ -1872,6 +1890,11 @@ public static class MarketplaceTemplateExtensions
             background_color = "#f4f4f5",
             theme_color = tenant.BrandColor,
             launch_handler = new { client_mode = "navigate-existing" },
+            // handle_links: "preferred" يُخبِر النِظام أَنّ هذه الـ PWA هي
+            // المُعالِج المُفَضَّل لِلـ URLs داخِل scope. Chrome/Edge يَعرِضان
+            // أَيقونَة "اِفتَح في التَّطبيق" في شَريط العُنوان عِندَ تَصَفُّح
+            // عاديّ + يَفتَحان رَوابِط هذه النِطاق في الـ PWA إذا أَمكَن.
+            handle_links = "preferred",
             icons = new object[]
             {
                 // Chrome's installability checklist يَتَطَلَّب maskable + at-least
@@ -1984,6 +2007,44 @@ public static class MarketplaceTemplateExtensions
                 .SendAsync("unread_changed");
         }
         catch { /* لا نَكسِر تَدَفُّق الـ POST لَو SignalR فَشِل */ }
+    }
+
+    /// <summary>إنشاء إشعار لِكُلّ مُستَخدِم لَه دَور tenant_admin في هذا
+    /// المَتجَر. يُستَدعَى عَلى أَحداث رَئيسيَّة (تَسجيل مُستَخدِم جَديد،
+    /// إعلان جَديد، بَلاغ، …). لَو لا يُوجَد admin، يُتَجاهَل بِصَمت.</summary>
+    private static async Task NotifyAdminsAsync(
+        IDocumentStore store, string slug, string type,
+        string title, string body, string relatedUrl,
+        Microsoft.AspNetCore.SignalR.IHubContext<ACommerce.Kit.Realtime.Server.RealtimeHub>? hub = null,
+        ACommerce.Templates.Customer.Marketplace.Services.WebPushService? push = null)
+    {
+        await using var s = store.LightweightSession(slug);
+        var admins = await s.Query<User>()
+            .Where(u => u.ActiveRole == "tenant_admin").ToListAsync();
+        if (admins.Count == 0) return;
+
+        var now = DateTime.UtcNow;
+        foreach (var admin in admins)
+        {
+            s.Store(new ACommerce.Kit.Notifications.Notification
+            {
+                Id = Guid.NewGuid(),
+                UserId = admin.Id,
+                Type = type,
+                Title = title,
+                Body = body,
+                RelatedUrl = relatedUrl,
+                At = now
+            });
+        }
+        await s.SaveChangesAsync();
+
+        if (hub is not null)
+            foreach (var admin in admins) await NudgeAsync(hub, slug, admin.Id);
+        if (push is not null)
+            foreach (var admin in admins)
+                await push.SendAsync(store, slug, admin.Id, title, body,
+                    url: relatedUrl, tag: $"admin-{type}-{Guid.NewGuid():N}");
     }
 
     // اِستِخراج owner_id مِن listing.Attributes كَ Guid.
