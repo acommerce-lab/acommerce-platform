@@ -114,7 +114,12 @@ else
                 {
                     await using var s = Store.QuerySession(Tenant.Slug);
                     var me = await s.LoadAsync<ACommerce.Kit.Auth.User>(Auth.UserId.Value);
-                    if (me is not null) activeRoleSlug = me.ActiveRole ?? "";
+                    // الـ URL يَتَفَوَّق عَلى user.ActiveRole — السبَب: نَفس
+                    // المُستَخدِم قَد يَكون مُسَجَّلاً بِدَورَين في تَبويبَين،
+                    // فَالـ DB حَقل واحِد بَينَما الـ URL يُحَدِّد كُلّ تَبويب.
+                    var currentPath = new Uri(Nav.Uri).AbsolutePath;
+                    var urlRoleInit = AuthSession.ExtractRoleFromPath(new PathString(currentPath));
+                    activeRoleSlug = urlRoleInit ?? me?.ActiveRole ?? "";
 
                     // عَدّاد المُحادَثات الَّتي فيها رَسائِل جَديدَة لي.
                     // Conversation تَخزِنها كَ OwnerUnread / PartnerUnread —

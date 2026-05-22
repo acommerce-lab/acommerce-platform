@@ -274,7 +274,7 @@ else
         {
             var me = await t.LoadAsync<User>(Auth.UserId.Value);
             var role = me is null ? null
-                : tenant.Roles.FirstOrDefault(r => r.Slug == me.ActiveRole);
+                : tenant.Roles.FirstOrDefault(r => r.Slug == (Role ?? me.ActiveRole));
             driverMode = role?.CatalogSlug is "driver" or "shipper";
             if (driverMode && me is not null)
             {

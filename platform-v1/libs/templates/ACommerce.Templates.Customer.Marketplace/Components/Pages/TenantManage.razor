@@ -107,7 +107,7 @@ else
         await using var s = Store.QuerySession(Slug);
         var me = await s.LoadAsync<User>(Auth.UserId!.Value);
         canManage = ACommerce.Kit.Roles.RolePermissions.Has(
-            tenant.Roles, me?.ActiveRole, "tenant.manage");
+            tenant.Roles, Role ?? me?.ActiveRole, "tenant.manage");
         if (!canManage) return;
 
         listingsCount = await s.Query<Listing>().CountAsync(l => !l.IsDeleted);
