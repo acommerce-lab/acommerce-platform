@@ -13,6 +13,22 @@ using Microsoft.Extensions.DependencyInjection;
 
 Console.OutputEncoding = System.Text.Encoding.UTF8;
 
+// ⚠️ إجباريّ: حَمِّل كُلّ assemblies الكِيانات قَبل أَوّل وُصول لِلـ DbContext.
+// ApplicationDbContext.OnModelCreating يَكتَشِف الكِيانات بِمَسح
+// AppDomain.CurrentDomain.GetAssemblies() (الـ ACommerce.* المُحَمَّلَة فَقَط).
+// وَ.NET يُحَمِّل الـ assemblies بِكَسَل، فَلَو لَم نَلمِس نَوعاً مِن كُلّ
+// assembly كِيانات قَبل بِناء النَموذَج، تُكتَشَف ProductListing فَقَط (الَّتي
+// نَلمِسها أوّلاً) وَيَفشَل أَيّ DbSet آخَر (ProductCategory…). لَمسُ نَوع
+// واحِد مِن كُلّ assembly يُجبِر تَحميلها فَتَدخُل كُلّها في النَموذَج.
+_ = new[]
+{
+    typeof(ACommerce.Catalog.Listings.Entities.ProductListing).Assembly,
+    typeof(ACommerce.Catalog.Products.Entities.ProductCategory).Assembly,
+    typeof(ACommerce.Catalog.Attributes.Entities.AttributeDefinition).Assembly,
+    typeof(ACommerce.Catalog.Currencies.Entities.Currency).Assembly,
+    typeof(ACommerce.Profiles.Entities.Profile).Assembly,
+}.Length;
+
 // ─── إعدادات ──────────────────────────────────────────────────────────────
 // ملاحظة: لا نُحَمِّل appsettings.Local.example.json وَقت التَّشغيل — قِيَمه
 // الفارِغَة/النائِبَة قَد تَدُسّ فَوقَ القِيَم الحَقيقيّة. هُوَ قالِب فَقَط.
