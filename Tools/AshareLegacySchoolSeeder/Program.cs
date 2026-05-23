@@ -14,12 +14,50 @@ using Microsoft.Extensions.DependencyInjection;
 Console.OutputEncoding = System.Text.Encoding.UTF8;
 
 // ─── إعدادات ──────────────────────────────────────────────────────────────
+// ملاحظة: لا نُحَمِّل appsettings.Local.example.json وَقت التَّشغيل — قِيَمه
+// الفارِغَة/النائِبَة قَد تَدُسّ فَوقَ القِيَم الحَقيقيّة. هُوَ قالِب فَقَط.
 var config = new ConfigurationBuilder()
     .SetBasePath(AppContext.BaseDirectory)
     .AddJsonFile("appsettings.Local.json", optional: true)
-    .AddJsonFile("appsettings.Local.example.json", optional: true) // fallback لِلتَّجرِبَة فَقَط
-    .AddEnvironmentVariables()
+    .AddEnvironmentVariables()              // يَدعَم اصطِلاح __ (Files__Storage__…)
+    .AddInMemoryCollection(ResolveStorageFromEnv()) // يَدعَم الأَسماء المُسَطَّحَة في الاستضافة
     .Build();
+
+// يَقرَأ مَفاتيح التَّخزين مِن مُتغَيِّرات البيئة المُسَطَّحَة الَّتي تَستَخدِمها
+// استضافَة عشير القديم (ALIYUN_ACCESS_KEY_ID/SECRET، وGCS) وَيُسقِطها عَلى
+// مَفاتيح الإعداد Files:Storage:* الَّتي يَربِط بِها مُزَوِّد التَّخزين، مَع
+// تَعبئة ثَوابِت الإنتاج (Endpoint/Region/Bucket) تِلقائيّاً. هذا يَجعَل
+// الكَيس "مَفاتيح في بيئة الاستضافة" يَعمَل بِلا أَيّ ضَبط يَدويّ.
+static IEnumerable<KeyValuePair<string, string?>> ResolveStorageFromEnv()
+{
+    var d = new Dictionary<string, string?>();
+    string? Env(string k) { var v = Environment.GetEnvironmentVariable(k); return string.IsNullOrWhiteSpace(v) ? null : v; }
+
+    var aliyunId     = Env("ALIYUN_ACCESS_KEY_ID");
+    var aliyunSecret = Env("ALIYUN_ACCESS_KEY_SECRET");
+    if (aliyunId is not null && aliyunSecret is not null)
+    {
+        const string p = "Files:Storage:AliyunOSS:";
+        d[p + "AccessKeyId"]     = aliyunId;
+        d[p + "AccessKeySecret"] = aliyunSecret;
+        d[p + "Endpoint"]        = Env("ALIYUN_OSS_ENDPOINT")  ?? "oss-me-central-1.aliyuncs.com";
+        d[p + "Region"]          = Env("ALIYUN_OSS_REGION")    ?? "me-central-1";
+        d[p + "BucketName"]      = Env("ALIYUN_OSS_BUCKET")    ?? "ashare-media";
+        d[p + "UseHttps"]        = "true";
+        d[p + "UseV4Signature"]  = "true";
+    }
+
+    // GCS بَديل: ضَبط المَسار عَبر GOOGLE_APPLICATION_CREDENTIALS + bucket.
+    var gcsCreds  = Env("GOOGLE_APPLICATION_CREDENTIALS");
+    var gcsBucket = Env("GCS_BUCKET");
+    if (gcsCreds is not null)
+    {
+        const string p = "Files:Storage:GoogleCloud:";
+        d[p + "CredentialsPath"] = gcsCreds;
+        if (gcsBucket is not null) d[p + "BucketName"] = gcsBucket;
+    }
+    return d;
+}
 
 var apply = string.Equals(Environment.GetEnvironmentVariable("SEED_APPLY"), "true", StringComparison.OrdinalIgnoreCase);
 
