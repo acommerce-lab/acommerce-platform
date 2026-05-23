@@ -44,8 +44,7 @@
   </PropertyGroup>
 
   <Target Name="_VerifyAshareLegacyRoot" BeforeTargets="CollectPackageReferences;Restore;ResolveProjectReferences">
-    <Error Condition="!Exists('$(_AshareLibs)\core\ACommerce.SharedKernel.Abstractions\ACommerce.SharedKernel.Abstractions.csproj')"
-           Text="لَم يُعثَر عَلى مَشاريع عشير القديم تَحت '$(AshareLegacyRoot)'. استَنسِخ acommerce-lab/ACommerce.Libraries جَنباً إلى جَنب، أو مَرِّر -p:AshareLegacyRoot=PATH يُشير إلى نُسخَتك. (راجِع README.md)" />
+    <Error Condition="!Exists('$(_AshareLibs)\core\ACommerce.SharedKernel.Abstractions\ACommerce.SharedKernel.Abstractions.csproj')" Text="لَم يُعثَر عَلى مَشاريع عشير القديم تَحت '$(AshareLegacyRoot)'. استَنسِخ acommerce-lab/ACommerce.Libraries جَنباً إلى جَنب، أو مَرِّر -p:AshareLegacyRoot=PATH يُشير إلى نُسخَتك. (راجِع README.md)" />
   </Target>
 
   <ItemGroup>
@@ -74,7 +73,7 @@
 
   <ItemGroup>
     <None Update="appsettings.Local.json" CopyToOutputDirectory="PreserveNewest" Condition="Exists('appsettings.Local.json')" />
-    <None Update="appsettings.Local.example.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="appsettings.Local.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>
