@@ -1,0 +1,55 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    مَشروع بَذر مُنفَصِل لِـ "عشير القديم" (مُستودَع ACommerce.Libraries).
+    يَضيف فئات + خصائص احترافيّة لِلمَدارِس (مُشارَكة/استثمار)، يَبذُر عُروض
+    مَدارِس عَيِّنَة مَع صُوَر مِن الويب (تَنزيل → رَفع عَبر IStorageProvider)،
+    وَيُعَطِّل (حَذف ناعِم) كلّ الفئات والخصائص القَديمَة.
+
+    الوَضع الافتراضيّ: DRY-RUN (لا يَكتُب). لِلكِتابَة الفِعليّة: SEED_APPLY=true.
+
+    ⚠️ مَكان التَّشغيل: ضَع هذا المُجَلَّد داخِل مُستودَع عشير القديم تَحت
+       ACommerce.Libraries/Tools/AshareLegacySchoolSeeder/ ثُمَّ ابنِ.
+       المَراجِع أَدناه نِسبيّة لِذلِك المَكان (..\..\libs\...).
+  -->
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>Ashare.Legacy.SchoolSeeder</RootNamespace>
+    <AssemblyName>AshareLegacySchoolSeeder</AssemblyName>
+    <InvariantGlobalization>false</InvariantGlobalization>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.11" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="9.0.11" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.11" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="9.0.11" />
+    <PackageReference Include="Microsoft.Extensions.Http" Version="9.0.11" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- كِيانات + بُنية تَحتيّة EF + التَّخزين. المَسارات نِسبيّة لِموضِع
+         المَشروع داخِل مُستودَع عشير القديم (Tools/AshareLegacySchoolSeeder). -->
+    <ProjectReference Include="..\..\libs\backend\catalog\ACommerce.Catalog.Listings\ACommerce.Catalog.Listings.csproj" />
+    <ProjectReference Include="..\..\libs\backend\catalog\ACommerce.Catalog.Products\ACommerce.Catalog.Products.csproj" />
+    <ProjectReference Include="..\..\libs\backend\catalog\ACommerce.Catalog.Attributes\ACommerce.Catalog.Attributes.csproj" />
+    <ProjectReference Include="..\..\libs\backend\catalog\ACommerce.Catalog.Currencies\ACommerce.Catalog.Currencies.csproj" />
+    <ProjectReference Include="..\..\libs\backend\auth\ACommerce.Profiles\ACommerce.Profiles.csproj" />
+    <ProjectReference Include="..\..\libs\backend\core\ACommerce.SharedKernel.Abstractions\ACommerce.SharedKernel.Abstractions.csproj" />
+    <ProjectReference Include="..\..\libs\backend\core\ACommerce.SharedKernel.Infrastructure.EFCores\ACommerce.SharedKernel.Infrastructure.EFCores.csproj" />
+    <ProjectReference Include="..\..\libs\backend\files\ACommerce.Files.Abstractions\ACommerce.Files.Abstractions.csproj" />
+    <ProjectReference Include="..\..\libs\backend\files\ACommerce.Files.Storage.GoogleCloud\ACommerce.Files.Storage.GoogleCloud.csproj" />
+    <ProjectReference Include="..\..\libs\backend\files\ACommerce.Files.Storage.AliyunOSS\ACommerce.Files.Storage.AliyunOSS.csproj" />
+    <ProjectReference Include="..\..\libs\backend\files\ACommerce.Files.Storage.Local\ACommerce.Files.Storage.Local.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="appsettings.Local.json" CopyToOutputDirectory="PreserveNewest" Condition="Exists('appsettings.Local.json')" />
+    <None Update="appsettings.Local.example.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>
