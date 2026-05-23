@@ -303,13 +303,43 @@ public sealed class LegacySeeder
         Log("بَذر عُروض المَدارِس العَيِّنَة:");
         var listingRepo = _repos.CreateRepository<ProductListing>();
         var productRepo = _repos.CreateRepository<Product>();
+        var sampleIds = SchoolSeedData.Samples().Select(s => s.Id).ToHashSet();
         var existing = (await listingRepo.GetAllWithPredicateAsync(null, includeDeleted: true))
-            .Select(l => l.Id).ToHashSet();
-        var baseUrl = (_config["HostSettings:BaseUrl"] ?? "").TrimEnd('/');
+            .Where(l => sampleIds.Contains(l.Id))
+            .ToDictionary(l => l.Id);
+
+        // المُضيف الصَّحيح لِلروابِط = نَفس ما يُنادي التَّطبيق القَديم
+        // (api.ashare.sa). الافتراضيّ القَديم (خادِم GCP) جَعَلَ روابِط
+        // /api/media/… تُشير لِمُضيف مَيِّت فَلا تُحَمَّل الصُّوَر.
+        var baseUrl = (string.IsNullOrWhiteSpace(_config["HostSettings:BaseUrl"])
+            ? "https://api.ashare.sa" : _config["HostSettings:BaseUrl"]!).TrimEnd('/');
 
         foreach (var s in SchoolSeedData.Samples())
         {
-            if (existing.Contains(s.Id)) { Plan($"عَرض موجود — تَخطّي: {s.Title}"); continue; }
+            // عَرض مَوجود مِن تَشغيل سابِق → أَصلِح مُضيف روابِط الصُّوَر فَقَط
+            // (الصُّوَر مَرفوعَة فِعلاً في OSS؛ لا نُعيد الرَّفع).
+            if (existing.TryGetValue(s.Id, out var ex))
+            {
+                var imgs = SafeDeserialize(ex.ImagesJson);
+                var fixedImgs = imgs.Select(u => ReHost(u, baseUrl)).ToList();
+                if (!fixedImgs.SequenceEqual(imgs) && fixedImgs.Count > 0)
+                {
+                    Plan($"إصلاح روابِط صُوَر: {s.Title} → {baseUrl}");
+                    if (_apply)
+                    {
+                        ex.ImagesJson = JsonSerializer.Serialize(fixedImgs);
+                        ex.FeaturedImage = fixedImgs.FirstOrDefault();
+                        ex.UpdatedAt = _now;
+                        await listingRepo.UpdateAsync(ex, ct);
+
+                        var prod = (await productRepo.GetAllWithPredicateAsync(p => p.Id == s.Id, true)).FirstOrDefault();
+                        if (prod is not null) { prod.FeaturedImage = fixedImgs.FirstOrDefault(); await productRepo.UpdateAsync(prod, ct); }
+                    }
+                }
+                else Plan($"عَرض مَوجود، روابِط سَليمَة — تَخطّي: {s.Title}");
+                continue;
+            }
+
             Plan($"عَرض جَديد: {s.Title} — {s.Price:N0} ر.س — صُوَر: {s.ImageUrls.Length}");
 
             var imageUrls = await UploadImagesAsync(s, baseUrl, ct);
@@ -339,6 +369,22 @@ public sealed class LegacySeeder
                 CreatedAt = _now
             }, ct);
         }
+    }
+
+    private static List<string> SafeDeserialize(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json)) return new();
+        try { return JsonSerializer.Deserialize<List<string>>(json) ?? new(); }
+        catch { return new(); }
+    }
+
+    // يُعيد كِتابَة مُضيف رابِط proxy (كُلّ ما قَبل /api/media/) إلى baseUrl
+    // الحاليّ، مَع إبقاء objectName كَما هُوَ. روابِط غير proxy تُترَك.
+    private static string ReHost(string url, string baseUrl)
+    {
+        if (string.IsNullOrEmpty(url)) return url;
+        var i = url.IndexOf("/api/media/", StringComparison.OrdinalIgnoreCase);
+        return i >= 0 ? baseUrl + url[i..] : url;
     }
 
     private async Task<List<string>> UploadImagesAsync(SchoolSeedData.SampleSchool s, string baseUrl, CancellationToken ct)
