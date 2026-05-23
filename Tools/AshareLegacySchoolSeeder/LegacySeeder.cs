@@ -319,7 +319,7 @@ public sealed class LegacySeeder
             var productId = s.Id; // نُطابِق Product.Id مَع Listing.Id (نَفس نَمَط البَذر القَديم).
             await productRepo.AddAsync(new Product
             {
-                Id = productId, Name = s.Title, Sku = $"SCHOOL-{s.Id.ToString()[..8]}",
+                Id = productId, Name = s.Title, Sku = $"SCHOOL-{s.Id:N}",
                 Type = ProductType.Service, Status = ProductStatus.Active,
                 ShortDescription = s.Description.Length > 200 ? s.Description[..200] : s.Description,
                 FeaturedImage = imageUrls.FirstOrDefault(), SortOrder = 0, CreatedAt = _now
