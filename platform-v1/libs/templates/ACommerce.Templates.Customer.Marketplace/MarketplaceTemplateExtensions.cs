@@ -37,6 +37,11 @@ public static class MarketplaceTemplateExtensions
         services.AddSingleton<ACommerce.Templates.Customer.Marketplace.Services.WebPushService>();
         services.AddScoped<Gates.GatePipeline>();
         services.AddScoped<Commands.AcceptTermsHandler>();
+
+        // ─── طبقة التحليل الاستثماري (الحاضنة) ──────────────────────────
+        services.AddSingleton<Services.Incubator.SaudiDataProvider>();
+        services.AddSingleton<Services.Incubator.FeasibilityPromptBuilder>();
+        services.AddScoped<Services.Incubator.FeasibilityAnalysisService>();
         return services;
     }
 

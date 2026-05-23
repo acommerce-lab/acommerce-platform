@@ -8,6 +8,18 @@
     <PackageReference Include="Microsoft.AspNetCore.Components.Web" />
     <PackageReference Include="Marten" />
     <PackageReference Include="WebPush" />
+  </ItemGroup>
+
+  <!-- بيانات السوق السعودي تُضمَّن كموارد لتُحقَن في prompt التحليل. -->
+  <ItemGroup>
+    <EmbeddedResource Include="Data\saudi-market-context.json" />
+    <EmbeddedResource Include="Data\saudi-competitors.json" />
+    <EmbeddedResource Include="Data\saudi-cost-benchmarks.json" />
+    <EmbeddedResource Include="Data\saudi-startup-failures.json" />
+    <EmbeddedResource Include="Data\acommerce-capabilities.md" />
+  </ItemGroup>
+
+  <ItemGroup>
 
     <ProjectReference Include="..\..\widgets\ACommerce.Widgets\ACommerce.Widgets.csproj" />
     <ProjectReference Include="..\ACommerce.Templates.Shared\ACommerce.Templates.Shared.csproj" />
