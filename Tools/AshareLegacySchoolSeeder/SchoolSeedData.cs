@@ -44,7 +44,10 @@ public static class SchoolSeedData
             Id = Ids.CategoryParent,
             Name = "مدارس", Slug = "schools",
             Description = "فُرَص استثمار وشَراكة وإيجار في القِطاع التَّعليميّ",
-            Icon = "bi-mortarboard", SortOrder = 1, IsActive = true, CreatedAt = now
+            // غير فَعّال: العميل القَديم يَعرِض الفئات بِشَكل مُسَطَّح بِلا
+            // هَرَميّة، فَالأب الفارِغ مِن الرَّبط يُعطي نَموذَج إنشاء فارِغاً.
+            // الأبناء الثَّلاثَة هُم الفعّالون (لَهُم خصائص + عُروض).
+            Icon = "bi-mortarboard", SortOrder = 1, IsActive = false, CreatedAt = now
         },
         new ProductCategory
         {

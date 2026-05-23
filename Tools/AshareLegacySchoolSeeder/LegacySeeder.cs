@@ -30,6 +30,10 @@ public sealed class LegacySeeder
     private readonly bool _apply;
     private readonly DateTime _now = DateTime.UtcNow;
 
+    // UnsafeRelaxedJsonEscaping لِكَي تُكتَب العَرَبيّة كَما هي (لا \uXXXX).
+    private static readonly JsonSerializerOptions _jsonAr = new()
+    { Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
+
     public LegacySeeder(
         IRepositoryFactory repos, ApplicationDbContext db,
         IStorageProvider? storage, IHttpClientFactory httpFactory,
@@ -195,13 +199,68 @@ public sealed class LegacySeeder
         Log("بَذر فئات المَدارِس:");
         var repo = _repos.CreateRepository<ProductCategory>();
         var existing = (await repo.GetAllWithPredicateAsync(null, includeDeleted: true))
-            .Select(c => c.Id).ToHashSet();
+            .ToDictionary(c => c.Id);
         foreach (var c in SchoolSeedData.Categories(_now))
         {
-            if (existing.Contains(c.Id)) { Plan($"فِئَة موجودَة — تَخطّي: {c.Name}"); continue; }
-            Plan($"فِئَة جَديدَة: {c.Name} ({c.Slug})");
+            if (existing.TryGetValue(c.Id, out var cur))
+            {
+                // مُزامَنَة IsActive/IsDeleted (مُهِمّ لِتَعطيل الأب "مدارس"
+                // عَلى إعادَة التَّشغيل لَو كانَ أُنشِئ فَعّالاً سابِقاً).
+                if (cur.IsActive != c.IsActive || cur.IsDeleted)
+                {
+                    Plan($"تَحديث فِئَة: {c.Name} (IsActive={c.IsActive})");
+                    if (_apply) { cur.IsActive = c.IsActive; cur.IsDeleted = false; cur.UpdatedAt = _now; await repo.UpdateAsync(cur, ct); }
+                }
+                else Plan($"فِئَة موجودَة — تَخطّي: {c.Name}");
+                continue;
+            }
+            Plan($"فِئَة جَديدَة: {c.Name} ({c.Slug})" + (c.IsActive ? "" : " [غير فَعّالَة]"));
             if (_apply) await repo.AddAsync(c, ct);
         }
+    }
+
+    // ═══ تَحويل خصائص العَرض إلى عَرَبيّة جاهِزَة لِلعَرض ══════════════════
+    // صَفحَة التَّفاصيل في العميل القَديم تَعرِض مَفتاح AttributesJson
+    // كَتَسمِيَة (بَعد FormatAttributeKey) وَقيمَته كَنَصّ، بِلا استِشارَة
+    // القاعِدَة لِلخصائص غير المَعروفَة. لِذا نُخَزِّن مَفاتيح + قِيَم عَرَبيّة
+    // جاهِزَة (مُشتَقَّة مِن Name/DisplayName في تَعريفاتنا) فَتَظهَر عَرَبيّة
+    // بِلا أَيّ تَحديث لِلتَّطبيق. (الأكواد آلِيّاً غير مُتَرجَمَة في العميل.)
+    private static Dictionary<string, object>? _arLabelByCode;
+    private static Dictionary<string, string>? _arValueByCodeValue;
+
+    private static void EnsureArMaps()
+    {
+        if (_arLabelByCode is not null) return;
+        var specs = SchoolSeedData.NewAttributes();
+        _arLabelByCode = specs.ToDictionary(s => s.Code, s => (object)s.Name);
+        _arValueByCodeValue = new(StringComparer.Ordinal);
+        foreach (var s in specs)
+            if (s.Values is not null)
+                foreach (var (v, disp) in s.Values)
+                    _arValueByCodeValue[$"{s.Code}|{v}"] = disp;
+    }
+
+    private static Dictionary<string, object> ArabicDisplayAttributes(Dictionary<string, object> attrs)
+    {
+        EnsureArMaps();
+        var result = new Dictionary<string, object>();
+        foreach (var (code, val) in attrs)
+        {
+            var label = _arLabelByCode!.TryGetValue(code, out var l) ? (string)l : code.Replace('_', ' ');
+            string ValDisp(string v) => _arValueByCodeValue!.TryGetValue($"{code}|{v}", out var d) ? d : v;
+
+            object display = val switch
+            {
+                bool b              => b ? "نعم" : "لا",
+                string[] arr        => string.Join("، ", arr.Select(ValDisp)),
+                IEnumerable<string> e => string.Join("، ", e.Select(ValDisp)),
+                string s            => ValDisp(s),
+                int or long         => code.Contains("year") ? val.ToString()! : Convert.ToInt64(val).ToString("N0"),
+                _                   => val.ToString() ?? ""
+            };
+            result[label] = display;
+        }
+        return result;
     }
 
     // ─── ⑤ خصائص المَدارِس + قِيَمها ──────────────────────────────────────
@@ -322,21 +381,28 @@ public sealed class LegacySeeder
             {
                 var imgs = SafeDeserialize(ex.ImagesJson);
                 var fixedImgs = imgs.Select(u => ReHost(u, baseUrl)).ToList();
-                if (!fixedImgs.SequenceEqual(imgs) && fixedImgs.Count > 0)
+                var arabicAttrs = JsonSerializer.Serialize(ArabicDisplayAttributes(s.Attributes), _jsonAr);
+                var needsImgFix = !fixedImgs.SequenceEqual(imgs) && fixedImgs.Count > 0;
+                var needsAttrFix = ex.AttributesJson != arabicAttrs;
+                if (needsImgFix || needsAttrFix)
                 {
-                    Plan($"إصلاح روابِط صُوَر: {s.Title} → {baseUrl}");
+                    Plan($"إصلاح عَرض مَوجود: {s.Title}" +
+                         (needsImgFix ? " [روابِط صُوَر]" : "") + (needsAttrFix ? " [خصائص عَرَبيّة]" : ""));
                     if (_apply)
                     {
-                        ex.ImagesJson = JsonSerializer.Serialize(fixedImgs);
-                        ex.FeaturedImage = fixedImgs.FirstOrDefault();
+                        if (needsImgFix) { ex.ImagesJson = JsonSerializer.Serialize(fixedImgs); ex.FeaturedImage = fixedImgs.FirstOrDefault(); }
+                        if (needsAttrFix) ex.AttributesJson = arabicAttrs;
                         ex.UpdatedAt = _now;
                         await listingRepo.UpdateAsync(ex, ct);
 
-                        var prod = (await productRepo.GetAllWithPredicateAsync(p => p.Id == s.Id, true)).FirstOrDefault();
-                        if (prod is not null) { prod.FeaturedImage = fixedImgs.FirstOrDefault(); await productRepo.UpdateAsync(prod, ct); }
+                        if (needsImgFix)
+                        {
+                            var prod = (await productRepo.GetAllWithPredicateAsync(p => p.Id == s.Id, true)).FirstOrDefault();
+                            if (prod is not null) { prod.FeaturedImage = fixedImgs.FirstOrDefault(); await productRepo.UpdateAsync(prod, ct); }
+                        }
                     }
                 }
-                else Plan($"عَرض مَوجود، روابِط سَليمَة — تَخطّي: {s.Title}");
+                else Plan($"عَرض مَوجود، سَليم — تَخطّي: {s.Title}");
                 continue;
             }
 
@@ -364,8 +430,7 @@ public sealed class LegacySeeder
                 Latitude = s.Lat, Longitude = s.Lng, Address = s.Address, City = s.City,
                 ImagesJson = JsonSerializer.Serialize(imageUrls),
                 FeaturedImage = imageUrls.FirstOrDefault(),
-                AttributesJson = JsonSerializer.Serialize(s.Attributes,
-                    new JsonSerializerOptions { Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping }),
+                AttributesJson = JsonSerializer.Serialize(ArabicDisplayAttributes(s.Attributes), _jsonAr),
                 CreatedAt = _now
             }, ct);
         }
