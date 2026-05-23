@@ -77,6 +77,11 @@ public sealed class FeasibilityAnalysisService
         await session.SaveChangesAsync(ct);
     }
 
+    /// <summary>يعيّن الحالة Analyzing فوراً (يُستدعى متزامناً قبل إطلاق
+    /// التحليل في الخلفية، حتى تعرض صفحة الدراسة مؤشّر الانتظار بلا سباق).</summary>
+    public Task MarkAnalyzingAsync(Guid id, CancellationToken ct = default)
+        => SetStatusAsync(id, IncubatorStatus.Analyzing, ct);
+
     // ─── Analysis ───────────────────────────────────────────────────
     /// <summary>يشغّل التحليل: prompt → LLM → JSON صالح → حفظ. يُعيد الجلسة المُحدَّثة.</summary>
     public async Task<IncubatorSession> RunAnalysisAsync(Guid id, CancellationToken ct = default)

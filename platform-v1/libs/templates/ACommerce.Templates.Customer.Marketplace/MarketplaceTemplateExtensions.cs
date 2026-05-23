@@ -1834,6 +1834,53 @@ public static class MarketplaceTemplateExtensions
             return Results.Redirect("/admin/agent");
         }).DisableAntiforgery();
 
+        // ─── Incubator — طبقة التحليل الاستثماري ─────────────────────────
+        // الـ admin مفتوح حاليّاً، فالمالك = Guid ثابت (مجهول). الاكتشاف
+        // SSR (POST لكل إجابة)، التحليل يُطلَق في الخلفية وصفحة الدراسة
+        // تَستطلِع حتى يكتمل.
+        app.MapPost("/admin/incubator/start",
+            async (Services.Incubator.FeasibilityAnalysisService svc) =>
+        {
+            var s = await svc.StartAsync(Guid.Empty, "صاحِب المَشروع");
+            return Results.Redirect($"/admin/incubator/{s.Id}");
+        }).DisableAntiforgery();
+
+        app.MapPost("/admin/incubator/{id:guid}/answer",
+            async (Guid id, HttpRequest req, Services.Incubator.FeasibilityAnalysisService svc) =>
+        {
+            var qid = req.Form["questionId"].ToString().Trim();
+            var answer = req.Form["answer"].ToString().Trim();
+            if (!string.IsNullOrEmpty(qid))
+                await svc.SaveAnswerAsync(id, qid, answer);
+            return Results.Redirect($"/admin/incubator/{id}");
+        }).DisableAntiforgery();
+
+        app.MapPost("/admin/incubator/{id:guid}/analyze",
+            async (Guid id, IServiceScopeFactory scopeFactory,
+                   Services.Incubator.FeasibilityAnalysisService svc) =>
+        {
+            // عيّن الحالة فوراً (متزامن) لتعرض صفحة الدراسة المؤشّر،
+            // ثم شغّل التحليل الطويل في الخلفية بنطاق DI جديد.
+            await svc.MarkAnalyzingAsync(id);
+            _ = Task.Run(async () =>
+            {
+                using var scope = scopeFactory.CreateScope();
+                var bg = scope.ServiceProvider
+                    .GetRequiredService<Services.Incubator.FeasibilityAnalysisService>();
+                try { await bg.RunAnalysisAsync(id); }
+                catch { /* الحالة تبقى Analyzing؛ تظهر مهلة في الواجهة */ }
+            });
+            return Results.Redirect($"/admin/incubator/{id}/study");
+        }).DisableAntiforgery();
+
+        // إعادة البدء = جلسة جديدة فارغة (الجلسة القديمة تبقى محفوظة).
+        app.MapPost("/admin/incubator/restart",
+            async (Services.Incubator.FeasibilityAnalysisService svc) =>
+        {
+            var s = await svc.StartAsync(Guid.Empty, "صاحِب المَشروع");
+            return Results.Redirect($"/admin/incubator/{s.Id}");
+        }).DisableAntiforgery();
+
         return app;
     }
 
