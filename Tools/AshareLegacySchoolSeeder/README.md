@@ -33,26 +33,46 @@
 ## المَكان والتَّشغيل
 
 > صَلاحيّات الوَكيل في GitHub مَحصورَة بِـ `acommerce-platform`، لِذا المَصدَر
-> مَحفوظ هُنا. لِلبِناء والتَّشغيل، انسَخ المُجَلَّد إلى مُستودَع عشير القديم:
+> مَحفوظ هُنا. لكِنّ المَشروع يُشير إلى مَشاريع **عشير القديم**
+> (`ACommerce.Libraries`) الَّتي ليست في هذا المُستودَع — فَيَجِب أَن تَملُك
+> نُسخَة مُستَنسَخَة مِنها.
+
+يَحُلّ المَشروع جَذر عشير القديم تِلقائيّاً عَبر الخاصّيّة `AshareLegacyRoot`،
+وَالافتراضيّ يَفتَرِض **نُسخَة جَنباً إلى جَنب** (وهو الأكثر شُيوعاً):
+
+```
+…\source\repos\acommerce-platform\Tools\AshareLegacySchoolSeeder   ← هذا المَشروع
+…\source\repos\ACommerce.Libraries                                 ← عشير القديم
+```
+
+يَعمَل الافتراضيّ سَواء بَقِيَ المَشروع في `acommerce-platform\Tools\` (مَع
+`ACommerce.Libraries` شَقيقَة) **أو** نُقِلَ إلى `ACommerce.Libraries\Tools\`.
 
 ```bash
-# 1) استَنسِخ عشير القديم
+# 1) استَنسِخ عشير القديم (لو لَم يَكُن مَوجوداً)
 git clone https://github.com/acommerce-lab/ACommerce.Libraries
-# 2) انسَخ المُجَلَّد (المَراجِع نِسبيّة لِهذا المَكان: ..\..\libs\...)
-cp -r Tools/AshareLegacySchoolSeeder ACommerce.Libraries/Tools/AshareLegacySchoolSeeder
-cd ACommerce.Libraries/Tools/AshareLegacySchoolSeeder
 
-# 3) جَهِّز الإعدادات (لا تَرفَعها — appsettings.Local.json مُتجاهَل في git)
+# 2) جَهِّز الإعدادات (لا تَرفَعها — appsettings.Local.json مُتجاهَل في git)
 cp appsettings.Local.example.json appsettings.Local.json
 #   املأ: ConnectionStrings:DefaultConnection (الإنتاج)،
 #         HostSettings:BaseUrl، وقِسم Files:Storage:* لِلتَّخزين.
 
-# 4) مُعايَنَة أوّلاً (لا كِتابَة)
+# 3) مُعايَنَة أوّلاً (لا كِتابَة)
 dotnet run
 
-# 5) التَّطبيق الفِعليّ بَعد مُراجَعَة المُعايَنَة
+# 4) التَّطبيق الفِعليّ بَعد مُراجَعَة المُعايَنَة
 SEED_APPLY=true dotnet run
 ```
+
+لَو كانَ مُستودَع عشير القديم في مَسار مُختَلِف، مَرِّره صَراحَةً:
+
+```bash
+dotnet run -p:AshareLegacyRoot=D:\path\to\ACommerce.Libraries
+# (أو اضبط مُتغَيِّر بيئة AshareLegacyRoot)
+```
+
+لَو لَم يُعثَر عَلى المَشاريع، يُعطي البِناء رِسالَة واضِحَة تُرشِدك لِضَبط
+`AshareLegacyRoot`.
 
 ## مُلاحظات
 
