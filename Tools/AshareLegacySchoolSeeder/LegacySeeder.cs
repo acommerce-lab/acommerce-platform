@@ -166,13 +166,18 @@ public sealed class LegacySeeder
         foreach (var m in oldMaps)
             if (_apply) { m.IsActive = false; m.IsDeleted = true; await mapRepo.UpdateAsync(m, ct); }
 
-        // الخصائص: القَديمَة الخالِصَة فَقَط (لا المُشتَرَكَة الأَساسيّة ولا
-        // خصائص المَدارِس school_*). نُبقي base codes فَعّالَة لِأَنّ
-        // المَدارِس تُعيد استِخدامها.
+        // الخصائص: نُعَطِّل فَقَط ما كانَ مَربوطاً بِالفئات القَديمَة (مِن
+        // الرَّبط) — لا المُشتَرَكَة الأَساسيّة ولا school_*. هذا يَحمي خصائص
+        // البروفايل (Country/IsVerified/BusinessName…) الَّتي لَيسَت تَصنيف
+        // إعلانات أَصلاً فَلا تُربَط بِأَيّ فِئَة، فَتَبقى سَليمَة. (سابِقاً
+        // كانَ التَّعطيل يَشمَل أَيّ خاصّيّة غير أَساسيّة/مَدرَسيّة فَطال
+        // البروفايل بِالخَطَأ.)
         var keep = new HashSet<string>(SchoolSeedData.ReusedBaseCodes, StringComparer.OrdinalIgnoreCase);
+        var usedByOldCats = oldMaps.Select(m => m.AttributeDefinitionId).ToHashSet();
         var defRepo = _repos.CreateRepository<AttributeDefinition>();
         var defs = await defRepo.GetAllWithPredicateAsync(null, includeDeleted: false);
         var oldDefs = defs.Where(d =>
+            usedByOldCats.Contains(d.Id) &&
             !keep.Contains(d.Code) &&
             !d.Code.StartsWith("school_", StringComparison.OrdinalIgnoreCase)).ToList();
         foreach (var d in oldDefs)
@@ -181,6 +186,7 @@ public sealed class LegacySeeder
             if (_apply) { d.IsDeleted = true; await defRepo.UpdateAsync(d, ct); }
         }
         Log($"  المُبقاة فَعّالَة (مُشتَرَكَة): {string.Join(", ", keep)}");
+        Log($"  (خصائص البروفايل وغير المَربوطَة بِفئات قَديمَة لَم تُمَسّ)");
     }
 
     // ─── ④ فئات المَدارِس ────────────────────────────────────────────────
