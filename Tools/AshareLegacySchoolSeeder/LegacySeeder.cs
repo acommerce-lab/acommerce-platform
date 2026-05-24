@@ -58,11 +58,18 @@ public sealed class LegacySeeder
 
         // تَحَقُّق مُبَكِّر: لَو القاعِدَة الهَدَف بِلا مُخَطَّط (مَثلاً قاعِدَة
         // جَديدَة فارِغَة) نُعطي رِسالَة واضِحَة بَدَل "Invalid object name".
+        // في APPLY = خَطَأ قاتِل. في dry-run = تَنبيه فَقَط ثُمَّ تَخطّي
+        // مُعايَنَة البَذر، لِأَنّ rebuild dry-run لَم يُنشِئ المُخَطَّط بَعد
+        // (الـ clone كانَ مُعايَنَةً) — وَفي التَّنفيذ الفِعليّ يُنشِئه clone أوّلاً.
         if (!await TableExistsAsync("ProductListing", ct))
-            throw new InvalidOperationException(
-                "القاعِدَة الهَدَف لا تَحوي جَداوِل عشير (ProductListing مَفقود). " +
-                "إن كانَت قاعِدَة جَديدَة فارِغَة، شَغِّل SEEDER_MODE=clone (أو rebuild) أوّلاً " +
-                "لِنَسخ المُخَطَّط والبَيانات مِن الإنتاج.");
+        {
+            const string msg = "القاعِدَة الهَدَف لا تَحوي جَداوِل عشير (ProductListing مَفقود). " +
+                "إن كانَت قاعِدَة جَديدَة فارِغَة، شَغِّل SEEDER_MODE=clone (أو rebuild) لِنَسخ المُخَطَّط والبَيانات مِن الإنتاج.";
+            if (_apply) throw new InvalidOperationException(msg);
+            Log("ℹ️ " + msg);
+            Log("   (dry-run) تَخطّي مُعايَنَة البَذر — في التَّنفيذ الفِعليّ يُنشِئ clone المُخَطَّط أوّلاً.");
+            return;
+        }
 
         var ownerId = await ResolveOwnerAsync(ct);
         Log($"المالِك المُختار لِلعُروض: {ownerId}\n");
