@@ -123,22 +123,53 @@ public sealed class LegacySeeder
         await ExecAsync($"DELETE FROM ProductCategory WHERE Id IN ({c})", ct);
     }
 
-    // ═══ استِعادَة تَصنيف عشير القَديم كَما كانَ ═══════════════════════════
-    // يَعكِس الحَذف النَّاعِم: يُعيد تَفعيل كُلّ فئات/خصائص/رَوابِط عشير
-    // القَديمَة (غير المَدرَسيّة) المَحذوفَة ناعِماً. بَعد الـ purge لا تَبقى
-    // صُفوف مَدرَسيّة، فَالحُرّاس (NOT IN) احتياطٌ إضافيّ.
-    // مُلاحَظَة: لَو كانَت هُناك صُفوف تَصنيف مَحذوفَة ناعِماً قَبل بَذرنا
-    // أَصلاً، سَتُستَعاد أيضاً (نادِر في عشير القَديم).
+    // ═══ إظهار/استِعادَة تَصنيف عشير القَديم ══════════════════════════════
+    // يُعيد تَفعيل كُلّ فئات/رَوابِط/تَعريفات عشير القَديمَة + **قِيَم الخصائص**
+    // (كانَت ناقِصَة سابِقاً — لِذا كانَت الفئات تَعود دونَ ظُهور خصائصها).
+    // الآن يَشمَل: الفئات + الرَّبط + التَّعريفات + القِيَم، فَتَظهَر الخصائص
+    // كامِلَةً عِندَ الاستِعادَة.
     public async Task RestoreLegacyAsync(CancellationToken ct)
     {
-        Log("\n=== استِعادَة تَصنيف عشير القَديم ===");
+        Log("\n=== إظهار/استِعادَة تَصنيف عشير القَديم ===");
         var catIds = string.Join(",", SchoolSeedData.Categories(_now).Select(c => $"'{c.Id}'"));
         var defIds = string.Join(",", SchoolSeedData.NewAttributes().Select(a => $"'{a.Id}'"));
 
         await ExecAsync($"UPDATE ProductCategory SET IsDeleted=0, IsActive=1, UpdatedAt=SYSUTCDATETIME() WHERE IsDeleted=1 AND Id NOT IN ({catIds})", ct);
         await ExecAsync($"UPDATE CategoryAttributeMappings SET IsDeleted=0, IsActive=1, UpdatedAt=SYSUTCDATETIME() WHERE IsDeleted=1 AND CategoryId NOT IN ({catIds}) AND AttributeDefinitionId NOT IN ({defIds})", ct);
         await ExecAsync($"UPDATE AttributeDefinitions SET IsDeleted=0, UpdatedAt=SYSUTCDATETIME() WHERE IsDeleted=1 AND Id NOT IN ({defIds})", ct);
+        // قِيَم الخصائص القَديمَة — هذا ما كانَ يَنقُص فَلا تَظهَر الخصائص.
+        await ExecAsync($"UPDATE AttributeValues SET IsDeleted=0, IsActive=1, UpdatedAt=SYSUTCDATETIME() WHERE AttributeDefinitionId NOT IN ({defIds})", ct);
+        // عُروض قَديمَة (غير مَدرَسيّة) — تَأكيد ظُهورها.
+        await ExecAsync($"UPDATE ProductListing SET IsActive=1, IsDeleted=0, UpdatedAt=SYSUTCDATETIME() WHERE CategoryId IS NOT NULL AND CategoryId NOT IN ({catIds}) AND IsDeleted=1", ct);
     }
+
+    // ═══ إظهار/إخفاء المَدارِس ═════════════════════════════════════════════
+    // toggle شامِل لِكُلّ كائِنات المَدارِس (فئات + عُروض + مُنتَجات + رَبط +
+    // تَعريفات + قِيَم). الأب "مدارس" يَبقى غير فَعّال دائماً (يَظهَر فارِغاً
+    // في الإنشاء). يَعمَل على القاعِدَة المُحَدَّدَة في DefaultConnection.
+    public async Task SetSchoolsVisibilityAsync(bool visible, CancellationToken ct)
+    {
+        Log($"\n=== {(visible ? "إظهار" : "إخفاء")} المَدارِس ===");
+        var parent = SchoolSeedData.Ids.CategoryParent;
+        var allCats = SchoolSeedData.Categories(_now).Select(c => c.Id).ToList();
+        var allCsv = string.Join(",", allCats.Select(id => $"'{id}'"));
+        var childCsv = string.Join(",", allCats.Where(id => id != parent).Select(id => $"'{id}'"));
+        var defCsv = string.Join(",", SchoolSeedData.NewAttributes().Select(a => $"'{a.Id}'"));
+        int del = visible ? 0 : 1, act = visible ? 1 : 0;
+
+        await ExecAsync($"UPDATE ProductCategory SET IsDeleted={del}, IsActive={act}, UpdatedAt=SYSUTCDATETIME() WHERE Id IN ({childCsv})", ct);
+        await ExecAsync($"UPDATE ProductCategory SET IsDeleted={del}, IsActive=0, UpdatedAt=SYSUTCDATETIME() WHERE Id='{parent}'", ct);
+        await ExecAsync($"UPDATE ProductListing SET IsDeleted={del}, IsActive={act}, UpdatedAt=SYSUTCDATETIME() WHERE CategoryId IN ({allCsv})", ct);
+        await ExecAsync($"UPDATE Products SET IsDeleted={del}, UpdatedAt=SYSUTCDATETIME() WHERE Sku LIKE 'SCHOOL-%'", ct);
+        await ExecAsync($"UPDATE CategoryAttributeMappings SET IsDeleted={del}, IsActive={act}, UpdatedAt=SYSUTCDATETIME() WHERE CategoryId IN ({allCsv}) OR AttributeDefinitionId IN ({defCsv})", ct);
+        await ExecAsync($"UPDATE AttributeDefinitions SET IsDeleted={del}, UpdatedAt=SYSUTCDATETIME() WHERE Id IN ({defCsv})", ct);
+        await ExecAsync($"UPDATE AttributeValues SET IsDeleted={del}, IsActive={act}, UpdatedAt=SYSUTCDATETIME() WHERE AttributeDefinitionId IN ({defCsv})", ct);
+    }
+
+    // إخفاء القَديم = نَفس التَّعطيل الدَّقيق المُستَخدَم في seed (يُبقي خصائص
+    // البروفايل سَليمَة، يُعَطِّل فَقَط ما رُبِطَ بِالفئات القَديمَة).
+    public Task HideLegacyAsync(CancellationToken ct) => DisableOldTaxonomyAsync(ct);
+
 
     private async Task ExecAsync(string sql, CancellationToken ct)
     {

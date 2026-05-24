@@ -77,17 +77,23 @@ static IEnumerable<KeyValuePair<string, string?>> ResolveStorageFromEnv()
 
 var apply = string.Equals(Environment.GetEnvironmentVariable("SEED_APPLY"), "true", StringComparison.OrdinalIgnoreCase);
 
-// الوَضع: seed (افتراضيّ) | clone | purge-schools | restore-legacy | rebuild
-// rebuild = clone ثُمَّ purge-schools ثُمَّ restore-legacy ثُمَّ seed (التَّسَلسُل
-// الَّذي طَلَبه المُستخدِم: نَسخ → حَذف مَدارِس → استِعادَة عشير → بَذر جَديد).
+// الأوضاع — كُلّها تَعمَل على القاعِدَة في DefaultConnection (الأولى أو
+// الثانيَة حَسَب ما تَضَع). rebuild = clone → purge-schools → restore-legacy
+// → seed (نَسخ → حَذف مَدارِس → استِعادَة عشير → بَذر).
+//   seed | clone | rebuild | purge-schools
+//   show-schools | hide-schools          (إظهار/إخفاء المدارس)
+//   show-legacy (=restore-legacy) | hide-legacy   (إظهار/إخفاء القديم)
 var mode = (Environment.GetEnvironmentVariable("SEEDER_MODE") ?? "seed").Trim().ToLowerInvariant();
-bool DoClone   = mode is "clone" or "rebuild";
-bool DoPurge   = mode is "purge-schools" or "rebuild";
-bool DoRestore = mode is "restore-legacy" or "rebuild";
-bool DoSeed    = mode is "seed" or "rebuild";
-if (!DoClone && !DoPurge && !DoRestore && !DoSeed)
+bool DoClone       = mode is "clone" or "rebuild";
+bool DoPurge       = mode is "purge-schools" or "rebuild";
+bool DoShowLegacy  = mode is "restore-legacy" or "show-legacy" or "rebuild";
+bool DoHideLegacy  = mode is "hide-legacy";
+bool DoShowSchools = mode is "show-schools";
+bool DoHideSchools = mode is "hide-schools";
+bool DoSeed        = mode is "seed" or "rebuild";
+if (!(DoClone || DoPurge || DoShowLegacy || DoHideLegacy || DoShowSchools || DoHideSchools || DoSeed))
 {
-    Console.Error.WriteLine($"❌ SEEDER_MODE غير مَعروف: '{mode}'. القِيَم: seed | clone | purge-schools | restore-legacy | rebuild");
+    Console.Error.WriteLine($"❌ SEEDER_MODE غير مَعروف: '{mode}'. القِيَم: seed | clone | rebuild | purge-schools | show-schools | hide-schools | show-legacy | hide-legacy");
     return 1;
 }
 Console.WriteLine($"الوَضع: {mode} | SEED_APPLY={(apply ? "true" : "false (dry-run)")}");
@@ -159,9 +165,12 @@ var seeder = new LegacySeeder(
 try
 {
     var ct = CancellationToken.None;
-    if (DoPurge)   await seeder.PurgeSchoolsAsync(ct);    // ② حَذف المَدارِس
-    if (DoRestore) await seeder.RestoreLegacyAsync(ct);   // ③ استِعادَة عشير
-    if (DoSeed)    await seeder.RunAsync(ct);             // ④ بَذر جَديد
+    if (DoPurge)       await seeder.PurgeSchoolsAsync(ct);              // حَذف المَدارِس
+    if (DoShowLegacy)  await seeder.RestoreLegacyAsync(ct);            // إظهار/استِعادَة القديم
+    if (DoHideLegacy)  await seeder.HideLegacyAsync(ct);              // إخفاء القديم
+    if (DoShowSchools) await seeder.SetSchoolsVisibilityAsync(true, ct);  // إظهار المدارس
+    if (DoHideSchools) await seeder.SetSchoolsVisibilityAsync(false, ct); // إخفاء المدارس
+    if (DoSeed)        await seeder.RunAsync(ct);                      // بَذر
     return 0;
 }
 catch (Exception ex)

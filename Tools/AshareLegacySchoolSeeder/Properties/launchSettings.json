@@ -32,6 +32,22 @@
     "restore-legacy APPLY": {
       "commandName": "Project",
       "environmentVariables": { "SEEDER_MODE": "restore-legacy", "SEED_APPLY": "true" }
+    },
+    "show-schools APPLY": {
+      "commandName": "Project",
+      "environmentVariables": { "SEEDER_MODE": "show-schools", "SEED_APPLY": "true" }
+    },
+    "hide-schools APPLY": {
+      "commandName": "Project",
+      "environmentVariables": { "SEEDER_MODE": "hide-schools", "SEED_APPLY": "true" }
+    },
+    "show-legacy APPLY": {
+      "commandName": "Project",
+      "environmentVariables": { "SEEDER_MODE": "show-legacy", "SEED_APPLY": "true" }
+    },
+    "hide-legacy APPLY": {
+      "commandName": "Project",
+      "environmentVariables": { "SEEDER_MODE": "hide-legacy", "SEED_APPLY": "true" }
     }
   }
 }
