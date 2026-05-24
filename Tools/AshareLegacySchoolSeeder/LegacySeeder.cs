@@ -134,13 +134,24 @@ public sealed class LegacySeeder
         var catIds = string.Join(",", SchoolSeedData.Categories(_now).Select(c => $"'{c.Id}'"));
         var defIds = string.Join(",", SchoolSeedData.NewAttributes().Select(a => $"'{a.Id}'"));
 
-        await ExecAsync($"UPDATE ProductCategory SET IsDeleted=0, IsActive=1, UpdatedAt=SYSUTCDATETIME() WHERE IsDeleted=1 AND Id NOT IN ({catIds})", ct);
-        await ExecAsync($"UPDATE CategoryAttributeMappings SET IsDeleted=0, IsActive=1, UpdatedAt=SYSUTCDATETIME() WHERE IsDeleted=1 AND CategoryId NOT IN ({catIds}) AND AttributeDefinitionId NOT IN ({defIds})", ct);
-        await ExecAsync($"UPDATE AttributeDefinitions SET IsDeleted=0, UpdatedAt=SYSUTCDATETIME() WHERE IsDeleted=1 AND Id NOT IN ({defIds})", ct);
+        // مُحَصَّن: يُفَعِّل بِغَضّ النَّظَر عَن كَيف أُخفِيَ الصَفّ (IsDeleted=1
+        // أو IsActive=0). الـ GetAvailableCategories يَشتَرِط IsActive=1 +
+        // غير محذوف، فَنَضمَن الاثنَين مَعاً.
+        await ExecAsync($"UPDATE ProductCategory SET IsDeleted=0, IsActive=1, UpdatedAt=SYSUTCDATETIME() WHERE Id NOT IN ({catIds}) AND (IsDeleted=1 OR IsActive=0)", ct);
+        await ExecAsync($"UPDATE CategoryAttributeMappings SET IsDeleted=0, IsActive=1, UpdatedAt=SYSUTCDATETIME() WHERE CategoryId NOT IN ({catIds}) AND AttributeDefinitionId NOT IN ({defIds}) AND (IsDeleted=1 OR IsActive=0)", ct);
+        await ExecAsync($"UPDATE AttributeDefinitions SET IsDeleted=0, UpdatedAt=SYSUTCDATETIME() WHERE Id NOT IN ({defIds}) AND Code NOT LIKE 'school[_]%' AND IsDeleted=1", ct);
         // قِيَم الخصائص القَديمَة — هذا ما كانَ يَنقُص فَلا تَظهَر الخصائص.
-        await ExecAsync($"UPDATE AttributeValues SET IsDeleted=0, IsActive=1, UpdatedAt=SYSUTCDATETIME() WHERE AttributeDefinitionId NOT IN ({defIds})", ct);
+        await ExecAsync($"UPDATE AttributeValues SET IsDeleted=0, IsActive=1, UpdatedAt=SYSUTCDATETIME() WHERE AttributeDefinitionId NOT IN ({defIds}) AND (IsDeleted=1 OR IsActive=0)", ct);
         // عُروض قَديمَة (غير مَدرَسيّة) — تَأكيد ظُهورها.
-        await ExecAsync($"UPDATE ProductListing SET IsActive=1, IsDeleted=0, UpdatedAt=SYSUTCDATETIME() WHERE CategoryId IS NOT NULL AND CategoryId NOT IN ({catIds}) AND IsDeleted=1", ct);
+        await ExecAsync($"UPDATE ProductListing SET IsActive=1, IsDeleted=0, UpdatedAt=SYSUTCDATETIME() WHERE CategoryId IS NOT NULL AND CategoryId NOT IN ({catIds}) AND (IsDeleted=1 OR IsActive=0)", ct);
+
+        // تَشخيص: كَم فِئَة قَديمَة ظاهِرَة الآن (IsActive=1 + غير محذوفَة)؟
+        var visible = await ScalarLongAsync(
+            $"SELECT COUNT(*) FROM ProductCategory WHERE IsActive=1 AND IsDeleted=0 AND Id NOT IN ({catIds})", ct);
+        Log($"  ► فئات قَديمَة ظاهِرَة الآن: {visible}");
+        if (visible == 0)
+            Log("  ⚠ صِفر! إمّا الفئات محذوفَة نِهائيّاً (لا soft-delete) فَتَحتاج إعادَة إنشاء، " +
+                "أو أَنتَ على قاعِدَة غير الَّتي يَقرَؤها التَّطبيق، أو التَّطبيق يُخَبِّئ القائِمَة (أعِد التَّحميل/التَّثبيت).");
     }
 
     // ═══ إظهار/إخفاء المَدارِس ═════════════════════════════════════════════
@@ -186,6 +197,17 @@ public sealed class LegacySeeder
         cmd.CommandText = $"SELECT OBJECT_ID(N'dbo.{name}', N'U')";
         var r = await cmd.ExecuteScalarAsync(ct);
         return r is not null && r != DBNull.Value;
+    }
+
+    // قِراءَة عَدَد (تَعمَل دائماً حَتّى في dry-run — لا تُعَدِّل شَيئاً).
+    private async Task<long> ScalarLongAsync(string sql, CancellationToken ct)
+    {
+        var conn = _db.Database.GetDbConnection();
+        if (conn.State != ConnectionState.Open) await conn.OpenAsync(ct);
+        using var cmd = conn.CreateCommand();
+        cmd.CommandText = sql;
+        var r = await cmd.ExecuteScalarAsync(ct);
+        return Convert.ToInt64(r ?? 0);
     }
 
 
