@@ -1,3 +1,4 @@
+using System.Data;
 using System.Text.Json;
 using ACommerce.Catalog.Attributes.Entities;
 using ACommerce.Catalog.Listings.Entities;
@@ -54,6 +55,14 @@ public sealed class LegacySeeder
     public async Task RunAsync(CancellationToken ct)
     {
         Log($"\n=== بَذر مَدارِس عشير القديم — الوَضع: {(_apply ? "APPLY (كِتابَة فِعليّة)" : "DRY-RUN (مُعايَنَة فَقَط)")} ===\n");
+
+        // تَحَقُّق مُبَكِّر: لَو القاعِدَة الهَدَف بِلا مُخَطَّط (مَثلاً قاعِدَة
+        // جَديدَة فارِغَة) نُعطي رِسالَة واضِحَة بَدَل "Invalid object name".
+        if (!await TableExistsAsync("ProductListing", ct))
+            throw new InvalidOperationException(
+                "القاعِدَة الهَدَف لا تَحوي جَداوِل عشير (ProductListing مَفقود). " +
+                "إن كانَت قاعِدَة جَديدَة فارِغَة، شَغِّل SEEDER_MODE=clone (أو rebuild) أوّلاً " +
+                "لِنَسخ المُخَطَّط والبَيانات مِن الإنتاج.");
 
         var ownerId = await ResolveOwnerAsync(ct);
         Log($"المالِك المُختار لِلعُروض: {ownerId}\n");
@@ -129,6 +138,16 @@ public sealed class LegacySeeder
         if (!_apply) { Plan($"(dry-run) {sql}"); return; }
         var n = await _db.Database.ExecuteSqlRawAsync(sql, ct);
         Plan($"{n} صَفّ — {(sql.Length > 70 ? sql[..70] + "…" : sql)}");
+    }
+
+    private async Task<bool> TableExistsAsync(string name, CancellationToken ct)
+    {
+        var conn = _db.Database.GetDbConnection();
+        if (conn.State != ConnectionState.Open) await conn.OpenAsync(ct);
+        using var cmd = conn.CreateCommand();
+        cmd.CommandText = $"SELECT OBJECT_ID(N'dbo.{name}', N'U')";
+        var r = await cmd.ExecuteScalarAsync(ct);
+        return r is not null && r != DBNull.Value;
     }
 
 

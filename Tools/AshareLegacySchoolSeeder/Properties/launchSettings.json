@@ -1,0 +1,37 @@
+{
+  "_comment": "أوضاع جاهِزَة لِـ Visual Studio (اختَرها مِن قائِمَة التَّشغيل المُنسَدِلَة). صيغَة 'VAR=val dotnet run' لا تَعمَل في Windows؛ استَخدِم هذه الـ profiles أو اضبط مُتغَيِّرات البيئة يَدويّاً. الأوضاع بِـ APPLY تَكتُب فِعليّاً.",
+  "profiles": {
+    "seed (dry-run)": {
+      "commandName": "Project",
+      "environmentVariables": { "SEEDER_MODE": "seed" }
+    },
+    "seed APPLY": {
+      "commandName": "Project",
+      "environmentVariables": { "SEEDER_MODE": "seed", "SEED_APPLY": "true" }
+    },
+    "clone (dry-run)": {
+      "commandName": "Project",
+      "environmentVariables": { "SEEDER_MODE": "clone" }
+    },
+    "clone APPLY": {
+      "commandName": "Project",
+      "environmentVariables": { "SEEDER_MODE": "clone", "SEED_APPLY": "true" }
+    },
+    "rebuild (dry-run)": {
+      "commandName": "Project",
+      "environmentVariables": { "SEEDER_MODE": "rebuild" }
+    },
+    "rebuild APPLY": {
+      "commandName": "Project",
+      "environmentVariables": { "SEEDER_MODE": "rebuild", "SEED_APPLY": "true" }
+    },
+    "purge-schools APPLY": {
+      "commandName": "Project",
+      "environmentVariables": { "SEEDER_MODE": "purge-schools", "SEED_APPLY": "true" }
+    },
+    "restore-legacy APPLY": {
+      "commandName": "Project",
+      "environmentVariables": { "SEEDER_MODE": "restore-legacy", "SEED_APPLY": "true" }
+    }
+  }
+}
