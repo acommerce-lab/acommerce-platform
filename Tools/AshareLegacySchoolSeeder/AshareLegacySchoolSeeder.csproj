@@ -53,6 +53,10 @@
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.11" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="9.0.11" />
     <PackageReference Include="Microsoft.Extensions.Http" Version="9.0.11" />
+    <!-- نَسخ المُخَطَّط الكامِل (كُلّ الجَداوِل + الفَهارِس + المَفاتيح) مِن
+         الإنتاج إلى قاعِدَة جَديدَة عَبر وَضع clone. SqlBulkCopy يَأتي ضِمن
+         Microsoft.Data.SqlClient (تَبَعيّة لِـ EFCore.SqlServer). -->
+    <PackageReference Include="Microsoft.SqlServer.SqlManagementObjects" Version="172.76.0" />
   </ItemGroup>
 
   <ItemGroup>

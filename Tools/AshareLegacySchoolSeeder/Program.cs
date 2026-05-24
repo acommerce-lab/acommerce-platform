@@ -77,13 +77,51 @@ static IEnumerable<KeyValuePair<string, string?>> ResolveStorageFromEnv()
 
 var apply = string.Equals(Environment.GetEnvironmentVariable("SEED_APPLY"), "true", StringComparison.OrdinalIgnoreCase);
 
+// الوَضع: seed (افتراضيّ) | clone | purge-schools | restore-legacy | rebuild
+// rebuild = clone ثُمَّ purge-schools ثُمَّ restore-legacy ثُمَّ seed (التَّسَلسُل
+// الَّذي طَلَبه المُستخدِم: نَسخ → حَذف مَدارِس → استِعادَة عشير → بَذر جَديد).
+var mode = (Environment.GetEnvironmentVariable("SEEDER_MODE") ?? "seed").Trim().ToLowerInvariant();
+bool DoClone   = mode is "clone" or "rebuild";
+bool DoPurge   = mode is "purge-schools" or "rebuild";
+bool DoRestore = mode is "restore-legacy" or "rebuild";
+bool DoSeed    = mode is "seed" or "rebuild";
+if (!DoClone && !DoPurge && !DoRestore && !DoSeed)
+{
+    Console.Error.WriteLine($"❌ SEEDER_MODE غير مَعروف: '{mode}'. القِيَم: seed | clone | purge-schools | restore-legacy | rebuild");
+    return 1;
+}
+Console.WriteLine($"الوَضع: {mode} | SEED_APPLY={(apply ? "true" : "false (dry-run)")}");
+
+// DefaultConnection = القاعِدَة الَّتي نَعمَل عَليها (الجَديدَة في سيناريو rebuild).
 var connectionString = config.GetConnectionString("DefaultConnection");
 if (string.IsNullOrWhiteSpace(connectionString) || connectionString.Contains("Server=HOST"))
 {
     Console.Error.WriteLine(
         "❌ لا يوجَد ConnectionStrings:DefaultConnection صالِح. انسَخ appsettings.Local.example.json " +
-        "إلى appsettings.Local.json واملأ بَيانات الإنتاج.");
+        "إلى appsettings.Local.json واملأ بَيانات القاعِدَة (الهَدَف).");
     return 1;
+}
+
+// ① clone: يَنسَخ المَصدَر (SourceConnection = الإنتاج) إلى الهَدَف
+//    (DefaultConnection = الجَديدَة). يَجري قَبل DI لِأَنَّه يُنشِئ المُخَطَّط.
+if (DoClone)
+{
+    var sourceCs = config.GetConnectionString("SourceConnection");
+    if (string.IsNullOrWhiteSpace(sourceCs))
+    {
+        Console.Error.WriteLine("❌ وَضع clone يَتَطَلَّب ConnectionStrings:SourceConnection (الإنتاج، قِراءَة فَقَط).");
+        return 1;
+    }
+    try
+    {
+        Console.WriteLine("\n=== نَسخ الإنتاج → القاعِدَة الجَديدَة ===");
+        await new DbCloner(sourceCs, connectionString, apply).CloneAsync(CancellationToken.None);
+    }
+    catch (Exception ex)
+    {
+        Console.Error.WriteLine($"\n❌ فَشَل النَّسخ: {ex.Message}\n{ex}");
+        return 2;
+    }
 }
 
 // ─── DI ─────────────────────────────────────────────────────────────────────
@@ -120,12 +158,15 @@ var seeder = new LegacySeeder(
 
 try
 {
-    await seeder.RunAsync(CancellationToken.None);
+    var ct = CancellationToken.None;
+    if (DoPurge)   await seeder.PurgeSchoolsAsync(ct);    // ② حَذف المَدارِس
+    if (DoRestore) await seeder.RestoreLegacyAsync(ct);   // ③ استِعادَة عشير
+    if (DoSeed)    await seeder.RunAsync(ct);             // ④ بَذر جَديد
     return 0;
 }
 catch (Exception ex)
 {
-    Console.Error.WriteLine($"\n❌ فَشَل البَذر: {ex.Message}\n{ex}");
+    Console.Error.WriteLine($"\n❌ فَشَل ({mode}): {ex.Message}\n{ex}");
     return 2;
 }
 

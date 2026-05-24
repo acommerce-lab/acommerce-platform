@@ -87,6 +87,51 @@ public sealed class LegacySeeder
         await SeedListingsAsync(ownerId, ct);
     }
 
+    // ═══ حَذف بَيانات المَدارِس (حَذف نِهائيّ — لِلقاعِدَة الجَديدَة) ════════
+    // يُستَخدَم في خَطّ rebuild: بَعد نَسخ الإنتاج، نُزيل المَدارِس لِبَدء
+    // نَظيف ثُمَّ نُعيد البَذر. حَذف نِهائيّ (لا ناعِم) لِأَنّ الهَدَف قاعِدَة
+    // جَديدَة قابِلَة لِإعادَة البِناء. تَرتيب آمِن لِلـ FK.
+    public async Task PurgeSchoolsAsync(CancellationToken ct)
+    {
+        Log("\n=== حَذف بَيانات المَدارِس ===");
+        var catIds = SchoolSeedData.Categories(_now).Select(c => $"'{c.Id}'");
+        var defIds = SchoolSeedData.NewAttributes().Select(a => $"'{a.Id}'");
+        var c = string.Join(",", catIds);
+        var d = string.Join(",", defIds);
+
+        await ExecAsync($"DELETE FROM ProductListing WHERE CategoryId IN ({c})", ct);
+        await ExecAsync("DELETE FROM Products WHERE Sku LIKE 'SCHOOL-%'", ct);
+        await ExecAsync($"DELETE FROM CategoryAttributeMappings WHERE CategoryId IN ({c}) OR AttributeDefinitionId IN ({d})", ct);
+        await ExecAsync($"DELETE FROM AttributeValues WHERE AttributeDefinitionId IN ({d})", ct);
+        await ExecAsync($"DELETE FROM AttributeDefinitions WHERE Id IN ({d})", ct);
+        await ExecAsync($"DELETE FROM ProductCategory WHERE Id IN ({c})", ct);
+    }
+
+    // ═══ استِعادَة تَصنيف عشير القَديم كَما كانَ ═══════════════════════════
+    // يَعكِس الحَذف النَّاعِم: يُعيد تَفعيل كُلّ فئات/خصائص/رَوابِط عشير
+    // القَديمَة (غير المَدرَسيّة) المَحذوفَة ناعِماً. بَعد الـ purge لا تَبقى
+    // صُفوف مَدرَسيّة، فَالحُرّاس (NOT IN) احتياطٌ إضافيّ.
+    // مُلاحَظَة: لَو كانَت هُناك صُفوف تَصنيف مَحذوفَة ناعِماً قَبل بَذرنا
+    // أَصلاً، سَتُستَعاد أيضاً (نادِر في عشير القَديم).
+    public async Task RestoreLegacyAsync(CancellationToken ct)
+    {
+        Log("\n=== استِعادَة تَصنيف عشير القَديم ===");
+        var catIds = string.Join(",", SchoolSeedData.Categories(_now).Select(c => $"'{c.Id}'"));
+        var defIds = string.Join(",", SchoolSeedData.NewAttributes().Select(a => $"'{a.Id}'"));
+
+        await ExecAsync($"UPDATE ProductCategory SET IsDeleted=0, IsActive=1, UpdatedAt=SYSUTCDATETIME() WHERE IsDeleted=1 AND Id NOT IN ({catIds})", ct);
+        await ExecAsync($"UPDATE CategoryAttributeMappings SET IsDeleted=0, IsActive=1, UpdatedAt=SYSUTCDATETIME() WHERE IsDeleted=1 AND CategoryId NOT IN ({catIds}) AND AttributeDefinitionId NOT IN ({defIds})", ct);
+        await ExecAsync($"UPDATE AttributeDefinitions SET IsDeleted=0, UpdatedAt=SYSUTCDATETIME() WHERE IsDeleted=1 AND Id NOT IN ({defIds})", ct);
+    }
+
+    private async Task ExecAsync(string sql, CancellationToken ct)
+    {
+        if (!_apply) { Plan($"(dry-run) {sql}"); return; }
+        var n = await _db.Database.ExecuteSqlRawAsync(sql, ct);
+        Plan($"{n} صَفّ — {(sql.Length > 70 ? sql[..70] + "…" : sql)}");
+    }
+
+
     // ─── ① المالِك ───────────────────────────────────────────────────────
     private async Task<Guid> ResolveOwnerAsync(CancellationToken ct)
     {
