@@ -13,13 +13,15 @@
     {
         <AcEmptyState IconName="info" Title="الجَلسَة غَير مَوجودَة" />
     }
-    else if (session.Status == IncubatorStatus.PatternSuggested
-          || session.Status == IncubatorStatus.Completed
-          || session.Status == IncubatorStatus.Analyzing)
+    else if (session.Status != IncubatorStatus.Discovery)
     {
+        @* أَيّ حالَة بَعد الاكتِشاف (مُقتَرَح، يَجري التَّحليل، اكتَمَلَ،
+           أَو فَشِلَ) تَعرِض بِطاقَة النَّمَط + إجراء مُلائِم. *@
         <div style="text-align:center;padding-top:12px;">
-            <span style="font-size:42px;">🎯</span>
-            <h1 class="acm-wizard-title">النَّمَط المُقتَرَح</h1>
+            <span style="font-size:42px;">@(session.Status == IncubatorStatus.Failed ? "⚠️" : "🎯")</span>
+            <h1 class="acm-wizard-title">
+                @(session.Status == IncubatorStatus.Failed ? "تَعَذَّرَ التَّحليل" : "النَّمَط المُقتَرَح")
+            </h1>
         </div>
         <AcCard>
             <ChildContent>
@@ -33,31 +35,34 @@
             </ChildContent>
         </AcCard>
 
+        @if (session.Status == IncubatorStatus.Failed && !string.IsNullOrEmpty(session.AnalysisError))
+        {
+            <AcAlert Variant="danger" Message="@($"السَّبَب: {Truncate(session.AnalysisError, 240)}")" />
+        }
+
         <div style="display:flex;gap:8px;margin-top:16px;">
             <form method="post" action="/admin/incubator/restart" style="flex:0;">
-                <button type="submit" class="ac-btn ac-btn-ghost">↺ إعادَة</button>
+                <button type="submit" class="ac-btn ac-btn-ghost">↺ جَلسَة جَديدَة</button>
             </form>
             @if (session.Status == IncubatorStatus.Completed)
             {
                 <a class="ac-btn ac-btn-primary ac-btn-block"
-                   href="@($"/admin/incubator/{session.Id}/study")">
-                    عَرض الدِراسَة ←
-                </a>
+                   href="@($"/admin/incubator/{session.Id}/study")">عَرض الدِراسَة ←</a>
             }
             else if (session.Status == IncubatorStatus.Analyzing)
             {
                 <a class="ac-btn ac-btn-primary ac-btn-block"
-                   href="@($"/admin/incubator/{session.Id}/study")">
-                    ⏳ التَّحليل جارٍ — عَرض
-                </a>
+                   href="@($"/admin/incubator/{session.Id}/study")">⏳ التَّحليل جارٍ — عَرض</a>
             }
             else
             {
+                @* PatternSuggested أَو Failed → زِرّ تَحليل/إعادَة *@
                 <form method="post" action="@($"/admin/incubator/{session.Id}/analyze")"
                       style="flex:1;">
                     <button type="submit" class="ac-btn ac-btn-primary ac-btn-block"
                             disabled="@(!Incubator.IsConfigured)">
-                        <AcIcon Name="zap" Size="18" /> حَلِّل الآن
+                        <AcIcon Name="zap" Size="18" />
+                        @(session.Status == IncubatorStatus.Failed ? "إعادَة التَّحليل" : "حَلِّل الآن")
                     </button>
                 </form>
             }
@@ -164,4 +169,6 @@
     {
         "high" => "عالِيَة", "medium" => "مُتَوَسِّطَة", _ => "مُنخَفِضَة"
     };
+
+    static string Truncate(string s, int n) => s.Length <= n ? s : s[..n] + "…";
 }

@@ -120,7 +120,7 @@ public sealed class FeasibilityAnalysisService
         if (json is null)
         {
             fresh.Status = IncubatorStatus.Failed;
-            fresh.AnalysisError = lastError ?? "فشل غير معروف.";
+            fresh.AnalysisError = FormatError(lastError);
         }
         else
         {
@@ -142,6 +142,18 @@ public sealed class FeasibilityAnalysisService
         s.Status = status; s.UpdatedAt = DateTime.UtcNow;
         session.Store(s);
         await session.SaveChangesAsync(ct);
+    }
+
+    /// <summary>يُحَوِّل خَطَأ الـ provider الخام لِرِسالَة مَفهومَة + يَقصّ
+    /// الطول. يُبرِز حالات الحِصَّة (429) بِشكل صَريح.</summary>
+    internal static string FormatError(string? raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw)) return "فشل غير معروف.";
+        if (raw.Contains("429") || raw.Contains("quota", StringComparison.OrdinalIgnoreCase)
+                                || raw.Contains("rate", StringComparison.OrdinalIgnoreCase))
+            return "تَجاوُز حِصَّة مُزَوِّد الـ LLM. تَحَقَّق مِن باقَة الـ API لَدَيك أَو بَدِّل المُزَوِّد في الإعدادات (Agent:Provider).";
+        const int max = 300;
+        return raw.Length <= max ? raw : raw[..max] + "…";
     }
 
     // ─── Helpers ─────────────────────────────────────────────────────
