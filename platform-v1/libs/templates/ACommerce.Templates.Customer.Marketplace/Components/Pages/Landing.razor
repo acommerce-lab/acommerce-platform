@@ -1,39 +1,102 @@
 @page "/"
 @inject IQuerySession Db
 
-<h1>منصّة ACommerce — V1</h1>
-<p class="lede">تَطبيق متَعَدِّد المُستَأجِرين، كلّ tenant يَملك مَتجَره الخاصّ، نَفس الـ binary يَخدِم الجَميع.</p>
+@*
+    صَفحَة الهبوط — تَدعو العَميل لِوَصف فِكرَة تَطبيقِه. الإرسال يَحفَظ
+    المُطالَبَة ويُحَوِّل لِلدُخول الوهميّ، ثُمَّ يُولَّد التَّحليل تِلقائيّاً.
+    تَصميم احترافيّ (studio-root) مُنفَصِل عَن واجِهات المَتاجِر.
+*@
 
-@if (tenants is null)
-{
-    <p>تَحميل...</p>
-}
-else if (tenants.Count == 0)
-{
-    <p>لا توجَد مَتاجِر بَعد.</p>
-}
-else
-{
-    <ul class="tenant-cards">
-        @foreach (var t in tenants)
-        {
-            <li class="tenant-card" style="border-color:@t.BrandColor">
-                <a href="/@t.Slug" style="color:@t.BrandColor">
-                    <strong>@t.Name</strong>
-                    <span>/@t.Slug</span>
-                </a>
-                <p class="muted">@t.TagLine</p>
-                <p class="muted">@t.City — @t.Categories.Count فِئَة</p>
-            </li>
-        }
-    </ul>
-}
+<div class="studio-root">
+    <nav class="landing-nav">
+        <div class="landing-brand">
+            <span class="landing-brand-mark">A</span>
+            ACommerce
+        </div>
+        <a class="st-btn st-btn-ghost" href="/studio/auth">تَسجيل الدُخول</a>
+    </nav>
+
+    <section class="landing-hero">
+        <span class="landing-eyebrow">✦ مَدعوم بِالذَّكاء الاصطِناعيّ + بيانات السوق السعودي</span>
+        <h1 class="landing-title">
+            حَوِّل فِكرَتَكَ إلى <span class="grad">تَطبيق جاهِز</span><br/>
+            في أَيّام، لا شُهور
+        </h1>
+        <p class="landing-sub">
+            صِف فِكرَة مَشروعِكَ، واحصُل على دِراسَة جَدوى احترافيَّة بِأَرقام
+            السوق السعودي ومَخاطِر حَقيقيَّة — ثُمَّ أَطلِق متجَرَكَ على نَفس المَنصَّة.
+        </p>
+
+        <form method="post" action="/studio/begin" class="landing-prompt">
+            <textarea name="prompt" required
+                      placeholder="مَثَلاً: مَنصَّة تَربِط أَصحاب المَطاعِم بِمَورّدي الخُضار في الرياض بِنِظام عُمولَة…"></textarea>
+            <div class="landing-prompt-bar">
+                <span class="landing-prompt-hint">اكتُب بِالعَرَبيَّة أَو الإنجليزيَّة — كُلَّما زادَ الوَصف، دَقَّ التَّحليل</span>
+                <button type="submit" class="st-btn st-btn-primary">
+                    حَلِّل فِكرَتي ←
+                </button>
+            </div>
+        </form>
+
+        <div class="landing-examples">
+            <span class="landing-example" onclick="fillPrompt(this)">سوق إعلانات سيّارات مُستَعمَلَة</span>
+            <span class="landing-example" onclick="fillPrompt(this)">تَطبيق توصيل طَعام في جدة</span>
+            <span class="landing-example" onclick="fillPrompt(this)">تَأجير مَعَدّات تَصوير</span>
+            <span class="landing-example" onclick="fillPrompt(this)">مَنصَّة خَدَمات منزليَّة حَسَب الطَّلَب</span>
+        </div>
+    </section>
+
+    <section class="landing-features">
+        <div class="landing-feature">
+            <div class="landing-feature-icon">📊</div>
+            <h3>تَحليل سعوديّ حَقيقيّ</h3>
+            <p>أَرقام السوق، المنافِسون، التَّكاليف، ودُروس مِن مَشاريع فَشِلَت فِعلاً.</p>
+        </div>
+        <div class="landing-feature">
+            <div class="landing-feature-icon">⚡</div>
+            <h3>إطلاق سَريع</h3>
+            <p>أَربَعَة أَنماط جاهِزَة تُطلِق متجَرَكَ في ١-٣ أَيّام بَدَلاً مِن ستَّة أَشهُر.</p>
+        </div>
+        <div class="landing-feature">
+            <div class="landing-feature-icon">🎯</div>
+            <h3>صَريح وموضوعيّ</h3>
+            <p>يُبرِز المَخاطِر بِقَدر الفُرَص — لا تَملُّق، قَرار استثماريّ واعٍ.</p>
+        </div>
+    </section>
+
+    @if (tenants is { Count: > 0 })
+    {
+        <section style="max-width:1000px;margin:0 auto 56px;padding:0 24px;">
+            <div class="st-section-title">مَتاجِر مُطلَقَة على المَنصَّة</div>
+            <div class="studio-list">
+                @foreach (var t in tenants)
+                {
+                    <a class="studio-list-row" href="/@t.Slug">
+                        <span class="studio-list-icon" style="background:@(t.BrandColor)1a;color:@t.BrandColor;">
+                            @(t.Name.FirstOrDefault())
+                        </span>
+                        <div class="studio-list-body">
+                            <strong>@t.Name</strong>
+                            <span>@t.TagLine · @t.City</span>
+                        </div>
+                        <span style="color:var(--st-faint);">←</span>
+                    </a>
+                }
+            </div>
+        </section>
+    }
+</div>
+
+<script>
+    function fillPrompt(el) {
+        var ta = document.querySelector('.landing-prompt textarea');
+        if (ta) { ta.value = el.textContent.trim(); ta.focus(); }
+    }
+</script>
 
 @code {
     IReadOnlyList<Tenant>? tenants;
 
     protected override async Task OnInitializedAsync()
-    {
-        tenants = await Db.Query<Tenant>().ToListAsync();
-    }
+        => tenants = await Db.Query<Tenant>().ToListAsync();
 }

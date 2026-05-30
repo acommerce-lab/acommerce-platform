@@ -42,6 +42,7 @@ public static class MarketplaceTemplateExtensions
         services.AddSingleton<Services.Incubator.SaudiDataProvider>();
         services.AddSingleton<Services.Incubator.FeasibilityPromptBuilder>();
         services.AddScoped<Services.Incubator.FeasibilityAnalysisService>();
+        services.AddScoped<Services.Incubator.StudioAuth>();
         return services;
     }
 
@@ -1832,6 +1833,68 @@ public static class MarketplaceTemplateExtensions
         {
             await agent.ResetAsync();
             return Results.Redirect("/admin/agent");
+        }).DisableAntiforgery();
+
+        // ─── Studio — مُصادَقَة وهميَّة + بَدء مِن صَفحَة الهبوط ──────────
+        // صَفحَة الهبوط تُرسِل المُطالَبَة هُنا؛ نَحفَظها في cookie مُؤَقَّت
+        // ثُمَّ نُحَوِّل لِلدُخول. بَعد الدُخول الناجِح نُنشِئ جَلسَة تَحليل
+        // بِالمُطالَبَة ونُشَغِّلها.
+        app.MapPost("/studio/begin", (HttpRequest req, HttpResponse res) =>
+        {
+            var prompt = req.Form["prompt"].ToString().Trim();
+            if (!string.IsNullOrEmpty(prompt))
+                res.Cookies.Append("ac.studio.prompt", Uri.EscapeDataString(prompt),
+                    new CookieOptions { IsEssential = true, Path = "/",
+                        Expires = DateTimeOffset.UtcNow.AddHours(2) });
+            return Results.Redirect("/studio/auth");
+        }).DisableAntiforgery();
+
+        app.MapPost("/studio/auth/login", (HttpRequest req) =>
+        {
+            // وهميّ: لا إرسال SMS — نَنتَقِل مُباشَرَةً لِمَرحَلَة الرَّمز.
+            var phone = req.Form["phone"].ToString().Trim();
+            if (string.IsNullOrEmpty(phone))
+                return Results.Redirect("/studio/auth?err=phone");
+            return Results.Redirect($"/studio/auth?stage=verify&phone={Uri.EscapeDataString(phone)}");
+        }).DisableAntiforgery();
+
+        app.MapPost("/studio/auth/verify", async (
+            HttpRequest req, HttpResponse res, IDocumentStore store,
+            IServiceScopeFactory scopeFactory,
+            Services.Incubator.FeasibilityAnalysisService incubator) =>
+        {
+            var phone = req.Form["phone"].ToString().Trim();
+            var code  = req.Form["code"].ToString().Trim();
+            var user = await Services.Incubator.StudioAuth.VerifyAsync(store, res, phone, code);
+            if (user is null)
+                return Results.Redirect(
+                    $"/studio/auth?stage=verify&phone={Uri.EscapeDataString(phone)}&err=code");
+
+            // مُطالَبَة مُعَلَّقَة؟ أَنشِئ جَلسَة وشَغِّل التَّحليل في الخَلفِيَّة.
+            var promptCookie = req.Cookies["ac.studio.prompt"];
+            if (!string.IsNullOrEmpty(promptCookie))
+            {
+                res.Cookies.Delete("ac.studio.prompt");
+                var prompt = Uri.UnescapeDataString(promptCookie);
+                var s = await incubator.StartAsync(user.Id, user.FullName);
+                await incubator.SaveAnswerAsync(s.Id, "description", prompt);
+                await incubator.MarkAnalyzingAsync(s.Id);
+                _ = Task.Run(async () =>
+                {
+                    using var scope = scopeFactory.CreateScope();
+                    var bg = scope.ServiceProvider
+                        .GetRequiredService<Services.Incubator.FeasibilityAnalysisService>();
+                    try { await bg.RunAnalysisAsync(s.Id); } catch { }
+                });
+                return Results.Redirect($"/studio/s/{s.Id}");
+            }
+            return Results.Redirect("/studio");
+        }).DisableAntiforgery();
+
+        app.MapPost("/studio/logout", (HttpResponse res) =>
+        {
+            Services.Incubator.StudioAuth.DeleteCookie(res);
+            return Results.Redirect("/");
         }).DisableAntiforgery();
 
         // ─── Incubator — طبقة التحليل الاستثماري ─────────────────────────

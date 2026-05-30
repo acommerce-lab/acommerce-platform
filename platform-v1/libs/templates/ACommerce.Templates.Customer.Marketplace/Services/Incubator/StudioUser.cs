@@ -1,0 +1,16 @@
+namespace ACommerce.Templates.Customer.Marketplace.Services.Incubator;
+
+/// <summary>
+/// مُستَخدِم على مُستَوى المَنصَّة (صاحِب مَشروع/فِكرَة) — قَبل أَن يَملِك
+/// متجراً. وَثيقَة Marten تَحت tenant ثابِت "_studio". المُصادَقَة وَهميَّة:
+/// أَيّ رَقم هاتِف + الرَّمز "123456". الـ Id هو OwnerUserId المُستَخدَم في
+/// <see cref="IncubatorSession"/>.
+/// </summary>
+public sealed class StudioUser
+{
+    public Guid Id { get; set; }
+    public string Phone { get; set; } = "";
+    public string FullName { get; set; } = "صاحِب المَشروع";
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime LastLoginAt { get; set; } = DateTime.UtcNow;
+}
