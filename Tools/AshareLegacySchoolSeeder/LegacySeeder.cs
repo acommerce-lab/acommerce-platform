@@ -309,15 +309,38 @@ public sealed class LegacySeeder
 
     // ═══ تَعطيل خَصائص السَّماح بِالاتِّصال + واتساب مِن كُلّ الفئات ════════
     // يُخفي تَعريفات `is_phone_allowed` و `is_whatsapp_allowed` + قِيَمهما +
-    // كُلّ رَوابِطهما، فَلا تَظهَران في نَموذَج إنشاء أيّ فِئَة.
-    // `is_messaging_allowed` يَبقى كَما هُوَ. عَكسيّاً: شَغِّل enable-contact-attrs.
+    // كُلّ رَوابِطهما، **وَيُزيل مَفاتيحهما مِن AttributesJson** في كُلّ
+    // العُروض الحاليّة — وإلّا تَبقى أزرار الاتِّصال/واتساب ظاهِرَة في
+    // التَّفاصيل لِأَنّ العميل يَقرَأها مِن JSON العَرض مُباشَرَةً.
+    // `is_messaging_allowed` يَبقى كَما هُوَ. عَكسيّاً: شَغِّل enable-contact-attrs
+    // (لكِنّه لا يَستَطيع استِعادَة قِيَم AttributesJson — هذه فَقدان دائم
+    // بَعد التَّعطيل).
     public async Task DisableContactAttrsAsync(CancellationToken ct)
     {
-        Log("\n=== تَعطيل is_phone_allowed + is_whatsapp_allowed ===");
+        Log("\n=== تَعطيل is_phone_allowed + is_whatsapp_allowed (مَع تَنظيف العُروض) ===");
         const string defs = "(SELECT Id FROM AttributeDefinitions WHERE Code IN ('is_phone_allowed','is_whatsapp_allowed'))";
         await ExecAsync($"UPDATE CategoryAttributeMappings SET IsDeleted=1, IsActive=0, UpdatedAt=SYSUTCDATETIME() WHERE AttributeDefinitionId IN {defs}", ct);
         await ExecAsync($"UPDATE AttributeValues SET IsDeleted=1, IsActive=0, UpdatedAt=SYSUTCDATETIME() WHERE AttributeDefinitionId IN {defs}", ct);
         await ExecAsync($"UPDATE AttributeDefinitions SET IsDeleted=1, UpdatedAt=SYSUTCDATETIME() WHERE Id IN {defs}", ct);
+
+        // إزالَة المَفاتيح مِن AttributesJson في كُلّ العُروض الَّتي تَحويها.
+        // JSON_MODIFY(..., path, NULL) في الوَضع lax (الافتراضيّ) يَحذِف
+        // المِفتاح. نُحَدِّث فَقَط الصُّفوف الَّتي تَحوي أَحَد المِفتاحَين.
+        await ExecAsync(
+            "UPDATE ProductListing " +
+            "SET AttributesJson = JSON_MODIFY(JSON_MODIFY(AttributesJson, '$.is_phone_allowed', NULL), '$.is_whatsapp_allowed', NULL), " +
+            "    UpdatedAt = SYSUTCDATETIME() " +
+            "WHERE AttributesJson IS NOT NULL " +
+            "  AND ISJSON(AttributesJson) = 1 " +
+            "  AND (JSON_VALUE(AttributesJson, '$.is_phone_allowed') IS NOT NULL " +
+            "    OR JSON_VALUE(AttributesJson, '$.is_whatsapp_allowed') IS NOT NULL)", ct);
+
+        // تَشخيص: كَم عَرضاً ما زالَ يَحوي أَحَد المِفتاحَين (يَجِب أَن يَكون صِفر)؟
+        var remaining = await ScalarLongAsync(
+            "SELECT COUNT(*) FROM ProductListing WHERE AttributesJson IS NOT NULL AND ISJSON(AttributesJson)=1 AND (" +
+            "JSON_VALUE(AttributesJson, '$.is_phone_allowed') IS NOT NULL OR " +
+            "JSON_VALUE(AttributesJson, '$.is_whatsapp_allowed') IS NOT NULL)", ct);
+        Log($"  ► عُروض ما زالَت تَحوي phone/whatsapp في JSON: {remaining}");
     }
 
     public async Task EnableContactAttrsAsync(CancellationToken ct)
