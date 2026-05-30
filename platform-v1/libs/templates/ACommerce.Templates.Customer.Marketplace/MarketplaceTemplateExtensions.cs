@@ -1897,6 +1897,22 @@ public static class MarketplaceTemplateExtensions
             return Results.Redirect("/");
         }).DisableAntiforgery();
 
+        // إعادَة تَحليل مِن داخِل لوحَة العميل (تُبقيه في مَساحَة /studio).
+        app.MapPost("/studio/s/{id:guid}/analyze", async (
+            Guid id, IServiceScopeFactory scopeFactory,
+            Services.Incubator.FeasibilityAnalysisService svc) =>
+        {
+            await svc.MarkAnalyzingAsync(id);
+            _ = Task.Run(async () =>
+            {
+                using var scope = scopeFactory.CreateScope();
+                var bg = scope.ServiceProvider
+                    .GetRequiredService<Services.Incubator.FeasibilityAnalysisService>();
+                try { await bg.RunAnalysisAsync(id); } catch { }
+            });
+            return Results.Redirect($"/studio/s/{id}");
+        }).DisableAntiforgery();
+
         // ─── Incubator — طبقة التحليل الاستثماري ─────────────────────────
         // الـ admin مفتوح حاليّاً، فالمالك = Guid ثابت (مجهول). الاكتشاف
         // SSR (POST لكل إجابة)، التحليل يُطلَق في الخلفية وصفحة الدراسة

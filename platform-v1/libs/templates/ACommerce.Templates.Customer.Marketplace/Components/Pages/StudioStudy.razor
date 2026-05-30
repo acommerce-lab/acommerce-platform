@@ -1,0 +1,236 @@
+@page "/studio/s/{id:guid}"
+@inject Services.Incubator.StudioAuth Auth
+@inject Services.Incubator.FeasibilityAnalysisService Incubator
+@using ACommerce.Templates.Customer.Marketplace.Services.Incubator
+@using System.Text.Json
+
+@*
+    عرض دراسة الجدوى داخل لوحة العميل (تصميم studio احترافي). يُحدّث
+    تلقائياً كل 4 ثوانٍ أثناء التحليل عبر meta refresh.
+*@
+
+@if (session?.Status == IncubatorStatus.Analyzing)
+{
+    <HeadContent><meta http-equiv="refresh" content="4" /></HeadContent>
+}
+
+<StudioShell Title="دِراسَة الجَدوى" Active="ideas">
+    <TopBarActions>
+        <a class="st-btn st-btn-ghost" href="/studio">← لوحَتي</a>
+    </TopBarActions>
+    <ChildContent>
+        @if (session is null)
+        {
+            <div class="st-card">الجَلسَة غَير مَوجودَة.</div>
+        }
+        else if (session.Status == IncubatorStatus.Analyzing)
+        {
+            <div class="st-card" style="text-align:center;padding:48px;">
+                <div style="font-size:52px;margin-bottom:10px;">⏳</div>
+                <h2 style="margin:0 0 6px;">جارٍ تَحليل فِكرَتِكَ…</h2>
+                <p style="color:var(--st-muted);margin:0;">
+                    نَجمَع أَرقام السوق، نُقارِن بِالمنافِسين، ونَستَنبِط المَخاطِر.
+                    تُحَدَّث الصَفحَة تِلقائيّاً.
+                </p>
+            </div>
+        }
+        else if (session.Status == IncubatorStatus.Failed)
+        {
+            <div class="st-card">
+                <div class="st-chip st-chip-danger" style="margin-bottom:12px;">فَشِلَ التَّحليل</div>
+                <p style="margin:0 0 16px;color:var(--st-ink-700);">@session.AnalysisError</p>
+                <form method="post" action="@($"/studio/s/{session.Id}/analyze")">
+                    <button type="submit" class="st-btn st-btn-primary">↺ إعادَة المُحاوَلَة</button>
+                </form>
+            </div>
+        }
+        else if (root is null)
+        {
+            <div class="st-card">لا تَحليل بَعد لِهذه الجَلسَة.</div>
+        }
+        else
+        {
+            var r = root.Value;
+
+            <div class="studio-page-head">
+                <h1>دِراسَة الجَدوى</h1>
+                <p>@(string.IsNullOrEmpty(session.ProjectDescription) ? "" : Truncate(session.ProjectDescription, 120))</p>
+            </div>
+
+            @if (r.TryGetProperty("summary", out var sum))
+            {
+                <div class="studio-stats">
+                    <div class="studio-stat">
+                        <div class="studio-stat-label">حَجم السوق</div>
+                        <div class="studio-stat-value" style="font-size:20px;">@Str(sum,"marketSizeSar")</div>
+                    </div>
+                    <div class="studio-stat">
+                        <div class="studio-stat-label">عُملاء السَّنَة ١</div>
+                        <div class="studio-stat-value" style="font-size:20px;">@Str(sum,"estimatedCustomersYear1")</div>
+                    </div>
+                    <div class="studio-stat">
+                        <div class="studio-stat-label">الاستِثمار المَطلوب</div>
+                        <div class="studio-stat-value" style="font-size:20px;">@Str(sum,"requiredInvestmentSar")</div>
+                    </div>
+                </div>
+                <div class="st-card" style="margin-top:16px;">
+                    <strong>الحُكم: </strong>@Str(sum, "verdict")
+                </div>
+            }
+
+            @Obj("حَجم السوق", "marketSizing", r, ("tam","TAM"),("sam","SAM"),("som","SOM"),("reasoning","التَّحليل"))
+            @Obj("نَموذَج الإيراد", "revenueModel", r, ("model","النَّموذَج"),("pricingSar","التَّسعير"),("unitEconomics","اقتِصاد الوَحدَة"))
+            @Obj("هَيكَل التَّكلِفَة", "costStructure", r, ("launchSar","الإطلاق"),("monthlyOpsSar","التَّشغيل/شَهر"),("cacSar","CAC"),("ltvSar","LTV"))
+            @Obj("التَّوَقُّع المالي", "financialProjection", r, ("year1RevenueSar","إيراد س١"),("breakEvenMonths","التَّعادُل (شهر)"),("scenario","السيناريو"))
+
+            @Arr("شَرائِح العُملاء", "customerSegments", r, "name", "description")
+            @Arr("المُنافِسون والفَجوَة", "competitors", r, "name", "gap")
+
+            @if (r.TryGetProperty("risks", out var risks) && risks.ValueKind == JsonValueKind.Array)
+            {
+                <div class="st-section-title">⚠️ المَخاطِر</div>
+                <div class="studio-list">
+                    @foreach (var risk in risks.EnumerateArray())
+                    {
+                        <div class="st-card">
+                            <div style="display:flex;justify-content:space-between;gap:8px;">
+                                <strong>@Str(risk,"title")</strong>
+                                <span class="st-chip">@Str(risk,"category")</span>
+                            </div>
+                            <p style="margin:8px 0 0;font-size:13.5px;color:var(--st-muted);">
+                                أَثَر: @Str(risk,"impact") · احتِمال: @Str(risk,"likelihood")<br/>
+                                <strong>التَّخفيف:</strong> @Str(risk,"mitigation")
+                            </p>
+                        </div>
+                    }
+                </div>
+            }
+
+            @if (r.TryGetProperty("lessonsFromFailures", out var lessons) && lessons.ValueKind == JsonValueKind.Array)
+            {
+                <div class="st-section-title">📉 دُروس مِن مَشاريع فَشِلَت</div>
+                <div class="st-card">
+                    <ul style="margin:0;padding-inline-start:18px;line-height:2;font-size:13.5px;">
+                        @foreach (var l in lessons.EnumerateArray()) { <li>@l.GetString()</li> }
+                    </ul>
+                </div>
+            }
+
+            @if (r.TryGetProperty("roadmap", out var roadmap) && roadmap.ValueKind == JsonValueKind.Array)
+            {
+                <div class="st-section-title">🗺️ خارِطَة الطَّريق</div>
+                <div class="studio-list">
+                    @foreach (var ph in roadmap.EnumerateArray())
+                    {
+                        <div class="studio-list-row" style="cursor:default;">
+                            <span class="st-chip">@Str(ph,"durationWeeks") أسبوع</span>
+                            <div class="studio-list-body">
+                                <strong>@Str(ph,"phase")</strong>
+                                <span>@Str(ph,"goal")</span>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+
+            @if (r.TryGetProperty("recommendedPattern", out var rp))
+            {
+                <div class="st-card" style="margin-top:20px;border:1px solid var(--st-primary);background:var(--st-primary-50);">
+                    <h3 style="margin:0 0 6px;">🚀 الإطلاق على ACommerce</h3>
+                    <p style="margin:0 0 14px;font-size:14px;">
+                        <strong>النَّمَط:</strong> @Str(rp,"pattern") ·
+                        <strong>الوَقت:</strong> @Str(rp,"timeToLaunch")<br/>
+                        <span style="color:var(--st-ink-700);">@Str(rp,"reasoning")</span>
+                    </p>
+                    <a class="st-btn st-btn-primary" href="/admin/agent">أَنشِئ المَتجَر بِالمُساعِد ←</a>
+                </div>
+            }
+
+            <div class="st-card" style="margin-top:16px;background:var(--st-line-soft);border:0;font-size:12.5px;color:var(--st-muted);">
+                @Disclaimer
+            </div>
+        }
+    </ChildContent>
+</StudioShell>
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+    IncubatorSession? session;
+    JsonElement? root;
+
+    const string Disclaimer =
+        "هذا التَّحليل مُولَّد آلِيّاً بِناءً على بيانات السوق المُتاحَة. المَنصَّة غَير مَسؤولَة عَن نَتائِج القَرارات المَبنيَّة عَلَيه. يُوصَى بِالتَّحَقُّق المُستَقِلّ.";
+
+    protected override async Task OnInitializedAsync()
+    {
+        Auth.Load();
+        if (!Auth.IsAuthenticated) return;
+        session = await Incubator.LoadAsync(Id);
+        // تَحَقَّق مِن المِلكِيَّة — لا تَعرِض جَلسَة غَيرك.
+        if (session is not null && session.OwnerUserId != Auth.UserId!.Value) { session = null; return; }
+        if (session?.AnalysisJson is not null)
+        {
+            try { root = JsonDocument.Parse(session.AnalysisJson).RootElement.Clone(); }
+            catch { root = null; }
+        }
+    }
+
+    static string Str(JsonElement e, string p)
+        => e.TryGetProperty(p, out var v)
+            ? (v.ValueKind == JsonValueKind.String ? v.GetString() ?? "" : v.ToString())
+            : "—";
+
+    static string Truncate(string s, int n) => s.Length <= n ? s : s[..n] + "…";
+
+    RenderFragment Obj(string title, string key, JsonElement r,
+        params (string prop, string label)[] fields) => builder =>
+    {
+        if (!r.TryGetProperty(key, out var obj) || obj.ValueKind != JsonValueKind.Object) return;
+        var seq = 0;
+        builder.OpenElement(seq++, "div");
+        builder.AddAttribute(seq++, "class", "st-section-title");
+        builder.AddContent(seq++, title);
+        builder.CloseElement();
+        builder.OpenElement(seq++, "div");
+        builder.AddAttribute(seq++, "class", "st-card");
+        foreach (var (prop, label) in fields)
+        {
+            builder.OpenElement(seq++, "p");
+            builder.AddAttribute(seq++, "style", "margin:4px 0;font-size:14px;");
+            builder.OpenElement(seq++, "strong");
+            builder.AddContent(seq++, label + ": ");
+            builder.CloseElement();
+            builder.AddContent(seq++, Str(obj, prop));
+            builder.CloseElement();
+        }
+        builder.CloseElement();
+    };
+
+    RenderFragment Arr(string title, string key, JsonElement r,
+        string titleProp, string bodyProp) => builder =>
+    {
+        if (!r.TryGetProperty(key, out var arr) || arr.ValueKind != JsonValueKind.Array) return;
+        var seq = 0;
+        builder.OpenElement(seq++, "div");
+        builder.AddAttribute(seq++, "class", "st-section-title");
+        builder.AddContent(seq++, title);
+        builder.CloseElement();
+        builder.OpenElement(seq++, "div");
+        builder.AddAttribute(seq++, "class", "studio-list");
+        foreach (var item in arr.EnumerateArray())
+        {
+            var captured = item;
+            builder.OpenElement(seq++, "div");
+            builder.AddAttribute(seq++, "class", "st-card");
+            builder.OpenElement(seq++, "strong");
+            builder.AddContent(seq++, Str(captured, titleProp));
+            builder.CloseElement();
+            builder.OpenElement(seq++, "p");
+            builder.AddAttribute(seq++, "style", "margin:6px 0 0;font-size:13.5px;color:var(--st-muted);");
+            builder.AddContent(seq++, Str(captured, bodyProp));
+            builder.CloseElement();
+            builder.CloseElement();
+        }
+        builder.CloseElement();
+    };
+}

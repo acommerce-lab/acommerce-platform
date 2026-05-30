@@ -1,0 +1,121 @@
+@page "/studio"
+@page "/studio/ideas"
+@inject Services.Incubator.StudioAuth Auth
+@inject Services.Incubator.FeasibilityAnalysisService Incubator
+@inject Marten.IDocumentStore Store
+@using ACommerce.Templates.Customer.Marketplace.Services.Incubator
+@using ACommerce.Kit.Tenants
+
+@*
+    لوحة العميل الرئيسية — أفكاره وتحاليله. SSR، محمية عبر StudioShell.
+*@
+
+<StudioShell Title="لوحَتي" Active="@(IsIdeas ? "ideas" : "home")">
+    <TopBarActions>
+        <a class="st-btn st-btn-primary" href="/">+ فِكرَة جَديدَة</a>
+    </TopBarActions>
+    <ChildContent>
+        <div class="studio-page-head">
+            <h1>@Greeting</h1>
+            <p>حَلِّل أَفكارَكَ، راجِع دِراساتِكَ، وأَطلِق متجَرَكَ عِندَ الجاهِزِيَّة.</p>
+        </div>
+
+        <div class="studio-stats">
+            <div class="studio-stat">
+                <div class="studio-stat-label">إجمالي الأَفكار</div>
+                <div class="studio-stat-value">@(sessions?.Count ?? 0)</div>
+            </div>
+            <div class="studio-stat">
+                <div class="studio-stat-label">دِراسات مُكتَمِلَة</div>
+                <div class="studio-stat-value">@(sessions?.Count(s => s.Status == IncubatorStatus.Completed) ?? 0)</div>
+            </div>
+            <div class="studio-stat">
+                <div class="studio-stat-label">مَتاجِر مُطلَقَة</div>
+                <div class="studio-stat-value">@(myStores?.Count ?? 0)</div>
+            </div>
+        </div>
+
+        <div class="st-section-title">أَفكاري وتَحاليلي</div>
+        @if (sessions is null)
+        {
+            <div class="st-card">جارٍ التَّحميل…</div>
+        }
+        else if (sessions.Count == 0)
+        {
+            <div class="st-card" style="text-align:center;padding:40px;">
+                <div style="font-size:46px;margin-bottom:8px;">💡</div>
+                <h3 style="margin:0 0 6px;">لا أَفكار بَعد</h3>
+                <p style="color:var(--st-muted);margin:0 0 18px;">ابدَأ بِوَصف فِكرَة مَشروعِكَ لِتَحصُل على دِراسَة جَدوى.</p>
+                <a class="st-btn st-btn-primary" href="/">صِف فِكرَتي</a>
+            </div>
+        }
+        else
+        {
+            <div class="studio-list">
+                @foreach (var s in sessions)
+                {
+                    <a class="studio-list-row"
+                       href="@($"/studio/s/{s.Id}")">
+                        <span class="studio-list-icon">@StatusIcon(s.Status)</span>
+                        <div class="studio-list-body">
+                            <strong>@(string.IsNullOrEmpty(s.ProjectDescription)
+                                ? "فِكرَة بِلا وَصف" : Truncate(s.ProjectDescription, 70))</strong>
+                            <span>@StatusLabel(s.Status) · @s.UpdatedAt.ToString("yyyy-MM-dd HH:mm")</span>
+                        </div>
+                        @if (s.Status == IncubatorStatus.Completed)
+                        {
+                            <span class="st-chip st-chip-success">جَودَة @s.AnalysisQualityScore%</span>
+                        }
+                        else if (s.Status == IncubatorStatus.Analyzing)
+                        {
+                            <span class="st-chip st-chip-warning">قَيد التَّحليل</span>
+                        }
+                        else if (s.Status == IncubatorStatus.Failed)
+                        {
+                            <span class="st-chip st-chip-danger">فَشِلَ</span>
+                        }
+                    </a>
+                }
+            </div>
+        }
+    </ChildContent>
+</StudioShell>
+
+@code {
+    List<IncubatorSession>? sessions;
+    List<Tenant>? myStores;
+
+    bool IsIdeas => true;   // كِلا المَسارَين يَعرِض نَفس القائِمَة حاليّاً
+
+    string Greeting => $"أَهلاً، {Auth.UserName ?? "صاحِب المَشروع"} 👋";
+
+    protected override async Task OnInitializedAsync()
+    {
+        Auth.Load();
+        if (!Auth.IsAuthenticated) return;
+        sessions = await Incubator.ListForUserAsync(Auth.UserId!.Value);
+        // مَتاجِر العميل — placeholder حتى نَربِط الملكية لاحقاً.
+        myStores = new List<Tenant>();
+    }
+
+    static string StatusIcon(IncubatorStatus s) => s switch
+    {
+        IncubatorStatus.Completed => "✅",
+        IncubatorStatus.Analyzing => "⏳",
+        IncubatorStatus.Failed    => "⚠️",
+        IncubatorStatus.PatternSuggested => "🎯",
+        _ => "✏️"
+    };
+
+    static string StatusLabel(IncubatorStatus s) => s switch
+    {
+        IncubatorStatus.Discovery => "قَيد الاكتِشاف",
+        IncubatorStatus.PatternSuggested => "اقتُرِحَ نَمَط",
+        IncubatorStatus.Analyzing => "قَيد التَّحليل",
+        IncubatorStatus.Completed => "اكتَمَلَ",
+        IncubatorStatus.Failed => "فَشِلَ",
+        _ => "مَهجور"
+    };
+
+    static string Truncate(string s, int n) => s.Length <= n ? s : s[..n] + "…";
+}
