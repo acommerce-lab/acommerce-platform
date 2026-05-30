@@ -352,6 +352,69 @@ public sealed class LegacySeeder
         await ExecAsync($"UPDATE CategoryAttributeMappings SET IsDeleted=0, IsActive=1, UpdatedAt=SYSUTCDATETIME() WHERE AttributeDefinitionId IN {defs}", ct);
     }
 
+    // ═══ ضَبط باقَة واحِدَة فَقَط (إنشاء/تَحديث + تَعطيل البَقيَّة) ═══════════
+    // باقَة "أَساسيّة": عَرض واحِد، ٣٠ يَوماً، ١٩ ر.س/شَهر. مُعَرِّف ثابِت
+    // (idempotent). كُلّ الباقات الأُخرى تُعَطَّل (IsActive=0, IsDeleted=1).
+    private static readonly Guid SinglePlanId = Guid.Parse("dd000000-0000-0000-0001-000000000001");
+
+    public async Task SetupSinglePlanAsync(CancellationToken ct)
+    {
+        Log("\n=== ضَبط باقَة واحِدَة (١ عَرض / شَهر / ١٩ ر.س) + تَعطيل البَقيَّة ===");
+
+        // CommissionType.Percentage=1, SupportLevel.Basic=1, AnalyticsLevel.Basic=1
+        // upsert بِمُعَرِّف ثابِت (idempotent). كُلّ الأعمِدَة المَطلوبَة مُضَمَّنَة.
+        var upsert = $@"
+IF NOT EXISTS (SELECT 1 FROM SubscriptionPlans WHERE Id='{SinglePlanId}')
+    INSERT INTO SubscriptionPlans (
+        Id, CreatedAt, UpdatedAt, IsDeleted,
+        Name, NameEn, Slug, Description, DescriptionEn, Icon, Color,
+        SortOrder, IsActive, IsDefault, IsRecommended,
+        MonthlyPrice, QuarterlyPrice, SemiAnnualPrice, AnnualPrice, Currency,
+        TrialDays, GracePeriodDays,
+        MaxListings, MaxImagesPerListing, MaxFeaturedListings, StorageLimitMB,
+        MaxTeamMembers, MaxMonthlyMessages, MaxMonthlyApiCalls, ListingDurationDays,
+        CommissionType, CommissionPercentage, CommissionFixedAmount, MinCommission, MaxCommission,
+        HasVerifiedBadge, SearchPriorityBoost, AnalyticsLevel, SupportLevel,
+        AllowDirectMessages, AllowApiAccess, AllowCustomStorePage, AllowPromotionalTools,
+        AllowDataExport, RemoveBranding, EmailReports, PushNotifications,
+        ExtraFeaturesJson, MetadataJson
+    ) VALUES (
+        '{SinglePlanId}', SYSUTCDATETIME(), NULL, 0,
+        N'باقَة أساسيّة', N'Basic', 'basic-single', N'باقَة واحِدَة شَهريّة لِعَرض واحِد', N'Single monthly listing plan', NULL, NULL,
+        0, 1, 1, 0,
+        19.00, NULL, NULL, NULL, 'SAR',
+        0, 3,
+        1, 5, 0, 500,
+        1, -1, 0, 30,
+        1, 0, 0, NULL, NULL,
+        0, 0, 1, 1,
+        1, 0, 0, 0,
+        0, 0, 0, 1,
+        NULL, NULL
+    );
+ELSE
+    UPDATE SubscriptionPlans SET
+        Name=N'باقَة أساسيّة', NameEn=N'Basic', Slug='basic-single',
+        Description=N'باقَة واحِدَة شَهريّة لِعَرض واحِد', DescriptionEn=N'Single monthly listing plan',
+        MonthlyPrice=19.00, Currency='SAR',
+        MaxListings=1, ListingDurationDays=30,
+        IsActive=1, IsDefault=1, IsDeleted=0,
+        UpdatedAt=SYSUTCDATETIME()
+    WHERE Id='{SinglePlanId}';
+";
+        await ExecAsync(upsert, ct);
+
+        // تَعطيل كُلّ الباقات الأُخرى
+        await ExecAsync(
+            $"UPDATE SubscriptionPlans SET IsActive=0, IsDeleted=1, UpdatedAt=SYSUTCDATETIME() WHERE Id <> '{SinglePlanId}'", ct);
+
+        // تَشخيص
+        var active = await ScalarLongAsync("SELECT COUNT(*) FROM SubscriptionPlans WHERE IsActive=1 AND IsDeleted=0", ct);
+        var total = await ScalarLongAsync("SELECT COUNT(*) FROM SubscriptionPlans", ct);
+        Log($"  ► الباقات الفَعّالَة الآن: {active} (مِن أَصل {total})");
+        if (active != 1) Log($"  ⚠ توقَّعتُ ١ — راجِع.");
+    }
+
     private async Task ExecAsync(string sql, CancellationToken ct)
     {
         if (!_apply) { Plan($"(dry-run) {sql}"); return; }

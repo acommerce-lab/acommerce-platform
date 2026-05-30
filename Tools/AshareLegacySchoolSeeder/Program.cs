@@ -95,10 +95,11 @@ bool DoOnlyRoommate = mode is "only-roommate-groups" or "only-roommate";
 bool DoHideIconless = mode is "hide-iconless-categories" or "hide-iconless";
 bool DoDisableContact = mode is "disable-contact-attrs";
 bool DoEnableContact  = mode is "enable-contact-attrs";
+bool DoSinglePlan     = mode is "setup-single-plan";
 bool DoSeed        = mode is "seed" or "rebuild";
-if (!(DoClone || DoPurge || DoShowLegacy || DoHideLegacy || DoShowSchools || DoHideSchools || DoShowRoommate || DoOnlyRoommate || DoHideIconless || DoDisableContact || DoEnableContact || DoSeed))
+if (!(DoClone || DoPurge || DoShowLegacy || DoHideLegacy || DoShowSchools || DoHideSchools || DoShowRoommate || DoOnlyRoommate || DoHideIconless || DoDisableContact || DoEnableContact || DoSinglePlan || DoSeed))
 {
-    Console.Error.WriteLine($"❌ SEEDER_MODE غير مَعروف: '{mode}'. القِيَم: seed | clone | rebuild | purge-schools | show-schools | hide-schools | show-legacy | hide-legacy | show-roommate-groups | only-roommate-groups | hide-iconless-categories | disable-contact-attrs | enable-contact-attrs");
+    Console.Error.WriteLine($"❌ SEEDER_MODE غير مَعروف: '{mode}'. القِيَم: seed | clone | rebuild | purge-schools | show-schools | hide-schools | show-legacy | hide-legacy | show-roommate-groups | only-roommate-groups | hide-iconless-categories | disable-contact-attrs | enable-contact-attrs | setup-single-plan");
     return 1;
 }
 Console.WriteLine($"الوَضع: {mode} | SEED_APPLY={(apply ? "true" : "false (dry-run)")}");
@@ -180,6 +181,7 @@ try
     if (DoHideIconless) await seeder.HideIconlessCategoriesAsync(ct);       // إخفاء الفئات بِلا أيقونَة
     if (DoDisableContact) await seeder.DisableContactAttrsAsync(ct);        // تَعطيل phone+whatsapp
     if (DoEnableContact)  await seeder.EnableContactAttrsAsync(ct);         // إعادَة phone+whatsapp
+    if (DoSinglePlan)     await seeder.SetupSinglePlanAsync(ct);            // باقَة واحِدَة + تَعطيل البَقيَّة
     if (DoSeed)         await seeder.RunAsync(ct);                          // بَذر
     return 0;
 }

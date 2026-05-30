@@ -84,6 +84,14 @@
     "enable-contact-attrs APPLY": {
       "commandName": "Project",
       "environmentVariables": { "SEEDER_MODE": "enable-contact-attrs", "SEED_APPLY": "true" }
+    },
+    "setup-single-plan (dry-run)": {
+      "commandName": "Project",
+      "environmentVariables": { "SEEDER_MODE": "setup-single-plan" }
+    },
+    "setup-single-plan APPLY": {
+      "commandName": "Project",
+      "environmentVariables": { "SEEDER_MODE": "setup-single-plan", "SEED_APPLY": "true" }
     }
   }
 }
