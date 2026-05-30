@@ -64,6 +64,26 @@
     "only-roommate-groups APPLY": {
       "commandName": "Project",
       "environmentVariables": { "SEEDER_MODE": "only-roommate-groups", "SEED_APPLY": "true" }
+    },
+    "hide-iconless-categories (dry-run)": {
+      "commandName": "Project",
+      "environmentVariables": { "SEEDER_MODE": "hide-iconless-categories" }
+    },
+    "hide-iconless-categories APPLY": {
+      "commandName": "Project",
+      "environmentVariables": { "SEEDER_MODE": "hide-iconless-categories", "SEED_APPLY": "true" }
+    },
+    "disable-contact-attrs (dry-run)": {
+      "commandName": "Project",
+      "environmentVariables": { "SEEDER_MODE": "disable-contact-attrs" }
+    },
+    "disable-contact-attrs APPLY": {
+      "commandName": "Project",
+      "environmentVariables": { "SEEDER_MODE": "disable-contact-attrs", "SEED_APPLY": "true" }
+    },
+    "enable-contact-attrs APPLY": {
+      "commandName": "Project",
+      "environmentVariables": { "SEEDER_MODE": "enable-contact-attrs", "SEED_APPLY": "true" }
     }
   }
 }

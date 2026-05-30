@@ -249,7 +249,9 @@ public sealed class LegacySeeder
     public async Task OnlyRoommateGroupsAsync(CancellationToken ct)
     {
         Log("\n=== إبقاء مَجموعَتَي عشير فَقَط — إخفاء كُلّ ما عَداها ===");
-        var rcats = $"(SELECT Id FROM ProductCategory WHERE Name IN ({RoommateNamesSql}))";
+        // نُضَيِّق المُطابَقَة إلى الصُّفوف الَّتي تَحوي أيقونَة (لِلتَخَلُّص
+        // مِن التَّكرار حَيث يوجَد صَفّ بِأيقونَة وآخَر بِلا).
+        var rcats = $"(SELECT Id FROM ProductCategory WHERE Name IN ({RoommateNamesSql}) AND Icon IS NOT NULL AND LTRIM(RTRIM(Icon)) <> '')";
         var rdefs = $"(SELECT DISTINCT AttributeDefinitionId FROM CategoryAttributeMappings WHERE CategoryId IN {rcats})";
 
         // ① الفئات: أَخفِ غير-عشير، فَعِّل عشير
@@ -288,6 +290,44 @@ public sealed class LegacySeeder
     }
 
 
+
+    // ═══ إخفاء كُلّ الفئات بِلا أيقونَة (تَنظيف عامّ) ═══════════════════════
+    // مُفيد لِإخفاء الصُّفوف المُكَرَّرَة الَّتي بِلا أيقونَة، بِغَضّ النَّظَر
+    // عَن الاسم. يَتَجاهَل الصُّفوف المَخفيّة سَلَفاً.
+    public async Task HideIconlessCategoriesAsync(CancellationToken ct)
+    {
+        Log("\n=== إخفاء الفئات بِلا أيقونَة ===");
+        await ExecAsync(
+            "UPDATE ProductCategory SET IsDeleted=1, IsActive=0, UpdatedAt=SYSUTCDATETIME() " +
+            "WHERE IsDeleted=0 AND (Icon IS NULL OR LTRIM(RTRIM(Icon)) = '')", ct);
+        var withIcon = await ScalarLongAsync(
+            "SELECT COUNT(*) FROM ProductCategory WHERE IsActive=1 AND IsDeleted=0 AND Icon IS NOT NULL AND LTRIM(RTRIM(Icon)) <> ''", ct);
+        var without = await ScalarLongAsync(
+            "SELECT COUNT(*) FROM ProductCategory WHERE IsActive=1 AND IsDeleted=0 AND (Icon IS NULL OR LTRIM(RTRIM(Icon)) = '')", ct);
+        Log($"  ► فئات ظاهِرَة بِأيقونَة: {withIcon} | بِلا أيقونَة: {without}");
+    }
+
+    // ═══ تَعطيل خَصائص السَّماح بِالاتِّصال + واتساب مِن كُلّ الفئات ════════
+    // يُخفي تَعريفات `is_phone_allowed` و `is_whatsapp_allowed` + قِيَمهما +
+    // كُلّ رَوابِطهما، فَلا تَظهَران في نَموذَج إنشاء أيّ فِئَة.
+    // `is_messaging_allowed` يَبقى كَما هُوَ. عَكسيّاً: شَغِّل enable-contact-attrs.
+    public async Task DisableContactAttrsAsync(CancellationToken ct)
+    {
+        Log("\n=== تَعطيل is_phone_allowed + is_whatsapp_allowed ===");
+        const string defs = "(SELECT Id FROM AttributeDefinitions WHERE Code IN ('is_phone_allowed','is_whatsapp_allowed'))";
+        await ExecAsync($"UPDATE CategoryAttributeMappings SET IsDeleted=1, IsActive=0, UpdatedAt=SYSUTCDATETIME() WHERE AttributeDefinitionId IN {defs}", ct);
+        await ExecAsync($"UPDATE AttributeValues SET IsDeleted=1, IsActive=0, UpdatedAt=SYSUTCDATETIME() WHERE AttributeDefinitionId IN {defs}", ct);
+        await ExecAsync($"UPDATE AttributeDefinitions SET IsDeleted=1, UpdatedAt=SYSUTCDATETIME() WHERE Id IN {defs}", ct);
+    }
+
+    public async Task EnableContactAttrsAsync(CancellationToken ct)
+    {
+        Log("\n=== إعادَة تَفعيل is_phone_allowed + is_whatsapp_allowed ===");
+        const string defs = "(SELECT Id FROM AttributeDefinitions WHERE Code IN ('is_phone_allowed','is_whatsapp_allowed'))";
+        await ExecAsync($"UPDATE AttributeDefinitions SET IsDeleted=0, UpdatedAt=SYSUTCDATETIME() WHERE Id IN {defs}", ct);
+        await ExecAsync($"UPDATE AttributeValues SET IsDeleted=0, IsActive=1, UpdatedAt=SYSUTCDATETIME() WHERE AttributeDefinitionId IN {defs}", ct);
+        await ExecAsync($"UPDATE CategoryAttributeMappings SET IsDeleted=0, IsActive=1, UpdatedAt=SYSUTCDATETIME() WHERE AttributeDefinitionId IN {defs}", ct);
+    }
 
     private async Task ExecAsync(string sql, CancellationToken ct)
     {
