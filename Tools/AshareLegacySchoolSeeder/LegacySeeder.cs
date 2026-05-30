@@ -181,6 +181,68 @@ public sealed class LegacySeeder
     // البروفايل سَليمَة، يُعَطِّل فَقَط ما رُبِطَ بِالفئات القَديمَة).
     public Task HideLegacyAsync(CancellationToken ct) => DisableOldTaxonomyAsync(ct);
 
+    // ═══ إظهار مَجموعَتَي "عشير يَدور سكن" + "عشير عنده سكن" فَقَط ═══════════
+    // يُطابِق بِالاسم العَرَبيّ — يَلتَقِط كُلّ الصُّفوف بِنَفس الاسم بِغَضّ
+    // النَّظَر عَن الـ slug (looking-for-housing / looking-for-partner /
+    // roommate_has / roommate_wants). يُفَعِّل: الفئات نَفسها + رَوابِطها +
+    // التَّعريفات المُرتَبِطَة + قِيَمها + العُروض الَّتي CategoryId تَحتَها.
+    private const string RoommateNamesSql = "N'عشير يدور سكن', N'عشير عنده سكن'";
+
+    public async Task ShowRoommateGroupsAsync(CancellationToken ct)
+    {
+        Log("\n=== إظهار مَجموعَتَي عشير: يَدور سكن + عنده سكن ===");
+
+        // الفئات
+        await ExecAsync(
+            $"UPDATE ProductCategory SET IsDeleted=0, IsActive=1, UpdatedAt=SYSUTCDATETIME() " +
+            $"WHERE Name IN ({RoommateNamesSql}) AND (IsDeleted=1 OR IsActive=0)", ct);
+
+        // الرَّوابِط (مَع تَفَعيل أيّ تَعريف مَحذوف مُشار إليه + قِيَمه)
+        await ExecAsync(
+            $"UPDATE CategoryAttributeMappings SET IsDeleted=0, IsActive=1, UpdatedAt=SYSUTCDATETIME() " +
+            $"WHERE CategoryId IN (SELECT Id FROM ProductCategory WHERE Name IN ({RoommateNamesSql})) " +
+            $"AND (IsDeleted=1 OR IsActive=0)", ct);
+
+        // تَعريفات الخصائص الَّتي تَستَعمِلها هاتانِ المَجموعَتان
+        await ExecAsync(
+            $"UPDATE AttributeDefinitions SET IsDeleted=0, UpdatedAt=SYSUTCDATETIME() " +
+            $"WHERE IsDeleted=1 AND Id IN (" +
+            $"SELECT AttributeDefinitionId FROM CategoryAttributeMappings " +
+            $"WHERE CategoryId IN (SELECT Id FROM ProductCategory WHERE Name IN ({RoommateNamesSql}))" +
+            $")", ct);
+
+        // قِيَم تِلكَ التَّعريفات
+        await ExecAsync(
+            $"UPDATE AttributeValues SET IsDeleted=0, IsActive=1, UpdatedAt=SYSUTCDATETIME() " +
+            $"WHERE AttributeDefinitionId IN (" +
+            $"SELECT AttributeDefinitionId FROM CategoryAttributeMappings " +
+            $"WHERE CategoryId IN (SELECT Id FROM ProductCategory WHERE Name IN ({RoommateNamesSql}))" +
+            $") AND (IsDeleted=1 OR IsActive=0)", ct);
+
+        // العُروض تَحتَ هاتَين المَجموعَتَين
+        await ExecAsync(
+            $"UPDATE ProductListing SET IsActive=1, IsDeleted=0, UpdatedAt=SYSUTCDATETIME() " +
+            $"WHERE CategoryId IN (SELECT Id FROM ProductCategory WHERE Name IN ({RoommateNamesSql})) " +
+            $"AND (IsDeleted=1 OR IsActive=0)", ct);
+
+        // تَشخيص
+        var catCount = await ScalarLongAsync(
+            $"SELECT COUNT(*) FROM ProductCategory WHERE Name IN ({RoommateNamesSql}) AND IsActive=1 AND IsDeleted=0", ct);
+        var listingCount = await ScalarLongAsync(
+            $"SELECT COUNT(*) FROM ProductListing WHERE CategoryId IN " +
+            $"(SELECT Id FROM ProductCategory WHERE Name IN ({RoommateNamesSql})) AND IsActive=1 AND IsDeleted=0", ct);
+        var defCount = await ScalarLongAsync(
+            $"SELECT COUNT(DISTINCT m.AttributeDefinitionId) FROM CategoryAttributeMappings m " +
+            $"INNER JOIN AttributeDefinitions d ON d.Id=m.AttributeDefinitionId " +
+            $"WHERE m.CategoryId IN (SELECT Id FROM ProductCategory WHERE Name IN ({RoommateNamesSql})) " +
+            $"AND m.IsActive=1 AND m.IsDeleted=0 AND d.IsDeleted=0", ct);
+        Log($"  ► فئات ظاهِرَة: {catCount} | عُروض: {listingCount} | خصائص دِيناميكيّة فَعّالَة: {defCount}");
+        if (catCount == 0)
+            Log("  ⚠ صِفر فئات — لا يوجَد صَفّ ProductCategory بِاسم \"عشير يدور سكن\" أو \"عشير عنده سكن\" في هذه القاعِدَة. " +
+                "تَأَكَّد مِن الـ DefaultConnection.");
+    }
+
+
 
     private async Task ExecAsync(string sql, CancellationToken ct)
     {

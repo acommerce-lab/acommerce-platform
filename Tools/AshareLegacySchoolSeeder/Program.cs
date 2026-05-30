@@ -90,10 +90,11 @@ bool DoShowLegacy  = mode is "restore-legacy" or "show-legacy" or "rebuild";
 bool DoHideLegacy  = mode is "hide-legacy";
 bool DoShowSchools = mode is "show-schools";
 bool DoHideSchools = mode is "hide-schools";
+bool DoShowRoommate = mode is "show-roommate-groups" or "show-roommate";
 bool DoSeed        = mode is "seed" or "rebuild";
-if (!(DoClone || DoPurge || DoShowLegacy || DoHideLegacy || DoShowSchools || DoHideSchools || DoSeed))
+if (!(DoClone || DoPurge || DoShowLegacy || DoHideLegacy || DoShowSchools || DoHideSchools || DoShowRoommate || DoSeed))
 {
-    Console.Error.WriteLine($"❌ SEEDER_MODE غير مَعروف: '{mode}'. القِيَم: seed | clone | rebuild | purge-schools | show-schools | hide-schools | show-legacy | hide-legacy");
+    Console.Error.WriteLine($"❌ SEEDER_MODE غير مَعروف: '{mode}'. القِيَم: seed | clone | rebuild | purge-schools | show-schools | hide-schools | show-legacy | hide-legacy | show-roommate-groups");
     return 1;
 }
 Console.WriteLine($"الوَضع: {mode} | SEED_APPLY={(apply ? "true" : "false (dry-run)")}");
@@ -168,9 +169,10 @@ try
     if (DoPurge)       await seeder.PurgeSchoolsAsync(ct);              // حَذف المَدارِس
     if (DoShowLegacy)  await seeder.RestoreLegacyAsync(ct);            // إظهار/استِعادَة القديم
     if (DoHideLegacy)  await seeder.HideLegacyAsync(ct);              // إخفاء القديم
-    if (DoShowSchools) await seeder.SetSchoolsVisibilityAsync(true, ct);  // إظهار المدارس
-    if (DoHideSchools) await seeder.SetSchoolsVisibilityAsync(false, ct); // إخفاء المدارس
-    if (DoSeed)        await seeder.RunAsync(ct);                      // بَذر
+    if (DoShowSchools)  await seeder.SetSchoolsVisibilityAsync(true, ct);   // إظهار المدارس
+    if (DoHideSchools)  await seeder.SetSchoolsVisibilityAsync(false, ct);  // إخفاء المدارس
+    if (DoShowRoommate) await seeder.ShowRoommateGroupsAsync(ct);           // إظهار مَجموعَتَي عشير
+    if (DoSeed)         await seeder.RunAsync(ct);                          // بَذر
     return 0;
 }
 catch (Exception ex)

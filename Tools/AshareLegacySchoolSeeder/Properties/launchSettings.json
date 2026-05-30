@@ -48,6 +48,14 @@
     "hide-legacy APPLY": {
       "commandName": "Project",
       "environmentVariables": { "SEEDER_MODE": "hide-legacy", "SEED_APPLY": "true" }
+    },
+    "show-roommate-groups (dry-run)": {
+      "commandName": "Project",
+      "environmentVariables": { "SEEDER_MODE": "show-roommate-groups" }
+    },
+    "show-roommate-groups APPLY": {
+      "commandName": "Project",
+      "environmentVariables": { "SEEDER_MODE": "show-roommate-groups", "SEED_APPLY": "true" }
     }
   }
 }
