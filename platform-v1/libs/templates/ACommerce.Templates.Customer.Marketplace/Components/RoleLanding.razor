@@ -16,7 +16,7 @@
         {
             <p>@Tenant.TagLine</p>
         }
-        <span class="acm-role-landing-hint">اختَر التَّطبيق الفَرعيّ</span>
+        <span class="acm-role-landing-hint">✦ اختَر تَطبيقَكَ لِلمُتابَعَة</span>
     </header>
 
     <div class="acm-role-landing-cards">
@@ -34,13 +34,13 @@
                         <span>@r.Description</span>
                     }
                 </div>
-                <span class="acm-role-landing-card-cta">دُخول ←</span>
+                <span class="acm-role-landing-card-cta" aria-hidden="true">←</span>
             </a>
         }
     </div>
 
     <div class="acm-role-landing-foot">
-        <a href="@AuthSession.LinkFor(Slug, Role, $"login")">دُخول بِدَور مَوجود مُسبَقاً</a>
+        <a href="@AuthSession.LinkFor(Slug, Role, $"login")">لَدَيكَ حِساب بِدَور مُعَيَّن؟ سَجِّل الدُخول</a>
     </div>
 </div>
 
