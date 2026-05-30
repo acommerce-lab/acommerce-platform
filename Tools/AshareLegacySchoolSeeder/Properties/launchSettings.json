@@ -56,6 +56,14 @@
     "show-roommate-groups APPLY": {
       "commandName": "Project",
       "environmentVariables": { "SEEDER_MODE": "show-roommate-groups", "SEED_APPLY": "true" }
+    },
+    "only-roommate-groups (dry-run)": {
+      "commandName": "Project",
+      "environmentVariables": { "SEEDER_MODE": "only-roommate-groups" }
+    },
+    "only-roommate-groups APPLY": {
+      "commandName": "Project",
+      "environmentVariables": { "SEEDER_MODE": "only-roommate-groups", "SEED_APPLY": "true" }
     }
   }
 }

@@ -242,6 +242,51 @@ public sealed class LegacySeeder
                 "تَأَكَّد مِن الـ DefaultConnection.");
     }
 
+    // ═══ إبقاء مَجموعَتَي عشير فَقَط (إخفاء كُلّ ما عَداها) ═══════════════════
+    // يَجعَل القاعِدَة تَعرِض هاتَين المَجموعَتَين حَصراً مَع عُروضهما +
+    // خَصائِصهما الديناميكيّة. كُلّ فئات/رَوابِط/تَعريفات/قِيَم/عُروض أُخرى
+    // تُخفى. يَحمي خصائص البروفايل (لا تَظهَر في أيّ ربط — لا تُمَسّ).
+    public async Task OnlyRoommateGroupsAsync(CancellationToken ct)
+    {
+        Log("\n=== إبقاء مَجموعَتَي عشير فَقَط — إخفاء كُلّ ما عَداها ===");
+        var rcats = $"(SELECT Id FROM ProductCategory WHERE Name IN ({RoommateNamesSql}))";
+        var rdefs = $"(SELECT DISTINCT AttributeDefinitionId FROM CategoryAttributeMappings WHERE CategoryId IN {rcats})";
+
+        // ① الفئات: أَخفِ غير-عشير، فَعِّل عشير
+        await ExecAsync($"UPDATE ProductCategory SET IsDeleted=1, IsActive=0, UpdatedAt=SYSUTCDATETIME() WHERE Id NOT IN {rcats}", ct);
+        await ExecAsync($"UPDATE ProductCategory SET IsDeleted=0, IsActive=1, UpdatedAt=SYSUTCDATETIME() WHERE Id IN {rcats}", ct);
+
+        // ② الرَّوابِط
+        await ExecAsync($"UPDATE CategoryAttributeMappings SET IsDeleted=1, IsActive=0, UpdatedAt=SYSUTCDATETIME() WHERE CategoryId NOT IN {rcats}", ct);
+        await ExecAsync($"UPDATE CategoryAttributeMappings SET IsDeleted=0, IsActive=1, UpdatedAt=SYSUTCDATETIME() WHERE CategoryId IN {rcats}", ct);
+
+        // ③ تَعريفات الخصائص: نُخفي فَقَط الَّتي تُستَخدَم في رَوابِط غير-عشير
+        //    وَلَيسَت في رَوابِط عشير. خصائص البروفايل (غير المُستَخدَمَة في
+        //    أيّ ربط) تَبقى سَليمَة.
+        await ExecAsync($"UPDATE AttributeDefinitions SET IsDeleted=1, UpdatedAt=SYSUTCDATETIME() WHERE Id IN (SELECT DISTINCT AttributeDefinitionId FROM CategoryAttributeMappings WHERE CategoryId NOT IN {rcats}) AND Id NOT IN {rdefs}", ct);
+        await ExecAsync($"UPDATE AttributeDefinitions SET IsDeleted=0, UpdatedAt=SYSUTCDATETIME() WHERE Id IN {rdefs}", ct);
+
+        // ④ قِيَم الخصائص
+        await ExecAsync($"UPDATE AttributeValues SET IsDeleted=1, IsActive=0, UpdatedAt=SYSUTCDATETIME() WHERE AttributeDefinitionId IN (SELECT Id FROM AttributeDefinitions WHERE IsDeleted=1)", ct);
+        await ExecAsync($"UPDATE AttributeValues SET IsDeleted=0, IsActive=1, UpdatedAt=SYSUTCDATETIME() WHERE AttributeDefinitionId IN {rdefs}", ct);
+
+        // ⑤ العُروض: نُخفي كُلّ ما لَيسَ تَحت فئات عشير
+        await ExecAsync($"UPDATE ProductListing SET IsDeleted=1, IsActive=0, UpdatedAt=SYSUTCDATETIME() WHERE CategoryId IS NULL OR CategoryId NOT IN {rcats}", ct);
+        await ExecAsync($"UPDATE ProductListing SET IsDeleted=0, IsActive=1, UpdatedAt=SYSUTCDATETIME() WHERE CategoryId IN {rcats}", ct);
+
+        // تَشخيص نِهائيّ
+        var totalCats = await ScalarLongAsync("SELECT COUNT(*) FROM ProductCategory WHERE IsActive=1 AND IsDeleted=0", ct);
+        var totalListings = await ScalarLongAsync("SELECT COUNT(*) FROM ProductListing WHERE IsActive=1 AND IsDeleted=0", ct);
+        var roomCats = await ScalarLongAsync(
+            $"SELECT COUNT(*) FROM ProductCategory WHERE Name IN ({RoommateNamesSql}) AND IsActive=1 AND IsDeleted=0", ct);
+        var roomListings = await ScalarLongAsync(
+            $"SELECT COUNT(*) FROM ProductListing WHERE CategoryId IN {rcats} AND IsActive=1 AND IsDeleted=0", ct);
+        Log($"  ► إجماليّ ظاهِر: فئات={totalCats}، عُروض={totalListings}");
+        Log($"  ► تَحت عشير:      فئات={roomCats}، عُروض={roomListings}");
+        if (totalCats != roomCats || totalListings != roomListings)
+            Log("  ⚠ هُناك فئات/عُروض ظاهِرَة لَيسَت تَحت عشير — راجِع.");
+    }
+
 
 
     private async Task ExecAsync(string sql, CancellationToken ct)

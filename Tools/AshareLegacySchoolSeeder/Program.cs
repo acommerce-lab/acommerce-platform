@@ -91,10 +91,11 @@ bool DoHideLegacy  = mode is "hide-legacy";
 bool DoShowSchools = mode is "show-schools";
 bool DoHideSchools = mode is "hide-schools";
 bool DoShowRoommate = mode is "show-roommate-groups" or "show-roommate";
+bool DoOnlyRoommate = mode is "only-roommate-groups" or "only-roommate";
 bool DoSeed        = mode is "seed" or "rebuild";
-if (!(DoClone || DoPurge || DoShowLegacy || DoHideLegacy || DoShowSchools || DoHideSchools || DoShowRoommate || DoSeed))
+if (!(DoClone || DoPurge || DoShowLegacy || DoHideLegacy || DoShowSchools || DoHideSchools || DoShowRoommate || DoOnlyRoommate || DoSeed))
 {
-    Console.Error.WriteLine($"❌ SEEDER_MODE غير مَعروف: '{mode}'. القِيَم: seed | clone | rebuild | purge-schools | show-schools | hide-schools | show-legacy | hide-legacy | show-roommate-groups");
+    Console.Error.WriteLine($"❌ SEEDER_MODE غير مَعروف: '{mode}'. القِيَم: seed | clone | rebuild | purge-schools | show-schools | hide-schools | show-legacy | hide-legacy | show-roommate-groups | only-roommate-groups");
     return 1;
 }
 Console.WriteLine($"الوَضع: {mode} | SEED_APPLY={(apply ? "true" : "false (dry-run)")}");
@@ -172,6 +173,7 @@ try
     if (DoShowSchools)  await seeder.SetSchoolsVisibilityAsync(true, ct);   // إظهار المدارس
     if (DoHideSchools)  await seeder.SetSchoolsVisibilityAsync(false, ct);  // إخفاء المدارس
     if (DoShowRoommate) await seeder.ShowRoommateGroupsAsync(ct);           // إظهار مَجموعَتَي عشير
+    if (DoOnlyRoommate) await seeder.OnlyRoommateGroupsAsync(ct);           // إبقاء مَجموعَتَي عشير فَقَط
     if (DoSeed)         await seeder.RunAsync(ct);                          // بَذر
     return 0;
 }
