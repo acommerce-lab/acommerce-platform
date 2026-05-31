@@ -82,6 +82,108 @@ public sealed class FeasibilityAnalysisService
     public Task MarkAnalyzingAsync(Guid id, CancellationToken ct = default)
         => SetStatusAsync(id, IncubatorStatus.Analyzing, ct);
 
+    /// <summary>
+    /// يُعيد توليد قِسم واحِد مِن الدِراسَة (مَثَلاً <c>risks</c> أَو
+    /// <c>marketSizing</c>) بِناءً على مُلاحَظَة المُستَخدِم، ويَدمُجه في
+    /// JSON الدِراسَة الحاليّ. يَكون أَسرَع وأَرخَص مِن إعادَة تَوليد الكُلّ
+    /// لِأَنّ الـ output أَصغَر.
+    /// </summary>
+    public async Task RefineSectionAsync(
+        Guid id, string sectionKey, string feedback, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(sectionKey)) return;
+        var s = await LoadAsync(id, ct);
+        if (s is null || s.Status != IncubatorStatus.Completed || s.AnalysisJson is null) return;
+
+        var sector = s.Answers.TryGetValue("sector", out var sec) ? sec : "other";
+        var systemPrompt =
+            $"أنت محلّل أعمال خبير في السوق السعودي. لَدَيكَ دِراسَة جَدوى مَوجودَة، " +
+            $"والمَطلوب إعادَة تَوليد قِسم واحِد فَقَط ({sectionKey}) بِناءً على مُلاحَظَة المُستَخدِم. " +
+            "حافِظ على نَفس بِنيَة JSON لِهذا القِسم (انظر القِسم الحاليّ). " +
+            "أَجِب بِـ JSON يَحتَوي مِفتاحاً واحِداً هو نَفس اسم القِسم وقيمَتُه القيمَة الجَديدَة فَقَط، بِلا شَيء آخَر. " +
+            "اِستَخدِم بيانات السوق المُتاحَة وتَجَنَّب اختِراع أَرقام.\n\n" +
+            "# سياق السوق:\n" + _prompt._dataMarket() +
+            "\n# دروس فشل سعوديَّة:\n" + _prompt.FailuresForSector(sector);
+
+        var userMsg =
+            $"## القِسم الحاليّ ({sectionKey}):\n" + ExtractSection(s.AnalysisJson, sectionKey) +
+            $"\n\n## مُلاحَظَة لِإعادَة التَّوليد:\n{feedback}" +
+            $"\n\nأَجِب بِـ JSON بِالشَّكل: {{ \"{sectionKey}\": ... }}";
+
+        var messages = new List<AgentMessage>
+        {
+            new("user", userMsg, null, null)
+        };
+        var req = new AgentRequest(systemPrompt, messages,
+            Array.Empty<AgentToolDef>(), _backend.DefaultModel, MaxTokens: 3000);
+        var resp = await _backend.CallAsync(req, ct);
+        if (resp.Error is not null) return;
+        var newJson = ExtractJson(resp.Text);
+        if (newJson is null) return;
+
+        // ادمُج: استَبدِل المِفتاح فَقَط، احفَظ الباقي كَما هو.
+        var merged = MergeSection(s.AnalysisJson, newJson, sectionKey);
+        if (merged is null) return;
+
+        await using var session = _store.LightweightSession(IncubatorTenant);
+        var fresh = await session.LoadAsync<IncubatorSession>(id, ct) ?? s;
+        fresh.AnalysisJson = merged;
+        fresh.AnalysisQualityScore = ScoreQuality(merged, sector);
+        fresh.UpdatedAt = DateTime.UtcNow;
+        session.Store(fresh);
+        await session.SaveChangesAsync(ct);
+    }
+
+    internal static string ExtractSection(string json, string key)
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(json);
+            if (doc.RootElement.TryGetProperty(key, out var v))
+                return v.GetRawText();
+        }
+        catch { }
+        return "{}";
+    }
+
+    /// <summary>يَستَبدِل قِسماً واحِداً في JSON بِالقيمَة الجَديدَة (الَّتي
+    /// تَأتي كَ كائِن بِمِفتاح واحِد). يُعيد JSON كامِلاً جَديداً أَو null.</summary>
+    internal static string? MergeSection(string originalJson, string newSectionJson, string key)
+    {
+        try
+        {
+            using var origDoc = JsonDocument.Parse(originalJson);
+            using var newDoc = JsonDocument.Parse(newSectionJson);
+            if (!newDoc.RootElement.TryGetProperty(key, out var newValue))
+                return null;
+
+            using var stream = new MemoryStream();
+            using (var w = new System.Text.Json.Utf8JsonWriter(stream,
+                new System.Text.Json.JsonWriterOptions { Indented = false }))
+            {
+                w.WriteStartObject();
+                foreach (var prop in origDoc.RootElement.EnumerateObject())
+                {
+                    if (prop.Name == key)
+                    {
+                        w.WritePropertyName(key);
+                        newValue.WriteTo(w);
+                    }
+                    else prop.WriteTo(w);
+                }
+                // إن كانَ المِفتاح غَير مَوجود أَصلاً، أَضِفه.
+                if (!origDoc.RootElement.TryGetProperty(key, out _))
+                {
+                    w.WritePropertyName(key);
+                    newValue.WriteTo(w);
+                }
+                w.WriteEndObject();
+            }
+            return System.Text.Encoding.UTF8.GetString(stream.ToArray());
+        }
+        catch { return null; }
+    }
+
     // ─── Analysis ───────────────────────────────────────────────────
     /// <summary>يشغّل التحليل: prompt → LLM → JSON صالح → حفظ. يُعيد الجلسة المُحدَّثة.</summary>
     public async Task<IncubatorSession> RunAnalysisAsync(Guid id, CancellationToken ct = default)

@@ -244,6 +244,61 @@
 .studio-list-body strong { display: block; font-size: 15px; }
 .studio-list-body span { font-size: 12.5px; color: var(--st-muted); }
 
+/* ─── Risk heatmap ───────────────────────────────────────────────── */
+.risk-heatmap {
+    background: var(--st-surface); border: 1px solid var(--st-line);
+    border-radius: var(--st-radius); padding: 18px;
+    display: grid; grid-template-columns: auto 1fr; gap: 12px;
+}
+.risk-heatmap-ylabel {
+    writing-mode: vertical-rl; transform: rotate(180deg);
+    align-self: center; justify-self: center;
+    font-size: 12px; color: var(--st-muted); font-weight: 600;
+}
+.risk-heatmap-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(3, 1fr);
+    gap: 4px; min-height: 240px;
+}
+.risk-heatmap-cell {
+    border-radius: 8px; padding: 8px;
+    display: flex; flex-wrap: wrap; gap: 4px;
+    align-content: flex-start;
+    min-height: 70px;
+}
+/* الـ 9 خَلايا: high impact * high likelihood = خَطَر شَديد، low * low = خَفيف */
+.risk-cell-ll-ll { background: #f0fdf4; }   /* low-low — أَخضَر فاتِح */
+.risk-cell-ll-lm { background: #ecfdf5; }
+.risk-cell-ll-lh { background: #fef9c3; }
+.risk-cell-lm-ll { background: #ecfdf5; }
+.risk-cell-lm-lm { background: #fef9c3; }   /* وَسَط — أَصفَر */
+.risk-cell-lm-lh { background: #fed7aa; }
+.risk-cell-lh-ll { background: #fef9c3; }
+.risk-cell-lh-lm { background: #fed7aa; }
+.risk-cell-lh-lh { background: #fecaca; }   /* high-high — أَحمَر */
+.risk-dot {
+    width: 26px; height: 26px; border-radius: 50%;
+    color: #fff; font-size: 11px; font-weight: 700;
+    display: grid; place-items: center;
+    cursor: help; box-shadow: 0 2px 4px rgba(0,0,0,.15);
+}
+.risk-dot-market      { background: #dc2626; }
+.risk-dot-operational { background: #ea580c; }
+.risk-dot-financial   { background: #7c3aed; }
+.risk-dot-regulatory  { background: #0891b2; }
+.risk-dot-other       { background: #64748b; }
+.risk-heatmap-xlabel {
+    grid-column: 2; text-align: center;
+    font-size: 12px; color: var(--st-muted); font-weight: 600; margin-top: 6px;
+}
+.risk-heatmap-axis {
+    display: flex; justify-content: space-between;
+    font-size: 11px; color: var(--st-faint); margin-top: 2px;
+}
+.risk-legend { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 14px; font-size: 12px; }
+.risk-legend-item { display: inline-flex; align-items: center; gap: 6px; }
+.risk-legend-swatch { width: 12px; height: 12px; border-radius: 50%; }
+
 /* responsive: الشريط الجانبي يصبح علوياً على الجوال */
 @media (max-width: 860px) {
     .studio-shell { flex-direction: column; }

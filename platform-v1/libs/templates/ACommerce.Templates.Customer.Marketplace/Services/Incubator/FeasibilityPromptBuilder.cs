@@ -89,6 +89,10 @@ public sealed class FeasibilityPromptBuilder
         return sb.ToString();
     }
 
+    /// <summary>نَصّ سياق السوق الخام — يُستَخدَم في prompt الـ refine
+    /// المُختَصَر بَدَلَ تَحميل كُلّ شَيء.</summary>
+    internal string _dataMarket() => _data.MarketContextJson;
+
     /// <summary>يستخرج حالات الفشل لقطاع محدد من ملف الفشل الكامل.</summary>
     public string FailuresForSector(string sector)
     {

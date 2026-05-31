@@ -1901,6 +1901,31 @@ public static class MarketplaceTemplateExtensions
             return Results.Redirect("/");
         }).DisableAntiforgery();
 
+        // إعادَة تَوليد قِسم واحِد مِن الدِراسَة (refine) بِناءً عَلى مُلاحَظَة.
+        app.MapPost("/studio/s/{id:guid}/refine", async (
+            Guid id, HttpRequest req, IServiceScopeFactory scopeFactory,
+            Services.Incubator.StudioAuth auth,
+            Services.Incubator.FeasibilityAnalysisService svc) =>
+        {
+            auth.Load();
+            if (!auth.IsAuthenticated) return Results.Redirect("/studio/auth");
+            var section = req.Form["section"].ToString().Trim();
+            var feedback = req.Form["feedback"].ToString().Trim();
+            if (string.IsNullOrEmpty(section) || string.IsNullOrEmpty(feedback))
+                return Results.Redirect($"/studio/s/{id}");
+
+            // شَغِّل في الخَلفِيَّة، لا نُعَلِّق الـ POST عَلى الـ LLM.
+            _ = Task.Run(async () =>
+            {
+                using var scope = scopeFactory.CreateScope();
+                var bg = scope.ServiceProvider
+                    .GetRequiredService<Services.Incubator.FeasibilityAnalysisService>();
+                try { await bg.RefineSectionAsync(id, section, feedback); }
+                catch { /* تُعرَض الدِراسَة كَما هي عَلى الفَشَل */ }
+            });
+            return Results.Redirect($"/studio/s/{id}?refining={section}");
+        }).DisableAntiforgery();
+
         // بِناء Tenant فِعليّ مِن جَلسَة تَحليل (الجِسر بَين الفِكرَة والتَّطبيق).
         app.MapPost("/studio/s/{id:guid}/build", async (
             Guid id, HttpRequest req, HttpContext http,

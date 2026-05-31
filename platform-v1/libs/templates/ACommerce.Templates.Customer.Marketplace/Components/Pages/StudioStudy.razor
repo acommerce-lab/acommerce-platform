@@ -16,6 +16,11 @@
 {
     <HeadContent><meta http-equiv="refresh" content="4" /></HeadContent>
 }
+@if (!string.IsNullOrEmpty(Refining) && session?.Status == IncubatorStatus.Completed)
+{
+    @* Refine يَجري في الخَلفِيَّة — حَدِّث الصَفحَة كُلّ ٤ث حَتَّى تَتَحَدَّث Updated. *@
+    <HeadContent><meta http-equiv="refresh" content="4" /></HeadContent>
+}
 
 <StudioShell Title="دِراسَة الجَدوى" Active="ideas">
     <TopBarActions>
@@ -60,6 +65,18 @@
                 <p>@(string.IsNullOrEmpty(session.ProjectDescription) ? "" : Truncate(session.ProjectDescription, 120))</p>
             </div>
 
+            @if (!string.IsNullOrEmpty(Refining))
+            {
+                <div class="st-card" style="background:#fff7ed;border:1px solid var(--st-warning);
+                                            display:flex;align-items:center;gap:10px;">
+                    <span style="font-size:20px;">⏳</span>
+                    <div style="flex:1;">
+                        جارٍ تَحسين قِسم «<strong>@SectionLabel(Refining)</strong>»…
+                        ستُحَدَّث الصَفحَة تِلقائيّاً عِندَ الجاهِزِيَّة.
+                    </div>
+                </div>
+            }
+
             @if (r.TryGetProperty("summary", out var sum))
             {
                 <div class="studio-stats">
@@ -91,13 +108,62 @@
 
             @if (r.TryGetProperty("risks", out var risks) && risks.ValueKind == JsonValueKind.Array)
             {
-                <div class="st-section-title">⚠️ المَخاطِر</div>
+                <div class="st-section-title">⚠️ المَخاطِر — خَريطَة حَراريَّة</div>
+                var risksList = risks.EnumerateArray().ToList();
+                <div class="risk-heatmap">
+                    <div class="risk-heatmap-ylabel">الاحتِمال →</div>
+                    <div>
+                        <div class="risk-heatmap-grid">
+                            @* 3x3: rows = likelihood (high أَوَّلاً)، cols = impact (low أَوَّلاً) *@
+                            @for (var li = 2; li >= 0; li--)
+                            {
+                                @for (var im = 0; im < 3; im++)
+                                {
+                                    var lik = LevelName(li); var imp = LevelName(im);
+                                    var cls = $"risk-cell-l{Initial(imp)}-l{Initial(lik)}";
+                                    <div class="risk-heatmap-cell @cls">
+                                        @foreach (var risk in risksList
+                                            .Where(rk => Level(Str(rk,"likelihood")) == li
+                                                      && Level(Str(rk,"impact")) == im))
+                                        {
+                                            var cat = Str(risk, "category").ToLowerInvariant();
+                                            var dotCls = "risk-dot-" + (CategoryClass(cat));
+                                            <span class="risk-dot @dotCls"
+                                                  title="@($"{Str(risk,"title")} · {Str(risk,"mitigation")}")">
+                                                @(risksList.IndexOf(risk) + 1)
+                                            </span>
+                                        }
+                                    </div>
+                                }
+                            }
+                        </div>
+                        <div class="risk-heatmap-axis">
+                            <span>أَثَر مُنخَفِض</span><span>مُتَوَسِّط</span><span>عالٍ</span>
+                        </div>
+                        <div class="risk-heatmap-xlabel">← الأَثَر</div>
+                    </div>
+                </div>
+                <div class="risk-legend">
+                    <span class="risk-legend-item"><span class="risk-legend-swatch risk-dot-market"></span>سوق</span>
+                    <span class="risk-legend-item"><span class="risk-legend-swatch risk-dot-operational"></span>تَشغيليّ</span>
+                    <span class="risk-legend-item"><span class="risk-legend-swatch risk-dot-financial"></span>ماليّ</span>
+                    <span class="risk-legend-item"><span class="risk-legend-swatch risk-dot-regulatory"></span>تَنظيميّ</span>
+                </div>
+
+                <div class="st-section-title" style="margin-top:18px;">تَفاصيل المَخاطِر</div>
                 <div class="studio-list">
-                    @foreach (var risk in risks.EnumerateArray())
+                    @for (var i = 0; i < risksList.Count; i++)
                     {
+                        var risk = risksList[i];
                         <div class="st-card">
-                            <div style="display:flex;justify-content:space-between;gap:8px;">
-                                <strong>@Str(risk,"title")</strong>
+                            <div style="display:flex;justify-content:space-between;gap:8px;align-items:start;">
+                                <strong>
+                                    <span class="risk-dot @($"risk-dot-{CategoryClass(Str(risk,"category").ToLowerInvariant())}")"
+                                          style="width:22px;height:22px;font-size:11px;display:inline-grid;vertical-align:middle;">
+                                        @(i + 1)
+                                    </span>
+                                    @Str(risk,"title")
+                                </strong>
                                 <span class="st-chip">@Str(risk,"category")</span>
                             </div>
                             <p style="margin:8px 0 0;font-size:13.5px;color:var(--st-muted);">
@@ -206,6 +272,42 @@
                 </div>
             }
 
+            @* تَحسين الدِراسَة — أَعِد توليد قِسم بِناءً عَلى مُلاحَظَة. *@
+            <div class="st-section-title">💬 تَحسين الدِراسَة</div>
+            <details class="st-card" style="padding:0;">
+                <summary style="cursor:pointer;padding:16px 22px;font-weight:600;list-style:none;
+                                display:flex;align-items:center;gap:8px;">
+                    <span style="font-size:18px;">✨</span>
+                    لاحَظتَ خَلَلاً في قِسم؟ اطلُب إعادَة توليده
+                </summary>
+                <form method="post" action="@($"/studio/s/{session.Id}/refine")"
+                      style="padding:0 22px 22px;border-top:1px solid var(--st-line);">
+                    <div class="st-field" style="margin-top:14px;">
+                        <label class="st-label">القِسم المُراد تَحسينه</label>
+                        <select name="section" required class="st-input">
+                            <option value="marketSizing">حَجم السوق</option>
+                            <option value="customerSegments">شَرائِح العُملاء</option>
+                            <option value="competitors">المُنافِسون والفَجوَة</option>
+                            <option value="revenueModel">نَموذَج الإيراد</option>
+                            <option value="costStructure">هَيكَل التَّكلِفَة</option>
+                            <option value="financialProjection">التَّوَقُّع المالي</option>
+                            <option value="risks">المَخاطِر</option>
+                            <option value="lessonsFromFailures">دُروس الفَشَل</option>
+                            <option value="roadmap">خارِطَة الطَّريق</option>
+                            <option value="recommendedPattern">النَّمَط المُقتَرَح</option>
+                        </select>
+                    </div>
+                    <div class="st-field">
+                        <label class="st-label">مُلاحَظَتُكَ (مَ الَّذي يَنقُص أَو الَّذي تَوَدّ تَغييره؟)</label>
+                        <textarea name="feedback" required rows="3" class="st-textarea"
+                            placeholder="مَثَلاً: الأَرقام مُتَفائِلَة جِدّاً، رَكِّز على سيناريو مُتَحَفِّظ; أَو: أَضِف منافِساً «س» الَّذي لَم تَذكُره"></textarea>
+                    </div>
+                    <button type="submit" class="st-btn st-btn-primary">
+                        أَعِد توليد القِسم
+                    </button>
+                </form>
+            </details>
+
             <div class="st-card" style="margin-top:16px;background:var(--st-line-soft);border:0;font-size:12.5px;color:var(--st-muted);">
                 @Disclaimer
             </div>
@@ -216,6 +318,41 @@
 @code {
     [Parameter] public Guid Id { get; set; }
     [SupplyParameterFromQuery(Name = "build_err")] public string? BuildErr { get; set; }
+    [SupplyParameterFromQuery(Name = "refining")]  public string? Refining { get; set; }
+
+    // مُستَوى مِن نَصّ low/medium/high → فِهرِس 0/1/2.
+    static int Level(string s) => s.ToLowerInvariant() switch
+    {
+        "low" or "منخفض" or "مُنخَفِض" => 0,
+        "high" or "عالي" or "عالٍ"      => 2,
+        _ => 1
+    };
+    static string LevelName(int i) => i switch { 0 => "low", 2 => "high", _ => "medium" };
+    static string Initial(string s) => s[..1]; // l/m/h
+
+    static string CategoryClass(string cat) => cat switch
+    {
+        var c when c.Contains("market") || c.Contains("سوق")    => "market",
+        var c when c.Contains("oper")   || c.Contains("تشغيل")  => "operational",
+        var c when c.Contains("fin")    || c.Contains("مالي")   => "financial",
+        var c when c.Contains("reg")    || c.Contains("تنظيم")  => "regulatory",
+        _ => "other"
+    };
+
+    static string SectionLabel(string key) => key switch
+    {
+        "marketSizing"        => "حَجم السوق",
+        "customerSegments"    => "شَرائِح العُملاء",
+        "competitors"         => "المُنافِسون",
+        "revenueModel"        => "نَموذَج الإيراد",
+        "costStructure"       => "هَيكَل التَّكلِفَة",
+        "financialProjection" => "التَّوَقُّع المالي",
+        "risks"               => "المَخاطِر",
+        "lessonsFromFailures" => "دُروس الفَشَل",
+        "roadmap"             => "خارِطَة الطَّريق",
+        "recommendedPattern"  => "النَّمَط المُقتَرَح",
+        _ => key
+    };
     IncubatorSession? session;
     JsonElement? root;
     TenantFromAnalysisFactory.BuildSuggestion? suggestion;
