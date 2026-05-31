@@ -1,7 +1,10 @@
 @page "/studio/s/{id:guid}"
 @inject Services.Incubator.StudioAuth Auth
 @inject Services.Incubator.FeasibilityAnalysisService Incubator
+@inject Services.Incubator.TenantFromAnalysisFactory Factory
+@inject Marten.IDocumentStore Store
 @using ACommerce.Templates.Customer.Marketplace.Services.Incubator
+@using ACommerce.Kit.Tenants
 @using System.Text.Json
 
 @*
@@ -133,16 +136,73 @@
                 </div>
             }
 
-            @if (r.TryGetProperty("recommendedPattern", out var rp))
+            @if (builtTenant is not null)
+            {
+                <div class="st-card" style="margin-top:20px;border:1px solid var(--st-success);background:#dcfce7;">
+                    <h3 style="margin:0 0 6px;">✅ أُنشِئ تَطبيقكَ مِن هذه الفِكرَة</h3>
+                    <p style="margin:0 0 14px;font-size:14px;">
+                        <strong>@builtTenant.Name</strong> · /@builtTenant.Slug
+                    </p>
+                    <a class="st-btn st-btn-primary" href="@($"/studio/apps/{builtTenant.Slug}")">
+                        فَتح لوحَة التَّطبيق ←
+                    </a>
+                </div>
+            }
+            else if (r.TryGetProperty("recommendedPattern", out var rp))
             {
                 <div class="st-card" style="margin-top:20px;border:1px solid var(--st-primary);background:var(--st-primary-50);">
-                    <h3 style="margin:0 0 6px;">🚀 الإطلاق على ACommerce</h3>
+                    <h3 style="margin:0 0 6px;">🚀 أَطلِق تَطبيقَكَ على ACommerce</h3>
                     <p style="margin:0 0 14px;font-size:14px;">
-                        <strong>النَّمَط:</strong> @Str(rp,"pattern") ·
+                        <strong>النَّمَط المُقتَرَح:</strong> @Str(rp,"pattern") ·
                         <strong>الوَقت:</strong> @Str(rp,"timeToLaunch")<br/>
                         <span style="color:var(--st-ink-700);">@Str(rp,"reasoning")</span>
                     </p>
-                    <a class="st-btn st-btn-primary" href="/admin/agent">أَنشِئ المَتجَر بِالمُساعِد ←</a>
+
+                    @if (suggestion is not null)
+                    {
+                        @if (BuildErr is not null)
+                        {
+                            <div class="st-chip st-chip-danger" style="margin-bottom:10px;">
+                                @FormatBuildErr(BuildErr)
+                            </div>
+                        }
+                        <form method="post" action="@($"/studio/s/{session!.Id}/build")"
+                              style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                            <div class="st-field" style="margin:0;grid-column:1/-1;">
+                                <label class="st-label">اسم التَّطبيق</label>
+                                <input class="st-input" name="name" required maxlength="60"
+                                       value="@suggestion.Name" />
+                            </div>
+                            <div class="st-field" style="margin:0;">
+                                <label class="st-label">المُعَرِّف (slug)</label>
+                                <input class="st-input" name="slug" required dir="ltr"
+                                       pattern="^[a-z0-9_-]+$"
+                                       placeholder="my-app" />
+                            </div>
+                            <div class="st-field" style="margin:0;">
+                                <label class="st-label">لَون العَلامَة</label>
+                                <input class="st-input" type="color" name="color" required
+                                       value="@suggestion.Color" style="padding:4px;height:46px;" />
+                            </div>
+                            <div class="st-field" style="margin:0;grid-column:1/-1;">
+                                <label class="st-label">الشِّعار التَّسويقيّ</label>
+                                <input class="st-input" name="tagline" maxlength="120"
+                                       value="@suggestion.TagLine" />
+                            </div>
+                            <div class="st-field" style="margin:0;grid-column:1/-1;">
+                                <label class="st-label">المَدينَة الافتراضيَّة</label>
+                                <input class="st-input" name="city" maxlength="40"
+                                       value="@suggestion.City" />
+                            </div>
+                            <button type="submit" class="st-btn st-btn-primary"
+                                    style="grid-column:1/-1;">
+                                ✨ أَنشِئ التَّطبيق الآن
+                            </button>
+                        </form>
+                        <p style="margin:10px 0 0;font-size:12px;color:var(--st-muted);">
+                            سَيُهَيَّأ التَّطبيق تِلقائيّاً بِفِئات وأَدوار مَبدَئيَّة بِناءً على النَّمَط، ويُمكِنُكَ تَعديل كُلّ شَيء بَعد الإنشاء.
+                        </p>
+                    }
                 </div>
             }
 
@@ -155,8 +215,11 @@
 
 @code {
     [Parameter] public Guid Id { get; set; }
+    [SupplyParameterFromQuery(Name = "build_err")] public string? BuildErr { get; set; }
     IncubatorSession? session;
     JsonElement? root;
+    TenantFromAnalysisFactory.BuildSuggestion? suggestion;
+    Tenant? builtTenant;
 
     const string Disclaimer =
         "هذا التَّحليل مُولَّد آلِيّاً بِناءً على بيانات السوق المُتاحَة. المَنصَّة غَير مَسؤولَة عَن نَتائِج القَرارات المَبنيَّة عَلَيه. يُوصَى بِالتَّحَقُّق المُستَقِلّ.";
@@ -166,14 +229,28 @@
         Auth.Load();
         if (!Auth.IsAuthenticated) return;
         session = await Incubator.LoadAsync(Id);
-        // تَحَقَّق مِن المِلكِيَّة — لا تَعرِض جَلسَة غَيرك.
         if (session is not null && session.OwnerUserId != Auth.UserId!.Value) { session = null; return; }
         if (session?.AnalysisJson is not null)
         {
             try { root = JsonDocument.Parse(session.AnalysisJson).RootElement.Clone(); }
             catch { root = null; }
         }
+        if (session is { Status: IncubatorStatus.Completed })
+        {
+            suggestion = Factory.DeriveSuggestion(session);
+            // هَل أُنشِئ تَطبيق مِن هذه الجَلسَة سابِقاً؟
+            await using var qs = Store.QuerySession();
+            var all = (await qs.Query<Tenant>().ToListAsync()).ToList();
+            builtTenant = all.FirstOrDefault(t => t.SourceAnalysisId == Id);
+        }
     }
+
+    static string FormatBuildErr(string err) => err switch
+    {
+        "name_required" => "الاسم مَطلوب.",
+        "color_invalid" => "اللَون غَير صالِح.",
+        _ => err
+    };
 
     static string Str(JsonElement e, string p)
         => e.TryGetProperty(p, out var v)

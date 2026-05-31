@@ -43,6 +43,7 @@ public static class MarketplaceTemplateExtensions
         services.AddSingleton<Services.Incubator.FeasibilityPromptBuilder>();
         services.AddScoped<Services.Incubator.FeasibilityAnalysisService>();
         services.AddScoped<Services.Incubator.StudioAuth>();
+        services.AddScoped<Services.Incubator.TenantFromAnalysisFactory>();
         return services;
     }
 
@@ -1898,6 +1899,43 @@ public static class MarketplaceTemplateExtensions
         {
             Services.Incubator.StudioAuth.DeleteCookie(res);
             return Results.Redirect("/");
+        }).DisableAntiforgery();
+
+        // بِناء Tenant فِعليّ مِن جَلسَة تَحليل (الجِسر بَين الفِكرَة والتَّطبيق).
+        app.MapPost("/studio/s/{id:guid}/build", async (
+            Guid id, HttpRequest req, HttpContext http,
+            Services.Incubator.FeasibilityAnalysisService incubator,
+            Services.Incubator.TenantFromAnalysisFactory factory,
+            Services.Incubator.StudioAuth auth) =>
+        {
+            auth.Load();
+            if (!auth.IsAuthenticated) return Results.Redirect("/studio/auth");
+            var ownerId = auth.UserId!.Value;
+
+            var session = await incubator.LoadAsync(id);
+            if (session is null || session.OwnerUserId != ownerId)
+                return Results.Redirect("/studio");
+            if (session.Status != Services.Incubator.IncubatorStatus.Completed)
+                return Results.Redirect($"/studio/s/{id}");
+
+            var slug    = req.Form["slug"].ToString().Trim().ToLowerInvariant();
+            var name    = req.Form["name"].ToString().Trim();
+            var color   = req.Form["color"].ToString().Trim();
+            var tagLine = req.Form["tagline"].ToString().Trim();
+            var city    = req.Form["city"].ToString().Trim();
+
+            var err = await factory.ValidateSlugAsync(slug);
+            if (err is not null)
+                return Results.Redirect($"/studio/s/{id}?build_err={Uri.EscapeDataString(err)}");
+            if (string.IsNullOrEmpty(name))
+                return Results.Redirect($"/studio/s/{id}?build_err=name_required");
+            if (!System.Text.RegularExpressions.Regex.IsMatch(color, "^#[0-9A-Fa-f]{6}$"))
+                return Results.Redirect($"/studio/s/{id}?build_err=color_invalid");
+
+            var sector = session.Answers.TryGetValue("sector", out var sec) ? sec : "";
+            await factory.CreateAsync(slug, name, color, tagLine, city,
+                session.SuggestedPattern, sector, ownerId, id);
+            return Results.Redirect($"/studio/apps/{slug}?built=1");
         }).DisableAntiforgery();
 
         // إعادَة تَحليل مِن داخِل لوحَة العميل (تُبقيه في مَساحَة /studio).

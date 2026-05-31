@@ -29,13 +29,31 @@
                              background:@(tenant.BrandColor);color:#fff;font-size:26px;font-weight:800;">
                     @(tenant.Name.FirstOrDefault())
                 </span>
-                <div>
+                <div style="flex:1;">
                     <h1 style="margin:0;">@tenant.Name</h1>
                     <p style="margin:2px 0 0;color:var(--st-muted);font-size:13.5px;">
                         /@tenant.Slug · @(string.IsNullOrEmpty(tenant.TagLine) ? "بِلا شِعار" : tenant.TagLine)
                     </p>
                 </div>
             </div>
+
+            @if (JustBuilt)
+            {
+                <div class="st-card" style="background:#dcfce7;border:1px solid var(--st-success);">
+                    🎉 تَمّ إنشاء التَّطبيق بِنَجاح. عَدِّل الفِئات والأَدوار والهُويَّة مِن الأَقسام أَدناه.
+                </div>
+            }
+
+            @if (tenant.SourceAnalysisId.HasValue)
+            {
+                <div class="st-card" style="background:var(--st-primary-50);border:1px solid var(--st-primary);">
+                    💡 هذا التَّطبيق مَبنيّ على فِكرَة حُلِّلَت في الحاضِنَة.
+                    <a href="@($"/studio/s/{tenant.SourceAnalysisId}")"
+                       style="color:var(--st-primary-700);font-weight:600;text-decoration:none;">
+                        عَرض الدِراسَة ←
+                    </a>
+                </div>
+            }
 
             <div class="studio-stats">
                 <div class="studio-stat">
@@ -115,6 +133,8 @@
 
 @code {
     [Parameter] public string Slug { get; set; } = "";
+    [SupplyParameterFromQuery(Name = "built")] public string? Built { get; set; }
+    bool JustBuilt => Built == "1";
     Tenant? tenant;
 
     protected override async Task OnInitializedAsync()

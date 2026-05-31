@@ -35,6 +35,10 @@ public sealed class Tenant
     /// عَبر <c>StudioOwnershipSeeder</c>).</summary>
     public Guid OwnerUserId { get; set; }
 
+    /// <summary>جَلسَة التَّحليل الَّتي أَنشَأت هذا المَتجَر (إن وُجِدَت).
+    /// تُمَكِّن إظهار «هذا المَتجَر مَبني على فِكرَة س» في console.</summary>
+    public Guid? SourceAnalysisId { get; set; }
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }
 
