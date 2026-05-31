@@ -281,6 +281,38 @@
                 </div>
             }
 
+            @* تَقييم سَريع لِلدِراسَة (👍/👎 لِكُلّ قِسم) *@
+            <div class="st-section-title">👍 / 👎 تَقييم سَريع</div>
+            <div class="st-card">
+                <p style="margin:0 0 12px;color:var(--st-muted);font-size:13.5px;">
+                    قَيِّم الأَقسام لِنَتَعَلَّم كَيف نُحَسِّن التَّحليل.
+                </p>
+                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px;">
+                    @foreach (var sec in new[] { "marketSizing", "competitors", "revenueModel", "financialProjection", "risks", "roadmap" })
+                    {
+                        var prior = session.SectionFeedback.TryGetValue(sec, out var p) ? p : "";
+                        <div style="display:flex;align-items:center;justify-content:space-between;
+                                    padding:8px 12px;border:1px solid var(--st-line);border-radius:10px;font-size:13px;">
+                            <span>@SectionLabel(sec)</span>
+                            <span style="display:inline-flex;gap:4px;">
+                                <form method="post" action="@($"/studio/s/{session.Id}/feedback")" style="margin:0;">
+                                    <input type="hidden" name="section" value="@sec" />
+                                    <input type="hidden" name="rating" value="up" />
+                                    <button type="submit" class="st-btn st-btn-ghost" style="padding:4px 8px;font-size:14px;
+                                            @(prior == "up" ? "background:#dcfce7;border-color:var(--st-success);" : "")">👍</button>
+                                </form>
+                                <form method="post" action="@($"/studio/s/{session.Id}/feedback")" style="margin:0;">
+                                    <input type="hidden" name="section" value="@sec" />
+                                    <input type="hidden" name="rating" value="down" />
+                                    <button type="submit" class="st-btn st-btn-ghost" style="padding:4px 8px;font-size:14px;
+                                            @(prior == "down" ? "background:#fee2e2;border-color:var(--st-danger);" : "")">👎</button>
+                                </form>
+                            </span>
+                        </div>
+                    }
+                </div>
+            </div>
+
             @* تَحسين الدِراسَة — أَعِد توليد قِسم بِناءً عَلى مُلاحَظَة. *@
             <div class="st-section-title">💬 تَحسين الدِراسَة</div>
             <details class="st-card" style="padding:0;">

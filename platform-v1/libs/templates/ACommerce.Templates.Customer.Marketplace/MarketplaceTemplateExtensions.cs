@@ -1880,6 +1880,16 @@ public static class MarketplaceTemplateExtensions
             var promptCookie = req.Cookies["ac.studio.prompt"];
             if (!string.IsNullOrEmpty(promptCookie))
             {
+                // قَبول الشُروط مَطلوب قَبل أَوَّل تَحليل.
+                await using (var consentQs = store.QuerySession(Services.Incubator.StudioAuth.Tenant))
+                {
+                    var consents = await consentQs.Query<Services.Incubator.ConsentRecord>()
+                        .Where(c => c.UserId == user.Id && c.Version == Services.Incubator.ConsentPolicy.CurrentVersion)
+                        .ToListAsync();
+                    if (consents.Count == 0)
+                        return Results.Redirect($"/studio/consent?returnUrl=/studio/auth/verify");
+                }
+
                 res.Cookies.Delete("ac.studio.prompt");
                 var prompt = Uri.UnescapeDataString(promptCookie);
 
@@ -1911,6 +1921,54 @@ public static class MarketplaceTemplateExtensions
         {
             Services.Incubator.StudioAuth.DeleteCookie(res);
             return Results.Redirect("/");
+        }).DisableAntiforgery();
+
+        // قَبول الشُروط — يَحفَظ ConsentRecord ويُحَوِّل لِـ returnUrl.
+        app.MapPost("/studio/consent/accept", async (
+            HttpRequest req, IDocumentStore store,
+            Services.Incubator.StudioAuth auth) =>
+        {
+            auth.Load();
+            if (!auth.IsAuthenticated) return Results.Redirect("/studio/auth");
+            var returnUrl = req.Form["returnUrl"].ToString();
+            if (string.IsNullOrEmpty(returnUrl) || !returnUrl.StartsWith("/"))
+                returnUrl = "/studio";
+
+            await using var s = store.LightweightSession(Services.Incubator.StudioAuth.Tenant);
+            s.Store(new Services.Incubator.ConsentRecord
+            {
+                Id = Guid.NewGuid(),
+                UserId = auth.UserId!.Value,
+                Version = Services.Incubator.ConsentPolicy.CurrentVersion,
+                At = DateTime.UtcNow,
+                Ip = req.HttpContext.Connection.RemoteIpAddress?.ToString() ?? "",
+                UserAgent = req.Headers.UserAgent.ToString()
+            });
+            await s.SaveChangesAsync();
+            return Results.Redirect(returnUrl);
+        }).DisableAntiforgery();
+
+        // تَقييم قِسم في دِراسَة (👍/👎) — لِتَحسين الـ prompt لاحِقاً.
+        app.MapPost("/studio/s/{id:guid}/feedback", async (
+            Guid id, HttpRequest req, IDocumentStore store,
+            Services.Incubator.StudioAuth auth) =>
+        {
+            auth.Load();
+            if (!auth.IsAuthenticated) return Results.Redirect("/studio/auth");
+            var section = req.Form["section"].ToString().Trim();
+            var rating  = req.Form["rating"].ToString().Trim();
+            if (rating is not ("up" or "down") || string.IsNullOrEmpty(section))
+                return Results.Redirect($"/studio/s/{id}");
+
+            await using var s = store.LightweightSession(
+                Services.Incubator.FeasibilityAnalysisService.IncubatorTenant);
+            var session = await s.LoadAsync<Services.Incubator.IncubatorSession>(id);
+            if (session is null || session.OwnerUserId != auth.UserId!.Value)
+                return Results.Redirect("/studio");
+            session.SectionFeedback[section] = rating;
+            s.Store(session);
+            await s.SaveChangesAsync();
+            return Results.Redirect($"/studio/s/{id}#section-{section}");
         }).DisableAntiforgery();
 
         // اختِيار باقَة — حاليّاً لا تَكامُل دَفع، يُسَجِّل النِيَّة فَقَط

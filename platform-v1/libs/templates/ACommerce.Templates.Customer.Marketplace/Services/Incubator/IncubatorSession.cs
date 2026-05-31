@@ -33,6 +33,10 @@ public sealed class IncubatorSession
     public int AnalysisQualityScore { get; set; }
     public string? AnalysisError { get; set; }
     public string PromptVersion { get; set; } = "";
+
+    /// <summary>تَقييم المُستَخدِم لِكُلّ قِسم (key = section name,
+    /// value = "up" | "down"). يُغَذّي تَحسينات الـ prompt لاحِقاً.</summary>
+    public Dictionary<string, string> SectionFeedback { get; set; } = new();
 }
 
 public enum IncubatorStatus
