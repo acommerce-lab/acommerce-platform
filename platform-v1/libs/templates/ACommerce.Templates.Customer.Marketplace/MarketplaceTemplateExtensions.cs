@@ -1926,6 +1926,169 @@ public static class MarketplaceTemplateExtensions
             return Results.Redirect($"/studio/s/{id}?refining={section}");
         }).DisableAntiforgery();
 
+        // ─── Studio per-app config saves (داخِل studio، redirect مَحَلّيّ) ─
+        // مُحَقِّق المِلكِيَّة: المُستَخدِم يَجِب أَن يَكون مالِك الـ tenant.
+        async Task<bool> StudioOwnsAsync(IDocumentStore docStore, Services.Incubator.StudioAuth auth, string slug)
+        {
+            auth.Load();
+            if (!auth.IsAuthenticated) return false;
+            await using var qs = docStore.QuerySession();
+            var t = await qs.LoadAsync<ACommerce.Kit.Tenants.Tenant>(slug);
+            return t is not null && t.OwnerUserId == auth.UserId!.Value;
+        }
+
+        app.MapPost("/studio/apps/{slug}/branding/save", async (
+            string slug, HttpRequest req, IDocumentStore store,
+            Services.Incubator.StudioAuth auth) =>
+        {
+            if (!await StudioOwnsAsync(store, auth, slug)) return Results.Redirect("/studio");
+            var name    = req.Form["name"].ToString().Trim();
+            var tagline = req.Form["tagline"].ToString().Trim();
+            var city    = req.Form["city"].ToString().Trim();
+            var color   = req.Form["color"].ToString().Trim();
+            if (string.IsNullOrEmpty(name))
+                return Results.Redirect($"/studio/apps/{slug}/branding?err=name");
+            if (!System.Text.RegularExpressions.Regex.IsMatch(color, "^#[0-9A-Fa-f]{6}$"))
+                return Results.Redirect($"/studio/apps/{slug}/branding?err=color");
+
+            await using var s = store.LightweightSession();
+            var t = await s.LoadAsync<ACommerce.Kit.Tenants.Tenant>(slug);
+            if (t is null) return Results.Redirect("/studio");
+            t.Name = name; t.TagLine = tagline; t.City = city; t.BrandColor = color;
+            s.Store(t);
+            await s.SaveChangesAsync();
+            return Results.Redirect($"/studio/apps/{slug}/branding?saved=1");
+        }).DisableAntiforgery();
+
+        app.MapPost("/studio/apps/{slug}/categories/save", async (
+            string slug, HttpRequest req, IDocumentStore store,
+            Services.Incubator.StudioAuth auth) =>
+        {
+            if (!await StudioOwnsAsync(store, auth, slug)) return Results.Redirect("/studio");
+            var raw = req.Form["categories"].ToString();
+            var categories = new List<ACommerce.Kit.Tenants.Category>();
+            var idx = 0;
+            foreach (var line in raw.Split('\n', StringSplitOptions.RemoveEmptyEntries))
+            {
+                var parts = line.Split('|', StringSplitOptions.TrimEntries);
+                if (parts.Length < 2) return Results.Redirect($"/studio/apps/{slug}/categories?err=format");
+                var cslug = parts[0].ToLowerInvariant();
+                var clabel = parts[1];
+                if (string.IsNullOrEmpty(cslug) || string.IsNullOrEmpty(clabel))
+                    return Results.Redirect($"/studio/apps/{slug}/categories?err=format");
+                categories.Add(new ACommerce.Kit.Tenants.Category
+                {
+                    Slug = cslug, Label = clabel,
+                    Icon = parts.Length > 2 ? parts[2].Trim() : "🏷️",
+                    Kind = parts.Length > 3 ? parts[3].Trim().ToLowerInvariant() : "",
+                    SortOrder = idx++
+                });
+            }
+            if (categories.Count == 0)
+                return Results.Redirect($"/studio/apps/{slug}/categories?err=empty");
+
+            await using var s = store.LightweightSession();
+            var t = await s.LoadAsync<ACommerce.Kit.Tenants.Tenant>(slug);
+            if (t is null) return Results.Redirect("/studio");
+            t.Categories = categories;
+            s.Store(t);
+            await s.SaveChangesAsync();
+            return Results.Redirect($"/studio/apps/{slug}/categories?saved=1");
+        }).DisableAntiforgery();
+
+        app.MapPost("/studio/apps/{slug}/roles/save", async (
+            string slug, HttpRequest req, IDocumentStore store,
+            Services.Incubator.StudioAuth auth) =>
+        {
+            if (!await StudioOwnsAsync(store, auth, slug)) return Results.Redirect("/studio");
+            var defaultRole = req.Form["default_role"].ToString().Trim().ToLowerInvariant();
+            var picks = new List<ACommerce.Kit.Roles.Role>();
+            var order = 0;
+            foreach (var tmpl in ACommerce.Kit.Roles.RoleCatalog.All)
+            {
+                if (req.Form[$"role_{tmpl.Slug}"].ToString() != "1") continue;
+                var role = ACommerce.Kit.Roles.RoleCatalog.InstantiateRole(tmpl, order++);
+                role.IsDefault = defaultRole == tmpl.Slug;
+                picks.Add(role);
+            }
+
+            await using var s = store.LightweightSession();
+            var t = await s.LoadAsync<ACommerce.Kit.Tenants.Tenant>(slug);
+            if (t is null) return Results.Redirect("/studio");
+            t.Roles = picks;
+            s.Store(t);
+            await s.SaveChangesAsync();
+            return Results.Redirect($"/studio/apps/{slug}/roles?saved=1");
+        }).DisableAntiforgery();
+
+        app.MapPost("/studio/apps/{slug}/regions/save", async (
+            string slug, HttpRequest req, IDocumentStore store,
+            Services.Incubator.StudioAuth auth) =>
+        {
+            if (!await StudioOwnsAsync(store, auth, slug)) return Results.Redirect("/studio");
+            var raw = req.Form["regions"].ToString();
+            if (string.IsNullOrWhiteSpace(raw))
+                return Results.Redirect($"/studio/apps/{slug}/regions?err=empty");
+
+            var cities = new List<(string Name, List<string> Districts)>();
+            foreach (var line in raw.Split('\n', StringSplitOptions.RemoveEmptyEntries))
+            {
+                var l = line.Trim();
+                if (l.Length == 0) continue;
+                if (l.Contains('>'))
+                {
+                    var parts = l.Split('>', 2);
+                    var cityName = parts[0].Trim();
+                    if (string.IsNullOrEmpty(cityName))
+                        return Results.Redirect($"/studio/apps/{slug}/regions?err=format");
+                    var districts = parts[1]
+                        .Split(new[] { '،', ',' },
+                            StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                        .Where(d => !string.IsNullOrEmpty(d)).ToList();
+                    cities.Add((cityName, districts));
+                }
+                else cities.Add((l, new List<string>()));
+            }
+            if (cities.Count == 0) return Results.Redirect($"/studio/apps/{slug}/regions?err=empty");
+
+            await using var s = store.LightweightSession(slug);
+            var existing = await s.Query<ImportedRecord>()
+                .Where(r => r.Table == "DiscoveryRegions").ToListAsync();
+            foreach (var r in existing) s.Delete(r);
+
+            var now = DateTime.UtcNow;
+            var cityOrder = 0;
+            foreach (var (cityName, districts) in cities)
+            {
+                var cityId = Guid.NewGuid();
+                s.Store(new ImportedRecord
+                {
+                    Id = cityId.ToString(), Table = "DiscoveryRegions",
+                    Data = new Dictionary<string, object?>
+                    {
+                        ["Id"] = cityId, ["Name"] = cityName, ["Level"] = 1,
+                        ["ParentId"] = null, ["SortOrder"] = cityOrder++,
+                    }, ImportedAt = now
+                });
+                var distOrder = 0;
+                foreach (var d in districts)
+                {
+                    var dId = Guid.NewGuid();
+                    s.Store(new ImportedRecord
+                    {
+                        Id = dId.ToString(), Table = "DiscoveryRegions",
+                        Data = new Dictionary<string, object?>
+                        {
+                            ["Id"] = dId, ["Name"] = d, ["Level"] = 2,
+                            ["ParentId"] = cityId, ["SortOrder"] = distOrder++,
+                        }, ImportedAt = now
+                    });
+                }
+            }
+            await s.SaveChangesAsync();
+            return Results.Redirect($"/studio/apps/{slug}/regions?saved=1");
+        }).DisableAntiforgery();
+
         // بِناء Tenant فِعليّ مِن جَلسَة تَحليل (الجِسر بَين الفِكرَة والتَّطبيق).
         app.MapPost("/studio/s/{id:guid}/build", async (
             Guid id, HttpRequest req, HttpContext http,

@@ -80,25 +80,25 @@
 
             <div class="st-section-title">التَّصميم والتَّهيئَة</div>
             <div class="studio-list">
-                <a class="studio-list-row" href="@($"/admin/tenants/{Slug}/branding")">
+                <a class="studio-list-row" href="@($"/studio/apps/{Slug}/branding")">
                     <span class="studio-list-icon" style="background:#dbeafe;color:#1d4ed8;">🎨</span>
                     <div class="studio-list-body"><strong>الهُوِيَّة البَصَريَّة</strong>
                         <span>اللَّون، الاسم، الشِّعار، المَدينَة</span></div>
                     <span style="color:var(--st-faint);">←</span>
                 </a>
-                <a class="studio-list-row" href="@($"/admin/tenants/{Slug}/categories")">
+                <a class="studio-list-row" href="@($"/studio/apps/{Slug}/categories")">
                     <span class="studio-list-icon" style="background:#dcfce7;color:#15803d;">🗂️</span>
                     <div class="studio-list-body"><strong>الفِئات</strong>
                         <span>@tenant.Categories.Count فِئَة</span></div>
                     <span style="color:var(--st-faint);">←</span>
                 </a>
-                <a class="studio-list-row" href="@($"/admin/tenants/{Slug}/roles")">
+                <a class="studio-list-row" href="@($"/studio/apps/{Slug}/roles")">
                     <span class="studio-list-icon" style="background:#fef3c7;color:#a16207;">👥</span>
                     <div class="studio-list-body"><strong>الأَدوار (التَّطبيقات الفَرعيَّة)</strong>
                         <span>@tenant.Roles.Count دَور — كُلّ دَور = تَطبيق مُستَقِلّ</span></div>
                     <span style="color:var(--st-faint);">←</span>
                 </a>
-                <a class="studio-list-row" href="@($"/admin/tenants/{Slug}/regions")">
+                <a class="studio-list-row" href="@($"/studio/apps/{Slug}/regions")">
                     <span class="studio-list-icon" style="background:#e0e7ff;color:#4338ca;">🗺️</span>
                     <div class="studio-list-body"><strong>المُدُن والأَحياء</strong>
                         <span>التَّغطيَة الجُغرافيَّة</span></div>

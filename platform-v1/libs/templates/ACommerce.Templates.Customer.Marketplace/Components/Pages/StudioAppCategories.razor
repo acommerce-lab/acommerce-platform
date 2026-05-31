@@ -1,0 +1,70 @@
+@page "/studio/apps/{slug}/categories"
+@inject Services.Incubator.StudioAuth Auth
+@inject Marten.IDocumentStore Store
+@using ACommerce.Kit.Tenants
+
+@*
+    تَحرير الفِئات — textarea نَصّيّ: كُلّ سَطر "slug | اسم | إيموجي | تَجميع".
+    أَبسَط مِن جَدوَل ديناميكيّ ويَكفي لِلتَّحرير السَريع. التَّجميع
+    اختياريّ (residential/commercial/fnb/transport/services/...).
+*@
+
+<StudioShell Title="@($"الفِئات · {tenant?.Name ?? Slug}")" Active="home">
+    <TopBarActions>
+        <a class="st-btn st-btn-ghost" href="@($"/studio/apps/{Slug}")">← الإعدادات</a>
+    </TopBarActions>
+    <ChildContent>
+        @if (tenant is null)
+        {
+            <div class="st-card">التَّطبيق غَير مَوجود أَو لا تَملِكه.</div>
+        }
+        else
+        {
+            <div class="studio-page-head">
+                <h1>الفِئات</h1>
+                <p>الفِئات الَّتي يَتَصَفَّحها العُملاء (@tenant.Categories.Count فِئَة حاليّاً).</p>
+            </div>
+
+            @if (Saved == "1")    { <div class="st-chip st-chip-success" style="margin-bottom:14px;">تَمّ الحِفظ ✓</div> }
+            @if (Err == "format") { <div class="st-chip st-chip-danger"  style="margin-bottom:14px;">صِيغَة سَطر غَير صَحيحَة</div> }
+            @if (Err == "empty")  { <div class="st-chip st-chip-danger"  style="margin-bottom:14px;">أَضِف فِئَة واحِدَة على الأَقَلّ</div> }
+
+            <form method="post" action="@($"/studio/apps/{Slug}/categories/save")" class="st-card">
+                <div class="st-field">
+                    <label class="st-label">الفِئات — سَطر لِكُلّ فِئَة</label>
+                    <textarea name="categories" required rows="@Math.Max(8, tenant.Categories.Count + 3)"
+                              class="st-textarea" style="font-family:ui-monospace,Menlo,monospace;font-size:13.5px;direction:ltr;text-align:start;"
+                              dir="ltr">@CategoriesAsText(tenant.Categories)</textarea>
+                </div>
+                <div style="background:var(--st-line-soft);padding:12px 14px;border-radius:10px;
+                            font-size:12.5px;color:var(--st-muted);line-height:1.8;">
+                    <strong>الصِيغَة:</strong>
+                    <code dir="ltr" style="direction:ltr;">slug | الاسم | إيموجي | تَجميع</code><br/>
+                    <strong>مَثَلاً:</strong>
+                    <code dir="ltr">apartments | شُقَق | 🏢 | residential</code>
+                </div>
+                <button type="submit" class="st-btn st-btn-primary" style="margin-top:14px;">حِفظ الفِئات</button>
+            </form>
+        }
+    </ChildContent>
+</StudioShell>
+
+@code {
+    [Parameter] public string Slug { get; set; } = "";
+    [SupplyParameterFromQuery] public string? Saved { get; set; }
+    [SupplyParameterFromQuery] public string? Err   { get; set; }
+    Tenant? tenant;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Auth.Load();
+        if (!Auth.IsAuthenticated) return;
+        await using var qs = Store.QuerySession();
+        tenant = await qs.LoadAsync<Tenant>(Slug);
+        if (tenant is not null && tenant.OwnerUserId != Auth.UserId!.Value) tenant = null;
+    }
+
+    static string CategoriesAsText(List<Category> cats)
+        => string.Join("\n", cats.OrderBy(c => c.SortOrder)
+            .Select(c => $"{c.Slug} | {c.Label} | {c.Icon ?? "🏷️"} | {c.Kind}"));
+}

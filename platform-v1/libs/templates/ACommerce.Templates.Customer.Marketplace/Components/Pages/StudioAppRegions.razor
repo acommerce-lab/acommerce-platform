@@ -1,0 +1,100 @@
+@page "/studio/apps/{slug}/regions"
+@inject Services.Incubator.StudioAuth Auth
+@inject Marten.IDocumentStore Store
+@using ACommerce.Kit.Tenants
+@using ACommerce.Platform.Shared
+
+@*
+    تَحرير المُدُن والأَحياء — صيغَة: كُلّ سَطر مَدينَة، اختياريّاً
+    تَتبَعها " > حَيّ١، حَيّ٢ ..". يُخزَّن في DiscoveryRegions كَ
+    شَجَرَة مُسطَّحَة (Level 1 = مَدينَة، Level 2 = حَيّ).
+*@
+
+<StudioShell Title="@($"المُدُن والأَحياء · {tenant?.Name ?? Slug}")" Active="home">
+    <TopBarActions>
+        <a class="st-btn st-btn-ghost" href="@($"/studio/apps/{Slug}")">← الإعدادات</a>
+    </TopBarActions>
+    <ChildContent>
+        @if (tenant is null)
+        {
+            <div class="st-card">التَّطبيق غَير مَوجود أَو لا تَملِكه.</div>
+        }
+        else
+        {
+            <div class="studio-page-head">
+                <h1>التَّغطيَة الجُغرافيَّة</h1>
+                <p>المُدُن والأَحياء الَّتي يَختار مِنها العُملاء.</p>
+            </div>
+
+            @if (Saved == "1")     { <div class="st-chip st-chip-success" style="margin-bottom:14px;">تَمّ الحِفظ ✓</div> }
+            @if (Err == "empty")   { <div class="st-chip st-chip-danger"  style="margin-bottom:14px;">أَضِف مَدينَة واحِدَة على الأَقَلّ</div> }
+            @if (Err == "format")  { <div class="st-chip st-chip-danger"  style="margin-bottom:14px;">صِيغَة سَطر غَير صَحيحَة</div> }
+
+            <form method="post" action="@($"/studio/apps/{Slug}/regions/save")" class="st-card">
+                <div class="st-field">
+                    <label class="st-label">المُدُن والأَحياء</label>
+                    <textarea name="regions" required rows="@Math.Max(8, lineCount + 3)"
+                              class="st-textarea" style="font-family:inherit;font-size:14px;">@regionsText</textarea>
+                </div>
+                <div style="background:var(--st-line-soft);padding:12px 14px;border-radius:10px;
+                            font-size:12.5px;color:var(--st-muted);line-height:1.9;">
+                    <strong>الصِيغَة:</strong> كُلّ سَطر مَدينَة. اِستَخدِم <code>></code> ثُمَّ
+                    أَحياء مَفصولَة بِفاصِلَة (<code>،</code> أَو <code>,</code>).<br/>
+                    <strong>مَثَلاً:</strong><br/>
+                    <code>الرياض > النَّخيل، المَلَقا، الياسمين</code><br/>
+                    <code>جدة > الشاطِئ، الرَوضَة</code><br/>
+                    <code>الدَمّام</code> (بِلا أَحياء)
+                </div>
+                <button type="submit" class="st-btn st-btn-primary" style="margin-top:14px;">حِفظ التَّغطيَة</button>
+            </form>
+        }
+    </ChildContent>
+</StudioShell>
+
+@code {
+    [Parameter] public string Slug { get; set; } = "";
+    [SupplyParameterFromQuery] public string? Saved { get; set; }
+    [SupplyParameterFromQuery] public string? Err   { get; set; }
+    Tenant? tenant;
+    string regionsText = "";
+    int lineCount;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Auth.Load();
+        if (!Auth.IsAuthenticated) return;
+        await using var qs = Store.QuerySession();
+        tenant = await qs.LoadAsync<Tenant>(Slug);
+        if (tenant is not null && tenant.OwnerUserId != Auth.UserId!.Value) { tenant = null; return; }
+        if (tenant is null) return;
+
+        // اِجلِب الـ DiscoveryRegions مِن tenant scope وحَوِّلها لِنَصّ.
+        await using var ts = Store.QuerySession(Slug);
+        var records = (await ts.Query<ImportedRecord>()
+            .Where(r => r.Table == "DiscoveryRegions").ToListAsync()).ToList();
+
+        var cities = records.Where(r => GetInt(r, "Level") == 1)
+            .OrderBy(r => GetInt(r, "SortOrder")).ToList();
+        var lines = new List<string>();
+        foreach (var c in cities)
+        {
+            var cityId = GetGuid(c, "Id");
+            var name = GetStr(c, "Name");
+            var districts = records
+                .Where(r => GetInt(r, "Level") == 2 && GetGuid(r, "ParentId") == cityId)
+                .OrderBy(r => GetInt(r, "SortOrder"))
+                .Select(r => GetStr(r, "Name"))
+                .Where(s => !string.IsNullOrEmpty(s)).ToList();
+            lines.Add(districts.Count > 0 ? $"{name} > {string.Join("، ", districts)}" : name);
+        }
+        regionsText = string.Join("\n", lines);
+        lineCount = lines.Count;
+    }
+
+    static string GetStr(ImportedRecord r, string k)
+        => r.Data.TryGetValue(k, out var v) ? v?.ToString() ?? "" : "";
+    static int GetInt(ImportedRecord r, string k)
+        => r.Data.TryGetValue(k, out var v) && int.TryParse(v?.ToString(), out var i) ? i : 0;
+    static Guid GetGuid(ImportedRecord r, string k)
+        => r.Data.TryGetValue(k, out var v) && Guid.TryParse(v?.ToString(), out var g) ? g : Guid.Empty;
+}
