@@ -8,6 +8,12 @@ namespace ACommerce.Templates.Customer.Marketplace.Services.Incubator;
 /// الأَقَلّ ولَدَيه مَتاجِر بِلا <c>OwnerUserId</c>، يُسنِدها لِأَوَّل
 /// مُستَخدِم (الأَقدَم). يَعمَل عِندَ بَدء التَطبيق + بَعد كُلّ
 /// تَسجيل دُخول جَديد (لِيَلتَقِط أَيّ تَسجيل أَوَّل بَعد إطلاق الميزَة).
+///
+/// <para>مُهِمّ: لا نَستَخدِم LINQ <c>Where(t => t.OwnerUserId == Guid.Empty)</c>
+/// لِأَنّ Marten يُتَرجِمها لـ <c>CAST(data ->> 'OwnerUserId' as uuid) = $1</c>،
+/// والمَتاجِر القَديمَة لا يَملِكون الحَقل في JSONB → القيمَة NULL → لا
+/// تُطابِق. نَجلِب الكُلّ ونُصَفّي في الذاكِرَة (Marten deserializer يَملَأ
+/// الحُقول المَفقودَة بِالقيمَة الافتراضِيَّة).</para>
 /// </summary>
 public static class StudioOwnershipSeeder
 {
@@ -19,10 +25,10 @@ public static class StudioOwnershipSeeder
             .OrderBy(u => u.CreatedAt).Take(1).ToListAsync(ct)).FirstOrDefault();
         if (firstUser is null) return;   // لا مُستَخدِمين بَعد — لا شَيء لِنَربِطه
 
-        // مَتاجِر بِلا مالِك.
+        // جَلب كُلّ المَتاجِر ثُمَّ التَّصفِيَة في الذاكِرَة (انظر التَّعليق).
         await using var qs = store.QuerySession();
-        var orphans = (await qs.Query<Tenant>()
-            .Where(t => t.OwnerUserId == Guid.Empty).ToListAsync(ct)).ToList();
+        var all = (await qs.Query<Tenant>().ToListAsync(ct)).ToList();
+        var orphans = all.Where(t => t.OwnerUserId == Guid.Empty).ToList();
         if (orphans.Count == 0) return;
 
         await using var ws = store.LightweightSession();
@@ -34,3 +40,4 @@ public static class StudioOwnershipSeeder
         await ws.SaveChangesAsync(ct);
     }
 }
+
