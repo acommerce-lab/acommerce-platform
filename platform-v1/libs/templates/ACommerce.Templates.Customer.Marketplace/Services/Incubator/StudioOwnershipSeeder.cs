@@ -38,6 +38,19 @@ public static class StudioOwnershipSeeder
             ws.Store(t);
         }
         await ws.SaveChangesAsync(ct);
+
+        // أَوَّل مُستَخدِم يُصبِح platform admin تِلقائيّاً (لِلتَّجرِبَة).
+        if (!firstUser.IsPlatformAdmin)
+        {
+            await using var us = store.LightweightSession(StudioAuth.Tenant);
+            var u = await us.LoadAsync<StudioUser>(firstUser.Id, ct);
+            if (u is not null)
+            {
+                u.IsPlatformAdmin = true;
+                us.Store(u);
+                await us.SaveChangesAsync(ct);
+            }
+        }
     }
 }
 

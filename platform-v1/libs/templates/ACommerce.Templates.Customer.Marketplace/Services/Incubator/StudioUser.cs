@@ -24,4 +24,9 @@ public sealed class StudioUser
     public int AnalysesUsed { get; set; }
     public int RefinesUsed { get; set; }
     public int StoresBuilt { get; set; }
+
+    /// <summary>مُشرِف المَنصَّة — يَستَطيع الوُصول لِـ /admin ولوحَة
+    /// المُراقَبَة. أَوَّل مُستَخدِم يُسَجِّل يَحصُل عَلَيها تِلقائيّاً (ميزَة
+    /// MVP لِيَكون لَدَيك platform-admin مَوجود مِن البِدايَة).</summary>
+    public bool IsPlatformAdmin { get; set; }
 }

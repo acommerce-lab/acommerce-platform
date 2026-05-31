@@ -7,6 +7,7 @@
     حاليّاً مَفتوحَة بِلا تَوثيق — ستُضاف auth في جَلسَة لاحِقَة.
 *@
 
+<RequirePlatformAdmin>
 <div class="acs-page acm-admin">
     @* صَفحَة بِدايَة صاحِب المَتجَر الجَديد: ابدَأ بِتَحليل الفِكرَة قَبل الإنشاء. *@
     <AcCard Class="acm-incubator-hero">
@@ -100,6 +101,12 @@
         </div>
     }
 </div>
+
+    @* monitoring CTA لِمُشرِف المَنصَّة *@
+    <div style="margin-top:18px;">
+        <a class="ac-btn ac-btn-ghost" href="/admin/monitor">📊 لوحَة مُراقَبَة جَودَة التَّحاليل</a>
+    </div>
+</RequirePlatformAdmin>
 
 @code {
     List<Tenant>? tenants;
