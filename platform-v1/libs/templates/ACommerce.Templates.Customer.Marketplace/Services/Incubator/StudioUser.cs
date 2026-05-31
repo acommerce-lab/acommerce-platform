@@ -13,4 +13,15 @@ public sealed class StudioUser
     public string FullName { get; set; } = "صاحِب المَشروع";
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime LastLoginAt { get; set; } = DateTime.UtcNow;
+
+    // ─── Tier / billing ─────────────────────────────────────────────
+    /// <summary>الباقَة الحالِيَّة: spark | lite | growth | scale.</summary>
+    public string Tier { get; set; } = "spark";
+
+    /// <summary>بِدايَة فَترَة الحِصَّة الحاليَّة. الحِصَّة تُعاد كُلّ ٣٠ يَوم.</summary>
+    public DateTime PeriodStart { get; set; } = DateTime.UtcNow;
+
+    public int AnalysesUsed { get; set; }
+    public int RefinesUsed { get; set; }
+    public int StoresBuilt { get; set; }
 }

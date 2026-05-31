@@ -44,6 +44,7 @@ public static class MarketplaceTemplateExtensions
         services.AddScoped<Services.Incubator.FeasibilityAnalysisService>();
         services.AddScoped<Services.Incubator.StudioAuth>();
         services.AddScoped<Services.Incubator.TenantFromAnalysisFactory>();
+        services.AddScoped<Services.Incubator.StudioTierService>();
         return services;
     }
 
@@ -1880,9 +1881,19 @@ public static class MarketplaceTemplateExtensions
             {
                 res.Cookies.Delete("ac.studio.prompt");
                 var prompt = Uri.UnescapeDataString(promptCookie);
+
+                // tier gate — هَل بَلَغ المُستَخدِم حَدّ تَحاليلِه؟
+                using var checkScope = scopeFactory.CreateScope();
+                var tier = checkScope.ServiceProvider
+                    .GetRequiredService<Services.Incubator.StudioTierService>();
+                var gate = await tier.CheckAnalyzeAsync(user.Id);
+                if (!gate.Allowed)
+                    return Results.Redirect($"/studio?upgrade=analyze");
+
                 var s = await incubator.StartAsync(user.Id, user.FullName);
                 await incubator.SaveAnswerAsync(s.Id, "description", prompt);
                 await incubator.MarkAnalyzingAsync(s.Id);
+                await tier.RecordAnalysisAsync(user.Id);
                 _ = Task.Run(async () =>
                 {
                     using var scope = scopeFactory.CreateScope();
@@ -1901,10 +1912,29 @@ public static class MarketplaceTemplateExtensions
             return Results.Redirect("/");
         }).DisableAntiforgery();
 
+        // اختِيار باقَة — حاليّاً لا تَكامُل دَفع، يُسَجِّل النِيَّة فَقَط
+        // (يُحَدِّث الـ Tier مُباشَرَةً في الـ MVP).
+        app.MapPost("/studio/billing/select", async (
+            string tier, IDocumentStore store, Services.Incubator.StudioAuth auth) =>
+        {
+            auth.Load();
+            if (!auth.IsAuthenticated) return Results.Redirect("/studio/auth");
+            if (!Services.Incubator.TierCatalog.All.ContainsKey(tier))
+                return Results.Redirect("/studio/billing");
+            await using var s = store.LightweightSession(Services.Incubator.StudioAuth.Tenant);
+            var u = await s.LoadAsync<Services.Incubator.StudioUser>(auth.UserId!.Value);
+            if (u is null) return Results.Redirect("/studio/billing");
+            u.Tier = tier;
+            s.Store(u);
+            await s.SaveChangesAsync();
+            return Results.Redirect("/studio/billing?selected=1");
+        }).DisableAntiforgery();
+
         // إعادَة تَوليد قِسم واحِد مِن الدِراسَة (refine) بِناءً عَلى مُلاحَظَة.
         app.MapPost("/studio/s/{id:guid}/refine", async (
             Guid id, HttpRequest req, IServiceScopeFactory scopeFactory,
             Services.Incubator.StudioAuth auth,
+            Services.Incubator.StudioTierService tier,
             Services.Incubator.FeasibilityAnalysisService svc) =>
         {
             auth.Load();
@@ -1913,6 +1943,11 @@ public static class MarketplaceTemplateExtensions
             var feedback = req.Form["feedback"].ToString().Trim();
             if (string.IsNullOrEmpty(section) || string.IsNullOrEmpty(feedback))
                 return Results.Redirect($"/studio/s/{id}");
+
+            var gate = await tier.CheckRefineAsync(auth.UserId!.Value);
+            if (!gate.Allowed)
+                return Results.Redirect($"/studio/s/{id}?upgrade=refine");
+            await tier.RecordRefineAsync(auth.UserId!.Value);
 
             // شَغِّل في الخَلفِيَّة، لا نُعَلِّق الـ POST عَلى الـ LLM.
             _ = Task.Run(async () =>
@@ -2094,6 +2129,7 @@ public static class MarketplaceTemplateExtensions
             Guid id, HttpRequest req, HttpContext http,
             Services.Incubator.FeasibilityAnalysisService incubator,
             Services.Incubator.TenantFromAnalysisFactory factory,
+            Services.Incubator.StudioTierService tier,
             Services.Incubator.StudioAuth auth) =>
         {
             auth.Load();
@@ -2105,6 +2141,10 @@ public static class MarketplaceTemplateExtensions
                 return Results.Redirect("/studio");
             if (session.Status != Services.Incubator.IncubatorStatus.Completed)
                 return Results.Redirect($"/studio/s/{id}");
+
+            var gate = await tier.CheckBuildAsync(ownerId);
+            if (!gate.Allowed)
+                return Results.Redirect($"/studio/s/{id}?upgrade=build");
 
             var slug    = req.Form["slug"].ToString().Trim().ToLowerInvariant();
             var name    = req.Form["name"].ToString().Trim();
@@ -2123,6 +2163,7 @@ public static class MarketplaceTemplateExtensions
             var sector = session.Answers.TryGetValue("sector", out var sec) ? sec : "";
             await factory.CreateAsync(slug, name, color, tagLine, city,
                 session.SuggestedPattern, sector, ownerId, id);
+            await tier.RecordStoreBuiltAsync(ownerId);
             return Results.Redirect($"/studio/apps/{slug}?built=1");
         }).DisableAntiforgery();
 

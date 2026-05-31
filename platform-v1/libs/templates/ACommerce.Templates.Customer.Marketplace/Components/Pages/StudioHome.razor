@@ -28,6 +28,8 @@
         }
     </TopBarActions>
     <ChildContent>
+        <UpgradePrompt Reason="@Upgrade" CurrentTier="@(currentTier ?? "spark")" />
+
         <div class="studio-page-head">
             <h1>@(IsIdeas ? "أَفكاري وتَحاليلي" : Greeting)</h1>
             <p>@(IsIdeas ? "كُلّ الفِكَر الَّتي طَرَحتَها وحالَة تَحليلها."
@@ -131,10 +133,13 @@
 </StudioShell>
 
 @code {
+    [SupplyParameterFromQuery] public string? Upgrade { get; set; }
     List<IncubatorSession>? sessions;
     List<Tenant>? myApps;
+    string? currentTier;
 
     [Microsoft.AspNetCore.Components.Inject] NavigationManager Nav { get; set; } = default!;
+    [Microsoft.AspNetCore.Components.Inject] Services.Incubator.StudioTierService TierSvc { get; set; } = default!;
     bool IsIdeas => new Uri(Nav.Uri).AbsolutePath.TrimEnd('/').EndsWith("/ideas");
 
     string Title => IsIdeas ? "أَفكاري وتَحاليلي" : "لوحَتي";
@@ -150,6 +155,8 @@
         myApps = (await qs.Query<Tenant>()
             .Where(t => t.OwnerUserId == uid)
             .OrderBy(t => t.CreatedAt).ToListAsync()).ToList();
+        var u = await TierSvc.GetUserAsync(uid);
+        currentTier = u?.Tier ?? "spark";
     }
 
     static string StatusIcon(IncubatorStatus s) => s switch

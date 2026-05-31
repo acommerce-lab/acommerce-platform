@@ -25,8 +25,15 @@
 <StudioShell Title="دِراسَة الجَدوى" Active="ideas">
     <TopBarActions>
         <a class="st-btn st-btn-ghost" href="/studio">← لوحَتي</a>
+        @if (session?.Status == IncubatorStatus.Completed)
+        {
+            <a class="st-btn st-btn-light" href="@($"/studio/s/{Id}/print")" target="_blank"
+               style="margin-inline-start:8px;">📄 طِباعَة / PDF</a>
+        }
     </TopBarActions>
     <ChildContent>
+        <UpgradePrompt Reason="@Upgrade" CurrentTier="@(currentTier ?? "spark")" />
+
         @if (session is null)
         {
             <div class="st-card">الجَلسَة غَير مَوجودَة.</div>
@@ -319,6 +326,9 @@
     [Parameter] public Guid Id { get; set; }
     [SupplyParameterFromQuery(Name = "build_err")] public string? BuildErr { get; set; }
     [SupplyParameterFromQuery(Name = "refining")]  public string? Refining { get; set; }
+    [SupplyParameterFromQuery]                     public string? Upgrade  { get; set; }
+    [Microsoft.AspNetCore.Components.Inject] Services.Incubator.StudioTierService TierSvc { get; set; } = default!;
+    string? currentTier;
 
     // مُستَوى مِن نَصّ low/medium/high → فِهرِس 0/1/2.
     static int Level(string s) => s.ToLowerInvariant() switch
@@ -380,6 +390,8 @@
             var all = (await qs.Query<Tenant>().ToListAsync()).ToList();
             builtTenant = all.FirstOrDefault(t => t.SourceAnalysisId == Id);
         }
+        var u = await TierSvc.GetUserAsync(Auth.UserId!.Value);
+        currentTier = u?.Tier ?? "spark";
     }
 
     static string FormatBuildErr(string err) => err switch
