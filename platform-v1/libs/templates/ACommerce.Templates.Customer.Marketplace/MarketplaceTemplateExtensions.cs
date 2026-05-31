@@ -45,6 +45,7 @@ public static class MarketplaceTemplateExtensions
         services.AddScoped<Services.Incubator.StudioAuth>();
         services.AddScoped<Services.Incubator.TenantFromAnalysisFactory>();
         services.AddScoped<Services.Incubator.StudioTierService>();
+        services.AddSingleton<Services.Incubator.FeasibilityExcelExporter>();
         return services;
     }
 
@@ -1929,6 +1930,32 @@ public static class MarketplaceTemplateExtensions
             await s.SaveChangesAsync();
             return Results.Redirect("/studio/billing?selected=1");
         }).DisableAntiforgery();
+
+        // تَصدير دِراسَة Excel — يَتَطَلَّب tier فيه AllowExport.
+        app.MapGet("/studio/s/{id:guid}/export.xlsx", async (
+            Guid id,
+            Services.Incubator.StudioAuth auth,
+            Services.Incubator.FeasibilityAnalysisService svc,
+            Services.Incubator.StudioTierService tier,
+            Services.Incubator.FeasibilityExcelExporter exporter) =>
+        {
+            auth.Load();
+            if (!auth.IsAuthenticated) return Results.Redirect("/studio/auth");
+            var session = await svc.LoadAsync(id);
+            if (session is null || session.OwnerUserId != auth.UserId!.Value)
+                return Results.NotFound();
+            if (session.AnalysisJson is null)
+                return Results.Redirect($"/studio/s/{id}");
+
+            var (_, limits) = await tier.LoadWithLimitsAsync(auth.UserId!.Value);
+            if (!limits.AllowExport)
+                return Results.Redirect($"/studio/s/{id}?upgrade=refine");
+
+            var bytes = exporter.Export(session);
+            return Results.File(bytes,
+                contentType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                fileDownloadName: $"feasibility-{id:N}.xlsx");
+        });
 
         // إعادَة تَوليد قِسم واحِد مِن الدِراسَة (refine) بِناءً عَلى مُلاحَظَة.
         app.MapPost("/studio/s/{id:guid}/refine", async (

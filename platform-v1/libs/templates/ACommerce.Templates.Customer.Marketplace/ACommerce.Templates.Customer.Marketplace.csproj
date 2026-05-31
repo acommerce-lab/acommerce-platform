@@ -8,6 +8,7 @@
     <PackageReference Include="Microsoft.AspNetCore.Components.Web" />
     <PackageReference Include="Marten" />
     <PackageReference Include="WebPush" />
+    <PackageReference Include="ClosedXML" />
   </ItemGroup>
 
   <!-- بيانات السوق السعودي تُضمَّن كموارد لتُحقَن في prompt التحليل. -->

@@ -13,6 +13,9 @@
     <!-- Web Push (PWA notifications) -->
     <PackageVersion Include="WebPush" Version="1.0.12" />
 
+    <!-- Excel export (feasibility study) -->
+    <PackageVersion Include="ClosedXML" Version="0.104.2" />
+
     <!-- Logging -->
     <PackageVersion Include="Serilog.AspNetCore" Version="9.0.0" />
     <PackageVersion Include="Serilog.Sinks.Console" Version="6.0.0" />

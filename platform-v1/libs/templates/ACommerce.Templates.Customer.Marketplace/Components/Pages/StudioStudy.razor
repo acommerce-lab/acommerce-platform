@@ -28,7 +28,9 @@
         @if (session?.Status == IncubatorStatus.Completed)
         {
             <a class="st-btn st-btn-light" href="@($"/studio/s/{Id}/print")" target="_blank"
-               style="margin-inline-start:8px;">📄 طِباعَة / PDF</a>
+               style="margin-inline-start:8px;">📄 PDF</a>
+            <a class="st-btn st-btn-light" href="@($"/studio/s/{Id}/export.xlsx")"
+               style="margin-inline-start:8px;">📊 Excel</a>
         }
     </TopBarActions>
     <ChildContent>
