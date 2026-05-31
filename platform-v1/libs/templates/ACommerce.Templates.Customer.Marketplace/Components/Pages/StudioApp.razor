@@ -1,0 +1,129 @@
+@page "/studio/apps/{slug}"
+@inject Services.Incubator.StudioAuth Auth
+@inject Marten.IDocumentStore Store
+@using ACommerce.Kit.Tenants
+
+@*
+    لوحَة تَطبيق واحِد داخِل studio — تَنقَسِم لِقِسمَين:
+    التَّصميم (هُوِيَّة، فِئات، أَدوار، …) — تَفُكّ لِصَفَحات /admin/tenants/{slug}/*
+    الموجودَة (نُعيد استِخدامها بَدَلَ تَكرارها).
+    التَّشغيل: زِرّ يَنقُل لِـ /studio/apps/{slug}/console (مُستَخدِمون، تذاكِر، …).
+*@
+
+<StudioShell Title="@(tenant?.Name ?? "تَطبيق")" Active="home">
+    <TopBarActions>
+        <a class="st-btn st-btn-ghost" href="/studio">← لوحَتي</a>
+        <a class="st-btn st-btn-light" href="@($"/{Slug}")" target="_blank" rel="noopener" style="margin-inline-start:8px;">
+            مُعايَنَة التَّطبيق ↗
+        </a>
+    </TopBarActions>
+    <ChildContent>
+        @if (tenant is null)
+        {
+            <div class="st-card">التَّطبيق غَير مَوجود أَو لا تَملِكه.</div>
+        }
+        else
+        {
+            <div class="studio-page-head" style="display:flex;align-items:center;gap:14px;">
+                <span style="width:56px;height:56px;border-radius:14px;display:grid;place-items:center;
+                             background:@(tenant.BrandColor);color:#fff;font-size:26px;font-weight:800;">
+                    @(tenant.Name.FirstOrDefault())
+                </span>
+                <div>
+                    <h1 style="margin:0;">@tenant.Name</h1>
+                    <p style="margin:2px 0 0;color:var(--st-muted);font-size:13.5px;">
+                        /@tenant.Slug · @(string.IsNullOrEmpty(tenant.TagLine) ? "بِلا شِعار" : tenant.TagLine)
+                    </p>
+                </div>
+            </div>
+
+            <div class="studio-stats">
+                <div class="studio-stat">
+                    <div class="studio-stat-label">الفِئات</div>
+                    <div class="studio-stat-value">@tenant.Categories.Count</div>
+                </div>
+                <div class="studio-stat">
+                    <div class="studio-stat-label">الأَدوار</div>
+                    <div class="studio-stat-value">@tenant.Roles.Count</div>
+                </div>
+                <div class="studio-stat">
+                    <div class="studio-stat-label">قَناة الدُخول</div>
+                    <div class="studio-stat-value" style="font-size:18px;">
+                        @(tenant.AuthChannel == "nafath" ? "نَفاذ" : "هاتِف")
+                    </div>
+                </div>
+                <div class="studio-stat">
+                    <div class="studio-stat-label">المَدينَة</div>
+                    <div class="studio-stat-value" style="font-size:18px;">
+                        @(string.IsNullOrEmpty(tenant.City) ? "—" : tenant.City)
+                    </div>
+                </div>
+            </div>
+
+            <div class="st-section-title">التَّصميم والتَّهيئَة</div>
+            <div class="studio-list">
+                <a class="studio-list-row" href="@($"/admin/tenants/{Slug}/branding")">
+                    <span class="studio-list-icon" style="background:#dbeafe;color:#1d4ed8;">🎨</span>
+                    <div class="studio-list-body"><strong>الهُوِيَّة البَصَريَّة</strong>
+                        <span>اللَّون، الاسم، الشِّعار، المَدينَة</span></div>
+                    <span style="color:var(--st-faint);">←</span>
+                </a>
+                <a class="studio-list-row" href="@($"/admin/tenants/{Slug}/categories")">
+                    <span class="studio-list-icon" style="background:#dcfce7;color:#15803d;">🗂️</span>
+                    <div class="studio-list-body"><strong>الفِئات</strong>
+                        <span>@tenant.Categories.Count فِئَة</span></div>
+                    <span style="color:var(--st-faint);">←</span>
+                </a>
+                <a class="studio-list-row" href="@($"/admin/tenants/{Slug}/roles")">
+                    <span class="studio-list-icon" style="background:#fef3c7;color:#a16207;">👥</span>
+                    <div class="studio-list-body"><strong>الأَدوار (التَّطبيقات الفَرعيَّة)</strong>
+                        <span>@tenant.Roles.Count دَور — كُلّ دَور = تَطبيق مُستَقِلّ</span></div>
+                    <span style="color:var(--st-faint);">←</span>
+                </a>
+                <a class="studio-list-row" href="@($"/admin/tenants/{Slug}/regions")">
+                    <span class="studio-list-icon" style="background:#e0e7ff;color:#4338ca;">🗺️</span>
+                    <div class="studio-list-body"><strong>المُدُن والأَحياء</strong>
+                        <span>التَّغطيَة الجُغرافيَّة</span></div>
+                    <span style="color:var(--st-faint);">←</span>
+                </a>
+                <a class="studio-list-row" href="@($"/admin/tenants/{Slug}/attributes?scope=00000000-0000-0000-0000-000000000F01")">
+                    <span class="studio-list-icon" style="background:#fae8ff;color:#a21caf;">🧬</span>
+                    <div class="studio-list-body"><strong>الخَصائِص الديناميكيَّة</strong>
+                        <span>حُقول مُخَصَّصَة لِلإعلانات والبروفايلات</span></div>
+                    <span style="color:var(--st-faint);">←</span>
+                </a>
+                <a class="studio-list-row" href="@($"/admin/tenants/{Slug}/pwa")">
+                    <span class="studio-list-icon" style="background:#cffafe;color:#0e7490;">📱</span>
+                    <div class="studio-list-body"><strong>تَطبيقات الجَوّال (PWA)</strong>
+                        <span>اِسم وأَيقونَة كُلّ دَور</span></div>
+                    <span style="color:var(--st-faint);">←</span>
+                </a>
+            </div>
+
+            <div class="st-section-title">التَّشغيل والمُتابَعَة</div>
+            <div class="studio-list">
+                <a class="studio-list-row" href="@($"/studio/apps/{Slug}/console")">
+                    <span class="studio-list-icon" style="background:#fee2e2;color:#b91c1c;">📊</span>
+                    <div class="studio-list-body"><strong>لوحَة تَشغيل التَّطبيق</strong>
+                        <span>المُستَخدِمون، التَّذاكِر، سِجِلّ العَمَلِيّات</span></div>
+                    <span style="color:var(--st-faint);">←</span>
+                </a>
+            </div>
+        }
+    </ChildContent>
+</StudioShell>
+
+@code {
+    [Parameter] public string Slug { get; set; } = "";
+    Tenant? tenant;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Auth.Load();
+        if (!Auth.IsAuthenticated) return;
+        await using var qs = Store.QuerySession();
+        tenant = await qs.LoadAsync<Tenant>(Slug);
+        // تَحَقَّق مِن المِلكِيَّة
+        if (tenant is not null && tenant.OwnerUserId != Auth.UserId!.Value) tenant = null;
+    }
+}

@@ -1,11 +1,16 @@
 @page "/"
 @inject IQuerySession Db
+@inject Marten.IDocumentStore Store
+@inject Services.Incubator.StudioAuth StudioAuthSvc
 
 @*
     صَفحَة الهبوط — تَدعو العَميل لِوَصف فِكرَة تَطبيقِه. الإرسال يَحفَظ
     المُطالَبَة ويُحَوِّل لِلدُخول الوهميّ، ثُمَّ يُولَّد التَّحليل تِلقائيّاً.
+    إذا كانَ المُستَخدِم مُسَجَّلاً، نَعرِض زِرّ "لوحَتي" بَدَلَ "تَسجيل الدُخول".
     تَصميم احترافيّ (studio-root) مُنفَصِل عَن واجِهات المَتاجِر.
 *@
+
+@{ StudioAuthSvc.Load(); }
 
 <div class="studio-root">
     <nav class="landing-nav">
@@ -13,7 +18,14 @@
             <span class="landing-brand-mark">A</span>
             ACommerce
         </div>
-        <a class="st-btn st-btn-ghost" href="/studio/auth">تَسجيل الدُخول</a>
+        @if (StudioAuthSvc.IsAuthenticated)
+        {
+            <a class="st-btn st-btn-primary" href="/studio">لوحَتي ←</a>
+        }
+        else
+        {
+            <a class="st-btn st-btn-ghost" href="/studio/auth">تَسجيل الدُخول</a>
+        }
     </nav>
 
     <section class="landing-hero">
@@ -64,6 +76,19 @@
         </div>
     </section>
 
+    @* أَرقام حَيَّة عَن المَنصَّة — مَتاجِر، إعلانات، أَدوار — مِن DB. *@
+    @if (totalListings > 0 || (tenants?.Count ?? 0) > 0)
+    {
+        <section style="max-width:1000px;margin:0 auto 32px;padding:0 24px;">
+            <div class="studio-stats" style="grid-template-columns:repeat(4,1fr);">
+                <div class="studio-stat"><div class="studio-stat-label">مَتاجِر مُطلَقَة</div><div class="studio-stat-value">@(tenants?.Count ?? 0)</div></div>
+                <div class="studio-stat"><div class="studio-stat-label">إجمالي الإعلانات</div><div class="studio-stat-value">@totalListings</div></div>
+                <div class="studio-stat"><div class="studio-stat-label">أَدوار/تَطبيقات</div><div class="studio-stat-value">@totalRoles</div></div>
+                <div class="studio-stat"><div class="studio-stat-label">مُدُن مُغَطّاة</div><div class="studio-stat-value">@cityCount</div></div>
+            </div>
+        </section>
+    }
+
     @if (tenants is { Count: > 0 })
     {
         <section style="max-width:1000px;margin:0 auto 56px;padding:0 24px;">
@@ -71,14 +96,23 @@
             <div class="studio-list">
                 @foreach (var t in tenants)
                 {
+                    var lc = listingsByTenant.GetValueOrDefault(t.Slug, 0);
                     <a class="studio-list-row" href="/@t.Slug">
                         <span class="studio-list-icon" style="background:@(t.BrandColor)1a;color:@t.BrandColor;">
                             @(t.Name.FirstOrDefault())
                         </span>
                         <div class="studio-list-body">
                             <strong>@t.Name</strong>
-                            <span>@t.TagLine · @t.City</span>
+                            <span>
+                                @(string.IsNullOrEmpty(t.TagLine) ? "—" : t.TagLine)
+                                @if (!string.IsNullOrEmpty(t.City)) { <text> · @t.City</text> }
+                            </span>
                         </div>
+                        <span class="st-chip">@lc إعلان</span>
+                        @if (t.Roles.Count > 0)
+                        {
+                            <span class="st-chip" style="background:var(--st-line-soft);color:var(--st-ink-700);">@t.Roles.Count دَور</span>
+                        }
                         <span style="color:var(--st-faint);">←</span>
                     </a>
                 }
@@ -95,8 +129,32 @@
 </script>
 
 @code {
-    IReadOnlyList<Tenant>? tenants;
+    List<Tenant>? tenants;
+    Dictionary<string, int> listingsByTenant = new();
+    int totalListings;
+    int totalRoles;
+    int cityCount;
 
     protected override async Task OnInitializedAsync()
-        => tenants = await Db.Query<Tenant>().ToListAsync();
+    {
+        tenants = (await Db.Query<Tenant>().OrderBy(t => t.CreatedAt).ToListAsync()).ToList();
+        totalRoles = tenants.Sum(t => t.Roles.Count);
+        var allCities = new HashSet<string>(
+            tenants.Where(t => !string.IsNullOrEmpty(t.City)).Select(t => t.City!));
+
+        // اِعدد الإعلانات لِكُلّ مُستَأجِر (sessions per-tenant لِأَنّ Listing conjoined).
+        foreach (var t in tenants)
+        {
+            try
+            {
+                await using var s = Store.QuerySession(t.Slug);
+                var count = await s.Query<ACommerce.Kit.Listings.Listing>()
+                    .Where(l => !l.IsDeleted).CountAsync();
+                listingsByTenant[t.Slug] = count;
+                totalListings += count;
+            }
+            catch { /* tenant بِدون جَدوَل listings — تَجاهَل */ }
+        }
+        cityCount = allCities.Count;
+    }
 }

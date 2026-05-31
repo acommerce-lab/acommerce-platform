@@ -31,7 +31,13 @@ builder.Services.AddCustomerMarketplaceTemplate();
 var app = builder.Build();
 
 await using (var scope = app.Services.CreateAsyncScope())
+{
     await PlatformSeed.RunAsync(scope.ServiceProvider);
+    // اِربِط المَتاجِر القَديمَة بِأَوَّل مُستَخدِم studio (إن وُجِد).
+    var docStore = scope.ServiceProvider.GetRequiredService<Marten.IDocumentStore>();
+    await ACommerce.Templates.Customer.Marketplace.Services.Incubator
+        .StudioOwnershipSeeder.RunAsync(docStore);
+}
 
 app.UsePlatformHost();
 

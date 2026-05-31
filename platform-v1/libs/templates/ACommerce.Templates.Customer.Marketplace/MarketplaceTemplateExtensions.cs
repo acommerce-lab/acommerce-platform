@@ -1870,6 +1870,9 @@ public static class MarketplaceTemplateExtensions
                 return Results.Redirect(
                     $"/studio/auth?stage=verify&phone={Uri.EscapeDataString(phone)}&err=code");
 
+            // اِربِط المَتاجِر اليَتيمَة بِأَوَّل مُستَخدِم (لَو هذا أَوَّل تَسجيل).
+            await Services.Incubator.StudioOwnershipSeeder.RunAsync(store);
+
             // مُطالَبَة مُعَلَّقَة؟ أَنشِئ جَلسَة وشَغِّل التَّحليل في الخَلفِيَّة.
             var promptCookie = req.Cookies["ac.studio.prompt"];
             if (!string.IsNullOrEmpty(promptCookie))
