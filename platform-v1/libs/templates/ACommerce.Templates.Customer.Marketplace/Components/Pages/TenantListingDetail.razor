@@ -376,6 +376,14 @@ else
                         <AcIcon Name="send" Size="18" /> تَقديم العَرض وبَدء الصَّفقَة
                     </button>
                 </form>
+                @* البَديل: إضافَة لِلسَّلَّة مُباشَرَةً بِالسِّعر المُعلَن
+                   — مُلائِم لِأَنماط cafe/grocery حَيث لا تَفاوُض. *@
+                <form method="post" action="@($"/{Slug}/listings/{Id}/cart/add")" style="margin:0 0 10px;">
+                    <input type="hidden" name="qty" value="1" />
+                    <button type="submit" class="ac-btn ac-btn-ghost ac-btn-block">
+                        🛒 أَضِف لِلسَّلَّة بِسِعر @listing.Price.ToString("N0") ر.س
+                    </button>
+                </form>
                 <form method="post" action="@($"/{Slug}/listings/{Id}/chat")" style="margin:0;">
                     <button type="submit" class="ac-btn ac-btn-ghost ac-btn-block">
                         <AcIcon Name="message" Size="18" /> أَو تَواصَل أَوَّلاً

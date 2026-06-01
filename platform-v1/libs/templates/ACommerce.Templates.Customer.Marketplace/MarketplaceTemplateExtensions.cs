@@ -2083,6 +2083,148 @@ public static class MarketplaceTemplateExtensions
             return Results.Redirect($"/studio/s/{id}?refining={section}");
         }).DisableAntiforgery();
 
+        // ═══ Cart + Checkout (نَمَط Order.V2) ══════════════════════════════
+        // POST /{slug}/listings/{id}/cart/add — أَضِف إلى السَّلَّة.
+        app.MapPost("/{slug}/listings/{id:guid}/cart/add",
+            async (string slug, Guid id, HttpRequest req, IDocumentStore store) =>
+        {
+            var parsed = AuthHandlers.ParseToken(req.Cookies[AuthSession.CookieName(slug)]
+                ?? req.Cookies[AuthSession.CookieName(slug, AuthSession.ExtractRoleFromPath(req.Path))]);
+            if (parsed is null) return Results.Redirect(Link(req, slug, $"login?returnUrl=/{slug}/listings/{id}"));
+            var (userId, _, _) = parsed.Value;
+            await using var s = store.LightweightSession(slug);
+            var listing = await s.LoadAsync<Listing>(id);
+            if (listing is null) return Results.Redirect(Link(req, slug, "explore"));
+            int.TryParse(req.Form["qty"].ToString(), out var qty);
+            if (qty <= 0) qty = 1;
+            var cart = await s.LoadAsync<ACommerce.Kit.Cart.Cart>(userId)
+                ?? new ACommerce.Kit.Cart.Cart { Id = userId };
+            var existing = cart.Items.FirstOrDefault(i => i.ListingId == id);
+            if (existing is not null) existing.Quantity += qty;
+            else cart.Items.Add(new ACommerce.Kit.Cart.CartItem
+            {
+                ListingId = id, Title = listing.Title,
+                UnitPriceSar = listing.Price, Quantity = qty
+            });
+            cart.UpdatedAt = DateTime.UtcNow;
+            s.Store(cart);
+            await s.SaveChangesAsync();
+            return Results.Redirect(Link(req, slug, "cart"));
+        }).DisableAntiforgery();
+
+        // POST /{slug}/cart/{listingId}/qty — تَعديل كَمِّيَّة.
+        app.MapPost("/{slug}/cart/{listingId:guid}/qty",
+            async (string slug, Guid listingId, HttpRequest req, IDocumentStore store) =>
+        {
+            var parsed = AuthHandlers.ParseToken(req.Cookies[AuthSession.CookieName(slug)]
+                ?? req.Cookies[AuthSession.CookieName(slug, AuthSession.ExtractRoleFromPath(req.Path))]);
+            if (parsed is null) return Results.Redirect(Link(req, slug, "login"));
+            var (userId, _, _) = parsed.Value;
+            int.TryParse(req.Form["qty"].ToString(), out var qty);
+            await using var s = store.LightweightSession(slug);
+            var cart = await s.LoadAsync<ACommerce.Kit.Cart.Cart>(userId);
+            if (cart is null) return Results.Redirect(Link(req, slug, "cart"));
+            var item = cart.Items.FirstOrDefault(i => i.ListingId == listingId);
+            if (item is null) return Results.Redirect(Link(req, slug, "cart"));
+            if (qty <= 0) cart.Items.Remove(item); else item.Quantity = qty;
+            cart.UpdatedAt = DateTime.UtcNow;
+            s.Store(cart);
+            await s.SaveChangesAsync();
+            return Results.Redirect(Link(req, slug, "cart"));
+        }).DisableAntiforgery();
+
+        app.MapPost("/{slug}/cart/clear", async (string slug, HttpRequest req, IDocumentStore store) =>
+        {
+            var parsed = AuthHandlers.ParseToken(req.Cookies[AuthSession.CookieName(slug)]
+                ?? req.Cookies[AuthSession.CookieName(slug, AuthSession.ExtractRoleFromPath(req.Path))]);
+            if (parsed is null) return Results.Redirect(Link(req, slug, "login"));
+            var (userId, _, _) = parsed.Value;
+            await using var s = store.LightweightSession(slug);
+            s.Delete<ACommerce.Kit.Cart.Cart>(userId);
+            await s.SaveChangesAsync();
+            return Results.Redirect(Link(req, slug, "cart"));
+        }).DisableAntiforgery();
+
+        // POST /{slug}/checkout/submit — تَحويل السَّلَّة إلى صَفقَة + إفراغ.
+        // كُلّ بَند في السَّلَّة → Deal مُنفَصِل (لِأَنّ الـ Deal فيه الإعلان
+        // وكُلّ بَند قَد يَكون مالِكُه مُختَلِف). يَدخُل Deals بِمَرحَلَة Booked
+        // مُباشَرَةً (السَّلَّة تَعني أَنّ المُشتَري ثَبَّتَ النِيَّة).
+        app.MapPost("/{slug}/checkout/submit",
+            async (string slug, HttpRequest req, IDocumentStore store,
+                   Services.Deals.DealsService deals) =>
+        {
+            var parsed = AuthHandlers.ParseToken(req.Cookies[AuthSession.CookieName(slug)]
+                ?? req.Cookies[AuthSession.CookieName(slug, AuthSession.ExtractRoleFromPath(req.Path))]);
+            if (parsed is null) return Results.Redirect(Link(req, slug, "login"));
+            var (userId, _, _) = parsed.Value;
+            var name  = req.Form["name"].ToString().Trim();
+            var phone = req.Form["phone"].ToString().Trim();
+            var addr  = req.Form["addr"].ToString().Trim();
+            var pay   = req.Form["pay"].ToString().Trim();
+
+            await using var s = store.LightweightSession(slug);
+            var cart = await s.LoadAsync<ACommerce.Kit.Cart.Cart>(userId);
+            if (cart is null || cart.Items.Count == 0) return Results.Redirect(Link(req, slug, "cart"));
+
+            var tenant = await s.LoadAsync<ACommerce.Kit.Tenants.Tenant>(slug);
+            var pattern = PatternFromTenant(tenant);
+            Guid firstDealId = Guid.Empty;
+            foreach (var item in cart.Items)
+            {
+                var listing = await s.LoadAsync<Listing>(item.ListingId);
+                if (listing is null) continue;
+                var deal = await deals.StartAsync(slug, pattern,
+                    initiatorId: userId, initiatorName: name,
+                    listingId: item.ListingId, listingTitle: item.Title,
+                    amountSar: item.UnitPriceSar * item.Quantity,
+                    attributes: new()
+                    {
+                        ["qty"] = item.Quantity.ToString(),
+                        ["addr"] = addr,
+                        ["phone"] = phone,
+                        ["pay_method"] = pay
+                    });
+                if (firstDealId == Guid.Empty) firstDealId = deal.Id;
+                if (listing.Attributes.TryGetValue("owner_id", out var oid))
+                    await deals.AttachRefAsync(slug, deal.Id, "listing_owner", oid);
+            }
+
+            s.Delete<ACommerce.Kit.Cart.Cart>(userId);
+            await s.SaveChangesAsync();
+
+            return Results.Redirect(Link(req, slug, firstDealId == Guid.Empty ? "deals" : $"deals/{firstDealId}"));
+        }).DisableAntiforgery();
+
+        // POST /{slug}/vendor/{vendorId}/chat — اِبدَأ مُحادَثَة مَع بائِع.
+        app.MapPost("/{slug}/vendor/{vendorId:guid}/chat",
+            async (string slug, Guid vendorId, HttpRequest req, IDocumentStore store) =>
+        {
+            var parsed = AuthHandlers.ParseToken(req.Cookies[AuthSession.CookieName(slug)]
+                ?? req.Cookies[AuthSession.CookieName(slug, AuthSession.ExtractRoleFromPath(req.Path))]);
+            if (parsed is null) return Results.Redirect(Link(req, slug, "login"));
+            var (userId, _, _) = parsed.Value;
+            await using var s = store.LightweightSession(slug);
+            var me = await s.LoadAsync<User>(userId);
+            var vendor = await s.LoadAsync<User>(vendorId);
+            // اِبحَث مُحادَثَة قائِمَة بَين الطَّرَفَين (بِأَيّ اتِّجاه).
+            var existing = await s.Query<ACommerce.Kit.Chat.Conversation>()
+                .Where(c => (c.OwnerId == userId && c.PartnerId == vendorId)
+                         || (c.OwnerId == vendorId && c.PartnerId == userId))
+                .FirstOrDefaultAsync();
+            if (existing is not null)
+                return Results.Redirect(Link(req, slug, $"chat/{existing.Id}"));
+            var convo = new ACommerce.Kit.Chat.Conversation
+            {
+                Id = Guid.NewGuid(),
+                OwnerId = userId, OwnerName = me?.FullName ?? "أَنا",
+                PartnerId = vendorId, PartnerName = vendor?.FullName ?? "البائِع",
+                CreatedAt = DateTime.UtcNow, LastAt = DateTime.UtcNow
+            };
+            s.Store(convo);
+            await s.SaveChangesAsync();
+            return Results.Redirect(Link(req, slug, $"chat/{convo.Id}"));
+        }).DisableAntiforgery();
+
         // ─── Studio Reviews (تَقييم مُتَبادَل لِصَفقَة مُكتَمِلَة) ─────────
         app.MapPost("/studio/apps/{slug}/deals/{id:guid}/review",
             async (string slug, Guid id, HttpRequest req, IDocumentStore store,

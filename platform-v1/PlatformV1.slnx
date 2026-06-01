@@ -22,6 +22,10 @@
     <Project Path="libs/kits/Cache/ACommerce.Kit.Cache.Core/ACommerce.Kit.Cache.Core.csproj" />
     <Project Path="libs/kits/Cache/ACommerce.Kit.Cache.Providers.Redis/ACommerce.Kit.Cache.Providers.Redis.csproj" />
   </Folder>
+  <Folder Name="/libs/kits/Cart/">
+    <Project Path="libs/kits/Cart/ACommerce.Kit.Cart.Core/ACommerce.Kit.Cart.Core.csproj" />
+    <Project Path="libs/kits/Cart/ACommerce.Kit.Cart.Server/ACommerce.Kit.Cart.Server.csproj" />
+  </Folder>
   <Folder Name="/libs/kits/Chat/">
     <Project Path="libs/kits/Chat/ACommerce.Kit.Chat.Core/ACommerce.Kit.Chat.Core.csproj" />
     <Project Path="libs/kits/Chat/ACommerce.Kit.Chat.Server/ACommerce.Kit.Chat.Server.csproj" />

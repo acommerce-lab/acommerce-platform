@@ -31,6 +31,8 @@
     <ProjectReference Include="..\..\libs\kits\Support\ACommerce.Kit.Support.Core\ACommerce.Kit.Support.Core.csproj" />
     <ProjectReference Include="..\..\libs\kits\Support\ACommerce.Kit.Support.Server\ACommerce.Kit.Support.Server.csproj" />
 
+    <ProjectReference Include="..\..\libs\kits\Cart\ACommerce.Kit.Cart.Core\ACommerce.Kit.Cart.Core.csproj" />
+    <ProjectReference Include="..\..\libs\kits\Cart\ACommerce.Kit.Cart.Server\ACommerce.Kit.Cart.Server.csproj" />
     <ProjectReference Include="..\..\libs\kits\Files\ACommerce.Kit.Files.Core\ACommerce.Kit.Files.Core.csproj" />
     <ProjectReference Include="..\..\libs\kits\Files\ACommerce.Kit.Files.Providers.AliyunOss\ACommerce.Kit.Files.Providers.AliyunOss.csproj" />
     <ProjectReference Include="..\..\libs\kits\Files\ACommerce.Kit.Files.Providers.GoogleCloud\ACommerce.Kit.Files.Providers.GoogleCloud.csproj" />
