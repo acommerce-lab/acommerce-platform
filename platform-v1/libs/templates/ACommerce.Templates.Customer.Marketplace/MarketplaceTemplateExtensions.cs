@@ -2143,7 +2143,8 @@ public static class MarketplaceTemplateExtensions
         // ─── Studio Tickets (دَعم فَنّيّ — رَدّ + إغلاق) ──────────────────
         app.MapPost("/studio/apps/{slug}/tickets/{id:guid}/reply",
             async (string slug, Guid id, HttpRequest req, IDocumentStore store,
-                   Services.Incubator.StudioAuth auth) =>
+                   Services.Incubator.StudioAuth auth,
+                   Services.Audit.AuditWriter audit) =>
         {
             if (!await StudioOwnsAsync(store, auth, slug)) return Results.Redirect("/studio");
             var body = req.Form["body"].ToString().Trim();
@@ -2156,17 +2157,25 @@ public static class MarketplaceTemplateExtensions
                 FromStaff: true, Body: body, At: DateTime.UtcNow);
             s.Events.Append(id, evt);
             await s.SaveChangesAsync();
+            await audit.WriteAsync(slug, auth.UserId, "مالِك التَّطبيق",
+                "ticket.reply", "ticket", id.ToString(),
+                note: body.Length > 80 ? body[..80] + "…" : body,
+                ip: req.HttpContext.Connection.RemoteIpAddress?.ToString());
             return Results.Redirect($"/studio/apps/{slug}/tickets/{id}?replied=1");
         }).DisableAntiforgery();
 
         app.MapPost("/studio/apps/{slug}/tickets/{id:guid}/close",
-            async (string slug, Guid id, IDocumentStore store,
-                   Services.Incubator.StudioAuth auth) =>
+            async (string slug, Guid id, HttpRequest req, IDocumentStore store,
+                   Services.Incubator.StudioAuth auth,
+                   Services.Audit.AuditWriter audit) =>
         {
             if (!await StudioOwnsAsync(store, auth, slug)) return Results.Redirect("/studio");
             await using var s = store.LightweightSession(slug);
             s.Events.Append(id, new ACommerce.Kit.Support.TicketClosed(id, DateTime.UtcNow));
             await s.SaveChangesAsync();
+            await audit.WriteAsync(slug, auth.UserId, "مالِك التَّطبيق",
+                "ticket.close", "ticket", id.ToString(),
+                ip: req.HttpContext.Connection.RemoteIpAddress?.ToString());
             return Results.Redirect($"/studio/apps/{slug}/tickets/{id}?closed=1");
         }).DisableAntiforgery();
 
@@ -2190,16 +2199,14 @@ public static class MarketplaceTemplateExtensions
 
         app.MapPost("/studio/apps/{slug}/deals/{id:guid}/advance",
             async (string slug, Guid id, HttpRequest req, IDocumentStore store,
-                   Services.Incubator.StudioAuth auth, Services.Deals.DealsService deals) =>
+                   Services.Incubator.StudioAuth auth, Services.Deals.DealsService deals,
+                   Services.Audit.AuditWriter audit) =>
         {
             if (!await StudioOwnsAsync(store, auth, slug)) return Results.Redirect("/studio");
             var note = req.Form["note"].ToString().Trim();
-            // المالِك يَتَصَرَّف نِيابَةً (platform): نَستَخدِم Guid.Empty كَ
-            // فاعِل، يَتِمّ تَجاوُز فَحص الفاعِل لِأَنّه إجراء إداريّ.
             var deal = await deals.LoadAsync(slug, id);
             if (deal is null) return Results.Redirect($"/studio/apps/{slug}/deals");
 
-            // اِجعَل المالِك "إمّا"؛ نَنفِّذ كَ counterparty لَو لَم يَكُن مُعَيَّناً.
             if (deal.CounterpartyId is null)
                 await deals.AssignCounterpartyAsync(slug, id,
                     auth.UserId!.Value, "مالِك التَّطبيق");
@@ -2207,29 +2214,42 @@ public static class MarketplaceTemplateExtensions
             var actorId = deal.Stage == Services.Deals.DealStage.Offered
                 ? deal.InitiatorId
                 : (deal.CounterpartyId ?? auth.UserId!.Value);
-            await deals.AdvanceAsync(slug, id, actorId, "مالِك التَّطبيق (إداريّ)", note);
+            var result = await deals.AdvanceAsync(slug, id, actorId, "مالِك التَّطبيق (إداريّ)", note);
+            if (result.Ok && result.Deal is not null)
+                await audit.WriteAsync(slug, auth.UserId, "مالِك التَّطبيق",
+                    "deal.advance", "deal", id.ToString(),
+                    note: $"→ {result.Deal.Stage}" + (string.IsNullOrEmpty(note) ? "" : $" · {note}"),
+                    ip: req.HttpContext.Connection.RemoteIpAddress?.ToString());
             return Results.Redirect($"/studio/apps/{slug}/deals/{id}");
         }).DisableAntiforgery();
 
         app.MapPost("/studio/apps/{slug}/deals/{id:guid}/cancel",
             async (string slug, Guid id, HttpRequest req, IDocumentStore store,
-                   Services.Incubator.StudioAuth auth, Services.Deals.DealsService deals) =>
+                   Services.Incubator.StudioAuth auth, Services.Deals.DealsService deals,
+                   Services.Audit.AuditWriter audit) =>
         {
             if (!await StudioOwnsAsync(store, auth, slug)) return Results.Redirect("/studio");
             var reason = req.Form["reason"].ToString().Trim();
             if (string.IsNullOrEmpty(reason)) reason = "إلغاء إداريّ";
             await deals.CancelAsync(slug, id, auth.UserId!.Value, "مالِك التَّطبيق", reason);
+            await audit.WriteAsync(slug, auth.UserId, "مالِك التَّطبيق",
+                "deal.cancel", "deal", id.ToString(), note: reason,
+                ip: req.HttpContext.Connection.RemoteIpAddress?.ToString());
             return Results.Redirect($"/studio/apps/{slug}/deals/{id}");
         }).DisableAntiforgery();
 
         app.MapPost("/studio/apps/{slug}/deals/{id:guid}/dispute",
             async (string slug, Guid id, HttpRequest req, IDocumentStore store,
-                   Services.Incubator.StudioAuth auth, Services.Deals.DealsService deals) =>
+                   Services.Incubator.StudioAuth auth, Services.Deals.DealsService deals,
+                   Services.Audit.AuditWriter audit) =>
         {
             if (!await StudioOwnsAsync(store, auth, slug)) return Results.Redirect("/studio");
             var reason = req.Form["reason"].ToString().Trim();
             if (string.IsNullOrEmpty(reason)) reason = "نِزاع";
             await deals.DisputeAsync(slug, id, auth.UserId!.Value, "مالِك التَّطبيق", reason);
+            await audit.WriteAsync(slug, auth.UserId, "مالِك التَّطبيق",
+                "deal.dispute", "deal", id.ToString(), note: reason,
+                ip: req.HttpContext.Connection.RemoteIpAddress?.ToString());
             return Results.Redirect($"/studio/apps/{slug}/deals/{id}");
         }).DisableAntiforgery();
 
