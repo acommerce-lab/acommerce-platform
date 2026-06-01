@@ -312,7 +312,8 @@ public static class MarketplaceTemplateExtensions
 
         // ─── Profile save ───────────────────────────────────────────────
         app.MapPost("/{slug}/me/save",
-            async (string slug, HttpRequest req, IDocumentStore store) =>
+            async (string slug, HttpRequest req, IDocumentStore store,
+                   ACommerce.Kit.Files.IFileStorage files) =>
         {
             var token = req.Cookies[AuthSession.CookieName(slug)];
             var parsed = AuthHandlers.ParseToken(token);
@@ -321,6 +322,22 @@ public static class MarketplaceTemplateExtensions
             var fullName = req.Form["fullName"].ToString().Trim();
             if (fullName.Length == 0) return Results.Redirect(Link(req, slug, $"me/edit"));
 
+            // رَفع صورَة المَلَفّ الشَخصيّ إن أُرسِلَت (≤ ٢ MB، صُوَر فَقَط).
+            string? newAvatarUrl = null;
+            var avatar = req.Form.Files["avatar"];
+            if (avatar is { Length: > 0 })
+            {
+                var ct = avatar.ContentType.ToLowerInvariant();
+                if (ct is "image/png" or "image/jpeg" or "image/webp" && avatar.Length <= 2 * 1024 * 1024)
+                {
+                    var ext = ct.Split('/')[1].Replace("jpeg", "jpg");
+                    var key = $"tenants/{slug}/avatars/{userId}.{ext}";
+                    await using var stream = avatar.OpenReadStream();
+                    var stored = await files.UploadAsync(key, stream, ct);
+                    newAvatarUrl = stored.PublicUrl;
+                }
+            }
+
             // الخَصائِص الديناميكِيَّة: كُلّ حَقل بِالـ form بِالبادِئَة
             // attr_<Code> يُحَدِّث user.AttributesJson. لا نَمسَح المَفاتيح
             // غَير المَوجودَة (سَلوك upsert: نُحَدِّث المُمَرَّر، نَتُرك الباقي).
@@ -328,6 +345,7 @@ public static class MarketplaceTemplateExtensions
             var user = await s.LoadAsync<User>(userId);
             if (user is null) return Results.Redirect(Link(req, slug, $"me"));
             user.FullName = fullName;
+            if (newAvatarUrl is not null) user.AvatarUrl = newAvatarUrl;
             user.UpdatedAt = DateTime.UtcNow;
 
             // الدَور النَّشِط (يَظهَر فَقَط لَو المَتجَر يُعَرِّف أَدواراً).

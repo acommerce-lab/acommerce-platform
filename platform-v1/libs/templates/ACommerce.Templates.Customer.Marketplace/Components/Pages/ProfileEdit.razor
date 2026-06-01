@@ -21,13 +21,32 @@ else
 {
     <h1 class="acm-wizard-title">تَعديل المَلَفّ الشَخصيّ</h1>
 
-    <form method="post" action="@($"/{Slug}/me/save")">
+    <form method="post" action="@($"/{Slug}/me/save")" enctype="multipart/form-data">
         @* عُد إلى نَفس صَفحَة الدَّور الَّتي دَخَلنا مِنها. *@
         <input type="hidden" name="returnUrl" value="@AuthSession.LinkFor(Slug, Role, "me")" />
 
         <AcCard>
             <ChildContent>
                 <h3 style="margin-top:0;">المَعلومات الأَساسِيَّة</h3>
+
+                @* صورَة المَلَفّ الشَخصيّ — تُرفَع عَبر IFileStorage. *@
+                <div style="display:flex;align-items:center;gap:14px;margin-bottom:14px;">
+                    @if (!string.IsNullOrEmpty(user.AvatarUrl))
+                    {
+                        <img src="@user.AvatarUrl" alt="الصورَة"
+                             style="width:64px;height:64px;border-radius:50%;object-fit:cover;" />
+                    }
+                    else
+                    {
+                        <AcAvatar Name="@user.FullName" Size="64" />
+                    }
+                    <div style="flex:1;">
+                        <label style="font-size:13px;color:var(--ac-text-muted);display:block;margin-bottom:4px;">
+                            صورَة المَلَفّ الشَخصيّ
+                        </label>
+                        <input type="file" name="avatar" accept="image/png,image/jpeg,image/webp" class="ac-input" />
+                    </div>
+                </div>
 
                 <AcField Label="الاسم الكامِل" Required="true">
                     <input type="text" name="fullName" value="@user.FullName"

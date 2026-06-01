@@ -79,8 +79,41 @@ public static class PlatformSeed
                 ("مَخزَن قَريب مِن المَيناء — عَدَن",      210000m, "storage",   "عَدَن",  "التَواهي"),
             });
 
+        // مَتجَر «أوردر» — عُروض المَقاهي (نَمَط marketplace: سَلَّة → دَفع →
+        // تَجهيز → تَوصيل). يُملَك تِلقائيّاً لِأَوَّل مُستَخدِم studio عَبر
+        // StudioOwnershipSeeder كَبَقِيَّة المَتاجِر.
+        await SeedTenantIfMissingAsync(globalSession, store,
+            slug: "order",
+            name: "أوردر",
+            color: "#7c3aed",   // Vivid Purple — هُويَّة Order V2
+            city: "الرِياض",
+            tagLine: "عُروض مَقاهيك المُفَضَّلَة في مَكان واحِد",
+            authChannel: "phone",
+            categories: new[]
+            {
+                ("coffee",   "قَهوَة",      "☕", "menu"),
+                ("dessert",  "حَلَويّات",   "🍰", "menu"),
+                ("breakfast","فُطور",       "🥐", "menu"),
+                ("meals",    "وَجَبات",     "🍽️", "menu"),
+                ("juice",    "عَصائِر",     "🥤", "menu"),
+            },
+            sampleListings: new (string title, decimal price, string cat, string city, string district)[]
+            {
+                ("قَهوَة مُختَصَّة V60",                 18m, "coffee",    "الرِياض", "العُليا"),
+                ("لاتيه بارِد كَبير",                    22m, "coffee",    "الرِياض", "النَخيل"),
+                ("تشيز كيك التوت",                        28m, "dessert",   "الرِياض", "العُليا"),
+                ("كرواسون بِالجُبن",                     15m, "breakfast", "الرِياض", "الياسمين"),
+                ("فُطور إنجليزي كامِل",                  45m, "breakfast", "الرِياض", "العُليا"),
+                ("بَرجَر لَحم أنغوس",                    39m, "meals",     "الرِياض", "النَخيل"),
+                ("باستا ألفريدو دَجاج",                  42m, "meals",     "الرِياض", "الياسمين"),
+                ("عَصير بُرتُقال طازَج",                 16m, "juice",     "الرِياض", "العُليا"),
+                ("موكا بِالكَراميل",                     24m, "coffee",    "جُدَّة",   "الرَوضَة"),
+                ("كيكة التَمر الساخِنَة",                26m, "dessert",   "جُدَّة",   "الحَمراء"),
+            });
+
         await SeedPlansIfMissingAsync(store, "ashare");
         await SeedPlansIfMissingAsync(store, "ejar");
+        await SeedPlansIfMissingAsync(store, "order");
 
         Console.WriteLine("[Seed] ✅ Platform seed complete.");
     }

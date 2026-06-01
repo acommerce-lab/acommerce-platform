@@ -11,6 +11,9 @@ public sealed class User
     public string Phone { get; set; } = "";
     public string? NationalId { get; set; }
     public string FullName { get; set; } = "مُستَخدِم جَديد";
+    /// <summary>رابِط صورَة المَلَفّ الشَخصيّ (مِن IFileStorage). فارِغ =
+    /// نَعرِض الحَرف الأَوَّل كَ avatar نائِب.</summary>
+    public string? AvatarUrl { get; set; }
     public bool PhoneVerified { get; set; }
     public string Role { get; set; } = "user";
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

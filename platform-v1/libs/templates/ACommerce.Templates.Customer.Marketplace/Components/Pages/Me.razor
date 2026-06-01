@@ -26,13 +26,19 @@
         <AcCard>
             <ChildContent>
                 <div class="acm-details-owner">
-                    <span class="acm-details-owner-avatar" style="width:56px;height:56px;">
-                        <AcIcon Name="user" Size="24" />
-                    </span>
+                    @if (!string.IsNullOrEmpty(me?.AvatarUrl))
+                    {
+                        <img src="@me!.AvatarUrl" alt="@(Auth.UserName)"
+                             style="width:56px;height:56px;border-radius:50%;object-fit:cover;" />
+                    }
+                    else
+                    {
+                        <AcAvatar Name="@(Auth.UserName ?? "؟")" Size="56" />
+                    }
                     <div class="acm-details-owner-info" style="flex:1;">
                         <h3 style="margin:0;">@(Auth.UserName ?? "عُضو جَديد")</h3>
                         <span style="color:var(--ac-text-muted);font-size:13px;">
-                            مُعَرِّف: @(Auth.UserId?.ToString()![..8] ?? "—")
+                            @(string.IsNullOrEmpty(me?.Phone) ? $"مُعَرِّف: {Auth.UserId?.ToString()![..8]}" : me!.Phone)
                         </span>
                     </div>
                     <a class="ac-btn ac-btn-outline-primary" href="@AuthSession.LinkFor(Slug, Role, $"me/edit")">تَعديل</a>
@@ -90,7 +96,9 @@
             <AcActionCard Label="المُفَضَّلَة" IconName="heart"         Variant="surface" Href="@AuthSession.LinkFor(Slug, Role, $"favorites")" />
             <AcActionCard Label="المُحادَثات"   IconName="message"       Variant="surface" Href="@AuthSession.LinkFor(Slug, Role, $"chats")" />
             <AcActionCard Label="الإشعارات"     IconName="bell"          Variant="surface" Href="@AuthSession.LinkFor(Slug, Role, $"notifications")" />
+            <AcActionCard Label="صَفقاتي"        IconName="receipt"       Variant="surface" Href="@AuthSession.LinkFor(Slug, Role, $"deals")" />
             <AcActionCard Label="الشَكاوى والدَّعم" IconName="alert-circle"  Variant="surface" Href="@AuthSession.LinkFor(Slug, Role, $"support")" />
+            <AcActionCard Label="المَعلومات القانونيّة" IconName="info"     Variant="surface" Href="@AuthSession.LinkFor(Slug, Role, $"legal")" />
         </div>
 
         <div style="margin-top:16px;">
@@ -113,6 +121,7 @@
     [Parameter] public string? Role { get; set; }
 
     Tenant? loadedTenant;
+    User? me;
     int favoritesCount;
     int conversationsCount;
     int notificationsCount;
@@ -129,13 +138,13 @@
         if (!Auth.IsAuthenticated || Auth.UserId is null) return;
 
         await using var s = Store.QuerySession(Slug);
+        me                   = await s.LoadAsync<User>(Auth.UserId.Value);
         favoritesCount       = await s.Query<Favorite>().CountAsync(f => f.UserId == Auth.UserId.Value);
         conversationsCount   = await s.Query<Conversation>().CountAsync(c => c.OwnerId == Auth.UserId.Value || c.PartnerId == Auth.UserId.Value);
         notificationsCount   = await s.Query<Notification>().CountAsync(n => n.UserId == Auth.UserId.Value && !n.IsRead);
 
         if (tenantRoles.Count > 0)
         {
-            var me = await s.LoadAsync<User>(Auth.UserId.Value);
             if (me is not null && !string.IsNullOrEmpty(me.ActiveRole))
                 activeRole = tenantRoles.FirstOrDefault(r => r.Slug == (Role ?? me.ActiveRole));
             canManage = ACommerce.Kit.Roles.RolePermissions.Has(

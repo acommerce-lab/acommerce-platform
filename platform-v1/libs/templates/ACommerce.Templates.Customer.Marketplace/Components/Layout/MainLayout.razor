@@ -89,6 +89,7 @@ else
 @code {
     string activeRoleSlug = "";
     bool tenantHasRoles;
+    string? listingPattern;
     int unreadMessages;
     int unreadNotifications;
 
@@ -105,6 +106,18 @@ else
                 await using var gs = Store.QuerySession();
                 var t = await gs.LoadAsync<ACommerce.Kit.Tenants.Tenant>(Tenant.Slug);
                 tenantHasRoles = t is not null && t.Roles.Count > 0;
+                // اِشتِقاق النَّمَط لِتَحديد ظُهور السَّلَّة: فَئات «menu»
+                // (مَقاهي/مَطاعِم) أَو غِياب الأَدوار العَقارِيَّة = marketplace.
+                if (t is not null)
+                {
+                    var kinds = t.Categories.Select(c => c.Kind).ToHashSet();
+                    var roleCats = t.Roles.Select(r => r.CatalogSlug).ToHashSet();
+                    listingPattern =
+                        roleCats.Contains("rider") || roleCats.Contains("driver") ? "trip" :
+                        roleCats.Contains("host") || kinds.Contains("residential") ||
+                        kinds.Contains("commercial") || kinds.Contains("roommate") ? "rental" :
+                        "marketplace";
+                }
             }
             catch { /* ignore */ }
 
@@ -154,11 +167,16 @@ else
 
         string Link(string path) => AuthSession.LinkFor(slug, urlRole, path);
 
-        void Add(string path, string label, string icon, bool exact = false, int? badge = null)
+        // الشَّريط السُّفليّ في الهاتِف يَجِب أَلّا يَتَجاوَز ٥ تَبويبات
+        // (مِعيار تَطبيقات احتِرافِيَّة). الزائِد عَنها يَظهَر في nav الحاسوب
+        // العُلويّ + في صَفحَة «حِسابي» (hub). نُمَرِّر bottom:false لِلزائِد.
+        void Add(string path, string label, string icon, bool exact = false,
+                 int? badge = null, bool bottom = true)
         {
             var href = Link(path);
             ar.Top.Add(new(href, label, icon, badge, exact));
-            ar.Bottom.Add(new() { Href = href, Label = label, IconName = icon, Exact = exact, Badge = badge });
+            if (bottom)
+                ar.Bottom.Add(new() { Href = href, Label = label, IconName = icon, Exact = exact, Badge = badge });
         }
 
         Add("", "الرَئيسيّة", "home", exact: true);
@@ -166,39 +184,51 @@ else
         var msgBadge   = unreadMessages > 0      ? (int?)unreadMessages      : null;
         var notifBadge = unreadNotifications > 0 ? (int?)unreadNotifications : null;
 
+        // أَيّ نَمَط يَستَخدِم السَّلَّة؟ (cafe/grocery/marketplace). أَنماط
+        // الإيجار/السَكَن المُشتَرَك/المَشاوير لا سَلَّة فيها — نُخفيها.
+        var usesCart = listingPattern is "marketplace" or "service" or null
+                       && roleSlug is not ("rider" or "driver" or "shipper" or "host");
+
         switch (roleSlug)
         {
             case "rider":
+                // ٤ تَبويبات: رَئيسيّة + طَلَباتي + رَسائل + حِسابي.
                 Add("me/listings",  "طَلَباتي", "package");
                 Add("chats",        "رَسائل",   "message", badge: msgBadge);
-                Add("notifications","إشعارات", "bell",    badge: notifBadge);
+                Add("notifications","إشعارات",  "bell",    badge: notifBadge, bottom: false);
                 break;
             case "driver":
             case "shipper":
+                // ٥ تَبويبات: رَئيسيّة + مَشاوير + عُروضي + رَسائل + حِسابي.
                 Add("explore",      "مَشاوير",  "search");
                 Add("me/offers",    "عُروضي",   "package");
-                Add("me/searches",  "إشعارات",  "bell",    badge: notifBadge);
                 Add("chats",        "رَسائل",   "message", badge: msgBadge);
+                Add("me/searches",  "بَحثي",    "bell",    badge: notifBadge, bottom: false);
+                Add("notifications","إشعارات",  "bell",    badge: notifBadge, bottom: false);
                 break;
             case "vendor":
             case "host":
+                // ٥ تَبويبات: رَئيسيّة + إعلاناتي + صَفقات + رَسائل + حِسابي.
                 Add("me/listings",  "إعلاناتي", "package");
                 Add("deals",        "صَفقات",   "receipt");
                 Add("chats",        "رَسائل",   "message", badge: msgBadge);
-                Add("notifications","إشعارات",  "bell",    badge: notifBadge);
+                Add("notifications","إشعارات",  "bell",    badge: notifBadge, bottom: false);
                 break;
             case "tenant_admin":
+                // ٤ تَبويبات: رَئيسيّة + إدارَة + رَسائل + حِسابي.
                 Add("manage",       "إدارَة",   "settings");
                 Add("chats",        "رَسائل",   "message", badge: msgBadge);
-                Add("notifications","إشعارات",  "bell",    badge: notifBadge);
+                Add("notifications","إشعارات",  "bell",    badge: notifBadge, bottom: false);
                 break;
             default:
+                // ٥ تَبويبات: رَئيسيّة + استِكشاف + مُفَضَّلَة + رَسائل + حِسابي.
+                // (الصَّفقات/السَّلَّة/الإشعارات في nav الحاسوب + صَفحَة حِسابي.)
                 Add("explore",      "استِكشاف", "search");
-                Add("cart",         "السَّلَّة",   "package");
-                Add("deals",        "صَفقاتي",  "receipt");
                 Add("favorites",    "مُفَضَّلَة",   "heart");
                 Add("chats",        "رَسائل",   "message", badge: msgBadge);
-                Add("notifications","إشعارات",  "bell",    badge: notifBadge);
+                Add("deals",        "صَفقاتي",  "receipt", bottom: false);
+                if (usesCart) Add("cart", "السَّلَّة", "package", bottom: false);
+                Add("notifications","إشعارات",  "bell",    badge: notifBadge, bottom: false);
                 break;
         }
 
