@@ -46,6 +46,9 @@ public static class MarketplaceTemplateExtensions
         services.AddScoped<Services.Incubator.TenantFromAnalysisFactory>();
         services.AddScoped<Services.Incubator.StudioTierService>();
         services.AddSingleton<Services.Incubator.FeasibilityExcelExporter>();
+
+        // خَدَمات الـ Deals (تَدَفُّق العَمَلِيّات المُوَحَّد).
+        services.AddScoped<Services.Deals.DealsService>();
         return services;
     }
 
