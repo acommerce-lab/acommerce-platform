@@ -33,6 +33,10 @@ public sealed record ListingEdited(
 public sealed record ListingDeleted(Guid Id, DateTime At);
 public sealed record ListingViewed(Guid Id, Guid? ViewerId, DateTime At);
 
+/// <summary>إخفاء/إظهار إشرافيّ — مُنفَصِل عَن Delete العادي.
+/// المالِك المُديريّ يَقدِر يُخفي إعلاناً مِن البَحث بِدون حَذف فِعليّ.</summary>
+public sealed record ListingModerated(Guid Id, bool Hidden, string Reason, Guid ModeratorId, DateTime At);
+
 // ─── Aggregate (read model مُحَدَّث inline عَبر projection) ──────────
 public sealed class Listing
 {
@@ -47,6 +51,12 @@ public sealed class Listing
     public Dictionary<string, string> Attributes { get; set; } = new();
     public int ViewCount { get; set; }
     public bool IsDeleted { get; set; }
+
+    /// <summary>أُخفي مِن البَحث العامّ بِقَرار إشرافيّ. لا يَزال
+    /// المالِك يَراه في "إعلاناتي" لِفَهم السَبَب.</summary>
+    public bool IsHiddenByModerator { get; set; }
+    public string? ModerationReason { get; set; }
+
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 
@@ -79,6 +89,13 @@ public sealed class Listing
     }
 
     public void Apply(ListingViewed e) => ViewCount++;
+
+    public void Apply(ListingModerated e)
+    {
+        IsHiddenByModerator = e.Hidden;
+        ModerationReason = e.Hidden ? e.Reason : null;
+        UpdatedAt = e.At;
+    }
 }
 
 // ─── Commands ─────────────────────────────────────────────────────────

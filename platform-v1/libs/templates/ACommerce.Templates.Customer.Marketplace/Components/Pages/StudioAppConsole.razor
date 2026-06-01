@@ -37,12 +37,24 @@
                 <div class="studio-stat"><div class="studio-stat-label">الباقات</div><div class="studio-stat-value">@planCount</div></div>
             </div>
 
-            <div class="st-section-title">إدارَة المُستَخدِمين</div>
+            <div class="st-section-title">إدارَة وإشراف</div>
             <div class="studio-list">
                 <a class="studio-list-row" href="@($"/admin/tenants/{Slug}/users")">
                     <span class="studio-list-icon" style="background:#dbeafe;color:#1d4ed8;">👤</span>
                     <div class="studio-list-body"><strong>المُستَخدِمون</strong>
                         <span>@userCount مُستَخدِم · مَنح وسَحب صَلاحيَّة الإدارَة</span></div>
+                    <span style="color:var(--st-faint);">←</span>
+                </a>
+                <a class="studio-list-row" href="@($"/studio/apps/{Slug}/listings")">
+                    <span class="studio-list-icon" style="background:#fef3c7;color:#a16207;">📋</span>
+                    <div class="studio-list-body"><strong>إشراف الإعلانات</strong>
+                        <span>@listingCount إعلان · إخفاء/حَذف لِلمُسيء</span></div>
+                    <span style="color:var(--st-faint);">←</span>
+                </a>
+                <a class="studio-list-row" href="@($"/studio/apps/{Slug}/tickets")">
+                    <span class="studio-list-icon" style="background:#fee2e2;color:#b91c1c;">🎫</span>
+                    <div class="studio-list-body"><strong>تَذاكِر الدَّعم</strong>
+                        <span>@openTicketCount مَفتوحَة · @totalTicketCount إجمالاً</span></div>
                     <span style="color:var(--st-faint);">←</span>
                 </a>
             </div>

@@ -2049,6 +2049,35 @@ public static class MarketplaceTemplateExtensions
             return Results.Redirect($"/studio/s/{id}?refining={section}");
         }).DisableAntiforgery();
 
+        // ─── Studio Listings moderation (إخفاء/إظهار/حَذف إشرافيّ) ───────
+        app.MapPost("/studio/apps/{slug}/listings/{id:guid}/moderate",
+            async (string slug, Guid id, HttpRequest req, IDocumentStore store,
+                   Services.Incubator.StudioAuth auth) =>
+        {
+            if (!await StudioOwnsAsync(store, auth, slug)) return Results.Redirect("/studio");
+            var action = req.Form["action"].ToString().Trim();   // hide | unhide | delete
+            var reason = req.Form["reason"].ToString().Trim();
+            await using var s = store.LightweightSession(slug);
+            var modId = auth.UserId!.Value;
+            switch (action)
+            {
+                case "hide":
+                    s.Events.Append(id, new ACommerce.Kit.Listings.ListingModerated(
+                        id, Hidden: true, Reason: string.IsNullOrEmpty(reason) ? "إشرافيّ" : reason,
+                        ModeratorId: modId, At: DateTime.UtcNow));
+                    break;
+                case "unhide":
+                    s.Events.Append(id, new ACommerce.Kit.Listings.ListingModerated(
+                        id, Hidden: false, Reason: "", ModeratorId: modId, At: DateTime.UtcNow));
+                    break;
+                case "delete":
+                    s.Events.Append(id, new ACommerce.Kit.Listings.ListingDeleted(id, DateTime.UtcNow));
+                    break;
+            }
+            await s.SaveChangesAsync();
+            return Results.Redirect($"/studio/apps/{slug}/listings");
+        }).DisableAntiforgery();
+
         // ─── Studio Tickets (دَعم فَنّيّ — رَدّ + إغلاق) ──────────────────
         app.MapPost("/studio/apps/{slug}/tickets/{id:guid}/reply",
             async (string slug, Guid id, HttpRequest req, IDocumentStore store,
