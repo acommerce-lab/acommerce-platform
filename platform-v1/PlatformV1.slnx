@@ -26,6 +26,16 @@
     <Project Path="libs/kits/Cart/ACommerce.Kit.Cart.Core/ACommerce.Kit.Cart.Core.csproj" />
     <Project Path="libs/kits/Cart/ACommerce.Kit.Cart.Server/ACommerce.Kit.Cart.Server.csproj" />
   </Folder>
+  <Folder Name="/libs/kits/Culture/">
+    <Project Path="libs/kits/Culture/ACommerce.Kit.Culture.Core/ACommerce.Kit.Culture.Core.csproj" />
+  </Folder>
+  <Folder Name="/libs/kits/Reports/">
+    <Project Path="libs/kits/Reports/ACommerce.Kit.Reports.Core/ACommerce.Kit.Reports.Core.csproj" />
+    <Project Path="libs/kits/Reports/ACommerce.Kit.Reports.Server/ACommerce.Kit.Reports.Server.csproj" />
+  </Folder>
+  <Folder Name="/libs/kits/Versions/">
+    <Project Path="libs/kits/Versions/ACommerce.Kit.Versions.Core/ACommerce.Kit.Versions.Core.csproj" />
+  </Folder>
   <Folder Name="/libs/kits/Chat/">
     <Project Path="libs/kits/Chat/ACommerce.Kit.Chat.Core/ACommerce.Kit.Chat.Core.csproj" />
     <Project Path="libs/kits/Chat/ACommerce.Kit.Chat.Server/ACommerce.Kit.Chat.Server.csproj" />
