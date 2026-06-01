@@ -2049,6 +2049,69 @@ public static class MarketplaceTemplateExtensions
             return Results.Redirect($"/studio/s/{id}?refining={section}");
         }).DisableAntiforgery();
 
+        // ─── Studio Deals (تَدَفُّق العَمَلِيّات: المالِك يَتَدَخَّل أَو يُنفِّذ) ─
+        // كُلّ الإجراءات تَفحَص مِلكِيَّة المُستَأجِر قَبل العَمَل.
+        app.MapPost("/studio/apps/{slug}/deals/seed",
+            async (string slug, HttpRequest req, IDocumentStore store,
+                   Services.Incubator.StudioAuth auth, Services.Deals.DealsService deals) =>
+        {
+            if (!await StudioOwnsAsync(store, auth, slug)) return Results.Redirect("/studio");
+            var pattern = req.Form["pattern"].ToString().Trim();
+            if (string.IsNullOrEmpty(pattern)) pattern = "marketplace";
+            // أَنشِئ Deal تَجريبيَّة لِعَرض التَّدَفُّق في الواجِهَة.
+            var owner = auth.UserId!.Value;
+            await deals.StartAsync(slug, pattern,
+                initiatorId: owner, initiatorName: "صاحِب الفِكرَة",
+                listingId: null, listingTitle: $"عَمَلِيَّة تَجريبيَّة — {pattern}",
+                amountSar: 250m);
+            return Results.Redirect($"/studio/apps/{slug}/deals");
+        }).DisableAntiforgery();
+
+        app.MapPost("/studio/apps/{slug}/deals/{id:guid}/advance",
+            async (string slug, Guid id, HttpRequest req, IDocumentStore store,
+                   Services.Incubator.StudioAuth auth, Services.Deals.DealsService deals) =>
+        {
+            if (!await StudioOwnsAsync(store, auth, slug)) return Results.Redirect("/studio");
+            var note = req.Form["note"].ToString().Trim();
+            // المالِك يَتَصَرَّف نِيابَةً (platform): نَستَخدِم Guid.Empty كَ
+            // فاعِل، يَتِمّ تَجاوُز فَحص الفاعِل لِأَنّه إجراء إداريّ.
+            var deal = await deals.LoadAsync(slug, id);
+            if (deal is null) return Results.Redirect($"/studio/apps/{slug}/deals");
+
+            // اِجعَل المالِك "إمّا"؛ نَنفِّذ كَ counterparty لَو لَم يَكُن مُعَيَّناً.
+            if (deal.CounterpartyId is null)
+                await deals.AssignCounterpartyAsync(slug, id,
+                    auth.UserId!.Value, "مالِك التَّطبيق");
+
+            var actorId = deal.Stage == Services.Deals.DealStage.Offered
+                ? deal.InitiatorId
+                : (deal.CounterpartyId ?? auth.UserId!.Value);
+            await deals.AdvanceAsync(slug, id, actorId, "مالِك التَّطبيق (إداريّ)", note);
+            return Results.Redirect($"/studio/apps/{slug}/deals/{id}");
+        }).DisableAntiforgery();
+
+        app.MapPost("/studio/apps/{slug}/deals/{id:guid}/cancel",
+            async (string slug, Guid id, HttpRequest req, IDocumentStore store,
+                   Services.Incubator.StudioAuth auth, Services.Deals.DealsService deals) =>
+        {
+            if (!await StudioOwnsAsync(store, auth, slug)) return Results.Redirect("/studio");
+            var reason = req.Form["reason"].ToString().Trim();
+            if (string.IsNullOrEmpty(reason)) reason = "إلغاء إداريّ";
+            await deals.CancelAsync(slug, id, auth.UserId!.Value, "مالِك التَّطبيق", reason);
+            return Results.Redirect($"/studio/apps/{slug}/deals/{id}");
+        }).DisableAntiforgery();
+
+        app.MapPost("/studio/apps/{slug}/deals/{id:guid}/dispute",
+            async (string slug, Guid id, HttpRequest req, IDocumentStore store,
+                   Services.Incubator.StudioAuth auth, Services.Deals.DealsService deals) =>
+        {
+            if (!await StudioOwnsAsync(store, auth, slug)) return Results.Redirect("/studio");
+            var reason = req.Form["reason"].ToString().Trim();
+            if (string.IsNullOrEmpty(reason)) reason = "نِزاع";
+            await deals.DisputeAsync(slug, id, auth.UserId!.Value, "مالِك التَّطبيق", reason);
+            return Results.Redirect($"/studio/apps/{slug}/deals/{id}");
+        }).DisableAntiforgery();
+
         // ─── Studio per-app config saves (داخِل studio، redirect مَحَلّيّ) ─
         // مُحَقِّق المِلكِيَّة: المُستَخدِم يَجِب أَن يَكون مالِك الـ tenant.
         async Task<bool> StudioOwnsAsync(IDocumentStore docStore, Services.Incubator.StudioAuth auth, string slug)
