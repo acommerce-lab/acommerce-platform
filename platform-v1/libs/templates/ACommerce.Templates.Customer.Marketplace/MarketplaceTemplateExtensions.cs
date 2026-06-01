@@ -2179,6 +2179,34 @@ public static class MarketplaceTemplateExtensions
             return Results.Redirect($"/studio/apps/{slug}/tickets/{id}?closed=1");
         }).DisableAntiforgery();
 
+        // ─── Admin: تَعليق/تَفعيل مُستَأجِر (إجراء مَنصَّة) ───────────────
+        app.MapPost("/admin/tenants/{slug}/suspend",
+            async (string slug, HttpRequest req, IDocumentStore store,
+                   Services.Incubator.StudioAuth auth, Services.Audit.AuditWriter audit) =>
+        {
+            auth.Load();
+            if (!auth.IsAuthenticated) return Results.Redirect("/studio/auth");
+            await using var us = store.QuerySession(Services.Incubator.StudioAuth.Tenant);
+            var u = await us.LoadAsync<Services.Incubator.StudioUser>(auth.UserId!.Value);
+            if (u?.IsPlatformAdmin != true) return Results.Forbid();
+
+            var reason = req.Form["reason"].ToString().Trim();
+            var action = req.Form["action"].ToString().Trim();   // suspend | reactivate
+            await using var s = store.LightweightSession();
+            var t = await s.LoadAsync<ACommerce.Kit.Tenants.Tenant>(slug);
+            if (t is null) return Results.Redirect("/admin");
+            t.IsSuspended = action == "suspend";
+            t.SuspensionReason = t.IsSuspended ? (string.IsNullOrEmpty(reason) ? "تَعليق إداريّ" : reason) : null;
+            s.Store(t);
+            await s.SaveChangesAsync();
+            await audit.WriteAsync(Services.Audit.AuditWriter.PlatformScope,
+                u.Id, u.FullName,
+                t.IsSuspended ? "tenant.suspend" : "tenant.reactivate",
+                "tenant", slug, note: reason,
+                ip: req.HttpContext.Connection.RemoteIpAddress?.ToString());
+            return Results.Redirect("/admin");
+        }).DisableAntiforgery();
+
         // ─── Studio Deals (تَدَفُّق العَمَلِيّات: المالِك يَتَدَخَّل أَو يُنفِّذ) ─
         // كُلّ الإجراءات تَفحَص مِلكِيَّة المُستَأجِر قَبل العَمَل.
         app.MapPost("/studio/apps/{slug}/deals/seed",

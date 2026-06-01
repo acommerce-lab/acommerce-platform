@@ -93,6 +93,27 @@
             }
         }
 
+        @if (!IsIdeas && recentDeals.Count > 0)
+        {
+            <div class="st-section-title">آخِر العَمَليّات عَبر تَطبيقاتك</div>
+            <div class="studio-list">
+                @foreach (var (slug, d) in recentDeals.Take(5))
+                {
+                    <a class="studio-list-row" href="@($"/studio/apps/{slug}/deals/{d.Id}")">
+                        <span class="studio-list-icon"
+                              style="background:#dbeafe;color:#1d4ed8;">@StageEmoji(d.Stage)</span>
+                        <div class="studio-list-body">
+                            <strong>
+                                @(string.IsNullOrEmpty(d.ListingTitle) ? d.Pattern : d.ListingTitle)
+                            </strong>
+                            <span>/@slug · @d.Pattern · @d.UpdatedAt.ToString("HH:mm")</span>
+                        </div>
+                        <span class="st-chip">@Services.Deals.DealsPolicy.LabelAr(d.Stage)</span>
+                    </a>
+                }
+            </div>
+        }
+
         <div class="st-section-title">@(IsIdeas ? "جَلَسات التَّحليل" : "آخِر الأَفكار")</div>
         @if (sessions is null)
         {
@@ -136,10 +157,12 @@
     [SupplyParameterFromQuery] public string? Upgrade { get; set; }
     List<IncubatorSession>? sessions;
     List<Tenant>? myApps;
+    List<(string Slug, Services.Deals.Deal Deal)> recentDeals = new();
     string? currentTier;
 
     [Microsoft.AspNetCore.Components.Inject] NavigationManager Nav { get; set; } = default!;
     [Microsoft.AspNetCore.Components.Inject] Services.Incubator.StudioTierService TierSvc { get; set; } = default!;
+    [Microsoft.AspNetCore.Components.Inject] Services.Deals.DealsService Deals { get; set; } = default!;
     bool IsIdeas => new Uri(Nav.Uri).AbsolutePath.TrimEnd('/').EndsWith("/ideas");
 
     string Title => IsIdeas ? "أَفكاري وتَحاليلي" : "لوحَتي";
@@ -157,7 +180,32 @@
             .OrderBy(t => t.CreatedAt).ToListAsync()).ToList();
         var u = await TierSvc.GetUserAsync(uid);
         currentTier = u?.Tier ?? "spark";
+
+        // اِجمَع آخِر الـ deals مِن كُلّ تَطبيقات هذا المُستَخدِم.
+        foreach (var t in myApps)
+        {
+            try
+            {
+                var ds = await Deals.ListForTenantAsync(t.Slug, take: 5);
+                foreach (var d in ds) recentDeals.Add((t.Slug, d));
+            }
+            catch { /* لا جَدوَل في هذا المُستَأجِر */ }
+        }
+        recentDeals = recentDeals.OrderByDescending(x => x.Deal.UpdatedAt).ToList();
     }
+
+    static string StageEmoji(Services.Deals.DealStage s) => s switch
+    {
+        Services.Deals.DealStage.Offered => "📋",
+        Services.Deals.DealStage.Booked => "📅",
+        Services.Deals.DealStage.Confirmed => "✓",
+        Services.Deals.DealStage.Paid => "💳",
+        Services.Deals.DealStage.Shipping => "🚚",
+        Services.Deals.DealStage.Delivered => "📦",
+        Services.Deals.DealStage.Received => "✅",
+        Services.Deals.DealStage.Reviewed => "⭐",
+        _ => "•"
+    };
 
     static string StatusIcon(IncubatorStatus s) => s switch
     {

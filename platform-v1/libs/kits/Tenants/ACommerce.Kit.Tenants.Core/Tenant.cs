@@ -39,6 +39,11 @@ public sealed class Tenant
     /// تُمَكِّن إظهار «هذا المَتجَر مَبني على فِكرَة س» في console.</summary>
     public Guid? SourceAnalysisId { get; set; }
 
+    /// <summary>مَتجَر مُعَلَّق إداريّاً مِن مَنصَّة (مَخالَفَة، تَأخُّر
+    /// دَفع، …). يَختَفي مِن الواجِهَة العامَّة، لكِنّ بَياناتُه تَبقى.</summary>
+    public bool IsSuspended { get; set; }
+    public string? SuspensionReason { get; set; }
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }
 
