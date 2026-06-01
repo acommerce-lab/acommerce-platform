@@ -1984,18 +1984,41 @@ public static class MarketplaceTemplateExtensions
         // اختِيار باقَة — حاليّاً لا تَكامُل دَفع، يُسَجِّل النِيَّة فَقَط
         // (يُحَدِّث الـ Tier مُباشَرَةً في الـ MVP).
         app.MapPost("/studio/billing/select", async (
-            string tier, IDocumentStore store, Services.Incubator.StudioAuth auth) =>
+            string tier, HttpRequest req, IDocumentStore store,
+            Services.Incubator.StudioAuth auth,
+            ACommerce.Kit.Payments.IPaymentProvider payments,
+            Services.Audit.AuditWriter audit) =>
         {
             auth.Load();
             if (!auth.IsAuthenticated) return Results.Redirect("/studio/auth");
-            if (!Services.Incubator.TierCatalog.All.ContainsKey(tier))
-                return Results.Redirect("/studio/billing");
+            if (!Services.Incubator.TierCatalog.All.TryGetValue(tier, out var limits))
+                return Results.Redirect("/studio/billing?err=tier");
+
             await using var s = store.LightweightSession(Services.Incubator.StudioAuth.Tenant);
             var u = await s.LoadAsync<Services.Incubator.StudioUser>(auth.UserId!.Value);
             if (u is null) return Results.Redirect("/studio/billing");
+
+            // أَنشِئ اشتِراكاً مُتَكَرِّراً عَبر مُزَوِّد الدَّفع (mock الآن).
+            // idempotency: نَفس المُستَخدِم + الباقَة + الشَّهر = نَفس النَّتيجَة.
+            var idem = $"sub_{u.Id}_{tier}_{DateTime.UtcNow:yyyyMM}";
+            var result = await payments.CreateSubscriptionAsync(new(
+                CustomerId: u.Id.ToString(), PlanId: tier,
+                MonthlyAmountSar: limits.MonthlyPriceSar,
+                CustomerPhone: u.Phone), idem);
+
+            if (!result.IsActive)
+                return Results.Redirect($"/studio/billing?err=payment");
+
             u.Tier = tier;
             s.Store(u);
             await s.SaveChangesAsync();
+
+            await audit.WriteAsync(Services.Audit.AuditWriter.PlatformScope,
+                u.Id, u.FullName,
+                "billing.subscription.create", "subscription", result.SubscriptionId,
+                note: $"tier={tier} amount={limits.MonthlyPriceSar} period_end={result.CurrentPeriodEnd:yyyy-MM-dd}",
+                ip: req.HttpContext.Connection.RemoteIpAddress?.ToString());
+
             return Results.Redirect("/studio/billing?selected=1");
         }).DisableAntiforgery();
 

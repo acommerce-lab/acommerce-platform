@@ -285,7 +285,7 @@ else
             }
         }
 
-        var q = t.Query<Listing>().Where(x => !x.IsDeleted);
+        var q = t.Query<Listing>().Where(x => !x.IsDeleted && !x.IsHiddenByModerator);
         if (!string.IsNullOrEmpty(Category))   q = q.Where(x => x.CategorySlug == Category);
         else if (!string.IsNullOrEmpty(Kind))
         {
