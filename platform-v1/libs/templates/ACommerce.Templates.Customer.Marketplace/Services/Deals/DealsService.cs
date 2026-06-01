@@ -13,6 +13,24 @@ public sealed class DealsService
     private readonly IDocumentStore _store;
     public DealsService(IDocumentStore store) => _store = store;
 
+    /// <summary>نِسبَة عمولة المَنصَّة على قيمَة الصَّفقَة عِندَ الدَّفع.
+    /// قابِلَة لِلتَّكوين لاحِقاً لِكُلّ مُستَأجِر/باقَة. حاليّاً ٢.٥٪.</summary>
+    public const decimal PlatformCommissionRate = 0.025m;
+
+    /// <summary>قائِمَة الصَّفقات على إعلانات يَملِكها مُستَخدِم مُعَيَّن
+    /// (لِعَرض «عُروض على إعلاناتي»). يَعتَمِد على Listing.owner_id.</summary>
+    public async Task<List<Deal>> ListForListingOwnerAsync(
+        string tenantSlug, Guid ownerId, CancellationToken ct = default)
+    {
+        await using var s = _store.QuerySession(tenantSlug);
+        // الصَّفقات الَّتي صاحِبُها الطَّرَف الآخَر = المالِك، أَو الَّتي
+        // لَم يُعَيَّن لَها طَرَف ثانٍ بَعد لكِنّ الإعلان لَه.
+        var all = await s.Query<Deal>()
+            .Where(d => d.CounterpartyId == ownerId)
+            .OrderByDescending(d => d.UpdatedAt).Take(100).ToListAsync(ct);
+        return all.ToList();
+    }
+
     public async Task<Deal> StartAsync(
         string tenantSlug, string pattern,
         Guid initiatorId, string initiatorName,
@@ -92,6 +110,15 @@ public sealed class DealsService
         deal.UpdatedAt = DateTime.UtcNow;
         deal.Timeline.Add(new(before, next.Value, "advanced",
             actorId, actorName, note, DateTime.UtcNow));
+
+        // عِندَ الوُصول لِمَرحَلَة الدَّفع، اِحسُب عمولة المَنصَّة (نَموذَج
+        // الإيراد: اشتِراك + عمولة تَشغيل). تُخزَّن على الصَّفقَة لِلتَّسوِيَة.
+        if (next == DealStage.Paid && deal.CommissionSar is null && deal.AmountSar > 0)
+        {
+            deal.CommissionSar = Math.Round(deal.AmountSar * PlatformCommissionRate, 2);
+            deal.Timeline.Add(new(next.Value, next.Value, "note", null, "المَنصَّة",
+                $"عمولة {PlatformCommissionRate:P1} = {deal.CommissionSar} ر.س", DateTime.UtcNow));
+        }
 
         // اكتمال الـ Deal عِندَ Reviewed.
         if (next == DealStage.Reviewed && DealsPolicy.StagesFor(deal.Pattern).Last() == DealStage.Reviewed)

@@ -2179,6 +2179,113 @@ public static class MarketplaceTemplateExtensions
             return Results.Redirect($"/studio/apps/{slug}/tickets/{id}?closed=1");
         }).DisableAntiforgery();
 
+        // ═══ النَّمَط العامّ: عُروض → صَفقات بَين عِدَّة أَدوار (عميل) ═══
+        // عميل يُقَدِّم عَرضاً على إعلان → يُنشِئ Deal(Offered).
+        app.MapPost("/{slug}/listings/{id:guid}/deal",
+            async (string slug, Guid id, HttpRequest req, IDocumentStore store,
+                   Services.Deals.DealsService deals) =>
+        {
+            var parsed = AuthHandlers.ParseToken(req.Cookies[AuthSession.CookieName(slug)]
+                ?? req.Cookies[AuthSession.CookieName(slug, AuthSession.ExtractRoleFromPath(req.Path))]);
+            if (parsed is null) return Results.Redirect(Link(req, slug, $"login?returnUrl=/{slug}/listings/{id}"));
+            var (userId, tenantSlug, _) = parsed.Value;
+            if (tenantSlug != slug) return Results.Redirect(Link(req, slug, "login"));
+            var userName = req.Cookies[AuthSession.CookieName(slug) + ".name"] ?? "عميل";
+
+            decimal.TryParse(req.Form["amount"].ToString(), out var amount);
+            var note = req.Form["note"].ToString().Trim();
+
+            await using var qs = store.QuerySession(slug);
+            var listing = await qs.LoadAsync<Listing>(id);
+            if (listing is null || listing.IsDeleted) return Results.Redirect(Link(req, slug, "explore"));
+            if (listing.Attributes.TryGetValue("owner_id", out var oid) && oid == userId.ToString())
+                return Results.Redirect(Link(req, slug, $"listings/{id}?err=self"));
+
+            var tenantDoc = await qs.LoadAsync<ACommerce.Kit.Tenants.Tenant>(slug);
+            var pattern = PatternFromTenant(tenantDoc);
+            var deal = await deals.StartAsync(slug, pattern,
+                initiatorId: userId, initiatorName: userName,
+                listingId: id, listingTitle: listing.Title,
+                amountSar: amount > 0 ? amount : listing.Price,
+                attributes: string.IsNullOrEmpty(note) ? null : new() { ["note"] = note });
+
+            if (oid is not null && Guid.TryParse(oid, out var ownerGuid))
+                await deals.AttachRefAsync(slug, deal.Id, "listing_owner", ownerGuid.ToString());
+
+            return Results.Redirect(Link(req, slug, $"deals/{deal.Id}"));
+        }).DisableAntiforgery();
+
+        // مالِك الإعلان يَقبَل عَرضاً → Booked + يُصبِح الطَّرَف الثاني.
+        app.MapPost("/{slug}/deals/{id:guid}/accept",
+            async (string slug, Guid id, HttpRequest req, IDocumentStore store,
+                   Services.Deals.DealsService deals) =>
+        {
+            var parsed = AuthHandlers.ParseToken(req.Cookies[AuthSession.CookieName(slug)]
+                ?? req.Cookies[AuthSession.CookieName(slug, AuthSession.ExtractRoleFromPath(req.Path))]);
+            if (parsed is null) return Results.Redirect(Link(req, slug, "login"));
+            var (userId, _, _) = parsed.Value;
+            var userName = req.Cookies[AuthSession.CookieName(slug) + ".name"] ?? "المالِك";
+            var deal = await deals.LoadAsync(slug, id);
+            if (deal is null) return Results.Redirect(Link(req, slug, "deals"));
+            await deals.AssignCounterpartyAsync(slug, id, userId, userName);
+            await deals.AdvanceAsync(slug, id, deal.InitiatorId, userName, "قُبِلَ العَرض");
+            return Results.Redirect(Link(req, slug, $"deals/{id}"));
+        }).DisableAntiforgery();
+
+        // أَيّ طَرَف يُحَرِّك المَرحَلَة التالِيَة بِحَسَب دَورِه.
+        app.MapPost("/{slug}/deals/{id:guid}/advance",
+            async (string slug, Guid id, HttpRequest req, IDocumentStore store,
+                   Services.Deals.DealsService deals) =>
+        {
+            var parsed = AuthHandlers.ParseToken(req.Cookies[AuthSession.CookieName(slug)]
+                ?? req.Cookies[AuthSession.CookieName(slug, AuthSession.ExtractRoleFromPath(req.Path))]);
+            if (parsed is null) return Results.Redirect(Link(req, slug, "login"));
+            var (userId, _, _) = parsed.Value;
+            var userName = req.Cookies[AuthSession.CookieName(slug) + ".name"] ?? "مُستَخدِم";
+            var note = req.Form["note"].ToString().Trim();
+            await deals.AdvanceAsync(slug, id, userId, userName, note);
+            return Results.Redirect(Link(req, slug, $"deals/{id}"));
+        }).DisableAntiforgery();
+
+        app.MapPost("/{slug}/deals/{id:guid}/cancel",
+            async (string slug, Guid id, HttpRequest req, IDocumentStore store,
+                   Services.Deals.DealsService deals) =>
+        {
+            var parsed = AuthHandlers.ParseToken(req.Cookies[AuthSession.CookieName(slug)]
+                ?? req.Cookies[AuthSession.CookieName(slug, AuthSession.ExtractRoleFromPath(req.Path))]);
+            if (parsed is null) return Results.Redirect(Link(req, slug, "login"));
+            var (userId, _, _) = parsed.Value;
+            var userName = req.Cookies[AuthSession.CookieName(slug) + ".name"] ?? "مُستَخدِم";
+            var reason = req.Form["reason"].ToString().Trim();
+            await deals.CancelAsync(slug, id, userId, userName, string.IsNullOrEmpty(reason) ? "إلغاء" : reason);
+            return Results.Redirect(Link(req, slug, $"deals/{id}"));
+        }).DisableAntiforgery();
+
+        // تَقييم الطَّرَف الآخَر بَعد اكتِمال الصَّفقَة.
+        app.MapPost("/{slug}/deals/{id:guid}/review",
+            async (string slug, Guid id, HttpRequest req, IDocumentStore store,
+                   Services.Deals.DealsService deals,
+                   ACommerce.Kit.Reviews.ReviewsService reviews) =>
+        {
+            var parsed = AuthHandlers.ParseToken(req.Cookies[AuthSession.CookieName(slug)]
+                ?? req.Cookies[AuthSession.CookieName(slug, AuthSession.ExtractRoleFromPath(req.Path))]);
+            if (parsed is null) return Results.Redirect(Link(req, slug, "login"));
+            var (userId, _, _) = parsed.Value;
+            var userName = req.Cookies[AuthSession.CookieName(slug) + ".name"] ?? "مُستَخدِم";
+            if (!int.TryParse(req.Form["rating"].ToString(), out var rating)) rating = 5;
+            var body = req.Form["body"].ToString().Trim();
+
+            var deal = await deals.LoadAsync(slug, id);
+            if (deal is null) return Results.Redirect(Link(req, slug, "deals"));
+            var (target, targetName) = deal.InitiatorId == userId
+                ? (deal.CounterpartyId ?? Guid.Empty, deal.CounterpartyName ?? "—")
+                : (deal.InitiatorId, deal.InitiatorName);
+            if (target != Guid.Empty && !await reviews.HasReviewedAsync(slug, userId, id))
+                await reviews.SubmitAsync(slug, target, targetName, userId, userName,
+                    rating, body, dealId: id, dealPattern: deal.Pattern);
+            return Results.Redirect(Link(req, slug, $"deals/{id}"));
+        }).DisableAntiforgery();
+
         // ─── Admin: تَعليق/تَفعيل مُستَأجِر (إجراء مَنصَّة) ───────────────
         app.MapPost("/admin/tenants/{slug}/suspend",
             async (string slug, HttpRequest req, IDocumentStore store,
@@ -2766,6 +2873,17 @@ public static class MarketplaceTemplateExtensions
             foreach (var admin in admins)
                 await push.SendAsync(store, slug, admin.Id, title, body,
                     url: relatedUrl, tag: $"admin-{type}-{Guid.NewGuid():N}");
+    }
+
+    // اِشتِقاق نَمَط الـ Deal مِن أَدوار المُستَأجِر — لِتَحديد مَراحِل
+    // تَدَفُّق العَمَلِيّات. مَتجَر بِأَدوار rider/driver → trip، …إلخ.
+    private static string PatternFromTenant(ACommerce.Kit.Tenants.Tenant? t)
+    {
+        if (t is null || t.Roles.Count == 0) return "marketplace";
+        var cats = t.Roles.Select(r => r.CatalogSlug).ToHashSet();
+        if (cats.Contains("rider") || cats.Contains("driver")) return "trip";
+        if (cats.Contains("host")) return "rental";
+        return "marketplace";
     }
 
     // اِستِخراج owner_id مِن listing.Attributes كَ Guid.
