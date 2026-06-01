@@ -2049,6 +2049,36 @@ public static class MarketplaceTemplateExtensions
             return Results.Redirect($"/studio/s/{id}?refining={section}");
         }).DisableAntiforgery();
 
+        // ─── Studio Tickets (دَعم فَنّيّ — رَدّ + إغلاق) ──────────────────
+        app.MapPost("/studio/apps/{slug}/tickets/{id:guid}/reply",
+            async (string slug, Guid id, HttpRequest req, IDocumentStore store,
+                   Services.Incubator.StudioAuth auth) =>
+        {
+            if (!await StudioOwnsAsync(store, auth, slug)) return Results.Redirect("/studio");
+            var body = req.Form["body"].ToString().Trim();
+            if (string.IsNullOrEmpty(body))
+                return Results.Redirect($"/studio/apps/{slug}/tickets/{id}?err=empty");
+            await using var s = store.LightweightSession(slug);
+            var evt = new ACommerce.Kit.Support.TicketReplied(
+                TicketId: id, ReplyId: Guid.NewGuid(),
+                AuthorName: "دَعم التَّطبيق",
+                FromStaff: true, Body: body, At: DateTime.UtcNow);
+            s.Events.Append(id, evt);
+            await s.SaveChangesAsync();
+            return Results.Redirect($"/studio/apps/{slug}/tickets/{id}?replied=1");
+        }).DisableAntiforgery();
+
+        app.MapPost("/studio/apps/{slug}/tickets/{id:guid}/close",
+            async (string slug, Guid id, IDocumentStore store,
+                   Services.Incubator.StudioAuth auth) =>
+        {
+            if (!await StudioOwnsAsync(store, auth, slug)) return Results.Redirect("/studio");
+            await using var s = store.LightweightSession(slug);
+            s.Events.Append(id, new ACommerce.Kit.Support.TicketClosed(id, DateTime.UtcNow));
+            await s.SaveChangesAsync();
+            return Results.Redirect($"/studio/apps/{slug}/tickets/{id}?closed=1");
+        }).DisableAntiforgery();
+
         // ─── Studio Deals (تَدَفُّق العَمَلِيّات: المالِك يَتَدَخَّل أَو يُنفِّذ) ─
         // كُلّ الإجراءات تَفحَص مِلكِيَّة المُستَأجِر قَبل العَمَل.
         app.MapPost("/studio/apps/{slug}/deals/seed",

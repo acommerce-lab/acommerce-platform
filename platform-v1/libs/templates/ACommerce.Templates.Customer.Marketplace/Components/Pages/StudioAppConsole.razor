@@ -47,20 +47,26 @@
                 </a>
             </div>
 
-            <div class="st-section-title">الدَّعم الفَنِّي</div>
+            <div class="st-section-title" style="display:flex;justify-content:space-between;align-items:center;">
+                <span>الدَّعم الفَنِّي</span>
+                <a href="@($"/studio/apps/{Slug}/tickets")"
+                   style="font-size:12px;color:var(--st-primary);text-decoration:none;font-weight:600;">
+                    كُلّ التَّذاكِر ←
+                </a>
+            </div>
             @if (recentTickets is { Count: > 0 })
             {
                 <div class="studio-list">
                     @foreach (var t in recentTickets)
                     {
-                        <div class="studio-list-row" style="cursor:default;">
+                        <a class="studio-list-row" href="@($"/studio/apps/{Slug}/tickets/{t.Id}")">
                             <span class="studio-list-icon" style="background:#fef3c7;color:#a16207;">🎫</span>
                             <div class="studio-list-body">
                                 <strong>@(string.IsNullOrEmpty(t.Subject) ? "تَذكَرَة" : t.Subject)</strong>
                                 <span>@t.AuthorName · @t.CreatedAt.ToString("yyyy-MM-dd HH:mm")</span>
                             </div>
                             <span class="st-chip">@t.Status</span>
-                        </div>
+                        </a>
                     }
                 </div>
             }
