@@ -1,6 +1,9 @@
 using ACommerce.Kit.Auth.Providers.MockNafath;
 using ACommerce.Kit.Auth.Providers.MockSms;
 using ACommerce.Kit.Auth.Server;
+using ACommerce.Kit.Delivery;
+using ACommerce.Kit.Maps;
+using ACommerce.Kit.Payments;
 using ACommerce.Kit.Realtime.Server;
 using ACommerce.Platform.Hosting;
 using ACommerce.Templates.Customer.Marketplace;
@@ -24,6 +27,11 @@ builder.AddPlatformHost(host => host
 // مُزَوِّدو الـ Auth (mock — استَبدِلهم بـ Twilio/Nafath فعليّ في الإنتاج)
 builder.Services.AddMockSmsChannel();
 builder.Services.AddMockNafathChannel(opts => { opts.DisplayCode = "00"; opts.AutoApproveSeconds = 5; });
+
+// مُزَوِّدو البِنيَة (mock — استَبدِلهم لاحِقاً بِـ Moyasar/Saee/Google Maps).
+builder.Services.AddMockMaps();
+builder.Services.AddMockDelivery();
+builder.Services.AddMockPayments();
 
 // القالَب — يُسَجِّل AuthSession + HttpContextAccessor
 builder.Services.AddCustomerMarketplaceTemplate();
