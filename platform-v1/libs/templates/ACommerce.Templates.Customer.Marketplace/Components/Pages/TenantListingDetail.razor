@@ -359,12 +359,26 @@ else
     @if (!isOwner && !isOfferBased)
     {
         <section class="acm-details-section">
-            <h2 class="acm-details-section-title">تَواصُل</h2>
+            <h2 class="acm-details-section-title">ابدَأ صَفقَة</h2>
             @if (Auth.IsAuthenticated)
             {
-                <form method="post" action="@($"/{Slug}/listings/{Id}/chat")" style="margin:0;">
+                @* تَدَفُّق العَمَلِيّات المُوَحَّد: تَقديم عَرض → قَبول →
+                   مَراحِل بَين الطَّرَفَين. السِّعر المُقتَرَح = سِعر الإعلان. *@
+                <form method="post" action="@($"/{Slug}/listings/{Id}/deal")" style="margin:0 0 10px;">
+                    <AcField Label="عَرضُكَ (ريال)">
+                        <input type="number" name="amount" class="ac-input" min="1"
+                               value="@((int)listing.Price)" style="font-size:16px;" />
+                    </AcField>
+                    <AcField Label="مُلاحَظَة (اختياريّ)">
+                        <input name="note" class="ac-input" placeholder="تَفاصيل عَرضِكَ" />
+                    </AcField>
                     <button type="submit" class="ac-btn ac-btn-primary ac-btn-lg ac-btn-block">
-                        <AcIcon Name="message" Size="18" /> تَواصُل مَع المُعلِن
+                        <AcIcon Name="send" Size="18" /> تَقديم العَرض وبَدء الصَّفقَة
+                    </button>
+                </form>
+                <form method="post" action="@($"/{Slug}/listings/{Id}/chat")" style="margin:0;">
+                    <button type="submit" class="ac-btn ac-btn-ghost ac-btn-block">
+                        <AcIcon Name="message" Size="18" /> أَو تَواصَل أَوَّلاً
                     </button>
                 </form>
             }
@@ -373,7 +387,7 @@ else
                 <a href="@AuthSession.LinkFor(Slug, Role, $"login?returnUrl=/{Slug}/listings/{Id}")"
                    class="ac-btn ac-btn-primary ac-btn-lg ac-btn-block"
                    style="text-decoration:none;text-align:center;">
-                    دُخول لِلتَواصُل
+                    دُخول لِبَدء صَفقَة
                 </a>
             }
         </section>
