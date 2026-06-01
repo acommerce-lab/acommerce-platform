@@ -42,5 +42,6 @@
     <ProjectReference Include="..\..\kits\Maps\ACommerce.Kit.Maps.Web\ACommerce.Kit.Maps.Web.csproj" />
     <ProjectReference Include="..\..\kits\Offers\ACommerce.Kit.Offers.Core\ACommerce.Kit.Offers.Core.csproj" />
     <ProjectReference Include="..\..\kits\SavedSearches\ACommerce.Kit.SavedSearches.Core\ACommerce.Kit.SavedSearches.Core.csproj" />
+    <ProjectReference Include="..\..\kits\Reviews\ACommerce.Kit.Reviews.Core\ACommerce.Kit.Reviews.Core.csproj" />
   </ItemGroup>
 </Project>

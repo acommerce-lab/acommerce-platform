@@ -120,6 +120,46 @@
                 }
             </div>
 
+            @* التَّقييم المُتَبادَل (يَظهَر في Reviewed أَو Delivered) *@
+            @if (deal.Stage is DealStage.Reviewed or DealStage.Delivered or DealStage.Received
+                 && deal.CounterpartyId is not null)
+            {
+                <div class="st-section-title">⭐ تَقييم</div>
+                <div class="st-card">
+                    <p style="margin:0 0 12px;font-size:13.5px;color:var(--st-muted);">
+                        أَرسِل تَقييماً نِيابَةً عَن أَيّ مِن الطَّرَفَين.
+                    </p>
+                    <form method="post" action="@($"/studio/apps/{Slug}/deals/{deal.Id}/review")"
+                          style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                        <div class="st-field" style="margin:0;">
+                            <label class="st-label">المُقَيِّم</label>
+                            <select class="st-input" name="target">
+                                <option value="counterparty">@deal.InitiatorName يُقَيِّم @deal.CounterpartyName</option>
+                                <option value="initiator">@deal.CounterpartyName يُقَيِّم @deal.InitiatorName</option>
+                            </select>
+                        </div>
+                        <div class="st-field" style="margin:0;">
+                            <label class="st-label">عَدَد النُّجوم</label>
+                            <select class="st-input" name="rating">
+                                <option value="5">★★★★★ (5)</option>
+                                <option value="4">★★★★☆ (4)</option>
+                                <option value="3">★★★☆☆ (3)</option>
+                                <option value="2">★★☆☆☆ (2)</option>
+                                <option value="1">★☆☆☆☆ (1)</option>
+                            </select>
+                        </div>
+                        <div class="st-field" style="margin:0;grid-column:1/-1;">
+                            <label class="st-label">التَّعليق</label>
+                            <textarea class="st-textarea" name="body" rows="3" required
+                                      placeholder="كَيف كانَت التَّجرِبَة؟"></textarea>
+                        </div>
+                        <button type="submit" class="st-btn st-btn-primary" style="grid-column:1/-1;">
+                            إرسال التَّقييم
+                        </button>
+                    </form>
+                </div>
+            }
+
             @* المَراجِع (PaymentId، ShipmentId، …) *@
             @if (deal.Refs.Count > 0)
             {

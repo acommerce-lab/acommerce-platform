@@ -49,6 +49,10 @@ public static class MarketplaceTemplateExtensions
 
         // خَدَمات الـ Deals (تَدَفُّق العَمَلِيّات المُوَحَّد).
         services.AddScoped<Services.Deals.DealsService>();
+
+        // التَّقييمات (تَقييم مُتَبادَل بَعد اكتِمال صَفقَة).
+        services.AddScoped<ACommerce.Kit.Reviews.ReviewsService>();
+
         return services;
     }
 
@@ -2047,6 +2051,34 @@ public static class MarketplaceTemplateExtensions
                 catch { /* تُعرَض الدِراسَة كَما هي عَلى الفَشَل */ }
             });
             return Results.Redirect($"/studio/s/{id}?refining={section}");
+        }).DisableAntiforgery();
+
+        // ─── Studio Reviews (تَقييم مُتَبادَل لِصَفقَة مُكتَمِلَة) ─────────
+        app.MapPost("/studio/apps/{slug}/deals/{id:guid}/review",
+            async (string slug, Guid id, HttpRequest req, IDocumentStore store,
+                   Services.Incubator.StudioAuth auth,
+                   Services.Deals.DealsService deals,
+                   ACommerce.Kit.Reviews.ReviewsService reviews) =>
+        {
+            if (!await StudioOwnsAsync(store, auth, slug)) return Results.Redirect("/studio");
+            if (!int.TryParse(req.Form["rating"].ToString(), out var rating)) rating = 5;
+            var body = req.Form["body"].ToString().Trim();
+            var targetIsCounterparty = req.Form["target"].ToString() == "counterparty";
+            var deal = await deals.LoadAsync(slug, id);
+            if (deal is null) return Results.Redirect($"/studio/apps/{slug}/deals");
+
+            var (target, targetName, author, authorName) = targetIsCounterparty
+                ? (deal.CounterpartyId ?? Guid.Empty, deal.CounterpartyName ?? "—",
+                   deal.InitiatorId, deal.InitiatorName)
+                : (deal.InitiatorId, deal.InitiatorName,
+                   deal.CounterpartyId ?? Guid.Empty, deal.CounterpartyName ?? "—");
+            if (target == Guid.Empty)
+                return Results.Redirect($"/studio/apps/{slug}/deals/{id}?err=no-target");
+
+            var r = await reviews.SubmitAsync(slug, target, targetName, author, authorName,
+                rating, body, dealId: id, dealPattern: deal.Pattern);
+            await deals.AttachRefAsync(slug, id, $"review_{(targetIsCounterparty ? "cp" : "init")}", r.Id.ToString("N"));
+            return Results.Redirect($"/studio/apps/{slug}/deals/{id}");
         }).DisableAntiforgery();
 
         // ─── Studio Listings moderation (إخفاء/إظهار/حَذف إشرافيّ) ───────
