@@ -22,6 +22,8 @@ else
     <h1 class="acm-wizard-title">تَعديل المَلَفّ الشَخصيّ</h1>
 
     <form method="post" action="@($"/{Slug}/me/save")">
+        @* عُد إلى نَفس صَفحَة الدَّور الَّتي دَخَلنا مِنها. *@
+        <input type="hidden" name="returnUrl" value="@AuthSession.LinkFor(Slug, Role, "me")" />
 
         <AcCard>
             <ChildContent>
@@ -47,10 +49,11 @@ else
             </ChildContent>
         </AcCard>
 
-        @* الدَور النَّشِط — يَظهَر فَقَط لَو المَتجَر يُعَرِّف أَدواراً
-           (مَثَلاً إنجيز: rider/driver). مَتجَر بِلا أَدوار يَتَجاوَز كامِل
-           هذا القِسم وَيَستَخدِم البروفايل العامّ فَقَط. *@
-        @if (tenant.Roles.Count > 0)
+        @* الدَور النَّشِط — مُختار الأَدوار يَظهَر فَقَط عِندَ الدُّخول
+           بِلا دَور في الـ URL (مَثَلاً مِن /{slug}/me/edit مُباشَرَة).
+           إذا دَخَلَ المُستَخدِم مِن /r/{role}/me/edit فالدَور مَعروف
+           وَنُثَبِّتُه ضِمنياً — لا داعِيَ لِسؤالِه مَرَّةً أُخرى. *@
+        @if (tenant.Roles.Count > 0 && string.IsNullOrEmpty(Role))
         {
             <AcCard>
                 <ChildContent>
@@ -74,6 +77,12 @@ else
                 </ChildContent>
             </AcCard>
         }
+        else if (!string.IsNullOrEmpty(Role))
+        {
+            @* الدَور مَفروض مِن الـ URL — مَرِّرْه بِـ hidden field
+               حَتَّى يَستَقبِله /me/save كَ activeRole بِلا تَغيير. *@
+            <input type="hidden" name="activeRole" value="@Role" />
+        }
 
         @* خَصائِص البروفايل العامّ — مَرتَبِطَة بِـ ProfileScopeId
            sentinel. مُشتَرَكَة بَين كُلّ الأَدوار. *@
@@ -96,31 +105,53 @@ else
            لِلطَيّ. كُلّ قِسم لَه prefix فَريد role_{roleSlug}_attr_{code}
            حَتَّى يَستَطيع POST handler فَصلُها وَتَخزينها في
            user.RoleAttributesJson[roleSlug][code]. *@
-        @foreach (var (rslug, rlabel, ricon, fields) in roleFields)
+        @* خَصائِص دَور: لَو دَخَلنا مِن /r/{role}/me/edit نَعرِض حُقول
+           هذا الدَّور فَقَط بِلا طَيّ (لا داعِيَ، فالسِّياق صَريح)؛
+           وإلَّا نَعرِض كُلّ الأَدوار كَأَقسام قابِلَة لِلطَيّ. *@
+        @{
+            var visibleRoles = string.IsNullOrEmpty(Role)
+                ? roleFields
+                : roleFields.Where(r => r.Slug == Role).ToList();
+        }
+        @foreach (var (rslug, rlabel, ricon, fields) in visibleRoles)
         {
             if (fields.Count == 0) continue;
             var roleValues = user.RoleAttributesJson.TryGetValue(rslug, out var rv)
                 ? rv : new Dictionary<string, string>();
-            var isActive = user.ActiveRole == rslug;
+            var isActive = user.ActiveRole == rslug || rslug == Role;
+            var forceOpen = !string.IsNullOrEmpty(Role);
             <AcCard>
                 <ChildContent>
-                    <details open="@isActive">
-                        <summary style="cursor:pointer;font-weight:700;list-style:none;">
-                            @ricon بَيانات دَور @rlabel
-                            @if (isActive)
-                            {
-                                <span class="ac-chip ac-chip-sm" style="margin-inline-start:6px;">نَشِط</span>
-                            }
-                        </summary>
-                        <div style="margin-top:12px;">
-                            @foreach (var f in fields)
-                            {
-                                <AcField Label="@f.Label" Required="@(f.IsRequired && isActive)">
-                                    @RenderDynInput(f, $"role_{rslug}_attr_", roleValues)
-                                </AcField>
-                            }
-                        </div>
-                    </details>
+                    @if (forceOpen)
+                    {
+                        <h3 style="margin-top:0;">@ricon بَيانات دَور @rlabel</h3>
+                        @foreach (var f in fields)
+                        {
+                            <AcField Label="@f.Label" Required="@f.IsRequired">
+                                @RenderDynInput(f, $"role_{rslug}_attr_", roleValues)
+                            </AcField>
+                        }
+                    }
+                    else
+                    {
+                        <details open="@isActive">
+                            <summary style="cursor:pointer;font-weight:700;list-style:none;">
+                                @ricon بَيانات دَور @rlabel
+                                @if (isActive)
+                                {
+                                    <span class="ac-chip ac-chip-sm" style="margin-inline-start:6px;">نَشِط</span>
+                                }
+                            </summary>
+                            <div style="margin-top:12px;">
+                                @foreach (var f in fields)
+                                {
+                                    <AcField Label="@f.Label" Required="@(f.IsRequired && isActive)">
+                                        @RenderDynInput(f, $"role_{rslug}_attr_", roleValues)
+                                    </AcField>
+                                }
+                            </div>
+                        </details>
+                    }
                 </ChildContent>
             </AcCard>
         }

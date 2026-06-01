@@ -77,12 +77,12 @@ else
                 (تَتَطَلَّب وُصولاً مُسبَقاً إلى /admin).
             </p>
             <div class="acm-home-actions">
-                <AcActionCard Label="الفِئات"       IconName="tag"      Variant="surface" Href="@($"/admin/tenants/{Slug}/categories")" />
-                <AcActionCard Label="الخَصائِص"      IconName="settings" Variant="surface" Href="@($"/admin/tenants/{Slug}/attributes")" />
-                <AcActionCard Label="المُدُن"        IconName="map-pin"  Variant="surface" Href="@($"/admin/tenants/{Slug}/regions")" />
-                <AcActionCard Label="الأَدوار"       IconName="user"     Variant="surface" Href="@($"/admin/tenants/{Slug}/roles")" />
-                <AcActionCard Label="المُستَخدِمون"  IconName="user"     Variant="surface" Href="@($"/admin/tenants/{Slug}/users")" />
-                <AcActionCard Label="الهُويَّة"      IconName="settings" Variant="surface" Href="@($"/admin/tenants/{Slug}/branding")" />
+                <AcActionCard Label="الفِئات"       IconName="tag"      Variant="surface" Href="@($"/admin/tenants/{Slug}/categories?from=tenant")" />
+                <AcActionCard Label="الخَصائِص"      IconName="settings" Variant="surface" Href="@($"/admin/tenants/{Slug}/attributes?from=tenant")" />
+                <AcActionCard Label="المُدُن"        IconName="map-pin"  Variant="surface" Href="@($"/admin/tenants/{Slug}/regions?from=tenant")" />
+                <AcActionCard Label="الأَدوار"       IconName="user"     Variant="surface" Href="@($"/admin/tenants/{Slug}/roles?from=tenant")" />
+                <AcActionCard Label="المُستَخدِمون"  IconName="user"     Variant="surface" Href="@($"/admin/tenants/{Slug}/users?from=tenant")" />
+                <AcActionCard Label="الهُويَّة"      IconName="settings" Variant="surface" Href="@($"/admin/tenants/{Slug}/branding?from=tenant")" />
             </div>
         </ChildContent>
     </AcCard>

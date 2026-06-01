@@ -363,6 +363,10 @@ public static class MarketplaceTemplateExtensions
             await s.SaveChangesAsync();
 
             AuthSession.UpdateNameCookie(req.HttpContext.Response, slug, fullName);
+            // عُد إلى returnUrl إن أُرسِل (يَحفَظ سِياق الدَّور /r/{role}/me).
+            var ret = req.Form["returnUrl"].ToString();
+            if (!string.IsNullOrEmpty(ret) && ret.StartsWith("/"))
+                return Results.Redirect(ret);
             return Results.Redirect(Link(req, slug, $"me"));
         }).DisableAntiforgery();
 
