@@ -13,6 +13,10 @@
     <!-- Web Push (PWA notifications) -->
     <PackageVersion Include="WebPush" Version="1.0.12" />
 
+    <!-- Cache + Realtime backplane -->
+    <PackageVersion Include="StackExchange.Redis"                          Version="2.8.16" />
+    <PackageVersion Include="Microsoft.AspNetCore.SignalR.StackExchangeRedis" Version="10.0.0" />
+
     <!-- Excel export (feasibility study) -->
     <PackageVersion Include="ClosedXML" Version="0.104.2" />
 

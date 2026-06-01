@@ -31,6 +31,10 @@
     <ProjectReference Include="..\..\libs\kits\Support\ACommerce.Kit.Support.Core\ACommerce.Kit.Support.Core.csproj" />
     <ProjectReference Include="..\..\libs\kits\Support\ACommerce.Kit.Support.Server\ACommerce.Kit.Support.Server.csproj" />
 
+    <ProjectReference Include="..\..\libs\kits\Files\ACommerce.Kit.Files.Core\ACommerce.Kit.Files.Core.csproj" />
+    <ProjectReference Include="..\..\libs\kits\Files\ACommerce.Kit.Files.Providers.AliyunOss\ACommerce.Kit.Files.Providers.AliyunOss.csproj" />
+    <ProjectReference Include="..\..\libs\kits\Files\ACommerce.Kit.Files.Providers.GoogleCloud\ACommerce.Kit.Files.Providers.GoogleCloud.csproj" />
+
     <ProjectReference Include="..\..\libs\kits\Maps\ACommerce.Kit.Maps.Core\ACommerce.Kit.Maps.Core.csproj" />
     <ProjectReference Include="..\..\libs\kits\Delivery\ACommerce.Kit.Delivery.Core\ACommerce.Kit.Delivery.Core.csproj" />
     <ProjectReference Include="..\..\libs\kits\Payments\ACommerce.Kit.Payments.Core\ACommerce.Kit.Payments.Core.csproj" />

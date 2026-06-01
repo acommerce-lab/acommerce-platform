@@ -2,6 +2,7 @@ using ACommerce.Kit.Auth.Providers.MockNafath;
 using ACommerce.Kit.Auth.Providers.MockSms;
 using ACommerce.Kit.Auth.Server;
 using ACommerce.Kit.Delivery;
+using ACommerce.Kit.Files;
 using ACommerce.Kit.Maps;
 using ACommerce.Kit.Payments;
 using ACommerce.Kit.Realtime.Server;
@@ -33,6 +34,14 @@ builder.Services.AddMockMaps();
 builder.Services.AddMockDelivery();
 builder.Services.AddMockPayments();
 
+// تَخزين مَلَفّات — Local (افتِراضيّ، صَفّ wwwroot/uploads). لِلإنتاج
+// بَدِّل بِـ AddAliyunOssFileStorage(...) أو AddGoogleCloudFileStorage(...).
+builder.Services.AddLocalFileStorage(opts =>
+{
+    opts.RootPath = Path.Combine(builder.Environment.WebRootPath ?? "wwwroot", "uploads");
+    opts.PublicPathPrefix = "/uploads";
+});
+
 // القالَب — يُسَجِّل AuthSession + HttpContextAccessor
 builder.Services.AddCustomerMarketplaceTemplate();
 
@@ -48,6 +57,11 @@ await using (var scope = app.Services.CreateAsyncScope())
 }
 
 app.UsePlatformHost();
+
+// تَفعيل خِدمَة المَلَفّات المَحَلِّيَّة (Local provider فَقَط — تُتَجاهَل لَو
+// السيرفِر يَستَخدِم Aliyun/GCS مَع CDN).
+if (app.Services.GetService<IFileStorage>() is LocalFileStorage)
+    app.UseLocalFileStorage();
 
 // القالَب — يُسَجِّل form endpoints (auth/login/logout/chat send/favorite/...)
 app.MapCustomerMarketplaceTemplate();
