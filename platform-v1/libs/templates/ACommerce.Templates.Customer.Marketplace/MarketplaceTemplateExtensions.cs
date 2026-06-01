@@ -53,6 +53,9 @@ public static class MarketplaceTemplateExtensions
         // التَّقييمات (تَقييم مُتَبادَل بَعد اكتِمال صَفقَة).
         services.AddScoped<ACommerce.Kit.Reviews.ReviewsService>();
 
+        // سِجِلّ التَّدقيق (مَن فَعَل ماذا، مَتى).
+        services.AddScoped<Services.Audit.AuditWriter>();
+
         return services;
     }
 
@@ -2084,7 +2087,8 @@ public static class MarketplaceTemplateExtensions
         // ─── Studio Listings moderation (إخفاء/إظهار/حَذف إشرافيّ) ───────
         app.MapPost("/studio/apps/{slug}/listings/{id:guid}/moderate",
             async (string slug, Guid id, HttpRequest req, IDocumentStore store,
-                   Services.Incubator.StudioAuth auth) =>
+                   Services.Incubator.StudioAuth auth,
+                   Services.Audit.AuditWriter audit) =>
         {
             if (!await StudioOwnsAsync(store, auth, slug)) return Results.Redirect("/studio");
             var action = req.Form["action"].ToString().Trim();   // hide | unhide | delete
@@ -2107,6 +2111,9 @@ public static class MarketplaceTemplateExtensions
                     break;
             }
             await s.SaveChangesAsync();
+            await audit.WriteAsync(slug, modId, "مالِك التَّطبيق",
+                $"listing.{action}", "listing", id.ToString(), note: reason,
+                ip: req.HttpContext.Connection.RemoteIpAddress?.ToString());
             return Results.Redirect($"/studio/apps/{slug}/listings");
         }).DisableAntiforgery();
 
