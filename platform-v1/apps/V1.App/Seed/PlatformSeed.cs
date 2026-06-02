@@ -172,16 +172,71 @@ public static class PlatformSeed
         (string title, decimal price, string cat, string city, string district)[] sampleListings)
     {
         await using var tenantSession = store.LightweightSession(slug);
+        var idx = 0;
         foreach (var s in sampleListings)
         {
             var id = Guid.NewGuid();
+            var attrs = AttributesFor(slug, s.cat);
             var ev = new ListingCreated(
-                id, slug, s.title, $"وَصف تَجريبيّ لِـ {s.title}", s.price,
+                id, slug, s.title, DescriptionFor(slug, s.cat, s.title), s.price,
                 s.cat, s.city, s.district,
-                new Dictionary<string, string>(), DateTime.UtcNow);
+                attrs, DateTime.UtcNow);
             tenantSession.Events.StartStream<Listing>(id, ev);
+            // أَوَّل ٢ إعلان لِكُلّ مَتجَر يَحصُلان عَلى شارات «مُمَيَّز» و«مُوَثَّق»
+            // لِيَملَأ كاروسيل المُمَيَّز عِندَ أَوَّل عَرض. لاحِقاً يَضبُطها
+            // الادمن مِن لَوحَة التَحَكُّم.
+            if (idx < 2)
+                tenantSession.Events.Append(id,
+                    new ListingFlagsSet(id, IsFeatured: true, IsVerified: idx == 0, DateTime.UtcNow));
+            idx++;
         }
         await tenantSession.SaveChangesAsync();
         Console.WriteLine($"[Seed] added {sampleListings.Length} listings to '{slug}'.");
     }
+
+    /// <summary>سِمات بَذر غَنِيَّة حَسَب نَمَط المُستَأجِر — لِتَملَأ شَبَكَة
+    /// التَفاصيل والـ chips في البِطاقَة بِبَيانات واقِعِيَّة.</summary>
+    private static Dictionary<string, string> AttributesFor(string slug, string cat)
+    {
+        return slug switch
+        {
+            "ashare" => new()
+            {
+                ["gender_pref"]     = cat == "roommate_has" ? "ذُكور" : "أَيّ",
+                ["occupation_pref"] = cat == "roommate_has" ? "طُلّاب" : "عامِل أَو طالِب",
+                ["smoking"]         = "غَير مَسموح",
+                ["rent_split"]      = "نِصف لِكُلّ شَريك",
+                ["available_from"]  = "فَوراً",
+                ["min_stay"]        = "٦ أَشهُر"
+            },
+            "ejar" => new()
+            {
+                ["bedrooms"]         = "٣",
+                ["bathrooms"]        = "٢",
+                ["area_m2"]          = "١٤٠",
+                ["furnished"]        = cat == "apartment" ? "مَفروشَة" : "غَير مَفروشَة",
+                ["lease_term"]       = "شَهرِيّ",
+                ["deposit"]          = "شَهر إيجار واحِد",
+                ["payment_schedule"] = "شَهرِيّ",
+                ["utilities"]        = "غَير مَشمولَة"
+            },
+            "order" => new()
+            {
+                ["size"]      = "وَسَط",
+                ["prep_time"] = "٥ دَقائِق"
+            },
+            _ => new()
+        };
+    }
+
+    private static string DescriptionFor(string slug, string cat, string title) => slug switch
+    {
+        "ashare" when cat == "roommate_has"
+            => $"بَحث عَن شَريك سَكَن لِـ {title}. السَكَن مُتوَفِّر، الشَريك المَطلوب طالِب أَو عامِل، يُفَضَّل غَير مُدَخِّن. التَفاصيل قابِلَة لِلنِقاش.",
+        "ashare" when cat == "roommate_wants"
+            => $"أَدور سَكَناً مُشتَرَكاً قَريباً مِن الجامِعَة/العَمَل. مُلتَزِم بِالنَّظافَة والهُدوء. مُستَعِدّ لِلمُساهَمَة في الإيجار.",
+        "ejar" => $"{title}. مَوقِع مُمتاز، مَدخَل خاصّ، خَدَمات مُتَكامِلَة. يَصلُح لِلعائِلات أَو الأَفراد.",
+        "order" => $"{title} مُحَضَّر طازَجاً يَوميّاً مِن أَجوَد المُكَوِّنات.",
+        _ => $"وَصف {title}"
+    };
 }

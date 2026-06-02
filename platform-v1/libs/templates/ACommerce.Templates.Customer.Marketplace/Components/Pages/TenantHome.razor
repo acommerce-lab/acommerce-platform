@@ -39,7 +39,7 @@
     {
         @* قالِب العَميل/الافتراضي — الصَفحَة الكَلاسيكِيَّة: hero + بَحث +
            فِئات + مُمَيَّز + أَحدَث. هذا أَيضاً قالِب المَتاجِر بِلا أَدوار. *@
-        <AcHeroBanner Title="@($"ابحَث في {loaded.Name}")"
+        <AcHeroBanner Title="@(profile?.HomeHeroTitlePattern ?? $"ابحَث في {loaded.Name}")"
                       Subtitle="@loaded.TagLine">
             <LogoContent>
                 <div class="acm-hero-brand">
@@ -118,10 +118,10 @@
                     <div class="acm-home-rail-item">
                         <AcSpaceCard Title="@l.Title"
                                      Href="@AuthSession.LinkFor(Slug, Role, $"listings/{l.Id}")"
-                                     ImageUrl="@null"
+                                     ImageUrl="@(l.MediaUrls.Count > 0 ? l.MediaUrls[0] : null)"
                                      Location="@($"{l.City} — {l.District}")"
-                                     PriceLabel="@($"{l.Price:N0} ريال")"
-                                     Ribbon="مُمَيَّز"
+                                     PriceLabel="@FormatPrice(l)"
+                                     Ribbon="@(l.IsVerified ? "✓ مُوَثَّق" : "مُمَيَّز")"
                                      ShowFavorite="@Auth.IsAuthenticated"
                                      IsFavorite="@favIds.Contains(l.Id)"
                                      FavoriteFormAction="@($"/{Slug}/listings/{l.Id}/favorite")"
@@ -143,10 +143,10 @@
                 {
                     <AcSpaceCard Title="@l.Title"
                                  Href="@AuthSession.LinkFor(Slug, Role, $"listings/{l.Id}")"
-                                 ImageUrl="@null"
+                                 ImageUrl="@(l.MediaUrls.Count > 0 ? l.MediaUrls[0] : null)"
                                  Location="@($"{l.City} — {l.District}")"
-                                 PriceLabel="@($"{l.Price:N0} ريال")"
-                                 Ribbon="جَديد"
+                                 PriceLabel="@FormatPrice(l)"
+                                 Ribbon="@(l.IsVerified ? "✓ مُوَثَّق" : null)"
                                  ShowFavorite="@Auth.IsAuthenticated"
                                  IsFavorite="@favIds.Contains(l.Id)"
                                  FavoriteFormAction="@($"/{Slug}/listings/{l.Id}/favorite")"
@@ -182,8 +182,25 @@
     [SupplyParameterFromQuery(Name = "kind")] public string? Kind { get; set; }
 
     Tenant? loaded;
+    ACommerce.Templates.Customer.Marketplace.Services.Patterns.PatternProfile? profile;
     List<Listing>? latest;
     List<Listing>? featured;
+
+    /// <summary>تَنسيق السِعر حَسَب نَمَط المُستَأجِر: إيجار → «… ر.س / شَهرِيّ»،
+    /// مَتجَر → «… ر.س»، مَشاوير → «اعرِض/ابدَأ مِن».</summary>
+    string FormatPrice(Listing l)
+    {
+        if (profile is null) return $"{l.Price:N0} ر.س";
+        return profile.Pattern switch
+        {
+            Services.Patterns.AppPattern.Rental
+                => $"{l.Price:N0} ر.س / {(l.Attributes.TryGetValue("lease_term", out var t) ? t : "شَهرِيّ")}",
+            Services.Patterns.AppPattern.Roommate
+                => l.Price > 0 ? $"{l.Price:N0} ر.س / شَهرِيّ" : "حَسَب الاتِّفاق",
+            Services.Patterns.AppPattern.Trip => $"يَبدَأ مِن {l.Price:N0} ر.س",
+            _ => $"{l.Price:N0} ر.س"
+        };
+    }
     List<string> cities = new();
     HashSet<Guid> favIds = new();
     ACommerce.Kit.Roles.Role? activeRole;
@@ -194,6 +211,7 @@
         await using var g = Store.QuerySession();
         loaded = await g.LoadAsync<Tenant>(Slug);
         if (loaded is null) return;
+        profile = Services.Patterns.PatternProfileResolver.Of(loaded);
 
         await using var tq = Store.QuerySession(Slug);
 
@@ -225,9 +243,13 @@
             .OrderByDescending(x => x.CreatedAt)
             .Take(20).ToListAsync()).ToList();   // نَجلِب أَكثَر ثُمّ نُصَفِّي
 
-        featured = (await baseQ
-            .OrderByDescending(x => x.Price)
-            .Take(20).ToListAsync()).ToList();
+        // المُمَيَّز = ما عُلِّمَ IsFeatured (مِن لَوحَة الإدارَة/اشتِراك مَدفوع).
+        // إن لَم يَكُن هُناك أَيّ مُمَيَّز بَعد، نَستَخدِم الأَعلى سِعراً كَ
+        // fallback لِنَملَأ الكاروسيل. اختِيار قابِل لِلتَّبديل لاحِقاً.
+        featured = (await baseQ.Where(x => x.IsFeatured)
+            .OrderByDescending(x => x.CreatedAt).Take(20).ToListAsync()).ToList();
+        if (featured.Count == 0)
+            featured = (await baseQ.OrderByDescending(x => x.Price).Take(20).ToListAsync()).ToList();
 
         // فَلتَرَة الإعلانات الَّتي تَقبَل عُروضاً (طَلَبات السائِق المُؤَقَّتَة):
         // لا تَظهَر في الصَفحَة الرَّئيسِيَّة العامَّة لِأَنَّها لَيسَت كاتالوج.

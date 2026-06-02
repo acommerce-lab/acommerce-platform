@@ -162,8 +162,10 @@ else
             {
                 <AcSpaceCard Title="@l.Title"
                              Href="@AuthSession.LinkFor(Slug, Role, $"listings/{l.Id}")"
+                             ImageUrl="@(l.MediaUrls.Count > 0 ? l.MediaUrls[0] : null)"
                              Location="@($"{l.City} — {l.District}")"
-                             PriceLabel="@($"{l.Price:N0} ريال")"
+                             PriceLabel="@FormatPrice(l)"
+                             Ribbon="@(l.IsVerified ? "✓ مُوَثَّق" : l.IsFeatured ? "مُمَيَّز" : null)"
                              ShowFavorite="@Auth.IsAuthenticated"
                              IsFavorite="@favIds.Contains(l.Id)"
                              FavoriteFormAction="@($"/{Slug}/listings/{l.Id}/favorite")"
@@ -189,6 +191,21 @@ else
     [SupplyParameterFromQuery(Name = "kind")]     public string? Kind     { get; set; }
 
     Tenant? tenant;
+    ACommerce.Templates.Customer.Marketplace.Services.Patterns.PatternProfile? profile;
+
+    string FormatPrice(Listing l)
+    {
+        if (profile is null) return $"{l.Price:N0} ر.س";
+        return profile.Pattern switch
+        {
+            Services.Patterns.AppPattern.Rental
+                => $"{l.Price:N0} ر.س / {(l.Attributes.TryGetValue("lease_term", out var t) ? t : "شَهرِيّ")}",
+            Services.Patterns.AppPattern.Roommate
+                => l.Price > 0 ? $"{l.Price:N0} ر.س / شَهرِيّ" : "حَسَب الاتِّفاق",
+            Services.Patterns.AppPattern.Trip => $"يَبدَأ مِن {l.Price:N0} ر.س",
+            _ => $"{l.Price:N0} ر.س"
+        };
+    }
     List<Listing>? items;
     List<string> districts = new();
     HashSet<Guid> favIds = new();
@@ -264,6 +281,7 @@ else
         await using var g = Store.QuerySession();
         tenant = await g.LoadAsync<Tenant>(Slug);
         if (tenant is null) return;
+        profile = Services.Patterns.PatternProfileResolver.Of(tenant);
 
         await using var t = Store.QuerySession(Slug);
 
