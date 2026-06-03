@@ -120,7 +120,7 @@ else
         {
             var selectedCategory = tenant.Categories.FirstOrDefault(c => c.Slug == effectiveCategory);
 
-            <form method="post" action="@($"/{Slug}/listings/create")">
+            <form method="post" action="@($"/{Slug}/listings/create")" enctype="multipart/form-data">
                 <input type="hidden" name="category" value="@effectiveCategory" />
 
                 <AcCard>
@@ -178,6 +178,21 @@ else
                         </ChildContent>
                     </AcCard>
                 }
+
+                @* رَفع صُوَر — حَتَّى ٦ صُوَر، كُلّ صورَة ≤ ٥ MB. الـ
+                   POST handler يَرفَعها عَبر IFileStorage ويَخزِن URLs
+                   في Attributes["photos"] كَ JSON array. *@
+                <AcCard>
+                    <ChildContent>
+                        <h3 style="margin-top:0;">الصُوَر</h3>
+                        <p style="color:var(--ac-text-muted);font-size:13px;margin:0 0 12px;">
+                            حَتَّى ٦ صُوَر (JPG / PNG / WebP). الأُولَى تَظهَر كَغِلاف.
+                        </p>
+                        <input type="file" name="photos" multiple
+                               accept="image/jpeg,image/png,image/webp"
+                               class="ac-input" />
+                    </ChildContent>
+                </AcCard>
 
                 <AcCard>
                     <ChildContent>

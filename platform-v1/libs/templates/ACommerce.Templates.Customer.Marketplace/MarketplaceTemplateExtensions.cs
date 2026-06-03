@@ -495,7 +495,8 @@ public static class MarketplaceTemplateExtensions
         app.MapPost("/{slug}/listings/create",
             async (string slug, HttpContext http, HttpRequest req, IDocumentStore store,
                    Microsoft.AspNetCore.SignalR.IHubContext<ACommerce.Kit.Realtime.Server.RealtimeHub> hub,
-                   ACommerce.Templates.Customer.Marketplace.Services.WebPushService push) =>
+                   ACommerce.Templates.Customer.Marketplace.Services.WebPushService push,
+                   ACommerce.Kit.Files.IFileStorage files) =>
         {
             var userId = http.UserId();
 
@@ -528,8 +529,35 @@ public static class MarketplaceTemplateExtensions
             // بِلا OwnerId مُهَيكَل. صَفحَة /me/listings تَستَعمِلها لِلفَلتَرَة.
             dynAttrs["owner_id"] = userId.ToString();
 
-            await using var s = store.LightweightSession(slug);
+            // ـ رَفع الصُّوَر (إن وُجِدَت) — حَتَّى ٦، ٥ MB لِكُلّ واحِدَة،
+            //   أَنواع آمِنَة فَقَط. الـ URLs تُخزَّن JSON-array في
+            //   Attributes["photos"] لِيَقرَأها كُلّ مُستَهلِك (بِطاقات
+            //   البَحث، صَفحَة التَّفصيل، إلخ). فَشَل رَفع صورَة واحِدَة
+            //   لا يَكسِر الإعلان — يُتَجاهَل ويُتابِع.
             var id = Guid.NewGuid();
+            var photoUrls = new List<string>(6);
+            var photoFiles = req.Form.Files.GetFiles("photos");
+            var allowed = new[] { "image/jpeg", "image/png", "image/webp" };
+            foreach (var f in photoFiles.Take(6))
+            {
+                if (f.Length == 0 || f.Length > 5 * 1024 * 1024) continue;
+                if (Array.IndexOf(allowed, f.ContentType) < 0) continue;
+                var ext = f.ContentType switch
+                {
+                    "image/png"  => "png",
+                    "image/webp" => "webp",
+                    _            => "jpg"
+                };
+                try
+                {
+                    await using var stream = f.OpenReadStream();
+                    var key = $"tenants/{slug}/listings/{id}/{photoUrls.Count}.{ext}";
+                    var stored = await files.UploadAsync(key, stream, f.ContentType);
+                    photoUrls.Add(stored.PublicUrl);
+                }
+                catch { /* صَورَة فاشِلَة لا تَكسِر الإعلان */ }
+            }
+            await using var s = store.LightweightSession(slug);
             var ev = new ListingCreated(
                 id, slug, title,
                 string.IsNullOrEmpty(description) ? null : description,
@@ -538,7 +566,17 @@ public static class MarketplaceTemplateExtensions
                 string.IsNullOrEmpty(district) ? null : district,
                 dynAttrs,
                 DateTime.UtcNow);
-            s.Events.StartStream<Listing>(id, ev);
+            if (photoUrls.Count > 0)
+            {
+                // Stream يَبدَأ بِـ Created + Media مَعاً، فَيُسَجَّل
+                // الإعلان كامِلاً بِصُوَرِه في كِتابَة واحِدَة.
+                s.Events.StartStream<Listing>(id, ev,
+                    new ListingMediaSet(id, photoUrls, DateTime.UtcNow));
+            }
+            else
+            {
+                s.Events.StartStream<Listing>(id, ev);
+            }
 
             // مُطابَقَة البَحوث المَحفوظَة — لِكُلّ SavedSearch مَفعَّل
             // يَنطَبِق عَلى هذا الإعلان، أَنشِئ Notification لِصاحِبه.
@@ -548,7 +586,7 @@ public static class MarketplaceTemplateExtensions
             {
                 Id = id, TenantSlug = slug, Title = title, Description = description,
                 Price = price, CategorySlug = category, City = city, District = district,
-                Attributes = new(dynAttrs), CreatedAt = ev.At
+                Attributes = new(dynAttrs), MediaUrls = new(photoUrls), CreatedAt = ev.At
             };
             var savedSearches = await s.Query<ACommerce.Kit.SavedSearches.SavedSearch>()
                 .Where(ss => ss.IsEnabled).ToListAsync();
@@ -1432,7 +1470,8 @@ public static class MarketplaceTemplateExtensions
         // ─── Admin: grant / revoke tenant_admin to a user ──────────────
         app.MapPost("/admin/tenants/{slug}/users/{userId:guid}/grant-admin",
             async (string slug, Guid userId, HttpRequest req, IDocumentStore store,
-                   Services.Incubator.StudioAuth auth) =>
+                   Services.Incubator.StudioAuth auth,
+                   Services.Audit.AuditWriter audit) =>
         {
             if (!await CanAdministerTenantAsync(store, auth, req, slug)) return Forbidden();
             await using var g = store.QuerySession();
@@ -1443,16 +1482,23 @@ public static class MarketplaceTemplateExtensions
             await using var s = store.LightweightSession(slug);
             var user = await s.LoadAsync<User>(userId);
             if (user is null) return Results.Redirect($"/admin/tenants/{slug}/users");
+            var before = user.ActiveRole;
             user.ActiveRole = "tenant_admin";
             user.UpdatedAt = DateTime.UtcNow;
             s.Store(user);
             await s.SaveChangesAsync();
+            // تَصعيد صَلاحِيّات — يُسَجَّل دائِماً (نَفس scope الـ tenant).
+            await audit.WriteAsync(slug, auth.UserId, auth.UserName ?? "admin",
+                "user.grant_admin", "User", userId.ToString(),
+                note: user.FullName, ip: req.HttpContext.Connection.RemoteIpAddress?.ToString(),
+                before: before, after: "tenant_admin");
             return Results.Redirect($"/admin/tenants/{slug}/users?saved=1");
         }).DisableAntiforgery();
 
         app.MapPost("/admin/tenants/{slug}/users/{userId:guid}/revoke-admin",
             async (string slug, Guid userId, HttpRequest req, IDocumentStore store,
-                   Services.Incubator.StudioAuth auth) =>
+                   Services.Incubator.StudioAuth auth,
+                   Services.Audit.AuditWriter audit) =>
         {
             if (!await CanAdministerTenantAsync(store, auth, req, slug)) return Forbidden();
             await using var g = store.QuerySession();
@@ -1463,10 +1509,15 @@ public static class MarketplaceTemplateExtensions
             if (user is null) return Results.Redirect($"/admin/tenants/{slug}/users");
             // اِرجِع لِأَوَّل دَور غَير-إداريّ كَ افتراضي.
             var fallback = tenant.Roles.FirstOrDefault(r => r.CatalogSlug != "tenant_admin");
+            var before = user.ActiveRole;
             user.ActiveRole = fallback?.Slug ?? "";
             user.UpdatedAt = DateTime.UtcNow;
             s.Store(user);
             await s.SaveChangesAsync();
+            await audit.WriteAsync(slug, auth.UserId, auth.UserName ?? "admin",
+                "user.revoke_admin", "User", userId.ToString(),
+                note: user.FullName, ip: req.HttpContext.Connection.RemoteIpAddress?.ToString(),
+                before: before, after: user.ActiveRole);
             return Results.Redirect($"/admin/tenants/{slug}/users?saved=1");
         }).DisableAntiforgery();
 
@@ -2217,7 +2268,8 @@ public static class MarketplaceTemplateExtensions
         // مُباشَرَةً (السَّلَّة تَعني أَنّ المُشتَري ثَبَّتَ النِيَّة).
         app.MapPost("/{slug}/checkout/submit",
             async (string slug, HttpRequest req, IDocumentStore store,
-                   Services.Deals.DealsService deals) =>
+                   Services.Deals.DealsService deals,
+                   ACommerce.Kit.Payments.IPaymentProvider payments) =>
         {
             var parsed = AuthHandlers.ParseToken(req.Cookies[AuthSession.CookieName(slug)]
                 ?? req.Cookies[AuthSession.CookieName(slug, AuthSession.ExtractRoleFromPath(req.Path))]);
@@ -2239,10 +2291,12 @@ public static class MarketplaceTemplateExtensions
             {
                 var listing = await s.LoadAsync<Listing>(item.ListingId);
                 if (listing is null) continue;
+
+                var amount = item.UnitPriceSar * item.Quantity;
                 var deal = await deals.StartAsync(slug, pattern,
                     initiatorId: userId, initiatorName: name,
                     listingId: item.ListingId, listingTitle: item.Title,
-                    amountSar: item.UnitPriceSar * item.Quantity,
+                    amountSar: amount,
                     attributes: new()
                     {
                         ["qty"] = item.Quantity.ToString(),
@@ -2253,6 +2307,34 @@ public static class MarketplaceTemplateExtensions
                 if (firstDealId == Guid.Empty) firstDealId = deal.Id;
                 if (listing.Attributes.TryGetValue("owner_id", out var oid))
                     await deals.AttachRefAsync(slug, deal.Id, "listing_owner", oid);
+
+                // اِحجِز المَبلَغ عَبر مُزَوِّد الدَّفع (Authorize، لا
+                // capture بَعد — يَتِمّ الـ capture عِندَ تَأكيد البائِع).
+                // COD (دَفع عِندَ التَّسَلُّم) لا يَستَدعي المُزَوِّد.
+                // idempotency-key بِـ dealId يَمنَع تَكرار الـ authorize
+                // لَو أَعادَ المُستَخدِم submit بِنَفس النَّموذَج.
+                if (pay != "cod")
+                {
+                    try
+                    {
+                        var pr = await payments.AuthorizeAsync(new(
+                            AmountSar: amount,
+                            Description: $"{tenant?.Name ?? slug} — {item.Title}",
+                            CustomerId: userId.ToString(),
+                            CustomerPhone: phone,
+                            Metadata: new() { ["deal_id"] = deal.Id.ToString() }),
+                            idempotencyKey: $"deal_{deal.Id}");
+                        await deals.AttachRefAsync(slug, deal.Id, "payment_id",     pr.PaymentId);
+                        await deals.AttachRefAsync(slug, deal.Id, "payment_status", pr.Status.ToString());
+                    }
+                    catch (Exception ex)
+                    {
+                        // فَشَل الدَّفع لا يَكسِر الـ POST بِأَكمَلِه — الصَّفقَة
+                        // تَبقى في حالَة Booked لكِن مَعلَّمَة بِخَطَأ، والمالِك
+                        // يَستَطيع رُؤيَتها يَدَويّاً.
+                        await deals.AttachRefAsync(slug, deal.Id, "payment_error", ex.Message);
+                    }
+                }
             }
 
             s.Delete<ACommerce.Kit.Cart.Cart>(userId);

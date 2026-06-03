@@ -11,7 +11,12 @@ namespace ACommerce.Templates.Customer.Marketplace.Services.Deals;
 public sealed class DealsService
 {
     private readonly IDocumentStore _store;
-    public DealsService(IDocumentStore store) => _store = store;
+    private readonly ACommerce.Kit.Payments.IPaymentProvider _payments;
+    public DealsService(IDocumentStore store, ACommerce.Kit.Payments.IPaymentProvider payments)
+    {
+        _store = store;
+        _payments = payments;
+    }
 
     /// <summary>نِسبَة عمولة المَنصَّة على قيمَة الصَّفقَة عِندَ الدَّفع.
     /// قابِلَة لِلتَّكوين لاحِقاً لِكُلّ مُستَأجِر/باقَة. حاليّاً ٢.٥٪.</summary>
@@ -138,6 +143,30 @@ public sealed class DealsService
         await using var s = _store.LightweightSession(tenantSlug);
         var deal = await s.LoadAsync<Deal>(dealId, ct);
         if (deal is null || deal.Status != DealStatus.Active) return deal;
+
+        // إن كانَ في الصَّفقَة مَعامَلَة دَفع (Refs["payment_id"] مَوضوع
+        // عِندَ /checkout/submit)، أَرجِع المَبلَغ كامِلاً قَبل تَعليم
+        // الحالَة Cancelled. لَو الإسترِجاع فَشَل، لا نَكسِر الإلغاء —
+        // نُسَجِّل خَطَأ في Timeline ونُسَلسِل (المُدير يَدخُل يَدَويّاً).
+        if (deal.Refs.TryGetValue("payment_id", out var pid) && !string.IsNullOrEmpty(pid))
+        {
+            try
+            {
+                var rr = await _payments.RefundAsync(pid, deal.AmountSar, reason, ct);
+                deal.Refs["refund_id"]     = rr.PaymentId;
+                deal.Refs["refund_status"] = rr.Status.ToString();
+                deal.Timeline.Add(new(deal.Stage, deal.Stage, "refunded",
+                    actorId, actorName,
+                    $"refund {rr.Status} {rr.AmountSar:0.00} SAR", DateTime.UtcNow));
+            }
+            catch (Exception ex)
+            {
+                deal.Refs["refund_error"] = ex.Message;
+                deal.Timeline.Add(new(deal.Stage, deal.Stage, "refund_failed",
+                    actorId, actorName, ex.Message, DateTime.UtcNow));
+            }
+        }
+
         deal.Status = DealStatus.Cancelled;
         deal.CancelReason = reason;
         deal.UpdatedAt = DateTime.UtcNow;
