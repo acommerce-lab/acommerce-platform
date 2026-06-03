@@ -100,8 +100,7 @@
                 @foreach (var (slug, d) in recentDeals.Take(5))
                 {
                     <a class="studio-list-row" href="@($"/studio/apps/{slug}/deals/{d.Id}")">
-                        <span class="studio-list-icon"
-                              style="background:#dbeafe;color:#1d4ed8;">@StageEmoji(d.Stage)</span>
+                        <span class="studio-list-icon ac-chip-info">@StageEmoji(d.Stage)</span>
                         <div class="studio-list-body">
                             <strong>
                                 @(string.IsNullOrEmpty(d.ListingTitle) ? d.Pattern : d.ListingTitle)

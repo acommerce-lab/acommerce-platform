@@ -123,6 +123,27 @@ public sealed class DealsService
             deal.CommissionSar = Math.Round(deal.AmountSar * PlatformCommissionRate, 2);
             deal.Timeline.Add(new(next.Value, next.Value, "note", null, "المَنصَّة",
                 $"عمولة {PlatformCommissionRate:P1} = {deal.CommissionSar} ر.س", DateTime.UtcNow));
+
+            // اِسحَب الإذن المَحجوز في /checkout/submit (Authorize) →
+            // Capture. لَو لا payment_id (دَفع نَقدا/COD) نَتَجاوَز.
+            // فَشَل Capture لا يَكسِر التَّقَدُّم — يُسَجَّل لِلمُراجَعَة.
+            if (deal.Refs.TryGetValue("payment_id", out var pid) && !string.IsNullOrEmpty(pid))
+            {
+                try
+                {
+                    var cr = await _payments.CaptureAsync(pid, deal.AmountSar, ct);
+                    deal.Refs["payment_status"] = cr.Status.ToString();
+                    deal.Timeline.Add(new(next.Value, next.Value, "captured",
+                        actorId, actorName,
+                        $"capture {cr.Status} {cr.AmountSar:0.00} SAR", DateTime.UtcNow));
+                }
+                catch (Exception ex)
+                {
+                    deal.Refs["capture_error"] = ex.Message;
+                    deal.Timeline.Add(new(next.Value, next.Value, "capture_failed",
+                        actorId, actorName, ex.Message, DateTime.UtcNow));
+                }
+            }
         }
 
         // اكتمال الـ Deal عِندَ Reviewed.

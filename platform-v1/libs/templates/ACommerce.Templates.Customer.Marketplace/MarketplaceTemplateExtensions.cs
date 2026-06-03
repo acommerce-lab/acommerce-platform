@@ -1529,9 +1529,11 @@ public static class MarketplaceTemplateExtensions
         // مِن الكاتالوج (لِيَستَفيد المَتجَر مِن تَحديثات الكاتالوج).
         app.MapPost("/admin/tenants/{slug}/roles/save",
             async (string slug, HttpRequest req, IDocumentStore store,
-                   Services.Incubator.StudioAuth auth) =>
+                   Services.Incubator.StudioAuth auth,
+                   Services.Audit.AuditWriter audit) =>
         {
             if (!await CanAdministerTenantAsync(store, auth, req, slug)) return Forbidden();
+            await LogTenantConfigChangeAsync(audit, req, slug, auth, "tenant.roles_save");
             await using var s = store.LightweightSession();
             var t = await s.LoadAsync<ACommerce.Kit.Tenants.Tenant>(slug);
             if (t is null) return Results.Redirect("/admin");
@@ -1584,9 +1586,11 @@ public static class MarketplaceTemplateExtensions
         // الواجِهَة — هذا قَرار صَريح في النَّص التَوضيحي.
         app.MapPost("/admin/tenants/{slug}/categories/save",
             async (string slug, HttpRequest req, IDocumentStore store,
-                   Services.Incubator.StudioAuth auth) =>
+                   Services.Incubator.StudioAuth auth,
+                   Services.Audit.AuditWriter audit) =>
         {
             if (!await CanAdministerTenantAsync(store, auth, req, slug)) return Forbidden();
+            await LogTenantConfigChangeAsync(audit, req, slug, auth, "tenant.categories_save");
             var catsRaw = req.Form["categories"].ToString();
             string Back(string err) => $"/admin/tenants/{slug}/categories?err={err}";
 
@@ -1625,9 +1629,11 @@ public static class MarketplaceTemplateExtensions
         // ─── Admin: save branding ───────────────────────────────────────
         app.MapPost("/admin/tenants/{slug}/branding/save",
             async (string slug, HttpRequest req, IDocumentStore store,
-                   Services.Incubator.StudioAuth auth) =>
+                   Services.Incubator.StudioAuth auth,
+                   Services.Audit.AuditWriter audit) =>
         {
             if (!await CanAdministerTenantAsync(store, auth, req, slug)) return Forbidden();
+            await LogTenantConfigChangeAsync(audit, req, slug, auth, "tenant.branding_save");
             var name    = req.Form["name"].ToString().Trim();
             var tagline = req.Form["tagline"].ToString().Trim();
             var city    = req.Form["city"].ToString().Trim();
@@ -1660,9 +1666,11 @@ public static class MarketplaceTemplateExtensions
         // عَلى حَجم Tenant doc مَعقولاً.
         app.MapPost("/admin/tenants/{slug}/pwa/save",
             async (string slug, HttpRequest req, IDocumentStore store,
-                   Services.Incubator.StudioAuth auth) =>
+                   Services.Incubator.StudioAuth auth,
+                   Services.Audit.AuditWriter audit) =>
         {
             if (!await CanAdministerTenantAsync(store, auth, req, slug)) return Forbidden();
+            await LogTenantConfigChangeAsync(audit, req, slug, auth, "tenant.pwa_save");
             await using var s = store.LightweightSession();
             var t = await s.LoadAsync<ACommerce.Kit.Tenants.Tenant>(slug);
             if (t is null) return Results.Redirect("/admin");
@@ -1703,9 +1711,11 @@ public static class MarketplaceTemplateExtensions
         // المَدينَة Level=1 (ParentId=null)، الحَيّ Level=2 (ParentId=cityId).
         app.MapPost("/admin/tenants/{slug}/regions/save",
             async (string slug, HttpRequest req, IDocumentStore store,
-                   Services.Incubator.StudioAuth auth) =>
+                   Services.Incubator.StudioAuth auth,
+                   Services.Audit.AuditWriter audit) =>
         {
             if (!await CanAdministerTenantAsync(store, auth, req, slug)) return Forbidden();
+            await LogTenantConfigChangeAsync(audit, req, slug, auth, "tenant.regions_save");
             var raw = req.Form["regions"].ToString();
             if (string.IsNullOrWhiteSpace(raw))
                 return Results.Redirect($"/admin/tenants/{slug}/regions?err=empty");
@@ -1788,9 +1798,11 @@ public static class MarketplaceTemplateExtensions
         // اليَتيمَة (لا scope آخَر يَستَخدِمها) تُحذَف لِتَنظيف الجَدول.
         app.MapPost("/admin/tenants/{slug}/attributes/save",
             async (string slug, HttpRequest req, IDocumentStore store,
-                   Services.Incubator.StudioAuth auth) =>
+                   Services.Incubator.StudioAuth auth,
+                   Services.Audit.AuditWriter audit) =>
         {
             if (!await CanAdministerTenantAsync(store, auth, req, slug)) return Forbidden();
+            await LogTenantConfigChangeAsync(audit, req, slug, auth, "tenant.attributes_save");
             var scopeStr = req.Form["scope"].ToString().Trim();
             var defsRaw  = req.Form["defs"].ToString();
 
@@ -2729,6 +2741,39 @@ public static class MarketplaceTemplateExtensions
 
         // مُخرَج 403 مُوَحَّد بَدَلاً مِن تَكرارِه في كُلّ endpoint.
         static IResult Forbidden() => Results.StatusCode(StatusCodes.Status403Forbidden);
+
+        // سَطر audit واحِد لِكُلّ admin POST. الفاعِل قَد يَكون مالِك Studio
+        // أَو مُستَخدِم داخِل المَتجَر بِـ tenant.manage — نَفس الشَّيء في الـ
+        // log (إجراء إداريّ). الـ before/after للـ form يُجَمَّع كَ key=value
+        // بَسيط — يَكفي لاحِقاً لِفَهم مَن غَيَّر ماذا.
+        async Task LogTenantConfigChangeAsync(
+            Services.Audit.AuditWriter audit, HttpRequest req, string slug,
+            Services.Incubator.StudioAuth studioAuth, string action)
+        {
+            var (actorId, actorName) = await ResolveActorAsync(req, slug, studioAuth);
+            var formSnapshot = string.Join("; ", req.Form
+                .Where(kv => !kv.Key.StartsWith("password", StringComparison.OrdinalIgnoreCase))
+                .Select(kv => $"{kv.Key}={Truncate(kv.Value.ToString(), 60)}"));
+            await audit.WriteAsync(slug, actorId, actorName,
+                action, "Tenant", slug,
+                note: null, ip: req.HttpContext.Connection.RemoteIpAddress?.ToString(),
+                userAgent: req.Headers["User-Agent"].ToString(),
+                after: Truncate(formSnapshot, 2000));
+        }
+
+        async Task<(Guid? Id, string Name)> ResolveActorAsync(
+            HttpRequest req, string slug, Services.Incubator.StudioAuth studioAuth)
+        {
+            studioAuth.Load();
+            if (studioAuth.IsAuthenticated)
+                return (studioAuth.UserId, studioAuth.UserName ?? "studio");
+            var parsed = AuthHandlers.ParseToken(req.Cookies[AuthSession.CookieName(slug)]);
+            if (parsed is not null) return (parsed.Value.UserId, "tenant_admin");
+            return (null, "anonymous");
+        }
+
+        static string Truncate(string s, int max)
+            => s.Length <= max ? s : s[..max] + "…";
 
         app.MapPost("/studio/apps/{slug}/branding/save", async (
             string slug, HttpRequest req, IDocumentStore store,
