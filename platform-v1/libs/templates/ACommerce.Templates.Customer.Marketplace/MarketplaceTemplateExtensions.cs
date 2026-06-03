@@ -157,9 +157,16 @@ public static class MarketplaceTemplateExtensions
         }).DisableAntiforgery();
 
         // ─── Logout ─────────────────────────────────────────────────────
-        app.MapPost("/{slug}/auth/logout", (string slug, HttpContext http) =>
+        app.MapPost("/{slug}/auth/logout",
+            async (string slug, HttpContext http, IDocumentStore store) =>
         {
-            AuthSession.ClearCookie(http.Response, slug);
+            // اِجلِب أَدوار المَتجَر لِنَمسَح cookies كُلّ الأَدوار المُمكِنَة
+            // (المُستَخدِم قَد يَكون مَفتوحاً بِأَكثَر مِن دَور). كانَ يَمسَح
+            // cookie واحِد فَيَتَسَرَّب /r/{role}/.
+            await using var qs = store.QuerySession();
+            var tenant = await qs.LoadAsync<ACommerce.Kit.Tenants.Tenant>(slug);
+            var roles = tenant?.Roles.Select(r => r.Slug) ?? Array.Empty<string>();
+            AuthSession.ClearAllCookiesForTenant(http.Response, slug, roles);
             return Results.Redirect($"/{slug}");
         }).DisableAntiforgery();
 
@@ -1399,8 +1406,10 @@ public static class MarketplaceTemplateExtensions
 
         // ─── Admin: grant / revoke tenant_admin to a user ──────────────
         app.MapPost("/admin/tenants/{slug}/users/{userId:guid}/grant-admin",
-            async (string slug, Guid userId, IDocumentStore store) =>
+            async (string slug, Guid userId, HttpRequest req, IDocumentStore store,
+                   Services.Incubator.StudioAuth auth) =>
         {
+            if (!await CanAdministerTenantAsync(store, auth, req, slug)) return Forbidden();
             await using var g = store.QuerySession();
             var tenant = await g.LoadAsync<ACommerce.Kit.Tenants.Tenant>(slug);
             if (tenant is null ||
@@ -1417,8 +1426,10 @@ public static class MarketplaceTemplateExtensions
         }).DisableAntiforgery();
 
         app.MapPost("/admin/tenants/{slug}/users/{userId:guid}/revoke-admin",
-            async (string slug, Guid userId, IDocumentStore store) =>
+            async (string slug, Guid userId, HttpRequest req, IDocumentStore store,
+                   Services.Incubator.StudioAuth auth) =>
         {
+            if (!await CanAdministerTenantAsync(store, auth, req, slug)) return Forbidden();
             await using var g = store.QuerySession();
             var tenant = await g.LoadAsync<ACommerce.Kit.Tenants.Tenant>(slug);
             if (tenant is null) return Results.Redirect($"/admin/tenants/{slug}/users");
@@ -1441,8 +1452,10 @@ public static class MarketplaceTemplateExtensions
         // نَحتَفِظ بِالتَخصيصات (Label/Icon) لكِنّ نُحَدِّث Permissions/Fields
         // مِن الكاتالوج (لِيَستَفيد المَتجَر مِن تَحديثات الكاتالوج).
         app.MapPost("/admin/tenants/{slug}/roles/save",
-            async (string slug, HttpRequest req, IDocumentStore store) =>
+            async (string slug, HttpRequest req, IDocumentStore store,
+                   Services.Incubator.StudioAuth auth) =>
         {
+            if (!await CanAdministerTenantAsync(store, auth, req, slug)) return Forbidden();
             await using var s = store.LightweightSession();
             var t = await s.LoadAsync<ACommerce.Kit.Tenants.Tenant>(slug);
             if (t is null) return Results.Redirect("/admin");
@@ -1494,8 +1507,10 @@ public static class MarketplaceTemplateExtensions
         // المَوجودَة بِفِئَة مَحذوفَة تَبقى في الـ events لكِن تَختَفي مِن
         // الواجِهَة — هذا قَرار صَريح في النَّص التَوضيحي.
         app.MapPost("/admin/tenants/{slug}/categories/save",
-            async (string slug, HttpRequest req, IDocumentStore store) =>
+            async (string slug, HttpRequest req, IDocumentStore store,
+                   Services.Incubator.StudioAuth auth) =>
         {
+            if (!await CanAdministerTenantAsync(store, auth, req, slug)) return Forbidden();
             var catsRaw = req.Form["categories"].ToString();
             string Back(string err) => $"/admin/tenants/{slug}/categories?err={err}";
 
@@ -1533,8 +1548,10 @@ public static class MarketplaceTemplateExtensions
 
         // ─── Admin: save branding ───────────────────────────────────────
         app.MapPost("/admin/tenants/{slug}/branding/save",
-            async (string slug, HttpRequest req, IDocumentStore store) =>
+            async (string slug, HttpRequest req, IDocumentStore store,
+                   Services.Incubator.StudioAuth auth) =>
         {
+            if (!await CanAdministerTenantAsync(store, auth, req, slug)) return Forbidden();
             var name    = req.Form["name"].ToString().Trim();
             var tagline = req.Form["tagline"].ToString().Trim();
             var city    = req.Form["city"].ToString().Trim();
@@ -1566,8 +1583,10 @@ public static class MarketplaceTemplateExtensions
         // لِـ data: URL وَتُخزَّن مَعَ الدَور. سَقف ٢٥٦ كيلوبايت لِلحِفاظ
         // عَلى حَجم Tenant doc مَعقولاً.
         app.MapPost("/admin/tenants/{slug}/pwa/save",
-            async (string slug, HttpRequest req, IDocumentStore store) =>
+            async (string slug, HttpRequest req, IDocumentStore store,
+                   Services.Incubator.StudioAuth auth) =>
         {
+            if (!await CanAdministerTenantAsync(store, auth, req, slug)) return Forbidden();
             await using var s = store.LightweightSession();
             var t = await s.LoadAsync<ACommerce.Kit.Tenants.Tenant>(slug);
             if (t is null) return Results.Redirect("/admin");
@@ -1607,8 +1626,10 @@ public static class MarketplaceTemplateExtensions
         // اِحذِف كُلّ DiscoveryRegions الحالِيَّة لِلتَّينَنت ثُمّ أَعِد البِناء.
         // المَدينَة Level=1 (ParentId=null)، الحَيّ Level=2 (ParentId=cityId).
         app.MapPost("/admin/tenants/{slug}/regions/save",
-            async (string slug, HttpRequest req, IDocumentStore store) =>
+            async (string slug, HttpRequest req, IDocumentStore store,
+                   Services.Incubator.StudioAuth auth) =>
         {
+            if (!await CanAdministerTenantAsync(store, auth, req, slug)) return Forbidden();
             var raw = req.Form["regions"].ToString();
             if (string.IsNullOrWhiteSpace(raw))
                 return Results.Redirect($"/admin/tenants/{slug}/regions?err=empty");
@@ -1690,8 +1711,10 @@ public static class MarketplaceTemplateExtensions
         // ونَنشُر AttributeDefinitions + AttributeValues جَديدَة. الـ defs
         // اليَتيمَة (لا scope آخَر يَستَخدِمها) تُحذَف لِتَنظيف الجَدول.
         app.MapPost("/admin/tenants/{slug}/attributes/save",
-            async (string slug, HttpRequest req, IDocumentStore store) =>
+            async (string slug, HttpRequest req, IDocumentStore store,
+                   Services.Incubator.StudioAuth auth) =>
         {
+            if (!await CanAdministerTenantAsync(store, auth, req, slug)) return Forbidden();
             var scopeStr = req.Form["scope"].ToString().Trim();
             var defsRaw  = req.Form["defs"].ToString();
 
@@ -2562,6 +2585,43 @@ public static class MarketplaceTemplateExtensions
             var t = await qs.LoadAsync<ACommerce.Kit.Tenants.Tenant>(slug);
             return t is not null && t.OwnerUserId == auth.UserId!.Value;
         }
+
+        // ─── حارِس ادمن المَتجَر — لِكُلّ /admin/tenants/{slug}/* ─────────
+        // يَقبَل: (أ) مالِك المَتجَر مِن Studio (auth cookie لِلـ studio)،
+        //         (ب) مُستَخدِم مُسَجَّل دُخولُه بِدَور لَه tenant.manage.
+        // يَرفُض كُلّ شَيء آخَر (يَرجِع 403 صَريحاً). كانَ مَفقوداً تَماماً
+        // فَصارَت كُلّ endpoints الـ admin مَفتوحَة عَلى الإنتَرنِت.
+        async Task<bool> CanAdministerTenantAsync(
+            IDocumentStore docStore, Services.Incubator.StudioAuth studioAuth,
+            HttpRequest req, string slug)
+        {
+            await using var globalQs = docStore.QuerySession();
+            var tenant = await globalQs.LoadAsync<ACommerce.Kit.Tenants.Tenant>(slug);
+            if (tenant is null) return false;
+
+            // (أ) مالِك المَتجَر مُسَجَّل دُخولاً عَبر Studio.
+            studioAuth.Load();
+            if (studioAuth.IsAuthenticated && tenant.OwnerUserId == studioAuth.UserId!.Value)
+                return true;
+
+            // (ب) مُستَخدِم مُسَجَّل دُخولاً في نَفس المَتجَر بِدَور إداريّ.
+            var token = req.Cookies[AuthSession.CookieName(slug)]
+                     ?? req.Cookies[AuthSession.CookieName(slug, AuthSession.ExtractRoleFromPath(req.Path))]
+                     ?? req.Cookies[AuthSession.CookieName(slug, "admin")];
+            var parsed = AuthHandlers.ParseToken(token);
+            if (parsed is null) return false;
+            var (userId, tenantSlug, _) = parsed.Value;
+            if (tenantSlug != slug) return false;
+
+            await using var tenantQs = docStore.QuerySession(slug);
+            var me = await tenantQs.LoadAsync<User>(userId);
+            if (me is null) return false;
+            return ACommerce.Kit.Roles.RolePermissions.Has(
+                tenant.Roles, me.ActiveRole, "tenant.manage");
+        }
+
+        // مُخرَج 403 مُوَحَّد بَدَلاً مِن تَكرارِه في كُلّ endpoint.
+        static IResult Forbidden() => Results.StatusCode(StatusCodes.Status403Forbidden);
 
         app.MapPost("/studio/apps/{slug}/branding/save", async (
             string slug, HttpRequest req, IDocumentStore store,

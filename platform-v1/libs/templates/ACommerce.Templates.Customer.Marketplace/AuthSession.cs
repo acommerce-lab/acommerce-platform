@@ -79,17 +79,26 @@ public sealed class AuthSession
     /// <summary>يُكتَب مِن SSR endpoint بَعد نَجاح المُصادَقَة. حِنَّ يُعطَى
     /// <paramref name="role"/>، يُكتَب cookie role-scoped؛ بِلا role يُكتَب
     /// الـ cookie القَديم (لِـ ashare/ejar).</summary>
+    /// <summary>يُحَدِّد لَو الـ Secure flag يَجِب تَفعيلَه. مِفتاح ENV
+    /// <c>ACOMMERCE_FORCE_INSECURE_COOKIES=1</c> لِبيئَات تَطوير على HTTP.
+    /// الافتِراضيّ: Secure دائِماً (نُفتَرَض HTTPS في الإنتاج).</summary>
+    private static bool ShouldUseSecure
+        => Environment.GetEnvironmentVariable("ACOMMERCE_FORCE_INSECURE_COOKIES") != "1";
+
+    private static CookieOptions BuildOpts() => new()
+    {
+        HttpOnly    = true,
+        IsEssential = true,
+        Expires     = DateTimeOffset.UtcNow.AddDays(30),
+        SameSite    = SameSiteMode.Lax,
+        Secure      = ShouldUseSecure,
+        Path        = "/"
+    };
+
     public static void WriteCookie(HttpResponse res, string tenantSlug, AuthResult auth,
                                     string? role = null)
     {
-        var opts = new CookieOptions
-        {
-            HttpOnly = true,
-            IsEssential = true,
-            Expires = DateTimeOffset.UtcNow.AddDays(30),
-            SameSite = SameSiteMode.Lax,
-            Path = "/"
-        };
+        var opts = BuildOpts();
         var name = CookieName(tenantSlug, role);
         res.Cookies.Append(name, auth.Token, opts);
         res.Cookies.Append(name + ".name", auth.FullName, opts);
@@ -98,21 +107,25 @@ public sealed class AuthSession
     public static void UpdateNameCookie(HttpResponse res, string tenantSlug, string newName,
                                          string? role = null)
     {
-        var opts = new CookieOptions
-        {
-            HttpOnly = true, IsEssential = true,
-            Expires = DateTimeOffset.UtcNow.AddDays(30),
-            SameSite = SameSiteMode.Lax, Path = "/"
-        };
-        res.Cookies.Append(CookieName(tenantSlug, role) + ".name", newName, opts);
+        res.Cookies.Append(CookieName(tenantSlug, role) + ".name", newName, BuildOpts());
     }
 
     public static void ClearCookie(HttpResponse res, string tenantSlug, string? role = null)
     {
-        var opts = new CookieOptions { Path = "/" };
+        var opts = new CookieOptions { Path = "/", Secure = ShouldUseSecure };
         var name = CookieName(tenantSlug, role);
         res.Cookies.Delete(name, opts);
         res.Cookies.Delete(name + ".name", opts);
+    }
+
+    /// <summary>يَمسَح كُلّ cookies المُستَخدِم لِكُلّ الأَدوار المُحتَمَلَة في
+    /// هذا المَتجَر — يَستَخدِمها endpoint الـ logout. كانَ يَمسَح cookie
+    /// واحِد فَقَط فَيَتَسَرَّب جَلسَة /r/{role}/.</summary>
+    public static void ClearAllCookiesForTenant(HttpResponse res, string tenantSlug,
+                                                 IEnumerable<string> roleSlugs)
+    {
+        ClearCookie(res, tenantSlug, role: null);
+        foreach (var r in roleSlugs) ClearCookie(res, tenantSlug, r);
     }
 
     /// <summary>يَبني URL مُنبَثِق مِن tenant slug + role اختياريّ.</summary>
