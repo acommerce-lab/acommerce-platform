@@ -170,6 +170,31 @@ public static class MarketplaceTemplateExtensions
             return Results.Redirect($"/{slug}");
         }).DisableAntiforgery();
 
+        // ─── عَدّادات الـ unread لِـ realtime-nav.js ───────────────────────
+        // الـ JS عَلى المُتَصَفِّح يُنادي هذا عِندَ كُلّ <c>unread_changed</c>
+        // مِن SignalR ويُحَدِّث الـ DOM badges بِلا full reload.
+        app.MapGet("/{slug}/api/me/unread",
+            async (string slug, HttpRequest req, IDocumentStore store) =>
+        {
+            var parsed = AuthHandlers.ParseToken(req.Cookies[AuthSession.CookieName(slug)]
+                ?? req.Cookies[AuthSession.CookieName(slug,
+                    AuthSession.ExtractRoleFromPath(req.Path))]);
+            if (parsed is null || parsed.Value.TenantSlug != slug)
+                return Results.Json(new { messages = 0, notifications = 0 });
+            var uid = parsed.Value.UserId;
+
+            await using var s = store.QuerySession(slug);
+            var convs = await s.Query<ACommerce.Kit.Chat.Conversation>()
+                .Where(c => c.OwnerId == uid || c.PartnerId == uid)
+                .ToListAsync();
+            var msgs = convs.Count(c =>
+                (c.OwnerId   == uid && c.OwnerUnread   > 0) ||
+                (c.PartnerId == uid && c.PartnerUnread > 0));
+            var notifs = await s.Query<ACommerce.Kit.Notifications.Notification>()
+                .CountAsync(n => n.UserId == uid && !n.IsRead);
+            return Results.Json(new { messages = msgs, notifications = notifs });
+        });
+
         // ─── Favorite toggle ────────────────────────────────────────────
         app.MapPost("/{slug}/listings/{id:guid}/favorite",
             async (string slug, Guid id, HttpRequest req, IDocumentStore store) =>
