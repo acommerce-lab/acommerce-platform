@@ -118,10 +118,12 @@ else
             .Take(50).ToListAsync()).ToList();
 
         // اِجلِب صُوَر الأَطراف الآخَرين دَفعَةً واحِدَةً لِعَرضِها في القائِمَة.
+        // ToList() مَقصودَة: Marten يَدعَم List<T>.Contains في WHERE ولا
+        // يَدعَم Array.Contains (يُحَلّ إلى MemoryExtensions.Contains).
         var partnerIds = convs
             .Select(c => c.OwnerId == Auth.UserId!.Value ? c.PartnerId : c.OwnerId)
-            .Distinct().ToArray();
-        if (partnerIds.Length > 0)
+            .Distinct().ToList();
+        if (partnerIds.Count > 0)
         {
             var users = await s.Query<User>().Where(u => partnerIds.Contains(u.Id)).ToListAsync();
             avatars = users.ToDictionary(u => u.Id, u => u.AvatarUrl);
