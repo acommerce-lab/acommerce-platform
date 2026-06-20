@@ -592,3 +592,16 @@ button.ac-btn-primary {
     border-color: var(--ac-primary); color: var(--ac-primary);
     background: var(--ac-tint-04);
 }
+
+/* مُحَرِّر الخَصائِص — شَبَكَة حَقلَين + مِفتاح «مَطلوب» */
+.ac-editor-grid2 {
+    display: grid; grid-template-columns: 1fr; gap: 10px;
+}
+@media (min-width: 560px) { .ac-editor-grid2 { grid-template-columns: 1fr 1fr; } }
+.ac-attr-req-toggle {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 13.5px; font-weight: 600; color: var(--ac-text-muted);
+    cursor: pointer; user-select: none;
+}
+.ac-attr-req-toggle input { width: 18px; height: 18px; accent-color: var(--ac-primary); cursor: pointer; }
+.ac-attr-options { margin-top: 2px; }
