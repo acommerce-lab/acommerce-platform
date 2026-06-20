@@ -917,3 +917,211 @@ a.ac-stat:hover, a.acm-role-cta-pill:hover {
     background: var(--ac-primary); color: var(--ac-on-primary, #fff);
     border-color: var(--ac-primary); font-weight: 700;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   19. R4 — النَّماذِج (Field, Avatar, Gallery, PaymentForm, location)
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* ── حَقل (AcField) — تَسمِيَة + تَلميح + خَطَأ ─────────────────────────── */
+.ac-field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+.ac-label {
+    font-size: 13px; font-weight: 700; color: var(--ac-text);
+    letter-spacing: -.01em;
+}
+.ac-field-error { font-size: 12.5px; color: var(--ac-danger); font-weight: 600; }
+.ac-field .ac-text-muted.ac-text-sm { font-size: 12.5px; color: var(--ac-text-muted); }
+
+/* ── الأَفاتار (AcAvatar) — دائِريّ بِحُروف أَوَّليَّة أَو صورَة ─────────── */
+.ac-avatar {
+    border-radius: var(--ac-radius-pill); overflow: hidden;
+    display: grid; place-items: center; flex-shrink: 0;
+    color: #fff; font-weight: 800;
+    box-shadow: var(--ac-shadow-xs);
+}
+.ac-avatar-img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.ac-avatar-initials { letter-spacing: -.02em; line-height: 1; }
+
+/* ── المَعرَض (AcGallery) — صورَة رَئيسيَّة + مُصَغَّرات ─────────────────── */
+.ac-gallery-main {
+    position: relative; aspect-ratio: 4 / 3; overflow: hidden;
+    background: var(--ac-bg-alt); border-radius: var(--ac-radius-lg);
+    border: 1px solid var(--ac-border);
+}
+.ac-gallery-main img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.ac-gallery-placeholder {
+    width: 100%; height: 100%; display: grid; place-items: center;
+    color: var(--ac-text-soft);
+}
+.ac-gallery-arrow {
+    position: absolute; top: 50%; transform: translateY(-50%);
+    width: 40px; height: 40px; border-radius: var(--ac-radius-pill);
+    border: 0; cursor: pointer;
+    background: color-mix(in srgb, #fff 85%, transparent);
+    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    box-shadow: var(--ac-shadow-sm); color: var(--ac-text);
+    display: grid; place-items: center;
+    transition: transform var(--ac-transition), background var(--ac-transition);
+}
+.ac-gallery-arrow:hover { transform: translateY(-50%) scale(1.08); background: #fff; }
+.ac-gallery-arrow-prev { inset-inline-start: 12px; }
+.ac-gallery-arrow-next { inset-inline-end: 12px; }
+.ac-gallery-thumbs {
+    display: flex; gap: 8px; overflow-x: auto; padding: 10px 0;
+    scrollbar-width: none;
+}
+.ac-gallery-thumbs::-webkit-scrollbar { display: none; }
+.ac-gallery-thumb {
+    width: 64px; height: 64px; flex-shrink: 0;
+    border-radius: var(--ac-radius-sm); overflow: hidden;
+    border: 2px solid transparent; padding: 0; background: var(--ac-bg-alt);
+    cursor: pointer;
+    transition: border-color var(--ac-transition), transform var(--ac-transition);
+}
+.ac-gallery-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.ac-gallery-thumb:hover { transform: translateY(-1px); }
+.ac-gallery-thumb-active { border-color: var(--ac-primary); }
+
+/* ── نَموذَج الدَّفع (AcPaymentForm) — صَفّ بِطاقَة + نَوع ──────────────── */
+.ac-pay-card {
+    background: var(--ac-surface); border: 1px solid var(--ac-border);
+    border-radius: var(--ac-radius-md); padding: 14px;
+    display: flex; align-items: center; gap: 12px;
+    cursor: pointer; transition: border-color var(--ac-transition), background var(--ac-transition);
+}
+.ac-pay-card:hover { border-color: var(--ac-border-strong); }
+.ac-pay-card.is-selected { border-color: var(--ac-primary); background: var(--ac-tint-04); }
+.ac-pay-card-icon {
+    width: 40px; height: 28px; border-radius: 6px;
+    background: var(--ac-bg-alt); display: grid; place-items: center;
+    color: var(--ac-text-muted); font-weight: 800; font-size: 11px;
+}
+
+/* ── مُنتَقي المَوقِع (AcLocationPicker / .ac-loc) — حَقل + خَريطَة ────── */
+.ac-loc { display: flex; flex-direction: column; gap: 8px; }
+.ac-loc-input-row {
+    display: flex; gap: 8px; align-items: center;
+}
+.ac-loc-input-row .ac-input { flex: 1; }
+.ac-loc-pick-btn {
+    flex-shrink: 0; height: 40px; padding: 0 14px;
+    border-radius: var(--ac-radius-md); border: 1px solid var(--ac-border);
+    background: var(--ac-surface); color: var(--ac-text);
+    cursor: pointer; font-weight: 700; font-size: 13.5px;
+    display: inline-flex; align-items: center; gap: 6px;
+    transition: background var(--ac-transition), border-color var(--ac-transition);
+}
+.ac-loc-pick-btn:hover { background: var(--ac-tint-08); border-color: var(--ac-border-strong); }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   20. R5 — تَركيب الصَّفحات (hero الدَّور + inbox + الفِئات على الرَّئيسيَّة)
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* ── Hero الدَّور — تَحِيَّة + إجراءات سَريعَة (موبايل/سَطح) ─────────────── */
+.acm-role-hero {
+    background: var(--ac-surface);
+    border: 1px solid var(--ac-border);
+    border-radius: var(--ac-radius-lg);
+    padding: 18px 18px 20px;
+    margin: 8px 0 18px;
+    box-shadow: var(--ac-shadow-xs);
+}
+.acm-role-hero-head {
+    display: flex; align-items: center; gap: 14px; margin-bottom: 14px;
+}
+.acm-role-hero-icon {
+    width: 52px; height: 52px; flex-shrink: 0;
+    display: grid; place-items: center;
+    border-radius: var(--ac-radius-md);
+    background: var(--ac-tint-08); color: var(--ac-on-tint);
+    font-size: 26px; line-height: 1;
+}
+.acm-role-hero-head h2 {
+    font-size: 19px !important; font-weight: 800; letter-spacing: -.02em;
+}
+.acm-role-hero-actions { display: flex; flex-direction: column; gap: 8px; }
+@media (min-width: 641px) {
+    .acm-role-hero { padding: 22px; }
+    .acm-role-hero-actions { flex-direction: row; flex-wrap: wrap; }
+    .acm-role-hero-actions .ac-btn-block { flex: 1 1 220px; }
+}
+
+/* ── الفِئات على الصَّفحَة الرَّئيسيَّة — شَريط أُفُقيّ بِبَلاطات ─────────── */
+.acm-home-cats {
+    display: flex; gap: 12px; overflow-x: auto; padding: 6px 2px 14px;
+    scrollbar-width: none; -webkit-overflow-scrolling: touch;
+}
+.acm-home-cats::-webkit-scrollbar { display: none; }
+
+/* ── inbox الصَّفحَة (Chats/Notifications/Deals/Offers) — قائِمَة AcListRow ─ */
+.ac-inbox-list { display: flex; flex-direction: column; gap: 0; margin-top: 8px; }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   21. إصلاحات صَريحَة بَعد المَسح الشامِل (audit findings)
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* (1) السِّعر يَلتَفّ — قَواعِد قَديمَة كانَت تَهزِم premium.css */
+.ac-space-price, .ac-space-card-price, .acm-listing-price {
+    white-space: nowrap !important; overflow: hidden; text-overflow: ellipsis;
+}
+
+/* (2) مَدخَل الدَّور — الأَيقونَة كانَت مُربَّعَة رَماديَّة مَكدوسَة في الزّاوِيَة.
+   تَفوَّقَت قاعِدَة قَديمَة. هُنا قاعِدَة قاطِعَة. */
+.acm-role-landing-card-icon {
+    width: 64px !important; height: 64px !important; min-width: 64px;
+    border-radius: var(--ac-radius-md) !important;
+    background: var(--ac-tint-08) !important;
+    color: var(--ac-on-tint) !important;
+    font-size: 30px !important; line-height: 1 !important;
+    display: grid !important; place-items: center !important;
+}
+
+/* (3) رُقَع التَّصنيف والبَلاطات تَفيض بِلا مُؤَشِّر — أُضيف تَدَرُّج تَلاشٍ
+   على الحافَّة لِيَكشِف وُجود مَزيد. مَع scroll-snap لِسُهولَة التَّمَرُّر. */
+.acm-taxo-chips-row, .acm-explore-chips .ac-hscroll, .acm-home-cats {
+    position: relative;
+    -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x proximity; scroll-padding-inline: 16px;
+}
+.acm-taxo-chips-row > *, .acm-explore-chips .ac-hscroll > *, .acm-home-cats > * {
+    scroll-snap-align: start;
+}
+/* تَلاشٍ خَفيف على حافَّة النِّهايَة فَقَط (يَسار في RTL) لِلتَّلميح بِالـ scroll
+   دونَ قَضم العَناصِر النَّشِطَة على حافَّة البِدايَة («الكُلّ» في RTL). */
+.acm-taxo-chips, .acm-explore-chips, .acm-home-cats-wrap {
+    -webkit-mask-image: linear-gradient(to left, #000 0, #000 calc(100% - 24px), transparent 100%);
+            mask-image: linear-gradient(to left, #000 0, #000 calc(100% - 24px), transparent 100%);
+}
+
+/* (4) شَريط النَّتائِج في الاستِكشاف — صَفّ واحِد بِلا التِفاف */
+.acm-explore-sortbar {
+    flex-wrap: nowrap !important; gap: 10px;
+}
+.acm-explore-sortbar-right { flex-shrink: 0; }
+.acm-explore-count { white-space: nowrap; }
+
+/* (5) Bottom Nav — يُلائِم ٥ تَبويبات على ٤٢٠px (كانَ يَقطَع «حِسابي») */
+.acs-bottom-nav, .acm-v2-bottomnav {
+    padding-inline: 4px;
+}
+.acs-bottom-nav-item, .acm-v2-bottomnav a {
+    flex: 1 1 0; min-width: 0;
+    padding: 6px 2px;
+    font-size: 10.5px;
+}
+.acs-bottom-nav-item .ac-icon, .acm-v2-bottomnav a .ac-icon { width: 22px; height: 22px; }
+
+/* (6) PWA install banner عائِم — يَتَّسِق مَع الشاشَة */
+.ac-pwa-pill-cta, [class*="pwa-install"], .ac-install-banner {
+    box-shadow: var(--ac-shadow-md);
+    border-radius: var(--ac-radius-pill);
+}
+@media (max-width: 640px) {
+    /* عَلى الموبايل، PWA يَطبَع في صَفحَة المَنصَّة الرَّئيسيَّة لا هُنا */
+    .acs-page > .ac-pwa-pill-cta { display: none; }
+}
+
+/* (7) رَأس RoleLanding — الشِّعار يَختَفي على blur أَحياناً */
+.acm-mobile-nav-brand-name, .acm-brand-text {
+    color: var(--ac-text) !important;
+    text-shadow: none;
+}

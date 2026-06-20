@@ -82,13 +82,32 @@ public static class MarketplaceTemplateExtensions
             async (string slug, HttpRequest req, HttpResponse res, IDocumentStore store, ITenantContext tenant) =>
         {
             if (!tenant.IsResolved) return Results.NotFound();
-            var phone = req.Form["phone"].ToString().Trim();
-            var code = req.Form["code"].ToString().Trim();
+            // اقبَل HTML form (واجِهَة المُستَخدِم) أَو JSON (الـ APIs والفُحوصات).
+            string phone = "", code = "", asRoleEarly = "";
+            if (req.HasFormContentType)
+            {
+                phone = req.Form["phone"].ToString().Trim();
+                code  = req.Form["code"].ToString().Trim();
+                asRoleEarly = req.Form["as"].ToString().Trim();
+            }
+            else
+            {
+                try
+                {
+                    var body = await req.ReadFromJsonAsync<Dictionary<string, string>>();
+                    if (body is not null)
+                    {
+                        body.TryGetValue("Phone", out phone!); phone = (phone ?? "").Trim();
+                        body.TryGetValue("Code",  out code!);  code  = (code  ?? "").Trim();
+                        body.TryGetValue("As",    out asRoleEarly!); asRoleEarly = (asRoleEarly ?? "").Trim();
+                    }
+                } catch { /* بِنيَة غَير مُتَوَقَّعَة → نَترُك الحُقول فارِغَة، يَفشَل verify بِشَكل صَريح */ }
+            }
             var result = await AuthHandlers.VerifyPhoneOtpHandler(new VerifyPhoneOtp(phone, code), tenant, store);
             if (result is null)
                 return Results.Redirect(Link(req, slug,
                     $"login?stage=verify&phone={Uri.EscapeDataString(phone)}&err=code_invalid"));
-            var asRole = req.Form["as"].ToString().Trim().ToLowerInvariant();
+            var asRole = (asRoleEarly ?? "").ToLowerInvariant();
             // كَتابَة cookie باسم يَتَضَمَّن الدَور — يَسمَح بِجَلَسات مُتَوازِيَة
             // (راكِب في تَبويب، سائِق في آخَر) في نَفس المُتَصَفِّح.
             AuthSession.WriteCookie(res, slug, result,

@@ -46,25 +46,15 @@
     else if (_items.Count == 0)  { <AcEmptyState Title="لا توجَد إشعارات" IconName="bell" /> }
     else
     {
-        <div style="display:flex;flex-direction:column;gap:8px;">
+        <div class="ac-inbox-list">
             @foreach (var n in _items)
             {
-                <AcCard Class="@(n.IsRead ? "" : "ac-card-unread")">
-                    <ChildContent>
-                        <div style="display:flex;justify-content:space-between;align-items:start;gap:8px;">
-                            <strong>@n.Title</strong>
-                            <span class="ac-muted" style="font-size:11px;">@n.At.ToString("HH:mm")</span>
-                        </div>
-                        <p style="margin:6px 0 0;color:var(--ac-text-muted);font-size:14px;">@n.Body</p>
-                        @if (!string.IsNullOrEmpty(n.RelatedUrl))
-                        {
-                            <a href="@n.RelatedUrl" style="display:inline-block;margin-top:8px;
-                                                           color:var(--ac-primary);font-size:13px;">
-                                فَتح →
-                            </a>
-                        }
-                    </ChildContent>
-                </AcCard>
+                <AcListRow Title="@n.Title"
+                           Preview="@n.Body"
+                           Time="@n.At.ToString("HH:mm")"
+                           IconName="@NotifIcon(n.Type)"
+                           Href="@(string.IsNullOrEmpty(n.RelatedUrl) ? null : n.RelatedUrl)"
+                           Unread="@(!n.IsRead)" />
             }
         </div>
     }
@@ -75,6 +65,17 @@
     [Parameter] public string Slug { get; set; } = "";
     [Parameter] public string? Role { get; set; }
     List<Notification>? _items;
+
+    /// <summary>أَيقونَة AcIcon حَسَب نَوع الإشعار — تَظهَر في مُقَدِّمَة AcListRow.</summary>
+    static string NotifIcon(string type) => type switch
+    {
+        "saved_search_match" => "search",
+        "offer_received" or "offer_accepted" or "offer_rejected" => "tag",
+        "chat" or "message" => "message-square",
+        "deal" or "deal_advanced" => "shopping-bag",
+        "ticket" => "alert-circle",
+        _ => "bell"
+    };
 
     protected override async Task OnInitializedAsync()
     {
