@@ -38,7 +38,7 @@ builder.Services.AddScoped<ITimezoneProvider, JsTimezoneProvider>();
 builder.Services.AddScoped<CultureInterceptor>();
 
 // ── معترض الثقافة (ذهاب): DelegatingHandler يختم كلّ طلب برؤوس Culture.
-builder.Services.AddTransient<CultureHeadersHandler>();
+builder.Services.AddTransient<Ashare.V2.Web.Interceptors.CultureHeadersHandler>();
 builder.Services.AddScoped<Ashare2CircuitHttp>();
 
 // ─── OpEngine للعمليات المحلّية ────────────────────────────────────────
@@ -54,9 +54,9 @@ builder.Services.AddHttpClient("ashare-v2", c =>
     c.BaseAddress = new Uri(apiBase);
     c.Timeout = TimeSpan.FromSeconds(30);
 })
-// CultureHeadersHandler يضيف Accept-Language / X-User-Timezone / X-User-Currency
+// Ashare.V2.Web.Interceptors.CultureHeadersHandler يضيف Accept-Language / X-User-Timezone / X-User-Currency
 // على كلّ طلب صادر — الخدمة الخلفيّة تفهم سياق ثقافة المستخدم.
-.AddHttpMessageHandler<CultureHeadersHandler>();
+.AddHttpMessageHandler<Ashare.V2.Web.Interceptors.CultureHeadersHandler>();
 
 var routeRegistry = new HttpRouteRegistry();
 V2Routes.Register(routeRegistry);

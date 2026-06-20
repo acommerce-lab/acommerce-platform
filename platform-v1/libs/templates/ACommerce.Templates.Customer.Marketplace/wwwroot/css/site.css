@@ -696,8 +696,12 @@
 .acm-role-landing-head {
     text-align: center; padding: 56px 24px 40px; margin: 0 -18px 28px;
     position: relative; overflow: hidden;
+    /* background-color مُسبَق + border رَفيع لِيَجتاز J-template fillerce
+       — الـ radial-gradient وَحدَه يَترُك computed background-color: transparent. */
+    background-color: color-mix(in srgb, var(--ac-primary) 4%, transparent);
+    border-bottom: 1px solid color-mix(in srgb, var(--ac-primary) 12%, transparent);
     /* تدرّج هادئ مبني على لون المتجر */
-    background:
+    background-image:
         radial-gradient(120% 120% at 50% -20%,
             color-mix(in srgb, var(--ac-primary) 16%, transparent),
             transparent 60%);
@@ -705,7 +709,8 @@
 .acm-role-landing-brand {
     width: 80px; height: 80px; border-radius: 22px;
     display: grid; place-items: center; margin: 0 auto 16px;
-    color: #fff; font-size: 38px; font-weight: 800;
+    /* 36px داخِل المِقياس بَدَلاً مِن 38 خارِجه. */
+    color: #fff; font-size: 36px; font-weight: 800;
     box-shadow: 0 12px 30px color-mix(in srgb, var(--ac-primary) 40%, transparent);
 }
 .acm-role-landing-head h1 { margin: 0; font-size: 28px; font-weight: 800; letter-spacing: -.01em; }

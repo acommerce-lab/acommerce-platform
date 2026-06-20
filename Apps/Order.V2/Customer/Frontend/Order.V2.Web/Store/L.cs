@@ -38,11 +38,17 @@ public sealed class CustomerTranslations : ITranslationProvider
         "Order.V2.Web.Resources.Strings",
         typeof(CustomerTranslations).Assembly);
 
-    public string Translate(string key, string language)
+    /// <summary>عَقد <see cref="ITranslationProvider"/>: يَرُدّ <c>null</c>
+    /// لَو المِفتاح غَير مَوجود — يُتيح لِـ LayeredTranslationProvider
+    /// تَخطّي هذه الطَّبَقَة لِلطَّبَقَة التالِيَة.</summary>
+    public string? TryTranslate(string key, string language)
     {
         var culture = string.IsNullOrEmpty(language)
             ? CultureInfo.InvariantCulture
             : CultureInfo.GetCultureInfo(language);
-        return _rm.GetString(key, culture) ?? key;
+        return _rm.GetString(key, culture);
     }
+
+    public string Translate(string key, string language)
+        => TryTranslate(key, language) ?? key;
 }
