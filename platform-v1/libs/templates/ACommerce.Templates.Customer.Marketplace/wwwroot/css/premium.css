@@ -16,16 +16,18 @@
     --ac-font-family: 'Cairo', system-ui, -apple-system, 'Segoe UI',
                       'Noto Kufi Arabic', Tahoma, Arial, sans-serif;
 
-    /* أَسطُح دافِئَة بِلَمسَة مِن لَون المَتجَر — تَخلُق تَماسُكاً بَصَرِيّاً
-       بَدَلاً مِن الرَّماديّ البارِد المَيِّت (#f3f4f6). */
-    --ac-bg:        color-mix(in srgb, var(--ac-primary) 2.5%, #ffffff);
-    --ac-bg-alt:    color-mix(in srgb, var(--ac-primary) 5%, #f7f8fa);
+    /* أَسطُح هادِئَة مُحايِدَة (ذَوق Linear/Notion): قُربَ الأَبيَض، لَمسَة
+       دِفء طَفيفَة جِدّاً، بِلا صَبغَة لَون المَتجَر في الخَلفِيَّة. اللَون
+       يُستَخدَم بِتَقَشُّف — لِلإجراءات والحالات النَّشِطَة فَقَط. */
+    --ac-bg:        #fafafa;
+    --ac-bg-alt:    #f4f4f5;
     --ac-surface:   #ffffff;
-    --ac-surface-2: color-mix(in srgb, var(--ac-primary) 4%, #ffffff);
-    --ac-border:    color-mix(in srgb, var(--ac-primary) 8%, #e7e9ee);
-    --ac-border-strong: color-mix(in srgb, var(--ac-primary) 16%, #d4d7de);
+    --ac-surface-2: #fafafa;
+    /* حُدود هَيرلاين دَقيقَة مُحايِدَة — سِرّ النَّظافَة */
+    --ac-border:    rgba(17,24,39,.07);
+    --ac-border-strong: rgba(17,24,39,.12);
 
-    /* تِنتات لَون المَتجَر — لِخَلفِيّات الأَيقونات والشّارات والأَقسام */
+    /* تِنتات لَون المَتجَر — لِلأَكسِسوار فَقَط (حالَة نَشِطَة، رُقعَة، أَيقونَة) */
     --ac-tint-04: color-mix(in srgb, var(--ac-primary) 4%, transparent);
     --ac-tint-08: color-mix(in srgb, var(--ac-primary) 8%, transparent);
     --ac-tint-12: color-mix(in srgb, var(--ac-primary) 12%, transparent);
@@ -33,41 +35,38 @@
     --ac-on-tint: color-mix(in srgb, var(--ac-primary) 72%, #000 28%);
 
     /* نَصّ بِتَدَرُّج هَرَميّ واضِح */
-    --ac-text:        #0f172a;
-    --ac-text-muted:  #64748b;
-    --ac-text-soft:   #94a3b8;
+    --ac-text:        #18181b;
+    --ac-text-muted:  #71717a;
+    --ac-text-soft:   #a1a1aa;
 
-    /* نِظام عُمق — السِّرّ في الإحساس الراقي: ظِلال مُتَعَدِّدَة طَبَقات،
-       شَفّافِيَّة مُنخَفِضَة، انتِشار ناعِم. */
-    --ac-shadow-xs: 0 1px 2px rgba(15,23,42,.04);
-    --ac-shadow-sm: 0 1px 2px rgba(15,23,42,.04), 0 1px 3px rgba(15,23,42,.06);
-    --ac-shadow-md: 0 2px 4px -1px rgba(15,23,42,.05),
-                    0 6px 16px -3px rgba(15,23,42,.10);
-    --ac-shadow-lg: 0 8px 16px -6px rgba(15,23,42,.08),
-                    0 20px 40px -10px rgba(15,23,42,.16);
-    --ac-shadow-xl: 0 12px 24px -8px rgba(15,23,42,.10),
-                    0 32px 64px -16px rgba(15,23,42,.22);
-    /* ظِلّ مُلَوَّن بِلَون المَتجَر — لِلأَزرار الأَساسِيَّة والبِطاقات المُفَعَّلَة */
-    --ac-shadow-brand: 0 8px 24px -6px color-mix(in srgb, var(--ac-primary) 42%, transparent);
-    --ac-shadow-brand-sm: 0 4px 12px -3px color-mix(in srgb, var(--ac-primary) 38%, transparent);
+    /* نِظام عُمق مُتَقَشِّف — ظِلال خَفيفَة جِدّاً (الاعتِماد على الهَيرلاين).
+       النَّظافَة تَأتي مِن الحَدّ الدَّقيق + ظِلّ بِالكاد مَرئيّ، لا مِن ثِقَل. */
+    --ac-shadow-xs: 0 1px 2px rgba(17,24,39,.03);
+    --ac-shadow-sm: 0 1px 2px rgba(17,24,39,.04);
+    --ac-shadow-md: 0 1px 3px rgba(17,24,39,.05), 0 4px 8px -3px rgba(17,24,39,.06);
+    --ac-shadow-lg: 0 2px 6px -1px rgba(17,24,39,.06), 0 12px 24px -10px rgba(17,24,39,.10);
+    --ac-shadow-xl: 0 4px 12px -2px rgba(17,24,39,.07), 0 24px 48px -16px rgba(17,24,39,.14);
+    /* ظِلّ مُلَوَّن خَفيف — لِلزِّرّ الأَساسيّ فَقَط */
+    --ac-shadow-brand: 0 4px 14px -4px color-mix(in srgb, var(--ac-primary) 30%, transparent);
+    --ac-shadow-brand-sm: 0 2px 8px -3px color-mix(in srgb, var(--ac-primary) 26%, transparent);
 
-    /* أَنصاف أَقطار مُتَّسِقَة وأَكثَر سَخاءً */
-    --ac-radius-sm:  10px;
-    --ac-radius-md:  14px;
-    --ac-radius-lg:  18px;
-    --ac-radius-xl:  24px;
+    /* أَنصاف أَقطار مُعتَدِلَة (لا مُفرِطَة الاستِدارَة) */
+    --ac-radius-sm:  8px;
+    --ac-radius-md:  10px;
+    --ac-radius-lg:  14px;
+    --ac-radius-xl:  20px;
     --ac-radius-pill: 999px;
 
-    /* حَرَكَة — easings راقِيَة */
+    /* حَرَكَة — easings راقِيَة، خَفيفَة */
     --ac-ease:        cubic-bezier(.4, 0, .2, 1);
     --ac-ease-out:    cubic-bezier(.16, 1, .3, 1);
-    --ac-ease-spring: cubic-bezier(.34, 1.56, .64, 1);
-    --ac-transition:  180ms var(--ac-ease);
+    --ac-ease-spring: cubic-bezier(.34, 1.4, .64, 1);
+    --ac-transition:  160ms var(--ac-ease);
 
-    /* تَدَرُّج لَون المَتجَر — لِلأَبطال (heroes) والأَزرار */
-    --ac-gradient-brand: linear-gradient(135deg,
-        var(--ac-primary),
-        color-mix(in srgb, var(--ac-primary) 78%, #000 22%));
+    /* الزِّرّ الأَساسيّ — لَون صَلب بِتَدَرُّج عَموديّ خَفيف جِدّاً (عُمق بِلا ضَجيج) */
+    --ac-gradient-brand: linear-gradient(180deg,
+        color-mix(in srgb, var(--ac-primary) 96%, #fff 4%),
+        var(--ac-primary));
 }
 
 /* ─── 2. أَساسِيّات عامَّة ───────────────────────────────────────────── */
@@ -78,13 +77,16 @@ body, .acs-page {
 }
 body { background: var(--ac-bg); color: var(--ac-text); }
 
-/* عَناوين بِشَخصِيَّة — وَزن عالٍ وتَقارُب حُروف */
-h1, h2, h3, .acm-details-title, .acm-role-landing-head h1 {
+/* عَناوين دَقيقَة — وَزن 700 (لا 800 الثَّقيل)، تَقارُب حُروف. الـ display
+   الكَبير (heroes) فَقَط يَصِل 800 عَبر قاعِدَتِه الخاصَّة. */
+h1, h2, h3, .acm-details-title {
     letter-spacing: -.02em;
-    font-weight: 800;
+    font-weight: 700;
     color: var(--ac-text);
 }
-h2 { letter-spacing: -.015em; }
+h2, h3 { letter-spacing: -.015em; }
+/* عَناوين العَرض (الأَبطال) — أَثقَل قَليلاً */
+.acm-role-landing-head h1, .acm-hero-title { font-weight: 800; }
 
 /* تَحديد نَصّ بِلَون المَتجَر */
 ::selection { background: var(--ac-tint-16); color: var(--ac-on-tint); }
@@ -103,10 +105,17 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
     background: var(--ac-surface);
     border: 1px solid var(--ac-border);
     border-radius: var(--ac-radius-lg);
-    box-shadow: var(--ac-shadow-sm);
+    box-shadow: var(--ac-shadow-xs);
     transition: transform var(--ac-transition),
                 box-shadow var(--ac-transition),
                 border-color var(--ac-transition);
+}
+/* بِطاقات قابِلَة لِلنَّقر تَرتَفِع بِخَفَّة */
+a.ac-card:hover, a.acm-card:hover,
+.ac-card.is-clickable:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--ac-shadow-md);
+    border-color: var(--ac-border-strong);
 }
 
 /* ─── 4. الأَزرار — تَدَرُّج، عُمق، ضَغط ─────────────────────────────── */
@@ -161,9 +170,9 @@ button.ac-btn-primary {
 .acm-mobile-nav,
 .acm-v2-topnav-wrap .ac-topnav,
 .ac-topnav {
-    background: color-mix(in srgb, var(--ac-surface) 82%, transparent);
-    backdrop-filter: saturate(180%) blur(16px);
-    -webkit-backdrop-filter: saturate(180%) blur(16px);
+    background: color-mix(in srgb, var(--ac-surface) 92%, transparent);
+    backdrop-filter: saturate(150%) blur(12px);
+    -webkit-backdrop-filter: saturate(150%) blur(12px);
     border-bottom: 1px solid var(--ac-border);
 }
 .acm-mobile-nav-brand-name { font-weight: 800; letter-spacing: -.02em; }
@@ -320,24 +329,24 @@ button.ac-btn-primary {
     transition: transform 260ms var(--ac-ease-out);
 }
 .acm-role-landing-card:hover {
-    transform: translateY(-3px);
-    border-color: var(--ac-tint-16);
-    box-shadow: var(--ac-shadow-lg);
+    transform: translateY(-2px);
+    border-color: var(--ac-border-strong);
+    box-shadow: var(--ac-shadow-md);
 }
 .acm-role-landing-card:hover::before { transform: scaleY(1); }
 
 .acm-role-landing-card-icon {
-    font-size: 28px; line-height: 1;
-    width: 60px; height: 60px;
+    font-size: 26px; line-height: 1;
+    width: 56px; height: 56px;
     display: grid; place-items: center;
-    background: linear-gradient(135deg, var(--ac-tint-16), var(--ac-tint-04));
+    background: var(--ac-tint-08);
     color: var(--ac-on-tint);
     border-radius: var(--ac-radius-md);
     flex-shrink: 0;
-    transition: transform 260ms var(--ac-ease-spring);
+    transition: transform 220ms var(--ac-ease), background 220ms var(--ac-ease);
 }
 .acm-role-landing-card:hover .acm-role-landing-card-icon {
-    transform: scale(1.06) rotate(-3deg);
+    background: var(--ac-tint-12);
 }
 .acm-role-landing-card > div { flex: 1; min-width: 0; }
 .acm-role-landing-card strong {
@@ -424,18 +433,18 @@ button.ac-btn-primary {
                 border-color var(--ac-transition);
 }
 .ac-space:hover {
-    transform: translateY(-4px);
-    box-shadow: var(--ac-shadow-lg);
-    border-color: var(--ac-tint-16);
+    transform: translateY(-2px);
+    box-shadow: var(--ac-shadow-md);
+    border-color: var(--ac-border-strong);
 }
 .ac-space-media {
     aspect-ratio: 16 / 10;
-    background: linear-gradient(135deg, var(--ac-tint-12), var(--ac-tint-04));
+    background: var(--ac-bg-alt);
 }
 .ac-space-media img { transition: transform 500ms var(--ac-ease-out); }
-.ac-space:hover .ac-space-media img { transform: scale(1.06); }
-.ac-space-placeholder { color: color-mix(in srgb, var(--ac-primary) 38%, transparent); }
-.ac-space-placeholder svg { width: 46px; height: 46px; }
+.ac-space:hover .ac-space-media img { transform: scale(1.04); }
+.ac-space-placeholder { color: var(--ac-text-soft); }
+.ac-space-placeholder svg { width: 42px; height: 42px; }
 
 /* شارَة — pill بِتَدَرُّج لَون المَتجَر */
 .ac-space-ribbon {
@@ -467,18 +476,19 @@ button.ac-btn-primary {
 /* الجِسم */
 .ac-space-body { padding: 14px 16px 16px; gap: 6px; }
 .ac-space-title {
-    font-size: 16px; font-weight: 800; letter-spacing: -.01em;
-    line-height: 1.35; white-space: normal;
+    font-size: 15px; font-weight: 700; letter-spacing: -.01em;
+    line-height: 1.4; white-space: normal;
     display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
     overflow: hidden;
 }
 .ac-space-meta { font-size: 12.5px; color: var(--ac-text-muted); }
-/* السِّعر — بارِز، مَفصول بِخَطّ هَيرلاين */
+/* السِّعر — بارِز، مَفصول بِخَطّ هَيرلاين، لا يَلتَفّ */
 .ac-space-price {
     margin-top: 8px; padding-top: 12px;
     border-top: 1px solid var(--ac-border);
-    font-size: 18px; font-weight: 800; letter-spacing: -.01em;
-    color: var(--ac-primary);
+    font-size: 17px; font-weight: 800; letter-spacing: -.01em;
+    color: var(--ac-text);
+    white-space: nowrap;
 }
 
 /* ─── شَبَكَة الاستِكشاف + الرَّئيسيَّة — مُتَجاوِبَة (auto-fill) ──────────── */
