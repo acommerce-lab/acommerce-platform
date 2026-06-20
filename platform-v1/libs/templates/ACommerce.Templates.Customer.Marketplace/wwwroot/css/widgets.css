@@ -192,11 +192,12 @@ h1:focus, h2:focus, h3:focus { outline: none; }
 }
 .ac-textarea { min-height: 6rem; resize: vertical; }
 /* color picker: appearance:auto لِـ input[type=color] في Chromium يَفرِض
-   ارتِفاع UA ~ 27px. نُلغي الـ appearance لِنُسَيطِر عَلى الـ box. */
+   ارتِفاع UA ~ 27px ويُحَجِّم padding الإجباريّ. نُلغي الـ appearance
+   لِنُسَيطِر عَلى الـ box وَ padding مَعاً. */
 input.ac-input[type="color"] {
     -webkit-appearance: none;
     appearance: none;
-    padding: 4px;
+    padding: 8px;
     height: 44px;
     box-sizing: border-box;
 }
