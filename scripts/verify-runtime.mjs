@@ -683,12 +683,19 @@ async function verifyUiOnlyOps(page, url) {
     }
 }
 
-async function verifyUrl(browser, url) {
+async function verifyUrl(browser, url, sharedContext) {
     currentUrlReport = { url, status: 'loaded', violations: [] };
     REPORT.urls.push(currentUrlReport);
 
     const [vw, vh] = (process.env.VIEWPORT || '1366x900').split('x').map(n => parseInt(n, 10) || 0);
-    const page = await browser.newPage({ viewport: { width: vw || 1366, height: vh || 900 } });
+    // إن كانَت جَلسَة مُصادَقَة مُشتَرَكَة مَوجودَة (sharedContext) نَستَخدِمها
+    // فَتَنتَقِل الـ cookies تِلقائيّاً، وَإلّا نُنشِئ صَفحَة مُنفَرِدَة.
+    const page = sharedContext
+        ? await sharedContext.newPage()
+        : await browser.newPage({ viewport: { width: vw || 1366, height: vh || 900 } });
+    if (sharedContext) {
+        await page.setViewportSize({ width: vw || 1366, height: vh || 900 });
+    }
     try {
         await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 15000 });
         await page.waitForTimeout(800);
@@ -725,10 +732,39 @@ async function main() {
         executablePath: execPath,
         args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
     });
+
+    // Studio + tenant pages تُعيد توجيه إلى /auth عِندَ غِياب cookie. الفَحص
+    // كانَ يَختَبِر صَفحَة auth بَدَلاً مِن المُحتَوى الحَقيقيّ. إن مَرَّ
+    // STUDIO_LOGIN_PHONE = رَقم، نُسَجِّل دُخول studio مَرَّةً واحِدَةً
+    // ونَستَخدِم نَفس الـ cookies لِكُلّ URL. الـ shared context يَحمِل cookies
+    // عَبر صَفَحات. dev OTP code = 123456 (الافتراضيّ في StudioAuth).
+    let sharedContext = null;
+    if (process.env.STUDIO_LOGIN_PHONE) {
+        sharedContext = await browser.newContext({
+            viewport: { width: 1366, height: 900 }
+        });
+        const loginPage = await sharedContext.newPage();
+        const base = new URL(URLS[0]).origin;
+        try {
+            await loginPage.goto(`${base}/studio/auth`, { waitUntil: 'networkidle' });
+            await loginPage.fill('input[name="phone"]', process.env.STUDIO_LOGIN_PHONE);
+            await loginPage.click('button[type="submit"]');
+            await loginPage.waitForLoadState('networkidle');
+            await loginPage.fill('input[name="code"]',
+                process.env.STUDIO_LOGIN_CODE || '123456');
+            await loginPage.click('button[type="submit"]');
+            await loginPage.waitForLoadState('networkidle');
+            process.stdout.write(`Logged in studio as ${process.env.STUDIO_LOGIN_PHONE}\n`);
+        } catch (e) {
+            process.stdout.write(`Studio login failed: ${e.message}\n`);
+        }
+        await loginPage.close();
+    }
+
     process.stdout.write(`Checking ${URLS.length} URLs...\n`);
     let done = 0;
     for (const url of URLS) {
-        await verifyUrl(browser, url);
+        await verifyUrl(browser, url, sharedContext);
         done++;
         const last = REPORT.urls[REPORT.urls.length - 1];
         process.stdout.write(`[${done}/${URLS.length}] ${last.status.padEnd(12)} ${last.violations?.length ?? 0} viol  ${url}\n`);

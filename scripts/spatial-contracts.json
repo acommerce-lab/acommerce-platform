@@ -53,6 +53,20 @@
       "children": "*",
       "rule": "child-inside-parent-bounds",
       "description": "Text and time labels must stay inside the visible bubble fill (no spilling past the coloured pill)"
+    },
+    {
+      "parent": ".studio-shell",
+      "children": "> *",
+      "rule": "child-inside-parent-bounds",
+      "description": "Studio shell children (sidebar + main) must not overflow horizontally",
+      "axis": "horizontal"
+    },
+    {
+      "parent": ".studio-main",
+      "children": ".studio-content, .studio-topbar",
+      "rule": "child-inside-parent-bounds",
+      "description": "Studio content + topbar must stay within main column (box-sizing trap)",
+      "axis": "horizontal"
     }
   ],
 

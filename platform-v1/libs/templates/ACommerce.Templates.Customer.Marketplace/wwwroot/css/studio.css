@@ -4,6 +4,21 @@
    كل شيء داخل .studio-root ليُعزَل عن واجهات المتاجر.
    ═══════════════════════════════════════════════════════════════════ */
 
+/* StudioShell يُلَفّ بِـ .acs-page المُحَدَّد بِـ max-width: 900px في
+   templates-shared.css. studio-shell يَحتاج كامِل العَرض لِيَفصِل
+   sidebar 280px عَن main. نَكسِر القُيود مِن الأَب باستِخدام :has().
+   البِنية: .acs-page > main > .studio-root، فَنَستَخدِم :has(.studio-root)
+   بِلا child-combinator. أَيضاً main الداخِليّ يَحتاج فَتح كامِل العَرض. */
+.acs-page:has(.studio-root) {
+    max-width: none;
+    padding: 0;
+    margin: 0;
+}
+.acs-page:has(.studio-root) > main {
+    width: 100%;
+    max-width: none;
+}
+
 .studio-root {
     /* لوحة ألوان احترافية — أزرق عميق + رمادي محايد + لمسات */
     --st-primary:      #2563eb;   /* blue-600 */
@@ -219,7 +234,9 @@
     padding: 0 28px; position: sticky; top: 0; z-index: 20;
 }
 .studio-topbar-title { font-size: 18px; font-weight: 700; margin: 0; }
-.studio-content { padding: 28px; max-width: 1080px; width: 100%; margin: 0 auto; }
+/* box-sizing: border-box لِيَكون 100% = full main width بِما فيه الـ padding،
+   وَلا يَبرَز خارِج .studio-main. كانَ يَفيض ٥٦px عَلى الجانِبَين. */
+.studio-content { padding: 28px; max-width: 1080px; width: 100%; margin: 0 auto; box-sizing: border-box; }
 .studio-page-head { margin-bottom: 22px; }
 .studio-page-head h1 { font-size: 28px; font-weight: 800; margin: 0 0 4px; }
 .studio-page-head p { color: var(--st-muted); margin: 0; font-size: 14.5px; }
