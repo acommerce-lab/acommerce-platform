@@ -118,7 +118,44 @@
     });
   }
 
-  function initAll() { try { initCities(); } catch (e) {} try { initAttrs(); } catch (e) {} }
+  // ── مُحَرِّر الفِئات ─────────────────────────────────────────────────
+  function initCats() {
+    var editor = document.getElementById('cats-editor');
+    var form   = document.getElementById('cats-form');
+    var hidden = document.getElementById('cats-hidden');
+    var addBtn = document.getElementById('add-cat');
+    var tpl    = document.getElementById('cat-row-tpl');
+    if (!editor || !form || !hidden || form.dataset.acInit) return;
+    form.dataset.acInit = '1';
+
+    editor.addEventListener('click', function (e) {
+      if (e.target.closest('[data-remove-cat]')) e.target.closest('[data-cat-row]').remove();
+    });
+    if (addBtn && tpl) addBtn.addEventListener('click', function () {
+      editor.appendChild(tpl.content.cloneNode(true));
+      var n = editor.querySelectorAll('.ac-cat-label');
+      if (n.length) n[n.length - 1].focus();
+    });
+    form.addEventListener('submit', function () {
+      var lines = [];
+      editor.querySelectorAll('[data-cat-row]').forEach(function (row) {
+        var label = (row.querySelector('.ac-cat-label').value || '').trim();
+        var sl    = (row.querySelector('.ac-cat-slug').value || '').trim();
+        var icon  = (row.querySelector('.ac-cat-icon').value || '').trim() || '🏷️';
+        var kind  = (row.querySelector('.ac-cat-kind').value || '').trim();
+        if (!sl) sl = slug(label) || ('cat_' + Math.random().toString(36).slice(2, 7));
+        if (!label && !sl) return;
+        lines.push(sl + ' | ' + label + ' | ' + icon + ' | ' + kind);
+      });
+      hidden.value = lines.join('\n');
+    });
+  }
+
+  function initAll() {
+    try { initCities(); } catch (e) {}
+    try { initAttrs(); } catch (e) {}
+    try { initCats(); } catch (e) {}
+  }
 
   initAll();
   document.addEventListener('DOMContentLoaded', initAll);

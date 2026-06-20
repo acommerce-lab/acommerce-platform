@@ -605,3 +605,9 @@ button.ac-btn-primary {
 }
 .ac-attr-req-toggle input { width: 18px; height: 18px; accent-color: var(--ac-primary); cursor: pointer; }
 .ac-attr-options { margin-top: 2px; }
+
+/* مُحَرِّر الفِئات — حَقل أَيقونَة ضَيِّق وسَط */
+.ac-cat-icon {
+    width: 56px; flex-shrink: 0; text-align: center;
+    font-size: 20px; padding-inline: 4px;
+}
