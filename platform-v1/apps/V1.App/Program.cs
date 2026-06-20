@@ -59,6 +59,11 @@ builder.Services.AddCustomerMarketplaceTemplate();
 
 var app = builder.Build();
 
+// AuthSession يَحتاج IHttpContextAccessor لِيَكشِف HTTPS فَيَضَع Secure cookie
+// تِلقائيّاً (آمِن في الإنتاج، يَعمَل على HTTP المَحَلّيّ).
+ACommerce.Templates.Customer.Marketplace.AuthSession.HttpAccessor =
+    app.Services.GetRequiredService<IHttpContextAccessor>();
+
 await using (var scope = app.Services.CreateAsyncScope())
 {
     await PlatformSeed.RunAsync(scope.ServiceProvider);

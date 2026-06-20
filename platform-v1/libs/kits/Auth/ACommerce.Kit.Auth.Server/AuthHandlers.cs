@@ -61,7 +61,10 @@ public static class AuthHandlers
         ?? "dev-only-secret-please-set-ACOMMERCE_AUTH_SECRET-in-production-32+";
 
     // ── Phone OTP ─────────────────────────────────────────────────────
-    [WolverinePost("/{slug}/auth/phone/request")]
+    // ملاحَظَة: لا [WolverinePost] هُنا. القالِب (MarketplaceTemplate) يُسَجِّل
+    // المَسار عَبر MapPost ويَستَدعي هذِه الدالَّة، ثُمَّ يَكتُب الـ cookie
+    // ويُعيد التَّوجيه. تَسجيل Wolverine لِنَفس المَسار كانَ يَلتَقِط طَلَبات
+    // JSON ويُرجِع AuthResult بِلا cookie — فَكَسَرَ تَسجيل الدُّخول بِالكامِل.
     public static async Task<OtpRequestResult> RequestPhoneOtpHandler(
         RequestPhoneOtp cmd, ITenantContext tenantCtx,
         IOtpChannel channel, CancellationToken ct)
@@ -86,7 +89,7 @@ public static class AuthHandlers
                 : $"وَضع التَطوير ({channel.ChannelName}) — الكود: {code}");
     }
 
-    [WolverinePost("/{slug}/auth/phone/verify")]
+    // لا [WolverinePost] — راجِع التَّعليق على RequestPhoneOtpHandler.
     public static async Task<AuthResult?> VerifyPhoneOtpHandler(
         VerifyPhoneOtp cmd, ITenantContext tenantCtx, IDocumentStore store)
     {

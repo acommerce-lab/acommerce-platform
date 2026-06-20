@@ -79,11 +79,26 @@ public sealed class AuthSession
     /// <summary>يُكتَب مِن SSR endpoint بَعد نَجاح المُصادَقَة. حِنَّ يُعطَى
     /// <paramref name="role"/>، يُكتَب cookie role-scoped؛ بِلا role يُكتَب
     /// الـ cookie القَديم (لِـ ashare/ejar).</summary>
-    /// <summary>يُحَدِّد لَو الـ Secure flag يَجِب تَفعيلَه. مِفتاح ENV
-    /// <c>ACOMMERCE_FORCE_INSECURE_COOKIES=1</c> لِبيئَات تَطوير على HTTP.
-    /// الافتِراضيّ: Secure دائِماً (نُفتَرَض HTTPS في الإنتاج).</summary>
+    /// <summary>الـ HttpContext الحاليّ — يُستَخدَم لِكَشف هَل الطَّلَب على
+    /// HTTPS فَنَضَع Secure تِلقائيّاً. يُحقَن مَرَّةً في Program عَبر
+    /// IHttpContextAccessor.</summary>
+    public static IHttpContextAccessor? HttpAccessor { get; set; }
+
+    /// <summary>هَل نَضَع الـ Secure flag؟ القاعِدَة الذَّكِيَّة: نَعَم فَقَط
+    /// لَو الطَّلَب الحاليّ HTTPS فِعليّاً. هكذا يَعمَل HTTP المَحَلّيّ
+    /// (تَطوير) تِلقائيّاً بِلا ENV، ويَبقى آمِناً خَلف HTTPS (إنتاج).
+    /// كانَ الافتِراضيّ Secure=true دائِماً، فَكَسَرَ تَسجيل الدُّخول على
+    /// HTTP المَحَلّيّ صامِتاً (المُتَصَفِّح يَرفُض cookie آمِناً على http).
+    /// مِفتاح <c>ACOMMERCE_FORCE_INSECURE_COOKIES=1</c> يُجبِر الإطفاء.</summary>
     private static bool ShouldUseSecure
-        => Environment.GetEnvironmentVariable("ACOMMERCE_FORCE_INSECURE_COOKIES") != "1";
+    {
+        get
+        {
+            if (Environment.GetEnvironmentVariable("ACOMMERCE_FORCE_INSECURE_COOKIES") == "1")
+                return false;
+            return HttpAccessor?.HttpContext?.Request.IsHttps ?? false;
+        }
+    }
 
     private static CookieOptions BuildOpts() => new()
     {
