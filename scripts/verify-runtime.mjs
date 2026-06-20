@@ -734,31 +734,68 @@ async function main() {
     });
 
     // Studio + tenant pages تُعيد توجيه إلى /auth عِندَ غِياب cookie. الفَحص
-    // كانَ يَختَبِر صَفحَة auth بَدَلاً مِن المُحتَوى الحَقيقيّ. إن مَرَّ
-    // STUDIO_LOGIN_PHONE = رَقم، نُسَجِّل دُخول studio مَرَّةً واحِدَةً
-    // ونَستَخدِم نَفس الـ cookies لِكُلّ URL. الـ shared context يَحمِل cookies
-    // عَبر صَفَحات. dev OTP code = 123456 (الافتراضيّ في StudioAuth).
+    // كانَ يَختَبِر صَفحَة auth بَدَلاً مِن المُحتَوى الحَقيقيّ. ثَلاث طُرُق
+    // لِلمُصادَقَة:
+    //   STUDIO_LOGIN_PHONE = رَقم  → دُخول studio
+    //   TENANT_LOGIN_SLUG = slug + TENANT_LOGIN_PHONE = رَقم  → دُخول tenant
+    //   TENANT_LOGIN_ROLE = role  → بَعد الدُخول، تَنشيط الدَور
+    // الـ shared context يَحمِل cookies عَبر صَفَحات الفَحص. dev OTP = 123456.
     let sharedContext = null;
-    if (process.env.STUDIO_LOGIN_PHONE) {
-        sharedContext = await browser.newContext({
-            viewport: { width: 1366, height: 900 }
-        });
-        const loginPage = await sharedContext.newPage();
-        const base = new URL(URLS[0]).origin;
+    async function studioLogin(ctx, base) {
+        if (!process.env.STUDIO_LOGIN_PHONE) return;
+        const pg = await ctx.newPage();
         try {
-            await loginPage.goto(`${base}/studio/auth`, { waitUntil: 'networkidle' });
-            await loginPage.fill('input[name="phone"]', process.env.STUDIO_LOGIN_PHONE);
-            await loginPage.click('button[type="submit"]');
-            await loginPage.waitForLoadState('networkidle');
-            await loginPage.fill('input[name="code"]',
-                process.env.STUDIO_LOGIN_CODE || '123456');
-            await loginPage.click('button[type="submit"]');
-            await loginPage.waitForLoadState('networkidle');
+            await pg.goto(`${base}/studio/auth`, { waitUntil: 'networkidle' });
+            await pg.fill('input[name="phone"]', process.env.STUDIO_LOGIN_PHONE);
+            await pg.click('button[type="submit"]');
+            await pg.waitForLoadState('networkidle');
+            await pg.fill('input[name="code"]', process.env.STUDIO_LOGIN_CODE || '123456');
+            await pg.click('button[type="submit"]');
+            await pg.waitForLoadState('networkidle');
             process.stdout.write(`Logged in studio as ${process.env.STUDIO_LOGIN_PHONE}\n`);
         } catch (e) {
             process.stdout.write(`Studio login failed: ${e.message}\n`);
         }
-        await loginPage.close();
+        await pg.close();
+    }
+    async function tenantLogin(ctx, base) {
+        const slug = process.env.TENANT_LOGIN_SLUG;
+        const phone = process.env.TENANT_LOGIN_PHONE;
+        if (!slug || !phone) return;
+        const pg = await ctx.newPage();
+        try {
+            // POST مُباشَر إلى /auth/phone/request ثُمَّ /verify — أَسرَع
+            // مِن مَلء النَّماذِج، يُحَدِّد نَطاقاً مَوَحَّداً مَع backend.
+            const reqRes = await pg.request.post(`${base}/${slug}/auth/phone/request`, {
+                headers: { 'Content-Type': 'application/json' },
+                data: { Phone: phone }
+            });
+            const reqBody = await reqRes.json().catch(() => ({}));
+            const code = reqBody.DisplayCode || process.env.TENANT_LOGIN_CODE || '123456';
+            await pg.request.post(`${base}/${slug}/auth/phone/verify`, {
+                headers: { 'Content-Type': 'application/json' },
+                data: { AttemptId: reqBody.AttemptId, Phone: phone, Code: code }
+            });
+            // GET الصَفحَة الرَئيسيَّة لِيُخَزَّن الـ cookie بَعد التَحَقُّق.
+            await pg.goto(`${base}/${slug}`, { waitUntil: 'domcontentloaded' });
+            // إن طُلِبَ role، فَعِّله عَبر /{slug}/me/role/set.
+            if (process.env.TENANT_LOGIN_ROLE) {
+                await pg.request.post(`${base}/${slug}/me/role/set`, {
+                    form: { role: process.env.TENANT_LOGIN_ROLE }
+                });
+            }
+            process.stdout.write(`Logged in ${slug} as ${phone}` +
+                (process.env.TENANT_LOGIN_ROLE ? ` (role: ${process.env.TENANT_LOGIN_ROLE})` : '') + '\n');
+        } catch (e) {
+            process.stdout.write(`Tenant login failed: ${e.message}\n`);
+        }
+        await pg.close();
+    }
+    if (process.env.STUDIO_LOGIN_PHONE || process.env.TENANT_LOGIN_PHONE) {
+        sharedContext = await browser.newContext({ viewport: { width: 1366, height: 900 } });
+        const base = new URL(URLS[0]).origin;
+        await studioLogin(sharedContext, base);
+        await tenantLogin(sharedContext, base);
     }
 
     process.stdout.write(`Checking ${URLS.length} URLs...\n`);

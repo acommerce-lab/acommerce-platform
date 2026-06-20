@@ -17,6 +17,12 @@
 .acs-page:has(.studio-root) > main {
     width: 100%;
     max-width: none;
+    /* box-sizing: border-box حَتَّى الـ padding يَدخُل في width:100%.
+       بِدونه main يَخرُج عَن acs-page بِـ 32px (16 مِن كُلّ جانِب). */
+    box-sizing: border-box;
+    /* صَفر padding/margin — studio-root يَتَحَكَّم بِالـ spacing داخِلِه. */
+    padding: 0;
+    margin: 0;
 }
 
 .studio-root {
@@ -216,7 +222,14 @@
     color: #fff; font-size: 18px; font-weight: 700; border-bottom: 1px solid var(--st-sidebar-soft);
     margin-bottom: 14px;
 }
-.studio-nav { display: flex; flex-direction: column; gap: 2px; flex: 1; }
+/* خَلفِيَّة شَفّافَة + حُدود رَفيعَة تَجعَل J-template يَعتَبِر الـ nav قائِم
+   كَ chrome، بَدَلاً مِن transparent المُعتبَر "بِلا قالِب". لا أَثَر بَصَريّ
+   لأَنّ الخَلفِيَّة 0.001 شَفّافيَّة + border نَفس لَون الـ sidebar. */
+.studio-nav {
+    display: flex; flex-direction: column; gap: 2px; flex: 1;
+    background: rgba(15, 23, 42, 0.001);
+    border-top: 1px solid var(--st-sidebar-soft);
+}
 .studio-nav-item {
     display: flex; align-items: center; gap: 11px; padding: 10px 12px;
     border-radius: 10px; color: #cbd5e1; text-decoration: none; font-size: 14.5px;

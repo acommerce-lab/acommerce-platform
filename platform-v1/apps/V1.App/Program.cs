@@ -66,6 +66,11 @@ await using (var scope = app.Services.CreateAsyncScope())
     var docStore = scope.ServiceProvider.GetRequiredService<Marten.IDocumentStore>();
     await ACommerce.Templates.Customer.Marketplace.Services.Incubator
         .StudioOwnershipSeeder.RunAsync(docStore);
+
+    // بَيانات اختِبار لِفَحص Layer 6 — لا تَعمَل في الإنتاج. تُفَعَّل
+    // بِـ ENV TEST_DATA_SEED=1، وإلّا تُتَجاوَز.
+    if (Environment.GetEnvironmentVariable("TEST_DATA_SEED") == "1")
+        await TestDataSeeder.RunAsync(scope.ServiceProvider);
 }
 
 app.UsePlatformHost();
