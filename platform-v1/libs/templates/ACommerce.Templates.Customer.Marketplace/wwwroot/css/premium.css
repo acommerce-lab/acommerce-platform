@@ -408,3 +408,95 @@ button.ac-btn-primary {
 .acm-section-title, .st-section-title, .acm-role-home-head h2 {
     font-weight: 800; letter-spacing: -.02em;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   14. بِطاقَة الإعلان (AcSpaceCard) — إعادَة تَصميم كامِلَة + مُتَجاوِبَة
+   النَّمَط المَرجِعيّ لِكُلّ البِطاقات. صورَة 16:10، placeholder تَدَرُّجيّ،
+   قَلب زُجاجيّ، شارَة pill، سِعر بارِز مَفصول بِخَطّ، رَفع + تَكبير صورَة.
+   ═══════════════════════════════════════════════════════════════════════ */
+.ac-space {
+    background: var(--ac-surface);
+    border: 1px solid var(--ac-border);
+    border-radius: var(--ac-radius-lg);
+    box-shadow: var(--ac-shadow-sm);
+    overflow: hidden;
+    transition: transform var(--ac-transition), box-shadow var(--ac-transition),
+                border-color var(--ac-transition);
+}
+.ac-space:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--ac-shadow-lg);
+    border-color: var(--ac-tint-16);
+}
+.ac-space-media {
+    aspect-ratio: 16 / 10;
+    background: linear-gradient(135deg, var(--ac-tint-12), var(--ac-tint-04));
+}
+.ac-space-media img { transition: transform 500ms var(--ac-ease-out); }
+.ac-space:hover .ac-space-media img { transform: scale(1.06); }
+.ac-space-placeholder { color: color-mix(in srgb, var(--ac-primary) 38%, transparent); }
+.ac-space-placeholder svg { width: 46px; height: 46px; }
+
+/* شارَة — pill بِتَدَرُّج لَون المَتجَر */
+.ac-space-ribbon {
+    top: 10px; inset-inline-start: 10px;
+    padding: 5px 12px; border: 0;
+    border-radius: var(--ac-radius-pill);
+    background: var(--ac-gradient-brand); color: #fff;
+    font-size: 11px; font-weight: 800; letter-spacing: -.01em;
+    box-shadow: var(--ac-shadow-brand-sm);
+}
+
+/* قَلب المُفَضَّلَة — زُجاجيّ دائِريّ */
+.ac-space-fav,
+.ac-space-fav-form .ac-space-fav {
+    top: 10px; inset-inline-end: 10px;
+    width: 38px; height: 38px; border: 0;
+    background: color-mix(in srgb, #fff 82%, transparent);
+    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    box-shadow: var(--ac-shadow-sm);
+    color: var(--ac-text-muted);
+    transition: transform var(--ac-transition), color var(--ac-transition),
+                background var(--ac-transition);
+}
+.ac-space-fav:hover,
+.ac-space-fav-form .ac-space-fav:hover { transform: scale(1.1); color: var(--ac-danger); }
+.ac-space-fav.is-fav,
+.ac-space-fav-form .ac-space-fav.is-fav { color: var(--ac-danger); }
+
+/* الجِسم */
+.ac-space-body { padding: 14px 16px 16px; gap: 6px; }
+.ac-space-title {
+    font-size: 16px; font-weight: 800; letter-spacing: -.01em;
+    line-height: 1.35; white-space: normal;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+.ac-space-meta { font-size: 12.5px; color: var(--ac-text-muted); }
+/* السِّعر — بارِز، مَفصول بِخَطّ هَيرلاين */
+.ac-space-price {
+    margin-top: 8px; padding-top: 12px;
+    border-top: 1px solid var(--ac-border);
+    font-size: 18px; font-weight: 800; letter-spacing: -.01em;
+    color: var(--ac-primary);
+}
+
+/* ─── شَبَكَة الاستِكشاف + الرَّئيسيَّة — مُتَجاوِبَة (auto-fill) ──────────── */
+.acm-explore-grid,
+.acm-home-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 12px;
+}
+@media (min-width: 641px) {
+    .acm-explore-grid, .acm-home-grid {
+        grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+        gap: 16px;
+    }
+}
+@media (min-width: 1024px) {
+    .acm-explore-grid, .acm-home-grid {
+        grid-template-columns: repeat(auto-fill, minmax(248px, 1fr));
+        gap: 20px;
+    }
+}
