@@ -830,3 +830,90 @@ a.ac-stat:hover, a.acm-role-cta-pill:hover {
 .ac-pricetag { display: inline-flex; align-items: baseline; gap: 4px; }
 .ac-pricetag-amount { font-size: 18px; font-weight: 800; letter-spacing: -.02em; color: var(--ac-text); }
 .ac-pricetag-unit { font-size: 12px; font-weight: 600; color: var(--ac-text-muted); }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   18. R3 — التَّنَقُّل والفَلاتِر (بَحث، segmented، فَلاتِر، فَرز)
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* ── صُندوق البَحث (AcSearchBox) — حَقل pill بِأَيقونَة ────────────────── */
+.ac-search {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--ac-surface); border: 1.5px solid var(--ac-border);
+    border-radius: var(--ac-radius-pill); padding: 4px 6px 4px 14px;
+    transition: border-color var(--ac-transition), box-shadow var(--ac-transition);
+}
+.ac-search:focus-within {
+    border-color: var(--ac-primary);
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--ac-primary) 14%, transparent);
+}
+.ac-search-icon { color: var(--ac-text-soft); display: inline-flex; flex-shrink: 0; }
+.ac-search-input {
+    flex: 1; min-width: 0; border: 0; outline: 0; background: transparent;
+    font-family: var(--ac-font-family); font-size: 15px; color: var(--ac-text);
+    padding: 8px 0;
+}
+.ac-search-input::placeholder { color: var(--ac-text-soft); }
+.ac-search-submit {
+    flex-shrink: 0; width: 38px; height: 38px; border: 0; cursor: pointer;
+    border-radius: var(--ac-radius-pill); display: grid; place-items: center;
+    background: var(--ac-gradient-brand); color: var(--ac-on-primary, #fff);
+    box-shadow: var(--ac-shadow-brand-sm);
+    transition: transform 120ms var(--ac-ease), filter var(--ac-transition);
+}
+.ac-search-submit:hover { filter: brightness(1.05); transform: scale(1.04); }
+
+/* ── مُبَدِّل مَقاطِع (AcSegmentControl) — حُبَيبَة مُنزَلِقَة ─────────────── */
+.acs-seg {
+    display: inline-flex; gap: 2px; padding: 4px;
+    background: var(--ac-bg-alt); border-radius: var(--ac-radius-md);
+    border: 1px solid var(--ac-border);
+}
+.acs-seg-btn {
+    border: 0; cursor: pointer; background: transparent;
+    padding: 8px 16px; border-radius: var(--ac-radius-sm);
+    font-family: var(--ac-font-family); font-size: 13.5px; font-weight: 700;
+    color: var(--ac-text-muted);
+    display: inline-flex; align-items: center; gap: 6px;
+    transition: background var(--ac-transition), color var(--ac-transition),
+                box-shadow var(--ac-transition);
+}
+.acs-seg-btn:hover { color: var(--ac-text); }
+.acs-seg-btn.active {
+    background: var(--ac-surface); color: var(--ac-primary);
+    box-shadow: var(--ac-shadow-sm);
+}
+.acs-seg-badge {
+    min-width: 18px; height: 18px; padding: 0 5px; border-radius: var(--ac-radius-pill);
+    background: var(--ac-tint-12); color: var(--ac-on-tint);
+    font-size: 11px; font-weight: 800; display: inline-grid; place-items: center;
+}
+.acs-seg-btn.active .acs-seg-badge { background: var(--ac-primary); color: var(--ac-on-primary, #fff); }
+
+/* ── شَريط الفَلاتِر في الاستِكشاف — زِرّ فَلتَر + فَرز نَظيف ────────────── */
+.acm-explore-filterbtn {
+    width: 44px; height: 44px; border-radius: var(--ac-radius-md);
+    border: 1px solid var(--ac-border); background: var(--ac-surface);
+    color: var(--ac-text-muted); box-shadow: var(--ac-shadow-xs);
+    transition: transform var(--ac-transition), color var(--ac-transition),
+                border-color var(--ac-transition);
+}
+.acm-explore-filterbtn:hover {
+    color: var(--ac-primary); border-color: var(--ac-border-strong);
+    background: var(--ac-surface); transform: translateY(-1px);
+}
+.acm-explore-count { font-size: 13px; font-weight: 600; color: var(--ac-text-muted); }
+.acm-explore-sortbar { margin: 4px 0 16px; }
+
+/* ── رُقَع الفَلتَر (AcFilterChip) ───────────────────────────────────── */
+.ac-filter-chip {
+    padding: 8px 14px; border-radius: var(--ac-radius-pill);
+    border: 1px solid var(--ac-border); background: var(--ac-surface);
+    color: var(--ac-text-muted); font-size: 13px; font-weight: 600;
+    transition: background var(--ac-transition), color var(--ac-transition),
+                border-color var(--ac-transition);
+}
+.ac-filter-chip:hover { border-color: var(--ac-border-strong); color: var(--ac-text); background: var(--ac-surface); }
+.ac-filter-chip.is-active {
+    background: var(--ac-primary); color: var(--ac-on-primary, #fff);
+    border-color: var(--ac-primary); font-weight: 700;
+}
