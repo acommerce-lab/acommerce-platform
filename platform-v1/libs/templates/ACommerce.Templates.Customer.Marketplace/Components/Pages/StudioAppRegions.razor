@@ -30,23 +30,56 @@
             @if (Err == "empty")   { <div class="st-chip st-chip-danger"  style="margin-bottom:14px;">أَضِف مَدينَة واحِدَة على الأَقَلّ</div> }
             @if (Err == "format")  { <div class="st-chip st-chip-danger"  style="margin-bottom:14px;">صِيغَة سَطر غَير صَحيحَة</div> }
 
-            <form method="post" action="@($"/studio/apps/{Slug}/regions/save")" class="st-card">
-                <div class="st-field">
-                    <label class="st-label">المُدُن والأَحياء</label>
-                    <textarea name="regions" required rows="@Math.Max(8, lineCount + 3)"
-                              class="st-textarea" style="font-family:inherit;font-size:14px;">@regionsText</textarea>
+            <form method="post" action="@($"/studio/apps/{Slug}/regions/save")" id="regions-form" class="st-card">
+                <p style="color:var(--st-muted);font-size:13px;margin:0 0 14px;">
+                    بِطاقَة لِكُلّ مَدينَة. اكتُب الحَيّ ثُمَّ اضغَط Enter لِإضافَتِه.
+                </p>
+
+                <div class="ac-editor" id="cities-editor">
+                    @foreach (var (city, kids) in citiesWithKids)
+                    {
+                        <div class="ac-editor-row" data-city-row>
+                            <div class="ac-editor-row-head">
+                                <input class="ac-input ac-city-name" placeholder="اسم المَدينَة" value="@city" />
+                                <button type="button" class="ac-icon-btn" data-remove-city aria-label="حَذف المَدينَة">✕</button>
+                            </div>
+                            <div>
+                                <span class="ac-chip-input-label">الأَحياء</span>
+                                <div class="ac-chip-input" data-districts>
+                                    @foreach (var d in kids)
+                                    {
+                                        <span class="ac-chip-tag"><span class="t">@d</span><button type="button" aria-label="حَذف">×</button></span>
+                                    }
+                                    <input class="ac-chip-entry" placeholder="أَضِف حَيّاً ثُمَّ Enter" />
+                                </div>
+                            </div>
+                        </div>
+                    }
                 </div>
-                <div style="background:var(--st-line-soft);padding:12px 14px;border-radius:10px;
-                            font-size:12.5px;color:var(--st-muted);line-height:1.9;">
-                    <strong>الصِيغَة:</strong> كُلّ سَطر مَدينَة. اِستَخدِم <code>></code> ثُمَّ
-                    أَحياء مَفصولَة بِفاصِلَة (<code>،</code> أَو <code>,</code>).<br/>
-                    <strong>مَثَلاً:</strong><br/>
-                    <code>الرياض > النَّخيل، المَلَقا، الياسمين</code><br/>
-                    <code>جدة > الشاطِئ، الرَوضَة</code><br/>
-                    <code>الدَمّام</code> (بِلا أَحياء)
-                </div>
-                <button type="submit" class="st-btn st-btn-primary" style="margin-top:14px;">حِفظ التَّغطيَة</button>
+
+                <button type="button" class="ac-add-row-btn" id="add-city" style="margin-top:12px;">
+                    <AcIcon Name="plus" Size="16" /> إضافَة مَدينَة
+                </button>
+
+                <textarea name="regions" id="regions-hidden" hidden>@regionsText</textarea>
+
+                <button type="submit" class="st-btn st-btn-primary" style="margin-top:16px;">حِفظ التَّغطيَة</button>
             </form>
+
+            <template id="city-row-tpl">
+                <div class="ac-editor-row" data-city-row>
+                    <div class="ac-editor-row-head">
+                        <input class="ac-input ac-city-name" placeholder="اسم المَدينَة" />
+                        <button type="button" class="ac-icon-btn" data-remove-city aria-label="حَذف المَدينَة">✕</button>
+                    </div>
+                    <div>
+                        <span class="ac-chip-input-label">الأَحياء</span>
+                        <div class="ac-chip-input" data-districts>
+                            <input class="ac-chip-entry" placeholder="أَضِف حَيّاً ثُمَّ Enter" />
+                        </div>
+                    </div>
+                </div>
+            </template>
         }
     </ChildContent>
 </StudioShell>
@@ -58,6 +91,7 @@
     Tenant? tenant;
     string regionsText = "";
     int lineCount;
+    List<(string City, List<string> Districts)> citiesWithKids = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -86,6 +120,7 @@
                 .Select(r => GetStr(r, "Name"))
                 .Where(s => !string.IsNullOrEmpty(s)).ToList();
             lines.Add(districts.Count > 0 ? $"{name} > {string.Join("، ", districts)}" : name);
+            citiesWithKids.Add((name, districts));
         }
         regionsText = string.Join("\n", lines);
         lineCount = lines.Count;
