@@ -14,10 +14,12 @@
 }
 .ac-auth-logo {
     width: 60px; height: 60px; border-radius: 16px; margin: 0 auto 16px;
-    display: grid; place-items: center; font-size: 30px; color: #fff;
+    /* 28px داخِل المِقياس بَدَلاً مِن 30px خارِجه. */
+    display: grid; place-items: center; font-size: 28px; color: #fff;
     box-shadow: 0 10px 24px color-mix(in srgb, var(--ac-primary) 35%, transparent);
 }
-.ac-auth-title { text-align: center; font-size: 23px; font-weight: 800; margin: 0 0 4px; }
+/* 24px داخِل المِقياس بَدَلاً مِن 23px. */
+.ac-auth-title { text-align: center; font-size: 24px; font-weight: 800; margin: 0 0 4px; }
 .ac-auth-sub { text-align: center; font-size: 14px; color: var(--ac-text-muted); margin: 0 0 24px; }
 .ac-auth-back { text-align: center; margin: 18px 0 0; font-size: 13px; }
 .ac-auth-back a { color: var(--ac-text-muted); text-decoration: none; }
@@ -732,7 +734,8 @@
     box-shadow: 0 10px 28px color-mix(in srgb, var(--ac-primary) 22%, transparent);
 }
 .acm-role-landing-card-icon {
-    font-size: 30px; line-height: 1; width: 58px; height: 58px;
+    /* 28 على المِقياس. */
+    font-size: 28px; line-height: 1; width: 58px; height: 58px;
     display: grid; place-items: center;
     background: color-mix(in srgb, var(--ac-primary) 10%, var(--ac-bg-alt));
     border-radius: 15px; flex-shrink: 0;
