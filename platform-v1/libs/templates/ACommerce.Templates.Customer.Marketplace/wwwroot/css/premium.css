@@ -726,3 +726,107 @@ a.ac-stat:hover, a.acm-role-cta-pill:hover {
     content: ""; position: absolute; top: -1px; width: 22px; height: 3px;
     border-radius: 0 0 3px 3px; background: var(--ac-primary);
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   17. R2 — وِدجِتس المُحتَوى (بَلاطَة تَصنيف، صَفّ inbox، تَقييم، سِعر)
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* ── بَلاطَة التَّصنيف (AcCategoryTile) — أَيقونَة في مُربَّع + تَسمِيَة ──── */
+.ac-tile {
+    display: inline-flex; flex-direction: column; align-items: center; gap: 8px;
+    background: none; border: 0; cursor: pointer; text-decoration: none;
+    color: var(--ac-text); flex-shrink: 0; width: 76px;
+    padding: 2px;
+}
+.ac-tile-icon {
+    width: 60px; height: 60px; display: grid; place-items: center;
+    border-radius: var(--ac-radius-lg);
+    background: var(--ac-bg-alt);
+    border: 1px solid var(--ac-border);
+    color: var(--ac-text-muted);
+    transition: transform var(--ac-transition), background var(--ac-transition),
+                border-color var(--ac-transition), color var(--ac-transition);
+}
+.ac-tile-emoji { font-size: 26px; line-height: 1; }
+.ac-tile-label {
+    font-size: 12px; font-weight: 600; color: var(--ac-text-muted);
+    text-align: center; line-height: 1.3;
+    max-width: 76px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.ac-tile:hover .ac-tile-icon {
+    transform: translateY(-2px);
+    border-color: var(--ac-border-strong);
+    color: var(--ac-text);
+}
+.ac-tile-selected .ac-tile-icon {
+    background: var(--ac-tint-12); border-color: var(--ac-primary);
+    color: var(--ac-primary);
+}
+.ac-tile-selected .ac-tile-label { color: var(--ac-primary); font-weight: 700; }
+
+/* ── رُقَع التَّصنيف الشَّجَريَّة (taxonomy) — pills نَظيفَة ────────────── */
+.acm-taxo-chip {
+    display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0;
+    padding: 8px 14px; border-radius: var(--ac-radius-pill);
+    background: var(--ac-surface); border: 1px solid var(--ac-border);
+    color: var(--ac-text-muted); text-decoration: none;
+    font-size: 13px; font-weight: 600; white-space: nowrap;
+    transition: background var(--ac-transition), color var(--ac-transition),
+                border-color var(--ac-transition);
+}
+.acm-taxo-chip:hover { border-color: var(--ac-border-strong); color: var(--ac-text); background: var(--ac-surface); }
+.acm-taxo-chip.is-active {
+    background: var(--ac-primary); color: var(--ac-on-primary, #fff);
+    border-color: var(--ac-primary); font-weight: 700;
+}
+
+/* ── صَفّ inbox (AcListRow) — مُقَدِّمَة + جِسم + شارَة ─────────────────── */
+.ac-listrow {
+    display: flex; align-items: center; gap: 12px;
+    padding: 14px 16px; text-decoration: none; color: var(--ac-text);
+    background: var(--ac-surface); border: 1px solid var(--ac-border);
+    border-radius: var(--ac-radius-md); margin-bottom: 8px;
+    box-shadow: var(--ac-shadow-xs);
+    transition: transform var(--ac-transition), box-shadow var(--ac-transition),
+                border-color var(--ac-transition);
+}
+.ac-listrow:hover {
+    transform: translateY(-1px); box-shadow: var(--ac-shadow-md);
+    border-color: var(--ac-border-strong);
+}
+.ac-listrow.is-unread { border-inline-start: 3px solid var(--ac-primary); }
+.ac-listrow-lead { flex-shrink: 0; }
+.ac-listrow-lead img, .ac-listrow-avatar, .ac-listrow-icon {
+    width: 46px; height: 46px; border-radius: var(--ac-radius-pill);
+    object-fit: cover; display: grid; place-items: center;
+}
+.ac-listrow-avatar {
+    background: var(--ac-tint-12); color: var(--ac-on-tint);
+    font-weight: 800; font-size: 18px;
+}
+.ac-listrow-icon { background: var(--ac-bg-alt); color: var(--ac-text-muted); }
+.ac-listrow-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.ac-listrow-top { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.ac-listrow-title { font-size: 15px; font-weight: 700; letter-spacing: -.01em;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ac-listrow-time { font-size: 11.5px; color: var(--ac-text-soft); flex-shrink: 0; }
+.ac-listrow-preview { font-size: 13px; color: var(--ac-text-muted);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ac-listrow.is-unread .ac-listrow-title { font-weight: 800; }
+.ac-listrow.is-unread .ac-listrow-preview { color: var(--ac-text); }
+.ac-listrow-badge {
+    flex-shrink: 0; min-width: 22px; height: 22px; padding: 0 7px;
+    display: grid; place-items: center; border-radius: var(--ac-radius-pill);
+    background: var(--ac-primary); color: var(--ac-on-primary, #fff);
+    font-size: 11.5px; font-weight: 800;
+}
+
+/* ── تَقييم نُجوم (AcRating) ─────────────────────────────────────────── */
+.ac-rating { display: inline-flex; align-items: center; gap: 2px; color: #f59e0b; }
+.ac-rating-empty { color: var(--ac-border-strong); }
+.ac-rating-value { font-size: 13px; font-weight: 700; color: var(--ac-text); margin-inline-start: 4px; }
+
+/* ── شارَة سِعر مُوَحَّدَة (AcPriceTag) ───────────────────────────────── */
+.ac-pricetag { display: inline-flex; align-items: baseline; gap: 4px; }
+.ac-pricetag-amount { font-size: 18px; font-weight: 800; letter-spacing: -.02em; color: var(--ac-text); }
+.ac-pricetag-unit { font-size: 12px; font-weight: 600; color: var(--ac-text-muted); }

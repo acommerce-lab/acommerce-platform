@@ -12,28 +12,32 @@
     CSS_CLASSES: ac-tile, ac-tile-icon, ac-tile-label, ac-tile-selected
 *@
 
+@{
+    // الـ Icon قَد يَكون اسم أَيقونَة SVG ("home") أَو إيموجي ("🏠"). إن لَم
+    // يُطابِق نَمَط الاسم (حُروف لاتينيَّة/أَرقام/شَرطَة) فَهو إيموجي يُعرَض
+    // كَنَصّ — كانَ يُمَرَّر لِـ AcIcon كَاسم فَيَظهَر فارِغاً (الدَّوائِر الخاوِيَة).
+    var isEmoji = !string.IsNullOrEmpty(Icon)
+        && !System.Text.RegularExpressions.Regex.IsMatch(Icon, "^[a-z0-9-]+$");
+
+    RenderFragment iconInner = @<text>
+        <span class="ac-tile-icon" aria-hidden="true">
+            @if (isEmoji) { <span class="ac-tile-emoji">@Icon</span> }
+            else { <AcIcon Name="@Icon" Size="24" /> }
+        </span>
+        <span class="ac-tile-label">@Label</span>
+    </text>;
+}
+
 @if (!string.IsNullOrEmpty(Href))
 {
     <a class="ac-tile @(Selected ? "ac-tile-selected" : "") @(Class ?? "")"
-       href="@Href"
-       aria-pressed="@Selected">
-        <span class="ac-tile-icon" aria-hidden="true">
-            <AcIcon Name="@Icon" Size="22" />
-        </span>
-        <span class="ac-tile-label">@Label</span>
-    </a>
+       href="@Href" aria-pressed="@Selected">@iconInner</a>
 }
 else
 {
     <button type="button"
             class="ac-tile @(Selected ? "ac-tile-selected" : "") @(Class ?? "")"
-            @onclick="OnClickInternal"
-            aria-pressed="@Selected">
-        <span class="ac-tile-icon" aria-hidden="true">
-            <AcIcon Name="@Icon" Size="22" />
-        </span>
-        <span class="ac-tile-label">@Label</span>
-    </button>
+            @onclick="OnClickInternal" aria-pressed="@Selected">@iconInner</button>
 }
 
 @code {
