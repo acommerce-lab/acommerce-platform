@@ -510,3 +510,85 @@ button.ac-btn-primary {
         gap: 20px;
     }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   15. مُحَرِّرات مُهَيكَلَة (structured editors) — بَديل مُربَّع النَّصّ بِفَواصِل
+   مُدخَل رُقَع (chip input) + صُفوف قابِلَة لِلتَّكرار. لِلمُدُن/الخَصائِص/الفِئات.
+   ═══════════════════════════════════════════════════════════════════════ */
+.ac-editor { display: flex; flex-direction: column; gap: 12px; }
+
+/* بِطاقَة صَفّ قابِلَة لِلحَذف (مَدينَة / حَقل / فِئَة) */
+.ac-editor-row {
+    background: var(--ac-surface);
+    border: 1px solid var(--ac-border);
+    border-radius: var(--ac-radius-md);
+    padding: 14px;
+    display: flex; flex-direction: column; gap: 10px;
+    box-shadow: var(--ac-shadow-xs);
+}
+.ac-editor-row-head { display: flex; align-items: center; gap: 8px; }
+.ac-editor-row-head .ac-input { flex: 1; }
+
+/* زِرّ أَيقونَة دائِريّ صَغير (حَذف) */
+.ac-icon-btn {
+    width: 36px; height: 36px; flex-shrink: 0;
+    display: grid; place-items: center;
+    border: 1px solid var(--ac-border); border-radius: var(--ac-radius-pill);
+    background: var(--ac-surface); color: var(--ac-text-muted);
+    cursor: pointer; font-size: 16px; line-height: 1;
+    transition: background var(--ac-transition), color var(--ac-transition),
+                border-color var(--ac-transition);
+}
+.ac-icon-btn:hover { background: color-mix(in srgb, var(--ac-danger) 8%, transparent);
+    color: var(--ac-danger); border-color: color-mix(in srgb, var(--ac-danger) 30%, transparent); }
+
+/* مُدخَل الرُّقَع — يَبدو كَحَقل، يَحوي رُقَعاً + مُدخَل نَصّ مُدمَج */
+.ac-chip-input {
+    display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
+    min-height: 44px; padding: 8px 10px;
+    border: 1.5px solid var(--ac-border); border-radius: var(--ac-radius-md);
+    background: var(--ac-surface);
+    transition: border-color var(--ac-transition), box-shadow var(--ac-transition);
+}
+.ac-chip-input:focus-within {
+    border-color: var(--ac-primary);
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--ac-primary) 14%, transparent);
+}
+.ac-chip-tag {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 6px 4px 10px; border-radius: var(--ac-radius-pill);
+    background: var(--ac-tint-08); color: var(--ac-on-tint);
+    font-size: 13px; font-weight: 600;
+}
+.ac-chip-tag button {
+    width: 18px; height: 18px; border: 0; border-radius: 50%;
+    background: color-mix(in srgb, var(--ac-on-tint) 14%, transparent);
+    color: var(--ac-on-tint); cursor: pointer; font-size: 12px; line-height: 1;
+    display: grid; place-items: center;
+}
+.ac-chip-tag button:hover { background: var(--ac-danger); color: #fff; }
+.ac-chip-entry {
+    flex: 1; min-width: 90px; border: 0; outline: 0; background: transparent;
+    font-family: var(--ac-font-family); font-size: 14px; color: var(--ac-text);
+    padding: 4px;
+}
+.ac-chip-input-label {
+    font-size: 12px; font-weight: 700; color: var(--ac-text-muted);
+    margin-bottom: 4px; display: block;
+}
+
+/* زِرّ «+ إضافَة» مُتَقَطِّع الحَدّ */
+.ac-add-row-btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    width: 100%; padding: 12px;
+    border: 1.5px dashed var(--ac-border-strong); border-radius: var(--ac-radius-md);
+    background: transparent; color: var(--ac-text-muted);
+    cursor: pointer; font-family: var(--ac-font-family);
+    font-size: 14px; font-weight: 700;
+    transition: border-color var(--ac-transition), color var(--ac-transition),
+                background var(--ac-transition);
+}
+.ac-add-row-btn:hover {
+    border-color: var(--ac-primary); color: var(--ac-primary);
+    background: var(--ac-tint-04);
+}

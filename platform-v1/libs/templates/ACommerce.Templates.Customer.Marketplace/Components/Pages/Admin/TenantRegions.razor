@@ -70,17 +70,41 @@
             </ChildContent>
         </AcCard>
 
-        <form method="post" action="@($"/admin/tenants/{Slug}/regions/save")">
+        <form method="post" action="@($"/admin/tenants/{Slug}/regions/save")" id="regions-form">
             <AcCard>
                 <ChildContent>
                     <h3 style="margin-top:0;">تَحديث المُدُن والأَحياء</h3>
-                    <p style="color:var(--ac-text-muted);font-size:13px;margin:0 0 12px;">
-                        سَطر لِكُلّ مَدينَة بِالصِّيغَة:
-                        <code>المَدينَة &gt; الحَيّ1، الحَيّ2، …</code>
-                        مَدينَة بِلا أَحياء؟ اكتُب اسمها فَقَط بِلا <code>&gt;</code>.
+                    <p style="color:var(--ac-text-muted);font-size:13px;margin:0 0 14px;">
+                        بِطاقَة لِكُلّ مَدينَة. اكتُب الحَيّ ثُمَّ اضغَط Enter لِإضافَتِه.
                     </p>
-                    <textarea name="regions" rows="10" required
-                              class="ac-input" style="font-family:monospace;font-size:13px;">@regionsText</textarea>
+
+                    <div class="ac-editor" id="cities-editor">
+                        @foreach (var (city, kids) in citiesWithKids)
+                        {
+                            <div class="ac-editor-row" data-city-row>
+                                <div class="ac-editor-row-head">
+                                    <input class="ac-input ac-city-name" placeholder="اسم المَدينَة" value="@city" />
+                                    <button type="button" class="ac-icon-btn" data-remove-city aria-label="حَذف المَدينَة">✕</button>
+                                </div>
+                                <div>
+                                    <span class="ac-chip-input-label">الأَحياء</span>
+                                    <div class="ac-chip-input" data-districts>
+                                        @foreach (var d in kids)
+                                        {
+                                            <span class="ac-chip-tag"><span class="t">@d</span><button type="button" aria-label="حَذف">×</button></span>
+                                        }
+                                        <input class="ac-chip-entry" placeholder="أَضِف حَيّاً ثُمَّ Enter" />
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+
+                    <button type="button" class="ac-add-row-btn" id="add-city" style="margin-top:12px;">
+                        <AcIcon Name="plus" Size="16" /> إضافَة مَدينَة
+                    </button>
+
+                    <textarea name="regions" id="regions-hidden" hidden>@regionsText</textarea>
                 </ChildContent>
             </AcCard>
 
@@ -91,6 +115,67 @@
                 </button>
             </div>
         </form>
+
+        <template id="city-row-tpl">
+            <div class="ac-editor-row" data-city-row>
+                <div class="ac-editor-row-head">
+                    <input class="ac-input ac-city-name" placeholder="اسم المَدينَة" />
+                    <button type="button" class="ac-icon-btn" data-remove-city aria-label="حَذف المَدينَة">✕</button>
+                </div>
+                <div>
+                    <span class="ac-chip-input-label">الأَحياء</span>
+                    <div class="ac-chip-input" data-districts>
+                        <input class="ac-chip-entry" placeholder="أَضِف حَيّاً ثُمَّ Enter" />
+                    </div>
+                </div>
+            </div>
+        </template>
+
+        <script>
+        (function () {
+            var editor = document.getElementById('cities-editor');
+            var form   = document.getElementById('regions-form');
+            var hidden = document.getElementById('regions-hidden');
+            var addBtn = document.getElementById('add-city');
+            var tpl    = document.getElementById('city-row-tpl');
+            if (!editor || !form || !hidden) return;
+            function makeChip(text) {
+                var s = document.createElement('span'); s.className = 'ac-chip-tag';
+                var t = document.createElement('span'); t.className = 't'; t.textContent = text;
+                var b = document.createElement('button'); b.type = 'button'; b.textContent = '×';
+                s.appendChild(t); s.appendChild(b); return s;
+            }
+            editor.addEventListener('keydown', function (e) {
+                if (e.key !== 'Enter') return;
+                var inp = e.target.closest('.ac-chip-entry'); if (!inp) return;
+                e.preventDefault();
+                var val = inp.value.trim(); if (!val) return;
+                inp.parentNode.insertBefore(makeChip(val), inp); inp.value = '';
+            });
+            editor.addEventListener('click', function (e) {
+                if (e.target.closest('[data-remove-city]')) { e.target.closest('[data-city-row]').remove(); }
+                else if (e.target.closest('.ac-chip-tag button')) { e.target.closest('.ac-chip-tag').remove(); }
+            });
+            if (addBtn && tpl) addBtn.addEventListener('click', function () {
+                editor.appendChild(tpl.content.cloneNode(true));
+                var rows = editor.querySelectorAll('.ac-city-name');
+                if (rows.length) rows[rows.length - 1].focus();
+            });
+            form.addEventListener('submit', function () {
+                var lines = [];
+                editor.querySelectorAll('[data-city-row]').forEach(function (row) {
+                    var name = (row.querySelector('.ac-city-name').value || '').trim();
+                    if (!name) return;
+                    var ds = [];
+                    row.querySelectorAll('.ac-chip-tag .t').forEach(function (t) {
+                        var v = (t.textContent || '').trim(); if (v) ds.push(v);
+                    });
+                    lines.push(ds.length ? (name + ' > ' + ds.join('،')) : name);
+                });
+                hidden.value = lines.join('\n');
+            });
+        })();
+        </script>
     }
 </div>
 

@@ -111,6 +111,41 @@ RolePicker
 
 ---
 
+## الجُزء ب٢ — صَفحات المَنصَّة (admin / studio / app-admin)
+
+> لَيسَت صَفحات عَميل، لكِنَّها جُزء مِن المُنتَج المَبيع — يَجِب أَن تَكون
+> ضِمن نَفس لُغَة التَّصميم.
+
+### أ) ادمن المَنصَّة `/admin/*`
+AdminHome، CreateTenant، AuditLogPage، QualityMonitor، AgentChat،
+IncubatorHome/Wizard/Study، IncubatorFixtures.
+**النَّمَط:** Dashboard إداريّ — `AcPageHeader` + `AcStatsGrid` + جَداوِل/صُفوف
+نَظيفَة (`AcListRow`) + إجراءات. لا زَخرَفَة.
+
+### ب) رائِد الأَعمال `/studio/*` (StudioShell)
+StudioHome، StudioApp(+branding/categories/regions/roles/console/deals/
+tickets)، StudioBilling، StudioNewIdea، StudioStudy.
+**النَّمَط:** Shell جانِبيّ + مُحتَوى. بِطاقات إحصاء + قَوائِم + مُحَرِّرات.
+
+### ج) ادمن التَّطبيق `/admin/tenants/{slug}/*`
+TenantEdit، TenantBranding، TenantCategories، **TenantRegions**،
+**TenantAttributes**، TenantRoles، TenantUsers، TenantPwa.
+**النَّمَط:** نَماذِج تَكوين — `AcPageHeader` + أَقسام بِطاقات + **مُحَرِّرات
+مُهَيكَلَة** (لا نَصّ خام).
+
+### ⛔ قاعِدَة إلزامِيَّة — مَوت مُربَّع النَّصّ بِفَواصِل
+المُحَرِّرات الحاليَّة تَستَخدِم `textarea` بِفَواصِل (`المَدينَة > حَيّ،حَيّ`
+و`Code | Name | Type | req | val=label`). **هذا مَمنوع** — صيغَة مُطَوِّرين
+لا تَليق بِعَميل. تُستَبدَل بِـ:
+| المُحَرِّر | الواجِهَة المُهَيكَلَة الجَديدَة |
+|---|---|
+| **المُدُن/الأَحياء** (TenantRegions) | بِطاقَة لِكُلّ مَدينَة: حَقل اسم + **مُدخَل رُقَع (chip input)** لِلأَحياء + زِرّ حَذف. «+ مَدينَة». |
+| **الخَصائِص** (TenantAttributes) | بِطاقَة لِكُلّ حَقل: Code + الاسم + قائِمَة Type + مِفتاح «مَطلوب» + (لِلاختِيار) مُحَرِّر خِيارات بِرُقَع. «+ حَقل». |
+| **الفِئات** (TenantCategories) | صَفّ لِكُلّ فِئَة: slug + تَسمِيَة + أَيقونَة + قائِمَة kind. «+ فِئَة». |
+**التَّقنِيَة:** تَحسين تَدريجيّ — واجِهَة مُهَيكَلَة + JS يُسَلسِل إلى الحَقل
+المَخفيّ بِالصيغَة الَّتي يَفهَمُها الـ endpoint الحاليّ (صِفر تَغيير خَلفيّ).
+وِدجِت جَديد: **AcChipInput** + **AcRepeatRows**.
+
 ## الجُزء ج — تَخطيط الوِدجِتس
 
 ### تُعاد هَيكَلَتها (بُنيَة جَديدَة، لا تَنسيق فَقَط)
