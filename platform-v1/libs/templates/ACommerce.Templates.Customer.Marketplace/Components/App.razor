@@ -32,6 +32,11 @@
         <link rel="stylesheet" href="@($"/branding/{Tenant.Slug}.css")" />
     }
 
+    @* طَبَقَة الرُّقِيّ البَصَريّ — تُحَمَّل آخِراً (بَعد branding) لِتَفوز على
+       كُلّ شَيء في تَنسيق المُكَوِّنات، دونَ لَمس --ac-primary المَملوك لِكُلّ
+       مَتجَر. تَرفَع كُلّ صَفحَة في كُلّ دَور. *@
+    <link rel="stylesheet" href="_content/ACommerce.Templates.Customer.Marketplace/css/premium.css" />
+
     @* PWA: manifest + theme-color + iOS web-app meta.
        قاعِدَة: التَّثبيت "يَبدَأ" مِن داخِل تَطبيق دَور فِعليّ — لا مِن
        صَفحَة /login أَو /terms أَو /admin أَو الـ launcher الفارِغ

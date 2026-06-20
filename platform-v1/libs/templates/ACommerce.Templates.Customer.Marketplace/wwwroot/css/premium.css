@@ -1,0 +1,410 @@
+/* ═══════════════════════════════════════════════════════════════════════
+   PREMIUM DESIGN LAYER — طَبَقَة الرُّقِيّ البَصَريّ
+   ───────────────────────────────────────────────────────────────────────
+   تُحَمَّل آخِراً. تَرفَع كُلّ صَفحَة في كُلّ دَور دُفعَةً واحِدَة عَبر:
+     • نِظام عُمق (ظِلال مُتَعَدِّدَة الطَّبَقات)
+     • سُلَّم طِباعَة بِعَناوين عَرض (display)
+     • أَسطُح دافِئَة مُشتَقَّة بِلُطف مِن لَون المَتجَر
+     • حَرَكَة دَقيقَة (hover lift، transitions، press)
+   لا تَلمِس --ac-primary إطلاقاً — يَبقى مَملوكاً لِـ branding.css لِكُلّ
+   مَتجَر. كُلّ الرُّقِيّ مَبنيّ عَبر var(--ac-primary) فَيَتَلَوَّن تِلقائيّاً.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* ─── 1. تَرقِيَة الـ tokens ─────────────────────────────────────────── */
+:root {
+    /* خَطّ Cairo (مُحَمَّل في <head>) — هُوِيَّة عَرَبِيَّة واضِحَة بِأَوزان مُتَدَرِّجَة */
+    --ac-font-family: 'Cairo', system-ui, -apple-system, 'Segoe UI',
+                      'Noto Kufi Arabic', Tahoma, Arial, sans-serif;
+
+    /* أَسطُح دافِئَة بِلَمسَة مِن لَون المَتجَر — تَخلُق تَماسُكاً بَصَرِيّاً
+       بَدَلاً مِن الرَّماديّ البارِد المَيِّت (#f3f4f6). */
+    --ac-bg:        color-mix(in srgb, var(--ac-primary) 2.5%, #ffffff);
+    --ac-bg-alt:    color-mix(in srgb, var(--ac-primary) 5%, #f7f8fa);
+    --ac-surface:   #ffffff;
+    --ac-surface-2: color-mix(in srgb, var(--ac-primary) 4%, #ffffff);
+    --ac-border:    color-mix(in srgb, var(--ac-primary) 8%, #e7e9ee);
+    --ac-border-strong: color-mix(in srgb, var(--ac-primary) 16%, #d4d7de);
+
+    /* تِنتات لَون المَتجَر — لِخَلفِيّات الأَيقونات والشّارات والأَقسام */
+    --ac-tint-04: color-mix(in srgb, var(--ac-primary) 4%, transparent);
+    --ac-tint-08: color-mix(in srgb, var(--ac-primary) 8%, transparent);
+    --ac-tint-12: color-mix(in srgb, var(--ac-primary) 12%, transparent);
+    --ac-tint-16: color-mix(in srgb, var(--ac-primary) 16%, transparent);
+    --ac-on-tint: color-mix(in srgb, var(--ac-primary) 72%, #000 28%);
+
+    /* نَصّ بِتَدَرُّج هَرَميّ واضِح */
+    --ac-text:        #0f172a;
+    --ac-text-muted:  #64748b;
+    --ac-text-soft:   #94a3b8;
+
+    /* نِظام عُمق — السِّرّ في الإحساس الراقي: ظِلال مُتَعَدِّدَة طَبَقات،
+       شَفّافِيَّة مُنخَفِضَة، انتِشار ناعِم. */
+    --ac-shadow-xs: 0 1px 2px rgba(15,23,42,.04);
+    --ac-shadow-sm: 0 1px 2px rgba(15,23,42,.04), 0 1px 3px rgba(15,23,42,.06);
+    --ac-shadow-md: 0 2px 4px -1px rgba(15,23,42,.05),
+                    0 6px 16px -3px rgba(15,23,42,.10);
+    --ac-shadow-lg: 0 8px 16px -6px rgba(15,23,42,.08),
+                    0 20px 40px -10px rgba(15,23,42,.16);
+    --ac-shadow-xl: 0 12px 24px -8px rgba(15,23,42,.10),
+                    0 32px 64px -16px rgba(15,23,42,.22);
+    /* ظِلّ مُلَوَّن بِلَون المَتجَر — لِلأَزرار الأَساسِيَّة والبِطاقات المُفَعَّلَة */
+    --ac-shadow-brand: 0 8px 24px -6px color-mix(in srgb, var(--ac-primary) 42%, transparent);
+    --ac-shadow-brand-sm: 0 4px 12px -3px color-mix(in srgb, var(--ac-primary) 38%, transparent);
+
+    /* أَنصاف أَقطار مُتَّسِقَة وأَكثَر سَخاءً */
+    --ac-radius-sm:  10px;
+    --ac-radius-md:  14px;
+    --ac-radius-lg:  18px;
+    --ac-radius-xl:  24px;
+    --ac-radius-pill: 999px;
+
+    /* حَرَكَة — easings راقِيَة */
+    --ac-ease:        cubic-bezier(.4, 0, .2, 1);
+    --ac-ease-out:    cubic-bezier(.16, 1, .3, 1);
+    --ac-ease-spring: cubic-bezier(.34, 1.56, .64, 1);
+    --ac-transition:  180ms var(--ac-ease);
+
+    /* تَدَرُّج لَون المَتجَر — لِلأَبطال (heroes) والأَزرار */
+    --ac-gradient-brand: linear-gradient(135deg,
+        var(--ac-primary),
+        color-mix(in srgb, var(--ac-primary) 78%, #000 22%));
+}
+
+/* ─── 2. أَساسِيّات عامَّة ───────────────────────────────────────────── */
+body, .acs-page {
+    font-family: var(--ac-font-family);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+}
+body { background: var(--ac-bg); color: var(--ac-text); }
+
+/* عَناوين بِشَخصِيَّة — وَزن عالٍ وتَقارُب حُروف */
+h1, h2, h3, .acm-details-title, .acm-role-landing-head h1 {
+    letter-spacing: -.02em;
+    font-weight: 800;
+    color: var(--ac-text);
+}
+h2 { letter-spacing: -.015em; }
+
+/* تَحديد نَصّ بِلَون المَتجَر */
+::selection { background: var(--ac-tint-16); color: var(--ac-on-tint); }
+
+/* حَلَقَة تَركيز مُوَحَّدَة وراقِيَة */
+a:focus-visible, button:focus-visible,
+input:focus-visible, select:focus-visible, textarea:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--ac-primary) 28%, transparent);
+    border-radius: var(--ac-radius-sm);
+}
+
+/* ─── 3. البِطاقات — عُمق + رَفع عِندَ التَّحويم ───────────────────────── */
+.ac-card,
+.acm-card {
+    background: var(--ac-surface);
+    border: 1px solid var(--ac-border);
+    border-radius: var(--ac-radius-lg);
+    box-shadow: var(--ac-shadow-sm);
+    transition: transform var(--ac-transition),
+                box-shadow var(--ac-transition),
+                border-color var(--ac-transition);
+}
+
+/* ─── 4. الأَزرار — تَدَرُّج، عُمق، ضَغط ─────────────────────────────── */
+.ac-btn {
+    font-family: var(--ac-font-family);
+    font-weight: 700;
+    border-radius: var(--ac-radius-md);
+    transition: transform 120ms var(--ac-ease),
+                box-shadow var(--ac-transition),
+                background var(--ac-transition),
+                filter var(--ac-transition);
+    letter-spacing: -.01em;
+}
+.ac-btn-primary,
+.acm-role-cta-primary,
+button.ac-btn-primary {
+    background: var(--ac-gradient-brand);
+    color: var(--ac-on-primary, #fff);
+    border: none;
+    box-shadow: var(--ac-shadow-brand-sm);
+}
+.ac-btn-primary:hover,
+.acm-role-cta-primary:hover {
+    box-shadow: var(--ac-shadow-brand);
+    transform: translateY(-2px);
+    filter: brightness(1.04);
+}
+.ac-btn-primary:active,
+.acm-role-cta-primary:active { transform: translateY(0) scale(.985); }
+
+.ac-btn-ghost, .ac-btn-light, .ac-btn-secondary {
+    transition: transform 120ms var(--ac-ease),
+                background var(--ac-transition), border-color var(--ac-transition);
+}
+.ac-btn-ghost:hover, .ac-btn-light:hover { background: var(--ac-tint-08); }
+
+/* ─── 5. حُقول الإدخال — حُدود راقِيَة + توهُّج تَركيز ──────────────────── */
+.ac-input, .ac-select, .ac-textarea, input.ac-input {
+    background: var(--ac-surface);
+    border: 1.5px solid var(--ac-border);
+    border-radius: var(--ac-radius-md);
+    transition: border-color var(--ac-transition), box-shadow var(--ac-transition);
+    font-family: var(--ac-font-family);
+}
+.ac-input:focus, .ac-select:focus, .ac-textarea:focus {
+    border-color: var(--ac-primary);
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--ac-primary) 14%, transparent);
+}
+.ac-input::placeholder, .ac-textarea::placeholder { color: var(--ac-text-soft); }
+
+/* ─── 6. شَريط التَّنَقُّل العُلويّ — زُجاجيّ ──────────────────────────── */
+.acm-mobile-nav,
+.acm-v2-topnav-wrap .ac-topnav,
+.ac-topnav {
+    background: color-mix(in srgb, var(--ac-surface) 82%, transparent);
+    backdrop-filter: saturate(180%) blur(16px);
+    -webkit-backdrop-filter: saturate(180%) blur(16px);
+    border-bottom: 1px solid var(--ac-border);
+}
+.acm-mobile-nav-brand-name { font-weight: 800; letter-spacing: -.02em; }
+
+/* ─── 7. شَريط التَّنَقُّل السُّفليّ — مُرتَفِع + مُؤَشِّر نَشِط ──────────── */
+.acm-v2-bottomnav,
+.acs-bottom-nav {
+    background: color-mix(in srgb, var(--ac-surface) 88%, transparent);
+    backdrop-filter: saturate(180%) blur(20px);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+    border-top: 1px solid var(--ac-border);
+    box-shadow: 0 -4px 24px -8px rgba(15,23,42,.10);
+}
+.acs-bottom-nav-item,
+.acm-v2-bottomnav a {
+    transition: color var(--ac-transition), transform var(--ac-transition);
+}
+.acs-bottom-nav-item.active,
+.acm-v2-bottomnav a.active {
+    color: var(--ac-primary);
+}
+/* أَيقونَة الدَور النَّشِط تَرتَفِع قَليلاً + خَلفِيَّة دائِريَّة لَونِيَّة */
+.acs-bottom-nav-item.active .ac-icon,
+.acm-v2-bottomnav a.active .ac-icon {
+    transform: translateY(-2px) scale(1.06);
+    transition: transform 260ms var(--ac-ease-spring);
+}
+
+/* ─── 8. الشّارات والرُّقَع (chips/badges) ──────────────────────────── */
+.ac-badge, .ac-chip, .acm-chip, .st-chip {
+    font-weight: 700;
+    border-radius: var(--ac-radius-pill);
+    letter-spacing: -.01em;
+}
+
+/* ─── 9. رُقَع التَّصنيف (taxonomy) في الاستِكشاف ─────────────────────── */
+.acm-cat-chip, .acm-taxonomy-chip {
+    transition: transform var(--ac-transition), box-shadow var(--ac-transition),
+                background var(--ac-transition);
+}
+.acm-cat-chip:hover, .acm-taxonomy-chip:hover { transform: translateY(-2px); }
+
+/* ─── 10. بِطاقَة الإعلان (listing card) — مُعالَجَة صورَة راقِيَة ──────── */
+.acm-listing-card,
+.ac-space-card,
+.acm-home-card {
+    background: var(--ac-surface);
+    border: 1px solid var(--ac-border);
+    border-radius: var(--ac-radius-lg);
+    box-shadow: var(--ac-shadow-sm);
+    overflow: hidden;
+    transition: transform var(--ac-transition), box-shadow var(--ac-transition),
+                border-color var(--ac-transition);
+}
+.acm-listing-card:hover,
+.ac-space-card:hover,
+.acm-home-card:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--ac-shadow-lg);
+    border-color: var(--ac-tint-16);
+}
+/* مَكان الصورَة الفارِغ — تَدَرُّج لَطيف بَدَلاً مِن رَماديّ مَيِّت */
+.acm-listing-card-image-empty,
+.ac-space-card-noimg,
+.acm-card-img-placeholder {
+    background:
+        linear-gradient(135deg, var(--ac-tint-12), var(--ac-tint-04));
+    color: color-mix(in srgb, var(--ac-primary) 40%, transparent);
+}
+/* السِّعر — تَأكيد بَصَريّ */
+.acm-listing-price, .ac-space-card-price {
+    color: var(--ac-primary);
+    font-weight: 800;
+    letter-spacing: -.01em;
+}
+
+/* ─── 11. حالات الفَراغ (empty states) — شَخصِيَّة ودِفء ──────────────── */
+.ac-empty, .acm-empty, .ac-empty-state {
+    padding: 48px 24px;
+    text-align: center;
+}
+.ac-empty .ac-icon, .acm-empty-icon, .ac-empty-state-icon {
+    color: color-mix(in srgb, var(--ac-primary) 50%, var(--ac-text-soft));
+    background: var(--ac-tint-08);
+    border-radius: var(--ac-radius-xl);
+    padding: 20px;
+    display: inline-grid;
+    place-items: center;
+    margin-bottom: 16px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   12. صَفحَة دُخول الأَدوار (RoleLanding) — إعادَة تَصميم كامِلَة
+   ═══════════════════════════════════════════════════════════════════════ */
+.acm-role-landing { max-width: 600px; padding: 0 16px 48px; }
+
+/* البَطَل — مِش تَدَرُّجيّ بِلَون المَتجَر + علامَة زُجاجِيَّة */
+.acm-role-landing-head {
+    text-align: center;
+    padding: 64px 24px 44px;
+    margin: 0 -16px 28px;
+    position: relative;
+    overflow: hidden;
+    background-color: var(--ac-tint-04);
+    background-image:
+        radial-gradient(80% 90% at 20% -10%, var(--ac-tint-16), transparent 55%),
+        radial-gradient(70% 80% at 95% 0%, var(--ac-tint-12), transparent 50%);
+    border-bottom: 1px solid var(--ac-border);
+}
+.acm-role-landing-brand {
+    width: 84px; height: 84px;
+    border-radius: var(--ac-radius-xl);
+    display: grid; place-items: center;
+    margin: 0 auto 20px;
+    color: #fff; font-size: 36px; font-weight: 800;
+    background: var(--ac-gradient-brand);
+    box-shadow: var(--ac-shadow-brand),
+                0 0 0 6px color-mix(in srgb, var(--ac-primary) 10%, transparent);
+}
+.acm-role-landing-head h1 { font-size: 32px; margin: 0; }
+.acm-role-landing-head p {
+    margin: 8px 0 0; color: var(--ac-text-muted);
+    font-size: 15px; line-height: 1.6;
+}
+.acm-role-landing-hint {
+    display: inline-flex; align-items: center; gap: 6px; margin-top: 20px;
+    font-size: 12px; font-weight: 700; color: var(--ac-on-tint);
+    padding: 8px 16px;
+    background: var(--ac-tint-12);
+    border-radius: var(--ac-radius-pill);
+}
+
+.acm-role-landing-cards { display: flex; flex-direction: column; gap: 12px; }
+
+/* بِطاقَة الدَور — شَريط لَونيّ جانِبيّ + أَيقونَة تَدَرُّجِيَّة + رَفع */
+.acm-role-landing-card {
+    position: relative;
+    display: flex; align-items: center; gap: 16px;
+    padding: 20px;
+    background: var(--ac-surface);
+    border: 1px solid var(--ac-border);
+    border-radius: var(--ac-radius-lg);
+    text-decoration: none; color: var(--ac-text);
+    box-shadow: var(--ac-shadow-sm);
+    overflow: hidden;
+    transition: transform var(--ac-transition), box-shadow var(--ac-transition),
+                border-color var(--ac-transition);
+}
+/* شَريط لَونيّ يَظهَر عِندَ التَّحويم (الجِهَة البادِئَة في RTL) */
+.acm-role-landing-card::before {
+    content: ""; position: absolute; inset-inline-start: 0; top: 0; bottom: 0;
+    width: 4px; background: var(--ac-gradient-brand);
+    transform: scaleY(0); transform-origin: center;
+    transition: transform 260ms var(--ac-ease-out);
+}
+.acm-role-landing-card:hover {
+    transform: translateY(-3px);
+    border-color: var(--ac-tint-16);
+    box-shadow: var(--ac-shadow-lg);
+}
+.acm-role-landing-card:hover::before { transform: scaleY(1); }
+
+.acm-role-landing-card-icon {
+    font-size: 28px; line-height: 1;
+    width: 60px; height: 60px;
+    display: grid; place-items: center;
+    background: linear-gradient(135deg, var(--ac-tint-16), var(--ac-tint-04));
+    color: var(--ac-on-tint);
+    border-radius: var(--ac-radius-md);
+    flex-shrink: 0;
+    transition: transform 260ms var(--ac-ease-spring);
+}
+.acm-role-landing-card:hover .acm-role-landing-card-icon {
+    transform: scale(1.06) rotate(-3deg);
+}
+.acm-role-landing-card > div { flex: 1; min-width: 0; }
+.acm-role-landing-card strong {
+    display: block; font-size: 17.5px; font-weight: 800;
+    letter-spacing: -.01em; margin-bottom: 4px;
+}
+.acm-role-landing-card span:not(.acm-role-landing-card-cta) {
+    display: block; color: var(--ac-text-muted);
+    font-size: 13px; line-height: 1.6;
+}
+.acm-role-landing-card-cta {
+    width: 36px; height: 36px; border-radius: 50%;
+    display: grid; place-items: center; flex-shrink: 0;
+    background: var(--ac-tint-08);
+    color: var(--ac-primary); font-size: 16px; font-weight: 800;
+    transition: background var(--ac-transition), color var(--ac-transition),
+                transform 260ms var(--ac-ease-spring);
+}
+.acm-role-landing-card:hover .acm-role-landing-card-cta {
+    background: var(--ac-primary); color: #fff;
+    transform: translateX(-4px) scale(1.08);
+}
+
+.acm-role-landing-foot { text-align: center; margin-top: 32px; }
+.acm-role-landing-foot a {
+    color: var(--ac-text-muted); font-size: 13.5px; font-weight: 600;
+    text-decoration: none;
+}
+.acm-role-landing-foot a:hover { color: var(--ac-primary); }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   13. أَبطال صَفَحات الأَدوار (role home heroes) + CTA
+   ═══════════════════════════════════════════════════════════════════════ */
+.acm-role-cta-primary {
+    background: var(--ac-gradient-brand);
+    border-radius: var(--ac-radius-lg);
+    box-shadow: var(--ac-shadow-brand-sm);
+    transition: transform var(--ac-transition), box-shadow var(--ac-transition),
+                filter var(--ac-transition);
+}
+.acm-role-cta-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--ac-shadow-brand);
+    filter: brightness(1.04);
+}
+.acm-role-cta-icon {
+    background: rgba(255,255,255,.2);
+    border-radius: var(--ac-radius-md);
+    backdrop-filter: blur(8px);
+}
+
+/* بِطاقات الإجراء الثانَوِيَّة (الصَّفّ) */
+.acm-role-cta-row > a, .acm-role-cta-secondary {
+    background: var(--ac-surface);
+    border: 1px solid var(--ac-border);
+    border-radius: var(--ac-radius-md);
+    box-shadow: var(--ac-shadow-xs);
+    transition: transform var(--ac-transition), box-shadow var(--ac-transition),
+                border-color var(--ac-transition);
+}
+.acm-role-cta-row > a:hover, .acm-role-cta-secondary:hover {
+    transform: translateY(-2px);
+    border-color: var(--ac-tint-16);
+    box-shadow: var(--ac-shadow-md);
+}
+
+/* عَناوين الأَقسام */
+.acm-section-title, .st-section-title, .acm-role-home-head h2 {
+    font-weight: 800; letter-spacing: -.02em;
+}
