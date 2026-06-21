@@ -132,7 +132,10 @@ a.ac-card:hover, a.acm-card:hover,
 .ac-btn-primary,
 .acm-role-cta-primary,
 button.ac-btn-primary {
-    background: var(--ac-gradient-brand);
+    /* solid colour first so contrast tooling (and no-gradient fallbacks)
+       see a real background; gradient paints on top */
+    background-color: var(--ac-primary);
+    background-image: var(--ac-gradient-brand);
     color: var(--ac-on-primary, #fff);
     border: none;
     box-shadow: var(--ac-shadow-brand-sm);
