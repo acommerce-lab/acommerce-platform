@@ -151,6 +151,81 @@ while IFS=: read -r file line content; do
     report "cross-frame-link [studio->admin]" "$(realpath --relative-to="$ROOT" "$file")" "$line" "$content"
 done < <(grep -HnE 'href="(@\(\$")?/admin' $FILES 2>/dev/null | grep -E 'Studio[A-Za-z]*\.razor' || true)
 
+# Rule 9d: Cross-frame links (reverse) — pages under Admin/ (the platform-
+# admin shell) must NOT bounce users into /studio/* either, EXCEPT the
+# documented "back to my dashboard" link on shared platform-admin utility
+# pages (QualityMonitor, AuditLog, IncubatorFixtures). Those use class
+# "studio-nav-item" or the «← لوحَتي» label — we whitelist the class.
+echo ""
+echo "--- Rule 9d: No cross-frame links (platform-admin -> studio) ---"
+while IFS=: read -r file line content; do
+    [ -z "$file" ] && continue
+    trimmed="$(echo "$content" | sed 's/^[[:space:]]*//')"
+    case "$trimmed" in
+      '//'*|'@*'*|'*'*|'<!--'*) continue ;;
+    esac
+    # whitelist the back-to-my-dashboard pattern (studio-nav-item class).
+    case "$content" in
+      *studio-nav-item*) continue ;;
+    esac
+    report "cross-frame-link [admin->studio]" "$(realpath --relative-to="$ROOT" "$file")" "$line" "$content"
+done < <(grep -HnE 'href="(@\(\$")?/studio' $FILES 2>/dev/null | grep '/Admin/' || true)
+
+# Rule 9e: No hardcoded tenant slug in hrefs. Pages must use {Slug} (the
+# route parameter) so they work for every tenant. A literal /ashare/ or
+# /ejar/ or /order/ or /injez/ in a link silently breaks every OTHER
+# tenant's flow. (Studio/admin pages legitimately use tenant slug as a
+# route param too — they're also covered: hardcoding shoves entrepreneurs
+# into the wrong tenant.)
+echo ""
+echo "--- Rule 9e: No hardcoded tenant slug in links (cross-tenant leak) ---"
+while IFS=: read -r file line content; do
+    [ -z "$file" ] && continue
+    trimmed="$(echo "$content" | sed 's/^[[:space:]]*//')"
+    case "$trimmed" in
+      '//'*|'@*'*|'*'*|'<!--'*) continue ;;
+    esac
+    report "cross-tenant-link" "$(realpath --relative-to="$ROOT" "$file")" "$line" "$content"
+done < <(grep -HnE 'href="[^"]*/(ashare|ejar|order|injez)/' $FILES 2>/dev/null || true)
+
+# Rule 9f: No hardcoded role slug in hrefs. Role-scoped pages must use
+# {Role} (the route param) or AuthSession.LinkFor — a literal /r/customer/
+# or /r/vendor/ silently strands users in a role they may not have. Pages
+# that pick a role (RolePicker, RoleLanding) drive their links from
+# tenant.Roles data via interpolation, never literals.
+echo ""
+echo "--- Rule 9f: No hardcoded role slug in links (cross-role leak) ---"
+while IFS=: read -r file line content; do
+    [ -z "$file" ] && continue
+    trimmed="$(echo "$content" | sed 's/^[[:space:]]*//')"
+    case "$trimmed" in
+      '//'*|'@*'*|'*'*|'<!--'*) continue ;;
+    esac
+    report "cross-role-link" "$(realpath --relative-to="$ROOT" "$file")" "$line" "$content"
+done < <(grep -HnE 'href="[^"]*/r/(customer|vendor|host|driver|rider|shipper|tenant_admin)/' $FILES 2>/dev/null || true)
+
+# Rule 9g: Auth boundary — never link or redirect to a bare /login or
+# /auth without a tenant-slug prefix. A bare /login pushes the user to the
+# platform login (studio), not their tenant's login flow; multi-tenant
+# auth then misfires (wrong cookie name, wrong role, blank session). Use
+# AuthSession.LinkFor(Slug, Role, "login") in razor and
+# $"/{slug}/login" in C# redirect helpers.
+echo ""
+echo "--- Rule 9g: No bare /login or /auth (cross-frame auth leak) ---"
+while IFS=: read -r file line content; do
+    [ -z "$file" ] && continue
+    trimmed="$(echo "$content" | sed 's/^[[:space:]]*//')"
+    case "$trimmed" in
+      '//'*|'@*'*|'*'*|'<!--'*) continue ;;
+    esac
+    # exempt the studio's own auth route (/studio/auth) — it's the platform
+    # entry point, not a tenant misroute.
+    case "$content" in
+      *'/studio/auth'*) continue ;;
+    esac
+    report "bare-auth-link" "$(realpath --relative-to="$ROOT" "$file")" "$line" "$content"
+done < <(grep -HnE 'href="/(login|auth)"|Redirect\("/(login|auth)"\)' $FILES 2>/dev/null || true)
+
 # Rule 10: UI-only operations must not dispatch to the HTTP engine.
 # SetLanguage / SetTheme / SignOut are pure client-side state mutations — they
 # MUST be applied via Applier.ApplyLocalAsync (or UiPreferences.*).  Passing
