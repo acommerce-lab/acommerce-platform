@@ -13,11 +13,11 @@
 
     <div style="display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap;">
         <a class="ac-chip @(Section == "terms" || Section == "" ? "ac-chip-active" : "")"
-           href="@($"/{Slug}/legal/terms")">الشُّروط والأَحكام</a>
+           href="@AuthSession.LinkFor(Slug, Role, "legal/terms")">الشُّروط والأَحكام</a>
         <a class="ac-chip @(Section == "privacy" ? "ac-chip-active" : "")"
-           href="@($"/{Slug}/legal/privacy")">الخُصوصِيَّة</a>
+           href="@AuthSession.LinkFor(Slug, Role, "legal/privacy")">الخُصوصِيَّة</a>
         <a class="ac-chip @(Section == "returns" ? "ac-chip-active" : "")"
-           href="@($"/{Slug}/legal/returns")">الاستِرجاع</a>
+           href="@AuthSession.LinkFor(Slug, Role, "legal/returns")">الاستِرجاع</a>
     </div>
 
     <AcCard>

@@ -98,7 +98,7 @@
                     </ChildContent>
                 </AcCard>
                 <div style="display:flex;gap:8px;">
-                    <a href="@($"/{Slug}/checkout?step=1&name={Uri.EscapeDataString(Name)}&phone={Uri.EscapeDataString(Phone)}&addr={Uri.EscapeDataString(Addr)}")"
+                    <a href="@AuthSession.LinkFor(Slug, Role, $"checkout?step=1&name={Uri.EscapeDataString(Name)}&phone={Uri.EscapeDataString(Phone)}&addr={Uri.EscapeDataString(Addr)}")"
                        class="ac-btn ac-btn-ghost">← السابِق</a>
                     <AcButton Type="submit" Variant="primary" Block="true" Text="التالي →" />
                 </div>

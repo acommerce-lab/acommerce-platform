@@ -2946,6 +2946,186 @@ public static class MarketplaceTemplateExtensions
             return Results.Redirect($"/studio/apps/{slug}/regions?saved=1");
         }).DisableAntiforgery();
 
+        // ─── Studio: save PWA apps (per-role name + icon) ───────────────
+        // نَفس مَنطِق /admin/tenants/{slug}/pwa/save لَكِن داخِل واجِهَة الـ
+        // Studio بِحارِس المِلكِيَّة، والتَّوجيهات إلى مَسارات /studio/apps/.
+        app.MapPost("/studio/apps/{slug}/pwa/save", async (
+            string slug, HttpRequest req, IDocumentStore store,
+            Services.Incubator.StudioAuth auth) =>
+        {
+            if (!await StudioOwnsAsync(store, auth, slug)) return Results.Redirect("/studio");
+            await using var s = store.LightweightSession();
+            var t = await s.LoadAsync<ACommerce.Kit.Tenants.Tenant>(slug);
+            if (t is null) return Results.Redirect("/studio");
+
+            const long maxBytes = 256 * 1024;
+            var allowed = new[] { "image/png", "image/svg+xml", "image/webp" };
+
+            foreach (var r in t.Roles)
+            {
+                var nameInput = req.Form[$"name_{r.Slug}"].ToString().Trim();
+                r.PwaName = string.IsNullOrEmpty(nameInput) ? null : nameInput;
+
+                if (req.Form[$"clear_{r.Slug}"].ToString() == "1")
+                    r.PwaIconDataUrl = null;
+
+                var file = req.Form.Files[$"icon_{r.Slug}"];
+                if (file is { Length: > 0 })
+                {
+                    if (file.Length > maxBytes)
+                        return Results.Redirect($"/studio/apps/{slug}/pwa?err=icon_too_large");
+                    var ct = file.ContentType.ToLowerInvariant();
+                    if (!allowed.Contains(ct))
+                        return Results.Redirect($"/studio/apps/{slug}/pwa?err=icon_bad_type");
+                    using var ms = new MemoryStream();
+                    await file.CopyToAsync(ms);
+                    var b64 = Convert.ToBase64String(ms.ToArray());
+                    r.PwaIconDataUrl = $"data:{ct};base64,{b64}";
+                }
+            }
+
+            s.Store(t);
+            await s.SaveChangesAsync();
+            return Results.Redirect($"/studio/apps/{slug}/pwa?saved=1");
+        }).DisableAntiforgery();
+
+        // ─── Studio: save attribute definitions for a scope ─────────────
+        // نَفس مَنطِق /admin/tenants/{slug}/attributes/save لَكِن داخِل واجِهَة
+        // الـ Studio بِحارِس المِلكِيَّة، والتَّوجيهات إلى مَسارات /studio/apps/.
+        app.MapPost("/studio/apps/{slug}/attributes/save", async (
+            string slug, HttpRequest req, IDocumentStore store,
+            Services.Incubator.StudioAuth auth) =>
+        {
+            if (!await StudioOwnsAsync(store, auth, slug)) return Results.Redirect("/studio");
+            var scopeStr = req.Form["scope"].ToString().Trim();
+            var defsRaw  = req.Form["defs"].ToString();
+
+            if (!Guid.TryParse(scopeStr, out var scopeId))
+                return Results.Redirect($"/studio/apps/{slug}/attributes?err=no_scope");
+
+            string Back(string err) =>
+                $"/studio/apps/{slug}/attributes?scope={scopeId}&err={err}";
+
+            var rows = new List<(string Code, string Name, string Type, bool Req,
+                                 List<(string Val, string Label)> Opts)>();
+            foreach (var line in defsRaw.Split('\n', StringSplitOptions.RemoveEmptyEntries))
+            {
+                var l = line.Trim();
+                if (l.Length == 0) continue;
+                var parts = l.Split('|', StringSplitOptions.TrimEntries);
+                if (parts.Length < 4) return Results.Redirect(Back("bad_format"));
+                var code = parts[0];
+                var name = parts[1];
+                var type = parts[2];
+                var req2 = parts[3].Equals("req", StringComparison.OrdinalIgnoreCase);
+                if (string.IsNullOrEmpty(code) || string.IsNullOrEmpty(name) ||
+                    string.IsNullOrEmpty(type))
+                    return Results.Redirect(Back("bad_format"));
+                var opts = new List<(string Val, string Label)>();
+                if (parts.Length >= 5 && !string.IsNullOrEmpty(parts[4]))
+                {
+                    foreach (var pair in parts[4].Split(
+                                 new[] { '،', ',' },
+                                 StringSplitOptions.RemoveEmptyEntries |
+                                 StringSplitOptions.TrimEntries))
+                    {
+                        var kv = pair.Split('=', 2);
+                        if (kv.Length != 2) return Results.Redirect(Back("bad_format"));
+                        opts.Add((kv[0].Trim(), kv[1].Trim()));
+                    }
+                }
+                rows.Add((code, name, type, req2, opts));
+            }
+
+            await using var s = store.LightweightSession(slug);
+
+            var allMappings = await s.Query<ImportedRecord>()
+                .Where(r => r.Table == "CategoryAttributeMappings").ToListAsync();
+            var allDefs = await s.Query<ImportedRecord>()
+                .Where(r => r.Table == "AttributeDefinitions").ToListAsync();
+            var allValues = await s.Query<ImportedRecord>()
+                .Where(r => r.Table == "AttributeValues").ToListAsync();
+
+            var scopeMappings = allMappings
+                .Where(m => GuidFromData(m, "CategoryId") == scopeId).ToList();
+            var defIdsInScope = scopeMappings
+                .Select(m => GuidFromData(m, "AttributeDefinitionId"))
+                .Where(g => g != Guid.Empty).Distinct().ToList();
+            foreach (var m in scopeMappings) s.Delete(m);
+
+            var stillUsedDefs = allMappings
+                .Where(m => GuidFromData(m, "CategoryId") != scopeId)
+                .Select(m => GuidFromData(m, "AttributeDefinitionId"))
+                .ToHashSet();
+            var orphans = defIdsInScope.Where(id => !stillUsedDefs.Contains(id)).ToHashSet();
+            if (orphans.Count > 0)
+            {
+                foreach (var d in allDefs)
+                    if (orphans.Contains(GuidFromData(d, "Id"))) s.Delete(d);
+                foreach (var v in allValues)
+                    if (orphans.Contains(GuidFromData(v, "AttributeDefinitionId"))) s.Delete(v);
+            }
+
+            var now = DateTime.UtcNow;
+            var order = 0;
+            foreach (var (code, name, type, req2, opts) in rows)
+            {
+                var defId = Guid.NewGuid();
+                s.Store(new ImportedRecord
+                {
+                    Id = $"AttributeDefinitions/{defId}",
+                    Table = "AttributeDefinitions",
+                    SourceId = defId.ToString(),
+                    ImportedAt = now,
+                    Data = new Dictionary<string, object?>
+                    {
+                        ["Id"]         = defId.ToString(),
+                        ["Code"]       = code,
+                        ["Name"]       = name,
+                        ["Type"]       = type,
+                        ["IsRequired"] = req2 ? "true" : "false"
+                    }
+                });
+                s.Store(new ImportedRecord
+                {
+                    Id = $"CategoryAttributeMappings/{defId}-{scopeId}",
+                    Table = "CategoryAttributeMappings",
+                    SourceId = $"{defId}-{scopeId}",
+                    ImportedAt = now,
+                    Data = new Dictionary<string, object?>
+                    {
+                        ["CategoryId"]            = scopeId.ToString(),
+                        ["AttributeDefinitionId"] = defId.ToString(),
+                        ["SortOrder"]             = order.ToString()
+                    }
+                });
+                var voi = 0;
+                foreach (var (val, label) in opts)
+                {
+                    var vid = Guid.NewGuid();
+                    s.Store(new ImportedRecord
+                    {
+                        Id = $"AttributeValues/{vid}",
+                        Table = "AttributeValues",
+                        SourceId = vid.ToString(),
+                        ImportedAt = now,
+                        Data = new Dictionary<string, object?>
+                        {
+                            ["Id"]                    = vid.ToString(),
+                            ["AttributeDefinitionId"] = defId.ToString(),
+                            ["Value"]                 = val,
+                            ["DisplayName"]           = label,
+                            ["SortOrder"]             = voi.ToString()
+                        }
+                    });
+                    voi++;
+                }
+                order++;
+            }
+            await s.SaveChangesAsync();
+            return Results.Redirect($"/studio/apps/{slug}/attributes?scope={scopeId}&saved=1");
+        }).DisableAntiforgery();
+
         // بِناء Tenant فِعليّ مِن جَلسَة تَحليل (الجِسر بَين الفِكرَة والتَّطبيق).
         app.MapPost("/studio/s/{id:guid}/build", async (
             Guid id, HttpRequest req, HttpContext http,
