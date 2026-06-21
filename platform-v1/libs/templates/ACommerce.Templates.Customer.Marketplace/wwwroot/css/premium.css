@@ -946,15 +946,20 @@ a.ac-stat:hover, a.acm-role-cta-pill:hover {
 
 /* ── المَعرَض (AcGallery) — صورَة رَئيسيَّة + مُصَغَّرات ─────────────────── */
 .ac-gallery-main {
-    position: relative; aspect-ratio: 4 / 3; overflow: hidden;
+    position: relative; aspect-ratio: 16 / 10; max-height: 440px; overflow: hidden;
     background: var(--ac-bg-alt); border-radius: var(--ac-radius-lg);
     border: 1px solid var(--ac-border);
 }
 .ac-gallery-main img { width: 100%; height: 100%; object-fit: cover; display: block; }
+/* placeholder تَدَرُّجيّ هادِئ (لا رَماديّ مَيِّت) + أَيقونَة مُتَوَسِّطَة */
 .ac-gallery-placeholder {
     width: 100%; height: 100%; display: grid; place-items: center;
     color: var(--ac-text-soft);
+    background:
+        radial-gradient(120% 120% at 50% 0%, var(--ac-tint-08), transparent 60%),
+        linear-gradient(135deg, var(--ac-bg-alt), var(--ac-bg));
 }
+.ac-gallery-placeholder .ac-icon { opacity: .55; }
 .ac-gallery-arrow {
     position: absolute; top: 50%; transform: translateY(-50%);
     width: 40px; height: 40px; border-radius: var(--ac-radius-pill);
