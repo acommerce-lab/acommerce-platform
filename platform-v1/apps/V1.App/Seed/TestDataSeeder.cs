@@ -6,6 +6,7 @@ using ACommerce.Kit.Roles;
 using ACommerce.Kit.Tenants;
 using ACommerce.Kit.Favorites;
 using ACommerce.Kit.Cart;
+using ACommerce.Templates.Customer.Marketplace.Services.Deals;
 using Marten;
 
 namespace ACommerce.V1.App.Seed;
@@ -100,6 +101,10 @@ public static class TestDataSeeder
             if (roleUsers.Count >= 2)
                 await EnsureSampleConversationAsync(tenantSession, roleUsers[0].User, roleUsers[1].User);
 
+            // (٥) صَفقَتان (نَشِطَة + مُكتَمِلَة) لِتَمتَلِئ MyDeals/DealDetail.
+            if (roleUsers.Count >= 2)
+                await EnsureSampleDealsAsync(tenantSession, slug, roleUsers[0].User, roleUsers[1].User);
+
             await tenantSession.SaveChangesAsync();
         }
         await globalSession.SaveChangesAsync();
@@ -183,5 +188,58 @@ public static class TestDataSeeder
                 Id = Guid.NewGuid(), ConversationId = convId,
                 SenderId = sender, Body = body, SentAt = now.AddMinutes(-mins)
             });
+    }
+
+    /// <summary>صَفقَتان لِفَحص MyDeals/DealDetail مَملوءَتَين: واحِدَة نَشِطَة
+    /// في مُنتَصَف التَّدَفُّق (Paid) وأُخرى مُكتَمِلَة (Reviewed) — العميل
+    /// (أَوَّل مُستَخدِم) هو المُبادِر لِتَظهَر في لَوحَتِه.</summary>
+    private static async Task EnsureSampleDealsAsync(
+        IDocumentSession s, string slug, User initiator, User counterparty)
+    {
+        var existing = await s.Query<Deal>()
+            .Where(d => d.InitiatorId == initiator.Id).Take(1).ToListAsync();
+        if (existing.Count > 0) return;
+
+        var now = DateTime.UtcNow;
+        DealEvent Ev(DealStage from, DealStage to, string action, int hoursAgo) =>
+            new(from, to, action, initiator.Id, initiator.FullName, null, now.AddHours(-hoursAgo));
+
+        // (أ) نَشِطَة — وَصَلَت مَرحَلَة الدَّفع.
+        s.Store(new Deal
+        {
+            Id = Guid.NewGuid(), TenantSlug = slug, Pattern = "marketplace",
+            ListingTitle = "إعلان اختِبار — صَفقَة نَشِطَة",
+            InitiatorId = initiator.Id, InitiatorName = initiator.FullName,
+            CounterpartyId = counterparty.Id, CounterpartyName = counterparty.FullName,
+            AmountSar = 100, CommissionSar = 5,
+            Stage = DealStage.Paid, Status = DealStatus.Active,
+            CreatedAt = now.AddHours(-26), UpdatedAt = now.AddHours(-3),
+            Timeline =
+            {
+                Ev(DealStage.Offered,   DealStage.Booked,    "assigned",  26),
+                Ev(DealStage.Booked,    DealStage.Confirmed, "advanced",  20),
+                Ev(DealStage.Confirmed, DealStage.Paid,      "advanced",   3),
+            }
+        });
+
+        // (ب) مُكتَمِلَة — وَصَلَت Reviewed (تُظهِر نَموذَج التَّقييم).
+        s.Store(new Deal
+        {
+            Id = Guid.NewGuid(), TenantSlug = slug, Pattern = "marketplace",
+            ListingTitle = "إعلان اختِبار — صَفقَة مُكتَمِلَة",
+            InitiatorId = initiator.Id, InitiatorName = initiator.FullName,
+            CounterpartyId = counterparty.Id, CounterpartyName = counterparty.FullName,
+            AmountSar = 250, CommissionSar = 12.5m,
+            Stage = DealStage.Received, Status = DealStatus.Completed,
+            CreatedAt = now.AddDays(-6), UpdatedAt = now.AddDays(-1),
+            Timeline =
+            {
+                Ev(DealStage.Offered,   DealStage.Booked,    "assigned",  144),
+                Ev(DealStage.Booked,    DealStage.Confirmed, "advanced",  120),
+                Ev(DealStage.Confirmed, DealStage.Paid,      "advanced",   96),
+                Ev(DealStage.Paid,      DealStage.Delivered, "advanced",   48),
+                Ev(DealStage.Delivered, DealStage.Received,  "advanced",   24),
+            }
+        });
     }
 }

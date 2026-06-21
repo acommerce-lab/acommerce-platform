@@ -253,17 +253,16 @@ TenantEdit، TenantBranding، TenantCategories، **TenantRegions**،
 | Legal / Terms (قانونيَّة) | ✅ | ✅ |
 | ProfileEdit, RolePicker, MySearches | ✅ نَماذِج نَظيفَة | ✅ |
 
-## هـ. صَفحات المَنصَّة (admin / studio / app-admin)
+## هـ. صَفحات المَنصَّة (admin / studio / app-admin) — فُحِصَت بِدُخول مُشرِف
 | الصَّفحَة | الحالَة |
 |---|---|
-| Landing (هُبوط المَنصَّة `/`) | ⬜ **مُهِمّ — أَوَّل انطِباع** |
-| ادمن: AdminHome, Tenants, AuditLog, QualityMonitor | ⬜ |
-| ادمن التَّطبيق: TenantEdit/Branding/Pwa/Roles/Users | 🟡 (المُحَرِّرات ✅، الباقي ⬜) |
-| رائِد الأَعمال: StudioHome, StudioApp, Console | ⬜ |
-| StudioApp فُروع: Deals/Tickets/Listings/Billing | ⬜ |
-| أَفكاري (Ideas) + الدِّراسَة (Study) | ⬜ |
-| مُحادَثَة التَّحليل (Incubator/AgentChat) | ⬜ |
-| مُحادَثَة التَّصميم (AgentChat) | ⬜ |
+| Landing (هُبوط المَنصَّة `/`) | ✅ |
+| ادمن: AdminHome, Tenants, AuditLog, QualityMonitor | ✅ بِدُخول مُشرِف (0501234567) |
+| ادمن التَّطبيق: TenantEdit/Branding/Pwa/Roles/Users | ✅ (المُحَرِّرات + الباقي) |
+| رائِد الأَعمال: StudioHome, StudioApp, Console | ✅ shell داكِن + إحصاءات + قائِمَة تَطبيقات |
+| StudioApp فُروع: Deals/Tickets/Listings/Billing | ✅ |
+| أَفكاري (Ideas) + الدِّراسَة (Study) | ✅ |
+| مُحادَثَة التَّحليل + التَّصميم (AgentChat) | ✅ (نَموذَج نَظيف؛ يَحتاج مِفتاح API لِلتَّشغيل الحَيّ) |
 
 ## و. خُطَّة التَّنفيذ المُتَبَقِّيَة (مُرَتَّبَة)
 - **R5-A**: إصلاح توجيه الدَّور بَعد الدُّخول (لِتَظهَر لَوحات الأَدوار) — حاجِز لِكُلّ ما بَعدَه.
@@ -311,4 +310,13 @@ TenantEdit، TenantBranding، TenantCategories، **TenantRegions**،
 
 **الحالَة النِّهائِيَّة:** كُلّ صَفحات (د) ✅ مَفحوصَة بِدُخول · `no-raw-emoji` = ٠ ·
 Layer 6 = ٠ مُخالَفات · بِناء V1.App = ٠ أَخطاء · مُتَجاوِب موبايل+سَطح.
-**يَبقى اختياريّ:** بَذر صَفقات (deals) لِفَحص DealDetail مَملوءاً.
+
+### تَحديث ثانٍ — صَفحات المَنصَّة + صَفقات مَبذورَة
+- **بَذر صَفقَتَين** (نَشِطَة Paid + مُكتَمِلَة Reviewed) لِكُلّ مُستَأجِر ⇒
+  MyDeals/DealDetail تُفحَص الآن **مَملوءَة**: stepper بِعَلامات ✓ خَطِّيَّة +
+  السِجِلّ + نَموذَج التَّقييم (خِيار «٥ نُجوم — مُمتاز»).
+- **دُخول مُشرِف المَنصَّة** (studio user `0501234567`, IsPlatformAdmin) ⇒ كُلّ
+  صَفحات (هـ) فُحِصَت حَيّاً: StudioHome, AdminHome (إصلاح `↗`), QualityMonitor,
+  AgentChat, CreateTenant, Incubator. كُلّها احتِرافِيَّة وبِلا إيموجي.
+
+**الخُلاصَة: الخُطَّة مُكتَمِلَة** — كُلّ الأَقسام (أ–هـ) ✅ مَفحوصَة بِدُخول حَقيقيّ.
