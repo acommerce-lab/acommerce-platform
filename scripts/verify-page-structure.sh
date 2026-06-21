@@ -123,6 +123,34 @@ while IFS=: read -r file line content; do
     report "no-raw-emoji" "$(realpath --relative-to="$ROOT" "$file")" "$line" "$content"
 done < <(grep -HnP '\xf0\x9f|\xe2[\x98-\x9b\x9c-\x9f]' $FILES 2>/dev/null || true)
 
+# Rule 9c: No cross-frame links — an entrepreneur on /studio/* must NOT be
+# kicked into the platform-admin /admin/* shell (and vice versa). Each frame
+# has its own shell + auth + back stack; cross-frame links strand the user
+# with no way back. If a /studio/* page genuinely needs to expose an admin
+# function, mirror it as a /studio/apps/{slug}/* page with its own save
+# endpoint (see StudioAppPwa/Attributes for the reference pattern).
+#
+# Scope: file path contains "Studio" (incl. StudioApp*), grep for any
+# `href="/admin` or `href="@($"/admin` (literal or razor-interpolated).
+# Symmetrically, files under "Admin/" or named Admin* (platform-admin shell)
+# must not link into /studio/* — except the documented studio-shell-back
+# links on QualityMonitor/AuditLog/IncubatorFixtures, which are intentional.
+echo ""
+echo "--- Rule 9c: No cross-frame links (studio <-> platform-admin) ---"
+while IFS=: read -r file line content; do
+    [ -z "$file" ] && continue
+    trimmed="$(echo "$content" | sed 's/^[[:space:]]*//')"
+    case "$trimmed" in
+      '//'*|'@*'*|'*'*|'<!--'*) continue ;;
+    esac
+    case "$(basename "$file")" in
+      Studio*) target="/admin" ;;
+      *) target="" ;;
+    esac
+    [ -z "$target" ] && continue
+    report "cross-frame-link [studio->admin]" "$(realpath --relative-to="$ROOT" "$file")" "$line" "$content"
+done < <(grep -HnE 'href="(@\(\$")?/admin' $FILES 2>/dev/null | grep -E 'Studio[A-Za-z]*\.razor' || true)
+
 # Rule 10: UI-only operations must not dispatch to the HTTP engine.
 # SetLanguage / SetTheme / SignOut are pure client-side state mutations — they
 # MUST be applied via Applier.ApplyLocalAsync (or UiPreferences.*).  Passing
