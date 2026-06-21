@@ -92,7 +92,7 @@
             {
                 <AcActionCard Label="إدارَة المَتجَر" IconName="settings" Variant="primary" Href="@AuthSession.LinkFor(Slug, Role, $"manage")" />
             }
-            <AcActionCard Label="الباقات"      IconName="package"       Variant="@(canManage ? "surface" : "primary")" Href="@AuthSession.LinkFor(Slug, Role, $"plans")" />
+            <AcActionCard Label="الباقات"      IconName="package"       Variant="surface" Href="@AuthSession.LinkFor(Slug, Role, $"plans")" />
             <AcActionCard Label="المُفَضَّلَة" IconName="heart"         Variant="surface" Href="@AuthSession.LinkFor(Slug, Role, $"favorites")" />
             <AcActionCard Label="المُحادَثات"   IconName="message"       Variant="surface" Href="@AuthSession.LinkFor(Slug, Role, $"chats")" />
             <AcActionCard Label="الإشعارات"     IconName="bell"          Variant="surface" Href="@AuthSession.LinkFor(Slug, Role, $"notifications")" />

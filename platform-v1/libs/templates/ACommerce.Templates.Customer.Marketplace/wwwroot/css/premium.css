@@ -1125,3 +1125,102 @@ a.ac-stat:hover, a.acm-role-cta-pill:hover {
     color: var(--ac-text) !important;
     text-shadow: none;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   22. R5-C — صَفحات: الباقات + حِسابي (مِن المَسح الحَقيقيّ)
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* صَفحَة الباقات — بِطاقات مُتَساوِيَة الارتِفاع، سِعر لا يَلتَفّ */
+.acs-page > .acm-home-grid { align-items: stretch; }
+.acm-home-grid > .ac-card, .acm-home-grid > .acm-card { height: 100%; display: flex; flex-direction: column; }
+/* السِّعر في الباقَة لا يَلتَفّ */
+.acm-plan-price, .acs-page .acm-home-grid .ac-card [style*="font-size:0.8rem"],
+.acm-home-grid .ac-card strong { white-space: nowrap; }
+
+/* صَفحَة حِسابي — شَبَكَة إحصاءات مُتَّزِنَة (٣ في صَفّ على الموبايل) */
+.acm-me-stats, .acs-page .ac-stats-grid {
+    grid-template-columns: repeat(3, 1fr) !important;
+}
+@media (max-width: 360px) {
+    .acm-me-stats, .acs-page .ac-stats-grid { grid-template-columns: repeat(2, 1fr) !important; }
+}
+
+/* شَبَكَة إجراءات حِسابي — مُتَّسِقَة، عَمودان مُتَساوِيان */
+.acm-home-actions {
+    display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;
+}
+@media (min-width: 641px) { .acm-home-actions { grid-template-columns: repeat(3, 1fr); } }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   23. إصلاح وَرقَة الفلاتر (modal) خارِج الشاشَة على الموبايل
+   السَّبَب: أَبٌ لَه transform/filter يَجعَل position:fixed نِسبِيّاً لَه.
+   الحَلّ: على الموبايل نُحَوِّلُها bottom-sheet مَضمون داخِل الـ viewport.
+   ═══════════════════════════════════════════════════════════════════════ */
+.ac-modal-backdrop {
+    position: fixed; inset: 0; z-index: 1060;
+    background: rgba(17,24,39,.45);
+    backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px);
+}
+.ac-modal {
+    position: fixed; z-index: 1070;
+    background: var(--ac-surface); display: flex; flex-direction: column;
+    box-shadow: var(--ac-shadow-xl);
+}
+/* موبايل: لَوح سُفليّ كامِل العَرض ثابِت أَسفَل الشاشَة */
+@media (max-width: 640px) {
+    .ac-modal {
+        top: auto !important; left: 0 !important; right: 0 !important;
+        bottom: 0 !important; transform: none !important;
+        width: 100% !important; max-width: 100% !important;
+        max-height: 85vh; border-radius: var(--ac-radius-xl) var(--ac-radius-xl) 0 0;
+        animation: ac-sheet-up 220ms var(--ac-ease-out);
+        padding-bottom: env(safe-area-inset-bottom, 0);
+    }
+    /* مَقبِض سَحب عُلويّ لِلتَّلميح */
+    .ac-modal::before {
+        content: ""; position: absolute; top: 8px; inset-inline: 0; margin: auto;
+        width: 40px; height: 4px; border-radius: 999px; background: var(--ac-border-strong);
+    }
+    .ac-modal-header { padding-top: 20px; }
+    .ac-modal-body { overflow-y: auto; }
+}
+/* سَطح: حِوار وَسَط مَضمون */
+@media (min-width: 641px) {
+    .ac-modal {
+        top: 50%; left: 50%; transform: translate(-50%, -50%);
+        width: min(92vw, 520px); max-height: 90vh;
+        border-radius: var(--ac-radius-lg); overflow: hidden;
+    }
+    .ac-modal-body { overflow-y: auto; }
+}
+@keyframes ac-sheet-up { from { transform: translateY(100%); } to { transform: translateY(0); } }
+
+/* شَبَكَة الباقات — عَمود واحِد (موبايل) → ٣ مُتَساوِيَة الارتِفاع (سَطح) */
+.acm-plans-grid {
+    display: grid; gap: 14px; grid-template-columns: 1fr; align-items: stretch;
+    margin-top: 8px;
+}
+@media (min-width: 768px) {
+    .acm-plans-grid { grid-template-columns: repeat(3, 1fr); }
+}
+.acm-plans-grid > .ac-card, .acm-plans-grid > .acm-card {
+    height: 100%; display: flex; flex-direction: column;
+}
+.acm-plans-grid .ac-card-footer, .acm-plans-grid form, .acm-plans-grid .ac-login-cta {
+    margin-top: auto;
+}
+
+/* حِسابي — شَبَكَة الإحصاءات ٣ مُتَساوِيَة (تَتَفَوَّق على acm-home-grid) */
+.acm-stats-grid {
+    grid-template-columns: repeat(3, 1fr) !important;
+}
+@media (max-width: 360px) { .acm-stats-grid { grid-template-columns: repeat(3, 1fr) !important; } }
+.acm-stat-tile {
+    background: var(--ac-surface); border: 1px solid var(--ac-border);
+    border-radius: var(--ac-radius-md); padding: 14px 8px; text-align: center;
+    text-decoration: none; color: var(--ac-text); box-shadow: var(--ac-shadow-xs);
+    transition: transform var(--ac-transition), box-shadow var(--ac-transition);
+}
+.acm-stat-tile:hover { transform: translateY(-2px); box-shadow: var(--ac-shadow-md); }
+.acm-stat-tile strong { display:block; font-size: 22px; font-weight: 800; letter-spacing: -.02em; }
+.acm-stat-tile span { display:block; font-size: 12px; color: var(--ac-text-muted); margin-top: 3px; }
