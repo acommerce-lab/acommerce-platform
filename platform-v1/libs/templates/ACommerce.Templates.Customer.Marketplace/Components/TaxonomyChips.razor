@@ -92,7 +92,9 @@ else
                        href="@leafHref">
                         @if (!string.IsNullOrEmpty(leaf.Icon))
                         {
-                            <span class="acm-taxo-chip-icon">@leaf.Icon</span>
+                            <span class="acm-taxo-chip-icon">
+                                <AcIcon Name="@ACommerce.Widgets.AcIconMap.Resolve(leaf.Icon, "tag")" Size="15" />
+                            </span>
                         }
                         <span>@leaf.Label</span>
                     </a>

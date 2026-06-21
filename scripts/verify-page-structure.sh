@@ -105,6 +105,24 @@ while IFS=: read -r file line content; do
     report "no-form-control" "$(realpath --relative-to="$ROOT" "$file")" "$line" "$content"
 done < <(grep -HnE 'class="[^"]*\bform-control\b(?![-])' $FILES 2>/dev/null || true)
 
+# Rule 9b: No raw colored emoji in markup — use line SVG icons (AcIcon).
+# Colored emoji render inconsistently across platforms and look cheap; the
+# platform's icon language is monochrome line SVG. Emoji that live in DATA
+# (category/role Icon fields) are mapped to SVG via AcIconMap at render time;
+# emoji hardcoded in .razor markup are a violation. Covers the common
+# pictographic ranges (Misc Symbols & Pictographs, Emoticons, Transport,
+# Supplemental, Dingbats, Misc Symbols).
+while IFS=: read -r file line content; do
+    [ -z "$file" ] && continue
+    # تَجاهُل أَسطُر التَّعليق (razor @* … أَو // أَو <!-- ) — الإيموجي في
+    # شَرح المُطَوِّر لا يُعرَض لِلمُستَخدِم.
+    trimmed="$(echo "$content" | sed 's/^[[:space:]]*//')"
+    case "$trimmed" in
+      '//'*|'@*'*|'*'*|'<!--'*) continue ;;
+    esac
+    report "no-raw-emoji" "$(realpath --relative-to="$ROOT" "$file")" "$line" "$content"
+done < <(grep -HnP '\xf0\x9f|\xe2[\x98-\x9b\x9c-\x9f]' $FILES 2>/dev/null || true)
+
 # Rule 10: UI-only operations must not dispatch to the HTTP engine.
 # SetLanguage / SetTheme / SignOut are pure client-side state mutations — they
 # MUST be applied via Applier.ApplyLocalAsync (or UiPreferences.*).  Passing

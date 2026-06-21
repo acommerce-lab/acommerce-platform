@@ -16,7 +16,9 @@
         {
             <p>@Tenant.TagLine</p>
         }
-        <span class="acm-role-landing-hint">✦ اختَر تَطبيقَكَ لِلمُتابَعَة</span>
+        <span class="acm-role-landing-hint">
+            <AcIcon Name="star" Size="14" /> اختَر تَطبيقَكَ لِلمُتابَعَة
+        </span>
     </header>
 
     <div class="acm-role-landing-cards">
@@ -26,7 +28,9 @@
         {
             <a class="acm-role-landing-card"
                href="@AuthSession.LinkFor(Slug, Role, $"r/{r.Slug}/login")">
-                <span class="acm-role-landing-card-icon">@(r.Icon ?? "👤")</span>
+                <span class="acm-role-landing-card-icon">
+                    <AcIcon Name="@ACommerce.Widgets.AcIconMap.Resolve(r.Icon, "user")" Size="26" />
+                </span>
                 <div>
                     <strong>@r.Label</strong>
                     @if (!string.IsNullOrEmpty(r.Description))
@@ -34,7 +38,9 @@
                         <span>@r.Description</span>
                     }
                 </div>
-                <span class="acm-role-landing-card-cta" aria-hidden="true">←</span>
+                <span class="acm-role-landing-card-cta" aria-hidden="true">
+                    <AcIcon Name="chevron-left" Size="16" />
+                </span>
             </a>
         }
     </div>

@@ -15,7 +15,9 @@ else
 {
     <section class="acm-role-hero acm-role-hero-@(RoleObj.Slug)">
         <div class="acm-role-hero-head">
-            <span class="acm-role-hero-icon">@(RoleObj.Icon ?? "👤")</span>
+            <span class="acm-role-hero-icon">
+                <AcIcon Name="@ACommerce.Widgets.AcIconMap.Resolve(RoleObj.Icon, "user")" Size="24" />
+            </span>
             <div>
                 <h2 style="margin:0;font-size:18px;">@Greeting</h2>
                 <span style="color:var(--ac-text-muted);font-size:13px;">@Subtitle</span>

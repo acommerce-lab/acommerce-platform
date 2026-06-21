@@ -13,16 +13,13 @@
 *@
 
 @{
-    // الـ Icon قَد يَكون اسم أَيقونَة SVG ("home") أَو إيموجي ("🏠"). إن لَم
-    // يُطابِق نَمَط الاسم (حُروف لاتينيَّة/أَرقام/شَرطَة) فَهو إيموجي يُعرَض
-    // كَنَصّ — كانَ يُمَرَّر لِـ AcIcon كَاسم فَيَظهَر فارِغاً (الدَّوائِر الخاوِيَة).
-    var isEmoji = !string.IsNullOrEmpty(Icon)
-        && !System.Text.RegularExpressions.Regex.IsMatch(Icon, "^[a-z0-9-]+$");
+    // لا إيموجي مُلَوَّن — نُحَوِّل أَيّ إيموجي (مِن DB) إلى أَيقونَة خَطِّيَّة
+    // SVG عَبر AcIconMap. الأَسماء النَّصِّيَّة ("home") تَمُرّ كَما هي.
+    var iconName = ACommerce.Widgets.AcIconMap.Resolve(Icon, "tag");
 
     RenderFragment iconInner = @<text>
         <span class="ac-tile-icon" aria-hidden="true">
-            @if (isEmoji) { <span class="ac-tile-emoji">@Icon</span> }
-            else { <AcIcon Name="@Icon" Size="24" /> }
+            <AcIcon Name="@iconName" Size="24" />
         </span>
         <span class="ac-tile-label">@Label</span>
     </text>;
