@@ -61,6 +61,7 @@ public static class TestDataSeeder
 
             // (٢) مُستَخدِم لِكُلّ دَور.
             await using var tenantSession = store.LightweightSession(slug);
+            var roleUsers = new List<(string Role, User User)>();
             for (int ri = 0; ri < roles.Length; ri++)
             {
                 var slugRole = roles[ri];
@@ -91,8 +92,14 @@ public static class TestDataSeeder
 
                 // (٣) بَيانات لِتَمتَلِئ صَفَحات الـ user الشَخصِيَّة.
                 await EnsureSampleListingAsync(tenantSession, slug, user);
-                await EnsureSampleNotificationAsync(tenantSession, user);
+                await EnsureSampleNotificationsAsync(tenantSession, user);
+                roleUsers.Add((slugRole, user));
             }
+
+            // (٤) مُحادَثَة بَين أَوَّل مُستَخدِمَين (لِتَمتَلِئ صَفحَة الرَّسائِل).
+            if (roleUsers.Count >= 2)
+                await EnsureSampleConversationAsync(tenantSession, roleUsers[0].User, roleUsers[1].User);
+
             await tenantSession.SaveChangesAsync();
         }
         await globalSession.SaveChangesAsync();
@@ -122,20 +129,59 @@ public static class TestDataSeeder
         s.Events.StartStream<Listing>(id, ev);
     }
 
-    private static async Task EnsureSampleNotificationAsync(
+    private static async Task EnsureSampleNotificationsAsync(
         IDocumentSession s, User user)
     {
         var has = await s.Query<Notification>()
             .Where(n => n.UserId == user.Id).Take(1).ToListAsync();
         if (has.Count > 0) return;
-        s.Store(new Notification
+        // عِدَّة إشعارات بِأَنواع مُختَلِفَة لِفَحص AcListRow بِأَيقونات + غَير مَقروء.
+        var samples = new (string Type, string Title, string Body, bool Read)[]
         {
-            Id = Guid.NewGuid(),
-            UserId = user.Id,
-            Type = "welcome",
-            Title = "مَرحَباً!",
-            Body = "هذا إشعار اختِبار.",
-            At = DateTime.UtcNow
+            ("saved_search_match", "إعلان جَديد يُطابِق بَحثَك", "شَقّة في حَوبان بِـ 100 ر.س", false),
+            ("offer_received",     "عَرض جَديد على إعلانِك",     "قَدَّمَ أَحَدُهُم عَرضاً — راجِعه", false),
+            ("welcome",            "مَرحَباً بِك 👋",            "أَكمِل مِلَفَّك لِتَظهَر بِثِقَة.", true),
+        };
+        var t = DateTime.UtcNow;
+        foreach (var (type, title, body, read) in samples)
+            s.Store(new Notification
+            {
+                Id = Guid.NewGuid(), UserId = user.Id, Type = type,
+                Title = title, Body = body, IsRead = read,
+                At = t = t.AddMinutes(-37)
+            });
+    }
+
+    private static async Task EnsureSampleConversationAsync(
+        IDocumentSession s, User a, User bUser)
+    {
+        var existing = await s.Query<Conversation>()
+            .Where(c => c.OwnerId == a.Id || c.PartnerId == a.Id).Take(1).ToListAsync();
+        if (existing.Count > 0) return;
+
+        var convId = Guid.NewGuid();
+        var now = DateTime.UtcNow;
+        s.Store(new Conversation
+        {
+            Id = convId,
+            OwnerId = a.Id, OwnerName = a.FullName,
+            PartnerId = bUser.Id, PartnerName = bUser.FullName,
+            LastMessage = "تَمام، نَتَّفِق على المَوعِد غَداً.",
+            LastAt = now, OwnerUnread = 0, PartnerUnread = 2,
+            CreatedAt = now.AddHours(-2)
         });
+        var msgs = new (Guid Sender, string Body, int MinAgo)[]
+        {
+            (a.Id,     "السَّلام عَلَيكُم، هَل الإعلان ما زالَ مُتاحاً؟", 120),
+            (bUser.Id, "وعَلَيكُم السَّلام، نَعَم مُتاح.",               110),
+            (a.Id,     "مُمتاز، مَتى يُمكِن المُعايَنَة؟",                95),
+            (bUser.Id, "تَمام، نَتَّفِق على المَوعِد غَداً.",            90),
+        };
+        foreach (var (sender, body, mins) in msgs)
+            s.Store(new Message
+            {
+                Id = Guid.NewGuid(), ConversationId = convId,
+                SenderId = sender, Body = body, SentAt = now.AddMinutes(-mins)
+            });
     }
 }

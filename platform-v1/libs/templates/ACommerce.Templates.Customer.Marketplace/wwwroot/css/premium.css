@@ -1224,3 +1224,33 @@ a.ac-stat:hover, a.acm-role-cta-pill:hover {
 .acm-stat-tile:hover { transform: translateY(-2px); box-shadow: var(--ac-shadow-md); }
 .acm-stat-tile strong { display:block; font-size: 22px; font-weight: 800; letter-spacing: -.02em; }
 .acm-stat-tile span { display:block; font-size: 12px; color: var(--ac-text-muted); margin-top: 3px; }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   24. R6 — إصلاح انحِدارات Layer 6 (تَباين، مَقاس، حَشو)
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* G-contrast: تَسمِيَة البَلاطَة كانَت muted (4.40) — أُغمِقها لِتَجتاز AA */
+.ac-tile-label { color: var(--ac-text) !important; }
+/* أَيقونَة البَلاطَة (إيموجي) رَمزِيَّة لا نَصّ — نَستَثنيها بِجَعلِها أَغمَق أَيضاً */
+.ac-tile-icon { color: var(--ac-text) !important; }
+
+/* G-contrast: شارَة الإعلان (ribbon) أَبيَض على فاتِح — خَلفِيَّة صُلبَة داكِنَة */
+.ac-space-ribbon {
+    background: var(--ac-primary) !important;
+    background-image: none !important;
+    color: #fff !important;
+}
+
+/* F-computed: مَقاسات على المِقياس (كانَت 30/26) */
+.ac-tile-emoji { font-size: 24px !important; }
+.acm-role-landing-card-icon { font-size: 28px !important; }
+.acm-role-hero-icon { font-size: 24px !important; }
+
+/* A-style: حَشو البَلاطَة 2px < 4px */
+.ac-tile { padding: 4px !important; }
+
+/* G-contrast: رُقَع التَّصنيف الفَرعيَّة (leaf) كانَت muted (4.40) على bg-alt.
+   أُغمِق النَّصّ غَير النَّشِط لِيَجتاز AA (4.5). */
+.acm-taxo-chip { color: var(--ac-text) !important; }
+.acm-taxo-chip.is-active { color: var(--ac-on-primary, #fff) !important; }
+.acm-taxo-chip-icon { color: inherit; }
