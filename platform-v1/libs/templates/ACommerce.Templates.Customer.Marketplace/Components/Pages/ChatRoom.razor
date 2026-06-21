@@ -54,25 +54,16 @@ else
                     </div>
                 }
                 var mine = m.SenderId == Auth.UserId;
-                <div style="display:flex;justify-content:@(mine ? "flex-end" : "flex-start");">
-                    <div style="max-width:75%;padding:10px 14px;
-                                border-radius:var(--ac-radius-md);
-                                background:@(mine ? "var(--ac-primary)" : "var(--ac-bg-alt)");
-                                color:@(mine ? "#fff" : "var(--ac-text)");">
-                        <div style="white-space:pre-wrap;word-break:break-word;">@m.Body</div>
-                        <div style="font-size:10px;opacity:.7;margin-top:4px;text-align:end;">
-                            @local.ToString("HH:mm")
-                        </div>
-                    </div>
-                </div>
+                <AcChatBubble Body="@m.Body" Time="@local.ToString("HH:mm")" Mine="@mine" />
             }
         }
     </div>
 
     @if (conv.ExpiresAt.HasValue && !conv.IsExpired)
     {
-        <p style="text-align:center;font-size:12px;color:var(--ac-text-muted);margin:8px 0;">
-            ⏱ مُحادَثَة مُؤَقَّتَة — تَنتَهي @conv.ExpiresAt.Value.ToString("yyyy-MM-dd HH:mm")
+        <p style="display:flex;align-items:center;justify-content:center;gap:6px;
+                  font-size:12px;color:var(--ac-text-muted);margin:8px 0;">
+            <AcIcon Name="clock" Size="14" /> مُحادَثَة مُؤَقَّتَة — تَنتَهي @conv.ExpiresAt.Value.ToString("yyyy-MM-dd HH:mm")
         </p>
     }
 

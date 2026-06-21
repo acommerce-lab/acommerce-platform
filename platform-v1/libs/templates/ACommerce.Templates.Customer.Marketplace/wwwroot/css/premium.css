@@ -989,6 +989,25 @@ a.ac-stat:hover, a.acm-role-cta-pill:hover {
 .ac-gallery-thumb:hover { transform: translateY(-1px); }
 .ac-gallery-thumb-active { border-color: var(--ac-primary); }
 
+/* ── فُقّاعات المُحادَثَة (AcChatBubble) ───────────────────────────────── */
+.ac-bubble-row { display: flex; justify-content: flex-start; margin: 3px 0; }
+.ac-bubble-row-mine { justify-content: flex-end; }
+.ac-bubble {
+    max-width: 80%; padding: 9px 13px;
+    border-radius: 16px; border-end-start-radius: 6px;
+    background: var(--ac-bg-alt); color: var(--ac-text);
+    box-shadow: var(--ac-shadow-sm);
+}
+.ac-bubble-mine {
+    background: var(--ac-primary); color: var(--ac-on-primary, #fff);
+    border-radius: 16px; border-end-start-radius: 16px; border-end-end-radius: 6px;
+}
+.ac-bubble-body { white-space: pre-wrap; word-break: break-word; font-size: 14px; line-height: 1.55; }
+.ac-bubble-meta { display: flex; align-items: center; gap: 4px; justify-content: flex-end; margin-top: 3px; }
+.ac-bubble-time { font-size: 10px; opacity: .7; }
+.ac-bubble-read { opacity: .85; }
+@media (min-width: 641px) { .ac-bubble { max-width: 62%; } }
+
 /* ── نَموذَج الدَّفع (AcPaymentForm) — صَفّ بِطاقَة + نَوع ──────────────── */
 .ac-pay-card {
     background: var(--ac-surface); border: 1px solid var(--ac-border);
