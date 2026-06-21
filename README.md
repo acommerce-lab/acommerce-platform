@@ -1,3 +1,21 @@
+---
+title: ACommerce Platform
+emoji: 🛍️
+colorFrom: blue
+colorTo: purple
+sdk: docker
+app_port: 7860
+pinned: false
+license: mit
+short_description: Multi-tenant Blazor commerce platform.
+---
+
+<!--
+الكُتلَة YAML أَعلاه يَقرَؤها Hugging Face Spaces لِنَشر التَّطبيق
+(Docker SDK). GitHub يُخفيها عِندَ العَرض. لِخَطَوات النَّشر الكامِلَة:
+docs/DEPLOY-HUGGINGFACE.md
+-->
+
 # ACommerce Platform
 
 Multi-vendor e-commerce platform built on the **Operation-Accounting Model

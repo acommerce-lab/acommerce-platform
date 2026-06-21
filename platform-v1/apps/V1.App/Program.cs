@@ -15,6 +15,21 @@ using ACommerce.V1.App.Seed;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// خَلف proxy (Hugging Face Spaces, Cloudflare, …) نَحتاج قِراءَة
+// X-Forwarded-* لِيَكشِف Request.IsHttps الصَّحيح — وإلّا AuthSession
+// يَحسِب الاتِّصال HTTP فَيَكسِر Secure cookies في الإنتاج.
+builder.Services.Configure<Microsoft.AspNetCore.Builder.ForwardedHeadersOptions>(opts =>
+{
+    opts.ForwardedHeaders =
+        Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedFor |
+        Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedProto |
+        Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedHost;
+    // proxy المُستَضيف قَد لا يَكون في 127.0.0.1 — اِقبَل مِن أَيّ مَصدَر.
+    // آمِن لِأَنّ الـ middleware يَكتُب Request.Scheme فَقَط، لا الـ IP.
+    opts.KnownNetworks.Clear();
+    opts.KnownProxies.Clear();
+});
+
 builder.AddPlatformHost(host => host
     .AddKitAssembly(typeof(ACommerce.Kit.Tenants.Server.TenantHandlers).Assembly)
     .AddKitAssembly(typeof(ACommerce.Kit.Listings.Server.ListingHandlers).Assembly)
@@ -77,6 +92,10 @@ await using (var scope = app.Services.CreateAsyncScope())
     if (Environment.GetEnvironmentVariable("TEST_DATA_SEED") == "1")
         await TestDataSeeder.RunAsync(scope.ServiceProvider);
 }
+
+// يَجِب أَن يُطَبَّق ForwardedHeaders قَبل أَيّ middleware يَقرَأ
+// Request.IsHttps / Scheme (الـ HTTPS redirect والكوكي والـ Auth).
+app.UseForwardedHeaders();
 
 app.UsePlatformHost();
 
