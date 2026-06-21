@@ -47,7 +47,7 @@
                             }
                             <div style="flex:1;">
                                 <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
-                                    <strong style="font-size:15px;">@tmpl.Icon @tmpl.Label</strong>
+                                    <strong style="font-size:15px;"><AcIcon Name="@ACommerce.Widgets.AcIconMap.Resolve(tmpl.Icon, "tag")" Size="16" /> @tmpl.Label</strong>
                                     @if (isPicked)
                                     {
                                         <label style="display:inline-flex;align-items:center;gap:4px;font-size:12px;color:var(--st-muted);">

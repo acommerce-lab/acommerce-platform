@@ -45,7 +45,7 @@
                                 <option value="">— كُلّ الفِئات —</option>
                                 @foreach (var c in tenant.Categories.OrderBy(c => c.SortOrder))
                                 {
-                                    <option value="@c.Slug">@c.Icon @c.Label</option>
+                                    <option value="@c.Slug">@c.Label</option>
                                 }
                             </select>
                         </AcField>

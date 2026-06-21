@@ -30,7 +30,7 @@ else
     var roleValues = user.RoleAttributesJson.TryGetValue(activeRole.Slug, out var rv)
         ? rv : new Dictionary<string, string>();
 
-    <h1 class="acm-wizard-title">@activeRole.Icon بَيانات @activeRole.Label</h1>
+    <h1 class="acm-wizard-title"><AcIcon Name="@ACommerce.Widgets.AcIconMap.Resolve(activeRole.Icon, "user")" Size="22" /> بَيانات @activeRole.Label</h1>
     <p style="color:var(--ac-text-muted);font-size:14px;margin-bottom:16px;">
         اِملأ الحُقول المَطلوبَة لِتُصبِح جاهِزاً لِلاستِخدام. يُمكِنُكَ تَحديث
         البَيانات لاحِقاً مِن المَلَفّ الشَخصيّ.

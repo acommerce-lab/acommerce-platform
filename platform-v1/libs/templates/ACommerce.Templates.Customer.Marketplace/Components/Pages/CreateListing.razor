@@ -91,7 +91,7 @@ else
                                         {
                                             <a class="acs-cat-pick"
                                                href="@AuthSession.LinkFor(Slug, Role, $"create-listing?category={Uri.EscapeDataString(c.Slug)}")">
-                                                <span style="font-size:28px;">@c.Icon</span>
+                                                <span><AcIcon Name="@ACommerce.Widgets.AcIconMap.Resolve(c.Icon, "tag")" Size="28" /></span>
                                                 <span>@c.Label</span>
                                             </a>
                                         }
@@ -107,7 +107,7 @@ else
                             {
                                 <a class="acs-cat-pick"
                                    href="@AuthSession.LinkFor(Slug, Role, $"create-listing?category={Uri.EscapeDataString(c.Slug)}")">
-                                    <span style="font-size:28px;">@c.Icon</span>
+                                    <span><AcIcon Name="@ACommerce.Widgets.AcIconMap.Resolve(c.Icon, "tag")" Size="28" /></span>
                                     <span>@c.Label</span>
                                 </a>
                             }
@@ -134,7 +134,7 @@ else
                         @if (selectedCategory is not null)
                         {
                             <p style="color:var(--ac-text-muted);font-size:13px;margin:0 0 12px;">
-                                الفِئَة: <strong>@selectedCategory.Icon @selectedCategory.Label</strong>
+                                الفِئَة: <strong><AcIcon Name="@ACommerce.Widgets.AcIconMap.Resolve(selectedCategory.Icon, "tag")" Size="16" /> @selectedCategory.Label</strong>
                             </p>
                         }
 

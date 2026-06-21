@@ -140,7 +140,7 @@ public static class TestDataSeeder
         {
             ("saved_search_match", "إعلان جَديد يُطابِق بَحثَك", "شَقّة في حَوبان بِـ 100 ر.س", false),
             ("offer_received",     "عَرض جَديد على إعلانِك",     "قَدَّمَ أَحَدُهُم عَرضاً — راجِعه", false),
-            ("welcome",            "مَرحَباً بِك 👋",            "أَكمِل مِلَفَّك لِتَظهَر بِثِقَة.", true),
+            ("welcome",            "مَرحَباً بِك",               "أَكمِل مِلَفَّك لِتَظهَر بِثِقَة.", true),
         };
         var t = DateTime.UtcNow;
         foreach (var (type, title, body, read) in samples)
