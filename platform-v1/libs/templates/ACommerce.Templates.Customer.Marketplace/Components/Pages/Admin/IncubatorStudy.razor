@@ -19,7 +19,7 @@
             <a class="ac-btn ac-btn-ghost ac-btn-sm" href="/admin/incubator" aria-label="الرُجوع">
                 <AcIcon Name="arrow-right" Size="16" />
             </a>
-            <h1 class="acm-wizard-title" style="margin:0;">📊 دِراسَة الجَدوى</h1>
+            <h1 class="acm-wizard-title" style="margin:0;"><AcIcon Name="bar-chart" Size="16" /> دِراسَة الجَدوى</h1>
         </div>
         @if (session?.Status == IncubatorStatus.Completed)
         {
@@ -35,7 +35,7 @@
     {
         <AcCard><ChildContent>
             <div style="text-align:center;padding:32px;">
-                <span style="font-size:48px;">⏳</span>
+                <span style="font-size:48px;"><AcIcon Name="clock" Size="48" /></span>
                 <h3>جارٍ تَحليل فِكرَتِكَ…</h3>
                 <p style="color:var(--ac-text-muted);font-size:13px;">
                     نَجمَع أَرقام السوق ونُقارِن بِالمنافِسين ونَستَنبِط المَخاطِر.
@@ -103,7 +103,7 @@
             @* ── المخاطر ── *@
             @if (r.TryGetProperty("risks", out var risks) && risks.ValueKind == JsonValueKind.Array)
             {
-                <h3 style="margin:20px 0 8px;">⚠️ المَخاطِر</h3>
+                <h3 style="margin:20px 0 8px;"><AcIcon Name="alert-circle" Size="16" /> المَخاطِر</h3>
                 <div style="display:flex;flex-direction:column;gap:8px;">
                     @foreach (var risk in risks.EnumerateArray())
                     {
@@ -124,7 +124,7 @@
             @* ── دروس الفشل ── *@
             @if (r.TryGetProperty("lessonsFromFailures", out var lessons) && lessons.ValueKind == JsonValueKind.Array)
             {
-                <h3 style="margin:20px 0 8px;">📉 دُروس مِن مَشاريع فَشِلَت</h3>
+                <h3 style="margin:20px 0 8px;"><AcIcon Name="bar-chart" Size="16" /> دُروس مِن مَشاريع فَشِلَت</h3>
                 <AcCard><ChildContent>
                     <ul style="margin:0;padding-inline-start:18px;line-height:2;font-size:13px;">
                         @foreach (var l in lessons.EnumerateArray())
@@ -138,7 +138,7 @@
             @* ── خارطة الطريق ── *@
             @if (r.TryGetProperty("roadmap", out var roadmap) && roadmap.ValueKind == JsonValueKind.Array)
             {
-                <h3 style="margin:20px 0 8px;">🗺️ خارِطَة الطَّريق</h3>
+                <h3 style="margin:20px 0 8px;"><AcIcon Name="map" Size="16" /> خارِطَة الطَّريق</h3>
                 <div class="acm-cat-list">
                     @foreach (var ph in roadmap.EnumerateArray())
                     {
@@ -159,7 +159,7 @@
             @if (r.TryGetProperty("recommendedPattern", out var rp))
             {
                 <AcCard><ChildContent>
-                    <h3 style="margin:0 0 6px;">🚀 الإطلاق على ACommerce</h3>
+                    <h3 style="margin:0 0 6px;"><AcIcon Name="sparkle" Size="16" /> الإطلاق على ACommerce</h3>
                     <p style="margin:0;font-size:14px;">
                         <strong>النَّمَط:</strong> @Str(rp,"pattern") ·
                         <strong>الوَقت:</strong> @Str(rp,"timeToLaunch")<br/>

@@ -45,7 +45,7 @@
             @if (deals.Count == 0)
             {
                 <div class="st-card" style="text-align:center;padding:36px;">
-                    <div style="font-size:42px;margin-bottom:6px;">📦</div>
+                    <div style="margin-bottom:6px;"><AcIcon Name="package" Size="42" /></div>
                     <h3 style="margin:0 0 6px;">لا عَمَلِيّات بَعد</h3>
                     <p style="color:var(--st-muted);margin:0 0 16px;">جَرِّب التَّدَفُّق بِإنشاء عَمَلِيَّة تَجريبيَّة:</p>
                     <form method="post" action="@($"/studio/apps/{Slug}/deals/seed")" style="display:flex;justify-content:center;gap:8px;">
@@ -67,7 +67,7 @@
                     {
                         <a class="studio-list-row" href="@($"/studio/apps/{Slug}/deals/{d.Id}")">
                             <span class="studio-list-icon" style="background:@StageBg(d.Stage);color:@StageColor(d.Stage);">
-                                @StageEmoji(d.Stage)
+                                <AcIcon Name="@StageIcon(d.Stage)" Size="16" />
                             </span>
                             <div class="studio-list-body">
                                 <strong>
@@ -110,13 +110,13 @@
         deals = await Deals.ListForTenantAsync(Slug);
     }
 
-    static string StageEmoji(DealStage s) => s switch
+    static string StageIcon(DealStage s) => s switch
     {
-        DealStage.Offered => "📋", DealStage.Booked => "📅",
-        DealStage.Confirmed => "✓", DealStage.Paid => "💳",
-        DealStage.Shipping => "🚚", DealStage.Delivered => "📦",
-        DealStage.Received => "✅", DealStage.Reviewed => "⭐",
-        _ => "•"
+        DealStage.Offered => "clipboard", DealStage.Booked => "calendar",
+        DealStage.Confirmed => "check", DealStage.Paid => "credit-card",
+        DealStage.Shipping => "truck", DealStage.Delivered => "package",
+        DealStage.Received => "check-circle", DealStage.Reviewed => "star",
+        _ => "tag"
     };
 
     static string StageBg(DealStage s) => s switch

@@ -24,7 +24,7 @@
                 <p>الاسم واللَّون والشِّعار التَّسويقي — يَنعَكِس كُلّ ذلِك تِلقائيّاً عَلى التَّطبيق.</p>
             </div>
 
-            @if (Saved == "1")  { <div class="st-chip st-chip-success" style="margin-bottom:14px;">تَمّ الحِفظ ✓</div> }
+            @if (Saved == "1")  { <div class="st-chip st-chip-success" style="margin-bottom:14px;">تَمّ الحِفظ <AcIcon Name="check" Size="16" /></div> }
             @if (Err == "name") { <div class="st-chip st-chip-danger"  style="margin-bottom:14px;">الاسم مَطلوب</div> }
             @if (Err == "color"){ <div class="st-chip st-chip-danger"  style="margin-bottom:14px;">اللَّون غَير صالِح</div> }
 

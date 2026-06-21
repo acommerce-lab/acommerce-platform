@@ -38,7 +38,7 @@
     else if (openRequests.Count == 0)
     {
         <div class="acm-role-empty">
-            <span style="font-size:36px;">🚗</span>
+            <AcIcon Name="car" Size="36" />
             <p>لا مَشاوير مَفتوحَة حاليّاً. اِحفَظ بَحثاً وَ سَنُنَبِّهُكَ.</p>
             <a class="ac-btn ac-btn-primary ac-btn-sm" href="@AuthSession.LinkFor(Slug, Role, $"me/searches")">
                 <AcIcon Name="bell" Size="14" /> حِفظ بَحث
@@ -66,7 +66,7 @@
                             @if (dist.HasValue)
                             {
                                 <span style="font-size:11px;color:var(--ac-primary);">
-                                    📍 @dist.Value.ToString("0.#") كم
+                                    <AcIcon Name="map-pin" Size="14" /> @dist.Value.ToString("0.#") كم
                                 </span>
                             }
                         </div>

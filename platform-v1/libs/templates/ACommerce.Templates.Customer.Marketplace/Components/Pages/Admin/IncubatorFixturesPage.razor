@@ -49,11 +49,11 @@
                         <div class="studio-stat-value">@IncubatorFixtures.All.Count</div>
                     </div>
                     <div class="studio-stat">
-                        <div class="studio-stat-label">نَجَحَت ✓</div>
+                        <div class="studio-stat-label">نَجَحَت <AcIcon Name="check" Size="14" /></div>
                         <div class="studio-stat-value" style="color:var(--st-success);">@passed</div>
                     </div>
                     <div class="studio-stat">
-                        <div class="studio-stat-label">انحِراف ✗</div>
+                        <div class="studio-stat-label">انحِراف <AcIcon Name="x" Size="14" /></div>
                         <div class="studio-stat-value" style="color:var(--st-danger);">@failed</div>
                     </div>
                     <div class="studio-stat">
@@ -69,7 +69,7 @@
                         var ok = actual.Pattern == f.ExpectedPattern;
                         <div class="studio-list-row" style="cursor:default;">
                             <span class="studio-list-icon" style="@(ok ? "background:#dcfce7;color:#15803d;" : "background:#fee2e2;color:#b91c1c;")">
-                                @(ok ? "✓" : "✗")
+                                <AcIcon Name="@(ok ? "check" : "x")" Size="14" />
                             </span>
                             <div class="studio-list-body">
                                 <strong>@f.Description</strong>
@@ -84,7 +84,7 @@
                 </div>
 
                 <div class="st-card" style="margin-top:18px;background:var(--st-line-soft);border:0;font-size:12.5px;color:var(--st-muted);">
-                    💡 لِفَحص LLM كامِل (يَستَهلِك الحِصَّة) شَغِّل التَّحاليل يَدَويّاً مِن صَفحَة كُلّ جَلسَة بَعد إنشائها مَع وَصف الـ fixture.
+                    <AcIcon Name="lightbulb" Size="16" /> لِفَحص LLM كامِل (يَستَهلِك الحِصَّة) شَغِّل التَّحاليل يَدَويّاً مِن صَفحَة كُلّ جَلسَة بَعد إنشائها مَع وَصف الـ fixture.
                 </div>
             </div>
         </div>

@@ -40,14 +40,14 @@
             @if (JustBuilt)
             {
                 <div class="st-card" style="background:#dcfce7;border:1px solid var(--st-success);">
-                    🎉 تَمّ إنشاء التَّطبيق بِنَجاح. عَدِّل الفِئات والأَدوار والهُويَّة مِن الأَقسام أَدناه.
+                    <AcIcon Name="sparkle" Size="16" /> تَمّ إنشاء التَّطبيق بِنَجاح. عَدِّل الفِئات والأَدوار والهُويَّة مِن الأَقسام أَدناه.
                 </div>
             }
 
             @if (tenant.SourceAnalysisId.HasValue)
             {
                 <div class="st-card" style="background:var(--st-primary-50);border:1px solid var(--st-primary);">
-                    💡 هذا التَّطبيق مَبنيّ على فِكرَة حُلِّلَت في الحاضِنَة.
+                    <AcIcon Name="lightbulb" Size="16" /> هذا التَّطبيق مَبنيّ على فِكرَة حُلِّلَت في الحاضِنَة.
                     <a href="@($"/studio/s/{tenant.SourceAnalysisId}")"
                        style="color:var(--st-primary-700);font-weight:600;text-decoration:none;">
                         عَرض الدِراسَة ←
@@ -81,37 +81,37 @@
             <div class="st-section-title">التَّصميم والتَّهيئَة</div>
             <div class="studio-list">
                 <a class="studio-list-row" href="@($"/studio/apps/{Slug}/branding")">
-                    <span class="studio-list-icon ac-chip-info">🎨</span>
+                    <span class="studio-list-icon ac-chip-info"><AcIcon Name="image" Size="16" /></span>
                     <div class="studio-list-body"><strong>الهُوِيَّة البَصَريَّة</strong>
                         <span>اللَّون، الاسم، الشِّعار، المَدينَة</span></div>
                     <span style="color:var(--st-faint);">←</span>
                 </a>
                 <a class="studio-list-row" href="@($"/studio/apps/{Slug}/categories")">
-                    <span class="studio-list-icon" style="background:#dcfce7;color:#15803d;">🗂️</span>
+                    <span class="studio-list-icon" style="background:#dcfce7;color:#15803d;"><AcIcon Name="list" Size="16" /></span>
                     <div class="studio-list-body"><strong>الفِئات</strong>
                         <span>@tenant.Categories.Count فِئَة</span></div>
                     <span style="color:var(--st-faint);">←</span>
                 </a>
                 <a class="studio-list-row" href="@($"/studio/apps/{Slug}/roles")">
-                    <span class="studio-list-icon" style="background:#fef3c7;color:#854d0e;">👥</span>
+                    <span class="studio-list-icon" style="background:#fef3c7;color:#854d0e;"><AcIcon Name="people" Size="16" /></span>
                     <div class="studio-list-body"><strong>الأَدوار (التَّطبيقات الفَرعيَّة)</strong>
                         <span>@tenant.Roles.Count دَور — كُلّ دَور = تَطبيق مُستَقِلّ</span></div>
                     <span style="color:var(--st-faint);">←</span>
                 </a>
                 <a class="studio-list-row" href="@($"/studio/apps/{Slug}/regions")">
-                    <span class="studio-list-icon" style="background:#e0e7ff;color:#4338ca;">🗺️</span>
+                    <span class="studio-list-icon" style="background:#e0e7ff;color:#4338ca;"><AcIcon Name="map" Size="16" /></span>
                     <div class="studio-list-body"><strong>المُدُن والأَحياء</strong>
                         <span>التَّغطيَة الجُغرافيَّة</span></div>
                     <span style="color:var(--st-faint);">←</span>
                 </a>
                 <a class="studio-list-row" href="@($"/admin/tenants/{Slug}/attributes?scope=00000000-0000-0000-0000-000000000F01")">
-                    <span class="studio-list-icon" style="background:#fae8ff;color:#a21caf;">🧬</span>
+                    <span class="studio-list-icon" style="background:#fae8ff;color:#a21caf;"><AcIcon Name="sliders" Size="16" /></span>
                     <div class="studio-list-body"><strong>الخَصائِص الديناميكيَّة</strong>
                         <span>حُقول مُخَصَّصَة لِلإعلانات والبروفايلات</span></div>
                     <span style="color:var(--st-faint);">←</span>
                 </a>
                 <a class="studio-list-row" href="@($"/admin/tenants/{Slug}/pwa")">
-                    <span class="studio-list-icon" style="background:#cffafe;color:#0e7490;">📱</span>
+                    <span class="studio-list-icon" style="background:#cffafe;color:#0e7490;"><AcIcon Name="phone" Size="16" /></span>
                     <div class="studio-list-body"><strong>تَطبيقات الجَوّال (PWA)</strong>
                         <span>اِسم وأَيقونَة كُلّ دَور</span></div>
                     <span style="color:var(--st-faint);">←</span>
@@ -121,13 +121,13 @@
             <div class="st-section-title">التَّشغيل والمُتابَعَة</div>
             <div class="studio-list">
                 <a class="studio-list-row" href="@($"/studio/apps/{Slug}/deals")">
-                    <span class="studio-list-icon ac-chip-info">🔄</span>
+                    <span class="studio-list-icon ac-chip-info"><AcIcon Name="refresh" Size="16" /></span>
                     <div class="studio-list-body"><strong>تَدَفُّق العَمَليَّات</strong>
                         <span>صَفقات تَمُرّ بِـ عَرض → حَجز → تَأكيد → دَفع → شَحن → استِلام → تَقييم</span></div>
                     <span style="color:var(--st-faint);">←</span>
                 </a>
                 <a class="studio-list-row" href="@($"/studio/apps/{Slug}/console")">
-                    <span class="studio-list-icon" style="background:#fee2e2;color:#b91c1c;">📊</span>
+                    <span class="studio-list-icon" style="background:#fee2e2;color:#b91c1c;"><AcIcon Name="bar-chart" Size="16" /></span>
                     <div class="studio-list-body"><strong>لوحَة التَّشغيل</strong>
                         <span>المُستَخدِمون، التَّذاكِر، سِجِلّ العَمَلِيّات</span></div>
                     <span style="color:var(--st-faint);">←</span>

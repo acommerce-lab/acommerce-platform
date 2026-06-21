@@ -84,7 +84,7 @@ else
                                 <input type="radio" name="activeRole" value="@r.Slug"
                                        checked="@(user.ActiveRole == r.Slug || (string.IsNullOrEmpty(user.ActiveRole) && r.IsDefault))" />
                                 <span class="acm-radio-card-body">
-                                    <strong>@(r.Icon ?? "👤") @r.Label</strong>
+                                    <strong><AcIcon Name="@ACommerce.Widgets.AcIconMap.Resolve(r.Icon, "user")" Size="16" /> @r.Label</strong>
                                     @if (!string.IsNullOrEmpty(r.Description))
                                     {
                                         <span>@r.Description</span>
@@ -143,7 +143,7 @@ else
                 <ChildContent>
                     @if (forceOpen)
                     {
-                        <h3 style="margin-top:0;">@ricon بَيانات دَور @rlabel</h3>
+                        <h3 style="margin-top:0;"><AcIcon Name="@ACommerce.Widgets.AcIconMap.Resolve(ricon, "user")" Size="18" /> بَيانات دَور @rlabel</h3>
                         @foreach (var f in fields)
                         {
                             <AcField Label="@f.Label" Required="@f.IsRequired">
@@ -155,7 +155,7 @@ else
                     {
                         <details open="@isActive">
                             <summary style="cursor:pointer;font-weight:700;list-style:none;">
-                                @ricon بَيانات دَور @rlabel
+                                <AcIcon Name="@ACommerce.Widgets.AcIconMap.Resolve(ricon, "user")" Size="16" /> بَيانات دَور @rlabel
                                 @if (isActive)
                                 {
                                     <span class="ac-chip ac-chip-sm" style="margin-inline-start:6px;">نَشِط</span>
@@ -225,7 +225,7 @@ else
                 var combined = catalogFields
                     .Concat(dynamicFields.Where(d => !catalogFields.Any(c => c.Code == d.Code)))
                     .ToList();
-                roleFields.Add((r.Slug, r.Label, r.Icon ?? "👤", combined));
+                roleFields.Add((r.Slug, r.Label, r.Icon ?? "", combined));
             }
         }
     }

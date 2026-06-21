@@ -58,7 +58,7 @@ else
                         <input type="radio" name="role" value="@r.Slug"
                                checked="@(r.IsDefault)" required />
                         <span class="acm-radio-card-body">
-                            <strong style="font-size:18px;">@(r.Icon ?? "👤") @r.Label</strong>
+                            <strong style="font-size:18px;"><AcIcon Name="@ACommerce.Widgets.AcIconMap.Resolve(r.Icon, "user")" Size="18" /> @r.Label</strong>
                             @if (!string.IsNullOrEmpty(r.Description))
                             {
                                 <span style="font-size:13px;line-height:1.6;">@r.Description</span>

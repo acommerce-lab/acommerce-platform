@@ -57,7 +57,7 @@
                         <div class="st-card">
                             <div style="display:flex;gap:14px;align-items:start;">
                                 <span class="studio-list-icon" style="background:@StatusBg(l);color:@StatusColor(l);flex-shrink:0;">
-                                    📋
+                                    <AcIcon Name="clipboard" Size="18" />
                                 </span>
                                 <div style="flex:1;min-width:0;">
                                     <strong>@l.Title</strong>
@@ -72,7 +72,7 @@
                                     @if (l.IsHiddenByModerator && !string.IsNullOrEmpty(l.ModerationReason))
                                     {
                                         <div style="margin-top:6px;font-size:12.5px;color:var(--st-danger);">
-                                            ⚠️ سَبَب الإخفاء: @l.ModerationReason
+                                            <AcIcon Name="alert-circle" Size="14" /> سَبَب الإخفاء: @l.ModerationReason
                                         </div>
                                     }
                                 </div>
@@ -85,7 +85,7 @@
                                     {
                                         <form method="post" action="@($"/studio/apps/{Slug}/listings/{l.Id}/moderate")" style="margin:0;">
                                             <input type="hidden" name="action" value="unhide" />
-                                            <button type="submit" class="st-btn st-btn-ghost">↩️ إظهار</button>
+                                            <button type="submit" class="st-btn st-btn-ghost"><AcIcon Name="refresh" Size="16" /> إظهار</button>
                                         </form>
                                     }
                                     else
@@ -100,7 +100,7 @@
                                     <form method="post" action="@($"/studio/apps/{Slug}/listings/{l.Id}/moderate")"
                                           onsubmit="return confirm('تَأكيد الحَذف؟ غَير قابِل لِلتَّراجُع.');" style="margin:0;">
                                         <input type="hidden" name="action" value="delete" />
-                                        <button type="submit" class="st-btn st-btn-ghost" style="color:var(--st-danger);">🗑️ حَذف</button>
+                                        <button type="submit" class="st-btn st-btn-ghost" style="color:var(--st-danger);"><AcIcon Name="trash" Size="16" /> حَذف</button>
                                     </form>
                                 </div>
                             }

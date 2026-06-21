@@ -40,7 +40,7 @@
             @if (tickets.Count == 0)
             {
                 <div class="st-card" style="text-align:center;padding:36px;color:var(--st-muted);">
-                    لا تَذاكِر بَعد ✨
+                    لا تَذاكِر بَعد <AcIcon Name="sparkle" Size="16" />
                 </div>
             }
             else
@@ -50,7 +50,7 @@
                     {
                         <a class="studio-list-row" href="@($"/studio/apps/{Slug}/tickets/{t.Id}")">
                             <span class="studio-list-icon" style="background:@StatusBg(t.Status);color:@StatusColor(t.Status);">
-                                🎫
+                                <AcIcon Name="ticket" Size="18" />
                             </span>
                             <div class="studio-list-body">
                                 <strong>@t.Subject</strong>

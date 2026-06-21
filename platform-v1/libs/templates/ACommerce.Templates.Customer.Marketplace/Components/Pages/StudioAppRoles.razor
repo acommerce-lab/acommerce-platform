@@ -25,7 +25,7 @@
                 <p>كُلّ دَور يَصبَح تَطبيقاً مُستَقِلّاً قابِلاً لِلتَّثبيت (PWA) مَع صَلاحيّات وحُقول مُخَصَّصَة.</p>
             </div>
 
-            @if (Saved == "1") { <div class="st-chip st-chip-success" style="margin-bottom:14px;">تَمّ الحِفظ ✓</div> }
+            @if (Saved == "1") { <div class="st-chip st-chip-success" style="margin-bottom:14px;">تَمّ الحِفظ <AcIcon Name="check" Size="16" /></div> }
 
             <form method="post" action="@($"/studio/apps/{Slug}/roles/save")">
                 <div class="studio-list">

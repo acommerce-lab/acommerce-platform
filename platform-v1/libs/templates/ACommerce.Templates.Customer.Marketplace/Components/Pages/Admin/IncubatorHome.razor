@@ -14,7 +14,7 @@
                 <AcIcon Name="arrow-right" Size="16" />
             </a>
             <div>
-                <h1 class="acm-wizard-title" style="margin:0;">🔬 حاضِنَة الأَفكار</h1>
+                <h1 class="acm-wizard-title" style="margin:0;"><AcIcon Name="search" Size="16" /> حاضِنَة الأَفكار</h1>
                 <p style="color:var(--ac-text-muted);margin:2px 0 0;font-size:13px;">
                     حَلِّل جَدوى فِكرَتِكَ في السوق السعودي قَبل الإطلاق
                 </p>
@@ -31,7 +31,7 @@
     <AcCard>
         <ChildContent>
             <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
-                <span style="font-size:42px;">💡</span>
+                <span style="font-size:42px;"><AcIcon Name="lightbulb" Size="42" /></span>
                 <div style="flex:1;min-width:200px;">
                     <h3 style="margin:0 0 4px;">عِندَكَ فِكرَة مَتجَر؟</h3>
                     <p style="margin:0;color:var(--ac-text-muted);font-size:13px;line-height:1.7;">
@@ -63,7 +63,7 @@
                    href="@(s.Status == IncubatorStatus.Completed
                         ? $"/admin/incubator/{s.Id}/study"
                         : $"/admin/incubator/{s.Id}")">
-                    <span style="font-size:22px;">@StatusIcon(s.Status)</span>
+                    <span style="font-size:22px;"><AcIcon Name="@StatusIcon(s.Status)" Size="22" /></span>
                     <div style="flex:1;">
                         <strong>@(string.IsNullOrEmpty(s.ProjectDescription)
                             ? "فِكرَة بِلا وَصف بَعد"
@@ -91,11 +91,11 @@
 
     static string StatusIcon(IncubatorStatus s) => s switch
     {
-        IncubatorStatus.Completed => "✅",
-        IncubatorStatus.Analyzing => "⏳",
-        IncubatorStatus.Failed    => "⚠️",
-        IncubatorStatus.PatternSuggested => "🎯",
-        _ => "✏️"
+        IncubatorStatus.Completed => "check",
+        IncubatorStatus.Analyzing => "clock",
+        IncubatorStatus.Failed    => "alert-circle",
+        IncubatorStatus.PatternSuggested => "target",
+        _ => "edit"
     };
 
     static string StatusLabel(IncubatorStatus s) => s switch

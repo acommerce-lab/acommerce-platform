@@ -26,7 +26,7 @@
                 <p>المُدُن والأَحياء الَّتي يَختار مِنها العُملاء.</p>
             </div>
 
-            @if (Saved == "1")     { <div class="st-chip st-chip-success" style="margin-bottom:14px;">تَمّ الحِفظ ✓</div> }
+            @if (Saved == "1")     { <div class="st-chip st-chip-success" style="margin-bottom:14px;"><AcIcon Name="check" Size="14" /> تَمّ الحِفظ</div> }
             @if (Err == "empty")   { <div class="st-chip st-chip-danger"  style="margin-bottom:14px;">أَضِف مَدينَة واحِدَة على الأَقَلّ</div> }
             @if (Err == "format")  { <div class="st-chip st-chip-danger"  style="margin-bottom:14px;">صِيغَة سَطر غَير صَحيحَة</div> }
 
@@ -41,7 +41,7 @@
                         <div class="ac-editor-row" data-city-row>
                             <div class="ac-editor-row-head">
                                 <input class="ac-input ac-city-name" placeholder="اسم المَدينَة" value="@city" />
-                                <button type="button" class="ac-icon-btn" data-remove-city aria-label="حَذف المَدينَة">✕</button>
+                                <button type="button" class="ac-icon-btn" data-remove-city aria-label="حَذف المَدينَة"><AcIcon Name="x" Size="16" /></button>
                             </div>
                             <div>
                                 <span class="ac-chip-input-label">الأَحياء</span>
@@ -70,7 +70,7 @@
                 <div class="ac-editor-row" data-city-row>
                     <div class="ac-editor-row-head">
                         <input class="ac-input ac-city-name" placeholder="اسم المَدينَة" />
-                        <button type="button" class="ac-icon-btn" data-remove-city aria-label="حَذف المَدينَة">✕</button>
+                        <button type="button" class="ac-icon-btn" data-remove-city aria-label="حَذف المَدينَة"><AcIcon Name="x" Size="16" /></button>
                     </div>
                     <div>
                         <span class="ac-chip-input-label">الأَحياء</span>

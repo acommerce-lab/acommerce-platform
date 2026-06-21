@@ -18,7 +18,7 @@
         @* أَيّ حالَة بَعد الاكتِشاف (مُقتَرَح، يَجري التَّحليل، اكتَمَلَ،
            أَو فَشِلَ) تَعرِض بِطاقَة النَّمَط + إجراء مُلائِم. *@
         <div style="text-align:center;padding-top:12px;">
-            <span style="font-size:42px;">@(session.Status == IncubatorStatus.Failed ? "⚠️" : "🎯")</span>
+            <span style="font-size:42px;"><AcIcon Name="@(session.Status == IncubatorStatus.Failed ? "alert-circle" : "target")" Size="42" /></span>
             <h1 class="acm-wizard-title">
                 @(session.Status == IncubatorStatus.Failed ? "تَعَذَّرَ التَّحليل" : "النَّمَط المُقتَرَح")
             </h1>
@@ -52,7 +52,7 @@
             else if (session.Status == IncubatorStatus.Analyzing)
             {
                 <a class="ac-btn ac-btn-primary ac-btn-block"
-                   href="@($"/admin/incubator/{session.Id}/study")">⏳ التَّحليل جارٍ — عَرض</a>
+                   href="@($"/admin/incubator/{session.Id}/study")"><AcIcon Name="clock" Size="16" /> التَّحليل جارٍ — عَرض</a>
             }
             else
             {

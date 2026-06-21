@@ -46,7 +46,7 @@ else
     <div class="ac-auth-wrap" style="--ac-primary:@Tenant.BrandColor;">
         <div class="ac-auth-card">
             <div class="ac-auth-logo" style="background:@Tenant.BrandColor;">
-                @(Tenant.AuthChannel == "nafath" ? "🪪" : "📱")
+                <AcIcon Name="@(Tenant.AuthChannel == "nafath" ? "key" : "phone")" Size="24" />
             </div>
             <h1 class="ac-auth-title">@Tenant.Name</h1>
             <p class="ac-auth-sub">تَسجيل الدُخول بِـ @(Tenant.AuthChannel == "nafath" ? "نَفاذ" : "الهاتِف")</p>

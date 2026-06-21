@@ -14,7 +14,7 @@
     </header>
 
     <a class="acm-role-cta-primary" href="@AuthSession.LinkFor(Slug, Role, $"create-listing")">
-        <span class="acm-role-cta-icon">➕</span>
+        <span class="acm-role-cta-icon"><AcIcon Name="plus" Size="22" /></span>
         <span class="acm-role-cta-label">
             <strong>إعلان جَديد</strong>
             <small>أَضِف ما تَعرِضه — نَشر فَوريّ</small>
@@ -44,7 +44,7 @@
     else if (myListings.Count == 0)
     {
         <div class="acm-role-empty">
-            <span style="font-size:36px;">📦</span>
+            <AcIcon Name="package" Size="36" />
             <p>لا إعلانات بَعد. اِنشُر أَوَّل إعلان فَوقُ.</p>
         </div>
     }

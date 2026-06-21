@@ -48,7 +48,7 @@
                              Message="@($"هذا المَتجَر بِلا أَدوار — يَحصُل عَلى تَطبيق PWA واحِد عَلى /{Slug}. عَدِّل الأَدوار أَوَّلاً لِلحُصول عَلى تَطبيق لِكُلّ دَور.")" />
                     <a class="ac-btn ac-btn-primary" style="margin-top:12px;"
                        href="@($"/admin/tenants/{Slug}/roles")">
-                        <AcIcon Name="users" Size="16" /> إعداد الأَدوار
+                        <AcIcon Name="people" Size="16" /> إعداد الأَدوار
                     </a>
                 </ChildContent>
             </AcCard>
@@ -69,7 +69,7 @@
                                             border:1px solid var(--ac-border);" />
                                 <div style="flex:1;">
                                     <h3 style="margin:0 0 4px;">
-                                        @(r.Icon ?? "👤") @r.Label
+                                        <AcIcon Name="@ACommerce.Widgets.AcIconMap.Resolve(r.Icon, "user")" Size="18" /> @r.Label
                                     </h3>
                                     <small style="color:var(--ac-text-muted);direction:ltr;">
                                         /@(Slug)/r/@(r.Slug)/

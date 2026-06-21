@@ -39,7 +39,7 @@
                 <div style="flex:1;text-align:center;">
                     <div style="width:30px;height:30px;border-radius:50%;margin:0 auto 4px;display:grid;place-items:center;
                                 background:@(current ? "var(--ac-primary)" : done ? "#16a34a" : "var(--ac-border)");color:#fff;font-weight:700;">
-                        @(done ? "✓" : i)
+                        @if (done) { <AcIcon Name="check" Size="16" /> } else { @i }
                     </div>
                     <div style="font-size:11px;color:@(current ? "var(--ac-primary)" : "var(--ac-text-muted)");">
                         @(i == 1 ? "العُنوان" : i == 2 ? "الدَّفع" : "تَأكيد")
@@ -83,14 +83,14 @@
                             <label class="acm-radio-card">
                                 <input type="radio" name="pay" value="card" required checked="@(Pay != "cash")" />
                                 <span class="acm-radio-card-body">
-                                    <strong>💳 بِطاقَة (Moyasar/Noon)</strong>
+                                    <strong><AcIcon Name="credit-card" Size="16" /> بِطاقَة (Moyasar/Noon)</strong>
                                     <span>دَفع آمِن بِبِطاقَة مَدى أَو فيزا</span>
                                 </span>
                             </label>
                             <label class="acm-radio-card">
                                 <input type="radio" name="pay" value="cash" checked="@(Pay == "cash")" />
                                 <span class="acm-radio-card-body">
-                                    <strong>💵 نَقد عِندَ التَّسليم</strong>
+                                    <strong><AcIcon Name="cash" Size="16" /> نَقد عِندَ التَّسليم</strong>
                                     <span>اِدفَع عِندَما يَصِل طَلَبك</span>
                                 </span>
                             </label>
@@ -134,7 +134,7 @@
                 <input type="hidden" name="phone" value="@Phone" />
                 <input type="hidden" name="addr"  value="@Addr" />
                 <input type="hidden" name="pay"   value="@Pay" />
-                <AcButton Type="submit" Variant="primary" Size="lg" Block="true" Text="✓ تَأكيد الطَلَب" />
+                <AcButton Type="submit" Variant="primary" Size="lg" Block="true" Text="تَأكيد الطَلَب" />
             </form>
         }
     }

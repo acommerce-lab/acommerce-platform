@@ -57,7 +57,7 @@
                                     <input type="checkbox" name="role_@(tmpl.Slug)" value="1" />
                                 }
                                 <span class="acm-role-pickcard-body">
-                                    <strong style="font-size:15px;">@tmpl.Icon @tmpl.Label</strong>
+                                    <strong style="font-size:15px;"><AcIcon Name="@ACommerce.Widgets.AcIconMap.Resolve(tmpl.Icon, "tag")" Size="16" /> @tmpl.Label</strong>
                                     <span>@tmpl.Description</span>
                                     <div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:4px;">
                                         @foreach (var p in tmpl.Permissions)
@@ -100,7 +100,7 @@
                         @foreach (var r in tenant.Roles.OrderBy(r => r.SortOrder))
                         {
                             <div class="acm-cat-row">
-                                <span style="font-size:24px;">@(r.Icon ?? "👤")</span>
+                                <span><AcIcon Name="@ACommerce.Widgets.AcIconMap.Resolve(r.Icon, "user")" Size="24" /></span>
                                 <div style="flex:1;">
                                     <strong>@r.Label</strong>
                                     <span style="color:var(--ac-text-muted);font-size:12px;display:block;">

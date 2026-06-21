@@ -82,7 +82,7 @@
 
     RenderFragment DealRow(Deal d) => @<a class="acm-cat-row" style="text-decoration:none;color:inherit;"
         href="@AuthSession.LinkFor(Slug, Role, $"deals/{d.Id}")">
-        <span style="font-size:22px;">@StageEmoji(d.Stage)</span>
+        <span><AcIcon Name="@StageIcon(d.Stage)" Size="22" /></span>
         <div style="flex:1;">
             <strong>@(string.IsNullOrEmpty(d.ListingTitle) ? d.Pattern : d.ListingTitle)</strong>
             <span style="color:var(--ac-text-muted);font-size:12px;display:block;">
@@ -93,11 +93,11 @@
         <AcIcon Name="chevron-left" Size="16" />
     </a>;
 
-    static string StageEmoji(DealStage s) => s switch
+    static string StageIcon(DealStage s) => s switch
     {
-        DealStage.Offered => "📋", DealStage.Booked => "📅", DealStage.Confirmed => "✓",
-        DealStage.Paid => "💳", DealStage.Shipping => "🚚", DealStage.Delivered => "📦",
-        DealStage.Received => "✅", DealStage.Reviewed => "⭐", _ => "•"
+        DealStage.Offered => "clipboard", DealStage.Booked => "calendar", DealStage.Confirmed => "check",
+        DealStage.Paid => "credit-card", DealStage.Shipping => "truck", DealStage.Delivered => "package",
+        DealStage.Received => "check-circle", DealStage.Reviewed => "star", _ => "tag"
     };
     static string StatusLabel(DealStatus s) => s switch
     {

@@ -126,7 +126,7 @@
                 @if (recentFailures.Count == 0)
                 {
                     <div class="st-card" style="color:var(--st-muted);text-align:center;padding:24px;">
-                        لا فَشَلات بَعد ✨
+                        لا فَشَلات بَعد <AcIcon Name="sparkle" Size="16" />
                     </div>
                 }
                 else
@@ -135,7 +135,7 @@
                         @foreach (var s in recentFailures)
                         {
                             <div class="studio-list-row" style="cursor:default;">
-                                <span class="studio-list-icon" style="background:#fee2e2;color:#b91c1c;">⚠️</span>
+                                <span class="studio-list-icon" style="background:#fee2e2;color:#b91c1c;"><AcIcon Name="alert-circle" Size="16" /></span>
                                 <div class="studio-list-body">
                                     <strong>@(string.IsNullOrEmpty(s.ProjectDescription) ? "بِلا وَصف" : Truncate(s.ProjectDescription, 70))</strong>
                                     <span>@s.UpdatedAt.ToString("yyyy-MM-dd HH:mm") · @Truncate(s.AnalysisError ?? "", 80)</span>
@@ -150,7 +150,7 @@
                     @foreach (var s in recentCompleted)
                     {
                         <div class="studio-list-row" style="cursor:default;">
-                            <span class="studio-list-icon" style="background:#dcfce7;color:#15803d;">✓</span>
+                            <span class="studio-list-icon" style="background:#dcfce7;color:#15803d;"><AcIcon Name="check" Size="16" /></span>
                             <div class="studio-list-body">
                                 <strong>@(string.IsNullOrEmpty(s.ProjectDescription) ? "بِلا وَصف" : Truncate(s.ProjectDescription, 70))</strong>
                                 <span>@s.UpdatedAt.ToString("yyyy-MM-dd HH:mm") · @s.SuggestedPattern</span>

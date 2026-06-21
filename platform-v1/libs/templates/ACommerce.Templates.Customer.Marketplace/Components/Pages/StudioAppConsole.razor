@@ -40,19 +40,19 @@
             <div class="st-section-title">إدارَة وإشراف</div>
             <div class="studio-list">
                 <a class="studio-list-row" href="@($"/admin/tenants/{Slug}/users")">
-                    <span class="studio-list-icon ac-chip-info">👤</span>
+                    <span class="studio-list-icon ac-chip-info"><AcIcon Name="user" Size="16" /></span>
                     <div class="studio-list-body"><strong>المُستَخدِمون</strong>
                         <span>@userCount مُستَخدِم · مَنح وسَحب صَلاحيَّة الإدارَة</span></div>
                     <span style="color:var(--st-faint);">←</span>
                 </a>
                 <a class="studio-list-row" href="@($"/studio/apps/{Slug}/listings")">
-                    <span class="studio-list-icon" style="background:#fef3c7;color:#854d0e;">📋</span>
+                    <span class="studio-list-icon" style="background:#fef3c7;color:#854d0e;"><AcIcon Name="clipboard" Size="16" /></span>
                     <div class="studio-list-body"><strong>إشراف الإعلانات</strong>
                         <span>@listingCount إعلان · إخفاء/حَذف لِلمُسيء</span></div>
                     <span style="color:var(--st-faint);">←</span>
                 </a>
                 <a class="studio-list-row" href="@($"/studio/apps/{Slug}/tickets")">
-                    <span class="studio-list-icon" style="background:#fee2e2;color:#b91c1c;">🎫</span>
+                    <span class="studio-list-icon" style="background:#fee2e2;color:#b91c1c;"><AcIcon Name="ticket" Size="16" /></span>
                     <div class="studio-list-body"><strong>تَذاكِر الدَّعم</strong>
                         <span>@openTicketCount مَفتوحَة · @totalTicketCount إجمالاً</span></div>
                     <span style="color:var(--st-faint);">←</span>
@@ -72,7 +72,7 @@
                     @foreach (var t in recentTickets)
                     {
                         <a class="studio-list-row" href="@($"/studio/apps/{Slug}/tickets/{t.Id}")">
-                            <span class="studio-list-icon" style="background:#fef3c7;color:#854d0e;">🎫</span>
+                            <span class="studio-list-icon" style="background:#fef3c7;color:#854d0e;"><AcIcon Name="ticket" Size="16" /></span>
                             <div class="studio-list-body">
                                 <strong>@(string.IsNullOrEmpty(t.Subject) ? "تَذكَرَة" : t.Subject)</strong>
                                 <span>@t.AuthorName · @t.CreatedAt.ToString("yyyy-MM-dd HH:mm")</span>
@@ -96,7 +96,7 @@
                     @foreach (var p in plans)
                     {
                         <div class="studio-list-row" style="cursor:default;">
-                            <span class="studio-list-icon" style="background:#dcfce7;color:#15803d;">💎</span>
+                            <span class="studio-list-icon" style="background:#dcfce7;color:#15803d;"><AcIcon Name="wallet" Size="16" /></span>
                             <div class="studio-list-body">
                                 <strong>@p.Name</strong>
                                 <span>@p.Price ريال/شَهر · @(p.IsActive ? "مُفَعَّلَة" : "مُعَطَّلَة")</span>
@@ -119,7 +119,7 @@
                     @foreach (var n in recentNotifs)
                     {
                         <div class="studio-list-row" style="cursor:default;">
-                            <span class="studio-list-icon" style="background:#fae8ff;color:#a21caf;">🔔</span>
+                            <span class="studio-list-icon" style="background:#fae8ff;color:#a21caf;"><AcIcon Name="bell" Size="16" /></span>
                             <div class="studio-list-body">
                                 <strong>@n.Title</strong>
                                 <span>@n.Type · @n.At.ToString("yyyy-MM-dd HH:mm")</span>

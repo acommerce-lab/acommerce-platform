@@ -43,7 +43,7 @@
                             <div style="width:30px;height:30px;border-radius:50%;display:grid;place-items:center;margin:0 auto 4px;
                                         background:@(cur ? "var(--ac-primary)" : done ? "#16a34a" : "var(--ac-border)");
                                         color:#fff;font-weight:700;font-size:13px;">
-                                @(done ? "✓" : (stages.IndexOf(st) + 1))
+                                @if (done) { <AcIcon Name="check" Size="16" /> } else { @(stages.IndexOf(st) + 1) }
                             </div>
                             <div style="font-size:10.5px;color:@(cur ? "var(--ac-primary)" : "var(--ac-text-muted)");">
                                 @DealsPolicy.LabelAr(st)
@@ -82,7 +82,7 @@
             @if (deal.Stage == DealStage.Offered && isListingOwner && !isInitiator)
             {
                 <form method="post" action="@($"/{Slug}/deals/{deal.Id}/accept")">
-                    <AcButton Type="submit" Variant="primary" Size="lg" Block="true" Text="قَبول العَرض ✓" />
+                    <AcButton Type="submit" Variant="primary" Size="lg" Block="true" Text="قَبول العَرض" />
                 </form>
             }
             else if (canAdvance && nextStage is { } ns)
@@ -105,7 +105,7 @@
         }
         else if (deal.Status == DealStatus.Completed)
         {
-            <AcAlert Variant="success" Message="اكتَمَلَت الصَّفقَة بِنَجاح ✓" />
+            <AcAlert Variant="success" Message="اكتَمَلَت الصَّفقَة بِنَجاح" />
             @if (!alreadyReviewed && deal.CounterpartyId is not null)
             {
                 <AcCard>
@@ -114,11 +114,11 @@
                         <form method="post" action="@($"/{Slug}/deals/{deal.Id}/review")">
                             <AcField Label="التَّقييم">
                                 <select name="rating" class="ac-input">
-                                    <option value="5">★★★★★</option>
-                                    <option value="4">★★★★</option>
-                                    <option value="3">★★★</option>
-                                    <option value="2">★★</option>
-                                    <option value="1">★</option>
+                                    <option value="5">٥ نُجوم — مُمتاز</option>
+                                    <option value="4">٤ نُجوم</option>
+                                    <option value="3">٣ نُجوم</option>
+                                    <option value="2">نَجمَتان</option>
+                                    <option value="1">نَجمَة</option>
                                 </select>
                             </AcField>
                             <AcField Label="تَعليق">

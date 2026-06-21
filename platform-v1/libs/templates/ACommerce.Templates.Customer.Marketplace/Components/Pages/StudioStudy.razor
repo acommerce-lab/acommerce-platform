@@ -28,9 +28,9 @@
         @if (session?.Status == IncubatorStatus.Completed)
         {
             <a class="st-btn st-btn-light" href="@($"/studio/s/{Id}/print")" target="_blank"
-               style="margin-inline-start:8px;">📄 PDF</a>
+               style="margin-inline-start:8px;"><AcIcon Name="file" Size="16" /> PDF</a>
             <a class="st-btn st-btn-light" href="@($"/studio/s/{Id}/export.xlsx")"
-               style="margin-inline-start:8px;">📊 Excel</a>
+               style="margin-inline-start:8px;"><AcIcon Name="bar-chart" Size="16" /> Excel</a>
         }
     </TopBarActions>
     <ChildContent>
@@ -43,7 +43,7 @@
         else if (session.Status == IncubatorStatus.Analyzing)
         {
             <div class="st-card" style="text-align:center;padding:48px;">
-                <div style="font-size:52px;margin-bottom:10px;">⏳</div>
+                <div style="font-size:52px;margin-bottom:10px;"><AcIcon Name="clock" Size="48" /></div>
                 <h2 style="margin:0 0 6px;">جارٍ تَحليل فِكرَتِكَ…</h2>
                 <p style="color:var(--st-muted);margin:0;">
                     نَجمَع أَرقام السوق، نُقارِن بِالمنافِسين، ونَستَنبِط المَخاطِر.
@@ -78,7 +78,7 @@
             {
                 <div class="st-card" style="background:#fff7ed;border:1px solid var(--st-warning);
                                             display:flex;align-items:center;gap:10px;">
-                    <span style="font-size:20px;">⏳</span>
+                    <span style="font-size:20px;"><AcIcon Name="clock" Size="20" /></span>
                     <div style="flex:1;">
                         جارٍ تَحسين قِسم «<strong>@SectionLabel(Refining)</strong>»…
                         ستُحَدَّث الصَفحَة تِلقائيّاً عِندَ الجاهِزِيَّة.
@@ -117,7 +117,7 @@
 
             @if (r.TryGetProperty("risks", out var risks) && risks.ValueKind == JsonValueKind.Array)
             {
-                <div class="st-section-title">⚠️ المَخاطِر — خَريطَة حَراريَّة</div>
+                <div class="st-section-title"><AcIcon Name="alert-circle" Size="18" /> المَخاطِر — خَريطَة حَراريَّة</div>
                 var risksList = risks.EnumerateArray().ToList();
                 <div class="risk-heatmap">
                     <div class="risk-heatmap-ylabel">الاحتِمال →</div>
@@ -186,7 +186,7 @@
 
             @if (r.TryGetProperty("lessonsFromFailures", out var lessons) && lessons.ValueKind == JsonValueKind.Array)
             {
-                <div class="st-section-title">📉 دُروس مِن مَشاريع فَشِلَت</div>
+                <div class="st-section-title"><AcIcon Name="bar-chart" Size="18" /> دُروس مِن مَشاريع فَشِلَت</div>
                 <div class="st-card">
                     <ul style="margin:0;padding-inline-start:18px;line-height:2;font-size:13.5px;">
                         @foreach (var l in lessons.EnumerateArray()) { <li>@l.GetString()</li> }
@@ -196,7 +196,7 @@
 
             @if (r.TryGetProperty("roadmap", out var roadmap) && roadmap.ValueKind == JsonValueKind.Array)
             {
-                <div class="st-section-title">🗺️ خارِطَة الطَّريق</div>
+                <div class="st-section-title"><AcIcon Name="map" Size="18" /> خارِطَة الطَّريق</div>
                 <div class="studio-list">
                     @foreach (var ph in roadmap.EnumerateArray())
                     {
@@ -214,7 +214,7 @@
             @if (builtTenant is not null)
             {
                 <div class="st-card" style="margin-top:20px;border:1px solid var(--st-success);background:#dcfce7;">
-                    <h3 style="margin:0 0 6px;">✅ أُنشِئ تَطبيقكَ مِن هذه الفِكرَة</h3>
+                    <h3 style="margin:0 0 6px;"><AcIcon Name="check-circle" Size="24" /> أُنشِئ تَطبيقكَ مِن هذه الفِكرَة</h3>
                     <p style="margin:0 0 14px;font-size:14px;">
                         <strong>@builtTenant.Name</strong> · /@builtTenant.Slug
                     </p>
@@ -226,7 +226,7 @@
             else if (r.TryGetProperty("recommendedPattern", out var rp))
             {
                 <div class="st-card" style="margin-top:20px;border:1px solid var(--st-primary);background:var(--st-primary-50);">
-                    <h3 style="margin:0 0 6px;">🚀 أَطلِق تَطبيقَكَ على ACommerce</h3>
+                    <h3 style="margin:0 0 6px;"><AcIcon Name="sparkle" Size="24" /> أَطلِق تَطبيقَكَ على ACommerce</h3>
                     <p style="margin:0 0 14px;font-size:14px;">
                         <strong>النَّمَط المُقتَرَح:</strong> @Str(rp,"pattern") ·
                         <strong>الوَقت:</strong> @Str(rp,"timeToLaunch")<br/>
@@ -271,7 +271,7 @@
                             </div>
                             <button type="submit" class="st-btn st-btn-primary"
                                     style="grid-column:1/-1;">
-                                ✨ أَنشِئ التَّطبيق الآن
+                                <AcIcon Name="sparkle" Size="16" /> أَنشِئ التَّطبيق الآن
                             </button>
                         </form>
                         <p style="margin:10px 0 0;font-size:12px;color:var(--st-muted);">
@@ -282,7 +282,7 @@
             }
 
             @* تَقييم سَريع لِلدِراسَة (👍/👎 لِكُلّ قِسم) *@
-            <div class="st-section-title">👍 / 👎 تَقييم سَريع</div>
+            <div class="st-section-title"><AcIcon Name="check" Size="18" /> / <AcIcon Name="x" Size="18" /> تَقييم سَريع</div>
             <div class="st-card">
                 <p style="margin:0 0 12px;color:var(--st-muted);font-size:13.5px;">
                     قَيِّم الأَقسام لِنَتَعَلَّم كَيف نُحَسِّن التَّحليل.
@@ -299,13 +299,13 @@
                                     <input type="hidden" name="section" value="@sec" />
                                     <input type="hidden" name="rating" value="up" />
                                     <button type="submit" class="st-btn st-btn-ghost" style="padding:4px 8px;font-size:14px;
-                                            @(prior == "up" ? "background:#dcfce7;border-color:var(--st-success);" : "")">👍</button>
+                                            @(prior == "up" ? "background:#dcfce7;border-color:var(--st-success);" : "")"><AcIcon Name="check" Size="16" /></button>
                                 </form>
                                 <form method="post" action="@($"/studio/s/{session.Id}/feedback")" style="margin:0;">
                                     <input type="hidden" name="section" value="@sec" />
                                     <input type="hidden" name="rating" value="down" />
                                     <button type="submit" class="st-btn st-btn-ghost" style="padding:4px 8px;font-size:14px;
-                                            @(prior == "down" ? "background:#fee2e2;border-color:var(--st-danger);" : "")">👎</button>
+                                            @(prior == "down" ? "background:#fee2e2;border-color:var(--st-danger);" : "")"><AcIcon Name="x" Size="16" /></button>
                                 </form>
                             </span>
                         </div>
@@ -314,11 +314,11 @@
             </div>
 
             @* تَحسين الدِراسَة — أَعِد توليد قِسم بِناءً عَلى مُلاحَظَة. *@
-            <div class="st-section-title">💬 تَحسين الدِراسَة</div>
+            <div class="st-section-title"><AcIcon Name="message" Size="18" /> تَحسين الدِراسَة</div>
             <details class="st-card" style="padding:0;">
                 <summary style="cursor:pointer;padding:16px 22px;font-weight:600;list-style:none;
                                 display:flex;align-items:center;gap:8px;">
-                    <span style="font-size:18px;">✨</span>
+                    <span style="font-size:18px;"><AcIcon Name="sparkle" Size="18" /></span>
                     لاحَظتَ خَلَلاً في قِسم؟ اطلُب إعادَة توليده
                 </summary>
                 <form method="post" action="@($"/studio/s/{session.Id}/refine")"

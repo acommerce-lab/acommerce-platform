@@ -29,7 +29,10 @@
                         @if (avgRating > 0)
                         {
                             <div style="color:#f59e0b;font-size:14px;">
-                                @(new string('★', (int)Math.Round(avgRating)))<span style="color:var(--ac-text-muted);">
+                                @for (var i = 0; i < (int)Math.Round(avgRating); i++)
+                                {
+                                    <AcIcon Name="star" Size="14" Filled="true" />
+                                }<span style="color:var(--ac-text-muted);">
                                     @avgRating.ToString("0.0") (@reviewCount تَقييم)
                                 </span>
                             </div>
@@ -46,7 +49,7 @@
         @if (Auth.IsAuthenticated && vendor.Id != Auth.UserId)
         {
             <form method="post" action="@($"/{Slug}/vendor/{VendorId}/chat")" style="margin:0 0 12px;">
-                <AcButton Type="submit" Variant="primary" Block="true" Text="📩 تَواصَل مَع البائِع" />
+                <AcButton Type="submit" Variant="primary" Block="true" Text="تَواصَل مَع البائِع" />
             </form>
         }
 
@@ -84,7 +87,12 @@
                         <ChildContent>
                             <div style="display:flex;justify-content:space-between;align-items:start;">
                                 <strong>@r.AuthorName</strong>
-                                <span style="color:#f59e0b;">@(new string('★', r.Rating))</span>
+                                <span style="color:#f59e0b;">
+                                    @for (var i = 0; i < r.Rating; i++)
+                                    {
+                                        <AcIcon Name="star" Size="14" Filled="true" />
+                                    }
+                                </span>
                             </div>
                             @if (!string.IsNullOrEmpty(r.Body))
                             {

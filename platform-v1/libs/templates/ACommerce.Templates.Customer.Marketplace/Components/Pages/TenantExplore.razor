@@ -165,7 +165,7 @@ else
                              ImageUrl="@(l.MediaUrls.Count > 0 ? l.MediaUrls[0] : null)"
                              Location="@($"{l.City} — {l.District}")"
                              PriceLabel="@FormatPrice(l)"
-                             Ribbon="@(l.IsVerified ? "✓ مُوَثَّق" : l.IsFeatured ? "مُمَيَّز" : null)"
+                             Ribbon="@(l.IsVerified ? "مُوَثَّق" : l.IsFeatured ? "مُمَيَّز" : null)"
                              ShowFavorite="@Auth.IsAuthenticated"
                              IsFavorite="@favIds.Contains(l.Id)"
                              FavoriteFormAction="@($"/{Slug}/listings/{l.Id}/favorite")"

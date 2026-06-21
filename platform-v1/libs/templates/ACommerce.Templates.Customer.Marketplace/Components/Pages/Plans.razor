@@ -28,7 +28,7 @@ else
                         @p.Price.ToString("N0") <span style="font-size:0.8rem;">ريال / @(p.DaysPeriod) يوم</span>
                     </p>
                     <ul style="list-style:none;padding:0;margin:8px 0;font-size:13px;">
-                        <li>✓ @p.ListingsQuota إعلان</li>
+                        <li><AcIcon Name="check" Size="16" /> @p.ListingsQuota إعلان</li>
                         @if (!string.IsNullOrEmpty(p.Description)) { <li>@p.Description</li> }
                     </ul>
                     @if (Auth.IsAuthenticated)

@@ -45,7 +45,7 @@
                         var isActive = s.Id == ScopeId;
                         <a class="acm-scope-row @(isActive ? "is-active" : "")"
                            href="@($"/admin/tenants/{Slug}/attributes?scope={s.Id}")">
-                            <span style="font-size:20px;">@s.Icon</span>
+                            <span style="font-size:20px;"><AcIcon Name="@s.Icon" Size="20" /></span>
                             <div style="flex:1;">
                                 <strong>@s.Label</strong>
                                 <span style="display:block;color:var(--ac-text-muted);font-size:11px;direction:ltr;">
@@ -79,7 +79,7 @@
                                 <div class="ac-editor-row" data-attr-row>
                                     <div class="ac-editor-row-head">
                                         <input class="ac-input ac-attr-name" placeholder="اسم الحَقل (عَرَبي)" value="@f.Name" />
-                                        <button type="button" class="ac-icon-btn" data-remove-attr aria-label="حَذف الحَقل">✕</button>
+                                        <button type="button" class="ac-icon-btn" data-remove-attr aria-label="حَذف الحَقل"><AcIcon Name="x" Size="14" /></button>
                                     </div>
                                     <div class="ac-editor-grid2">
                                         <div>
@@ -139,7 +139,7 @@
                 <div class="ac-editor-row" data-attr-row>
                     <div class="ac-editor-row-head">
                         <input class="ac-input ac-attr-name" placeholder="اسم الحَقل (عَرَبي)" />
-                        <button type="button" class="ac-icon-btn" data-remove-attr aria-label="حَذف الحَقل">✕</button>
+                        <button type="button" class="ac-icon-btn" data-remove-attr aria-label="حَذف الحَقل"><AcIcon Name="x" Size="14" /></button>
                     </div>
                     <div class="ac-editor-grid2">
                         <div>
@@ -222,11 +222,11 @@
         {
             var sid = DeriveListingScope(Slug, c.Slug);
             scopes.Add(new ScopeInfo(
-                Id: sid.ToString(), Label: c.Label, Icon: c.Icon ?? "🏠",
+                Id: sid.ToString(), Label: c.Label, Icon: IconName(c.Icon),
                 DefCount: defCountByScope.GetValueOrDefault(sid, 0)));
         }
         scopes.Add(new ScopeInfo(
-            Id: ProfileScopeId.ToString(), Label: "البروفايل", Icon: "👤",
+            Id: ProfileScopeId.ToString(), Label: "البروفايل", Icon: "user",
             DefCount: defCountByScope.GetValueOrDefault(ProfileScopeId, 0)));
 
         if (!string.IsNullOrEmpty(ScopeId) && Guid.TryParse(ScopeId, out var scopeGuid))
@@ -300,6 +300,25 @@
         "no_scope"   => "اختَر نِطاقاً أَوّلاً.",
         _ => err
     };
+
+    // طَبِّع رَمز الفِئَة (قَد يَكون إيموجي مُستَورَد) إلى اسم أَيقونَة خَطّيَّة صالِح.
+    // مَفاتيح الإيموجي مَكتوبَة بِنِقاط Unicode (لا بايتات إيموجي حَرفِيَّة).
+    static readonly Dictionary<string, string> EmojiToIcon = new()
+    {
+        ["\U0001F3E0"] = "home", ["\U0001F3E1"] = "house-heart", ["\U0001F3E2"] = "building",
+        ["\U0001F3EA"] = "store", ["\U0001F6D2"] = "cart", ["\U0001F6CD️"] = "bag",
+        ["\U0001F4BC"] = "bag", ["\U0001F697"] = "car", ["\U0001F699"] = "car",
+        ["\U0001F69A"] = "truck", ["\U0001F4E6"] = "package", ["\u2615"] = "cup",
+        ["\U0001F464"] = "user", ["\U0001F465"] = "people", ["\U0001F4CB"] = "clipboard",
+        ["\U0001F9FE"] = "receipt", ["\U0001F4CD"] = "map-pin", ["⭐"] = "star",
+    };
+
+    static string IconName(string? raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw)) return "home";
+        if (EmojiToIcon.TryGetValue(raw, out var mapped)) return mapped;
+        return System.Text.RegularExpressions.Regex.IsMatch(raw, "^[a-z][a-z-]*$") ? raw : "tag";
+    }
 
     sealed record ScopeInfo(string Id, string Label, string Icon, int DefCount);
 }

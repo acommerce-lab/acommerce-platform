@@ -65,7 +65,7 @@
             else if (myApps.Count == 0)
             {
                 <div class="st-card" style="text-align:center;padding:36px;">
-                    <div style="font-size:42px;margin-bottom:6px;">📦</div>
+                    <div style="font-size:42px;margin-bottom:6px;"><AcIcon Name="package" Size="48" /></div>
                     <h3 style="margin:0 0 6px;">لا تَطبيقات بَعد</h3>
                     <p style="color:var(--st-muted);margin:0 0 16px;">حَلِّل فِكرَتَكَ أَوَّلاً، ثُمَّ أَطلِق التَّطبيق على المَنصَّة.</p>
                     <a class="st-btn st-btn-primary" href="/studio/new">ابدَأ بِفِكرَة</a>
@@ -100,7 +100,7 @@
                 @foreach (var (slug, d) in recentDeals.Take(5))
                 {
                     <a class="studio-list-row" href="@($"/studio/apps/{slug}/deals/{d.Id}")">
-                        <span class="studio-list-icon ac-chip-info">@StageEmoji(d.Stage)</span>
+                        <span class="studio-list-icon ac-chip-info"><AcIcon Name="@StageEmoji(d.Stage)" Size="16" /></span>
                         <div class="studio-list-body">
                             <strong>
                                 @(string.IsNullOrEmpty(d.ListingTitle) ? d.Pattern : d.ListingTitle)
@@ -121,7 +121,7 @@
         else if (sessions.Count == 0)
         {
             <div class="st-card" style="text-align:center;padding:36px;">
-                <div style="font-size:42px;margin-bottom:6px;">💡</div>
+                <div style="font-size:42px;margin-bottom:6px;"><AcIcon Name="lightbulb" Size="48" /></div>
                 <h3 style="margin:0 0 6px;">لا أَفكار بَعد</h3>
                 <p style="color:var(--st-muted);margin:0 0 16px;">ابدَأ بِوَصف فِكرَة مَشروعِكَ لِلحُصول على دِراسَة جَدوى.</p>
                 <a class="st-btn st-btn-primary" href="/studio/new">صِف فِكرَتي</a>
@@ -133,7 +133,7 @@
                 @foreach (var s in (IsIdeas ? sessions : sessions.Take(5)))
                 {
                     <a class="studio-list-row" href="@($"/studio/s/{s.Id}")">
-                        <span class="studio-list-icon">@StatusIcon(s.Status)</span>
+                        <span class="studio-list-icon"><AcIcon Name="@StatusIcon(s.Status)" Size="16" /></span>
                         <div class="studio-list-body">
                             <strong>@(string.IsNullOrEmpty(s.ProjectDescription)
                                 ? "فِكرَة بِلا وَصف" : Truncate(s.ProjectDescription, 70))</strong>
@@ -165,7 +165,7 @@
     bool IsIdeas => new Uri(Nav.Uri).AbsolutePath.TrimEnd('/').EndsWith("/ideas");
 
     string Title => IsIdeas ? "أَفكاري وتَحاليلي" : "لوحَتي";
-    string Greeting => $"أَهلاً، {Auth.UserName ?? "صاحِب المَشروع"} 👋";
+    string Greeting => $"أَهلاً، {Auth.UserName ?? "صاحِب المَشروع"}";
 
     protected override async Task OnInitializedAsync()
     {
@@ -195,24 +195,24 @@
 
     static string StageEmoji(Services.Deals.DealStage s) => s switch
     {
-        Services.Deals.DealStage.Offered => "📋",
-        Services.Deals.DealStage.Booked => "📅",
-        Services.Deals.DealStage.Confirmed => "✓",
-        Services.Deals.DealStage.Paid => "💳",
-        Services.Deals.DealStage.Shipping => "🚚",
-        Services.Deals.DealStage.Delivered => "📦",
-        Services.Deals.DealStage.Received => "✅",
-        Services.Deals.DealStage.Reviewed => "⭐",
-        _ => "•"
+        Services.Deals.DealStage.Offered => "clipboard",
+        Services.Deals.DealStage.Booked => "calendar",
+        Services.Deals.DealStage.Confirmed => "check",
+        Services.Deals.DealStage.Paid => "credit-card",
+        Services.Deals.DealStage.Shipping => "truck",
+        Services.Deals.DealStage.Delivered => "package",
+        Services.Deals.DealStage.Received => "check",
+        Services.Deals.DealStage.Reviewed => "star",
+        _ => "tag"
     };
 
     static string StatusIcon(IncubatorStatus s) => s switch
     {
-        IncubatorStatus.Completed => "✅",
-        IncubatorStatus.Analyzing => "⏳",
-        IncubatorStatus.Failed    => "⚠️",
-        IncubatorStatus.PatternSuggested => "🎯",
-        _ => "✏️"
+        IncubatorStatus.Completed => "check",
+        IncubatorStatus.Analyzing => "clock",
+        IncubatorStatus.Failed    => "alert-circle",
+        IncubatorStatus.PatternSuggested => "target",
+        _ => "edit"
     };
 
     static string StatusLabel(IncubatorStatus s) => s switch

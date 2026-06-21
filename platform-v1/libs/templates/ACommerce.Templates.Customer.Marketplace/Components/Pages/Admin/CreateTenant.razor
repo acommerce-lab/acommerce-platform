@@ -74,7 +74,7 @@
                         <input type="radio" name="channel" value="phone"
                                checked="@(Form?["channel"] != "nafath")" />
                         <span class="acm-radio-card-body">
-                            <strong>📱 هاتِف + OTP</strong>
+                            <strong><AcIcon Name="phone" Size="16" /> هاتِف + OTP</strong>
                             <span>يُرسَل كود ٦ خانات بِالـ SMS — مُناسِب لِأَيّ مَتجَر</span>
                         </span>
                     </label>
@@ -82,7 +82,7 @@
                         <input type="radio" name="channel" value="nafath"
                                checked="@(Form?["channel"] == "nafath")" />
                         <span class="acm-radio-card-body">
-                            <strong>🪪 نَفاذ</strong>
+                            <strong><AcIcon Name="key" Size="16" /> نَفاذ</strong>
                             <span>تَوثيق هُوِيَّة وَطنيَّة — مَتاجِر سُعوديَّة فَقَط</span>
                         </span>
                     </label>
@@ -100,9 +100,9 @@
                 <div class="ac-editor" id="cats-editor">
                     <div class="ac-editor-row" data-cat-row>
                         <div class="ac-editor-row-head">
-                            <input class="ac-input ac-cat-icon" value="🏢" aria-label="أَيقونَة" />
+                            <input class="ac-input ac-cat-icon" value="building" aria-label="أَيقونَة" />
                             <input class="ac-input ac-cat-label" placeholder="اسم الفِئَة (مَثَلاً: شَقَق)" />
-                            <button type="button" class="ac-icon-btn" data-remove-cat aria-label="حَذف">✕</button>
+                            <button type="button" class="ac-icon-btn" data-remove-cat aria-label="حَذف"><AcIcon Name="x" Size="14" /></button>
                         </div>
                         <div class="ac-editor-grid2">
                             <div>
@@ -137,9 +137,9 @@
         <template id="cat-row-tpl">
             <div class="ac-editor-row" data-cat-row>
                 <div class="ac-editor-row-head">
-                    <input class="ac-input ac-cat-icon" value="🏷️" aria-label="أَيقونَة" />
+                    <input class="ac-input ac-cat-icon" value="tag" aria-label="أَيقونَة" />
                     <input class="ac-input ac-cat-label" placeholder="اسم الفِئَة" />
-                    <button type="button" class="ac-icon-btn" data-remove-cat aria-label="حَذف">✕</button>
+                    <button type="button" class="ac-icon-btn" data-remove-cat aria-label="حَذف"><AcIcon Name="x" Size="14" /></button>
                 </div>
                 <div class="ac-editor-grid2">
                     <div>

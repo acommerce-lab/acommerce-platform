@@ -38,7 +38,7 @@
                         @foreach (var c in tenant.Categories.OrderBy(c => c.SortOrder).ThenBy(c => c.Label))
                         {
                             <div class="acm-cat-row">
-                                <span style="font-size:24px;">@c.Icon</span>
+                                <span style="font-size:24px;"><AcIcon Name="@(string.IsNullOrEmpty(c.Icon) ? "tag" : ACommerce.Widgets.AcIconMap.Resolve(c.Icon, "tag"))" Size="24" /></span>
                                 <div style="flex:1;">
                                     <strong>@c.Label</strong>
                                     <span style="color:var(--ac-text-muted);font-size:12px;
@@ -73,10 +73,10 @@
                         {
                             <div class="ac-editor-row" data-cat-row>
                                 <div class="ac-editor-row-head">
-                                    <input class="ac-input ac-cat-icon" value="@(c.Icon ?? "🏠")"
+                                    <input class="ac-input ac-cat-icon" value="@(c.Icon ?? "home")"
                                            aria-label="أَيقونَة" />
                                     <input class="ac-input ac-cat-label" placeholder="اسم الفِئَة" value="@c.Label" />
-                                    <button type="button" class="ac-icon-btn" data-remove-cat aria-label="حَذف">✕</button>
+                                    <button type="button" class="ac-icon-btn" data-remove-cat aria-label="حَذف"><AcIcon Name="x" Size="14" /></button>
                                 </div>
                                 <div class="ac-editor-grid2">
                                     <div>
@@ -121,9 +121,9 @@
         <template id="cat-row-tpl">
             <div class="ac-editor-row" data-cat-row>
                 <div class="ac-editor-row-head">
-                    <input class="ac-input ac-cat-icon" value="🏷️" aria-label="أَيقونَة" />
+                    <input class="ac-input ac-cat-icon" value="tag" aria-label="أَيقونَة" />
                     <input class="ac-input ac-cat-label" placeholder="اسم الفِئَة" />
-                    <button type="button" class="ac-icon-btn" data-remove-cat aria-label="حَذف">✕</button>
+                    <button type="button" class="ac-icon-btn" data-remove-cat aria-label="حَذف"><AcIcon Name="x" Size="14" /></button>
                 </div>
                 <div class="ac-editor-grid2">
                     <div>
@@ -155,7 +155,7 @@
         if (tenant is null) return;
         catsText = string.Join('\n', tenant.Categories
             .OrderBy(c => c.SortOrder).ThenBy(c => c.Label)
-            .Select(c => $"{c.Slug} | {c.Label} | {c.Icon ?? "🏠"} | {c.Kind}"));
+            .Select(c => $"{c.Slug} | {c.Label} | {c.Icon ?? "home"} | {c.Kind}"));
     }
 
     static string FormatError(string err) => err switch

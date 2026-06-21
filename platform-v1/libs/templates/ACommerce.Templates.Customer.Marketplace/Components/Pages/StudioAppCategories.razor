@@ -25,7 +25,7 @@
                 <p>الفِئات الَّتي يَتَصَفَّحها العُملاء (@tenant.Categories.Count فِئَة حاليّاً).</p>
             </div>
 
-            @if (Saved == "1")    { <div class="st-chip st-chip-success" style="margin-bottom:14px;">تَمّ الحِفظ ✓</div> }
+            @if (Saved == "1")    { <div class="st-chip st-chip-success" style="margin-bottom:14px;">تَمّ الحِفظ <AcIcon Name="check" Size="16" /></div> }
             @if (Err == "format") { <div class="st-chip st-chip-danger"  style="margin-bottom:14px;">صِيغَة سَطر غَير صَحيحَة</div> }
             @if (Err == "empty")  { <div class="st-chip st-chip-danger"  style="margin-bottom:14px;">أَضِف فِئَة واحِدَة على الأَقَلّ</div> }
 
@@ -39,9 +39,9 @@
                     {
                         <div class="ac-editor-row" data-cat-row>
                             <div class="ac-editor-row-head">
-                                <input class="ac-input ac-cat-icon" value="@(c.Icon ?? "🏷️")" aria-label="أَيقونَة" />
+                                <input class="ac-input ac-cat-icon" value="@(c.Icon ?? "tag")" aria-label="أَيقونَة" />
                                 <input class="ac-input ac-cat-label" placeholder="اسم الفِئَة" value="@c.Label" />
-                                <button type="button" class="ac-icon-btn" data-remove-cat aria-label="حَذف">✕</button>
+                                <button type="button" class="ac-icon-btn" data-remove-cat aria-label="حَذف"><AcIcon Name="x" Size="14" /></button>
                             </div>
                             <div class="ac-editor-grid2">
                                 <div>
@@ -78,9 +78,9 @@
             <template id="cat-row-tpl">
                 <div class="ac-editor-row" data-cat-row>
                     <div class="ac-editor-row-head">
-                        <input class="ac-input ac-cat-icon" value="🏷️" aria-label="أَيقونَة" />
+                        <input class="ac-input ac-cat-icon" value="tag" aria-label="أَيقونَة" />
                         <input class="ac-input ac-cat-label" placeholder="اسم الفِئَة" />
-                        <button type="button" class="ac-icon-btn" data-remove-cat aria-label="حَذف">✕</button>
+                        <button type="button" class="ac-icon-btn" data-remove-cat aria-label="حَذف"><AcIcon Name="x" Size="14" /></button>
                     </div>
                     <div class="ac-editor-grid2">
                         <div>
@@ -115,5 +115,5 @@
 
     static string CategoriesAsText(List<Category> cats)
         => string.Join("\n", cats.OrderBy(c => c.SortOrder)
-            .Select(c => $"{c.Slug} | {c.Label} | {c.Icon ?? "🏷️"} | {c.Kind}"));
+            .Select(c => $"{c.Slug} | {c.Label} | {c.Icon ?? "tag"} | {c.Kind}"));
 }

@@ -181,7 +181,7 @@ else
             {
                 <div style="margin-bottom:12px;">
                     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-                        <strong style="font-size:14px;">📍 الانطِلاق</strong>
+                        <strong style="font-size:14px;"><AcIcon Name="map-pin" Size="16" /> الانطِلاق</strong>
                         <a class="ac-btn ac-btn-ghost ac-btn-sm" target="_blank" rel="noopener"
                            href="@($"https://www.openstreetmap.org/?mlat={pickupLat}&mlon={pickupLng}#map=16/{pickupLat}/{pickupLng}")">
                             <AcIcon Name="map-pin" Size="14" /> افتَح في الخَريطَة
@@ -194,7 +194,7 @@ else
             {
                 <div>
                     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-                        <strong style="font-size:14px;">🏁 الوُصول</strong>
+                        <strong style="font-size:14px;"><AcIcon Name="map-pin" Size="16" /> الوُصول</strong>
                         <a class="ac-btn ac-btn-ghost ac-btn-sm" target="_blank" rel="noopener"
                            href="@($"https://www.openstreetmap.org/?mlat={dropoffLat}&mlon={dropoffLng}#map=16/{dropoffLat}/{dropoffLng}")">
                             <AcIcon Name="map-pin" Size="14" /> افتَح في الخَريطَة
@@ -227,7 +227,7 @@ else
                                 <text>رِحلَة نَشِطَة مَع @listingMatch.OffererName — @listingMatch.AcceptedPrice.ToString("N0") ريال.</text>
                                 break;
                             case ACommerce.Kit.Offers.TripStatus.Completed:
-                                <text>✓ انتَهَت الرِحلَة (@listingMatch.AcceptedPrice.ToString("N0") ريال).</text>
+                                <text><AcIcon Name="check" Size="16" /> انتَهَت الرِحلَة (@listingMatch.AcceptedPrice.ToString("N0") ريال).</text>
                                 break;
                             case ACommerce.Kit.Offers.TripStatus.Aborted:
                                 <text>أُلغِيَت الرِحلَة (@listingMatch.AcceptedPrice.ToString("N0") ريال).</text>
@@ -243,7 +243,7 @@ else
                         @if (hasArrived)
                         {
                             <p style="margin:8px 0 0;font-size:12px;color:var(--ac-text-muted);">
-                                ✓ السائِق وَصَلَ نُقطَة الانطِلاق @listingMatch.ArrivedAt!.Value.ToString("HH:mm")
+                                <AcIcon Name="check" Size="14" /> السائِق وَصَلَ نُقطَة الانطِلاق @listingMatch.ArrivedAt!.Value.ToString("HH:mm")
                             </p>
                         }
 
