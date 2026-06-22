@@ -83,13 +83,29 @@ jobs:
           msg = f"deploy: sync {sha} from {ref}"
 
           api = HfApi(token=os.environ['HF_TOKEN'])
+
+          # تَشخيص: اطبَع هويَّة مالِك الـ token قَبل أَيّ شَيء — لَو 401
+          # هُنا فالـ token خَطَأ أَو مُنتَهٍ. لَو نَجَح، فأَيّ خَطَأ لاحِق
+          # يَخُصّ صَلاحيَّات الكِتابَة عَلى الـ Space تَحديداً.
+          try:
+              me = api.whoami()
+              print(f"  Token belongs to: {me.get('name', '?')} (type={me.get('type', '?')})")
+              orgs = [o.get('name','?') for o in me.get('orgs', [])]
+              if orgs:
+                  print(f"  Org memberships:  {', '.join(orgs)}")
+          except HfHubHTTPError as e:
+              print(f"::error::HF_TOKEN invalid or expired: {e}")
+              print("Create a new Write token at https://huggingface.co/settings/tokens")
+              print("then update the HF_TOKEN secret in GitHub Settings → Secrets.")
+              sys.exit(1)
+
           # تَأكَّد أَنّ Space مَوجود (وإلّا أَخطَأ بِرسالَة واضِحَة).
           try:
               info = api.space_info(repo_id)
               print(f"  Space: {info.id} (sdk={info.sdk})")
           except HfHubHTTPError as e:
               print(f"::error::Cannot access Space '{repo_id}': {e}")
-              print("Check: (1) Space exists, (2) HF_TOKEN has write access, (3) repo_id is correct.")
+              print("Check: token owner has write access to that Space/org.")
               sys.exit(1)
 
           # رَفع كُلّ المُحتَوى. delete_patterns=['*'] يَحذِف أَيّ مَلَفّات في
