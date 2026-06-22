@@ -1,8 +1,8 @@
 name: Deploy to Hugging Face Space
 
-# آليَّة نَشر مُدارَة: كُلّ push إلى main أَو فَرع التَّطوير يَدفَع تِلقائيّاً
-# إلى HF Space، بَعد اقتِطاع المُجَلَّدات الَّتي لا يَحتاجها البِناء (تَطبيقات
-# قَديمَة، docs، scripts، …) — هذا يَتَفادى رَفض HF لِلمَلَفّات الثُّنائيَّة.
+# آليَّة نَشر مُدارَة عَبر مَكتَبَة huggingface_hub الرَّسميَّة — تَتَجَنَّب
+# مَتاهَة auth في git-over-HTTPS، تَستَخدِم HF_TOKEN فَقَط. كُلّ push إلى
+# main أَو فَرع التَّطوير يُحَدِّث الـ Space تِلقائيّاً.
 #
 # الإعداد لِمَرَّة واحِدَة:
 #   GitHub → Settings → Secrets and variables → Actions → New repository secret
@@ -22,7 +22,6 @@ on:
       - '.github/workflows/deploy-hf.yml'
   workflow_dispatch:
 
-# تَنفيذ واحِد فَقَط في كُلّ مَرَّة (لِتَجَنُّب push race).
 concurrency:
   group: deploy-hf
   cancel-in-progress: false
@@ -31,11 +30,10 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     env:
-      HF_USER: acommerceecommerce
-      HF_SPACE: acommerce.ecommerce
+      HF_REPO_ID: acommerceecommerce/acommerce.ecommerce
     steps:
       - name: Checkout source
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 1
 
@@ -56,31 +54,61 @@ jobs:
           rm -f ACommerce.Platform.sln ACommerce.Platform.slnLaunch \
                 "Clean bin obj and Rebuilgd.sh" CLAUDE.md \
                 runtime-report.json runtime-report.md
+          # احذِف مُجَلَّد .github ولا حاجَة لِنُسخَتِه إلى HF.
+          rm -rf .github
           ls -la
 
-      - name: Initialize deploy git history
-        run: |
-          rm -rf .git
-          git init -b main
-          git config user.email "deploy@wasayel.bot"
-          git config user.name "Wasayel Deploy Bot"
-          git add .
-          git commit -q -m "deploy: sync ${GITHUB_SHA:0:7} from ${GITHUB_REF_NAME}"
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
 
-      - name: Push to Hugging Face Space
+      - name: Install huggingface_hub
+        run: pip install --quiet "huggingface_hub>=0.30"
+
+      - name: Sync to Hugging Face Space
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          COMMIT_SHA: ${{ github.sha }}
+          COMMIT_REF: ${{ github.ref_name }}
         run: |
-          git remote add hf "https://oauth:${HF_TOKEN}@huggingface.co/spaces/${HF_USER}/${HF_SPACE}"
-          # ٤ مُحاوَلات مَع backup أُسّيّ — لِحَوادِث الشَّبَكَة العابِرَة.
-          for attempt in 1 2 3 4; do
-            if git push hf main --force; then
-              echo "✅ نُشِر بِنَجاح إلى https://${HF_USER}-${HF_SPACE//./-}.hf.space/"
-              exit 0
-            fi
-            wait=$((2 ** attempt))
-            echo "::warning::Push failed (attempt $attempt). Retrying in ${wait}s…"
-            sleep $wait
-          done
-          echo "::error::Push to HF failed after 4 attempts."
-          exit 1
+          python <<'PY'
+          import os, sys
+          from huggingface_hub import HfApi
+          from huggingface_hub.utils import HfHubHTTPError
+
+          repo_id = os.environ['HF_REPO_ID']
+          sha = os.environ.get('COMMIT_SHA', 'unknown')[:7]
+          ref = os.environ.get('COMMIT_REF', 'unknown')
+          msg = f"deploy: sync {sha} from {ref}"
+
+          api = HfApi(token=os.environ['HF_TOKEN'])
+          # تَأكَّد أَنّ Space مَوجود (وإلّا أَخطَأ بِرسالَة واضِحَة).
+          try:
+              info = api.space_info(repo_id)
+              print(f"  Space: {info.id} (sdk={info.sdk})")
+          except HfHubHTTPError as e:
+              print(f"::error::Cannot access Space '{repo_id}': {e}")
+              print("Check: (1) Space exists, (2) HF_TOKEN has write access, (3) repo_id is correct.")
+              sys.exit(1)
+
+          # رَفع كُلّ المُحتَوى. delete_patterns=['*'] يَحذِف أَيّ مَلَفّات في
+          # الـ Space لَيسَت في الدُّفعَة (مُكافِئ orphan force-push). نَتَجاهَل
+          # .git*/.github* (لا تَنبَغي أَن تَخرُج بَعد الـ prune لكِن احتياط).
+          try:
+              api.upload_folder(
+                  folder_path='.',
+                  repo_id=repo_id,
+                  repo_type='space',
+                  commit_message=msg,
+                  delete_patterns=['*'],
+                  ignore_patterns=['.git*', '.github*', '__pycache__*', '*.pyc'],
+              )
+              space_url = f"https://huggingface.co/spaces/{repo_id}"
+              live_url = f"https://{repo_id.replace('/', '-').replace('.', '-')}.hf.space/"
+              print(f"\n✅ Deployed: {space_url}")
+              print(f"   Live URL:  {live_url}")
+          except HfHubHTTPError as e:
+              print(f"::error::Upload failed: {e}")
+              sys.exit(1)
+          PY
