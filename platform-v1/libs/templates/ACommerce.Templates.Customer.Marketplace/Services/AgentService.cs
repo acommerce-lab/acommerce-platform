@@ -55,25 +55,32 @@ public sealed class AgentService
     public string ModelName    => _model;
     public bool IsConfigured   => _backend.IsConfigured;
 
-    public async Task<AgentSession> LoadSessionAsync(CancellationToken ct = default)
+    /// <summary>مُعَرِّف جَلسَة المُحادَثَة لِنِطاق مُعَيَّن. لِلادمن: جَلسَة
+    /// مُشتَرَكَة (تَوافُق رَجعيّ). لِرائِد الأَعمال: جَلسَة لِكُلّ مُستَخدِم
+    /// مُنفَصِلَة — لا تَسريب مُحادَثات بَين رُوَّاد الأَعمال.</summary>
+    private static string SessionIdFor(string? scopeId)
+        => string.IsNullOrEmpty(scopeId) ? AgentSession.SessionId : "scope:" + scopeId;
+
+    public async Task<AgentSession> LoadSessionAsync(string? scopeId = null, CancellationToken ct = default)
     {
         await using var s = _store.QuerySession(AdminTenant);
-        return await s.LoadAsync<AgentSession>(AgentSession.SessionId, ct)
-               ?? new AgentSession();
+        return await s.LoadAsync<AgentSession>(SessionIdFor(scopeId), ct)
+               ?? new AgentSession { Id = SessionIdFor(scopeId) };
     }
 
-    public async Task ResetAsync(CancellationToken ct = default)
+    public async Task ResetAsync(string? scopeId = null, CancellationToken ct = default)
     {
         await using var s = _store.LightweightSession(AdminTenant);
-        s.Delete<AgentSession>(AgentSession.SessionId);
+        s.Delete<AgentSession>(SessionIdFor(scopeId));
         await s.SaveChangesAsync(ct);
     }
 
-    public async Task<AgentSession> AskAsync(string userMessage, CancellationToken ct = default)
+    public async Task<AgentSession> AskAsync(string userMessage, string? scopeId = null, CancellationToken ct = default)
     {
         await using var sess = _store.LightweightSession(AdminTenant);
-        var session = await sess.LoadAsync<AgentSession>(AgentSession.SessionId, ct)
-                      ?? new AgentSession();
+        var id = SessionIdFor(scopeId);
+        var session = await sess.LoadAsync<AgentSession>(id, ct)
+                      ?? new AgentSession { Id = id };
         session.Turns.Add(new AgentTurn { Role = "user", Text = userMessage });
         await CallBackendAsync(session, ct);
         session.UpdatedAt = DateTime.UtcNow;
@@ -82,11 +89,11 @@ public sealed class AgentService
         return session;
     }
 
-    public async Task<AgentSession> ContinueAfterToolAsync(CancellationToken ct = default)
+    public async Task<AgentSession> ContinueAfterToolAsync(string? scopeId = null, CancellationToken ct = default)
     {
         await using var sess = _store.LightweightSession(AdminTenant);
-        var session = await sess.LoadAsync<AgentSession>(AgentSession.SessionId, ct);
-        if (session is null) return new AgentSession();
+        var session = await sess.LoadAsync<AgentSession>(SessionIdFor(scopeId), ct);
+        if (session is null) return new AgentSession { Id = SessionIdFor(scopeId) };
         await CallBackendAsync(session, ct);
         session.UpdatedAt = DateTime.UtcNow;
         sess.Store(session);
@@ -95,10 +102,10 @@ public sealed class AgentService
     }
 
     public async Task UpdateToolStatusAsync(
-        string toolId, string status, string? result, CancellationToken ct = default)
+        string toolId, string status, string? result, string? scopeId = null, CancellationToken ct = default)
     {
         await using var sess = _store.LightweightSession(AdminTenant);
-        var session = await sess.LoadAsync<AgentSession>(AgentSession.SessionId, ct);
+        var session = await sess.LoadAsync<AgentSession>(SessionIdFor(scopeId), ct);
         if (session is null) return;
         var turn = session.Turns.LastOrDefault(t => t.Tool?.Id == toolId);
         if (turn?.Tool is null) return;
@@ -494,16 +501,41 @@ public sealed class AgentToolExecutor
     private readonly IDocumentStore _store;
     public AgentToolExecutor(IDocumentStore store) { _store = store; }
 
-    public async Task<(bool Ok, string Message)> ExecuteAsync(
+    public Task<(bool Ok, string Message)> ExecuteAsync(
         string toolName, string inputJson, CancellationToken ct = default)
+        => ExecuteAsync(toolName, inputJson, ownerUserId: null, ct);
+
+    /// <summary>تَنفيذ أَداة مَع فَرض ملكيَّة المُستَخدِم. عِندَ
+    /// <paramref name="ownerUserId"/> = null: سُلوك ادمن المَنصَّة (بِلا قُيود).
+    /// عِندَ تَمرير قِيمَة: كُلّ أَداة تُعَدِّل tenant تَتَطَلَّب أَن يَكون
+    /// <c>tenant.OwnerUserId == ownerUserId</c>؛ وَ <c>create_tenant</c>
+    /// يَكتُب OwnerUserId مُباشَرَةً عَلى الـ tenant الجَديد. هذا يَمنَع
+    /// رائِد أَعمال مِن تَعديل تَطبيق رائِد أَعمال آخَر عَبر الوَكيل.</summary>
+    public async Task<(bool Ok, string Message)> ExecuteAsync(
+        string toolName, string inputJson, Guid? ownerUserId, CancellationToken ct = default)
     {
         try
         {
             using var doc = JsonDocument.Parse(inputJson);
             var root = doc.RootElement;
+
+            // فَحص الملكيَّة لِلأَدَوات الَّتي تُعَدِّل tenant قائم.
+            if (ownerUserId is Guid owner && toolName != "create_tenant")
+            {
+                var slug = Str(root, "slug").ToLowerInvariant();
+                if (string.IsNullOrEmpty(slug))
+                    return (false, "slug مَطلوب لِأَداة تَعديل المَتجَر.");
+                await using var qs = _store.QuerySession();
+                var existing = await qs.LoadAsync<Tenant>(slug, ct);
+                if (existing is null)
+                    return (false, $"المَتجَر «{slug}» غَير مَوجود.");
+                if (existing.OwnerUserId != owner)
+                    return (false, $"غَير مَسموح: لا تَملِك المَتجَر «{slug}». يُمكِن لِكُلّ رائِد أَعمال تَعديل تَطبيقاته فَقَط.");
+            }
+
             return toolName switch
             {
-                "create_tenant"  => await CreateTenantAsync(root, ct),
+                "create_tenant"  => await CreateTenantAsync(root, ownerUserId, ct),
                 "set_categories" => await SetCategoriesAsync(root, ct),
                 "set_branding"   => await SetBrandingAsync(root, ct),
                 "set_regions"    => await SetRegionsAsync(root, ct),
@@ -519,7 +551,7 @@ public sealed class AgentToolExecutor
         }
     }
 
-    private async Task<(bool, string)> CreateTenantAsync(JsonElement root, CancellationToken ct)
+    private async Task<(bool, string)> CreateTenantAsync(JsonElement root, Guid? ownerUserId, CancellationToken ct)
     {
         var slug    = Str(root, "slug").ToLowerInvariant();
         var name    = Str(root, "name");
@@ -545,6 +577,10 @@ public sealed class AgentToolExecutor
         {
             Id = slug, Name = name, BrandColor = color, TagLine = tagline,
             City = city, AuthChannel = channel, Categories = cats,
+            // عِندَ إنشاء عَبر وَكيل ستوديو، اِكتُب المالِك مُباشَرَةً —
+            // وإلّا أَيّ رائِد أَعمال يَستَطيع لاحِقاً «تَبَنّي» مَتجَر بِلا مالِك.
+            // Guid.Empty = بِلا مالِك (سُلوك ادمن المَنصَّة الافتراضيّ).
+            OwnerUserId = ownerUserId ?? Guid.Empty,
             CreatedAt = DateTime.UtcNow
         });
         await s.SaveChangesAsync(ct);

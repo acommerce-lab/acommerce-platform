@@ -10,21 +10,22 @@
     لوحَة رائِد الأَعمال — مَدخَل مَوَحَّد:
     ١) تَطبيقاتي (المَتاجِر الَّتي يَملِكها) — كَ "اشتِراك مَتجَر تَطبيقات".
     ٢) أَفكاري وتَحاليلي (الـ incubator sessions).
-    ٣) إجراءات سَريعَة: فِكرَة جَديدَة، تَطبيق جَديد.
+    ٣) مَدخَلان واضِحان لِمَساعِدَي الذَّكاء:
+       • «حَلِّل فِكرَة» (/studio/new) — دِراسَة جَدوى لِفِكرَة قَبل البِناء.
+       • «وَكيل التَّطبيقات» (/studio/agent) — مُحادَثَة تُعَدِّل تَطبيقات
+         قائِمَة (فِئات/أَدوار/مُدُن/خَصائِص) مَع فَحص ملكيَّة كُلّ عَمَلِيَّة.
 
     الـ Active يَتَبَدَّل بَين home/ideas حَسَب المَسار.
 *@
 
 <StudioShell Title="@Title" Active="@(IsIdeas ? "ideas" : "home")">
     <TopBarActions>
-        @if (IsIdeas)
-        {
-            <a class="st-btn st-btn-primary" href="/studio/new">+ فِكرَة جَديدَة</a>
-        }
-        else
-        {
-            <a class="st-btn st-btn-primary" href="/studio/new">+ فِكرَة جَديدَة</a>
-        }
+        <a class="st-btn st-btn-ghost" href="/studio/agent">
+            <AcIcon Name="message" Size="14" /> وَكيل التَّطبيقات
+        </a>
+        <a class="st-btn st-btn-primary" href="/studio/new" style="margin-inline-start:8px;">
+            <AcIcon Name="lightbulb" Size="14" /> فِكرَة جَديدَة
+        </a>
     </TopBarActions>
     <ChildContent>
         <UpgradePrompt Reason="@Upgrade" CurrentTier="@(currentTier ?? "spark")" />
@@ -37,6 +38,32 @@
 
         @if (!IsIdeas)
         {
+            @* بِطاقَتان واضِحَتان لِمَساعِدَي الذَّكاء — كُلّ واحِدَة بِغَرَض مُختَلِف. *@
+            <div class="studio-list" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px;margin-bottom:18px;">
+                <a class="studio-list-row" href="/studio/new" style="align-items:flex-start;">
+                    <span class="studio-list-icon" style="background:#fef3c7;color:#854d0e;">
+                        <AcIcon Name="lightbulb" Size="18" />
+                    </span>
+                    <div class="studio-list-body" style="flex:1;">
+                        <strong>حَلِّل فِكرَة جَديدَة</strong>
+                        <span style="line-height:1.6;">قَبل أَن تَبني — تَحَقَّق مِن جَدوى السوق والمَنافِسين والتَكاليف
+                        والمَخاطِر. دِراسَة مُولَّدَة في دَقائِق.</span>
+                    </div>
+                    <span style="color:var(--st-faint);">←</span>
+                </a>
+                <a class="studio-list-row" href="/studio/agent" style="align-items:flex-start;">
+                    <span class="studio-list-icon ac-chip-info">
+                        <AcIcon Name="message" Size="18" />
+                    </span>
+                    <div class="studio-list-body" style="flex:1;">
+                        <strong>وَكيل التَّطبيقات</strong>
+                        <span style="line-height:1.6;">عَدِّل تَطبيقاً قائِماً بِالحِوار: «أَضِف فِئَة»، «غَيِّر اللَون»،
+                        «أَنشِئ دَوراً جَديداً». كُلّ تَنفيذ يُراجَع قَبل التَّطبيق.</span>
+                    </div>
+                    <span style="color:var(--st-faint);">←</span>
+                </a>
+            </div>
+
             <div class="studio-stats">
                 <div class="studio-stat">
                     <div class="studio-stat-label">تَطبيقاتي المُطلَقَة</div>
