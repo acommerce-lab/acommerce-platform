@@ -1,5 +1,5 @@
 ---
-title: ACommerce Platform
+title: Wasayel
 emoji: 🛍️
 colorFrom: blue
 colorTo: purple
@@ -7,7 +7,7 @@ sdk: docker
 app_port: 7860
 pinned: false
 license: mit
-short_description: Multi-tenant Blazor commerce platform.
+short_description: Wasayel — multi-tenant commerce platform (Arabic-first).
 ---
 
 <!--

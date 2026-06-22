@@ -1,0 +1,86 @@
+name: Deploy to Hugging Face Space
+
+# آليَّة نَشر مُدارَة: كُلّ push إلى main أَو فَرع التَّطوير يَدفَع تِلقائيّاً
+# إلى HF Space، بَعد اقتِطاع المُجَلَّدات الَّتي لا يَحتاجها البِناء (تَطبيقات
+# قَديمَة، docs، scripts، …) — هذا يَتَفادى رَفض HF لِلمَلَفّات الثُّنائيَّة.
+#
+# الإعداد لِمَرَّة واحِدَة:
+#   GitHub → Settings → Secrets and variables → Actions → New repository secret
+#   Name: HF_TOKEN
+#   Value: مِفتاح Write مِن https://huggingface.co/settings/tokens
+
+on:
+  push:
+    branches:
+      - main
+      - 'claude/**'
+    paths:
+      - 'platform-v1/**'
+      - 'Dockerfile'
+      - '.dockerignore'
+      - 'README.md'
+      - '.github/workflows/deploy-hf.yml'
+  workflow_dispatch:
+
+# تَنفيذ واحِد فَقَط في كُلّ مَرَّة (لِتَجَنُّب push race).
+concurrency:
+  group: deploy-hf
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      HF_USER: acommerceecommerce
+      HF_SPACE: acommerce.ecommerce
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Verify HF_TOKEN secret is set
+        run: |
+          if [ -z "${{ secrets.HF_TOKEN }}" ]; then
+            echo "::error::HF_TOKEN secret missing."
+            echo "Settings → Secrets and variables → Actions → New repository secret"
+            echo "Name: HF_TOKEN  ·  Value: <Write token من https://huggingface.co/settings/tokens>"
+            exit 1
+          fi
+
+      - name: Prune to deployable tree
+        run: |
+          # احذِف المُجَلَّدات الَّتي لا يَحتاجها V1.App (تَحوي خُطوط/صُوَر
+          # تَرفُضها HF بِلا Git LFS، وتَزيد حَجم الصورَة).
+          rm -rf Apps Ejar.TestForNewMaui clients libs tools tests docs scripts
+          rm -f ACommerce.Platform.sln ACommerce.Platform.slnLaunch \
+                "Clean bin obj and Rebuilgd.sh" CLAUDE.md \
+                runtime-report.json runtime-report.md
+          ls -la
+
+      - name: Initialize deploy git history
+        run: |
+          rm -rf .git
+          git init -b main
+          git config user.email "deploy@wasayel.bot"
+          git config user.name "Wasayel Deploy Bot"
+          git add .
+          git commit -q -m "deploy: sync ${GITHUB_SHA:0:7} from ${GITHUB_REF_NAME}"
+
+      - name: Push to Hugging Face Space
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          git remote add hf "https://oauth:${HF_TOKEN}@huggingface.co/spaces/${HF_USER}/${HF_SPACE}"
+          # ٤ مُحاوَلات مَع backup أُسّيّ — لِحَوادِث الشَّبَكَة العابِرَة.
+          for attempt in 1 2 3 4; do
+            if git push hf main --force; then
+              echo "✅ نُشِر بِنَجاح إلى https://${HF_USER}-${HF_SPACE//./-}.hf.space/"
+              exit 0
+            fi
+            wait=$((2 ** attempt))
+            echo "::warning::Push failed (attempt $attempt). Retrying in ${wait}s…"
+            sleep $wait
+          done
+          echo "::error::Push to HF failed after 4 attempts."
+          exit 1
