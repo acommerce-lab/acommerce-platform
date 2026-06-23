@@ -173,7 +173,7 @@
         await ScrollToBottom();
         // نِداء الـ backend — يَكتُب رِسالَة المُستَخدِم بِنَفسه (تَضاعُف غَير ضارّ
         // لِأَنّ LoadSessionAsync يَجلِب الـ canonical state بَعد ذلك).
-        session = await Agent.AskAsync(msg);
+        session = (await Agent.AskAsync(msg)).Session;   // الأدمن بِلا حِصَّة
         isWorking = false;
         StateHasChanged();
         await ScrollToBottom();

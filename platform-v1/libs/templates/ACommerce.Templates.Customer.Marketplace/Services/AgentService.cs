@@ -36,6 +36,10 @@ public sealed class AgentToolCall
     public string? Result { get; set; }
 }
 
+/// <summary>نَتيجَة AskAsync: الجَلسَة المُحَدَّثَة + هَل نَجَحَ نِداء النَّموذَج
+/// (لِيُقَرِّر المُتَّصِل استِهلاك الحِصَّة مِن عَدَمِه).</summary>
+public sealed record AgentAskResult(AgentSession Session, bool Ok);
+
 // ─── الخِدمَة ────────────────────────────────────────────────────────────
 public sealed class AgentService
 {
@@ -79,18 +83,20 @@ public sealed class AgentService
         await s.SaveChangesAsync(ct);
     }
 
-    public async Task<AgentSession> AskAsync(string userMessage, string? scopeId = null, CancellationToken ct = default)
+    public async Task<AgentAskResult> AskAsync(string userMessage, string? scopeId = null, CancellationToken ct = default)
     {
         await using var sess = _store.LightweightSession(AdminTenant);
         var id = SessionIdFor(scopeId);
         var session = await sess.LoadAsync<AgentSession>(id, ct)
                       ?? new AgentSession { Id = id };
         session.Turns.Add(new AgentTurn { Role = "user", Text = userMessage });
-        await CallBackendAsync(session, ct);
+        // Ok = نَجَحَ نِداء النَّموذَج فِعليّاً (لا «بِلا مِفتاح» ولا خَطَأ مُزَوِّد).
+        // يُستَخدَم لِحَسم استِهلاك الحِصَّة — لا نَحرِقها عَلى الفَشَل.
+        var ok = await CallBackendAsync(session, ct);
         session.UpdatedAt = DateTime.UtcNow;
         sess.Store(session);
         await sess.SaveChangesAsync(ct);
-        return session;
+        return new AgentAskResult(session, ok);
     }
 
     public async Task<AgentSession> ContinueAfterToolAsync(string? scopeId = null, CancellationToken ct = default)
@@ -98,7 +104,7 @@ public sealed class AgentService
         await using var sess = _store.LightweightSession(AdminTenant);
         var session = await sess.LoadAsync<AgentSession>(SessionIdFor(scopeId), ct);
         if (session is null) return new AgentSession { Id = SessionIdFor(scopeId) };
-        await CallBackendAsync(session, ct);
+        await CallBackendAsync(session, ct);   // المُتابَعَة بَعد أَداة لا تَستَهلِك حِصَّة
         session.UpdatedAt = DateTime.UtcNow;
         sess.Store(session);
         await sess.SaveChangesAsync(ct);
@@ -121,7 +127,9 @@ public sealed class AgentService
     }
 
     // ───────────────────────── نِداء الـ Backend ─────────────────────
-    private async Task CallBackendAsync(AgentSession session, CancellationToken ct)
+    // يُرجِع true عِندَ نَجاح نِداء النَّموذَج، false عِندَ «بِلا مِفتاح» أَو خَطَأ
+    // المُزَوِّد — لِيُقَرِّر المُتَّصِل ما إذا كانَ يَستَهلِك الحِصَّة.
+    private async Task<bool> CallBackendAsync(AgentSession session, CancellationToken ct)
     {
         if (!_backend.IsConfigured)
         {
@@ -132,7 +140,7 @@ public sealed class AgentService
                      + "أَضِف `Agent:ApiKey` في appsettings.Local.json أَو مُتَغَيِّر بيئَة "
                      + "(ANTHROPIC_API_KEY / GEMINI_API_KEY / OPENAI_API_KEY)."
             });
-            return;
+            return false;
         }
 
         var snapshot = await BuildTenantSnapshotAsync(ct);
@@ -150,7 +158,7 @@ public sealed class AgentService
                 Role = "assistant",
                 Text = "⚠️ " + resp.Error
             });
-            return;
+            return false;
         }
 
         var tool = resp.ToolCall is null ? null : new AgentToolCall
@@ -166,6 +174,7 @@ public sealed class AgentService
             Text = resp.Text,
             Tool = tool
         });
+        return true;
     }
 
     private async Task<string> BuildTenantSnapshotAsync(CancellationToken ct)

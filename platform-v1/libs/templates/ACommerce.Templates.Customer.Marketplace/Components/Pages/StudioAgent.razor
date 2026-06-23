@@ -230,10 +230,15 @@
         });
         StateHasChanged();
         await ScrollToBottom();
-        session = await Agent.AskAsync(msg, _scopeId);
-        // استَهلِك حِصَّة التَّصميم بَعد نَجاح النِّداء + حَدِّث العَدّاد.
-        await Quota.ConsumeAsync(_userId, "design");
-        quota = await Quota.GetStatusAsync(_userId, "design");
+        var result = await Agent.AskAsync(msg, _scopeId);
+        session = result.Session;
+        // استَهلِك حِصَّة التَّصميم فَقَط عِندَ نَجاح النِّداء (لا عَلى خَطَأ
+        // المُزَوِّد/429 أَو غِياب المِفتاح) + حَدِّث العَدّاد.
+        if (result.Ok)
+        {
+            await Quota.ConsumeAsync(_userId, "design");
+            quota = await Quota.GetStatusAsync(_userId, "design");
+        }
         isWorking = false;
         StateHasChanged();
         await ScrollToBottom();
