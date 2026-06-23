@@ -17,7 +17,9 @@ public sealed class FeasibilityAnalysisService
     private readonly FeasibilityPromptBuilder _prompt;
 
     public FeasibilityAnalysisService(
-        IDocumentStore store, IAgentBackend backend, FeasibilityPromptBuilder prompt)
+        IDocumentStore store,
+        [Microsoft.Extensions.DependencyInjection.FromKeyedServices("analysis")] IAgentBackend backend,
+        FeasibilityPromptBuilder prompt)
     {
         _store = store;
         _backend = backend;

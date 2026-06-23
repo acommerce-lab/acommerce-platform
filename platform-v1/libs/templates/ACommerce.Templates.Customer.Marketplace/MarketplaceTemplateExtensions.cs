@@ -29,9 +29,19 @@ public static class MarketplaceTemplateExtensions
         services.AddScoped<L>();
         services.AddScoped<ACommerce.Kit.Realtime.Client.RealtimeClient>();
         services.AddScoped<ACommerce.Templates.Customer.Marketplace.Services.DynamicAttributesService>();
+        // Backend افتراضيّ (تَوافُق رَجعيّ) — يَقرَأ Agent:* العامَّة.
         services.AddSingleton<ACommerce.Templates.Customer.Marketplace.Services.IAgentBackend>(
             sp => ACommerce.Templates.Customer.Marketplace.Services.AgentBackendFactory
                 .Create(sp.GetRequiredService<Microsoft.Extensions.Configuration.IConfiguration>()));
+        // Backend مُسمّى لِكُلّ وَكيل: التَّحليل (الأَذكى/الأَغلى) + التَّصميم
+        // (الأَسرَع/الأَرخَص). يَرِثان Agent:* ويَتَجاوَزانها بِـ Agent:Analysis:*
+        // أَو Agent:Design:*.
+        services.AddKeyedSingleton<ACommerce.Templates.Customer.Marketplace.Services.IAgentBackend>(
+            "analysis", (sp, _) => ACommerce.Templates.Customer.Marketplace.Services.AgentBackendFactory
+                .CreateNamed(sp.GetRequiredService<Microsoft.Extensions.Configuration.IConfiguration>(), "Analysis"));
+        services.AddKeyedSingleton<ACommerce.Templates.Customer.Marketplace.Services.IAgentBackend>(
+            "design", (sp, _) => ACommerce.Templates.Customer.Marketplace.Services.AgentBackendFactory
+                .CreateNamed(sp.GetRequiredService<Microsoft.Extensions.Configuration.IConfiguration>(), "Design"));
         services.AddSingleton<ACommerce.Templates.Customer.Marketplace.Services.AgentService>();
         services.AddSingleton<ACommerce.Templates.Customer.Marketplace.Services.AgentToolExecutor>();
         services.AddSingleton<ACommerce.Templates.Customer.Marketplace.Services.WebPushService>();

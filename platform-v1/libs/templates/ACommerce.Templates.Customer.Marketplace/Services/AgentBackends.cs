@@ -48,6 +48,34 @@ public static class AgentBackendFactory
             _        => new AnthropicBackend(cfg)
         };
     }
+
+    /// <summary>
+    /// يَبني backend لِوَكيل مُسمّى ("Analysis" | "Design") يَرِث الإعدادات
+    /// العامَّة <c>Agent:*</c> ويَتَجاوَزها بِالخاصَّة <c>Agent:{agent}:*</c>.
+    /// مِثال: <c>Agent:Analysis:Model = DeepSeek-R1</c> يُعطي وَكيل التَّحليل
+    /// نَموذَجاً أَذكى، بَينَما <c>Agent:Design:Model = gpt-4o</c> يُعطي وَكيل
+    /// التَّصميم نَموذَجاً أَسرَع/أَرخَص — مَع مُشارَكَة نَفس <c>Agent:ApiKey</c>
+    /// إن لَم يُحَدَّد مِفتاح خاصّ.
+    /// </summary>
+    public static IAgentBackend CreateNamed(IConfiguration cfg, string agent)
+    {
+        // قِيمَة الوَكيل المُسمّى أَوَّلاً، ثُمَّ العامَّة كَ fallback.
+        string? Val(string key) => cfg[$"Agent:{agent}:{key}"] ?? cfg[$"Agent:{key}"];
+
+        var overlay = new Dictionary<string, string?>
+        {
+            ["Agent:Provider"]      = Val("Provider"),
+            ["Agent:Model"]         = Val("Model"),
+            ["Agent:ApiKey"]        = Val("ApiKey"),
+            ["Agent:BaseUrl"]       = Val("BaseUrl"),
+            ["Agent:ProviderLabel"] = Val("ProviderLabel"),
+            ["Agent:ChatPath"]      = Val("ChatPath"),
+        };
+        var scoped = new ConfigurationBuilder()
+            .AddInMemoryCollection(overlay)
+            .Build();
+        return Create(scoped);
+    }
 }
 
 // ─── Anthropic (مَع prompt caching) ──────────────────────────────────

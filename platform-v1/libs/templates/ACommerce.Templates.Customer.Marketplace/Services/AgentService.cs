@@ -44,10 +44,14 @@ public sealed class AgentService
     private readonly IDocumentStore _store;
     private const string AdminTenant = "_admin";
 
-    public AgentService(IConfiguration cfg, IDocumentStore store, IAgentBackend backend)
+    public AgentService(
+        IConfiguration cfg, IDocumentStore store,
+        [Microsoft.Extensions.DependencyInjection.FromKeyedServices("design")] IAgentBackend backend)
     {
         _backend = backend;
-        _model   = cfg["Agent:Model"] ?? backend.DefaultModel;
+        // نَموذَج وَكيل التَّصميم: Agent:Design:Model ثُمَّ Agent:Model ثُمَّ
+        // افتراضيّ الـ backend.
+        _model   = cfg["Agent:Design:Model"] ?? cfg["Agent:Model"] ?? backend.DefaultModel;
         _store   = store;
     }
 
