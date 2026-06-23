@@ -12,7 +12,12 @@ public static class TierCatalog
 {
     public static readonly IReadOnlyDictionary<string, TierLimits> All = new Dictionary<string, TierLimits>
     {
-        ["spark"]  = new("spark",  "Spark",   99,  AnalysesPerMonth: 1, RefinesPerMonth: 3,
+        // Spark (المَجّانيّ): حِصَّة التَّحليل صارَت تُحكَم بِالحَدّ اليَوميّ/
+        // الأُسبوعيّ (AgentQuotaService: ٢/يَوم، ٧/أُسبوع) بَدَلاً مِن سَقف شَهريّ
+        // واحِد. نَرفَع السَّقف الشَّهريّ هُنا حَتَّى لا يَحجُب قَبل الحَدّ اليَوميّ.
+        // (مُلاحَظَة: عِندَ إطلاق الباقات المَدفوعَة، تُعاد مُعايَرَة الحُدود
+        //  اليَوميَّة/الأُسبوعيَّة لِكُلّ باقَة عَبر Quota:* لاحِقاً.)
+        ["spark"]  = new("spark",  "Spark",   99,  AnalysesPerMonth: int.MaxValue, RefinesPerMonth: 3,
                          StoresMax: 1, AllowExport: false, AllowCustomPattern: false),
         ["lite"]   = new("lite",   "Lite",    199, AnalysesPerMonth: 3, RefinesPerMonth: 10,
                          StoresMax: 3, AllowExport: true,  AllowCustomPattern: false),

@@ -5,6 +5,7 @@
 @inject Services.Incubator.StudioAuth StudioAuth
 @inject ACommerce.Templates.Customer.Marketplace.Services.AgentService Agent
 @inject ACommerce.Templates.Customer.Marketplace.Services.AgentToolExecutor Executor
+@inject ACommerce.Templates.Customer.Marketplace.Services.AgentQuotaService Quota
 @inject IHttpContextAccessor HttpCtx
 @inject IJSRuntime JS
 
@@ -49,6 +50,13 @@
                 <span style="font-size:11px;color:var(--st-muted);direction:ltr;">
                     @Agent.ProviderName / @Agent.ModelName
                 </span>
+                @if (quota is not null)
+                {
+                    <span class="st-chip @(quota.Allowed ? "" : "st-chip-warning")" style="margin-inline-start:8px;">
+                        المُتَبَقّي اليَوم: @(Math.Max(0, quota.DayLimit - quota.DayUsed))/@quota.DayLimit
+                        · الأُسبوع: @(Math.Max(0, quota.WeekLimit - quota.WeekUsed))/@quota.WeekLimit
+                    </span>
+                }
             </div>
 
             @if (!Agent.IsConfigured)
@@ -159,6 +167,7 @@
     string newMessage = "";
     bool isWorking;
     bool firstRenderDone;
+    ACommerce.Templates.Customer.Marketplace.Services.QuotaStatus? quota;
 
     protected override async Task OnInitializedAsync()
     {
@@ -179,7 +188,10 @@
             _authChecked = true;
         }
         if (_userId != Guid.Empty)
+        {
             session = await Agent.LoadSessionAsync(_scopeId);
+            quota = await Quota.GetStatusAsync(_userId, "design");
+        }
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -195,6 +207,20 @@
     {
         var msg = newMessage?.Trim() ?? "";
         if (string.IsNullOrEmpty(msg) || isWorking || _userId == Guid.Empty) return;
+
+        // فَحص حِصَّة التَّصميم قَبل النِّداء — لا نَستَهلِك عَلى الرَّفض.
+        quota = await Quota.GetStatusAsync(_userId, "design");
+        if (quota is { Allowed: false })
+        {
+            session.Turns.Add(new ACommerce.Templates.Customer.Marketplace.Services.AgentTurn
+            {
+                Role = "assistant", Text = quota.DeniedReason
+            });
+            StateHasChanged();
+            await ScrollToBottom();
+            return;
+        }
+
         newMessage = "";
         isWorking = true;
         StateHasChanged();
@@ -205,6 +231,9 @@
         StateHasChanged();
         await ScrollToBottom();
         session = await Agent.AskAsync(msg, _scopeId);
+        // استَهلِك حِصَّة التَّصميم بَعد نَجاح النِّداء + حَدِّث العَدّاد.
+        await Quota.ConsumeAsync(_userId, "design");
+        quota = await Quota.GetStatusAsync(_userId, "design");
         isWorking = false;
         StateHasChanged();
         await ScrollToBottom();

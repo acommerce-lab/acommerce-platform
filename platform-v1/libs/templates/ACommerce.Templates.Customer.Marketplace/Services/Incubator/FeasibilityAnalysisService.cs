@@ -15,15 +15,18 @@ public sealed class FeasibilityAnalysisService
     private readonly IDocumentStore _store;
     private readonly IAgentBackend _backend;
     private readonly FeasibilityPromptBuilder _prompt;
+    private readonly AgentQuotaService _quota;
 
     public FeasibilityAnalysisService(
         IDocumentStore store,
         [Microsoft.Extensions.DependencyInjection.FromKeyedServices("analysis")] IAgentBackend backend,
-        FeasibilityPromptBuilder prompt)
+        FeasibilityPromptBuilder prompt,
+        AgentQuotaService quota)
     {
         _store = store;
         _backend = backend;
         _prompt = prompt;
+        _quota = quota;
     }
 
     public bool IsConfigured => _backend.IsConfigured;
@@ -193,6 +196,25 @@ public sealed class FeasibilityAnalysisService
         var s = await LoadAsync(id, ct);
         if (s is null) throw new InvalidOperationException("session not found");
 
+        // حِصَّة التَّحليل اليَوميَّة/الأُسبوعيَّة (يُتَجاوَز admin = Guid.Empty).
+        // نَفحَص قَبل أَيّ نِداء LLM؛ عِندَ التَّجاوُز نَضَع حالَة Failed
+        // بِرِسالَة الحِصَّة بَدَلاً مِن استِهلاك المُزَوِّد.
+        if (s.OwnerUserId != Guid.Empty)
+        {
+            var q = await _quota.GetStatusAsync(s.OwnerUserId, "analysis", ct);
+            if (!q.Allowed)
+            {
+                await using var qs = _store.LightweightSession(IncubatorTenant);
+                var blocked = await qs.LoadAsync<IncubatorSession>(id, ct) ?? s;
+                blocked.Status = IncubatorStatus.Failed;
+                blocked.AnalysisError = q.DeniedReason;
+                blocked.UpdatedAt = DateTime.UtcNow;
+                qs.Store(blocked);
+                await qs.SaveChangesAsync(ct);
+                return blocked;
+            }
+        }
+
         await SetStatusAsync(id, IncubatorStatus.Analyzing, ct);
 
         var sector = s.Answers.TryGetValue("sector", out var sec) ? sec : "other";
@@ -235,6 +257,9 @@ public sealed class FeasibilityAnalysisService
         }
         session.Store(fresh);
         await session.SaveChangesAsync(ct);
+        // استَهلِك حِصَّة التَّحليل فَقَط عِندَ النَّجاح (لا عَلى الفَشَل/429).
+        if (json is not null && s.OwnerUserId != Guid.Empty)
+            await _quota.ConsumeAsync(s.OwnerUserId, "analysis", ct);
         return fresh;
     }
 
