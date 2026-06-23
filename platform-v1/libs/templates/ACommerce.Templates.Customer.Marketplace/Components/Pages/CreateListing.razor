@@ -1,0 +1,316 @@
+@page "/{slug}/create-listing"
+@page "/{slug}/r/{role}/create-listing"
+@inject IDocumentStore Store
+@inject AuthSession Auth
+@inject NavigationManager Nav
+@inject ACommerce.Templates.Customer.Marketplace.Services.DynamicAttributesService DynAttrs
+
+@*
+    دِسباتشَر إنشاء إعلان حَسَب الدَور النَّشِط:
+      - rider  → RiderCreateRequest (نَموذَج مِشوار مُبَسَّط)
+      - غَيره  → النَموذَج الكامِل ذو الخَطوَتَين (فِئَة → تَفاصيل)
+*@
+
+@if (activeRole?.CatalogSlug == "rider")
+{
+    <ACommerce.Templates.Customer.Marketplace.Components.RoleHomes.RiderCreateRequest
+        Slug="@Slug" Tenant="tenant" Err="@Err" />
+}
+else
+{
+
+<div class="acs-page acs-create-listing">
+    <h1 class="acm-wizard-title">إعلان جَديد</h1>
+
+    @if (!Auth.IsAuthenticated)
+    {
+        <AcEmptyState IconName="user"
+                      Title="تَحتاج تَسجيل دُخول"
+                      Message="سَجِّل دُخولك قَبل نَشر إعلان."
+                      ActionLabel="تَسجيل دُخول"
+                      ActionHref="@AuthSession.LinkFor(Slug, Role, $"login?returnUrl=/{Slug}/create-listing")" />
+    }
+    else if (tenant is null)
+    {
+        <AcLoadingState />
+    }
+    else
+    {
+        <div class="acs-step-indicator">
+            <span class="@(string.IsNullOrEmpty(Category)? "active" : "")">الفِئَة</span>
+            <span class="@(!string.IsNullOrEmpty(Category)? "active" : "")">التَفاصيل</span>
+            <span>الصُوَر</span>
+            <span class="@(!string.IsNullOrEmpty(Category)? "active" : "")">المَوقِع</span>
+        </div>
+
+        @if (Err == "invalid")
+        {
+            <AcAlert Variant="danger" Message="الحُقول المَطلوبَة غَير صَحيحَة — اعتَنِ بِالعُنوان والسِعر والفِئَة." />
+        }
+        else if (Err == "forbidden")
+        {
+            <AcAlert Variant="danger"
+                     Message="دَوركَ الحاليّ لا يَسمَح بِنَشر إعلان. إن كانَ هذا غَير مُتَوَقَّع، تَواصَل مَع إدارَة المَتجَر." />
+        }
+
+        @* تَخَطّي خَطوَة اختِيار الفِئَة عِندَ وُجود فِئَة واحِدَة فَقَط
+           في المَتجَر — لا داعِيَ لِسُؤال المُستَخدِم. *@
+        var singleCategoryAuto = string.IsNullOrEmpty(Category) && tenant.Categories.Count == 1
+            ? tenant.Categories[0].Slug : null;
+        var effectiveCategory = Category ?? singleCategoryAuto;
+
+        @if (string.IsNullOrEmpty(effectiveCategory))
+        {
+            @* خَطوَة 1: شَجَرَة فِئات. عِنْدَ تَعَدُّد الـ Kinds (مَثَل
+               إيجار) كُلّ Kind = <details> قابِل لِلطَيّ يَحوي شَبَكَة
+               الـ leaves. مُستَأجِر بِـ Kind واحِد (عَشير) ⇒ شَبَكَة
+               مُسَطَّحَة بِلا طَيّ. *@
+            var groups = tenant.Categories
+                .GroupBy(c => string.IsNullOrEmpty(c.Kind) ? "" : c.Kind)
+                .Select(g => new {
+                    Kind = g.Key,
+                    Label = KindLabel(g.Key),
+                    Items = g.OrderBy(c => c.SortOrder).ThenBy(c => c.Label).ToList()
+                })
+                .ToList();
+            <AcCard>
+                <ChildContent>
+                    <h3 style="margin-top:0;">اختَر فِئَة الإعلان</h3>
+                    @if (groups.Count > 1)
+                    {
+                        <div class="acm-cat-tree">
+                            @foreach (var g in groups)
+                            {
+                                <details class="acm-cat-tree-group" open>
+                                    <summary class="acm-cat-tree-summary">
+                                        <span>@g.Label</span>
+                                        <span class="acm-cat-tree-count">@g.Items.Count</span>
+                                    </summary>
+                                    <div class="acm-home-grid acm-cat-tree-grid">
+                                        @foreach (var c in g.Items)
+                                        {
+                                            <a class="acs-cat-pick"
+                                               href="@AuthSession.LinkFor(Slug, Role, $"create-listing?category={Uri.EscapeDataString(c.Slug)}")">
+                                                <span><AcIcon Name="@ACommerce.Widgets.AcIconMap.Resolve(c.Icon, "tag")" Size="28" /></span>
+                                                <span>@c.Label</span>
+                                            </a>
+                                        }
+                                    </div>
+                                </details>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="acm-home-grid">
+                            @foreach (var c in groups.SelectMany(g => g.Items))
+                            {
+                                <a class="acs-cat-pick"
+                                   href="@AuthSession.LinkFor(Slug, Role, $"create-listing?category={Uri.EscapeDataString(c.Slug)}")">
+                                    <span><AcIcon Name="@ACommerce.Widgets.AcIconMap.Resolve(c.Icon, "tag")" Size="28" /></span>
+                                    <span>@c.Label</span>
+                                </a>
+                            }
+                        </div>
+                    }
+                </ChildContent>
+            </AcCard>
+        }
+        else
+        {
+            var selectedCategory = tenant.Categories.FirstOrDefault(c => c.Slug == effectiveCategory);
+
+            <form method="post" action="@($"/{Slug}/listings/create")" enctype="multipart/form-data">
+                <input type="hidden" name="category" value="@effectiveCategory" />
+
+                <AcCard>
+                    <ChildContent>
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                            <h3 style="margin:0;">تَفاصيل الإعلان</h3>
+                            <a href="@AuthSession.LinkFor(Slug, Role, $"create-listing")" class="ac-btn ac-btn-ghost ac-btn-sm">
+                                <AcIcon Name="arrow-right" Size="14" /> تَغيير الفِئَة
+                            </a>
+                        </div>
+                        @if (selectedCategory is not null)
+                        {
+                            <p style="color:var(--ac-text-muted);font-size:13px;margin:0 0 12px;">
+                                الفِئَة: <strong><AcIcon Name="@ACommerce.Widgets.AcIconMap.Resolve(selectedCategory.Icon, "tag")" Size="16" /> @selectedCategory.Label</strong>
+                            </p>
+                        }
+
+                        <AcField Label="عُنوان الإعلان" Required="true">
+                            <input type="text" name="title" required maxlength="120"
+                                   class="ac-input"
+                                   placeholder="مَثَلاً: شَقّة قَريبَة مِن الجامِعَة" />
+                        </AcField>
+
+                        <AcField Label="الوَصف" Required="true">
+                            <textarea name="description" rows="4" maxlength="2000" required
+                                      class="ac-input" style="resize:vertical;font-family:inherit;"
+                                      placeholder="تَفاصيل العَرض، المُمَيِّزات، شُروط التَواصُل…"></textarea>
+                        </AcField>
+
+                        @* السِعر — حَقل عامّ. كانَ هُنا حَقل "وَحدَة الإيجار"
+                           hard-coded (شَهري/سَنَوي/يَومي/ساعَة) لا يُحفَظ في
+                           POST handler ولا يَنطَبِق عَلى كُلّ المَتاجِر (مَثَلاً
+                           إنجيز لِلمَشاوير). أُزيلَ — لَو مَتجَر احتاج المَفهوم
+                           يُضاف كَخاصِّيَّة SingleSelect ديناميكِيَّة. *@
+                        <AcField Label="السِعر (ريال)" Required="true">
+                            <input type="number" name="price" required min="1" step="1"
+                                   class="ac-input" inputmode="numeric" placeholder="0" />
+                        </AcField>
+                    </ChildContent>
+                </AcCard>
+
+                @* خَصائِص ديناميكِيَّة مِن DB المُستَورَد. تَظهَر فَقَط لَو
+                   الـ AttributeDefinitions تَحوي scope لِهذه الفِئَة. *@
+                @if (dynFields is { Count: > 0 })
+                {
+                    <AcCard>
+                        <ChildContent>
+                            <h3 style="margin-top:0;">تَفاصيل @selectedCategory?.Label</h3>
+                            @foreach (var f in dynFields)
+                            {
+                                <AcField Label="@f.Label" Required="@f.IsRequired">
+                                    @RenderDynInput(f, "attr_")
+                                </AcField>
+                            }
+                        </ChildContent>
+                    </AcCard>
+                }
+
+                @* رَفع صُوَر — حَتَّى ٦ صُوَر، كُلّ صورَة ≤ ٥ MB. الـ
+                   POST handler يَرفَعها عَبر IFileStorage ويَخزِن URLs
+                   في Attributes["photos"] كَ JSON array. *@
+                <AcCard>
+                    <ChildContent>
+                        <h3 style="margin-top:0;">الصُوَر</h3>
+                        <p style="color:var(--ac-text-muted);font-size:13px;margin:0 0 12px;">
+                            حَتَّى ٦ صُوَر (JPG / PNG / WebP). الأُولَى تَظهَر كَغِلاف.
+                        </p>
+                        <input type="file" name="photos" multiple
+                               accept="image/jpeg,image/png,image/webp"
+                               class="ac-input" />
+                    </ChildContent>
+                </AcCard>
+
+                <AcCard>
+                    <ChildContent>
+                        <h3 style="margin-top:0;">المَوقِع</h3>
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                            <AcField Label="المَدينَة">
+                                <input type="text" name="city" maxlength="40" class="ac-input"
+                                       value="@(tenant.City ?? "")" placeholder="إب" />
+                            </AcField>
+                            <AcField Label="الحَيّ" Required="true">
+                                <input type="text" name="district" required maxlength="60"
+                                       class="ac-input" placeholder="حَوبان" />
+                            </AcField>
+                        </div>
+                    </ChildContent>
+                </AcCard>
+
+                <div style="display:flex;gap:8px;margin-top:16px;">
+                    <a class="ac-btn ac-btn-ghost" href="@($"/{Slug}")">إلغاء</a>
+                    <button type="submit" class="ac-btn ac-btn-primary ac-btn-lg ac-btn-block">
+                        <AcIcon Name="check" Size="18" /> نَشر الإعلان
+                    </button>
+                </div>
+            </form>
+        }
+    }
+</div>
+
+}
+
+@code {
+    [Parameter] public string Slug { get; set; } = "";
+    [Parameter] public string? Role { get; set; }
+    [SupplyParameterFromQuery(Name = "err")]      public string? Err      { get; set; }
+    [SupplyParameterFromQuery(Name = "category")] public string? Category { get; set; }
+
+    Tenant? tenant;
+    IReadOnlyList<ACommerce.Templates.Customer.Marketplace.Services.DynField>? dynFields;
+    ACommerce.Kit.Roles.Role? activeRole;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (!Auth.IsAuthenticated) return;
+        await using var g = Store.QuerySession();
+        tenant = await g.LoadAsync<Tenant>(Slug);
+        if (tenant is null) return;
+
+        if (tenant.Roles.Count > 0 && Auth.UserId.HasValue)
+        {
+            await using var t = Store.QuerySession(Slug);
+            var me = await t.LoadAsync<User>(Auth.UserId.Value);
+            if (me is not null && !string.IsNullOrEmpty(me.ActiveRole))
+                activeRole = tenant.Roles.FirstOrDefault(r => r.Slug == (Role ?? me.ActiveRole));
+        }
+
+        if (!string.IsNullOrEmpty(Category))
+            dynFields = await DynAttrs.GetForListingCategoryAsync(Slug, Category);
+        else if (tenant.Categories.Count == 1)
+            // فِئَة وَحيدَة → اِجلِب خَصائِصها مُباشَرَة
+            dynFields = await DynAttrs.GetForListingCategoryAsync(Slug, tenant.Categories[0].Slug);
+    }
+
+    static string KindLabel(string kind) => kind switch
+    {
+        ""             => "الفِئات",
+        "roommate"     => "السَكَن المُشتَرَك",
+        "residential"  => "سَكَنيّ",
+        "commercial"   => "تِجاريّ",
+        "events"       => "مُناسَبات",
+        "vehicles"     => "مَركَبات",
+        "leisure"      => "تَرفيه",
+        _              => kind
+    };
+
+    RenderFragment RenderDynInput(ACommerce.Templates.Customer.Marketplace.Services.DynField f, string prefix) => @<text>
+        @{
+            var name = prefix + f.Code;
+        }
+        @switch (f.Type)
+        {
+            case ACommerce.Templates.Customer.Marketplace.Services.DynFieldType.Number:
+                <input type="number" name="@name" class="ac-input"
+                       required="@f.IsRequired" value="@f.DefaultValue" inputmode="numeric" />
+                break;
+            case ACommerce.Templates.Customer.Marketplace.Services.DynFieldType.LongText:
+                <textarea name="@name" rows="3" class="ac-input"
+                          required="@f.IsRequired" style="resize:vertical;font-family:inherit;">@f.DefaultValue</textarea>
+                break;
+            case ACommerce.Templates.Customer.Marketplace.Services.DynFieldType.Boolean:
+                <label style="display:inline-flex;align-items:center;gap:8px;">
+                    <input type="checkbox" name="@name" value="true" />
+                    <span>نَعَم</span>
+                </label>
+                break;
+            case ACommerce.Templates.Customer.Marketplace.Services.DynFieldType.SingleSelect:
+                <select name="@name" class="ac-input" required="@f.IsRequired">
+                    <option value="">— اختَر —</option>
+                    @foreach (var o in f.Options)
+                    {
+                        <option value="@o.Value" selected="@(f.DefaultValue == o.Value)">@o.Label</option>
+                    }
+                </select>
+                break;
+            case ACommerce.Templates.Customer.Marketplace.Services.DynFieldType.MultiSelect:
+                <select name="@name" class="ac-input" multiple size="@Math.Min(5, f.Options.Count)">
+                    @foreach (var o in f.Options)
+                    {
+                        <option value="@o.Value">@o.Label</option>
+                    }
+                </select>
+                break;
+            case ACommerce.Templates.Customer.Marketplace.Services.DynFieldType.Date:
+                <input type="date" name="@name" class="ac-input" required="@f.IsRequired" value="@f.DefaultValue" />
+                break;
+            default:
+                <input type="text" name="@name" class="ac-input" required="@f.IsRequired"
+                       value="@f.DefaultValue" maxlength="200" />
+                break;
+        }
+    </text>;
+}

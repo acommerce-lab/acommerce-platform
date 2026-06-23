@@ -1,0 +1,175 @@
+@inject IDocumentStore Store
+@inject AuthSession Auth
+
+@*
+    صَفحَة السائِق الرَّئيسِيَّة — feed مَشاوير مَفتوحَة بِفَلتَرَة المَنطِقَة
+    الجُغرافيَّة، إحصاءات سَريعَة، وَرَوابِط لِبَحوث الإشعار + ضَبط المَنطِقَة.
+*@
+
+<div class="acm-role-home acm-role-home-driver">
+    <header class="acm-role-home-head">
+        <h2>@(Greeting)</h2>
+        <p>مَشاوير قَريبَة مَفتوحَة لِلتَّفاوُض. اِختَر، قَدِّم عَرضَك، انتَظِر القَبول.</p>
+    </header>
+
+    <div class="acm-role-cta-row">
+        <a class="acm-role-cta-pill" href="@AuthSession.LinkFor(Slug, Role, $"me/offers")">
+            <strong>@pendingOffers</strong>
+            <span>عَرض قَيد المُراجَعَة</span>
+        </a>
+        <a class="acm-role-cta-pill" href="@AuthSession.LinkFor(Slug, Role, $"me/searches")">
+            <strong>@savedSearches</strong>
+            <span>بَحث مَحفوظ</span>
+        </a>
+        <a class="acm-role-cta-pill" href="@AuthSession.LinkFor(Slug, Role, $"me/area")">
+            <strong>@(driverRadius > 0 ? $"{driverRadius} كم" : "—")</strong>
+            <span>مَنطِقَة عَمَلي</span>
+        </a>
+    </div>
+
+    <AcSectionHeader Title="مَشاوير مَفتوحَة"
+                     ActionLabel="كُلّ المَشاوير"
+                     ActionHref="@AuthSession.LinkFor(Slug, Role, $"explore")" />
+
+    @if (openRequests is null)
+    {
+        <AcLoadingState />
+    }
+    else if (openRequests.Count == 0)
+    {
+        <div class="acm-role-empty">
+            <AcIcon Name="car" Size="36" />
+            <p>لا مَشاوير مَفتوحَة حاليّاً. اِحفَظ بَحثاً وَ سَنُنَبِّهُكَ.</p>
+            <a class="ac-btn ac-btn-primary ac-btn-sm" href="@AuthSession.LinkFor(Slug, Role, $"me/searches")">
+                <AcIcon Name="bell" Size="14" /> حِفظ بَحث
+            </a>
+        </div>
+    }
+    else
+    {
+        <div class="acm-role-list">
+            @foreach (var (l, dist) in openRequests)
+            {
+                <a class="acm-role-trip-card" href="@AuthSession.LinkFor(Slug, Role, $"listings/{l.Id}")">
+                    <div style="flex:1;min-width:0;">
+                        <strong>@l.Title</strong>
+                        <span class="ac-muted" style="font-size:12px;display:block;">
+                            @l.City — @l.District
+                        </span>
+                        <div style="display:flex;gap:8px;align-items:center;margin-top:4px;flex-wrap:wrap;">
+                            @if (l.Price > 0)
+                            {
+                                <span style="font-size:11px;color:var(--ac-text-muted);">
+                                    مَبدَئيّ: @l.Price.ToString("N0") ريال
+                                </span>
+                            }
+                            @if (dist.HasValue)
+                            {
+                                <span style="font-size:11px;color:var(--ac-primary);">
+                                    <AcIcon Name="map-pin" Size="14" /> @dist.Value.ToString("0.#") كم
+                                </span>
+                            }
+                        </div>
+                    </div>
+                    <span class="acm-role-trip-time">@FormatAge(l.CreatedAt)</span>
+                </a>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public string Slug { get; set; } = "";
+    [Parameter] public string? Role { get; set; }
+
+    List<(Listing Listing, double? DistanceKm)>? openRequests;
+    int pendingOffers;
+    int savedSearches;
+    int driverRadius;
+    bool hasAnchor;
+    double anchorLat, anchorLng;
+
+    string Greeting => string.IsNullOrEmpty(Auth.UserName)
+        ? "أَهلاً سائِق"
+        : $"أَهلاً {Auth.UserName}";
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await using var s = Store.QuerySession(Slug);
+
+        // اِجلِب مَنطِقَة السائِق (لو ضَبَطها) لِنَفلتِر الـ feed.
+        if (Auth.IsAuthenticated && Auth.UserId.HasValue)
+        {
+            var me = await s.LoadAsync<User>(Auth.UserId.Value);
+            if (me is not null)
+            {
+                driverRadius = me.RadiusKm;
+                hasAnchor    = me.HasAnchor;
+                anchorLat    = me.AnchorLat;
+                anchorLng    = me.AnchorLng;
+            }
+        }
+
+        // كُلّ الإعلانات الَّتي تَقبَل عُروضاً وَ لَم تُطابَق بَعد.
+        var all = await s.Query<Listing>()
+            .Where(l => !l.IsDeleted)
+            .OrderByDescending(l => l.CreatedAt)
+            .Take(80)
+            .ToListAsync();
+        var open = new List<(Listing, double?)>();
+        foreach (var l in all)
+        {
+            if (!l.Attributes.TryGetValue("accepts_offers", out var ao) ||
+                !string.Equals(ao, "true", System.StringComparison.OrdinalIgnoreCase))
+                continue;
+            var match = await s.LoadAsync<ACommerce.Kit.Offers.ListingMatch>(l.Id);
+            // أَيّ مُطابَقَة (Active/Completed/Aborted) → الإعلان لَه نَتيجَة. يُحجَب.
+            if (match is not null) continue;
+
+            // فَلتَرَة المَسافَة لَو السائِق ضَبَط مَنطِقَة.
+            double? dist = null;
+            if (hasAnchor &&
+                ParseD(l.Attributes, "pickup_lat") is double plat &&
+                ParseD(l.Attributes, "pickup_lng") is double plng)
+            {
+                dist = ACommerce.Kit.Offers.OfferHelpers.DistanceKm(
+                    anchorLat, anchorLng, plat, plng);
+                if (driverRadius > 0 && dist > driverRadius) continue;
+            }
+
+            open.Add((l, dist));
+            if (open.Count >= 12) break;
+        }
+        // رَتِّب بِالأَقرَب لَو المَسافَة مَعروفَة، ثُمّ بِالأَحدَث.
+        openRequests = open
+            .OrderBy(x => x.Item2 ?? double.MaxValue)
+            .ThenByDescending(x => x.Item1.CreatedAt)
+            .ToList();
+
+        if (Auth.IsAuthenticated && Auth.UserId.HasValue)
+        {
+            pendingOffers = await s.Query<ACommerce.Kit.Offers.Offer>()
+                .CountAsync(o => o.OffererId == Auth.UserId.Value
+                              && o.Status == ACommerce.Kit.Offers.OfferStatus.Pending);
+            savedSearches = await s.Query<ACommerce.Kit.SavedSearches.SavedSearch>()
+                .CountAsync(ss => ss.UserId == Auth.UserId.Value && ss.IsEnabled);
+        }
+    }
+
+    static double? ParseD(Dictionary<string,string> attrs, string key)
+    {
+        if (!attrs.TryGetValue(key, out var s) || string.IsNullOrEmpty(s)) return null;
+        return double.TryParse(s, System.Globalization.NumberStyles.Float,
+                               System.Globalization.CultureInfo.InvariantCulture, out var d)
+               ? d : null;
+    }
+
+    static string FormatAge(System.DateTime at)
+    {
+        var span = System.DateTime.UtcNow - at;
+        if (span.TotalMinutes < 1)  return "الآن";
+        if (span.TotalMinutes < 60) return $"{(int)span.TotalMinutes}د";
+        if (span.TotalHours   < 24) return $"{(int)span.TotalHours}س";
+        return $"{(int)span.TotalDays}ي";
+    }
+}

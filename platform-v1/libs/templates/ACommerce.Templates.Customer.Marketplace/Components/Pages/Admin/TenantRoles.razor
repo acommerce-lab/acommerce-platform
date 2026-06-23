@@ -1,0 +1,138 @@
+@page "/admin/tenants/{slug}/roles"
+@inject IDocumentStore Store
+@using ACommerce.Kit.Roles
+
+@*
+    مُحَرِّر الأَدوار — قائِمَة checklist مِن RoleCatalog. مُصَمِّم المَتجَر
+    يَضَع علامَة عَلى الأَدوار المَطلوبَة، يُحَدِّد الافتراضي، ثُمّ يَحفَظ.
+    التَخصيص العَميق (إضافَة حُقول مُخَصَّصَة) يَتِم مِن صَفحَة الخَصائِص
+    الديناميكِيَّة عَلى scope الدَور.
+*@
+
+<div class="acs-page acm-admin">
+    @if (tenant is null)
+    {
+        <AcEmptyState IconName="info" Title="المَتجَر غَير مَوجود" />
+    }
+    else
+    {
+        var backHref = From == "tenant" ? $"/{Slug}/r/admin/manage" : $"/admin/tenants/{Slug}";
+        <div class="acm-admin-head">
+            <div style="display:flex;align-items:center;gap:8px;">
+                <a class="ac-btn ac-btn-ghost ac-btn-sm" href="@backHref">
+                    <AcIcon Name="arrow-right" Size="16" />
+                </a>
+                <h1 class="acm-wizard-title" style="margin:0;">أَدوار @tenant.Name</h1>
+            </div>
+        </div>
+
+        @if (Err is not null) { <AcAlert Variant="danger"  Message="@FormatError(Err)" /> }
+        @if (Saved == "1")    { <AcAlert Variant="success" Message="تَمّ الحِفظ." /> }
+
+        <AcCard>
+            <ChildContent>
+                <h3 style="margin-top:0;">القَوالِب القِياسيَّة</h3>
+                <p style="color:var(--ac-text-muted);font-size:13px;margin:0 0 16px;">
+                    اختَر الأَدوار الَّتي تَنطَبِق عَلى مَتجَرِكَ. كُلّ دَور
+                    يَأتي بِصَلاحِيّات + حُقول بَيانات افتراضِيَّة جاهِزَة.
+                    اِحفَظ لِتَطبيق الاختِيارات.
+                </p>
+
+                <form method="post" action="@($"/admin/tenants/{Slug}/roles/save")">
+                    <div class="acm-role-picklist">
+                        @foreach (var tmpl in RoleCatalog.All)
+                        {
+                            var existing = tenant.Roles.FirstOrDefault(r => r.CatalogSlug == tmpl.Slug);
+                            var isPicked = existing is not null;
+                            <label class="acm-role-pickcard @(isPicked ? "is-picked" : "")">
+                                @* Razor يَتَعامَل مَع checked كَ boolean attr عَبر
+                                   conditional rendering لِيَتَجَنَّب gotcha أَنّ
+                                   checked="False" يَجعَل الـ checkbox مَفعَّلَة. *@
+                                @if (isPicked)
+                                {
+                                    <input type="checkbox" name="role_@(tmpl.Slug)" value="1" checked />
+                                }
+                                else
+                                {
+                                    <input type="checkbox" name="role_@(tmpl.Slug)" value="1" />
+                                }
+                                <span class="acm-role-pickcard-body">
+                                    <strong style="font-size:15px;"><AcIcon Name="@ACommerce.Widgets.AcIconMap.Resolve(tmpl.Icon, "tag")" Size="16" /> @tmpl.Label</strong>
+                                    <span>@tmpl.Description</span>
+                                    <div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:4px;">
+                                        @foreach (var p in tmpl.Permissions)
+                                        {
+                                            <span class="ac-chip ac-chip-sm" style="font-size:10px;">@p</span>
+                                        }
+                                    </div>
+                                    @if (tmpl.Fields.Count > 0)
+                                    {
+                                        <small style="display:block;margin-top:6px;color:var(--ac-text-muted);">
+                                            بَيانات لِلتَّسجيل: @string.Join("، ", tmpl.Fields.Select(f => f.Label))
+                                        </small>
+                                    }
+                                </span>
+                                <label class="acm-role-pickcard-default">
+                                    <input type="radio" name="default_role" value="@tmpl.Slug"
+                                           checked="@(existing?.IsDefault == true)" />
+                                    افتراضي
+                                </label>
+                            </label>
+                        }
+                    </div>
+
+                    <div style="display:flex;gap:8px;margin-top:16px;">
+                        <a class="ac-btn ac-btn-ghost" href="@($"/admin/tenants/{Slug}")">إلغاء</a>
+                        <button type="submit" class="ac-btn ac-btn-primary ac-btn-block">
+                            <AcIcon Name="check" Size="18" /> حِفظ
+                        </button>
+                    </div>
+                </form>
+            </ChildContent>
+        </AcCard>
+
+        @if (tenant.Roles.Count > 0)
+        {
+            <AcCard>
+                <ChildContent>
+                    <h3 style="margin-top:0;">المَفعَّلَة حاليّاً (@tenant.Roles.Count)</h3>
+                    <div class="acm-cat-list">
+                        @foreach (var r in tenant.Roles.OrderBy(r => r.SortOrder))
+                        {
+                            <div class="acm-cat-row">
+                                <span><AcIcon Name="@ACommerce.Widgets.AcIconMap.Resolve(r.Icon, "user")" Size="24" /></span>
+                                <div style="flex:1;">
+                                    <strong>@r.Label</strong>
+                                    <span style="color:var(--ac-text-muted);font-size:12px;display:block;">
+                                        @r.Permissions.Count صَلاحِيَّة · @r.Fields.Count حَقل بَيانات
+                                    </span>
+                                </div>
+                                @if (r.IsDefault) { <span class="ac-chip ac-chip-sm">افتراضي</span> }
+                            </div>
+                        }
+                    </div>
+                </ChildContent>
+            </AcCard>
+        }
+    }
+</div>
+
+@code {
+    [Parameter] public string Slug { get; set; } = "";
+    [SupplyParameterFromQuery(Name = "err")]   public string? Err { get; set; }
+    [SupplyParameterFromQuery(Name = "saved")] public string? Saved { get; set; }
+    [SupplyParameterFromQuery(Name = "from")]  public string? From { get; set; }
+
+    Tenant? tenant;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await using var s = Store.QuerySession();
+        tenant = await s.LoadAsync<Tenant>(Slug);
+    }
+
+    static string FormatError(string err) => err switch
+    {
+        _ => err
+    };
+}

@@ -1,0 +1,28 @@
+# NuGet/MSBuild artifacts — تُعاد بناؤها داخِل الحاوية
+**/bin/
+**/obj/
+**/.vs/
+
+# Git
+.git/
+.gitignore
+.github/
+
+# المُحَرِّر + IDE
+.vscode/
+.idea/
+*.user
+*.suo
+
+# Node (لِسكريبتات الفَحص فَقَط — لا تَدخُل الحاوية)
+node_modules/
+
+# الوَثائِق والاختِبارات لا تُنشَر
+docs/
+scripts/
+runtime-report.json
+runtime-report.md
+
+# مُخرَجات النَّشر السابِقَة
+publish/
+*.zip

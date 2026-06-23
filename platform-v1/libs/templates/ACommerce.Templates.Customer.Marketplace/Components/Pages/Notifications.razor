@@ -1,0 +1,113 @@
+@page "/{slug}/notifications"
+@page "/{slug}/r/{role}/notifications"
+@*
+    SSR صَرِف. الفَحص (auth) يَتِم في <GatedPage> — لا داعي لِكود يَدَويّ
+    في الصَفحَة. لَو لَم يَكُن مُسَجَّلاً يَظهَر AcEmptyState مَع زِرّ
+    تَسجيل، خِلاف ذلِك المُحتَوى.
+*@
+@inject IDocumentStore Store
+@inject AuthSession Auth
+@inject IHttpContextAccessor HttpCtx
+@using ACommerce.Kit.Notifications
+
+<div class="acs-page">
+<GatedPage Slug="@Slug" Role="@Role" RequireAuth>
+    <h1 class="acm-wizard-title" style="margin:0;">الإشعارات</h1>
+
+    @* بَنر تَفعيل إشعارات Push — يَظهَر فَقَط إذا الإذن لَم يُمنَح بَعد. *@
+    <div id="ac-push-banner" style="display:none;" class="ac-card">
+        <div style="display:flex;align-items:center;gap:12px;padding:8px;">
+            <span style="font-size:24px;"><AcIcon Name="bell" Size="24" /></span>
+            <div style="flex:1;">
+                <strong>فَعِّل إشعارات الجَوّال</strong>
+                <small style="display:block;color:var(--ac-text-muted);">
+                    اِستَلِم تَنبيهات لِلرَسائِل وَالعُروض حَتَّى وَالتَّطبيق مُغلَق.
+                </small>
+            </div>
+            <button type="button" class="ac-btn ac-btn-primary ac-btn-sm"
+                    onclick="acEnableNotifications().then(ok => {
+                        if (ok) document.getElementById('ac-push-banner').style.display='none';
+                    });">
+                تَفعيل
+            </button>
+        </div>
+    </div>
+    <script>
+        (function () {
+            if (!('Notification' in window) || !('serviceWorker' in navigator)) return;
+            if (Notification.permission === 'default') {
+                var b = document.getElementById('ac-push-banner');
+                if (b) b.style.display = 'block';
+            }
+        })();
+    </script>
+
+    @if (_items is null)         { <AcLoadingState Message="جارٍ التَحميل…" /> }
+    else if (_items.Count == 0)  { <AcEmptyState Title="لا توجَد إشعارات" IconName="bell" /> }
+    else
+    {
+        <div class="ac-inbox-list">
+            @foreach (var n in _items)
+            {
+                <AcListRow Title="@n.Title"
+                           Preview="@n.Body"
+                           Time="@n.At.ToString("HH:mm")"
+                           IconName="@NotifIcon(n.Type)"
+                           Href="@(string.IsNullOrEmpty(n.RelatedUrl) ? null : n.RelatedUrl)"
+                           Unread="@(!n.IsRead)" />
+            }
+        </div>
+    }
+</GatedPage>
+</div>
+
+@code {
+    [Parameter] public string Slug { get; set; } = "";
+    [Parameter] public string? Role { get; set; }
+    List<Notification>? _items;
+
+    /// <summary>أَيقونَة AcIcon حَسَب نَوع الإشعار — تَظهَر في مُقَدِّمَة AcListRow.</summary>
+    static string NotifIcon(string type) => type switch
+    {
+        "saved_search_match" => "search",
+        "offer_received" or "offer_accepted" or "offer_rejected" => "tag",
+        "chat" or "message" => "message-square",
+        "deal" or "deal_advanced" => "shopping-bag",
+        "ticket" => "alert-circle",
+        _ => "bell"
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        // الـ GatedPage يَتَكَفَّل بِفَحص التَّوثيق. هُنا فَقَط نُحَمِّل
+        // البَيانات لَو المُستَخدِم مَوثَّق — وَإلّا الـ _items يَبقى null
+        // وَالمُحتَوى داخِل GatedPage لَن يُعرَض أَصلاً.
+        if (HttpCtx.HttpContext is { } ctx)
+        {
+            Auth.SetTenant(Slug);
+            Auth.Load(ctx, Slug);
+        }
+        if (!Auth.IsAuthenticated) return;
+        await LoadAsync(Auth.UserId!.Value);
+    }
+
+    async Task LoadAsync(Guid userId)
+    {
+        await using var s = Store.QuerySession(Slug);
+        _items = (await s.Query<Notification>()
+            .Where(n => n.UserId == userId)
+            .OrderByDescending(n => n.At).Take(50).ToListAsync()).ToList();
+
+        var unread = _items.Where(n => !n.IsRead).ToList();
+        if (unread.Count > 0)
+        {
+            await using var ws = Store.LightweightSession(Slug);
+            foreach (var n in unread)
+            {
+                n.IsRead = true;
+                ws.Store(n);
+            }
+            await ws.SaveChangesAsync();
+        }
+    }
+}

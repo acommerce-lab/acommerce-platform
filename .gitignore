@@ -1,0 +1,44 @@
+# .NET
+bin/
+obj/
+*.user
+*.suo
+
+# SQLite demo DBs
+**/data/*.db
+**/data/*.db-*
+**/Data/*.db
+**/Data/*.db-*
+
+# Local secrets (per-app appsettings overrides — never commit)
+**/appsettings.*.local.json
+**/appsettings.local.json
+
+# Logs
+**/logs/
+*.log
+
+# IDE
+.vs/
+.vscode/
+.idea/
+scripts/node_modules/
+
+# Layer 6 runtime reports (regenerated each run)
+runtime-report.json
+runtime-auth-report.json
+scripts/package-lock.json
+
+# Ashare V2 env files (contain secrets)
+.env.Development
+.env.Production
+.env.local
+*.env.local
+
+# Firebase service-account JSON — مفاتيح خاصّة، توضع يدوياً على الخادم
+# (راجع Apps/Ejar/Customer/Backend/Ejar.Api/Secrets/README.md). الملف
+# .example.json آمن للالتزام كنموذج فقط.
+**/Secrets/firebase-service-account.json
+
+# importer local secrets
+platform-v1/tools/ACommerce.Importer/appsettings.Local.json
