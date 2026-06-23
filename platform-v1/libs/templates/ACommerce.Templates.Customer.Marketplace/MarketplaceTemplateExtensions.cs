@@ -44,6 +44,8 @@ public static class MarketplaceTemplateExtensions
                 .CreateNamed(sp.GetRequiredService<Microsoft.Extensions.Configuration.IConfiguration>(), "Design"));
         services.AddSingleton<ACommerce.Templates.Customer.Marketplace.Services.AgentService>();
         services.AddSingleton<ACommerce.Templates.Customer.Marketplace.Services.AgentToolExecutor>();
+        // حِصَص استِخدام الوُكلاء (لِكُلّ مُستَخدِم + صَمّام أَمان لِلمَنصَّة).
+        services.AddSingleton<ACommerce.Templates.Customer.Marketplace.Services.AgentQuotaService>();
         services.AddSingleton<ACommerce.Templates.Customer.Marketplace.Services.WebPushService>();
         services.AddScoped<Gates.GatePipeline>();
         services.AddScoped<Commands.AcceptTermsHandler>();
