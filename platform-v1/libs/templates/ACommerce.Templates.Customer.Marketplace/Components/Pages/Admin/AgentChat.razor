@@ -71,7 +71,17 @@
                     <div class="acm-agent-body">
                         @if (!string.IsNullOrEmpty(turn.Text))
                         {
-                            <div class="acm-agent-text">@turn.Text</div>
+                            @if (turn.IsError)
+                            {
+                                <div class="acm-agent-error">
+                                    <AcIcon Name="alert-circle" Size="16" />
+                                    <span>@turn.Text</span>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="acm-agent-text">@turn.Text</div>
+                            }
                         }
                         @if (turn.Tool is not null)
                         {

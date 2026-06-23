@@ -273,17 +273,10 @@ public sealed class FeasibilityAnalysisService
         await session.SaveChangesAsync(ct);
     }
 
-    /// <summary>يُحَوِّل خَطَأ الـ provider الخام لِرِسالَة مَفهومَة + يَقصّ
-    /// الطول. يُبرِز حالات الحِصَّة (429) بِشكل صَريح.</summary>
+    /// <summary>رِسالَة خَطَأ نَظيفَة لِلمُستَخدِم — لا نَعرِض الخَطَأ الخامّ
+    /// أَبَداً. نُفَوِّض لِلمُنَسِّق المُشتَرَك (AgentErrorFormatter).</summary>
     internal static string FormatError(string? raw)
-    {
-        if (string.IsNullOrWhiteSpace(raw)) return "فشل غير معروف.";
-        if (raw.Contains("429") || raw.Contains("quota", StringComparison.OrdinalIgnoreCase)
-                                || raw.Contains("rate", StringComparison.OrdinalIgnoreCase))
-            return "تَجاوُز حِصَّة مُزَوِّد الـ LLM. تَحَقَّق مِن باقَة الـ API لَدَيك أَو بَدِّل المُزَوِّد في الإعدادات (Agent:Provider).";
-        const int max = 300;
-        return raw.Length <= max ? raw : raw[..max] + "…";
-    }
+        => AgentErrorFormatter.Friendly(raw);
 
     // ─── Helpers ─────────────────────────────────────────────────────
     /// <summary>يستخرج كتلة JSON من ردّ قد يحوي markdown fences أو نصاً حوله.</summary>

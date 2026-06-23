@@ -24,7 +24,33 @@ public sealed class AgentTurn
     public string Role { get; set; } = "";   // "user" | "assistant"
     public string? Text { get; set; }
     public AgentToolCall? Tool { get; set; }
+    /// <summary>دَور تَنبيه/خَطَأ — يُعرَض بِنَمَط مُمَيَّز (لا فُقّاعَة عاديَّة).</summary>
+    public bool IsError { get; set; }
     public DateTime At { get; set; } = DateTime.UtcNow;
+}
+
+/// <summary>يُحَوِّل أَخطاء المُزَوِّد الخامَّة (JSON/رُموز HTTP) إلى رِسالَة
+/// عَرَبِيَّة نَظيفَة لِلمُستَخدِم — لا نَعرِض أَبَداً بُنيَة الخَطَأ الخامَّة.</summary>
+public static class AgentErrorFormatter
+{
+    public static string Friendly(string? raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw))
+            return "تَعَذَّرَ إكمال الطَّلَب الآن. حاوِل مَرَّة أُخرى.";
+        var r = raw.ToLowerInvariant();
+        if (r.Contains("429") || r.Contains("rate limit") || r.Contains("rate_limit")
+            || r.Contains("tokens per minute") || r.Contains("quota") || r.Contains("too many"))
+            return "الخِدمَة مَشغولَة الآن (تَجاوُز حَدّ المُعَدَّل المُؤَقَّت). انتَظِر دَقيقَة ثُمَّ أَعِد المُحاوَلَة.";
+        if (r.Contains("401") || r.Contains("403") || r.Contains("unauthorized")
+            || r.Contains("invalid api key") || r.Contains("permission") || r.Contains("forbidden"))
+            return "إعداد مِفتاح الذَّكاء الاصطِناعيّ غَير صالِح أَو بِلا صَلاحيَّة. (إعداد المَنصَّة)";
+        if (r.Contains("404") || r.Contains("unknown request url") || r.Contains("unknown_url")
+            || r.Contains("not found") || r.Contains("does not exist") || r.Contains("decommission"))
+            return "إعداد نَموذَج الذَّكاء غَير صَحيح (نَموذَج أَو رابِط غَير مَدعوم). (إعداد المَنصَّة)";
+        if (r.Contains("timeout") || r.Contains("timed out") || r.Contains("timdeout"))
+            return "تَأَخَّرَت الخِدمَة في الرَّدّ. حاوِل مَرَّة أُخرى.";
+        return "تَعَذَّرَ إكمال الطَّلَب الآن. حاوِل مَرَّة أُخرى لاحِقاً.";
+    }
 }
 
 public sealed class AgentToolCall
@@ -136,9 +162,8 @@ public sealed class AgentService
             session.Turns.Add(new AgentTurn
             {
                 Role = "assistant",
-                Text = $"لا يوجَد مِفتاح لِـ {_backend.ProviderName} مَضبوط. "
-                     + "أَضِف `Agent:ApiKey` في appsettings.Local.json أَو مُتَغَيِّر بيئَة "
-                     + "(ANTHROPIC_API_KEY / GEMINI_API_KEY / OPENAI_API_KEY)."
+                IsError = true,
+                Text = "مُساعِد الذَّكاء غَير مُفَعَّل بَعد (لا يوجَد مِفتاح). راجِع إعدادات المَنصَّة."
             });
             return false;
         }
@@ -156,7 +181,8 @@ public sealed class AgentService
             session.Turns.Add(new AgentTurn
             {
                 Role = "assistant",
-                Text = "⚠️ " + resp.Error
+                IsError = true,
+                Text = AgentErrorFormatter.Friendly(resp.Error)
             });
             return false;
         }
