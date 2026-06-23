@@ -324,6 +324,7 @@ public sealed class OpenAIBackend : IAgentBackend
     private readonly string _apiKey;
     private readonly string _providerName;
     private readonly string _defaultModel;
+    private readonly string _chatPath;
     private readonly HttpClient _http;
     private static readonly JsonSerializerOptions JsonOpts = new()
     {
@@ -337,6 +338,7 @@ public sealed class OpenAIBackend : IAgentBackend
                   ?? Environment.GetEnvironmentVariable("GROQ_API_KEY")
                   ?? Environment.GetEnvironmentVariable("CEREBRAS_API_KEY")
                   ?? Environment.GetEnvironmentVariable("OPENROUTER_API_KEY")
+                  ?? Environment.GetEnvironmentVariable("GITHUB_TOKEN")
                   ?? "";
         var baseUrl = (cfg["Agent:BaseUrl"] ?? "https://api.openai.com/").TrimEnd('/') + "/";
         _http = new HttpClient
@@ -346,15 +348,31 @@ public sealed class OpenAIBackend : IAgentBackend
         };
         _providerName = (cfg["Agent:ProviderLabel"] ?? InferProvider(baseUrl)).ToLowerInvariant();
         _defaultModel = cfg["Agent:Model"] ?? "gpt-4o";
+        // المَسار الـ relative: OpenAI و Groq و Cerebras و OpenRouter كُلّها
+        // تَستَخدِم "v1/chat/completions". GitHub Models يَستَخدِم
+        // "chat/completions" (بِلا v1). نَتَركه قابِلاً لِلتَجاوُز عَبر
+        // Agent:ChatPath، وإلّا نُخَمِّن مِن الـ baseUrl.
+        _chatPath = cfg["Agent:ChatPath"] ?? InferChatPath(baseUrl);
     }
 
     private static string InferProvider(string baseUrl)
     {
-        if (baseUrl.Contains("groq"))       return "groq";
-        if (baseUrl.Contains("cerebras"))   return "cerebras";
-        if (baseUrl.Contains("openrouter")) return "openrouter";
+        if (baseUrl.Contains("groq"))            return "groq";
+        if (baseUrl.Contains("cerebras"))        return "cerebras";
+        if (baseUrl.Contains("openrouter"))      return "openrouter";
+        if (baseUrl.Contains("models.github"))   return "github-models";
+        if (baseUrl.Contains("models.inference.ai.azure")) return "github-models";
         if (baseUrl.Contains("11434") || baseUrl.Contains("localhost")) return "ollama";
         return "openai";
+    }
+
+    private static string InferChatPath(string baseUrl)
+    {
+        // GitHub Models / Azure AI Inference: الـ path المُباشَر "chat/completions"
+        // (الـ baseUrl يَنتَهي بِـ /inference/). الباقي v1/chat/completions.
+        if (baseUrl.Contains("models.github") || baseUrl.Contains("models.inference.ai.azure"))
+            return "chat/completions";
+        return "v1/chat/completions";
     }
 
     public string ProviderName => _providerName;
@@ -387,7 +405,7 @@ public sealed class OpenAIBackend : IAgentBackend
             max_completion_tokens = req.MaxTokens
         };
 
-        using var http = new HttpRequestMessage(HttpMethod.Post, "v1/chat/completions")
+        using var http = new HttpRequestMessage(HttpMethod.Post, _chatPath)
         {
             Content = JsonContent.Create(body, options: JsonOpts)
         };
