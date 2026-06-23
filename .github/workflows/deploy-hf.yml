@@ -84,20 +84,14 @@ jobs:
 
           api = HfApi(token=os.environ['HF_TOKEN'])
 
-          # تَشخيص: اطبَع هويَّة مالِك الـ token قَبل أَيّ شَيء — لَو 401
-          # هُنا فالـ token خَطَأ أَو مُنتَهٍ. لَو نَجَح، فأَيّ خَطَأ لاحِق
-          # يَخُصّ صَلاحيَّات الكِتابَة عَلى الـ Space تَحديداً.
+          # تَشخيص اختياريّ (غَير قاتِل): whoami نُقطَة مَحدودَة المُعَدَّل
+          # بِصَرامَة في HF — لا نُفشِل النَّشر إن اصطَدَمَت بِالحَدّ. الفَحص
+          # الحَقيقيّ لِلصَّلاحيَّات يَتِمّ عَبر space_info + upload أَدناه.
           try:
               me = api.whoami()
               print(f"  Token belongs to: {me.get('name', '?')} (type={me.get('type', '?')})")
-              orgs = [o.get('name','?') for o in me.get('orgs', [])]
-              if orgs:
-                  print(f"  Org memberships:  {', '.join(orgs)}")
-          except HfHubHTTPError as e:
-              print(f"::error::HF_TOKEN invalid or expired: {e}")
-              print("Create a new Write token at https://huggingface.co/settings/tokens")
-              print("then update the HF_TOKEN secret in GitHub Settings → Secrets.")
-              sys.exit(1)
+          except Exception as e:
+              print(f"  (whoami skipped: {str(e)[:80]})")
 
           # تَأكَّد أَنّ Space مَوجود (وإلّا أَخطَأ بِرسالَة واضِحَة).
           try:
