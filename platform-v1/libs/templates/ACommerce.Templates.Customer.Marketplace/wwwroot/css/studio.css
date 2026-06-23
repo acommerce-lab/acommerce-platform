@@ -119,6 +119,9 @@
     background: rgba(255, 255, 255, 0.8); border-bottom: 1px solid var(--st-line);
 }
 .landing-brand { display: flex; align-items: center; gap: 10px; font-size: 20px; font-weight: 700; color: var(--st-ink); }
+/* شِعار وَسايِل (lockup SVG) — يَحفَظ نِسبَة العَرض، ارتِفاع ثابِت. */
+.landing-brand-logo { display: block; height: 36px; width: auto; }
+.studio-sidebar-brand img { display: block; height: 34px; width: auto; }
 .landing-brand-mark {
     width: 34px; height: 34px; border-radius: 9px;
     /* background-color مُسبَق لِيُحسَب التَّباين 4.5:1 عَلى أَبيَض النَّصّ

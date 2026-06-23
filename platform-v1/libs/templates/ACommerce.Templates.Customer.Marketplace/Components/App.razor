@@ -92,6 +92,16 @@
         <meta name="apple-mobile-web-app-title" content="@Tenant.Name" />
         <meta name="mobile-web-app-capable" content="yes" />
     }
+    else
+    {
+        @* صَفَحات المَنصَّة نَفسها (الهُبوط / studio / admin) لا تَملِك
+           tenant — تَستَخدِم أَيقونَة وَسايِل كَ favicon افتراضيّ. *@
+        <link rel="icon" type="image/svg+xml"
+              href="_content/ACommerce.Templates.Customer.Marketplace/brand/wasayel-app-icon.svg" />
+        <link rel="apple-touch-icon"
+              href="_content/ACommerce.Templates.Customer.Marketplace/brand/wasayel-app-icon.png" />
+        <meta name="apple-mobile-web-app-title" content="وَسايِل" />
+    }
 
     <HeadOutlet />
 </head>
